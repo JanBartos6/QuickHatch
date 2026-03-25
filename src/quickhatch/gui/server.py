@@ -90,15 +90,21 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
 
         def _handle_bridge_get(self):
             if self.path == "/api/profile":
+                bridge_state.agent_connected = True
                 profile_dict = asdict(bridge_state.profile)
                 if profile_dict.get("ai_config", {}).get("api_key"):
                     profile_dict["ai_config"]["api_key"] = "***REDACTED***"
                 self._send_json({"status": "ok", "profile": profile_dict})
 
             elif self.path == "/api/status":
-                bridge_state.agent_connected = True
+                # Only mark connected if called by the agent (not the GUI polling)
+                # The GUI uses fetch with default headers; agents use curl
+                ua = self.headers.get("User-Agent", "")
+                if "curl" in ua.lower() or "python" in ua.lower():
+                    bridge_state.agent_connected = True
                 self._send_json({
                     "status": "ok",
+                    "agent_connected": bridge_state.agent_connected,
                     "pending_questions": len(bridge_state.get_pending_questions()),
                     "suggestions": len(bridge_state.suggestions),
                     "agent_done": bridge_state.agent_done,
@@ -130,6 +136,7 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
         # ── Bridge API POST handlers (inline) ──
 
         def _handle_bridge_post(self):
+            bridge_state.agent_connected = True
             data = self._read_json()
 
             if self.path == "/api/suggest":
@@ -284,20 +291,35 @@ def _launch_agent(gui_state: GUIState, port: int) -> dict:
         f"POST /api/done when finished."
     )
 
+    # Write prompt to file so we don't have to pass it inline (avoids quoting hell)
+    prompt_file = Path.home() / ".quickhatch-agent-prompt.txt"
+    prompt_file.write_text(prompt, encoding="utf-8")
+
     try:
         if sys.platform == "win32":
+            # Write a PowerShell script that reads prompt from file
+            ps_file = Path.home() / ".quickhatch-launch-agent.ps1"
             if provider == "claude_code":
-                subprocess.Popen(
-                    ["cmd", "/c", "start", "", "claude", "-p", prompt, "--allowedTools", "Bash"],
-                    creationflags=subprocess.CREATE_NEW_CONSOLE,
+                ps_content = (
+                    f'$p = Get-Content "{prompt_file}" -Raw\n'
+                    f'claude -p $p --allowedTools "Bash"\n'
+                    f'Read-Host "Press Enter to close"\n'
                 )
             elif provider == "codex":
-                subprocess.Popen(
-                    ["cmd", "/c", "start", "", "codex", prompt],
-                    creationflags=subprocess.CREATE_NEW_CONSOLE,
+                ps_content = (
+                    f'$p = Get-Content "{prompt_file}" -Raw\n'
+                    f'codex $p\n'
+                    f'Read-Host "Press Enter to close"\n'
                 )
             else:
                 return {"status": "error", "message": f"Point your AI tool at {base}/api/profile"}
+
+            ps_file.write_text(ps_content, encoding="utf-8")
+            # Launch PowerShell in a new window with the script
+            subprocess.Popen([
+                "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                "-Command", f'Start-Process powershell -ArgumentList "-NoProfile","-ExecutionPolicy","Bypass","-File","{ps_file}"'
+            ])
         else:
             # Linux - write prompt to file, launch in terminal
             prompt_file = Path.home() / ".quickhatch-agent-prompt.txt"
