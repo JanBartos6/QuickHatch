@@ -14,6 +14,7 @@ WIZARD_STEPS = [
     ("questionnaire", "Preferences"),
     ("scan", "System Scan"),
     ("additional", "Additional Information"),
+    ("bridge", "AI Agent Bridge"),
     ("usb", "Bootable USB Creation"),
     ("ssh", "SSH Key Setup"),
     ("export", "Export Migration Bundle"),
@@ -49,6 +50,7 @@ def main() -> None:
     from quickhatch.wizard import (
         additional,
         ai_setup,
+        bridge,
         export,
         questionnaire,
         scan,
@@ -63,6 +65,7 @@ def main() -> None:
         "questionnaire": questionnaire,
         "scan": scan,
         "additional": additional,
+        "bridge": bridge,
         "usb": usb,
         "ssh": ssh,
         "export": export,
