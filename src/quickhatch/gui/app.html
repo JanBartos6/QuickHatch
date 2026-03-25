@@ -309,8 +309,7 @@ async function loadProfile(){
 function renderProgress(){
   const bar=document.getElementById('progressBar');
   const step=STEPS[state.currentStep];
-  const doneCount=state.completedSteps.length;
-  const pct=Math.round((doneCount/STEPS.length)*100);
+  const pct=Math.round((state.currentStep/STEPS.length)*100);
   if(!step){
     bar.innerHTML=`
       <div class="progress-info">
