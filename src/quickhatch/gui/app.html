@@ -205,6 +205,7 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
   animation:slideUp .3s cubic-bezier(.22,1,.36,1);
 }
 .agent-msg:last-child{color:var(--fg-muted)}
+.agent-msg.user-msg{color:var(--amber);font-style:italic}
 
 /* ── Code ── */
 code{
@@ -557,6 +558,12 @@ const stepRenderers={
           <div id="agentFeed"></div>
         </div>
         <div id="questionArea"></div>
+        <div class="chat-input" style="margin-top:12px">
+          <div style="display:flex;gap:8px">
+            <input type="text" id="chatMsg" placeholder="Reply to the agent..." onkeydown="if(event.key==='Enter')sendChat()" style="flex:1">
+            <button class="btn btn-ghost" onclick="sendChat()" style="flex-shrink:0">Send</button>
+          </div>
+        </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
           <button class="btn btn-primary" id="bridgeNext" onclick="completeStep('bridge')" disabled>Waiting for agent...</button>
@@ -721,6 +728,28 @@ async function launchAgent(){
   }
 }
 
+async function sendChat(){
+  const inp=el('chatMsg');
+  const msg=inp.value.trim();
+  if(!msg)return;
+  inp.value='';
+  await api('/wizard/chat','POST',{message:msg});
+  // Force a poll to show the message immediately
+  state._lastMsgCount=-1;
+  pollBridge();
+}
+
+async function answerQuestion(qid){
+  const inp=el('answer-'+qid);
+  if(!inp)return;
+  const answer=inp.value.trim();
+  if(!answer)return;
+  inp.disabled=true;
+  await api('/wizard/answer','POST',{question_id:qid,answer});
+  const card=el('qcard-'+qid);
+  if(card)card.innerHTML=`<div style="color:var(--fg-dim);font-size:.85rem">Answered: ${escHtml(answer)}</div>`;
+}
+
 let bridgePollTimer=null;
 async function pollBridge(){
   try{
@@ -740,7 +769,7 @@ async function pollBridge(){
         if(msgEl&&md.messages.length!==state._lastMsgCount){
           state._lastMsgCount=md.messages.length;
           msgEl.innerHTML=md.messages.map(m=>
-            `<div class="agent-msg">${escHtml(m.content)}</div>`
+            `<div class="agent-msg${m.role==='user'?' user-msg':''}">${m.role==='user'?'You: ':''}${escHtml(m.content)}</div>`
           ).join('');
           msgEl.scrollTop=msgEl.scrollHeight;
         }
@@ -758,6 +787,22 @@ async function pollBridge(){
               <div class="scontent">${typeof s.content==='string'?escHtml(s.content):'<pre>'+escHtml(JSON.stringify(s.content,null,2))+'</pre>'}</div>
             </div>`).join('');
         }
+      // Fetch and display pending questions
+      const qd=await api('/api/pending-questions');
+      if(qd.questions&&qd.questions.length>0){
+        const qa=el('questionArea');
+        if(qa){
+          qa.innerHTML=qd.questions.map(q=>`
+            <div class="info-box" id="qcard-${escHtml(q.id)}" style="border-color:var(--amber);margin-top:10px">
+              <strong style="color:var(--amber)">${escHtml(q.question)}</strong>
+              ${q.choices?`<div class="pill-grid" style="margin:8px 0">${q.choices.map(c=>`<span class="pill" onclick="el('answer-${escHtml(q.id)}').value='${escHtml(c)}'">${escHtml(c)}</span>`).join('')}</div>`:''}
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <input type="text" id="answer-${escHtml(q.id)}" placeholder="Type your answer..." onkeydown="if(event.key==='Enter')answerQuestion('${escHtml(q.id)}')" style="flex:1">
+                <button class="btn btn-primary" onclick="answerQuestion('${escHtml(q.id)}')" style="flex-shrink:0">Answer</button>
+              </div>
+            </div>`).join('');
+        }
+      }
         // Enable continue only when agent signals it's done
         if(data.agent_done){
           state._agentDone=true;

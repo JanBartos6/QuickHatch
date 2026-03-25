@@ -135,6 +135,13 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                     msgs = list(bridge_state.messages)
                 self._send_json({"status": "ok", "messages": msgs})
 
+            elif self.path == "/api/pending-questions":
+                pending = bridge_state.get_pending_questions()
+                self._send_json({"status": "ok", "questions": [
+                    {"id": q.id, "question": q.question, "choices": q.choices}
+                    for q in pending
+                ]})
+
             else:
                 self._send_json({"status": "error", "message": "Not found"}, 404)
 
@@ -265,6 +272,25 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                     "instruction_file": str(inst_path),
                 })
 
+            elif self.path == "/wizard/answer":
+                data = self._read_json()
+                qid = data.get("question_id", "")
+                answer = data.get("answer", "")
+                if qid and answer:
+                    bridge_state.answer_question(qid, answer)
+                    self._send_json({"status": "ok"})
+                else:
+                    self._send_json({"status": "error", "message": "Missing question_id or answer"}, 400)
+
+            elif self.path == "/wizard/chat":
+                data = self._read_json()
+                msg = data.get("message", "").strip()
+                if msg:
+                    bridge_state.add_message("user", msg)
+                    self._send_json({"status": "ok"})
+                else:
+                    self._send_json({"status": "error", "message": "Empty message"}, 400)
+
             elif self.path == "/wizard/launch-agent":
                 data = self._read_json()
                 result = _launch_agent(gui_state, server.server_address[1])
@@ -292,27 +318,31 @@ def _launch_agent(gui_state: GUIState, port: int) -> dict:
     prompt = (
         f"You are helping me migrate from Windows to Linux. "
         f"A QuickHatch bridge API is running at {base}.\n\n"
-        f"STEP 1: Send a status message so I know you're working:\n"
-        f'  curl -s -X POST {base}/api/message -H "Content-Type: application/json" '
-        f'-d \'{{"role":"agent","content":"Connected! Reading your system profile..."}}\'\n\n'
-        f"STEP 2: Fetch my full system profile:\n"
-        f"  curl -s {base}/api/profile\n\n"
-        f"STEP 3: Analyze everything, sending status messages as you go:\n"
-        f'  curl -s -X POST {base}/api/message -H "Content-Type: application/json" '
-        f'-d \'{{"role":"agent","content":"Analyzing your hardware and apps..."}}\'\n\n'
-        f"STEP 4: Post your recommendations using /api/suggest (one per category):\n"
-        f'  curl -s -X POST {base}/api/suggest -H "Content-Type: application/json" '
-        f'-d \'{{"category":"distro","title":"Recommended distro","content":"..."}}\'\n'
-        f"  Categories: distro, apps, drivers, desktop, plan\n\n"
-        f"STEP 5: If you need to ask me something:\n"
-        f'  curl -s -X POST {base}/api/ask -H "Content-Type: application/json" '
-        f'-d \'{{"question":"your question here"}}\'\n\n'
-        f"STEP 6: When done, signal completion:\n"
-        f'  curl -s -X POST {base}/api/done -H "Content-Type: application/json" '
-        f'-d \'{{"summary":"All recommendations posted."}}\'\n\n'
-        f"IMPORTANT: Send /api/message updates frequently so I know you're working. "
-        f"Think freely. Use your full knowledge. Provide links, reasoning, pros/cons. "
-        f"Do not limit yourself to a few options. Consider the full Linux ecosystem."
+        f"== API Reference ==\n"
+        f"GET  {base}/api/profile      — my full system profile\n"
+        f"GET  {base}/api/messages      — all messages (check for my replies)\n"
+        f"POST {base}/api/message       — send status update: {{\"role\":\"agent\",\"content\":\"...\"}}\n"
+        f"POST {base}/api/suggest       — post recommendation: {{\"category\":\"distro|apps|drivers|desktop|plan\",\"title\":\"...\",\"content\":\"...\"}}\n"
+        f"POST {base}/api/ask           — ask me a question (blocks until I answer): {{\"question\":\"...\"}}\n"
+        f"POST {base}/api/done          — signal you're finished: {{\"summary\":\"...\"}}\n\n"
+        f"== Instructions ==\n"
+        f"1. Send a status message: \"Connected! Reading your profile...\"\n"
+        f"2. Fetch my profile with GET /api/profile\n"
+        f"3. Send status updates as you analyze (\"Checking hardware...\", \"Reviewing apps...\" etc)\n"
+        f"4. IMPORTANT: After posting your distro recommendation, use /api/ask to check:\n"
+        f"   \"I'm recommending [distro]. Does that sound good, or would you prefer something else?\"\n"
+        f"   Wait for my answer before continuing. Respect my preference if I picked a specific distro.\n"
+        f"5. Post recommendations for each category (distro, apps, drivers, desktop, plan)\n"
+        f"   Include download links where possible.\n"
+        f"6. After posting all suggestions, check GET /api/messages for any replies from me.\n"
+        f"   If I posted feedback (role: \"user\"), address it and update your suggestions.\n"
+        f"7. Call /api/done when finished.\n\n"
+        f"== Guidelines ==\n"
+        f"- Send /api/message updates frequently so I know you're working\n"
+        f"- Think freely. Use your full knowledge. Provide links, reasoning, pros/cons\n"
+        f"- If I specified a distro preference, prioritize it unless there's a strong reason not to\n"
+        f"- Include ISO download URLs in your distro recommendation\n"
+        f"- Be thorough but don't take forever — aim for quality over quantity"
     )
 
     # Write prompt to file so we don't have to pass it inline (avoids quoting hell)
