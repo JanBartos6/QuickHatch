@@ -21,6 +21,13 @@ def run(profile: UserProfile) -> None:
     rankings = recommend(profile)
     top_5 = rankings[:5]
 
+    if not top_5:
+        print_warning("No distro data available. Defaulting to Ubuntu.")
+        profile.recommended_distro = "Ubuntu"
+        profile.recommended_desktop = "GNOME"
+        profile.completed_steps.append("distro")
+        return
+
     # Display rankings
     table = Table(title="Top Distro Recommendations")
     table.add_column("Rank", style="bold", width=6)
@@ -57,7 +64,7 @@ def run(profile: UserProfile) -> None:
             profile.recommended_distro = choice
     else:
         use_top = questionary.confirm(
-            f"Our top recommendation is [bold]{top_name}[/bold]. Would you like to go with it?",
+            f"Our top recommendation is {top_name}. Would you like to go with it?",
             default=True,
         ).ask()
         if use_top is None:

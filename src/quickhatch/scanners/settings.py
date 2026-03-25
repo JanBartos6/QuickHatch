@@ -15,8 +15,13 @@ def scan() -> dict:
     settings: dict = {}
 
     # System locale
-    settings["locale"] = locale.getdefaultlocale()[0] or "en_US"
-    settings["encoding"] = locale.getdefaultlocale()[1] or "UTF-8"
+    try:
+        loc, enc = locale.getlocale()
+        settings["locale"] = loc or "en_US"
+        settings["encoding"] = enc or "UTF-8"
+    except (ValueError, AttributeError):
+        settings["locale"] = "en_US"
+        settings["encoding"] = "UTF-8"
 
     if sys.platform != "win32":
         print_warning("Not running on Windows - settings scan limited.")

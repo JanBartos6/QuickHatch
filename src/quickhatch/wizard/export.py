@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shlex
 import zipfile
 from dataclasses import asdict
 from pathlib import Path
@@ -53,11 +55,15 @@ def run(profile: UserProfile) -> None:
     yaml_path = output_dir / "quickhatch-profile.yaml"
     yaml_path.write_text(yaml.dump(profile_dict, default_flow_style=False, sort_keys=False))
 
-    # Store API key separately if present
+    # Store API key separately if present (with restricted permissions)
     if profile.ai_config.api_key:
         api_key_path = output_dir / ".api_key"
         api_key_path.write_text(profile.ai_config.api_key)
-        print_info("API key saved to .api_key (keep this secure!)")
+        try:
+            api_key_path.chmod(0o600)
+        except OSError:
+            pass  # Windows may not support chmod
+        print_info("API key saved to .api_key (owner-only permissions)")
 
     # Copy SSH public key if available
     if profile.ssh_public_key_path:
@@ -121,7 +127,7 @@ def _generate_quickstart(profile: UserProfile) -> str:
         script += 'echo "[*] Setting up SSH access..."\n'
         script += "mkdir -p ~/.ssh && chmod 700 ~/.ssh\n"
         script += f'if [ -f "{pub_name}" ]; then\n'
-        script += f'    cat "{pub_name}" >> ~/.ssh/authorized_keys\n'
+        script += f'    grep -qxF "$(cat {pub_name})" ~/.ssh/authorized_keys 2>/dev/null || cat "{pub_name}" >> ~/.ssh/authorized_keys\n'
         script += "    chmod 600 ~/.ssh/authorized_keys\n"
         script += '    echo "[+] SSH key added"\n'
         script += "fi\n\n"
@@ -160,7 +166,7 @@ def _generate_quickstart(profile: UserProfile) -> str:
         script += "# Install Ollama\n"
         script += 'echo "[*] Installing Ollama..."\n'
         script += "curl -fsSL https://ollama.ai/install.sh | sh\n"
-        model = ai.model_name or "llama3"
+        model = shlex.quote(ai.model_name or "llama3")
         script += f'echo "[*] Pulling model {model}..."\n'
         script += f"ollama pull {model}\n"
         script += f'echo "[+] Ollama ready with {model}"\n'

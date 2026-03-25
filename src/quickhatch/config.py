@@ -98,7 +98,11 @@ class UserProfile:
         """Save current state to a checkpoint file."""
         if path is None:
             path = Path(".quickhatch-checkpoint.json")
-        path.write_text(json.dumps(asdict(self), indent=2))
+        data = asdict(self)
+        # Redact sensitive data from checkpoint
+        if data.get("ai_config", {}).get("api_key"):
+            data["ai_config"]["api_key"] = "***REDACTED***"
+        path.write_text(json.dumps(data, indent=2))
         return path
 
     @classmethod

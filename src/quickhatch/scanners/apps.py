@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 
 def _scan_winget() -> list[AppInfo]:
     """Scan apps using winget."""
+    if sys.platform != "win32":
+        return []
     try:
         result = subprocess.run(
             ["winget", "list", "--accept-source-agreements", "--disable-interactivity"],
