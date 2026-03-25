@@ -552,7 +552,7 @@ const stepRenderers={
         <div id="questionArea"></div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
-          <button class="btn btn-primary" onclick="completeStep('bridge')">Continue</button>
+          <button class="btn btn-primary" id="bridgeNext" onclick="completeStep('bridge')" disabled>Waiting for agent...</button>
         </div>
       </div>`;
     pollBridge();
@@ -733,6 +733,11 @@ async function pollBridge(){
               <div class="stitle">${escHtml(s.title)}</div>
               <div class="scontent">${typeof s.content==='string'?escHtml(s.content):'<pre>'+escHtml(JSON.stringify(s.content,null,2))+'</pre>'}</div>
             </div>`).join('');
+        }
+        // Enable continue once the agent has sent output
+        if(sd.suggestions.length>0||data.agent_done){
+          const btn=el('bridgeNext');
+          if(btn&&btn.disabled){btn.disabled=false;btn.textContent='Continue'}
         }
       }
     }
