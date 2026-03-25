@@ -1,0 +1,18 @@
+{
+    "note": "Hardware compatibility notes. Used by driver_check.py for additional lookups.",
+    "gpu": {
+        "nvidia_rtx_40xx": "Requires nvidia-driver-545+ or nvidia-open. Excellent support.",
+        "nvidia_rtx_30xx": "Requires nvidia-driver-525+. Well supported.",
+        "nvidia_gtx_16xx": "Requires nvidia-driver-470+. Well supported.",
+        "amd_rdna3": "Kernel 6.2+ recommended. Mesa 23.1+ for full support.",
+        "amd_rdna2": "Kernel 5.11+. Excellent support.",
+        "intel_arc": "Kernel 6.2+ required. Mesa 23.0+ recommended."
+    },
+    "wifi": {
+        "intel_ax210": "iwlwifi driver. Works out of the box on kernel 5.12+.",
+        "intel_ax200": "iwlwifi driver. Works out of the box on kernel 5.4+.",
+        "realtek_rtl8852": "rtw89 driver. Kernel 5.16+ recommended.",
+        "broadcom_bcm43xx": "Needs broadcom-sta or b43 driver. May need firmware-b43-installer.",
+        "mediatek_mt7921": "mt7921e driver. Kernel 5.13+ recommended."
+    }
+}

@@ -1,0 +1,4 @@
+{
+    "note": "This file supplements the built-in distro database in distro_engine.py. Add community distros here.",
+    "distros": {}
+}

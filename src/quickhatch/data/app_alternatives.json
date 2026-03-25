@@ -1,0 +1,20 @@
+{
+    "autocad": {"alt": "FreeCAD / LibreCAD", "compat": "alternative", "notes": "Open-source CAD tools"},
+    "solidworks": {"alt": "FreeCAD / OpenSCAD", "compat": "alternative", "notes": "FreeCAD has parametric modeling"},
+    "matlab": {"alt": "GNU Octave / SciPy", "compat": "alternative", "notes": "Octave is mostly Matlab-compatible"},
+    "tableau": {"alt": "Apache Superset / Metabase", "compat": "alternative", "notes": "Open-source BI tools"},
+    "lightroom": {"alt": "Darktable / RawTherapee", "compat": "alternative", "notes": "Professional photo editing"},
+    "coreldraw": {"alt": "Inkscape", "compat": "alternative", "notes": "Full vector graphics editor"},
+    "paint.net": {"alt": "Pinta", "compat": "alternative", "notes": "Similar simple image editor"},
+    "foobar2000": {"alt": "DeaDBeeF / Quod Libet", "compat": "alternative", "notes": "Lightweight music players"},
+    "total commander": {"alt": "Double Commander / Midnight Commander", "compat": "alternative", "notes": "Dual-pane file managers"},
+    "irfanview": {"alt": "Eye of GNOME / gThumb", "compat": "alternative", "notes": "Image viewers"},
+    "teracopy": {"alt": "rsync (built-in)", "compat": "native", "notes": "rsync is powerful and built-in"},
+    "sharepoint": {"alt": "Nextcloud", "compat": "alternative", "notes": "Self-hosted file sharing and collaboration"},
+    "notion": {"alt": "Obsidian / Logseq / AppFlowy", "compat": "alternative", "notes": "Note-taking and knowledge management"},
+    "evernote": {"alt": "Joplin", "compat": "alternative", "notes": "Open-source note taking with sync"},
+    "camtasia": {"alt": "OBS Studio / Kazam", "compat": "alternative", "notes": "Screen recording tools"},
+    "snagit": {"alt": "Flameshot / Shutter", "compat": "alternative", "notes": "Screenshot tools"},
+    "vmware workstation": {"alt": "VirtualBox / virt-manager (KVM)", "compat": "alternative", "notes": "KVM is faster, VirtualBox is easier"},
+    "hyper-v": {"alt": "KVM/QEMU + virt-manager", "compat": "alternative", "notes": "KVM is the Linux hypervisor"}
+}
