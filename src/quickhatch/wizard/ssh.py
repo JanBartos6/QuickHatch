@@ -148,10 +148,16 @@ def run(profile: UserProfile) -> None:
             )
         else:
             print_error(f"ssh-keygen failed: {result.stderr}")
+            profile.completed_steps.append("ssh")
+            return
 
     except subprocess.TimeoutExpired:
         print_error("ssh-keygen timed out")
+        profile.completed_steps.append("ssh")
+        return
     except OSError as e:
         print_error(f"Could not run ssh-keygen: {e}")
+        profile.completed_steps.append("ssh")
+        return
 
     profile.completed_steps.append("ssh")

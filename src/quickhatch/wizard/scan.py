@@ -46,28 +46,28 @@ def run(profile: UserProfile) -> None:
             from quickhatch.scanners.apps import scan as scan_apps
 
             profile.apps = scan_apps()
-            progress.update(task, completed=True, description="[green]Apps scanned")
+            progress.update(task, total=1, completed=1, description="[green]Apps scanned")
 
         if "hardware" in permissions:
             task = progress.add_task("Scanning hardware...", total=None)
             from quickhatch.scanners.hardware import scan as scan_hw
 
             profile.hardware = scan_hw()
-            progress.update(task, completed=True, description="[green]Hardware scanned")
+            progress.update(task, total=1, completed=1, description="[green]Hardware scanned")
 
         if "settings" in permissions:
             task = progress.add_task("Scanning Windows settings...", total=None)
             from quickhatch.scanners.settings import scan as scan_settings
 
             profile.windows_settings = scan_settings()
-            progress.update(task, completed=True, description="[green]Settings scanned")
+            progress.update(task, total=1, completed=1, description="[green]Settings scanned")
 
         if "files" in permissions:
             task = progress.add_task("Scanning user files...", total=None)
             from quickhatch.scanners.files import scan as scan_files
 
             profile.files_summary = scan_files()
-            progress.update(task, completed=True, description="[green]Files scanned")
+            progress.update(task, total=1, completed=1, description="[green]Files scanned")
 
     print_success("System scan complete!")
     profile.completed_steps.append("scan")

@@ -84,7 +84,7 @@ def _list_usb_linux() -> list[dict]:
             ):
                 drives.append({
                     "device": f"/dev/{device['name']}",
-                    "name": device.get("model", device["name"]).strip(),
+                    "name": (device.get("model") or device["name"]).strip(),
                     "size": device.get("size", "?"),
                 })
 
@@ -110,9 +110,12 @@ def _write_windows(iso_path: Path, device: str) -> bool:
     try:
         console.print("Writing ISO to USB drive...")
         # Use PowerShell's Copy-Item for raw disk write
+        # Escape single quotes for safe PowerShell string interpolation
+        safe_iso = str(iso_path).replace("'", "''")
+        safe_device = device.replace("'", "''")
         ps_script = f"""
-        $iso = '{iso_path}'
-        $disk = '{device}'
+        $iso = '{safe_iso}'
+        $disk = '{safe_device}'
         # Clear the disk first
         Clear-Disk -Number ($disk -replace '.*?(\\d+)$','$1') -RemoveData -Confirm:$false
         # Write ISO
@@ -136,10 +139,13 @@ def _write_linux(iso_path: Path, device: str) -> bool:
     """Write ISO to USB on Linux using dd."""
     try:
         # Unmount any partitions on the device first
-        subprocess.run(
-            ["sudo", "umount", f"{device}*"],
-            capture_output=True, timeout=10,
-        )
+        import glob
+        for part in glob.glob(f"{device}*"):
+            if part != device:
+                subprocess.run(
+                    ["sudo", "umount", part],
+                    capture_output=True, timeout=10,
+                )
 
         console.print(f"Writing {iso_path.name} to {device}...")
         console.print("[dim]This may take several minutes...[/dim]")
