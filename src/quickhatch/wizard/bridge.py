@@ -13,34 +13,48 @@ from quickhatch.config import UserProfile
 from quickhatch.console import console, print_error, print_info, print_step, print_success, print_warning
 
 
-def _get_launch_command(profile: UserProfile, port: int) -> str:
-    """Get the command the user should run in their AI tool."""
+def _write_prompt_file(profile: UserProfile, port: int) -> Path:
+    """Write the agent prompt to a file and return the path."""
     base = f"http://localhost:{port}"
-    provider = profile.ai_config.provider
 
-    # Build a prompt that tells the AI tool to use curl/bash for HTTP calls
     prompt = (
-        f"I'm migrating from Windows to Linux. QuickHatch is running a bridge API at {base}. "
-        f"First, run: curl -s {base}/api/profile | python3 -m json.tool "
-        f"to see my full system profile (hardware, apps, preferences). "
-        f"Then analyze everything and send your recommendations back through the API using curl. "
-        f"Use POST {base}/api/suggest to send analysis (body: {{\"category\":\"distro\",\"title\":\"...\",\"content\":\"your full analysis\"}}). "
-        f"Categories: distro, apps, drivers, desktop, plan. "
-        f"Use POST {base}/api/ask to ask me questions (body: {{\"question\":\"your question\"}}). "
-        f"Omit choices — let me type freely, or provide choices only if it makes sense for that specific question. "
-        f"Use POST {base}/api/done when finished. "
-        f"Think freely. Use your full knowledge. Provide links, reasoning, pros/cons. "
-        f"Don't limit yourself to a few options — consider the full Linux ecosystem. "
-        f"Start by reading my profile, then give me a thorough distro analysis, "
-        f"app compatibility breakdown, driver plan, and desktop config."
+        f"I am migrating from Windows to Linux. QuickHatch is running a bridge API at {base}.\n\n"
+        f"First, run: curl -s {base}/api/profile | python3 -m json.tool\n"
+        f"to see my full system profile (hardware, apps, preferences).\n\n"
+        f"Then analyze everything and send your recommendations back through the API using curl.\n\n"
+        f"Use POST {base}/api/suggest to send analysis:\n"
+        f'  curl -s -X POST {base}/api/suggest -H "Content-Type: application/json" '
+        f'-d \'{{"category":"distro","title":"...","content":"your analysis"}}\'\n\n'
+        f"Categories: distro, apps, drivers, desktop, plan.\n\n"
+        f"Use POST {base}/api/ask to ask me questions:\n"
+        f'  curl -s -X POST {base}/api/ask -H "Content-Type: application/json" '
+        f'-d \'{{"question":"your question"}}\'\n\n'
+        f"Omit choices -- let me type freely, or provide choices only when it truly makes sense.\n\n"
+        f"Use POST {base}/api/done when finished:\n"
+        f'  curl -s -X POST {base}/api/done -H "Content-Type: application/json" '
+        f'-d \'{{"summary":"Done!"}}\'\n\n'
+        f"Think freely. Use your full knowledge. Provide links, reasoning, pros and cons.\n"
+        f"Do not limit yourself to a few options -- consider the full Linux ecosystem.\n\n"
+        f"Start by reading my profile, then give me a thorough distro analysis,\n"
+        f"app compatibility breakdown, driver plan, and desktop config.\n"
     )
 
+    prompt_file = Path(".quickhatch-prompt.txt")
+    prompt_file.write_text(prompt, encoding="utf-8")
+    return prompt_file
+
+
+def _get_launch_command(profile: UserProfile, port: int) -> str:
+    """Get the command the user should run in their AI tool."""
+    prompt_file = _write_prompt_file(profile, port)
+    provider = profile.ai_config.provider
+
     if provider == "claude_code":
-        return f"claude -p '{prompt}'"
+        return f'claude -p "$(cat {prompt_file})"'
     elif provider == "codex":
-        return f"codex '{prompt}'"
+        return f'codex "$(cat {prompt_file})"'
     else:
-        return prompt
+        return f"cat {prompt_file}"
 
 
 def _print_api_docs(port: int) -> None:
