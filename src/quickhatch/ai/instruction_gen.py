@@ -218,9 +218,11 @@ def generate_instructions(profile: UserProfile) -> str:
             "**Ask the user questions:**\n"
             "- `POST /api/ask` — Ask and block until answered\n"
             "  ```json\n"
-            '  {"question": "Which distro do you want?", "choices": ["Pop!_OS", "Fedora", "Ubuntu"]}\n'
+            '  {"question": "I recommend Fedora 41 for your setup because... What do you think?"}\n'
             "  ```\n"
-            "  Omit `choices` for free-text. Returns `{\"answer\": \"Pop!_OS\"}`\n\n"
+            "  The user types a free-text response. You can optionally add `\"choices\": [...]`\n"
+            "  but prefer open-ended questions — let the user speak freely.\n"
+            "  Returns `{\"answer\": \"user's response\"}`\n\n"
             "- `POST /api/ask/async` — Ask without blocking, returns `{\"question_id\": \"abc\"}`\n"
             "  Then poll `GET /api/response/abc` for the answer.\n\n"
             "**Messages & completion:**\n"
