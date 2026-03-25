@@ -1,39 +1,30 @@
 """Step 0: Welcome screen and migration type selection."""
 
 import questionary
+
 from quickhatch.config import UserProfile
-from quickhatch.console import console, print_banner, print_step, print_info
+from quickhatch.console import console, print_banner, print_info, print_step
 
 
 def run(profile: UserProfile) -> None:
-    """Run the welcome step."""
     print_banner()
     print_step(0, "Welcome")
 
     console.print(
+        "Welcome to [bold cyan]QuickHatch[/bold cyan]! "
         "This wizard will help you migrate from Windows to Linux.\n"
-        "We'll gather information about your system, preferences,\n"
-        "and set up everything you need for a smooth transition.\n"
+        "We'll scan your system, find Linux alternatives for your apps,\n"
+        "recommend a distro, and set up an AI agent to finish the job.\n"
     )
 
     migration_type = questionary.select(
         "What are you doing?",
         choices=[
+            questionary.Choice("Fresh install - I'm new to Linux", value="fresh_install"),
             questionary.Choice(
-                "Fresh install - I'm on Windows and want to switch to Linux",
-                value="fresh_install",
-            ),
-            questionary.Choice(
-                "Switching distros - I'm already on Linux and want to change",
-                value="switching",
+                "Switching from an existing Linux setup", value="switching"
             ),
         ],
-        style=questionary.Style([
-            ("selected", "fg:cyan bold"),
-            ("pointer", "fg:cyan bold"),
-            ("highlighted", "fg:cyan"),
-            ("question", "fg:white bold"),
-        ]),
     ).ask()
 
     if migration_type is None:
@@ -42,8 +33,11 @@ def run(profile: UserProfile) -> None:
     profile.preferences.migration_type = migration_type
 
     if migration_type == "fresh_install":
-        print_info("Great! We'll scan your Windows system to help plan your Linux setup.")
+        print_info("Great! We'll guide you through everything step by step.")
     else:
-        print_info("Got it! We'll help you switch to a new distro while preserving your setup.")
+        print_info(
+            "We'll help you migrate your setup. "
+            "We'll still scan Windows to know what you need."
+        )
 
     profile.completed_steps.append("welcome")

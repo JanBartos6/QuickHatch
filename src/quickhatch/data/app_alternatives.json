@@ -1,20 +1,222 @@
 {
-    "autocad": {"alt": "FreeCAD / LibreCAD", "compat": "alternative", "notes": "Open-source CAD tools"},
-    "solidworks": {"alt": "FreeCAD / OpenSCAD", "compat": "alternative", "notes": "FreeCAD has parametric modeling"},
-    "matlab": {"alt": "GNU Octave / SciPy", "compat": "alternative", "notes": "Octave is mostly Matlab-compatible"},
-    "tableau": {"alt": "Apache Superset / Metabase", "compat": "alternative", "notes": "Open-source BI tools"},
-    "lightroom": {"alt": "Darktable / RawTherapee", "compat": "alternative", "notes": "Professional photo editing"},
-    "coreldraw": {"alt": "Inkscape", "compat": "alternative", "notes": "Full vector graphics editor"},
-    "paint.net": {"alt": "Pinta", "compat": "alternative", "notes": "Similar simple image editor"},
-    "foobar2000": {"alt": "DeaDBeeF / Quod Libet", "compat": "alternative", "notes": "Lightweight music players"},
-    "total commander": {"alt": "Double Commander / Midnight Commander", "compat": "alternative", "notes": "Dual-pane file managers"},
-    "irfanview": {"alt": "Eye of GNOME / gThumb", "compat": "alternative", "notes": "Image viewers"},
-    "teracopy": {"alt": "rsync (built-in)", "compat": "native", "notes": "rsync is powerful and built-in"},
-    "sharepoint": {"alt": "Nextcloud", "compat": "alternative", "notes": "Self-hosted file sharing and collaboration"},
-    "notion": {"alt": "Obsidian / Logseq / AppFlowy", "compat": "alternative", "notes": "Note-taking and knowledge management"},
-    "evernote": {"alt": "Joplin", "compat": "alternative", "notes": "Open-source note taking with sync"},
-    "camtasia": {"alt": "OBS Studio / Kazam", "compat": "alternative", "notes": "Screen recording tools"},
-    "snagit": {"alt": "Flameshot / Shutter", "compat": "alternative", "notes": "Screenshot tools"},
-    "vmware workstation": {"alt": "VirtualBox / virt-manager (KVM)", "compat": "alternative", "notes": "KVM is faster, VirtualBox is easier"},
-    "hyper-v": {"alt": "KVM/QEMU + virt-manager", "compat": "alternative", "notes": "KVM is the Linux hypervisor"}
+  "Microsoft Office": {
+    "alternatives": ["LibreOffice", "OnlyOffice", "WPS Office"],
+    "method": "native",
+    "notes": "LibreOffice is the most popular free alternative"
+  },
+  "Microsoft Word": {
+    "alternatives": ["LibreOffice Writer", "OnlyOffice"],
+    "method": "native",
+    "notes": "Good .docx compatibility"
+  },
+  "Microsoft Excel": {
+    "alternatives": ["LibreOffice Calc", "Gnumeric"],
+    "method": "native",
+    "notes": "Complex macros may need adjustment"
+  },
+  "Microsoft PowerPoint": {
+    "alternatives": ["LibreOffice Impress", "OnlyOffice"],
+    "method": "native",
+    "notes": "Good .pptx compatibility"
+  },
+  "Adobe Photoshop": {
+    "alternatives": ["GIMP", "Krita", "Photopea (web)"],
+    "method": "native",
+    "notes": "GIMP is powerful but has different UX. Krita excels at digital painting."
+  },
+  "Adobe Illustrator": {
+    "alternatives": ["Inkscape", "Krita"],
+    "method": "native",
+    "notes": "Inkscape is a solid SVG editor"
+  },
+  "Adobe Premiere Pro": {
+    "alternatives": ["DaVinci Resolve", "Kdenlive", "Shotcut"],
+    "method": "native",
+    "notes": "DaVinci Resolve is professional-grade and free"
+  },
+  "Adobe After Effects": {
+    "alternatives": ["Natron", "Blender (motion graphics)"],
+    "method": "native",
+    "notes": "No direct equivalent; Blender covers some use cases"
+  },
+  "Adobe Acrobat": {
+    "alternatives": ["Okular", "Evince", "Xournalpp"],
+    "method": "native",
+    "notes": "PDF viewing is well-supported; editing is more limited"
+  },
+  "Notepad++": {
+    "alternatives": ["Kate", "gedit", "micro", "Mousepad"],
+    "method": "native",
+    "notes": "Many excellent native text editors available"
+  },
+  "Visual Studio Code": {
+    "alternatives": ["Visual Studio Code (native Linux)", "VSCodium"],
+    "method": "native",
+    "notes": "VS Code runs natively on Linux"
+  },
+  "Visual Studio": {
+    "alternatives": ["JetBrains IDEs", "Eclipse", "VS Code"],
+    "method": "native",
+    "notes": "No direct equivalent; VS Code + extensions covers most needs"
+  },
+  "Google Chrome": {
+    "alternatives": ["Google Chrome (native Linux)", "Chromium", "Firefox"],
+    "method": "native",
+    "notes": "Chrome runs natively on Linux"
+  },
+  "Mozilla Firefox": {
+    "alternatives": ["Mozilla Firefox (native Linux)"],
+    "method": "native",
+    "notes": "Firefox runs natively on Linux"
+  },
+  "Microsoft Edge": {
+    "alternatives": ["Microsoft Edge (native Linux)", "Firefox", "Chromium"],
+    "method": "native",
+    "notes": "Edge is available on Linux"
+  },
+  "Brave Browser": {
+    "alternatives": ["Brave Browser (native Linux)"],
+    "method": "native",
+    "notes": "Brave runs natively on Linux"
+  },
+  "Steam": {
+    "alternatives": ["Steam (native Linux)"],
+    "method": "native",
+    "notes": "Steam + Proton enables most Windows games on Linux"
+  },
+  "Epic Games Store": {
+    "alternatives": ["Heroic Games Launcher", "Lutris"],
+    "method": "wine",
+    "notes": "Heroic is an open-source launcher for Epic and GOG"
+  },
+  "Discord": {
+    "alternatives": ["Discord (native Linux)", "Webcord"],
+    "method": "native",
+    "notes": "Discord has a native Linux client"
+  },
+  "Slack": {
+    "alternatives": ["Slack (native Linux)"],
+    "method": "native",
+    "notes": "Slack runs natively on Linux"
+  },
+  "Spotify": {
+    "alternatives": ["Spotify (native Linux)"],
+    "method": "native",
+    "notes": "Spotify has a native Linux client"
+  },
+  "VLC Media Player": {
+    "alternatives": ["VLC (native Linux)", "mpv", "Celluloid"],
+    "method": "native",
+    "notes": "VLC runs natively on Linux"
+  },
+  "7-Zip": {
+    "alternatives": ["File Roller", "Ark", "p7zip"],
+    "method": "native",
+    "notes": "Archive management well-supported on Linux"
+  },
+  "WinRAR": {
+    "alternatives": ["File Roller", "Ark", "unrar"],
+    "method": "native",
+    "notes": "Archive management well-supported on Linux"
+  },
+  "OBS Studio": {
+    "alternatives": ["OBS Studio (native Linux)"],
+    "method": "native",
+    "notes": "OBS runs natively on Linux"
+  },
+  "AutoCAD": {
+    "alternatives": ["FreeCAD", "LibreCAD", "BricsCAD"],
+    "method": "native",
+    "notes": "FreeCAD is free; BricsCAD is commercial with Linux support"
+  },
+  "MATLAB": {
+    "alternatives": ["GNU Octave", "MATLAB (native Linux)"],
+    "method": "native",
+    "notes": "MATLAB has a native Linux version"
+  },
+  "iTunes": {
+    "alternatives": ["Rhythmbox", "Strawberry Music Player", "Clementine"],
+    "method": "native",
+    "notes": "Multiple music players available"
+  },
+  "Windows Terminal": {
+    "alternatives": ["GNOME Terminal", "Konsole", "Alacritty", "Kitty", "Wezterm"],
+    "method": "native",
+    "notes": "Linux has excellent terminal emulators"
+  },
+  "PowerShell": {
+    "alternatives": ["Bash", "Zsh", "Fish", "PowerShell (native Linux)"],
+    "method": "native",
+    "notes": "PowerShell is available on Linux; Bash/Zsh are the standard"
+  },
+  "PuTTY": {
+    "alternatives": ["OpenSSH (built-in)", "GNOME Terminal"],
+    "method": "native",
+    "notes": "SSH is built into Linux - no extra client needed"
+  },
+  "WinSCP": {
+    "alternatives": ["FileZilla", "Nautilus (built-in SFTP)", "rsync"],
+    "method": "native",
+    "notes": "File managers have built-in SFTP support"
+  },
+  "Notion": {
+    "alternatives": ["Notion (web)", "Obsidian", "Logseq", "Joplin"],
+    "method": "native",
+    "notes": "Obsidian and Logseq run natively on Linux"
+  },
+  "Zoom": {
+    "alternatives": ["Zoom (native Linux)"],
+    "method": "native",
+    "notes": "Zoom has a native Linux client"
+  },
+  "Microsoft Teams": {
+    "alternatives": ["Microsoft Teams (web)", "Teams PWA"],
+    "method": "native",
+    "notes": "Teams desktop was discontinued on Linux; web version works well"
+  },
+  "Blender": {
+    "alternatives": ["Blender (native Linux)"],
+    "method": "native",
+    "notes": "Blender runs natively and is well-supported on Linux"
+  },
+  "GIMP": {
+    "alternatives": ["GIMP (native Linux)"],
+    "method": "native",
+    "notes": "GIMP runs natively on Linux"
+  },
+  "Audacity": {
+    "alternatives": ["Audacity (native Linux)"],
+    "method": "native",
+    "notes": "Audacity runs natively on Linux"
+  },
+  "FileZilla": {
+    "alternatives": ["FileZilla (native Linux)"],
+    "method": "native",
+    "notes": "FileZilla runs natively on Linux"
+  },
+  "Docker Desktop": {
+    "alternatives": ["Docker Engine (native)", "Podman"],
+    "method": "native",
+    "notes": "Docker runs natively on Linux without Desktop overhead"
+  },
+  "VMware Workstation": {
+    "alternatives": ["VMware Workstation (Linux)", "VirtualBox", "virt-manager/QEMU"],
+    "method": "native",
+    "notes": "Virtualization is well-supported on Linux"
+  },
+  "VirtualBox": {
+    "alternatives": ["VirtualBox (native Linux)", "virt-manager/QEMU"],
+    "method": "native",
+    "notes": "VirtualBox runs natively on Linux"
+  },
+  "Figma": {
+    "alternatives": ["Figma (web)", "Penpot"],
+    "method": "native",
+    "notes": "Figma works great in the browser; Penpot is an open-source alternative"
+  },
+  "Postman": {
+    "alternatives": ["Postman (native Linux)", "Insomnia", "Bruno"],
+    "method": "native",
+    "notes": "Postman has a native Linux client"
+  }
 }

@@ -1,136 +1,157 @@
 """Step 7: SSH key generation for AI agent handoff."""
 
-import os
+from __future__ import annotations
+
 import subprocess
+import sys
 from pathlib import Path
 
 import questionary
-from rich.panel import Panel
 
 from quickhatch.config import UserProfile
-from quickhatch.console import console, print_step, print_success, print_warning, print_info
+from quickhatch.console import console, print_error, print_info, print_step, print_success, print_warning
+
+
+def _find_ssh_keygen() -> str | None:
+    """Find ssh-keygen executable."""
+    import shutil
+
+    path = shutil.which("ssh-keygen")
+    if path:
+        return path
+
+    # Windows common locations
+    if sys.platform == "win32":
+        candidates = [
+            Path(r"C:\Windows\System32\OpenSSH\ssh-keygen.exe"),
+            Path(r"C:\Program Files\Git\usr\bin\ssh-keygen.exe"),
+            Path(r"C:\Program Files (x86)\Git\usr\bin\ssh-keygen.exe"),
+        ]
+        for c in candidates:
+            if c.exists():
+                return str(c)
+    return None
 
 
 def run(profile: UserProfile) -> None:
-    """Run the SSH key setup step."""
     print_step(7, "SSH Key Setup")
 
     console.print(
-        "SSH keys allow the AI agent to securely connect to your\n"
-        "new Linux system and continue the setup process remotely.\n"
-        "This is the easiest path to letting the agent work for you.\n"
+        "SSH keys allow the AI agent to securely connect to your new Linux\n"
+        "machine and continue the setup process remotely.\n"
     )
 
-    # Check for existing SSH keys
+    # Check for existing keys
     ssh_dir = Path.home() / ".ssh"
     existing_keys = []
     if ssh_dir.exists():
-        for key_file in ssh_dir.glob("*.pub"):
-            existing_keys.append(key_file)
+        for f in ssh_dir.iterdir():
+            if f.suffix == ".pub":
+                existing_keys.append(f)
 
     if existing_keys:
-        console.print("[info]Existing SSH keys found:[/info]")
-        for key in existing_keys:
-            console.print(f"  - {key}")
+        console.print("[bold]Existing SSH keys found:[/bold]")
+        for k in existing_keys:
+            console.print(f"  - {k.name}")
         console.print()
 
         use_existing = questionary.confirm(
-            "Use an existing SSH key?",
-            default=True,
+            "Would you like to use an existing key?", default=True
         ).ask()
+        if use_existing is None:
+            raise KeyboardInterrupt
 
         if use_existing:
             if len(existing_keys) == 1:
                 chosen = existing_keys[0]
             else:
-                chosen_path = questionary.select(
-                    "Which key to use?",
-                    choices=[str(k) for k in existing_keys],
+                chosen_name = questionary.select(
+                    "Which key?",
+                    choices=[k.name for k in existing_keys],
                 ).ask()
-                chosen = Path(chosen_path)
+                if chosen_name is None:
+                    raise KeyboardInterrupt
+                chosen = ssh_dir / chosen_name
 
             profile.ssh_public_key_path = str(chosen)
             print_success(f"Using existing key: {chosen}")
-            _show_instructions(profile)
             profile.completed_steps.append("ssh")
             return
 
     # Generate new key
     generate = questionary.confirm(
-        "Generate a new SSH key pair for the migration?",
-        default=True,
+        "Generate a new SSH key pair for the migration?", default=True
     ).ask()
+    if generate is None:
+        raise KeyboardInterrupt
 
     if not generate:
-        print_info("Skipping SSH setup. You can set it up manually later.")
+        print_info("Skipping SSH key generation. You can set it up manually later.")
         profile.completed_steps.append("ssh")
         return
 
-    # Key options
-    key_type = questionary.select(
-        "Key type:",
-        choices=[
-            questionary.Choice("Ed25519 (recommended, modern)", value="ed25519"),
-            questionary.Choice("RSA 4096-bit (maximum compatibility)", value="rsa"),
-        ],
-    ).ask()
+    ssh_keygen = _find_ssh_keygen()
+    if not ssh_keygen:
+        print_error(
+            "ssh-keygen not found. Install OpenSSH or Git for Windows, "
+            "then re-run this step."
+        )
+        console.print(
+            "\n[bold]To install OpenSSH on Windows:[/bold]\n"
+            "  Settings > Apps > Optional Features > Add a Feature > OpenSSH Client\n"
+            "\n[bold]Or install Git for Windows:[/bold]\n"
+            "  https://git-scm.com/download/win\n"
+        )
+        profile.completed_steps.append("ssh")
+        return
 
-    key_name = questionary.text(
-        "Key filename:",
-        default="quickhatch_migration",
-    ).ask()
-
+    key_path = ssh_dir / "quickhatch_ed25519"
     ssh_dir.mkdir(parents=True, exist_ok=True)
-    key_path = ssh_dir / key_name
 
-    if key_path.exists():
-        print_warning(f"Key {key_path} already exists!")
-        overwrite = questionary.confirm("Overwrite?", default=False).ask()
-        if not overwrite:
-            profile.ssh_public_key_path = str(key_path.with_suffix(".pub"))
-            profile.completed_steps.append("ssh")
-            return
+    comment = questionary.text(
+        "Key comment (e.g., your email):",
+        default="quickhatch-migration",
+    ).ask()
+    if comment is None:
+        raise KeyboardInterrupt
 
-    # Generate key
     try:
-        cmd = ["ssh-keygen", "-t", key_type]
-        if key_type == "rsa":
-            cmd.extend(["-b", "4096"])
-        cmd.extend([
-            "-f", str(key_path),
-            "-N", "",  # empty passphrase for automated use
-            "-C", "quickhatch-migration",
-        ])
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(
+            [
+                ssh_keygen,
+                "-t", "ed25519",
+                "-C", comment,
+                "-f", str(key_path),
+                "-N", "",  # No passphrase for agent use
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
 
         if result.returncode == 0:
-            pub_key_path = key_path.with_suffix(".pub")
+            pub_key_path = Path(f"{key_path}.pub")
             profile.ssh_public_key_path = str(pub_key_path)
-            print_success(f"SSH key pair generated!")
-            console.print(f"  Private key: {key_path}")
-            console.print(f"  Public key:  {pub_key_path}")
+
+            pub_key = pub_key_path.read_text().strip()
+            print_success("SSH key pair generated!")
+            console.print(f"\n[bold]Private key:[/bold] {key_path}")
+            console.print(f"[bold]Public key:[/bold]  {pub_key_path}")
+            console.print(f"\n[dim]{pub_key}[/dim]\n")
+
+            console.print(
+                "[bold]Next steps on your new Linux machine:[/bold]\n"
+                "  1. Copy the public key to the Linux machine\n"
+                "  2. Add it to ~/.ssh/authorized_keys\n"
+                "  3. Enable SSH: sudo systemctl enable --now sshd\n"
+                "  4. The AI agent can then connect and continue setup\n"
+            )
         else:
-            print_warning(f"ssh-keygen failed: {result.stderr}")
-            print_info("You can generate SSH keys manually later with: ssh-keygen -t ed25519")
-    except FileNotFoundError:
-        print_warning("ssh-keygen not found. Install OpenSSH to generate keys.")
-        print_info("On Windows: Settings > Apps > Optional Features > OpenSSH Client")
+            print_error(f"ssh-keygen failed: {result.stderr}")
 
-    _show_instructions(profile)
+    except subprocess.TimeoutExpired:
+        print_error("ssh-keygen timed out")
+    except OSError as e:
+        print_error(f"Could not run ssh-keygen: {e}")
+
     profile.completed_steps.append("ssh")
-
-
-def _show_instructions(profile: UserProfile):
-    """Show instructions for using the SSH key on the new system."""
-    console.print()
-    console.print(Panel(
-        "[bold]After installing Linux, the AI agent will:[/bold]\n\n"
-        "1. Copy the SSH public key to your new system\n"
-        "2. Enable SSH server: [cyan]sudo apt install openssh-server[/cyan]\n"
-        "3. Add key to authorized_keys:\n"
-        "   [cyan]mkdir -p ~/.ssh && cat quickhatch_migration.pub >> ~/.ssh/authorized_keys[/cyan]\n"
-        "4. Connect and continue the setup automatically\n\n"
-        "[dim]The public key will be included in your migration bundle.[/dim]",
-        title="SSH Handoff Plan",
-        border_style="cyan",
-    ))

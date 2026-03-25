@@ -1,241 +1,86 @@
-"""Distribution recommendation engine."""
+"""Distro recommendation engine."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from quickhatch.config import UserProfile
+
+from quickhatch.config import HardwareInfo, Preferences, UserProfile
+from quickhatch.console import print_info
 
 
-# Built-in distro database
-DISTROS = {
-    "ubuntu": {
-        "name": "Ubuntu",
-        "de": "GNOME",
-        "tags": ["beginner", "stable", "office", "development", "web_media", "education"],
-        "look": ["macos_like"],
-        "min_ram_gb": 4,
-        "description": "Most popular, huge community, great hardware support",
-        "gaming_ready": True,
-        "nvidia_easy": True,
-    },
-    "linuxmint": {
-        "name": "Linux Mint",
-        "de": "Cinnamon",
-        "tags": ["beginner", "stable", "office", "casual", "web_media", "education"],
-        "look": ["windows_like"],
-        "min_ram_gb": 2,
-        "description": "Most Windows-like, very beginner friendly",
-        "gaming_ready": True,
-        "nvidia_easy": True,
-    },
-    "fedora": {
-        "name": "Fedora",
-        "de": "GNOME",
-        "tags": ["intermediate", "development", "sysadmin", "cutting_edge"],
-        "look": ["macos_like"],
-        "min_ram_gb": 4,
-        "description": "Cutting edge, great for developers, backed by Red Hat",
-        "gaming_ready": True,
-        "nvidia_easy": False,
-    },
-    "popos": {
-        "name": "Pop!_OS",
-        "de": "COSMIC/GNOME",
-        "tags": ["beginner", "gaming", "development", "data_science", "creative"],
-        "look": ["macos_like"],
-        "min_ram_gb": 4,
-        "description": "Great for gaming and development, excellent NVIDIA support",
-        "gaming_ready": True,
-        "nvidia_easy": True,
-    },
-    "arch": {
-        "name": "Arch Linux",
-        "de": "Choose your own",
-        "tags": ["advanced", "development", "sysadmin", "tiling", "custom"],
-        "look": ["minimal", "tiling", "custom"],
-        "min_ram_gb": 1,
-        "description": "Rolling release, fully customizable, learn everything",
-        "gaming_ready": True,
-        "nvidia_easy": False,
-    },
-    "manjaro": {
-        "name": "Manjaro",
-        "de": "KDE Plasma",
-        "tags": ["intermediate", "gaming", "development", "casual"],
-        "look": ["windows_like", "custom"],
-        "min_ram_gb": 2,
-        "description": "Arch-based but easier, good hardware detection",
-        "gaming_ready": True,
-        "nvidia_easy": True,
-    },
-    "debian": {
-        "name": "Debian",
-        "de": "GNOME",
-        "tags": ["intermediate", "stable", "sysadmin", "development"],
-        "look": ["macos_like"],
-        "min_ram_gb": 2,
-        "description": "Rock-solid stability, server and desktop",
-        "gaming_ready": False,
-        "nvidia_easy": False,
-    },
-    "opensuse": {
-        "name": "openSUSE Tumbleweed",
-        "de": "KDE Plasma",
-        "tags": ["intermediate", "development", "sysadmin"],
-        "look": ["windows_like"],
-        "min_ram_gb": 4,
-        "description": "Great package management (YaST), rolling release",
-        "gaming_ready": True,
-        "nvidia_easy": True,
-    },
-    "zorin": {
-        "name": "Zorin OS",
-        "de": "GNOME (customized)",
-        "tags": ["beginner", "office", "casual", "web_media"],
-        "look": ["windows_like", "macos_like"],
-        "min_ram_gb": 2,
-        "description": "Designed for Windows/Mac switchers, beautiful UI",
-        "gaming_ready": True,
-        "nvidia_easy": True,
-    },
-    "elementary": {
-        "name": "elementary OS",
-        "de": "Pantheon",
-        "tags": ["beginner", "casual", "creative", "web_media"],
-        "look": ["macos_like"],
-        "min_ram_gb": 4,
-        "description": "Most macOS-like experience, curated app store",
-        "gaming_ready": False,
-        "nvidia_easy": True,
-    },
-    "nobara": {
-        "name": "Nobara",
-        "de": "KDE Plasma",
-        "tags": ["intermediate", "gaming", "creative", "music_production"],
-        "look": ["windows_like"],
-        "min_ram_gb": 4,
-        "description": "Gaming-focused Fedora spin, pre-configured for gaming",
-        "gaming_ready": True,
-        "nvidia_easy": True,
-    },
-    "endeavouros": {
-        "name": "EndeavourOS",
-        "de": "KDE Plasma",
-        "tags": ["intermediate", "development", "custom"],
-        "look": ["custom", "windows_like"],
-        "min_ram_gb": 2,
-        "description": "Arch made easier, great community",
-        "gaming_ready": True,
-        "nvidia_easy": True,
-    },
-    "ubuntustudio": {
-        "name": "Ubuntu Studio",
-        "de": "KDE Plasma",
-        "tags": ["creative", "music_production", "intermediate"],
-        "look": ["windows_like"],
-        "min_ram_gb": 4,
-        "description": "Pre-configured for audio/video/graphics production",
-        "gaming_ready": False,
-        "nvidia_easy": True,
-    },
-}
+def _load_distros() -> dict:
+    db_path = Path(__file__).parent.parent / "data" / "distros.json"
+    if db_path.exists():
+        return json.loads(db_path.read_text())
+    return {}
 
 
-def recommend_distros(profile: UserProfile) -> list[tuple[str, int, str, str]]:
+def recommend(profile: UserProfile) -> list[tuple[str, float, str]]:
+    """Score and rank distros based on user profile.
+
+    Returns list of (distro_name, score, reason) sorted by score descending.
     """
-    Score and rank distros based on user profile.
+    distros = _load_distros()
+    prefs = profile.preferences
+    hw = profile.hardware
+    scores: list[tuple[str, float, str]] = []
 
-    Returns list of (distro_name, score, desktop_env, reason).
-    """
-    scores: list[tuple[str, int, str, str]] = []
-
-    for key, distro in DISTROS.items():
-        score = 0
+    for name, info in distros.items():
+        score = 0.0
         reasons = []
+        tags = info.get("tags", [])
 
-        # Use case matching (biggest weight)
-        use_cases = profile.preferences.use_cases
-        matching_cases = set(use_cases) & set(distro["tags"])
-        score += len(matching_cases) * 15
-        if matching_cases:
-            reasons.append(f"Matches: {', '.join(matching_cases)}")
-
-        # Gaming bonus
-        if "gaming" in use_cases and distro["gaming_ready"]:
-            score += 15
-            reasons.append("Gaming ready")
-        elif "gaming" in use_cases and not distro["gaming_ready"]:
-            score -= 10
+        # Match use cases to tags
+        for use_case in prefs.use_cases:
+            if use_case in tags:
+                score += 15
+                reasons.append(f"good for {use_case}")
 
         # Desktop look preference
-        if profile.preferences.desktop_look in distro["look"]:
+        if prefs.desktop_look == "windows_like" and "windows-like" in tags:
             score += 20
-            reasons.append(f"Fits {profile.preferences.desktop_look} look")
+            reasons.append("Windows-like interface")
+        elif prefs.desktop_look == "macos_like" and "macos-like" in tags:
+            score += 20
+            reasons.append("macOS-like interface")
+        elif prefs.desktop_look == "tiling" and "tiling" in tags:
+            score += 20
+            reasons.append("tiling WM support")
+        elif prefs.desktop_look == "minimal" and "minimal" in tags:
+            score += 15
+            reasons.append("minimal design")
 
-        # NVIDIA GPU handling
-        has_nvidia = any(g.vendor == "nvidia" for g in profile.hardware.gpus)
-        if has_nvidia and distro["nvidia_easy"]:
+        # Fresh install bonus for beginner-friendly
+        if prefs.migration_type == "fresh_install" and "beginner-friendly" in tags:
+            score += 15
+            reasons.append("beginner-friendly")
+
+        # Hardware considerations
+        if hw.gpus:
+            for gpu in hw.gpus:
+                if gpu.vendor == "nvidia":
+                    nvidia_support = info.get("nvidia_support", "moderate")
+                    if nvidia_support == "excellent":
+                        score += 15
+                        reasons.append("excellent NVIDIA support")
+                    elif nvidia_support == "good":
+                        score += 8
+
+        # Low RAM -> prefer lightweight
+        if hw.ram_gb and hw.ram_gb < 4 and "lightweight" in tags:
             score += 10
-            reasons.append("Easy NVIDIA setup")
-        elif has_nvidia and not distro["nvidia_easy"]:
-            score -= 5
+            reasons.append("lightweight for low RAM")
 
-        # RAM considerations
-        if profile.hardware.ram_gb > 0:
-            if profile.hardware.ram_gb < 4 and distro["min_ram_gb"] <= 2:
+        # Gaming
+        if "gaming" in prefs.use_cases:
+            gaming = info.get("gaming_support", "moderate")
+            if gaming == "excellent":
                 score += 10
-                reasons.append("Lightweight, fits your RAM")
-            elif profile.hardware.ram_gb < 4 and distro["min_ram_gb"] > 4:
-                score -= 15
-                reasons.append("May need more RAM")
+                reasons.append("excellent gaming support")
 
-        # Beginner friendliness (if switching from Windows)
-        if profile.preferences.migration_type == "fresh_install":
-            if "beginner" in distro["tags"]:
-                score += 10
-                reasons.append("Beginner friendly")
+        reason_str = "; ".join(reasons[:4]) if reasons else "general-purpose distro"
+        scores.append((name, score, reason_str))
 
-        # User's explicit preference
-        if profile.preferences.distro_preference:
-            if profile.preferences.distro_preference.lower() == key:
-                score += 25
-                reasons.append("Your preference!")
-
-        # Music production
-        if "music_production" in use_cases:
-            if "music_production" in distro["tags"]:
-                score += 15
-                reasons.append("Audio production ready")
-
-        # Ensure score is bounded
-        score = max(0, min(100, score))
-
-        reason_str = "; ".join(reasons[:3]) if reasons else distro["description"]
-        de = _recommend_de(profile, distro)
-
-        scores.append((distro["name"], score, de, reason_str))
-
-    # Sort by score descending
     scores.sort(key=lambda x: x[1], reverse=True)
     return scores
-
-
-def _recommend_de(profile: UserProfile, distro: dict) -> str:
-    """Recommend a desktop environment based on user preferences."""
-    look = profile.preferences.desktop_look
-
-    if look == "windows_like":
-        if "KDE" in distro["de"] or "Cinnamon" in distro["de"]:
-            return distro["de"]
-        return "KDE Plasma"
-    elif look == "macos_like":
-        if "GNOME" in distro["de"] or "Pantheon" in distro["de"]:
-            return distro["de"]
-        return "GNOME"
-    elif look == "minimal":
-        return "XFCE"
-    elif look == "tiling":
-        return "Hyprland / i3"
-    else:
-        return distro["de"]
