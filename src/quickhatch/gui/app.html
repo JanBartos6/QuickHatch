@@ -443,23 +443,26 @@ const stepRenderers={
         </div>
         <div class="field">
           <label>Icon style</label>
-          <select id="iconStyle">
+          <select id="iconStyle" onchange="toggleCustomField(this,'iconCustom')">
             <option value="flat">Flat & modern</option>
             <option value="rounded">Rounded & friendly</option>
             <option value="classic">Classic</option>
             <option value="colorful">Colorful</option>
             <option value="default">No preference</option>
+            <option value="custom">Custom...</option>
           </select>
+          <input type="text" id="iconCustom" class="hidden" placeholder="Describe your ideal icon style" style="margin-top:8px">
         </div>
         <div class="field">
           <label>Wallpaper vibe</label>
-          <select id="wpStyle">
+          <select id="wpStyle" onchange="toggleCustomField(this,'wpCustom')">
             <option value="nature">Nature & landscapes</option>
             <option value="abstract">Abstract & geometric</option>
             <option value="dark">Dark & moody</option>
             <option value="minimal">Minimal & clean</option>
-            <option value="custom">I'll pick my own</option>
+            <option value="custom">Custom...</option>
           </select>
+          <input type="text" id="wpCustom" class="hidden" placeholder="Describe what you want" style="margin-top:8px">
         </div>
         <div class="field">
           <label>What will you use this for?</label>
@@ -467,6 +470,7 @@ const stepRenderers={
             ${['Development','Gaming','Office','Creative','Browsing','Sysadmin','Data Science','Education','Casual']
               .map(u=>`<span class="pill" data-value="${u.toLowerCase().replace(' ','')}" onclick="toggleCheck(this)">${u}</span>`).join('')}
           </div>
+          <input type="text" id="useCaseCustom" placeholder="Other uses (type anything)" style="margin-top:10px">
         </div>
         <div class="field">
           <label>Preferred distro (optional)</label>
@@ -633,6 +637,11 @@ function selectChoice(gid,el){
 function toggleCheck(el){el.classList.toggle('selected')}
 function getSelected(gid){const s=document.querySelector(`#${gid} .choice.selected`);return s?s.dataset.value:''}
 function getChecked(gid){return[...document.querySelectorAll(`#${gid} .pill.selected`)].map(e=>e.dataset.value)}
+function toggleCustomField(sel,inputId){
+  const inp=el(inputId);
+  if(sel.value==='custom'){inp.classList.remove('hidden');inp.focus()}
+  else{inp.classList.add('hidden');inp.value=''}
+}
 
 // ── Submitters ──
 async function submitWelcome(){
@@ -644,11 +653,18 @@ async function submitAI(){
   await saveProfile({ai_config:{provider:p}});await completeStep('ai_setup');
 }
 async function submitPrefs(){
+  let iconVal=el('iconStyle').value;
+  if(iconVal==='custom'&&el('iconCustom').value.trim())iconVal=el('iconCustom').value.trim();
+  let wpVal=el('wpStyle').value;
+  if(wpVal==='custom'&&el('wpCustom').value.trim())wpVal=el('wpCustom').value.trim();
+  let useCases=getChecked('useCases');
+  const customUse=el('useCaseCustom').value.trim();
+  if(customUse)useCases.push(customUse);
   const prefs={
     desktop_look:getSelected('deskChoice')||'custom',
-    icon_style:el('iconStyle').value,
-    wallpaper_style:el('wpStyle').value,
-    use_cases:getChecked('useCases'),
+    icon_style:iconVal,
+    wallpaper_style:wpVal,
+    use_cases:useCases,
     distro_preference:el('distroPref').value||null,
   };
   await saveProfile({preferences:prefs});await completeStep('questionnaire');

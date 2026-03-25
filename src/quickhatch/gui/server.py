@@ -67,7 +67,11 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
         def _read_json(self) -> Any:
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length)
-            return json.loads(body) if body else {}
+            if not body:
+                return {}
+            # Decode with fallback for non-UTF-8 bytes (e.g. Windows-1252 em dashes)
+            text = body.decode("utf-8", errors="replace")
+            return json.loads(text)
 
         def _send_html(self, content: bytes) -> None:
             self.send_response(200)
