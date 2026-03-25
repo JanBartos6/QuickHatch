@@ -170,9 +170,71 @@ def generate_instructions(profile: UserProfile) -> str:
     sections.append(f"- **Provider:** {ai.provider}\n")
     if ai.model_name:
         sections.append(f"- **Model:** {ai.model_name}\n")
-    if ai.endpoint:
+    if ai.endpoint and "localhost" in ai.endpoint:
+        sections.append(f"- **Bridge API:** {ai.endpoint}\n")
+    elif ai.endpoint:
         sections.append(f"- **Endpoint:** {ai.endpoint}\n")
     sections.append("")
+
+    # ── Bridge API docs ──
+    if ai.endpoint and "localhost" in ai.endpoint:
+        sections.append(
+            "## QuickHatch Bridge API\n\n"
+            "The QuickHatch wizard is running a local API server. Use it to send your\n"
+            "analysis back to the user and ask them questions interactively.\n\n"
+            f"**Base URL:** `{ai.endpoint}`\n\n"
+            "### Endpoints\n\n"
+            "**Read data:**\n"
+            f"- `GET /api/profile` — Full user profile (hardware, apps, preferences)\n"
+            f"- `GET /api/status` — Bridge status, pending question count\n"
+            f"- `GET /api/suggestions` — All suggestions posted so far\n"
+            f"- `GET /api/response/{{id}}` — Poll for answer to an async question\n\n"
+            "**Send analysis back to user (they see it in the wizard TUI):**\n"
+            "- `POST /api/suggest` — Post a recommendation/analysis\n"
+            "  ```json\n"
+            "  {\n"
+            '    "category": "distro",\n'
+            '    "title": "Distro Recommendation",\n'
+            '    "content": {\n'
+            '      "top_pick": "Pop!_OS",\n'
+            '      "reasoning": "Best NVIDIA support + gaming + beginner-friendly",\n'
+            '      "recommendations": [\n'
+            '        {"name": "Pop!_OS", "reason": "Excellent NVIDIA, tiling, gaming"},\n'
+            '        {"name": "Fedora", "reason": "Cutting-edge, great for dev"}\n'
+            "      ]\n"
+            "    }\n"
+            "  }\n"
+            "  ```\n"
+            "  Categories: `distro`, `apps`, `drivers`, `desktop`, `plan`, `message`\n\n"
+            "  For `apps` category, use this content format:\n"
+            "  ```json\n"
+            "  {\n"
+            '    "apps": [\n'
+            '      {"name": "Photoshop", "linux_alternative": "GIMP", "method": "alternative", "notes": "..."},\n'
+            '      {"name": "Steam", "linux_alternative": "Steam", "method": "native", "notes": "..."}\n'
+            "    ]\n"
+            "  }\n"
+            "  ```\n\n"
+            "**Ask the user questions:**\n"
+            "- `POST /api/ask` — Ask and block until answered\n"
+            "  ```json\n"
+            '  {"question": "Which distro do you want?", "choices": ["Pop!_OS", "Fedora", "Ubuntu"]}\n'
+            "  ```\n"
+            "  Omit `choices` for free-text. Returns `{\"answer\": \"Pop!_OS\"}`\n\n"
+            "- `POST /api/ask/async` — Ask without blocking, returns `{\"question_id\": \"abc\"}`\n"
+            "  Then poll `GET /api/response/abc` for the answer.\n\n"
+            "**Messages & completion:**\n"
+            "- `POST /api/message` — Display a message: `{\"content\": \"Installing drivers...\", \"role\": \"agent\"}`\n"
+            "- `POST /api/done` — Signal completion: `{\"summary\": \"All done!\"}`\n\n"
+            "### Workflow\n\n"
+            "1. `GET /api/profile` to read the user's system data\n"
+            "2. Analyze it, then `POST /api/suggest` your distro recommendation\n"
+            "3. `POST /api/ask` to confirm the distro choice with the user\n"
+            "4. `POST /api/suggest` your app compatibility analysis\n"
+            "5. `POST /api/suggest` driver/desktop plans\n"
+            "6. `POST /api/ask` for any clarifications\n"
+            "7. `POST /api/done` when finished\n\n"
+        )
 
     # ── What to do ──
     sections.append(
