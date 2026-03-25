@@ -1,63 +1,63 @@
-"""Main CLI orchestrator for QuickHatch migration wizard."""
+"""Main CLI orchestrator for the QuickHatch migration wizard."""
 
 from __future__ import annotations
 
 import sys
 
-import questionary
-
 from quickhatch.config import UserProfile
-from quickhatch.console import console, print_banner, print_error, print_info, print_success, print_warning
+from quickhatch.console import console, print_error, print_info, print_success, print_warning
 
 
 WIZARD_STEPS = [
     ("welcome", "Welcome"),
     ("ai_setup", "AI Assistant Setup"),
-    ("questionnaire", "Your Preferences"),
+    ("questionnaire", "Preferences"),
     ("scan", "System Scan"),
-    ("compatibility", "App Compatibility"),
+    ("compatibility", "Compatibility Analysis"),
     ("distro", "Distro Recommendation"),
-    ("usb", "Bootable USB"),
-    ("ssh", "SSH Setup"),
-    ("export", "Export Bundle"),
+    ("usb", "Bootable USB Creation"),
+    ("ssh", "SSH Key Setup"),
+    ("export", "Export Migration Bundle"),
 ]
 
 
-def main():
-    """Main entry point for QuickHatch."""
-    try:
-        _run_wizard()
-    except KeyboardInterrupt:
-        console.print("\n\n[warning]Migration wizard cancelled.[/warning]")
-        console.print("Your progress has been saved. Run quickhatch again to resume.")
-        sys.exit(1)
-    except Exception as e:
-        print_error(f"An unexpected error occurred: {e}")
-        console.print("[dim]Please report this issue at: https://github.com/janbartos6/quickhatch/issues[/dim]")
-        sys.exit(1)
-
-
-def _run_wizard():
-    """Run the migration wizard."""
-    # Check for existing checkpoint
+def main() -> None:
+    """Run the QuickHatch migration wizard."""
+    # Check for checkpoint / resume
     profile = UserProfile.load_checkpoint()
-
     if profile and profile.completed_steps:
-        console.print()
-        print_info(f"Found a previous session with {len(profile.completed_steps)} steps completed.")
-        resume = questionary.confirm(
-            "Resume from where you left off?",
-            default=True,
-        ).ask()
+        print_info(
+            f"Found a previous session with {len(profile.completed_steps)} "
+            f"completed steps: {', '.join(profile.completed_steps)}"
+        )
+        try:
+            import questionary
 
-        if not resume:
-            profile = UserProfile()
-            print_info("Starting fresh.")
+            resume = questionary.confirm(
+                "Would you like to resume where you left off?", default=True
+            ).ask()
+            if resume is None:
+                raise KeyboardInterrupt
+            if not resume:
+                profile = UserProfile()
+        except KeyboardInterrupt:
+            console.print("\n[dim]Goodbye![/dim]")
+            sys.exit(0)
     else:
         profile = UserProfile()
 
-    # Import wizard modules
-    from quickhatch.wizard import welcome, ai_setup, questionnaire, scan, compatibility, distro, usb, ssh, export
+    # Import wizard steps
+    from quickhatch.wizard import (
+        ai_setup,
+        compatibility,
+        distro,
+        export,
+        questionnaire,
+        scan,
+        ssh,
+        usb,
+        welcome,
+    )
 
     step_modules = {
         "welcome": welcome,
@@ -71,57 +71,48 @@ def _run_wizard():
         "export": export,
     }
 
-    # Run each step
-    for step_key, step_name in WIZARD_STEPS:
-        if step_key in profile.completed_steps:
-            print_info(f"Skipping completed step: {step_name}")
-            continue
+    try:
+        for step_name, step_title in WIZARD_STEPS:
+            if step_name in profile.completed_steps:
+                print_info(f"Skipping completed step: {step_title}")
+                continue
 
-        module = step_modules[step_key]
-        module.run(profile)
+            module = step_modules[step_name]
+            module.run(profile)
 
-        # Save checkpoint after each step
+            # Save checkpoint after each step
+            profile.save_checkpoint()
+
+        # Final message
+        console.print("\n")
+        console.print(
+            "[bold green]"
+            "============================================================\n"
+            "  QuickHatch migration preparation complete!\n"
+            "============================================================"
+            "[/bold green]\n"
+        )
+        console.print(
+            "Your migration bundle is ready. Here's what to do next:\n\n"
+            "  1. Boot from the USB drive you prepared\n"
+            "  2. Install Linux following the distro's installer\n"
+            "  3. After installation, copy the migration bundle\n"
+            "  4. Run [cyan]bash quickstart.sh[/cyan] to set up the AI agent\n"
+            "  5. Feed [cyan]MIGRATION_INSTRUCTIONS.md[/cyan] to your AI agent\n"
+            "  6. The agent will handle the rest: drivers, apps, theming, and more!\n\n"
+            "[dim]Thank you for using QuickHatch![/dim]\n"
+        )
+
+    except KeyboardInterrupt:
+        console.print("\n\n[warning]Interrupted![/warning] Your progress has been saved.")
         profile.save_checkpoint()
-
-    # Final summary
-    _print_final_summary(profile)
-
-
-def _print_final_summary(profile: UserProfile):
-    """Print the final migration summary."""
-    from rich.panel import Panel
-    from rich.table import Table
-
-    console.print()
-    console.print(Panel(
-        "[bold green]Migration preparation complete![/bold green]",
-        border_style="green",
-        width=60,
-    ))
-
-    table = Table(border_style="green")
-    table.add_column("Setting", style="bold")
-    table.add_column("Value")
-
-    table.add_row("Migration type", profile.preferences.migration_type.replace("_", " ").title())
-    table.add_row("AI assistant", profile.ai_config.provider)
-    table.add_row("Target distro", profile.recommended_distro or "Not selected")
-    table.add_row("Desktop environment", profile.recommended_de or "Default")
-    table.add_row("Apps scanned", str(len(profile.apps)))
-    table.add_row("SSH key", profile.ssh_public_key_path or "Not configured")
-    table.add_row("USB device", profile.usb_device or "Not created")
-
-    console.print(table)
-
-    console.print()
-    console.print("[bold]Next steps:[/bold]")
-    console.print("  1. Boot from the USB drive to install Linux")
-    console.print("  2. Copy the migration bundle to the new system")
-    console.print("  3. Run [cyan]./quickstart.sh[/cyan] to set up the AI agent")
-    console.print("  4. Let the AI agent configure your system using INSTRUCTIONS.md")
-    console.print()
-    console.print("[dim]Happy migrating! Welcome to Linux![/dim]")
-    console.print()
+        print_info("Run quickhatch again to resume from where you left off.")
+        sys.exit(1)
+    except Exception as e:
+        print_error(f"An error occurred: {e}")
+        profile.save_checkpoint()
+        print_info("Your progress has been saved. Run quickhatch again to resume.")
+        raise
 
 
 if __name__ == "__main__":

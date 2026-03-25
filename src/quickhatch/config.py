@@ -1,4 +1,4 @@
-"""Central data model for QuickHatch migration wizard."""
+"""Central data model for the migration wizard."""
 
 from __future__ import annotations
 
@@ -9,29 +9,32 @@ from pathlib import Path
 
 @dataclass
 class AppInfo:
-    """Information about an installed application."""
+    """Information about an installed Windows application."""
+
     name: str
     version: str | None = None
-    source: str = "unknown"  # "registry", "winget", "store", "wmi"
+    source: str = "unknown"  # "registry", "winget", "store"
     linux_alternative: str | None = None
     compatibility: str = "unknown"  # "native", "alternative", "wine", "none"
-    compatibility_notes: str = ""
+    notes: str = ""
 
 
 @dataclass
 class GPUInfo:
     """GPU hardware information."""
+
     name: str
-    vendor: str = "unknown"  # "nvidia", "amd", "intel"
-    vram_mb: int = 0
-    driver_version: str = ""
+    vendor: str  # "nvidia", "amd", "intel"
+    vram_mb: int | None = None
+    driver_version: str | None = None
 
 
 @dataclass
 class DiskInfo:
-    """Disk information."""
+    """Disk/partition information."""
+
     device: str
-    mountpoint: str
+    mount_point: str
     filesystem: str
     total_gb: float
     used_gb: float
@@ -40,25 +43,26 @@ class DiskInfo:
 
 @dataclass
 class HardwareInfo:
-    """System hardware information."""
-    cpu: str = "unknown"
+    """Detected hardware information."""
+
+    cpu: str = ""
     cpu_cores: int = 0
     ram_gb: float = 0.0
     gpus: list[GPUInfo] = field(default_factory=list)
     wifi_adapters: list[str] = field(default_factory=list)
     bluetooth: bool = False
     disks: list[DiskInfo] = field(default_factory=list)
-    efi: bool = True
-    motherboard: str = ""
+    efi: bool = False
 
 
 @dataclass
 class Preferences:
-    """User preferences for the migration."""
-    migration_type: str = "fresh_install"  # "fresh_install" or "switching"
+    """User preferences for the Linux migration."""
+
+    migration_type: str = ""  # "fresh_install" or "switching"
     desktop_look: str = ""  # "windows_like", "macos_like", "minimal", "tiling", "custom"
-    icon_style: str = ""  # "modern_flat", "classic", "colorful", "monochrome"
-    wallpaper_style: str = ""  # "dark", "light", "nature", "abstract", "minimal"
+    icon_style: str = ""  # "flat", "rounded", "classic", "colorful"
+    wallpaper_style: str = ""  # "nature", "abstract", "dark", "minimal", "custom"
     use_cases: list[str] = field(default_factory=list)
     distro_preference: str | None = None
     additional_notes: str = ""
@@ -67,6 +71,7 @@ class Preferences:
 @dataclass
 class AIConfig:
     """AI assistant configuration."""
+
     provider: str = ""  # "claude_code", "codex", "local_ollama", "local_lmstudio", "api"
     model_name: str | None = None
     api_key: str | None = None
@@ -75,7 +80,8 @@ class AIConfig:
 
 @dataclass
 class UserProfile:
-    """Complete user profile aggregating all migration data."""
+    """Complete user profile accumulated across all wizard steps."""
+
     preferences: Preferences = field(default_factory=Preferences)
     ai_config: AIConfig = field(default_factory=AIConfig)
     hardware: HardwareInfo = field(default_factory=HardwareInfo)
@@ -83,47 +89,47 @@ class UserProfile:
     files_summary: dict = field(default_factory=dict)
     windows_settings: dict = field(default_factory=dict)
     recommended_distro: str | None = None
-    recommended_de: str | None = None
+    recommended_desktop: str | None = None
     ssh_public_key_path: str | None = None
-    usb_device: str | None = None
+    additional_info: str = ""
     completed_steps: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> dict:
-        """Serialize the profile to a dictionary."""
-        return asdict(self)
-
-    def save_checkpoint(self, path: Path | None = None):
-        """Save current state as a checkpoint."""
+    def save_checkpoint(self, path: Path | None = None) -> Path:
+        """Save current state to a checkpoint file."""
         if path is None:
             path = Path(".quickhatch-checkpoint.json")
-        path.write_text(json.dumps(self.to_dict(), indent=2, default=str))
+        path.write_text(json.dumps(asdict(self), indent=2))
+        return path
 
     @classmethod
     def load_checkpoint(cls, path: Path | None = None) -> UserProfile | None:
-        """Load a checkpoint if one exists."""
+        """Load state from a checkpoint file, or return None if not found."""
         if path is None:
             path = Path(".quickhatch-checkpoint.json")
         if not path.exists():
             return None
         try:
             data = json.loads(path.read_text())
-            profile = cls()
-            profile.preferences = Preferences(**data.get("preferences", {}))
-            profile.ai_config = AIConfig(**data.get("ai_config", {}))
-
-            hw = data.get("hardware", {})
-            hw["gpus"] = [GPUInfo(**g) for g in hw.get("gpus", [])]
-            hw["disks"] = [DiskInfo(**d) for d in hw.get("disks", [])]
-            profile.hardware = HardwareInfo(**hw)
-
-            profile.apps = [AppInfo(**a) for a in data.get("apps", [])]
-            profile.files_summary = data.get("files_summary", {})
-            profile.windows_settings = data.get("windows_settings", {})
-            profile.recommended_distro = data.get("recommended_distro")
-            profile.recommended_de = data.get("recommended_de")
-            profile.ssh_public_key_path = data.get("ssh_public_key_path")
-            profile.usb_device = data.get("usb_device")
-            profile.completed_steps = data.get("completed_steps", [])
-            return profile
+            return cls(
+                preferences=Preferences(**data.get("preferences", {})),
+                ai_config=AIConfig(**data.get("ai_config", {})),
+                hardware=HardwareInfo(
+                    **{
+                        k: v
+                        for k, v in data.get("hardware", {}).items()
+                        if k not in ("gpus", "disks")
+                    },
+                    gpus=[GPUInfo(**g) for g in data.get("hardware", {}).get("gpus", [])],
+                    disks=[DiskInfo(**d) for d in data.get("hardware", {}).get("disks", [])],
+                ),
+                apps=[AppInfo(**a) for a in data.get("apps", [])],
+                files_summary=data.get("files_summary", {}),
+                windows_settings=data.get("windows_settings", {}),
+                recommended_distro=data.get("recommended_distro"),
+                recommended_desktop=data.get("recommended_desktop"),
+                ssh_public_key_path=data.get("ssh_public_key_path"),
+                additional_info=data.get("additional_info", ""),
+                completed_steps=data.get("completed_steps", []),
+            )
         except (json.JSONDecodeError, TypeError, KeyError):
             return None

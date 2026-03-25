@@ -6,116 +6,92 @@ import locale
 import subprocess
 import sys
 
+from quickhatch.console import print_info, print_warning
+
 
 def scan() -> dict:
     """Scan relevant Windows settings."""
-    settings = {}
+    print_info("Scanning Windows settings...")
+    settings: dict = {}
 
-    settings["locale"] = locale.getdefaultlocale()[0] or "unknown"
-    settings["encoding"] = locale.getdefaultlocale()[1] or "utf-8"
+    # System locale
+    settings["locale"] = locale.getdefaultlocale()[0] or "en_US"
+    settings["encoding"] = locale.getdefaultlocale()[1] or "UTF-8"
 
-    if sys.platform == "win32":
-        settings["theme"] = _get_windows_theme()
-        settings["default_browser"] = _get_default_browser()
-        settings["keyboard_layout"] = _get_keyboard_layout()
-        settings["timezone"] = _get_timezone()
-    else:
-        settings["theme"] = _get_linux_theme()
-        settings["default_browser"] = _get_linux_browser()
-        settings["timezone"] = _get_timezone()
+    if sys.platform != "win32":
+        print_warning("Not running on Windows - settings scan limited.")
+        return settings
+
+    # Dark/light theme
+    try:
+        import winreg
+
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+        )
+        try:
+            val, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+            settings["theme"] = "light" if val == 1 else "dark"
+        except OSError:
+            settings["theme"] = "unknown"
+        finally:
+            winreg.CloseKey(key)
+    except (ImportError, OSError):
+        settings["theme"] = "unknown"
+
+    # Default browser
+    try:
+        result = subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                (
+                    "(Get-ItemProperty "
+                    "'HKCU:\\Software\\Microsoft\\Windows\\Shell\\Associations"
+                    "\\UrlAssociations\\http\\UserChoice').ProgId"
+                ),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        browser_id = result.stdout.strip()
+        browser_map = {
+            "ChromeHTML": "Google Chrome",
+            "MSEdgeHTM": "Microsoft Edge",
+            "FirefoxURL": "Mozilla Firefox",
+            "BraveHTML": "Brave Browser",
+            "OperaStable": "Opera",
+        }
+        settings["default_browser"] = browser_map.get(
+            browser_id.split("-")[0] if "-" in browser_id else browser_id,
+            browser_id or "Unknown",
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        settings["default_browser"] = "Unknown"
+
+    # Keyboard layout
+    try:
+        result = subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                "Get-WinUserLanguageList | Select-Object -ExpandProperty LanguageTag",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        langs = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
+        settings["keyboard_layouts"] = langs if langs else ["en-US"]
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        settings["keyboard_layouts"] = ["en-US"]
+
+    print_info(f"Theme: {settings.get('theme', 'unknown')}")
+    print_info(f"Default browser: {settings.get('default_browser', 'unknown')}")
+    print_info(f"Locale: {settings.get('locale', 'unknown')}")
 
     return settings
-
-
-def _get_windows_theme() -> str:
-    """Detect Windows light/dark theme."""
-    try:
-        import winreg
-        key = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize",
-        )
-        value = winreg.QueryValueEx(key, "AppsUseLightTheme")[0]
-        winreg.CloseKey(key)
-        return "light" if value == 1 else "dark"
-    except Exception:
-        return "unknown"
-
-
-def _get_default_browser() -> str:
-    """Detect default browser on Windows."""
-    try:
-        import winreg
-        key = winreg.OpenKey(
-            winreg.HKEY_CURRENT_USER,
-            r"SOFTWARE\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice",
-        )
-        prog_id = winreg.QueryValueEx(key, "ProgId")[0]
-        winreg.CloseKey(key)
-
-        browser_map = {
-            "ChromeHTML": "Chrome",
-            "FirefoxURL": "Firefox",
-            "MSEdgeHTM": "Edge",
-            "BraveHTML": "Brave",
-            "OperaStable": "Opera",
-            "VivaldiHTM": "Vivaldi",
-        }
-        for key_str, name in browser_map.items():
-            if key_str in prog_id:
-                return name
-        return prog_id
-    except Exception:
-        return "unknown"
-
-
-def _get_keyboard_layout() -> str:
-    """Get keyboard layout on Windows."""
-    try:
-        result = subprocess.run(
-            ["powershell", "-Command", "Get-WinUserLanguageList | Select-Object -ExpandProperty InputMethodTips"],
-            capture_output=True, text=True, timeout=10,
-        )
-        return result.stdout.strip() or "unknown"
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return "unknown"
-
-
-def _get_timezone() -> str:
-    """Get system timezone."""
-    try:
-        import time
-        return time.tzname[0]
-    except Exception:
-        return "unknown"
-
-
-def _get_linux_theme() -> str:
-    """Detect Linux desktop theme."""
-    try:
-        result = subprocess.run(
-            ["gsettings", "get", "org.gnome.desktop.interface", "color-scheme"],
-            capture_output=True, text=True, timeout=5,
-        )
-        if "dark" in result.stdout.lower():
-            return "dark"
-        elif "light" in result.stdout.lower() or "default" in result.stdout.lower():
-            return "light"
-    except FileNotFoundError:
-        pass
-    return "unknown"
-
-
-def _get_linux_browser() -> str:
-    """Detect default browser on Linux."""
-    try:
-        result = subprocess.run(
-            ["xdg-settings", "get", "default-web-browser"],
-            capture_output=True, text=True, timeout=5,
-        )
-        browser = result.stdout.strip()
-        if browser:
-            return browser.replace(".desktop", "")
-    except FileNotFoundError:
-        pass
-    return "unknown"

@@ -1,4 +1,110 @@
 {
-    "note": "This file supplements the built-in distro database in distro_engine.py. Add community distros here.",
-    "distros": {}
+  "Ubuntu": {
+    "desktop": "GNOME",
+    "tags": ["beginner-friendly", "stable", "well-documented", "office", "development", "casual"],
+    "package_manager": "apt",
+    "gaming_support": "good",
+    "nvidia_support": "good",
+    "iso_url": "https://ubuntu.com/download/desktop",
+    "description": "The most popular Linux distribution. Great for beginners with massive community support."
+  },
+  "Linux Mint": {
+    "desktop": "Cinnamon",
+    "tags": ["beginner-friendly", "windows-like", "stable", "office", "casual", "lightweight"],
+    "package_manager": "apt",
+    "gaming_support": "good",
+    "nvidia_support": "good",
+    "iso_url": "https://linuxmint.com/download.php",
+    "description": "Based on Ubuntu with a Windows-like interface. Perfect for Windows migrants."
+  },
+  "Fedora": {
+    "desktop": "GNOME",
+    "tags": ["development", "cutting-edge", "sysadmin", "stable", "well-documented"],
+    "package_manager": "dnf",
+    "gaming_support": "good",
+    "nvidia_support": "moderate",
+    "iso_url": "https://fedoraproject.org/workstation/download",
+    "description": "Cutting-edge stable distro backed by Red Hat. Great for developers."
+  },
+  "Pop!_OS": {
+    "desktop": "COSMIC/GNOME",
+    "tags": ["beginner-friendly", "gaming", "development", "nvidia-friendly", "creative", "datascience"],
+    "package_manager": "apt",
+    "gaming_support": "excellent",
+    "nvidia_support": "excellent",
+    "iso_url": "https://pop.system76.com/",
+    "description": "Built by System76 with excellent NVIDIA support and tiling features."
+  },
+  "Manjaro": {
+    "desktop": "XFCE/KDE/GNOME",
+    "tags": ["beginner-friendly", "cutting-edge", "gaming", "development", "creative"],
+    "package_manager": "pacman",
+    "gaming_support": "excellent",
+    "nvidia_support": "good",
+    "iso_url": "https://manjaro.org/download/",
+    "description": "User-friendly Arch-based distro with access to the AUR."
+  },
+  "Arch Linux": {
+    "desktop": "DIY",
+    "tags": ["advanced", "tiling", "development", "sysadmin", "cutting-edge", "customizable"],
+    "package_manager": "pacman",
+    "gaming_support": "excellent",
+    "nvidia_support": "good",
+    "iso_url": "https://archlinux.org/download/",
+    "description": "Minimal, DIY distro for power users who want full control."
+  },
+  "Debian": {
+    "desktop": "GNOME/KDE/XFCE",
+    "tags": ["stable", "server", "sysadmin", "office", "lightweight"],
+    "package_manager": "apt",
+    "gaming_support": "moderate",
+    "nvidia_support": "moderate",
+    "iso_url": "https://www.debian.org/distrib/",
+    "description": "The rock-solid foundation that Ubuntu is built on. Maximum stability."
+  },
+  "openSUSE Tumbleweed": {
+    "desktop": "KDE/GNOME",
+    "tags": ["cutting-edge", "development", "sysadmin", "stable"],
+    "package_manager": "zypper",
+    "gaming_support": "good",
+    "nvidia_support": "good",
+    "iso_url": "https://get.opensuse.org/tumbleweed/",
+    "description": "Rolling release with excellent KDE integration and YaST configuration tool."
+  },
+  "Zorin OS": {
+    "desktop": "GNOME (modified)",
+    "tags": ["beginner-friendly", "windows-like", "macos-like", "office", "casual", "education"],
+    "package_manager": "apt",
+    "gaming_support": "good",
+    "nvidia_support": "good",
+    "iso_url": "https://zorin.com/os/download/",
+    "description": "Designed to look and feel like Windows or macOS. Perfect for newcomers."
+  },
+  "elementary OS": {
+    "desktop": "Pantheon",
+    "tags": ["beginner-friendly", "macos-like", "minimal", "creative", "casual"],
+    "package_manager": "apt",
+    "gaming_support": "moderate",
+    "nvidia_support": "moderate",
+    "iso_url": "https://elementary.io/",
+    "description": "Beautiful macOS-inspired design with curated app store."
+  },
+  "Nobara": {
+    "desktop": "GNOME/KDE",
+    "tags": ["gaming", "creative", "beginner-friendly", "cutting-edge"],
+    "package_manager": "dnf",
+    "gaming_support": "excellent",
+    "nvidia_support": "excellent",
+    "iso_url": "https://nobaraproject.org/download-nobara/",
+    "description": "Fedora-based distro optimized for gaming by GloriousEggroll (Proton-GE creator)."
+  },
+  "EndeavourOS": {
+    "desktop": "XFCE/KDE/GNOME/i3/bspwm",
+    "tags": ["development", "tiling", "cutting-edge", "customizable", "sysadmin"],
+    "package_manager": "pacman",
+    "gaming_support": "excellent",
+    "nvidia_support": "good",
+    "iso_url": "https://endeavouros.com/latest-release/",
+    "description": "Arch-based distro with a graphical installer. Arch made accessible."
+  }
 }

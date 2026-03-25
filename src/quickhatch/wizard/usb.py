@@ -1,128 +1,163 @@
-"""Step 6: Bootable USB creation."""
+"""Step 6: Bootable USB creation wizard."""
 
-import platform
+from __future__ import annotations
+
+import json
 import subprocess
+import sys
+from pathlib import Path
 
 import questionary
-from rich.panel import Panel
 
 from quickhatch.config import UserProfile
-from quickhatch.console import console, print_step, print_success, print_warning, print_info, print_error
-from quickhatch.media.iso_download import get_iso_url, download_iso
-from quickhatch.media.usb_writer import list_usb_drives, write_iso_to_usb
+from quickhatch.console import console, print_error, print_info, print_step, print_success, print_warning
+
+
+def _list_usb_drives() -> list[dict]:
+    """List available USB drives."""
+    drives = []
+    if sys.platform == "win32":
+        try:
+            result = subprocess.run(
+                [
+                    "powershell",
+                    "-NoProfile",
+                    "-Command",
+                    (
+                        "Get-Disk | Where-Object { $_.BusType -eq 'USB' } | "
+                        "Select-Object Number, FriendlyName, "
+                        "@{N='SizeGB';E={[math]::Round($_.Size/1GB,1)}} | "
+                        "ConvertTo-Json"
+                    ),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                data = json.loads(result.stdout)
+                if isinstance(data, dict):
+                    data = [data]
+                for d in data:
+                    drives.append({
+                        "number": d.get("Number"),
+                        "name": d.get("FriendlyName", "USB Drive"),
+                        "size_gb": d.get("SizeGB", 0),
+                    })
+        except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            pass
+    return drives
+
+
+def _get_distro_iso_url(distro: str) -> str | None:
+    """Get the ISO download URL for a distro."""
+    db_path = Path(__file__).parent.parent / "data" / "distros.json"
+    if db_path.exists():
+        distros = json.loads(db_path.read_text())
+        for name, info in distros.items():
+            if name.lower() == distro.lower():
+                return info.get("iso_url")
+    return None
 
 
 def run(profile: UserProfile) -> None:
-    """Run the bootable USB creation step."""
     print_step(6, "Bootable USB Creation")
 
-    if not profile.recommended_distro:
-        print_warning("No distro selected. Skipping USB creation.")
-        profile.completed_steps.append("usb")
-        return
+    distro = profile.recommended_distro or "Ubuntu"
+    iso_url = _get_distro_iso_url(distro)
 
-    distro = profile.recommended_distro
     console.print(
-        f"We'll now create a bootable USB drive with [highlight]{distro}[/highlight].\n"
+        f"Now let's create a bootable USB drive with [bold cyan]{distro}[/bold cyan].\n"
     )
 
-    # Ask if they want to proceed
-    proceed = questionary.confirm(
-        "Do you want to create a bootable USB drive now?",
-        default=True,
+    # Ask what media to use
+    method = questionary.select(
+        "How would you like to create the bootable drive?",
+        choices=[
+            questionary.Choice(
+                "I'll download the ISO myself and use Rufus/Ventoy/balenaEtcher",
+                value="manual",
+            ),
+            questionary.Choice(
+                "Guide me through it step by step",
+                value="guided",
+            ),
+            questionary.Choice(
+                "Skip this step (I already have a bootable drive)",
+                value="skip",
+            ),
+        ],
     ).ask()
 
-    if not proceed:
-        print_info("Skipping USB creation. You can create it manually later.")
+    if method is None:
+        raise KeyboardInterrupt
+
+    if method == "skip":
+        print_info("Skipping USB creation.")
         profile.completed_steps.append("usb")
         return
 
-    # Get ISO URL
-    iso_url = get_iso_url(distro)
+    if method == "manual":
+        if iso_url:
+            console.print(
+                f"\n[bold]Download {distro} from:[/bold]\n"
+                f"  [cyan]{iso_url}[/cyan]\n\n"
+                "Recommended tools for creating bootable USB:\n"
+                "  1. [bold]Ventoy[/bold] - Multi-ISO USB, just copy the ISO file\n"
+                "  2. [bold]Rufus[/bold] - Simple and reliable\n"
+                "  3. [bold]balenaEtcher[/bold] - Cross-platform, very easy\n"
+            )
+        else:
+            console.print(
+                f"\nSearch for '{distro} download ISO' to get the installer.\n"
+            )
+        print_success("Follow the tool's instructions to create the bootable USB.")
+        profile.completed_steps.append("usb")
+        return
+
+    # Guided mode
+    console.print("[bold]Guided USB Creation[/bold]\n")
+
     if iso_url:
-        console.print(f"ISO download URL: [link]{iso_url}[/link]\n")
+        console.print(f"1. Download {distro} ISO from: [cyan]{iso_url}[/cyan]")
     else:
-        print_warning(f"No automatic download URL for {distro}.")
-        iso_url = questionary.text(
-            "Please paste the ISO download URL:",
-        ).ask()
-        if not iso_url:
-            print_warning("No URL provided. Skipping USB creation.")
-            profile.completed_steps.append("usb")
-            return
+        console.print(f"1. Download the {distro} ISO from the official website")
+
+    console.print(
+        "2. Insert a USB drive (8 GB or larger recommended)\n"
+        "3. Use one of these tools to write the ISO:\n"
+    )
 
     # Detect USB drives
-    drives = list_usb_drives()
-
-    if not drives:
-        print_warning(
-            "No USB drives detected. Please insert a USB drive and try again,\n"
-            "or create the bootable drive manually using Rufus, Ventoy, or Etcher."
-        )
+    drives = _list_usb_drives()
+    if drives:
+        console.print("[bold]Detected USB drives:[/bold]")
+        for d in drives:
+            console.print(
+                f"  - Disk {d['number']}: {d['name']} ({d['size_gb']} GB)"
+            )
         console.print()
-        console.print(Panel(
-            "[bold]Manual options:[/bold]\n"
-            "  - Rufus: https://rufus.ie\n"
-            "  - Ventoy: https://www.ventoy.net\n"
-            "  - balenaEtcher: https://etcher.balena.io",
-            title="Alternative Tools",
-            border_style="cyan",
-        ))
-        profile.completed_steps.append("usb")
-        return
-
-    # Let user pick a drive
-    drive_choices = [
-        questionary.Choice(
-            f"{d['name']} ({d['size']})",
-            value=d["device"],
+        print_warning(
+            "WRITING TO A USB DRIVE WILL ERASE ALL DATA ON IT. "
+            "Make sure you select the correct drive!"
         )
-        for d in drives
-    ]
-    drive_choices.append(questionary.Choice("Cancel - I'll do it manually", value=None))
-
-    selected_drive = questionary.select(
-        "Select the USB drive to use (ALL DATA WILL BE ERASED):",
-        choices=drive_choices,
-    ).ask()
-
-    if not selected_drive:
-        print_info("USB creation cancelled.")
-        profile.completed_steps.append("usb")
-        return
-
-    # Final confirmation
-    console.print()
-    console.print(Panel(
-        f"[bold red]WARNING:[/bold red] This will ERASE ALL DATA on {selected_drive}!\n\n"
-        f"  Distro: {distro}\n"
-        f"  Target: {selected_drive}\n"
-        f"  ISO:    {iso_url}",
-        title="Confirm USB Creation",
-        border_style="red",
-    ))
-
-    confirm = questionary.confirm(
-        "Are you absolutely sure? This cannot be undone!",
-        default=False,
-    ).ask()
-
-    if not confirm:
-        print_info("USB creation cancelled.")
-        profile.completed_steps.append("usb")
-        return
-
-    # Download and write
-    console.print()
-    iso_path = download_iso(iso_url, distro)
-    if iso_path:
-        success = write_iso_to_usb(iso_path, selected_drive)
-        if success:
-            profile.usb_device = selected_drive
-            print_success(f"Bootable USB created successfully on {selected_drive}!")
-        else:
-            print_error("Failed to write ISO to USB. Try using Rufus or Ventoy manually.")
     else:
-        print_error("Failed to download ISO. Check your internet connection.")
+        print_info("No USB drives detected. Insert one and re-run this step if needed.")
 
+    # Recommend Ventoy for simplicity
+    console.print(
+        "\n[bold]Recommended: Ventoy[/bold]\n"
+        "  Ventoy lets you boot from ISOs by simply copying them to the USB.\n"
+        "  Steps:\n"
+        "    a. Download Ventoy from: https://ventoy.net\n"
+        "    b. Run Ventoy2Disk.exe and install to your USB\n"
+        "    c. Copy the downloaded ISO file to the USB drive\n"
+        "    d. Boot from the USB to start installation\n"
+    )
+
+    questionary.confirm(
+        "Press Enter when you're ready to continue...", default=True
+    ).ask()
+
+    print_success("USB creation step complete!")
     profile.completed_steps.append("usb")
