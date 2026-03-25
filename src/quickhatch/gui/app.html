@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuickHatch — Windows to Linux Migration</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --fg: #e6edf3; --fg2: #8b949e; --fg3: #484f58;
+    --accent: #58a6ff; --accent2: #3fb950; --accent3: #d29922;
+    --danger: #f85149; --border: #30363d;
+    --radius: 12px; --transition: 0.2s ease;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--fg); line-height: 1.6;
+    min-height: 100vh;
+  }
+  .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+
+  /* Header */
+  header {
+    text-align: center; padding: 40px 20px 30px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 30px;
+  }
+  header h1 {
+    font-size: 2.2em; font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  header p { color: var(--fg2); margin-top: 8px; font-size: 1.1em; }
+
+  /* Progress bar */
+  .progress-bar {
+    display: flex; gap: 4px; margin-bottom: 30px;
+    background: var(--bg2); border-radius: var(--radius); padding: 6px;
+  }
+  .progress-step {
+    flex: 1; text-align: center; padding: 8px 4px;
+    border-radius: 8px; font-size: 0.75em; color: var(--fg3);
+    transition: var(--transition); cursor: default;
+  }
+  .progress-step.active { background: var(--accent); color: #fff; font-weight: 600; }
+  .progress-step.done { background: var(--accent2); color: #fff; opacity: 0.7; }
+
+  /* Cards */
+  .card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 30px; margin-bottom: 20px;
+    transition: var(--transition);
+  }
+  .card h2 { font-size: 1.4em; margin-bottom: 15px; }
+  .card p { color: var(--fg2); margin-bottom: 15px; }
+
+  /* Form elements */
+  .form-group { margin-bottom: 20px; }
+  .form-group label {
+    display: block; font-weight: 600; margin-bottom: 8px;
+    color: var(--fg);
+  }
+  .form-group .hint { font-size: 0.85em; color: var(--fg2); margin-top: 4px; }
+
+  select, input[type="text"], input[type="password"], textarea {
+    width: 100%; padding: 10px 14px; background: var(--bg3);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--fg); font-size: 1em; transition: var(--transition);
+  }
+  select:focus, input:focus, textarea:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+  }
+  textarea { min-height: 80px; resize: vertical; font-family: inherit; }
+
+  /* Buttons */
+  .btn {
+    padding: 10px 24px; border: none; border-radius: 8px;
+    font-size: 1em; font-weight: 600; cursor: pointer;
+    transition: var(--transition); display: inline-flex;
+    align-items: center; gap: 8px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #4c9aed; }
+  .btn-success { background: var(--accent2); color: #fff; }
+  .btn-success:hover { background: #36a148; }
+  .btn-outline {
+    background: transparent; color: var(--fg);
+    border: 1px solid var(--border);
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-row { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+
+  /* Choice grid */
+  .choices {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .choice {
+    background: var(--bg3); border: 2px solid var(--border);
+    border-radius: var(--radius); padding: 16px; cursor: pointer;
+    transition: var(--transition); text-align: center;
+  }
+  .choice:hover { border-color: var(--accent); }
+  .choice.selected { border-color: var(--accent); background: rgba(88, 166, 255, 0.1); }
+  .choice .title { font-weight: 600; margin-bottom: 4px; }
+  .choice .desc { font-size: 0.85em; color: var(--fg2); }
+
+  /* Checkbox grid */
+  .checkbox-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .checkbox-item {
+    padding: 8px 16px; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 20px; cursor: pointer; transition: var(--transition);
+    font-size: 0.9em; user-select: none;
+  }
+  .checkbox-item:hover { border-color: var(--accent); }
+  .checkbox-item.selected {
+    background: rgba(88, 166, 255, 0.15); border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Agent panel */
+  .agent-panel {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; margin: 15px 0;
+  }
+  .agent-panel .status {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.waiting { background: var(--accent3); animation: pulse 1.5s infinite; }
+  .dot.connected { background: var(--accent2); }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .suggestion {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px; margin: 10px 0;
+  }
+  .suggestion .cat {
+    font-size: 0.75em; text-transform: uppercase; font-weight: 700;
+    color: var(--accent); margin-bottom: 6px;
+  }
+  .suggestion .title { font-weight: 600; margin-bottom: 8px; }
+  .suggestion .content { color: var(--fg2); font-size: 0.9em; white-space: pre-wrap; }
+
+  .question-card {
+    background: rgba(210, 153, 34, 0.1); border: 1px solid var(--accent3);
+    border-radius: 8px; padding: 16px; margin: 10px 0;
+  }
+
+  /* Code block */
+  code {
+    background: var(--bg3); padding: 2px 6px; border-radius: 4px;
+    font-size: 0.9em; font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .code-block {
+    background: var(--bg3); border-radius: 8px; padding: 16px;
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.9em;
+    overflow-x: auto; user-select: all; margin: 10px 0;
+  }
+
+  /* Scan results */
+  .scan-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+  }
+  .scan-item:last-child { border-bottom: none; }
+  .scan-icon { font-size: 1.2em; width: 30px; text-align: center; }
+  .scan-label { font-weight: 600; }
+  .scan-value { color: var(--fg2); margin-left: auto; }
+
+  .hidden { display: none; }
+  .fade-in { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>QuickHatch</h1>
+    <p>Windows to Linux Migration Wizard</p>
+  </header>
+
+  <div class="progress-bar" id="progressBar"></div>
+
+  <div id="stepContent"></div>
+</div>
+
+<script>
+const STEPS = [
+  {id:'welcome', title:'Welcome'},
+  {id:'ai_setup', title:'AI Setup'},
+  {id:'questionnaire', title:'Preferences'},
+  {id:'scan', title:'Scan'},
+  {id:'additional', title:'Info'},
+  {id:'bridge', title:'AI Analysis'},
+  {id:'usb', title:'USB'},
+  {id:'ssh', title:'SSH'},
+  {id:'export', title:'Export'},
+];
+
+let state = {
+  currentStep: 0,
+  profile: null,
+  completedSteps: [],
+  bridgePort: null,
+  agentConnected: false,
+  suggestions: [],
+  pendingQuestions: [],
+};
+
+async function api(path, method='GET', body=null) {
+  const opts = {method, headers: {'Content-Type':'application/json'}};
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(path, opts);
+  return r.json();
+}
+
+async function loadProfile() {
+  const data = await api('/wizard/profile');
+  state.profile = data.profile;
+  state.completedSteps = state.profile.completed_steps || [];
+  // Find first incomplete step
+  state.currentStep = 0;
+  for (let i = 0; i < STEPS.length; i++) {
+    if (!state.completedSteps.includes(STEPS[i].id)) {
+      state.currentStep = i;
+      break;
+    }
+  }
+}
+
+function renderProgress() {
+  const bar = document.getElementById('progressBar');
+  bar.innerHTML = STEPS.map((s, i) => {
+    let cls = 'progress-step';
+    if (state.completedSteps.includes(s.id)) cls += ' done';
+    if (i === state.currentStep) cls += ' active';
+    return `<div class="${cls}">${s.title}</div>`;
+  }).join('');
+}
+
+async function completeStep(stepId) {
+  await api('/wizard/complete_step', 'POST', {step: stepId});
+  if (!state.completedSteps.includes(stepId))
+    state.completedSteps.push(stepId);
+  state.currentStep++;
+  render();
+}
+
+async function saveProfile(updates) {
+  await api('/wizard/update', 'POST', updates);
+  Object.assign(state.profile, updates);
+}
+
+function render() {
+  renderProgress();
+  const step = STEPS[state.currentStep];
+  if (!step) { renderDone(); return; }
+  const fn = stepRenderers[step.id];
+  if (fn) fn();
+}
+
+function $(sel) { return document.querySelector(sel); }
+function el(id) { return document.getElementById(id); }
+const content = () => document.getElementById('stepContent');
+
+// ── Step Renderers ──
+
+const stepRenderers = {
+  welcome() {
+    content().innerHTML = `
+      <div class="card fade-in">
+        <h2>Welcome to QuickHatch</h2>
+        <p>This wizard will scan your system, learn your preferences, and set up an AI agent to complete your Linux migration.</p>
+        <div class="form-group">
+          <label>What are you doing?</label>
+          <div class="choices" id="migType">
+            <div class="choice" data-value="fresh_install" onclick="selectChoice('migType', this)">
+              <div class="title">Fresh Install</div>
+              <div class="desc">I'm new to Linux</div>
+            </div>
+            <div class="choice" data-value="switching" onclick="selectChoice('migType', this)">
+              <div class="title">Switching</div>
+              <div class="desc">From an existing Linux setup</div>
+            </div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="submitWelcome()">Next →</button>
+        </div>
+      </div>`;
+  },
+
+  ai_setup() {
+    content().innerHTML = `
+      <div class="card fade-in">
+        <h2>Choose Your AI Assistant</h2>
+        <p>Which tool will help set up your new Linux system?</p>
+        <div class="choices" id="aiChoice">
+          <div class="choice" data-value="claude_code" onclick="selectChoice('aiChoice', this)">
+            <div class="title">Claude Code</div>
+            <div class="desc">Recommended</div>
+          </div>
+          <div class="choice" data-value="codex" onclick="selectChoice('aiChoice', this)">
+            <div class="title">Codex CLI</div>
+            <div class="desc">OpenAI</div>
+          </div>
+          <div class="choice" data-value="local_ollama" onclick="selectChoice('aiChoice', this)">
+            <div class="title">Ollama</div>
+            <div class="desc">Local model</div>
+          </div>
+          <div class="choice" data-value="local_lmstudio" onclick="selectChoice('aiChoice', this)">
+            <div class="title">LM Studio</div>
+            <div class="desc">Local model</div>
+          </div>
+          <div class="choice" data-value="api" onclick="selectChoice('aiChoice', this)">
+            <div class="title">API Key</div>
+            <div class="desc">Anthropic / OpenAI</div>
+          </div>
+        </div>
+        <div id="aiExtra"></div>
+        <div class="btn-row">
+          <button class="btn btn-outline" onclick="state.currentStep--;render()">← Back</button>
+          <button class="btn btn-primary" onclick="submitAI()">Next →</button>
+        </div>
+      </div>`;
+  },
+
+  questionnaire() {
+    content().innerHTML = `
+      <div class="card fade-in">
+        <h2>Your Preferences</h2>
+        <div class="form-group">
+          <label>Desktop Style</label>
+          <div class="choices" id="deskChoice">
+            <div class="choice" data-value="windows_like" onclick="selectChoice('deskChoice', this)">
+              <div class="title">Windows-like</div><div class="desc">Taskbar + start menu</div>
+            </div>
+            <div class="choice" data-value="macos_like" onclick="selectChoice('deskChoice', this)">
+              <div class="title">macOS-like</div><div class="desc">Dock + top bar</div>
+            </div>
+            <div class="choice" data-value="minimal" onclick="selectChoice('deskChoice', this)">
+              <div class="title">Minimal</div><div class="desc">Clean & simple</div>
+            </div>
+            <div class="choice" data-value="tiling" onclick="selectChoice('deskChoice', this)">
+              <div class="title">Tiling WM</div><div class="desc">Keyboard-driven</div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Icon Style</label>
+          <select id="iconStyle">
+            <option value="flat">Flat & modern</option>
+            <option value="rounded">Rounded & friendly</option>
+            <option value="classic">Classic</option>
+            <option value="colorful">Colorful</option>
+            <option value="default">No preference</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Wallpaper Style</label>
+          <select id="wpStyle">
+            <option value="nature">Nature & landscapes</option>
+            <option value="abstract">Abstract & geometric</option>
+            <option value="dark">Dark & moody</option>
+            <option value="minimal">Minimal & clean</option>
+            <option value="custom">I'll set my own</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>What will you use this for?</label>
+          <div class="checkbox-grid" id="useCases">
+            ${['development','gaming','office','creative','browsing','sysadmin','datascience','education','casual']
+              .map(u => `<span class="checkbox-item" data-value="${u}" onclick="toggleCheck(this)">${u}</span>`).join('')}
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Preferred distro (optional)</label>
+          <input type="text" id="distroPref" placeholder="Leave blank for AI recommendation">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-outline" onclick="state.currentStep--;render()">← Back</button>
+          <button class="btn btn-primary" onclick="submitPrefs()">Next →</button>
+        </div>
+      </div>`;
+  },
+
+  scan() {
+    content().innerHTML = `
+      <div class="card fade-in">
+        <h2>System Scan</h2>
+        <p>We'll scan your system for hardware, installed apps, settings, and files.</p>
+        <div id="scanResults"></div>
+        <div class="btn-row">
+          <button class="btn btn-outline" onclick="state.currentStep--;render()">← Back</button>
+          <button class="btn btn-primary" id="scanBtn" onclick="runScan()">Scan System</button>
+          <button class="btn btn-success hidden" id="scanNext" onclick="completeStep('scan')">Next →</button>
+        </div>
+      </div>`;
+  },
+
+  additional() {
+    content().innerHTML = `
+      <div class="card fade-in">
+        <h2>Additional Information</h2>
+        <p>Anything else the AI should know? (dual-boot needs, Wayland preference, 4K monitor, encryption, etc.)</p>
+        <div class="form-group">
+          <textarea id="additionalInfo" placeholder="Type anything here, or leave blank...">${state.profile.additional_info || ''}</textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-outline" onclick="state.currentStep--;render()">← Back</button>
+          <button class="btn btn-primary" onclick="submitAdditional()">Next →</button>
+        </div>
+      </div>`;
+  },
+
+  bridge() {
+    const port = location.port;
+    const provider = state.profile.ai_config?.provider || 'claude_code';
+    let cmd = '';
+    if (provider === 'claude_code')
+      cmd = `claude -p "Read http://localhost:${port}/api/profile for my system info. Use the QuickHatch bridge API at http://localhost:${port}/api to communicate. POST /api/suggest for recommendations, POST /api/ask for questions, POST /api/done when finished."`;
+    else if (provider === 'codex')
+      cmd = `codex "Read http://localhost:${port}/api/profile and use http://localhost:${port}/api to communicate..."`;
+    else
+      cmd = `Point your AI tool at http://localhost:${port}/api/profile`;
+
+    content().innerHTML = `
+      <div class="card fade-in">
+        <h2>AI Agent Bridge</h2>
+        <p>Open a terminal and run your AI tool with this command:</p>
+        <div class="code-block" id="cmdBlock">${escHtml(cmd)}</div>
+        <button class="btn btn-outline" onclick="navigator.clipboard.writeText(el('cmdBlock').textContent)" style="margin-bottom:15px">Copy command</button>
+
+        <div class="agent-panel">
+          <div class="status">
+            <div class="dot" id="agentDot"></div>
+            <span id="agentStatus">Waiting for agent to connect...</span>
+          </div>
+          <div id="agentFeed"></div>
+        </div>
+
+        <div id="questionArea"></div>
+
+        <div class="btn-row">
+          <button class="btn btn-outline" onclick="state.currentStep--;render()">← Back</button>
+          <button class="btn btn-primary" onclick="completeStep('bridge')">Skip / Continue →</button>
+        </div>
+      </div>`;
+    pollBridge();
+  },
+
+  usb() {
+    const distro = state.profile.preferences?.distro_preference || 'your chosen distro';
+    content().innerHTML = `
+      <div class="card fade-in">
+        <h2>Bootable USB</h2>
+        <p>Create a bootable USB drive with ${escHtml(distro)}.</p>
+        <div class="agent-panel">
+          <p><strong>Recommended: Ventoy</strong></p>
+          <p style="color:var(--fg2)">1. Download Ventoy from ventoy.net<br>
+          2. Install to your USB drive<br>
+          3. Copy the distro ISO to the USB<br>
+          4. Boot from USB to install Linux</p>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-outline" onclick="state.currentStep--;render()">← Back</button>
+          <button class="btn btn-primary" onclick="completeStep('usb')">Next →</button>
+        </div>
+      </div>`;
+  },
+
+  ssh() {
+    content().innerHTML = `
+      <div class="card fade-in">
+        <h2>SSH Key Setup</h2>
+        <p>Generate an SSH key so the AI agent can connect to your new Linux machine.</p>
+        <div class="agent-panel">
+          <p style="color:var(--fg2)">If you already have SSH keys, you can skip this.
+          Otherwise, run in a terminal:</p>
+          <div class="code-block">ssh-keygen -t ed25519 -C "quickhatch-migration"</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-outline" onclick="state.currentStep--;render()">← Back</button>
+          <button class="btn btn-primary" onclick="completeStep('ssh')">Next →</button>
+        </div>
+      </div>`;
+  },
+
+  export() {
+    content().innerHTML = `
+      <div class="card fade-in">
+        <h2>Export Migration Bundle</h2>
+        <p>Generate all files the AI agent needs on your new Linux system.</p>
+        <div id="exportResult"></div>
+        <div class="btn-row">
+          <button class="btn btn-outline" onclick="state.currentStep--;render()">← Back</button>
+          <button class="btn btn-success" id="exportBtn" onclick="runExport()">Export Bundle</button>
+        </div>
+      </div>`;
+  },
+};
+
+function renderDone() {
+  content().innerHTML = `
+    <div class="card fade-in" style="text-align:center">
+      <h2 style="color:var(--accent2)">Migration Prep Complete!</h2>
+      <p>Your migration bundle is ready. Next steps:</p>
+      <div style="text-align:left; margin: 20px auto; max-width: 500px">
+        <p>1. Boot from your USB drive</p>
+        <p>2. Install Linux</p>
+        <p>3. Copy the migration bundle</p>
+        <p>4. Run <code>bash quickstart.sh</code></p>
+        <p>5. The AI agent handles the rest!</p>
+      </div>
+    </div>`;
+}
+
+// ── Helpers ──
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function selectChoice(groupId, el) {
+  document.querySelectorAll(`#${groupId} .choice`).forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function toggleCheck(el) { el.classList.toggle('selected'); }
+
+function getSelected(groupId) {
+  const sel = document.querySelector(`#${groupId} .choice.selected`);
+  return sel ? sel.dataset.value : '';
+}
+
+function getChecked(groupId) {
+  return [...document.querySelectorAll(`#${groupId} .checkbox-item.selected`)]
+    .map(el => el.dataset.value);
+}
+
+// ── Step Submitters ──
+
+async function submitWelcome() {
+  const type = getSelected('migType');
+  if (!type) return;
+  await saveProfile({preferences: {migration_type: type}});
+  await completeStep('welcome');
+}
+
+async function submitAI() {
+  const provider = getSelected('aiChoice');
+  if (!provider) return;
+  await saveProfile({ai_config: {provider}});
+  await completeStep('ai_setup');
+}
+
+async function submitPrefs() {
+  const prefs = {
+    desktop_look: getSelected('deskChoice') || 'custom',
+    icon_style: el('iconStyle').value,
+    wallpaper_style: el('wpStyle').value,
+    use_cases: getChecked('useCases'),
+    distro_preference: el('distroPref').value || null,
+  };
+  await saveProfile({preferences: prefs});
+  await completeStep('questionnaire');
+}
+
+async function runScan() {
+  el('scanBtn').disabled = true;
+  el('scanBtn').textContent = 'Scanning...';
+  el('scanResults').innerHTML = '<p style="color:var(--accent)">Scanning system...</p>';
+
+  const data = await api('/wizard/scan', 'POST');
+  const r = data.results || {};
+  let html = '';
+
+  if (r.hardware) {
+    html += '<div class="scan-item"><span class="scan-label">CPU</span><span class="scan-value">' + (r.hardware.cpu || 'Unknown') + '</span></div>';
+    html += '<div class="scan-item"><span class="scan-label">RAM</span><span class="scan-value">' + (r.hardware.ram_gb || '?') + ' GB</span></div>';
+    (r.hardware.gpus || []).forEach(g => {
+      html += '<div class="scan-item"><span class="scan-label">GPU</span><span class="scan-value">' + g.name + ' [' + g.vendor + ']</span></div>';
+    });
+  }
+  if (r.apps) html += '<div class="scan-item"><span class="scan-label">Apps found</span><span class="scan-value">' + r.apps.length + '</span></div>';
+  if (r.files) html += '<div class="scan-item"><span class="scan-label">Files</span><span class="scan-value">' + (r.files.total_files || 0) + ' files (' + (r.files.total_size_mb || 0) + ' MB)</span></div>';
+  if (r.settings) html += '<div class="scan-item"><span class="scan-label">Theme</span><span class="scan-value">' + (r.settings.theme || 'unknown') + '</span></div>';
+
+  if (!html) html = '<p style="color:var(--accent3)">Limited results (not running on Windows). The AI will work with your preferences.</p>';
+
+  el('scanResults').innerHTML = html;
+  el('scanBtn').classList.add('hidden');
+  el('scanNext').classList.remove('hidden');
+}
+
+async function submitAdditional() {
+  const info = el('additionalInfo').value;
+  await saveProfile({additional_info: info});
+  await completeStep('additional');
+}
+
+let bridgePollTimer = null;
+async function pollBridge() {
+  try {
+    const data = await api('/api/status');
+    if (data.status === 'ok') {
+      const dot = el('agentDot');
+      const statusEl = el('agentStatus');
+      if (data.agent_connected || data.suggestions > 0) {
+        dot.className = 'dot connected';
+        statusEl.textContent = 'Agent connected';
+        state.agentConnected = true;
+      } else {
+        dot.className = 'dot waiting';
+      }
+
+      // Fetch suggestions
+      const sugData = await api('/api/suggestions');
+      if (sugData.suggestions) {
+        const feed = el('agentFeed');
+        if (feed) {
+          feed.innerHTML = sugData.suggestions.map(s => `
+            <div class="suggestion">
+              <div class="cat">${escHtml(s.category)}</div>
+              <div class="title">${escHtml(s.title)}</div>
+              <div class="content">${typeof s.content === 'string' ? escHtml(s.content) : '<pre>' + escHtml(JSON.stringify(s.content, null, 2)) + '</pre>'}</div>
+            </div>
+          `).join('');
+        }
+      }
+    }
+  } catch(e) {}
+
+  if (STEPS[state.currentStep]?.id === 'bridge') {
+    bridgePollTimer = setTimeout(pollBridge, 2000);
+  }
+}
+
+async function runExport() {
+  el('exportBtn').disabled = true;
+  el('exportBtn').textContent = 'Exporting...';
+
+  const data = await api('/wizard/export', 'POST');
+  el('exportResult').innerHTML = `
+    <div class="agent-panel">
+      <p style="color:var(--accent2); font-weight:600">Bundle exported!</p>
+      <p style="color:var(--fg2)">Location: <code>${escHtml(data.output_dir || '')}</code></p>
+      <p style="color:var(--fg2); margin-top:8px">Files:<br>
+        • MIGRATION_INSTRUCTIONS.md<br>
+        • quickhatch-profile.json / .yaml<br>
+        • quickstart.sh</p>
+    </div>`;
+  el('exportBtn').textContent = 'Exported!';
+
+  await completeStep('export');
+}
+
+// ── Init ──
+(async () => {
+  await loadProfile();
+  render();
+})();
+</script>
+</body>
+</html>
