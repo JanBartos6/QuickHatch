@@ -60,7 +60,7 @@ def _list_usb_drives() -> list[dict]:
                 for dev in data.get("blockdevices", []):
                     # Filter for USB removable disks
                     is_usb = dev.get("tran") == "usb"
-                    is_removable = str(dev.get("rm")) in ("1", "true", True)
+                    is_removable = dev.get("rm") in (1, "1", True, "true")
                     is_disk = dev.get("type") == "disk"
                     if is_disk and (is_usb or is_removable):
                         name = (dev.get("model") or dev.get("name", "USB Drive")).strip()

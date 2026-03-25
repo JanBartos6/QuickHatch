@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 import time
 from pathlib import Path
 
@@ -44,17 +45,26 @@ def _write_prompt_file(profile: UserProfile, port: int) -> Path:
     return prompt_file
 
 
-def _get_launch_command(profile: UserProfile, port: int) -> str:
-    """Get the command the user should run in their AI tool."""
+def _get_launch_commands(profile: UserProfile, port: int) -> dict[str, str]:
+    """Get launch commands for both PowerShell and bash."""
     prompt_file = _write_prompt_file(profile, port)
     provider = profile.ai_config.provider
 
     if provider == "claude_code":
-        return f'claude -p "$(cat {prompt_file})"'
+        return {
+            "powershell": f'claude -p (Get-Content {prompt_file} -Raw)',
+            "bash": f'claude -p "$(cat {prompt_file})"',
+        }
     elif provider == "codex":
-        return f'codex "$(cat {prompt_file})"'
+        return {
+            "powershell": f'codex (Get-Content {prompt_file} -Raw)',
+            "bash": f'codex "$(cat {prompt_file})"',
+        }
     else:
-        return f"cat {prompt_file}"
+        return {
+            "powershell": f'Get-Content {prompt_file}',
+            "bash": f'cat {prompt_file}',
+        }
 
 
 def _print_api_docs(port: int) -> None:
@@ -105,20 +115,37 @@ def run(profile: UserProfile) -> None:
     print_success(f"Bridge server running on port {port}")
     _print_api_docs(port)
 
-    # Save the command to a file so users can just run it without copy-paste issues
-    launch_cmd = _get_launch_command(profile, port)
-    cmd_file = Path(".quickhatch-agent-cmd.sh")
-    cmd_file.write_text(launch_cmd + "\n")
+    # Save commands for both shells
+    cmds = _get_launch_commands(profile, port)
+
+    cmd_file_sh = Path(".quickhatch-agent-cmd.sh")
+    cmd_file_sh.write_text(cmds["bash"] + "\n")
+
+    cmd_file_ps1 = Path(".quickhatch-agent-cmd.ps1")
+    cmd_file_ps1.write_text(cmds["powershell"] + "\n")
 
     console.print()
-    print_success("Command saved to .quickhatch-agent-cmd.sh")
-    console.print(
-        "\n[bold]Open a new terminal and run:[/bold]\n\n"
-        f"  [cyan]bash .quickhatch-agent-cmd.sh[/cyan]\n\n"
-        "Or copy this manually:\n"
-    )
-    # Print the raw command without Rich panels/borders so copy-paste works
-    console.print(launch_cmd, highlight=False, soft_wrap=True)
+
+    if sys.platform == "win32":
+        print_success("Command saved to .quickhatch-agent-cmd.ps1")
+        console.print(
+            "\n[bold]Open a new PowerShell terminal and run:[/bold]\n\n"
+            f"  [cyan].\\\\.quickhatch-agent-cmd.ps1[/cyan]\n\n"
+            "Or copy this:\n"
+        )
+        console.print(cmds["powershell"], highlight=False, soft_wrap=True)
+        console.print(
+            f"\n[dim]On bash/WSL instead: bash .quickhatch-agent-cmd.sh[/dim]"
+        )
+    else:
+        print_success("Command saved to .quickhatch-agent-cmd.sh")
+        console.print(
+            "\n[bold]Open a new terminal and run:[/bold]\n\n"
+            f"  [cyan]bash .quickhatch-agent-cmd.sh[/cyan]\n\n"
+            "Or copy this:\n"
+        )
+        console.print(cmds["bash"], highlight=False, soft_wrap=True)
+
     console.print(
         f"\n[dim]Or point any AI tool at: http://localhost:{port}/api/profile[/dim]\n"
     )

@@ -224,7 +224,7 @@ async function loadProfile() {
   state.profile = data.profile;
   state.completedSteps = state.profile.completed_steps || [];
   // Find first incomplete step
-  state.currentStep = 0;
+  state.currentStep = STEPS.length; // default to done
   for (let i = 0; i < STEPS.length; i++) {
     if (!state.completedSteps.includes(STEPS[i].id)) {
       state.currentStep = i;
@@ -409,7 +409,7 @@ const stepRenderers = {
         <h2>Additional Information</h2>
         <p>Anything else the AI should know? (dual-boot needs, Wayland preference, 4K monitor, encryption, etc.)</p>
         <div class="form-group">
-          <textarea id="additionalInfo" placeholder="Type anything here, or leave blank...">${state.profile.additional_info || ''}</textarea>
+          <textarea id="additionalInfo" placeholder="Type anything here, or leave blank...">${escHtml(state.profile.additional_info || '')}</textarea>
         </div>
         <div class="btn-row">
           <button class="btn btn-outline" onclick="state.currentStep--;render()">← Back</button>
@@ -423,18 +423,33 @@ const stepRenderers = {
     const provider = state.profile.ai_config?.provider || 'claude_code';
     let cmd = '';
     if (provider === 'claude_code')
-      cmd = `claude -p "Read http://localhost:${port}/api/profile for my system info. Use the QuickHatch bridge API at http://localhost:${port}/api to communicate. POST /api/suggest for recommendations, POST /api/ask for questions, POST /api/done when finished."`;
+      cmd = `claude -p "Read http://localhost:${port}/api/profile for my system info. Use the QuickHatch bridge API at http://localhost:${port}/api to communicate. POST /api/suggest for recommendations, POST /api/ask for questions, POST /api/done when finished." --allowedTools "Bash"`;
     else if (provider === 'codex')
       cmd = `codex "Read http://localhost:${port}/api/profile and use http://localhost:${port}/api to communicate..."`;
     else
       cmd = `Point your AI tool at http://localhost:${port}/api/profile`;
 
+    const canLaunch = ['claude_code', 'codex'].includes(provider);
+
     content().innerHTML = `
       <div class="card fade-in">
         <h2>AI Agent Bridge</h2>
-        <p>Open a terminal and run your AI tool with this command:</p>
-        <div class="code-block" id="cmdBlock">${escHtml(cmd)}</div>
-        <button class="btn btn-outline" onclick="navigator.clipboard.writeText(el('cmdBlock').textContent)" style="margin-bottom:15px">Copy command</button>
+        ${canLaunch ? `
+          <p>Launch the AI agent directly, or copy the command to run manually.</p>
+          <div class="btn-row" style="justify-content:flex-start; margin-bottom:15px">
+            <button class="btn btn-success" id="launchBtn" onclick="launchAgent()">Launch AI Agent</button>
+          </div>
+          <div id="launchMsg" style="margin-bottom:15px"></div>
+          <details style="margin-bottom:15px">
+            <summary style="cursor:pointer; color:var(--fg2)">Or run manually...</summary>
+            <div class="code-block" id="cmdBlock" style="margin-top:10px">${escHtml(cmd)}</div>
+            <button class="btn btn-outline" onclick="navigator.clipboard.writeText(el('cmdBlock').textContent);this.textContent='Copied!'" style="margin-top:8px">Copy command</button>
+          </details>
+        ` : `
+          <p>Point your AI tool at the bridge API:</p>
+          <div class="code-block" id="cmdBlock">${escHtml(cmd)}</div>
+          <button class="btn btn-outline" onclick="navigator.clipboard.writeText(el('cmdBlock').textContent);this.textContent='Copied!'" style="margin-bottom:15px">Copy command</button>
+        `}
 
         <div class="agent-panel">
           <div class="status">
@@ -579,15 +594,15 @@ async function runScan() {
   let html = '';
 
   if (r.hardware) {
-    html += '<div class="scan-item"><span class="scan-label">CPU</span><span class="scan-value">' + (r.hardware.cpu || 'Unknown') + '</span></div>';
-    html += '<div class="scan-item"><span class="scan-label">RAM</span><span class="scan-value">' + (r.hardware.ram_gb || '?') + ' GB</span></div>';
+    html += '<div class="scan-item"><span class="scan-label">CPU</span><span class="scan-value">' + escHtml(r.hardware.cpu || 'Unknown') + '</span></div>';
+    html += '<div class="scan-item"><span class="scan-label">RAM</span><span class="scan-value">' + escHtml(String(r.hardware.ram_gb || '?')) + ' GB</span></div>';
     (r.hardware.gpus || []).forEach(g => {
-      html += '<div class="scan-item"><span class="scan-label">GPU</span><span class="scan-value">' + g.name + ' [' + g.vendor + ']</span></div>';
+      html += '<div class="scan-item"><span class="scan-label">GPU</span><span class="scan-value">' + escHtml(g.name) + ' [' + escHtml(g.vendor) + ']</span></div>';
     });
   }
-  if (r.apps) html += '<div class="scan-item"><span class="scan-label">Apps found</span><span class="scan-value">' + r.apps.length + '</span></div>';
-  if (r.files) html += '<div class="scan-item"><span class="scan-label">Files</span><span class="scan-value">' + (r.files.total_files || 0) + ' files (' + (r.files.total_size_mb || 0) + ' MB)</span></div>';
-  if (r.settings) html += '<div class="scan-item"><span class="scan-label">Theme</span><span class="scan-value">' + (r.settings.theme || 'unknown') + '</span></div>';
+  if (r.apps) html += '<div class="scan-item"><span class="scan-label">Apps found</span><span class="scan-value">' + escHtml(String(r.apps.length)) + '</span></div>';
+  if (r.files) html += '<div class="scan-item"><span class="scan-label">Files</span><span class="scan-value">' + escHtml(String(r.files.total_files || 0)) + ' files (' + escHtml(String(r.files.total_size_mb || 0)) + ' MB)</span></div>';
+  if (r.settings) html += '<div class="scan-item"><span class="scan-label">Theme</span><span class="scan-value">' + escHtml(r.settings.theme || 'unknown') + '</span></div>';
 
   if (!html) html = '<p style="color:var(--accent3)">Limited results (not running on Windows). The AI will work with your preferences.</p>';
 
@@ -600,6 +615,28 @@ async function submitAdditional() {
   const info = el('additionalInfo').value;
   await saveProfile({additional_info: info});
   await completeStep('additional');
+}
+
+async function launchAgent() {
+  const btn = el('launchBtn');
+  const msg = el('launchMsg');
+  btn.disabled = true;
+  btn.textContent = 'Launching...';
+  try {
+    const data = await api('/wizard/launch-agent', 'POST', {});
+    if (data.status === 'ok') {
+      msg.innerHTML = '<span style="color:var(--accent2)">Agent launched! Check the new terminal window.</span>';
+      btn.textContent = 'Launched';
+    } else {
+      msg.innerHTML = `<span style="color:var(--danger)">${escHtml(data.message || 'Launch failed')}</span>`;
+      btn.textContent = 'Launch AI Agent';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    msg.innerHTML = `<span style="color:var(--danger)">Error: ${escHtml(e.message)}</span>`;
+    btn.textContent = 'Launch AI Agent';
+    btn.disabled = false;
+  }
 }
 
 let bridgePollTimer = null;

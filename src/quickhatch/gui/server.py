@@ -51,8 +51,7 @@ def _load_html() -> bytes:
 def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int]:
     """Create and return the GUI HTTP server."""
 
-    # Get the bridge handler for /api/* routes
-    BridgeHandler = _make_bridge_handler(gui_state.bridge)
+    bridge_state = gui_state.bridge
 
     class GUIHandler(BaseHTTPRequestHandler):
         def log_message(self, format, *args):
@@ -83,6 +82,93 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
             self.send_header("Access-Control-Allow-Headers", "Content-Type")
             self.end_headers()
 
+        # ── Bridge API GET handlers (inline, not delegated) ──
+
+        def _handle_bridge_get(self):
+            if self.path == "/api/profile":
+                profile_dict = asdict(bridge_state.profile)
+                if profile_dict.get("ai_config", {}).get("api_key"):
+                    profile_dict["ai_config"]["api_key"] = "***REDACTED***"
+                self._send_json({"status": "ok", "profile": profile_dict})
+
+            elif self.path == "/api/status":
+                bridge_state.agent_connected = True
+                self._send_json({
+                    "status": "ok",
+                    "pending_questions": len(bridge_state.get_pending_questions()),
+                    "suggestions": len(bridge_state.suggestions),
+                    "agent_done": bridge_state.agent_done,
+                })
+
+            elif self.path.startswith("/api/response/"):
+                qid = self.path.split("/")[-1]
+                with bridge_state.lock:
+                    q = bridge_state.questions.get(qid)
+                if not q:
+                    self._send_json({"status": "error", "message": "Question not found"}, 404)
+                elif q.answered.is_set():
+                    self._send_json({"status": "ok", "answer": q.answer})
+                else:
+                    self._send_json({"status": "waiting", "message": "User hasn't answered yet"})
+
+            elif self.path == "/api/suggestions":
+                with bridge_state.lock:
+                    data = [
+                        {"id": s.id, "category": s.category, "title": s.title,
+                         "content": s.content, "accepted": s.accepted}
+                        for s in bridge_state.suggestions
+                    ]
+                self._send_json({"status": "ok", "suggestions": data})
+
+            else:
+                self._send_json({"status": "error", "message": "Not found"}, 404)
+
+        # ── Bridge API POST handlers (inline) ──
+
+        def _handle_bridge_post(self):
+            data = self._read_json()
+
+            if self.path == "/api/suggest":
+                category = data.get("category", "message")
+                title = data.get("title", "")
+                content = data.get("content", "")
+                sid = bridge_state.add_suggestion(category, title, content)
+                self._send_json({"status": "ok", "suggestion_id": sid})
+
+            elif self.path == "/api/ask":
+                question = data.get("question", "")
+                choices = data.get("choices")
+                timeout = data.get("timeout", 300)
+                q = bridge_state.add_question(question, choices)
+                answered = q.answered.wait(timeout=timeout)
+                if answered:
+                    self._send_json({"status": "ok", "answer": q.answer})
+                else:
+                    self._send_json({"status": "timeout", "message": "User did not respond in time"})
+
+            elif self.path == "/api/ask/async":
+                question = data.get("question", "")
+                choices = data.get("choices")
+                q = bridge_state.add_question(question, choices)
+                self._send_json({"status": "ok", "question_id": q.id})
+
+            elif self.path == "/api/message":
+                content = data.get("content", "")
+                role = data.get("role", "agent")
+                bridge_state.add_message(role, content)
+                self._send_json({"status": "ok"})
+
+            elif self.path == "/api/done":
+                bridge_state.agent_done = True
+                summary = data.get("summary", "")
+                bridge_state.add_message("agent", f"Migration setup complete! {summary}")
+                self._send_json({"status": "ok"})
+
+            else:
+                self._send_json({"status": "error", "message": "Not found"}, 404)
+
+        # ── Main route dispatch ──
+
         def do_GET(self):
             if self.path == "/" or self.path == "/index.html":
                 self._send_html(_load_html())
@@ -111,13 +197,7 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                 })
 
             elif self.path.startswith("/api/"):
-                # Delegate to bridge handler
-                bridge = BridgeHandler(self.request, self.client_address, self.server)
-                bridge.path = self.path
-                bridge.headers = self.headers
-                bridge.rfile = self.rfile
-                bridge.wfile = self.wfile
-                bridge.do_GET()
+                self._handle_bridge_get()
 
             else:
                 self._send_json({"error": "Not found"}, 404)
@@ -138,7 +218,6 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                 self._send_json({"status": "ok", "completed": gui_state.profile.completed_steps})
 
             elif self.path == "/wizard/scan":
-                # Trigger system scan
                 results = _run_scan()
                 with gui_state.lock:
                     if results.get("apps"):
@@ -170,13 +249,13 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                     "instruction_file": str(inst_path),
                 })
 
+            elif self.path == "/wizard/launch-agent":
+                data = self._read_json()
+                result = _launch_agent(gui_state, server.server_address[1])
+                self._send_json(result)
+
             elif self.path.startswith("/api/"):
-                bridge = BridgeHandler(self.request, self.client_address, self.server)
-                bridge.path = self.path
-                bridge.headers = self.headers
-                bridge.rfile = self.rfile
-                bridge.wfile = self.wfile
-                bridge.do_POST()
+                self._handle_bridge_post()
 
             else:
                 self._send_json({"error": "Not found"}, 404)
@@ -184,6 +263,69 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
     server = HTTPServer(("127.0.0.1", port), GUIHandler)
     actual_port = server.server_address[1]
     return server, actual_port
+
+
+def _launch_agent(gui_state: GUIState, port: int) -> dict:
+    """Launch the AI agent in a new terminal window."""
+    import subprocess
+    import sys
+
+    provider = gui_state.profile.ai_config.provider or "claude_code"
+    base = f"http://localhost:{port}"
+
+    prompt = (
+        f"Read {base}/api/profile for my system info. "
+        f"Use the QuickHatch bridge API at {base}/api to communicate. "
+        f"POST /api/suggest for recommendations, POST /api/ask for questions, "
+        f"POST /api/done when finished."
+    )
+
+    try:
+        if sys.platform == "win32":
+            if provider == "claude_code":
+                subprocess.Popen(
+                    ["cmd", "/c", "start", "", "claude", "-p", prompt, "--allowedTools", "Bash"],
+                    creationflags=subprocess.CREATE_NEW_CONSOLE,
+                )
+            elif provider == "codex":
+                subprocess.Popen(
+                    ["cmd", "/c", "start", "", "codex", prompt],
+                    creationflags=subprocess.CREATE_NEW_CONSOLE,
+                )
+            else:
+                return {"status": "error", "message": f"Point your AI tool at {base}/api/profile"}
+        else:
+            # Linux - write prompt to file, launch in terminal
+            prompt_file = Path.home() / ".quickhatch-agent-prompt.txt"
+            prompt_file.write_text(prompt, encoding="utf-8")
+
+            if provider == "claude_code":
+                shell_cmd = f'claude -p "$(cat {prompt_file})" --allowedTools "Bash"'
+            elif provider == "codex":
+                shell_cmd = f'codex "$(cat {prompt_file})"'
+            else:
+                return {"status": "error", "message": f"Point your AI tool at {base}/api/profile"}
+
+            # Try common terminal emulators
+            for term_cmd in [
+                ["x-terminal-emulator", "-e", "bash", "-c", shell_cmd],
+                ["gnome-terminal", "--", "bash", "-c", shell_cmd],
+                ["konsole", "-e", "bash", "-c", shell_cmd],
+                ["xfce4-terminal", "-e", f"bash -c '{shell_cmd}'"],
+                ["xterm", "-e", "bash", "-c", shell_cmd],
+            ]:
+                try:
+                    subprocess.Popen(term_cmd)
+                    break
+                except FileNotFoundError:
+                    continue
+            else:
+                # Fallback: spawn directly
+                subprocess.Popen(["bash", "-c", shell_cmd])
+
+        return {"status": "ok", "message": "Agent launched! Check the new terminal window."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 def _run_scan() -> dict:

@@ -147,6 +147,8 @@ def _scan_dpkg() -> list[AppInfo]:
             ["dpkg-query", "-W", "-f", "${Package}\t${Version}\n"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=30,
         )
         if result.returncode != 0:
@@ -168,6 +170,8 @@ def _scan_rpm() -> list[AppInfo]:
             ["rpm", "-qa", "--queryformat", "%{NAME}\t%{VERSION}\n"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=30,
         )
         if result.returncode != 0:
@@ -189,6 +193,8 @@ def _scan_pacman() -> list[AppInfo]:
             ["pacman", "-Q"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=30,
         )
         if result.returncode != 0:
@@ -212,6 +218,8 @@ def _scan_flatpak() -> list[AppInfo]:
             ["flatpak", "list", "--columns=application,version"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=15,
         )
         if result.returncode != 0:
@@ -235,6 +243,8 @@ def _scan_snap() -> list[AppInfo]:
             ["snap", "list"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=15,
         )
         if result.returncode != 0:
