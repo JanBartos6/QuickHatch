@@ -14,24 +14,35 @@ from quickhatch.console import console, print_error, print_info, print_step, pri
 
 def _get_launch_command(profile: UserProfile, port: int) -> str:
     """Get the command the user should run in their AI tool."""
-    instructions_hint = (
-        f"Read http://localhost:{port}/api/profile for my system info. "
-        f"Use the QuickHatch bridge API at http://localhost:{port}/api to communicate. "
-        "Recommend a Linux distro (POST /api/suggest with category='distro'), "
-        "analyze my app compatibility (category='apps'), "
-        "plan driver setup (category='drivers'), "
-        "and ask me questions (POST /api/ask). "
-        "When done, POST /api/done."
-    )
-
+    base = f"http://localhost:{port}"
     provider = profile.ai_config.provider
 
+    # Build a prompt that tells the AI tool to use curl/bash for HTTP calls
+    prompt = (
+        f"I'm migrating from Windows to Linux. QuickHatch is running a bridge API at {base}. "
+        f"First, run: curl -s {base}/api/profile | python3 -m json.tool "
+        f"to see my full system profile (hardware, apps, preferences). "
+        f"Then analyze everything and send your recommendations back through the API using curl. "
+        f"Example commands: "
+        f"curl -s -X POST {base}/api/suggest -H 'Content-Type: application/json' "
+        f"""-d '{{"category":"distro","title":"Distro Recommendation","content":"your analysis here"}}' """
+        f"to post suggestions. "
+        f"curl -s -X POST {base}/api/ask -H 'Content-Type: application/json' "
+        f"""-d '{{"question":"Which distro?","choices":["Pop!_OS","Ubuntu","Fedora"]}}' """
+        f"to ask me questions (this blocks until I answer). "
+        f"curl -s -X POST {base}/api/done -H 'Content-Type: application/json' "
+        f"""-d '{{"summary":"Done!"}}' """
+        f"when finished. "
+        f"Start by reading my profile, then recommend a distro, analyze app compatibility, "
+        f"plan driver setup, and configure my desktop."
+    )
+
     if provider == "claude_code":
-        return f'claude -p "{instructions_hint}"'
+        return f"claude -p '{prompt}'"
     elif provider == "codex":
-        return f'codex "{instructions_hint}"'
+        return f"codex '{prompt}'"
     else:
-        return instructions_hint
+        return prompt
 
 
 def _print_api_docs(port: int) -> None:
