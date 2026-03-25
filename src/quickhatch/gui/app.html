@@ -55,40 +55,31 @@ body::before{
 }
 .logo p{color:var(--fg-muted);font-size:.875rem;margin-top:4px;font-weight:500;letter-spacing:.02em}
 
-/* ── Stepper ── */
-.stepper{
-  display:flex;align-items:center;gap:0;margin-bottom:40px;
-  padding:12px 16px;background:var(--bg-raised);border-radius:var(--radius);
-  border:1px solid var(--border);overflow-x:auto;
+/* ── Progress ── */
+.progress{
+  display:flex;align-items:center;gap:12px;margin-bottom:36px;
+  padding:14px 20px;background:var(--bg-raised);border-radius:var(--radius);
+  border:1px solid var(--border);
 }
-.step-dot{
-  width:28px;height:28px;min-width:28px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:.7rem;font-weight:700;
-  background:var(--bg-overlay);color:var(--fg-dim);
-  border:2px solid var(--border-strong);
-  transition:all .35s cubic-bezier(.22,1,.36,1);position:relative;
+.progress-info{
+  display:flex;align-items:center;gap:10px;white-space:nowrap;flex-shrink:0;
 }
-.step-dot.active{
-  background:var(--amber);color:var(--bg-base);
-  border-color:var(--amber);
-  box-shadow:0 0 20px rgba(234,179,8,.25);
+.progress-num{
+  font-size:.75rem;font-weight:700;color:var(--amber);
+  letter-spacing:.02em;
 }
-.step-dot.done{
-  background:transparent;color:var(--teal);
-  border-color:var(--teal);
+.progress-title{
+  font-size:.82rem;font-weight:600;color:var(--fg);
 }
-.step-dot.done::after{content:'\2713';font-size:.75rem}
-.step-dot.done span{display:none}
-.step-line{flex:1;height:1px;background:var(--border-strong);min-width:8px;transition:background .3s}
-.step-line.done{background:var(--teal-dim)}
-.step-label{
-  position:absolute;top:34px;left:50%;transform:translateX(-50%);
-  white-space:nowrap;font-size:.6rem;font-weight:600;
-  color:var(--fg-dim);letter-spacing:.03em;text-transform:uppercase;
-  opacity:0;transition:opacity .2s;pointer-events:none;
+.progress-track{
+  flex:1;height:3px;background:var(--bg-overlay);border-radius:2px;overflow:hidden;
+  min-width:80px;
 }
-.step-dot.active .step-label,.step-dot:hover .step-label{opacity:1;color:var(--fg-muted)}
+.progress-fill{
+  height:100%;border-radius:2px;
+  background:linear-gradient(90deg,var(--teal),var(--amber));
+  transition:width .4s cubic-bezier(.22,1,.36,1);
+}
 
 /* ── Card ── */
 .card{
@@ -280,7 +271,7 @@ details[open] summary{margin-bottom:8px}
     <h1><span>QuickHatch</span></h1>
     <p>Windows to Linux Migration</p>
   </div>
-  <div class="stepper" id="progressBar"></div>
+  <div class="progress" id="progressBar"></div>
   <div id="stepContent"></div>
 </div>
 
@@ -317,19 +308,24 @@ async function loadProfile(){
 
 function renderProgress(){
   const bar=document.getElementById('progressBar');
-  let html='';
-  STEPS.forEach((s,i)=>{
-    const done=state.completedSteps.includes(s.id);
-    const active=i===state.currentStep;
-    let cls='step-dot';
-    if(done)cls+=' done';
-    if(active)cls+=' active';
-    html+=`<div class="${cls}"><span>${s.n}</span><div class="step-label">${s.title}</div></div>`;
-    if(i<STEPS.length-1){
-      html+=`<div class="step-line${done?' done':''}"></div>`;
-    }
-  });
-  bar.innerHTML=html;
+  const step=STEPS[state.currentStep];
+  const doneCount=state.completedSteps.length;
+  const pct=Math.round((doneCount/STEPS.length)*100);
+  if(!step){
+    bar.innerHTML=`
+      <div class="progress-info">
+        <span class="progress-num">DONE</span>
+        <span class="progress-title">All steps complete</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:100%"></div></div>`;
+    return;
+  }
+  bar.innerHTML=`
+    <div class="progress-info">
+      <span class="progress-num">${step.n} / ${STEPS.length}</span>
+      <span class="progress-title">${step.title}</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>`;
 }
 
 async function completeStep(stepId){
