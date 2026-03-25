@@ -88,8 +88,6 @@ class UserProfile:
     apps: list[AppInfo] = field(default_factory=list)
     files_summary: dict = field(default_factory=dict)
     windows_settings: dict = field(default_factory=dict)
-    recommended_distro: str | None = None
-    recommended_desktop: str | None = None
     ssh_public_key_path: str | None = None
     additional_info: str = ""
     completed_steps: list[str] = field(default_factory=list)
@@ -129,8 +127,6 @@ class UserProfile:
                 apps=[AppInfo(**a) for a in data.get("apps", [])],
                 files_summary=data.get("files_summary", {}),
                 windows_settings=data.get("windows_settings", {}),
-                recommended_distro=data.get("recommended_distro"),
-                recommended_desktop=data.get("recommended_desktop"),
                 ssh_public_key_path=data.get("ssh_public_key_path"),
                 additional_info=data.get("additional_info", ""),
                 completed_steps=data.get("completed_steps", []),

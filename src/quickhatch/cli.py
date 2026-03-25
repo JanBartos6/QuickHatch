@@ -13,8 +13,7 @@ WIZARD_STEPS = [
     ("ai_setup", "AI Assistant Setup"),
     ("questionnaire", "Preferences"),
     ("scan", "System Scan"),
-    ("compatibility", "Compatibility Analysis"),
-    ("distro", "Distro Recommendation"),
+    ("additional", "Additional Information"),
     ("usb", "Bootable USB Creation"),
     ("ssh", "SSH Key Setup"),
     ("export", "Export Migration Bundle"),
@@ -48,9 +47,8 @@ def main() -> None:
 
     # Import wizard steps
     from quickhatch.wizard import (
+        additional,
         ai_setup,
-        compatibility,
-        distro,
         export,
         questionnaire,
         scan,
@@ -64,8 +62,7 @@ def main() -> None:
         "ai_setup": ai_setup,
         "questionnaire": questionnaire,
         "scan": scan,
-        "compatibility": compatibility,
-        "distro": distro,
+        "additional": additional,
         "usb": usb,
         "ssh": ssh,
         "export": export,
