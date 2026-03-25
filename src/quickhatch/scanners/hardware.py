@@ -23,9 +23,11 @@ def _get_cpu() -> tuple[str, int]:
                 ["wmic", "cpu", "get", "Name", "/value"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=10,
             )
-            for line in result.stdout.strip().split("\n"):
+            for line in (result.stdout or "").strip().split("\n"):
                 if line.startswith("Name="):
                     cpu_name = line.split("=", 1)[1].strip()
                     break
@@ -57,10 +59,12 @@ def _get_gpus() -> list[GPUInfo]:
                 ],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=10,
             )
             current: dict[str, str] = {}
-            for line in result.stdout.strip().split("\n"):
+            for line in (result.stdout or "").strip().split("\n"):
                 line = line.strip()
                 if "=" in line:
                     key, val = line.split("=", 1)
@@ -123,9 +127,11 @@ def _get_wifi() -> list[str]:
                 ["netsh", "wlan", "show", "drivers"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=10,
             )
-            for line in result.stdout.split("\n"):
+            for line in (result.stdout or "").split("\n"):
                 if ":" in line and any(
                     kw in line.lower() for kw in ["vendor", "provider", "description"]
                 ):
@@ -148,9 +154,11 @@ def _get_bluetooth() -> bool:
                 ],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=10,
             )
-            return bool(result.stdout.strip())
+            return bool((result.stdout or "").strip())
         except (FileNotFoundError, subprocess.TimeoutExpired):
             pass
     return False
@@ -185,6 +193,8 @@ def _is_efi() -> bool:
                 ["bcdedit", "/enum", "firmware"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=10,
             )
             return result.returncode == 0

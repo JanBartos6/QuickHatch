@@ -60,9 +60,11 @@ def scan() -> dict:
             ],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=10,
         )
-        browser_id = result.stdout.strip()
+        browser_id = (result.stdout or "").strip()
         browser_map = {
             "ChromeHTML": "Google Chrome",
             "MSEdgeHTM": "Microsoft Edge",
@@ -88,9 +90,11 @@ def scan() -> dict:
             ],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=10,
         )
-        langs = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
+        langs = [l.strip() for l in (result.stdout or "").strip().split("\n") if l.strip()]
         settings["keyboard_layouts"] = langs if langs else ["en-US"]
     except (FileNotFoundError, subprocess.TimeoutExpired):
         settings["keyboard_layouts"] = ["en-US"]

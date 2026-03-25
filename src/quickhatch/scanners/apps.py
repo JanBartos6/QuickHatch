@@ -23,9 +23,11 @@ def _scan_winget() -> list[AppInfo]:
             ["winget", "list", "--accept-source-agreements", "--disable-interactivity"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=60,
         )
-        if result.returncode != 0:
+        if result.returncode != 0 or not result.stdout:
             return []
 
         apps = []
@@ -111,9 +113,11 @@ def _scan_powershell() -> list[AppInfo]:
             ["powershell", "-NoProfile", "-Command", ps_cmd],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=30,
         )
-        if result.returncode != 0:
+        if result.returncode != 0 or not result.stdout:
             return []
 
         data = json.loads(result.stdout)
