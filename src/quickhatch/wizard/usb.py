@@ -63,12 +63,20 @@ def _get_distro_iso_url(distro: str) -> str | None:
 def run(profile: UserProfile) -> None:
     print_step(6, "Bootable USB Creation")
 
-    distro = profile.recommended_distro or "Ubuntu"
-    iso_url = _get_distro_iso_url(distro)
+    distro = profile.preferences.distro_preference or "your chosen distro"
+    iso_url = _get_distro_iso_url(distro) if profile.preferences.distro_preference else None
 
-    console.print(
-        f"Now let's create a bootable USB drive with [bold cyan]{distro}[/bold cyan].\n"
-    )
+    if profile.preferences.distro_preference:
+        console.print(
+            f"Now let's create a bootable USB drive with [bold cyan]{distro}[/bold cyan].\n"
+        )
+    else:
+        console.print(
+            "Now let's prepare a bootable USB drive.\n"
+            "Since you haven't picked a distro yet, the AI agent will recommend one\n"
+            "based on your data. You can download that ISO and flash it later,\n"
+            "or pick one now to get started.\n"
+        )
 
     # Ask what media to use
     method = questionary.select(
