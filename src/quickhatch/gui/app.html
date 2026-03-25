@@ -756,8 +756,8 @@ async function pollBridge(){
               <div class="scontent">${typeof s.content==='string'?escHtml(s.content):'<pre>'+escHtml(JSON.stringify(s.content,null,2))+'</pre>'}</div>
             </div>`).join('');
         }
-        // Enable continue once the agent has sent output
-        if(sd.suggestions.length>0||data.agent_done){
+        // Enable continue only when agent signals it's done
+        if(data.agent_done){
           const btn=el('bridgeNext');
           if(btn&&btn.disabled){btn.disabled=false;btn.textContent='Continue'}
         }
