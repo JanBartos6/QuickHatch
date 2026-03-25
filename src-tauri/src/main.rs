@@ -104,8 +104,7 @@ fn launch_agent(state: State<Backend>, provider: String) -> Result<String, Strin
             "claude_code" => ("claude", vec![
                 "-p".to_string(),
                 prompt.clone(),
-                "--allowedTools".to_string(),
-                "Bash".to_string(),
+                "--dangerously-skip-permissions".to_string(),
             ]),
             "codex" => ("codex", vec![prompt.clone()]),
             _ => {
@@ -128,7 +127,7 @@ fn launch_agent(state: State<Backend>, provider: String) -> Result<String, Strin
         let prompt_path = prompt_file.to_string_lossy().to_string();
         let shell_cmd = match provider.as_str() {
             "claude_code" => format!(
-                "claude -p \"$(cat {})\" --allowedTools \"Bash\"",
+                "claude -p \"$(cat {})\" --dangerously-skip-permissions",
                 prompt_path
             ),
             "codex" => format!("codex \"$(cat {})\"", prompt_path),

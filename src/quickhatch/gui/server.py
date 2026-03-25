@@ -326,7 +326,7 @@ def _launch_agent(gui_state: GUIState, port: int) -> dict:
             if provider == "claude_code":
                 ps_content = (
                     f'$p = Get-Content "{prompt_file}" -Raw\n'
-                    f'claude -p $p --allowedTools "Bash"\n'
+                    f'claude -p $p --dangerously-skip-permissions\n'
                     f'Read-Host "Press Enter to close"\n'
                 )
             elif provider == "codex":
@@ -350,7 +350,7 @@ def _launch_agent(gui_state: GUIState, port: int) -> dict:
             prompt_file.write_text(prompt, encoding="utf-8")
 
             if provider == "claude_code":
-                shell_cmd = f'claude -p "$(cat {prompt_file})" --allowedTools "Bash"'
+                shell_cmd = f'claude -p "$(cat {prompt_file})" --dangerously-skip-permissions'
             elif provider == "codex":
                 shell_cmd = f'codex "$(cat {prompt_file})"'
             else:

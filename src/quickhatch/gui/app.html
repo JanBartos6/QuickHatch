@@ -523,7 +523,7 @@ const stepRenderers={
     const provider=state.profile.ai_config?.provider||'claude_code';
     let cmd='';
     if(provider==='claude_code')
-      cmd=`claude -p "Read http://localhost:${port}/api/profile for my system info. Use the QuickHatch bridge API at http://localhost:${port}/api to communicate. POST /api/suggest for recommendations, POST /api/ask for questions, POST /api/done when finished." --allowedTools "Bash"`;
+      cmd=`claude -p "Read http://localhost:${port}/api/profile for my system info. Use the QuickHatch bridge API at http://localhost:${port}/api to communicate. POST /api/suggest for recommendations, POST /api/ask for questions, POST /api/done when finished." --dangerously-skip-permissions`;
     else if(provider==='codex')
       cmd=`codex "Read http://localhost:${port}/api/profile and use http://localhost:${port}/api to communicate..."`;
     else
