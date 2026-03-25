@@ -130,6 +130,11 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                     ]
                 self._send_json({"status": "ok", "suggestions": data})
 
+            elif self.path == "/api/messages":
+                with bridge_state.lock:
+                    msgs = list(bridge_state.messages)
+                self._send_json({"status": "ok", "messages": msgs})
+
             else:
                 self._send_json({"status": "error", "message": "Not found"}, 404)
 
@@ -285,10 +290,29 @@ def _launch_agent(gui_state: GUIState, port: int) -> dict:
     base = f"http://localhost:{port}"
 
     prompt = (
-        f"Read {base}/api/profile for my system info. "
-        f"Use the QuickHatch bridge API at {base}/api to communicate. "
-        f"POST /api/suggest for recommendations, POST /api/ask for questions, "
-        f"POST /api/done when finished."
+        f"You are helping me migrate from Windows to Linux. "
+        f"A QuickHatch bridge API is running at {base}.\n\n"
+        f"STEP 1: Send a status message so I know you're working:\n"
+        f'  curl -s -X POST {base}/api/message -H "Content-Type: application/json" '
+        f'-d \'{{"role":"agent","content":"Connected! Reading your system profile..."}}\'\n\n'
+        f"STEP 2: Fetch my full system profile:\n"
+        f"  curl -s {base}/api/profile\n\n"
+        f"STEP 3: Analyze everything, sending status messages as you go:\n"
+        f'  curl -s -X POST {base}/api/message -H "Content-Type: application/json" '
+        f'-d \'{{"role":"agent","content":"Analyzing your hardware and apps..."}}\'\n\n'
+        f"STEP 4: Post your recommendations using /api/suggest (one per category):\n"
+        f'  curl -s -X POST {base}/api/suggest -H "Content-Type: application/json" '
+        f'-d \'{{"category":"distro","title":"Recommended distro","content":"..."}}\'\n'
+        f"  Categories: distro, apps, drivers, desktop, plan\n\n"
+        f"STEP 5: If you need to ask me something:\n"
+        f'  curl -s -X POST {base}/api/ask -H "Content-Type: application/json" '
+        f'-d \'{{"question":"your question here"}}\'\n\n'
+        f"STEP 6: When done, signal completion:\n"
+        f'  curl -s -X POST {base}/api/done -H "Content-Type: application/json" '
+        f'-d \'{{"summary":"All recommendations posted."}}\'\n\n'
+        f"IMPORTANT: Send /api/message updates frequently so I know you're working. "
+        f"Think freely. Use your full knowledge. Provide links, reasoning, pros/cons. "
+        f"Do not limit yourself to a few options. Consider the full Linux ecosystem."
     )
 
     # Write prompt to file so we don't have to pass it inline (avoids quoting hell)

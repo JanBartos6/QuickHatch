@@ -200,6 +200,12 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 .suggestion .stitle{font-weight:600;font-size:.9rem;margin-bottom:6px}
 .suggestion .scontent{color:var(--fg-muted);font-size:.84rem;white-space:pre-wrap;line-height:1.6}
 
+.agent-msg{
+  font-size:.82rem;color:var(--fg-dim);padding:4px 0;
+  animation:slideUp .3s cubic-bezier(.22,1,.36,1);
+}
+.agent-msg:last-child{color:var(--fg-muted)}
+
 /* ── Code ── */
 code{
   background:var(--bg-overlay);padding:2px 7px;border-radius:5px;
@@ -547,6 +553,7 @@ const stepRenderers={
             <div class="dot" id="agentDot"></div>
             <span id="agentStatus">Waiting for agent...</span>
           </div>
+          <div id="agentMessages" style="margin-bottom:8px"></div>
           <div id="agentFeed"></div>
         </div>
         <div id="questionArea"></div>
@@ -721,8 +728,23 @@ async function pollBridge(){
     if(data.status==='ok'){
       const dot=el('agentDot'),st=el('agentStatus');
       if(data.agent_connected||data.suggestions>0){
-        dot.className='dot connected';st.textContent='Agent connected';state.agentConnected=true;
+        dot.className='dot connected';
+        st.textContent=data.suggestions>0?`Agent working \u2014 ${data.suggestions} suggestion${data.suggestions===1?'':'s'}`:'Agent connected \u2014 analyzing...';
+        if(data.agent_done)st.textContent='Agent finished';
+        state.agentConnected=true;
       }else{dot.className='dot waiting'}
+      // Fetch and display status messages
+      const md=await api('/api/messages');
+      if(md.messages){
+        const msgEl=el('agentMessages');
+        if(msgEl){
+          msgEl.innerHTML=md.messages.map(m=>
+            `<div class="agent-msg">${escHtml(m.content)}</div>`
+          ).join('');
+          msgEl.scrollTop=msgEl.scrollHeight;
+        }
+      }
+      // Fetch and display suggestions
       const sd=await api('/api/suggestions');
       if(sd.suggestions){
         const feed=el('agentFeed');
