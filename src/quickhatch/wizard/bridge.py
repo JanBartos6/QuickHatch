@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from pathlib import Path
 
 import questionary
 
@@ -90,21 +91,23 @@ def run(profile: UserProfile) -> None:
     print_success(f"Bridge server running on port {port}")
     _print_api_docs(port)
 
-    # Show the command to run
+    # Save the command to a file so users can just run it without copy-paste issues
     launch_cmd = _get_launch_command(profile, port)
-    provider = profile.ai_config.provider
+    cmd_file = Path(".quickhatch-agent-cmd.sh")
+    cmd_file.write_text(launch_cmd + "\n")
 
-    console.print(Panel(
-        f"[bold]Open a new terminal and run your AI tool:[/bold]\n\n"
-        f"  [cyan]{launch_cmd}[/cyan]\n\n"
-        f"Or, if using a different tool, point it at:\n"
-        f"  [cyan]http://localhost:{port}/api/profile[/cyan]\n\n"
-        "The agent will connect, analyze your system, and send\n"
-        "recommendations back here. Answer any questions that appear.",
-        title="[bold green]Launch Your AI Agent[/bold green]",
-        border_style="green",
-        padding=(1, 2),
-    ))
+    console.print()
+    print_success("Command saved to .quickhatch-agent-cmd.sh")
+    console.print(
+        "\n[bold]Open a new terminal and run:[/bold]\n\n"
+        f"  [cyan]bash .quickhatch-agent-cmd.sh[/cyan]\n\n"
+        "Or copy this manually:\n"
+    )
+    # Print the raw command without Rich panels/borders so copy-paste works
+    console.print(launch_cmd, highlight=False, soft_wrap=True)
+    console.print(
+        f"\n[dim]Or point any AI tool at: http://localhost:{port}/api/profile[/dim]\n"
+    )
 
     # Store port in profile for export
     profile.ai_config.endpoint = f"http://localhost:{port}"
