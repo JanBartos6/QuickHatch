@@ -50,14 +50,14 @@ def run(profile: UserProfile) -> None:
                 "Claude Code CLI not found on this system. "
                 "It will be set up on your new Linux machine."
             )
-        profile.ai_config.model_name = "claude-sonnet-4-6"
+        print_info("Claude Code manages its own model — no extra config needed.")
 
     elif provider == "codex":
         if _check_cli("codex"):
             print_success("Codex CLI detected!")
         else:
             print_warning("Codex CLI not found. It will be set up on Linux.")
-        profile.ai_config.model_name = "codex"
+        print_info("Codex manages its own model — no extra config needed.")
 
     elif provider == "local_ollama":
         print_info("Ollama will be installed on your new Linux system.")
@@ -92,19 +92,37 @@ def run(profile: UserProfile) -> None:
         if api_provider is None:
             raise KeyboardInterrupt
 
+        if api_provider == "anthropic":
+            model = questionary.select(
+                "Which Claude model?",
+                choices=[
+                    questionary.Choice("Claude Opus 4.6 (most capable)", value="claude-opus-4-6"),
+                    questionary.Choice("Claude Sonnet 4.6 (balanced)", value="claude-sonnet-4-6"),
+                    questionary.Choice("Claude Haiku 4.5 (fastest)", value="claude-haiku-4-5-20251001"),
+                ],
+            ).ask()
+            profile.ai_config.endpoint = "https://api.anthropic.com"
+        else:
+            model = questionary.select(
+                "Which OpenAI model?",
+                choices=[
+                    questionary.Choice("GPT-4o (most capable)", value="gpt-4o"),
+                    questionary.Choice("GPT-4o mini (faster/cheaper)", value="gpt-4o-mini"),
+                    questionary.Choice("o3 (reasoning)", value="o3"),
+                ],
+            ).ask()
+            profile.ai_config.endpoint = "https://api.openai.com"
+
+        if model is None:
+            raise KeyboardInterrupt
+        profile.ai_config.model_name = model
+
         api_key = questionary.password(
             f"Enter your {api_provider.title()} API key:"
         ).ask()
         if api_key is None:
             raise KeyboardInterrupt
-
         profile.ai_config.api_key = api_key
-        if api_provider == "anthropic":
-            profile.ai_config.endpoint = "https://api.anthropic.com"
-            profile.ai_config.model_name = "claude-sonnet-4-6"
-        else:
-            profile.ai_config.endpoint = "https://api.openai.com"
-            profile.ai_config.model_name = "gpt-4o"
 
     print_success(f"AI assistant configured: {provider}")
     profile.completed_steps.append("ai_setup")
