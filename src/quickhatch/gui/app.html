@@ -737,7 +737,8 @@ async function pollBridge(){
       const md=await api('/api/messages');
       if(md.messages){
         const msgEl=el('agentMessages');
-        if(msgEl){
+        if(msgEl&&md.messages.length!==state._lastMsgCount){
+          state._lastMsgCount=md.messages.length;
           msgEl.innerHTML=md.messages.map(m=>
             `<div class="agent-msg">${escHtml(m.content)}</div>`
           ).join('');
@@ -748,7 +749,8 @@ async function pollBridge(){
       const sd=await api('/api/suggestions');
       if(sd.suggestions){
         const feed=el('agentFeed');
-        if(feed){
+        if(feed&&sd.suggestions.length!==state._lastSugCount){
+          state._lastSugCount=sd.suggestions.length;
           feed.innerHTML=sd.suggestions.map(s=>`
             <div class="suggestion">
               <div class="cat">${escHtml(s.category)}</div>
@@ -758,13 +760,14 @@ async function pollBridge(){
         }
         // Enable continue only when agent signals it's done
         if(data.agent_done){
+          state._agentDone=true;
           const btn=el('bridgeNext');
           if(btn&&btn.disabled){btn.disabled=false;btn.textContent='Continue'}
         }
       }
     }
   }catch(e){}
-  if(STEPS[state.currentStep]?.id==='bridge')bridgePollTimer=setTimeout(pollBridge,2000);
+  if(STEPS[state.currentStep]?.id==='bridge'&&!state._agentDone)bridgePollTimer=setTimeout(pollBridge,2000);
 }
 
 async function runExport(){
