@@ -55,30 +55,33 @@ def _scan_file_types(dirs: list[Path], max_depth: int = 3) -> dict:
 
 def _find_browser_profiles() -> dict:
     """Find browser bookmark and profile locations."""
+    import sys
+
     home = Path.home()
     browsers: dict[str, str] = {}
 
-    # Chrome
-    chrome_path = home / "AppData" / "Local" / "Google" / "Chrome" / "User Data"
-    if chrome_path.exists():
-        browsers["chrome"] = str(chrome_path)
+    if sys.platform == "win32":
+        candidates = {
+            "chrome": home / "AppData" / "Local" / "Google" / "Chrome" / "User Data",
+            "firefox": home / "AppData" / "Roaming" / "Mozilla" / "Firefox" / "Profiles",
+            "edge": home / "AppData" / "Local" / "Microsoft" / "Edge" / "User Data",
+            "brave": home / "AppData" / "Local" / "BraveSoftware" / "Brave-Browser" / "User Data",
+        }
+    else:
+        # Linux / macOS
+        candidates = {
+            "chrome": home / ".config" / "google-chrome",
+            "chromium": home / ".config" / "chromium",
+            "firefox": home / ".mozilla" / "firefox",
+            "edge": home / ".config" / "microsoft-edge",
+            "brave": home / ".config" / "BraveSoftware" / "Brave-Browser",
+            "vivaldi": home / ".config" / "vivaldi",
+            "opera": home / ".config" / "opera",
+        }
 
-    # Firefox
-    firefox_path = home / "AppData" / "Roaming" / "Mozilla" / "Firefox" / "Profiles"
-    if firefox_path.exists():
-        browsers["firefox"] = str(firefox_path)
-
-    # Edge
-    edge_path = home / "AppData" / "Local" / "Microsoft" / "Edge" / "User Data"
-    if edge_path.exists():
-        browsers["edge"] = str(edge_path)
-
-    # Brave
-    brave_path = (
-        home / "AppData" / "Local" / "BraveSoftware" / "Brave-Browser" / "User Data"
-    )
-    if brave_path.exists():
-        browsers["brave"] = str(brave_path)
+    for name, path in candidates.items():
+        if path.exists():
+            browsers[name] = str(path)
 
     return browsers
 

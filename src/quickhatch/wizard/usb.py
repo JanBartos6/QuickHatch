@@ -46,6 +46,43 @@ def _list_usb_drives() -> list[dict]:
                     })
         except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
             pass
+    else:
+        # Linux: use lsblk to find removable drives
+        try:
+            result = subprocess.run(
+                ["lsblk", "-Jdo", "NAME,SIZE,MODEL,RM,TYPE,TRAN"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                data = json.loads(result.stdout)
+                for dev in data.get("blockdevices", []):
+                    # Filter for USB removable disks
+                    is_usb = dev.get("tran") == "usb"
+                    is_removable = str(dev.get("rm")) in ("1", "true", True)
+                    is_disk = dev.get("type") == "disk"
+                    if is_disk and (is_usb or is_removable):
+                        name = (dev.get("model") or dev.get("name", "USB Drive")).strip()
+                        size_str = dev.get("size", "0")
+                        # Parse size like "14.5G" or "500M"
+                        size_gb = 0.0
+                        try:
+                            if size_str.endswith("G"):
+                                size_gb = float(size_str[:-1])
+                            elif size_str.endswith("T"):
+                                size_gb = float(size_str[:-1]) * 1024
+                            elif size_str.endswith("M"):
+                                size_gb = round(float(size_str[:-1]) / 1024, 1)
+                        except ValueError:
+                            pass
+                        drives.append({
+                            "number": f"/dev/{dev['name']}",
+                            "name": name,
+                            "size_gb": size_gb,
+                        })
+        except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            pass
     return drives
 
 
