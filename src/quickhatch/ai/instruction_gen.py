@@ -29,7 +29,9 @@ def generate_instructions(profile: UserProfile) -> str:
     # ── System prompt / role ──
     sections.append(
         "# QuickHatch — Migration Instructions for AI Agent\n\n"
-        "You are an AI agent helping a user migrate from Windows to Linux.\n"
+        "You are an AI agent running on the user's **Windows** machine, helping them\n"
+        "migrate to Linux. The user has (or will have) a Linux machine ready — you will\n"
+        "**SSH into it** from Windows to perform the setup remotely.\n\n"
         "Below is everything we know about their current system, preferences,\n"
         "and needs. Your job is to:\n\n"
         "1. **Recommend a Linux distro** based on their hardware, use cases, and preferences\n"
@@ -42,8 +44,8 @@ def generate_instructions(profile: UserProfile) -> str:
         "   and wallpaper to match their stated preferences.\n"
         "5. **Handle file migration** — plan how to transfer their documents, browser data,\n"
         "   and settings.\n"
-        "6. **Execute the full setup** — install packages, configure the system, and verify\n"
-        "   everything works.\n\n"
+        "6. **SSH into the Linux machine and execute the full setup** — install packages,\n"
+        "   configure the system, and verify everything works, all via SSH from Windows.\n\n"
         "Use your own knowledge and reasoning. The data below is raw — no pre-analysis\n"
         "has been done. You decide what's best.\n\n"
         "---\n"
@@ -156,13 +158,31 @@ def generate_instructions(profile: UserProfile) -> str:
 
     # ── SSH Access ──
     if profile.ssh_public_key_path:
+        priv_key = str(Path(profile.ssh_public_key_path).with_suffix(""))
+        sections.append(
+            "## SSH Access (Agent → Linux)\n\n"
+            "You are running on Windows. An SSH key pair was generated for you to\n"
+            "connect to the user's Linux machine remotely.\n\n"
+            f"- **Private key (on this Windows machine):** `{priv_key}`\n"
+            f"- **Public key:** `{profile.ssh_public_key_path}`\n\n"
+            "The user has a `quickstart.sh` script that they will run on the Linux\n"
+            "machine to enable SSH and add the public key. Once they've done that:\n\n"
+            "1. **Ask the user** for the Linux machine's IP address and username\n"
+            "   (via the bridge API or directly).\n"
+            f"2. **Connect via SSH:** `ssh -i {priv_key} <user>@<ip>`\n"
+            "3. **Execute all setup commands** over this SSH connection.\n"
+            "4. You can also use `scp` to transfer files from Windows to Linux.\n\n"
+            "**Important:** You run all Linux commands via SSH from Windows. You do NOT\n"
+            "need to install yourself on the Linux machine.\n"
+        )
+    else:
         sections.append(
             "## SSH Access\n\n"
-            f"An SSH key was generated for agent access.\n"
-            f"Public key file: `{profile.ssh_public_key_path}`\n\n"
-            "Set up SSH on the new machine so the agent can connect remotely:\n"
-            "- Add the public key to `~/.ssh/authorized_keys`\n"
-            "- Enable the SSH daemon\n"
+            "No SSH key was generated. Ask the user how they want you to connect\n"
+            "to their Linux machine. Options:\n"
+            "- Generate an SSH key now and have them add it\n"
+            "- Use password-based SSH\n"
+            "- Have the user run commands you dictate\n"
         )
 
     # ── AI Agent Info ──
@@ -242,7 +262,8 @@ def generate_instructions(profile: UserProfile) -> str:
     sections.append(
         "---\n\n"
         "## Your Task\n\n"
-        "Based on ALL of the above data, please:\n\n"
+        "You are running on the user's Windows machine. Based on ALL of the above data:\n\n"
+        "### Phase 1: Analysis & Planning (on Windows, via bridge API)\n\n"
         "1. **Recommend a distro** (with reasoning) — or validate the user's pick if they chose one.\n"
         "   Consider their hardware, use cases, experience level, and desktop preference.\n\n"
         "2. **Create an app migration plan** — go through every installed app and classify it:\n"
@@ -252,13 +273,19 @@ def generate_instructions(profile: UserProfile) -> str:
         "   - No Linux option (explain and suggest workarounds if any)\n\n"
         "3. **Plan driver/firmware setup** — based on the exact GPU, WiFi, and Bluetooth\n"
         "   hardware, determine what needs to be installed and provide exact commands.\n\n"
-        "4. **Configure the desktop** — based on their style preferences, set up the\n"
-        "   desktop environment, icons, theme, wallpaper. Provide exact steps.\n\n"
-        "5. **Set up the system** — update packages, install all needed software,\n"
-        "   configure locale/keyboard/timezone, set up SSH, transfer browser data.\n\n"
-        "6. **Verify everything** — check that WiFi works, display is correct,\n"
+        "4. **Plan desktop configuration** — based on their style preferences.\n\n"
+        "### Phase 2: Remote Setup (via SSH from Windows → Linux)\n\n"
+        "Once the user has Linux installed and SSH ready (they run `quickstart.sh`):\n\n"
+        "5. **Ask for the Linux machine's IP address and username** via the bridge API.\n\n"
+        "6. **SSH into the Linux machine** and execute all setup:\n"
+        "   - Update packages, install all needed software\n"
+        "   - Install GPU/WiFi/Bluetooth drivers and firmware\n"
+        "   - Configure desktop environment, icons, theme, wallpaper\n"
+        "   - Set up locale, keyboard, timezone\n"
+        "   - Transfer browser bookmarks/data from Windows via scp\n\n"
+        "7. **Verify everything** over SSH — check that WiFi works, display is correct,\n"
         "   audio works, Bluetooth pairs, GPU is accelerated, etc.\n\n"
-        "Execute each step. Ask the user for clarification if anything is ambiguous.\n"
+        "Ask the user for clarification if anything is ambiguous.\n"
     )
 
     return "\n".join(sections)

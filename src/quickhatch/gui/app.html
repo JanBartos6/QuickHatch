@@ -605,11 +605,20 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>SSH key</h2>
-        <p class="subtitle">An SSH key lets the AI agent connect to your new machine remotely. The exported bundle will include it and the quickstart script sets it up automatically on Linux.</p>
+        <p class="subtitle">The AI agent runs here on Windows and SSHes into your Linux machine to set it up. This key lets it connect without a password.</p>
+        <div class="info-box" style="margin-bottom:16px">
+          <strong>How it works:</strong>
+          <ol style="margin:8px 0 0 18px;color:var(--fg-muted);font-size:.88rem">
+            <li>We generate an SSH key pair on this Windows machine</li>
+            <li>The public key gets bundled with your export</li>
+            <li>On Linux, <code>quickstart.sh</code> adds the key and enables SSH</li>
+            <li>The agent uses the private key to connect from here</li>
+          </ol>
+        </div>
         <div id="sshResult"></div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn btn-success" id="sshGenBtn" onclick="generateSSH()">Generate SSH key</button>
-          <button class="btn btn-ghost" onclick="completeStep('ssh')">Skip (I already have one)</button>
+          <button class="btn btn-ghost" onclick="completeStep('ssh')">Skip (I already have keys)</button>
         </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
@@ -622,7 +631,7 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>Export bundle</h2>
-        <p class="subtitle">Generate the migration bundle: instructions, profile, and bootstrap script for the AI agent.</p>
+        <p class="subtitle">Generate the migration bundle. Copy it to your Linux machine and run <code>quickstart.sh</code> to enable SSH — the agent on Windows will connect and handle the rest.</p>
         <div id="exportResult"></div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
@@ -639,11 +648,11 @@ function renderDone(){
         <h2><span>Ready to go</span></h2>
         <p class="subtitle" style="margin-top:8px">Your migration bundle is ready. Here's what to do next:</p>
         <div class="done-steps">
-          <div class="ds"><div class="dn">1</div>Boot from the USB drive</div>
-          <div class="ds"><div class="dn">2</div>Install Linux</div>
-          <div class="ds"><div class="dn">3</div>Copy the migration bundle over</div>
-          <div class="ds"><div class="dn">4</div>Run <code>bash quickstart.sh</code></div>
-          <div class="ds"><div class="dn">5</div>The AI agent handles the rest</div>
+          <div class="ds"><div class="dn">1</div>Boot from the USB drive and install Linux</div>
+          <div class="ds"><div class="dn">2</div>Copy the migration bundle to Linux (USB or network)</div>
+          <div class="ds"><div class="dn">3</div>On Linux, run <code>bash quickstart.sh</code> — this sets up SSH</div>
+          <div class="ds"><div class="dn">4</div>Note the IP address and username it shows</div>
+          <div class="ds"><div class="dn">5</div>Back here on Windows, give those to the AI agent — it SSHes in and sets everything up</div>
         </div>
       </div>
     </div>`;

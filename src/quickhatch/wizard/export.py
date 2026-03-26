@@ -97,98 +97,84 @@ def run(profile: UserProfile) -> None:
         f"  - quickstart.sh              (quick-start script for Linux)\n"
         f"  - quickhatch-migration-bundle.zip (all-in-one archive)\n\n"
         f"[bold]Next steps:[/bold]\n"
-        f"  1. Copy the bundle to a USB drive or cloud storage\n"
-        f"  2. Install Linux using your bootable USB\n"
-        f"  3. Copy the bundle to your new Linux system\n"
-        f"  4. Run: [cyan]bash quickstart.sh[/cyan]\n"
-        f"  5. The AI agent will take it from there!\n"
+        f"  1. Install Linux using your bootable USB\n"
+        f"  2. Copy the bundle to your new Linux machine (USB or network)\n"
+        f"  3. On Linux, run: [cyan]bash quickstart.sh[/cyan]\n"
+        f"     This sets up SSH so the agent can connect remotely.\n"
+        f"  4. Note the IP address and username it prints\n"
+        f"  5. Back on Windows, the AI agent will SSH into Linux and set it up!\n"
     )
 
     profile.completed_steps.append("export")
 
 
 def _generate_quickstart(profile: UserProfile) -> str:
-    """Generate a shell script to bootstrap the AI agent on Linux."""
-    ai = profile.ai_config
+    """Generate a shell script to prepare the Linux machine for remote setup.
 
+    This script runs on the NEW Linux machine. It only sets up SSH access
+    so the AI agent (running on Windows) can connect remotely to do the
+    actual configuration.
+    """
     script = "#!/usr/bin/env bash\n"
-    script += "# QuickHatch Migration Quick-Start Script\n"
-    script += "# Run this on your new Linux system to start the AI-guided setup.\n\n"
+    script += "# QuickHatch — Linux Preparation Script\n"
+    script += "# Run this on your new Linux machine to prepare it for remote setup.\n"
+    script += "# The AI agent on your Windows PC will SSH in and do the rest.\n\n"
     script += 'set -e\n\n'
     script += 'echo "========================================"\n'
-    script += 'echo "  QuickHatch Migration Setup"\n'
+    script += 'echo "  QuickHatch — Preparing Linux"\n'
     script += 'echo "========================================"\n'
     script += 'echo ""\n\n'
 
-    # SSH setup
+    # Install openssh-server if needed
+    script += "# Ensure SSH server is installed\n"
+    script += "if ! command -v sshd &> /dev/null; then\n"
+    script += '    echo "[*] Installing SSH server..."\n'
+    script += "    sudo apt install -y openssh-server 2>/dev/null || \\\n"
+    script += "    sudo dnf install -y openssh-server 2>/dev/null || \\\n"
+    script += "    sudo pacman -S --noconfirm openssh 2>/dev/null || \\\n"
+    script += "    sudo zypper install -y openssh 2>/dev/null || true\n"
+    script += "fi\n\n"
+
+    # SSH key setup
     if profile.ssh_public_key_path:
         pub_name = Path(profile.ssh_public_key_path).name
-        script += "# Set up SSH access\n"
+        script += "# Add the QuickHatch SSH key\n"
         script += 'echo "[*] Setting up SSH access..."\n'
         script += "mkdir -p ~/.ssh && chmod 700 ~/.ssh\n"
         script += f'if [ -f "{pub_name}" ]; then\n'
         script += f'    grep -qxF "$(cat {pub_name})" ~/.ssh/authorized_keys 2>/dev/null || cat "{pub_name}" >> ~/.ssh/authorized_keys\n'
         script += "    chmod 600 ~/.ssh/authorized_keys\n"
-        script += '    echo "[+] SSH key added"\n'
-        script += "fi\n\n"
-        script += "# Enable SSH daemon\n"
-        script += "if command -v systemctl &> /dev/null; then\n"
-        script += "    sudo systemctl enable --now sshd 2>/dev/null || sudo systemctl enable --now ssh 2>/dev/null || true\n"
-        script += '    echo "[+] SSH daemon enabled"\n'
+        script += '    echo "[+] SSH key added to authorized_keys"\n'
+        script += "else\n"
+        script += f'    echo "[!] Warning: {pub_name} not found in this directory."\n'
+        script += f'    echo "    Make sure you copied the full migration bundle."\n'
         script += "fi\n\n"
 
-    # Install AI agent
-    if ai.provider == "claude_code":
-        script += "# Install Claude Code\n"
-        script += 'echo "[*] Installing Claude Code..."\n'
-        script += "if ! command -v node &> /dev/null; then\n"
-        script += '    echo "[*] Installing Node.js..."\n'
-        script += "    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - 2>/dev/null\n"
-        script += "    sudo apt install -y nodejs 2>/dev/null || sudo dnf install -y nodejs 2>/dev/null || sudo pacman -S --noconfirm nodejs npm 2>/dev/null\n"
-        script += "fi\n"
-        script += "npm install -g @anthropic-ai/claude-code\n"
-        script += 'echo "[+] Claude Code installed"\n'
-        script += 'echo ""\n'
-        script += 'echo "Run: claude"\n'
-        script += 'echo "Then paste the contents of MIGRATION_INSTRUCTIONS.md"\n'
+    # Enable SSH daemon
+    script += "# Enable and start SSH daemon\n"
+    script += "if command -v systemctl &> /dev/null; then\n"
+    script += "    sudo systemctl enable --now sshd 2>/dev/null || sudo systemctl enable --now ssh 2>/dev/null || true\n"
+    script += '    echo "[+] SSH daemon enabled and running"\n'
+    script += "fi\n\n"
 
-    elif ai.provider == "codex":
-        script += "# Install Codex\n"
-        script += 'echo "[*] Installing Codex..."\n'
-        script += "if ! command -v node &> /dev/null; then\n"
-        script += "    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - 2>/dev/null\n"
-        script += "    sudo apt install -y nodejs 2>/dev/null || sudo dnf install -y nodejs 2>/dev/null\n"
-        script += "fi\n"
-        script += "npm install -g @openai/codex\n"
-        script += 'echo "[+] Codex installed"\n'
-
-    elif ai.provider == "local_ollama":
-        script += "# Install Ollama\n"
-        script += 'echo "[*] Installing Ollama..."\n'
-        script += "curl -fsSL https://ollama.ai/install.sh | sh\n"
-        model = shlex.quote(ai.model_name or "llama3")
-        script += f'echo "[*] Pulling model {model}..."\n'
-        script += f"ollama pull {model}\n"
-        script += f'echo "[+] Ollama ready with {model}"\n'
-
-    elif ai.provider == "local_lmstudio":
-        script += "# LM Studio\n"
-        script += 'echo "[*] Please install LM Studio from: https://lmstudio.ai"\n'
-        script += 'echo "    Then load your preferred model and start the local server."\n'
-
-    elif ai.provider == "api":
-        script += "# Set up API key\n"
-        script += 'if [ -f ".api_key" ]; then\n'
-        if ai.endpoint and "anthropic" in ai.endpoint:
-            script += '    export ANTHROPIC_API_KEY=$(cat .api_key)\n'
-            script += '    echo "[+] Anthropic API key loaded"\n'
-        else:
-            script += '    export OPENAI_API_KEY=$(cat .api_key)\n'
-            script += '    echo "[+] OpenAI API key loaded"\n'
-        script += "fi\n"
-
-    script += '\necho ""\n'
-    script += 'echo "[+] Setup complete! The AI agent is ready to continue your migration."\n'
-    script += 'echo "    Feed MIGRATION_INSTRUCTIONS.md to your AI agent to proceed."\n'
+    # Print connection info for the user to give back to the Windows agent
+    script += "# Show connection info\n"
+    script += 'echo ""\n'
+    script += 'echo "========================================"\n'
+    script += 'echo "  Ready for remote setup!"\n'
+    script += 'echo "========================================"\n'
+    script += 'echo ""\n'
+    script += 'echo "Give the AI agent on Windows these details:"\n'
+    script += 'echo ""\n'
+    script += 'USERNAME=$(whoami)\n'
+    script += 'echo "  Username: $USERNAME"\n'
+    script += "# Try to get the local IP address\n"
+    script += 'IP=$(hostname -I 2>/dev/null | awk "{print \\$1}" || ip route get 1 2>/dev/null | awk "{print \\$7;exit}" || echo "unknown")\n'
+    script += 'echo "  IP address: $IP"\n'
+    script += 'echo ""\n'
+    script += 'echo "The agent will connect with:"\n'
+    script += f'echo "  ssh $USERNAME@$IP"\n'
+    script += 'echo ""\n'
+    script += 'echo "You can now go back to QuickHatch on Windows."\n'
 
     return script
