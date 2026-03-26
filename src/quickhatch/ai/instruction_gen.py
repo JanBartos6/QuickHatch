@@ -27,24 +27,26 @@ def generate_instructions(profile: UserProfile) -> str:
     sections = []
 
     is_customize = prefs.migration_type == "customize_linux"
+    import sys as _sys
+    os_name = "macOS" if _sys.platform == "darwin" else "Linux"
 
     # ── System prompt / role ──
     if is_customize:
         sections.append(
-            "# QuickHatch — Linux Customization Instructions for AI Agent\n\n"
-            "You are an AI agent running **locally on the user's Linux machine**.\n"
-            "The user wants you to customize and configure their existing Linux system.\n"
+            f"# QuickHatch — {os_name} Customization Instructions for AI Agent\n\n"
+            f"You are an AI agent running **locally on the user's {os_name} machine**.\n"
+            f"The user wants you to customize and configure their existing {os_name} system.\n"
             "You can execute commands directly — no SSH needed.\n\n"
             "Below is everything we know about their current system, preferences,\n"
             "and needs. Your job is to:\n\n"
-            "1. **Analyze the current system** — check what's installed, what DE is running,\n"
+            "1. **Analyze the current system** — check what's installed, what DE/desktop is running,\n"
             "   what hardware is present, and what could be improved.\n"
             "2. **Configure the desktop** — set up theming, icons, wallpaper, dock/panel,\n"
-            "   and any DE-specific settings to match their stated preferences.\n"
+            "   and any system-specific settings to match their stated preferences.\n"
             "3. **Install requested software** — based on their use cases, install and configure\n"
-            "   the right tools and packages.\n"
-            "4. **Set up drivers** — if GPU, WiFi, or other hardware needs better drivers or\n"
-            "   firmware, install them.\n"
+            f"   the right tools and packages{' (use Homebrew, mas, or direct downloads)' if _sys.platform == 'darwin' else ''}.\n"
+            "4. **Set up drivers/hardware** — if GPU, WiFi, or other hardware needs attention,\n"
+            "   handle it.\n"
             "5. **System tuning** — optimize performance, configure locale/keyboard, set up\n"
             "   development tools, etc. based on their use cases.\n"
             "6. **Execute everything directly** — run the commands, verify they work, and\n"
@@ -82,7 +84,7 @@ def generate_instructions(profile: UserProfile) -> str:
     type_desc = {
         "fresh_install": "This is a fresh install — the user is new to Linux. Be thorough with explanations.",
         "switching": "The user is switching from an existing Linux setup. They have Linux experience.",
-        "customize_linux": "The user already has Linux installed and wants it customized. They are on the system right now.",
+        "customize_linux": f"The user already has {os_name} and wants it customized. They are on the system right now.",
     }
     sections.append(
         "## Mode\n\n"

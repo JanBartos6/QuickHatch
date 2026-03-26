@@ -260,6 +260,59 @@ def _scan_snap() -> list[AppInfo]:
         return []
 
 
+def _scan_brew() -> list[AppInfo]:
+    """Scan apps via Homebrew (macOS/Linux)."""
+    apps = []
+    for list_type, source in [("--formula", "brew"), ("--cask", "brew-cask")]:
+        try:
+            result = subprocess.run(
+                ["brew", "list", list_type, "--versions"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode == 0:
+                for line in (result.stdout or "").strip().split("\n"):
+                    parts = line.strip().split()
+                    if parts:
+                        apps.append(AppInfo(
+                            name=parts[0],
+                            version=parts[1] if len(parts) > 1 else None,
+                            source=source,
+                        ))
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
+    return apps
+
+
+def _scan_macos_apps() -> list[AppInfo]:
+    """Scan /Applications folder on macOS."""
+    from pathlib import Path
+    apps = []
+    try:
+        for app_dir in sorted(Path("/Applications").glob("*.app")):
+            name = app_dir.stem
+            version = None
+            plist = app_dir / "Contents" / "Info.plist"
+            if plist.exists():
+                try:
+                    result = subprocess.run(
+                        ["defaults", "read", str(plist), "CFBundleShortVersionString"],
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                    )
+                    val = (result.stdout or "").strip()
+                    if val:
+                        version = val
+                except (FileNotFoundError, subprocess.TimeoutExpired):
+                    pass
+            apps.append(AppInfo(name=name, version=version, source="applications"))
+    except OSError:
+        pass
+    return apps
+
+
 def scan() -> list[AppInfo]:
     """Scan for installed applications using available methods."""
     print_info("Scanning installed applications...")
@@ -282,9 +335,28 @@ def scan() -> list[AppInfo]:
         if apps:
             print_info(f"Found {len(apps)} apps via PowerShell")
             return apps
+
+    elif sys.platform == "darwin":
+        all_apps: list[AppInfo] = []
+
+        # Homebrew
+        apps = _scan_brew()
+        if apps:
+            print_info(f"Found {len(apps)} packages via Homebrew")
+            all_apps.extend(apps)
+
+        # /Applications folder
+        apps = _scan_macos_apps()
+        if apps:
+            print_info(f"Found {len(apps)} apps in /Applications")
+            all_apps.extend(apps)
+
+        if all_apps:
+            return all_apps
+
     else:
         # Linux: try native package managers, then flatpak/snap
-        all_apps: list[AppInfo] = []
+        all_apps = []
 
         for name, scanner in [
             ("dpkg", _scan_dpkg),
@@ -296,6 +368,12 @@ def scan() -> list[AppInfo]:
                 print_info(f"Found {len(apps)} packages via {name}")
                 all_apps.extend(apps)
                 break  # Only one native package manager will be active
+
+        # Homebrew can also be on Linux
+        apps = _scan_brew()
+        if apps:
+            print_info(f"Found {len(apps)} packages via Homebrew")
+            all_apps.extend(apps)
 
         # Also check flatpak and snap (can coexist with native)
         for name, scanner in [("flatpak", _scan_flatpak), ("snap", _scan_snap)]:

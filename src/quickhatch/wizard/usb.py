@@ -46,6 +46,40 @@ def _list_usb_drives() -> list[dict]:
                     })
         except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
             pass
+    elif sys.platform == "darwin":
+        # macOS: use diskutil to find external drives
+        try:
+            result = subprocess.run(
+                ["diskutil", "list", "-plist", "external"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                import plistlib
+                data = plistlib.loads(result.stdout.encode())
+                for disk_id in data.get("AllDisks", []):
+                    if "s" in disk_id:  # Skip partitions, keep whole disks
+                        continue
+                    try:
+                        info = subprocess.run(
+                            ["diskutil", "info", "-plist", disk_id],
+                            capture_output=True,
+                            text=True,
+                            timeout=5,
+                        )
+                        dinfo = plistlib.loads(info.stdout.encode())
+                        name = dinfo.get("MediaName") or dinfo.get("IORegistryEntryName", disk_id)
+                        size_bytes = dinfo.get("TotalSize", 0)
+                        drives.append({
+                            "number": f"/dev/{disk_id}",
+                            "name": name,
+                            "size_gb": round(size_bytes / (1024**3), 1),
+                        })
+                    except (subprocess.TimeoutExpired, Exception):
+                        pass
+        except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
+            pass
     else:
         # Linux: use lsblk to find removable drives
         try:

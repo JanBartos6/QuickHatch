@@ -43,6 +43,19 @@ def _get_cpu() -> tuple[str, int]:
                     break
         except OSError:
             pass
+    elif sys.platform == "darwin":
+        try:
+            result = subprocess.run(
+                ["sysctl", "-n", "machdep.cpu.brand_string"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            val = (result.stdout or "").strip()
+            if val:
+                cpu_name = val
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
 
     return cpu_name, psutil.cpu_count(logical=False) or psutil.cpu_count() or 1
 
@@ -61,6 +74,8 @@ def _vendor_from_name(name: str) -> str:
         return "amd"
     if "intel" in lower:
         return "intel"
+    if "apple" in lower:
+        return "apple"
     return "unknown"
 
 
@@ -147,6 +162,41 @@ def _get_gpus() -> list[GPUInfo]:
                             )
                         )
         except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
+
+    elif sys.platform == "darwin":
+        try:
+            result = subprocess.run(
+                ["system_profiler", "SPDisplaysDataType", "-json"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            data = json.loads(result.stdout or "{}")
+            for display in data.get("SPDisplaysDataType", []):
+                name = display.get("sppci_model", display.get("_name", "Unknown GPU"))
+                vram_str = display.get("sppci_vram", "")
+                vram = None
+                if vram_str:
+                    # e.g. "8 GB" or "1536 MB"
+                    try:
+                        parts = vram_str.split()
+                        val = int(parts[0])
+                        if len(parts) > 1 and parts[1].upper() == "GB":
+                            vram = val * 1024
+                        else:
+                            vram = val
+                    except (ValueError, IndexError):
+                        pass
+                vendor = display.get("sppci_vendor", "")
+                gpus.append(
+                    GPUInfo(
+                        name=name,
+                        vendor=_vendor_from_name(vendor or name),
+                        vram_mb=vram,
+                    )
+                )
+        except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
             pass
 
     if not gpus:
@@ -268,6 +318,35 @@ def _get_wifi() -> list[str]:
                         adapters.append(net_dir.name)
             except OSError:
                 pass
+    elif sys.platform == "darwin":
+        try:
+            result = subprocess.run(
+                ["system_profiler", "SPAirPortDataType", "-json"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            data = json.loads(result.stdout or "{}")
+            for iface in data.get("SPAirPortDataType", []):
+                name = iface.get("_name", "Wi-Fi")
+                card = iface.get("spairport_wifi_card_type", "")
+                adapters.append(f"{name} ({card})" if card else name)
+        except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            # Fallback: just check if Wi-Fi interface exists
+            try:
+                result = subprocess.run(
+                    ["networksetup", "-listallhardwareports"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+                lines = (result.stdout or "").split("\n")
+                for i, line in enumerate(lines):
+                    if "Wi-Fi" in line:
+                        adapters.append("Wi-Fi")
+                        break
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                pass
     return adapters
 
 
@@ -310,6 +389,18 @@ def _get_bluetooth() -> bool:
             return "hci" in (result.stdout or "").lower()
         except (FileNotFoundError, subprocess.TimeoutExpired):
             pass
+    elif sys.platform == "darwin":
+        try:
+            result = subprocess.run(
+                ["system_profiler", "SPBluetoothDataType", "-json"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            data = json.loads(result.stdout or "{}")
+            return bool(data.get("SPBluetoothDataType"))
+        except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            pass
     return False
 
 
@@ -351,6 +442,8 @@ def _is_efi() -> bool:
             pass
     elif sys.platform == "linux":
         return Path("/sys/firmware/efi").exists()
+    elif sys.platform == "darwin":
+        return True  # All Macs use EFI
     return False
 
 

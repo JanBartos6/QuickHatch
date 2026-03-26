@@ -86,6 +86,91 @@ def _scan_linux_settings(settings: dict) -> dict:
     return settings
 
 
+def _scan_macos_settings(settings: dict) -> dict:
+    """Scan macOS desktop settings."""
+    # Dark/light mode
+    try:
+        result = subprocess.run(
+            ["defaults", "read", "-g", "AppleInterfaceStyle"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        # "Dark" if dark mode, non-zero exit if light mode
+        settings["theme"] = "dark" if result.returncode == 0 else "light"
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        settings["theme"] = "unknown"
+
+    # Default browser
+    try:
+        result = subprocess.run(
+            ["defaults", "read", "com.apple.LaunchServices/com.apple.launchservices.secure",
+             "LSHandlers"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        # Fallback: check which browser handles http
+        # LaunchServices plist is complex, so try a simpler approach
+        browser_map = {
+            "com.google.chrome": "Google Chrome",
+            "org.mozilla.firefox": "Mozilla Firefox",
+            "com.apple.safari": "Safari",
+            "com.brave.browser": "Brave Browser",
+            "com.microsoft.edgemac": "Microsoft Edge",
+            "com.operasoftware.opera": "Opera",
+        }
+        output = (result.stdout or "").lower()
+        found = False
+        for bundle_id, name in browser_map.items():
+            if bundle_id in output:
+                settings["default_browser"] = name
+                found = True
+                break
+        if not found:
+            settings["default_browser"] = "Safari"  # macOS default
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        settings["default_browser"] = "Safari"
+
+    # Keyboard layout
+    try:
+        result = subprocess.run(
+            ["defaults", "read", "com.apple.HIToolbox", "AppleSelectedInputSources"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        output = result.stdout or ""
+        # Parse "KeyboardLayout Name" entries
+        layouts = []
+        for line in output.split("\n"):
+            if "KeyboardLayout Name" in line:
+                parts = line.split("=")
+                if len(parts) > 1:
+                    layout = parts[1].strip().strip('";')
+                    if layout:
+                        layouts.append(layout)
+        settings["keyboard_layouts"] = layouts if layouts else ["US"]
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        settings["keyboard_layouts"] = ["US"]
+
+    # macOS version
+    try:
+        result = subprocess.run(
+            ["sw_vers", "-productVersion"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        val = (result.stdout or "").strip()
+        if val:
+            settings["macos_version"] = val
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    return settings
+
+
 def scan() -> dict:
     """Scan relevant system settings."""
     print_info("Scanning system settings...")
@@ -107,8 +192,15 @@ def scan() -> dict:
         print_info(f"Locale: {settings.get('locale', 'unknown')}")
         return settings
 
+    if sys.platform == "darwin":
+        _scan_macos_settings(settings)
+        print_info(f"Theme: {settings.get('theme', 'unknown')}")
+        print_info(f"Default browser: {settings.get('default_browser', 'unknown')}")
+        print_info(f"Locale: {settings.get('locale', 'unknown')}")
+        return settings
+
     if sys.platform != "win32":
-        print_warning("Not running on Windows or Linux - settings scan limited.")
+        print_warning("Settings scan not supported on this platform.")
         return settings
 
     # Dark/light theme

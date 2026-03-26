@@ -67,8 +67,20 @@ def _find_browser_profiles() -> dict:
             "edge": home / "AppData" / "Local" / "Microsoft" / "Edge" / "User Data",
             "brave": home / "AppData" / "Local" / "BraveSoftware" / "Brave-Browser" / "User Data",
         }
+    elif sys.platform == "darwin":
+        app_support = home / "Library" / "Application Support"
+        candidates = {
+            "chrome": app_support / "Google" / "Chrome",
+            "firefox": app_support / "Firefox" / "Profiles",
+            "safari": home / "Library" / "Safari",
+            "edge": app_support / "Microsoft Edge",
+            "brave": app_support / "BraveSoftware" / "Brave-Browser",
+            "vivaldi": app_support / "Vivaldi",
+            "opera": app_support / "com.operasoftware.Opera",
+            "arc": app_support / "Arc",
+        }
     else:
-        # Linux / macOS
+        # Linux
         candidates = {
             "chrome": home / ".config" / "google-chrome",
             "chromium": home / ".config" / "chromium",
