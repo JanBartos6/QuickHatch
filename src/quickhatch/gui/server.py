@@ -291,6 +291,10 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                 else:
                     self._send_json({"status": "error", "message": "Empty message"}, 400)
 
+            elif self.path == "/wizard/generate-ssh":
+                result = _generate_ssh_key(gui_state)
+                self._send_json(result)
+
             elif self.path == "/wizard/launch-agent":
                 data = self._read_json()
                 result = _launch_agent(gui_state, server.server_address[1])
@@ -404,6 +408,53 @@ def _launch_agent(gui_state: GUIState, port: int) -> dict:
                 subprocess.Popen(["bash", "-c", shell_cmd])
 
         return {"status": "ok", "message": "Agent launched! Check the new terminal window."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+def _generate_ssh_key(gui_state: GUIState) -> dict:
+    """Generate an ed25519 SSH key pair for the migration."""
+    import subprocess
+    key_path = Path.home() / ".ssh" / "quickhatch_ed25519"
+    pub_path = key_path.with_suffix(".pub")
+
+    if pub_path.exists():
+        gui_state.profile.ssh_public_key_path = str(pub_path)
+        gui_state.profile.save_checkpoint()
+        return {
+            "status": "ok",
+            "message": "SSH key already exists",
+            "public_key": pub_path.read_text().strip(),
+            "path": str(pub_path),
+        }
+
+    try:
+        key_path.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            ["ssh-keygen", "-t", "ed25519", "-C", "quickhatch", "-f", str(key_path), "-N", ""],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=True,
+        )
+        # Secure private key permissions
+        try:
+            key_path.chmod(0o600)
+        except OSError:
+            pass
+
+        gui_state.profile.ssh_public_key_path = str(pub_path)
+        gui_state.profile.save_checkpoint()
+        return {
+            "status": "ok",
+            "message": "SSH key generated",
+            "public_key": pub_path.read_text().strip(),
+            "path": str(pub_path),
+        }
+    except FileNotFoundError:
+        return {"status": "error", "message": "ssh-keygen not found. Install OpenSSH first."}
+    except subprocess.CalledProcessError as e:
+        return {"status": "error", "message": f"ssh-keygen failed: {e.stderr or e.stdout}"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 

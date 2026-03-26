@@ -573,10 +573,10 @@ const stepRenderers={
         </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
-          <button class="btn btn-primary" id="bridgeNext" onclick="completeStep('bridge')" disabled>Waiting for agent...</button>
+          <button class="btn btn-primary" id="bridgeNext" onclick="completeStep('bridge')" ${state._agentDone||state.completedSteps.includes('bridge')?'':'disabled'}>${state._agentDone||state.completedSteps.includes('bridge')?'Continue':'Waiting for agent...'}</button>
         </div>
       </div>`;
-    pollBridge();
+    if(!state._agentDone)pollBridge();
   },
 
   usb(){
@@ -605,10 +605,11 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>SSH key</h2>
-        <p class="subtitle">An SSH key lets the AI agent connect to your new machine remotely.</p>
-        <div class="info-box">
-          <p>If you already have SSH keys, skip this. Otherwise run:</p>
-          <div class="code-block" style="margin-top:10px">ssh-keygen -t ed25519 -C "quickhatch"</div>
+        <p class="subtitle">An SSH key lets the AI agent connect to your new machine remotely. The exported bundle will include it and the quickstart script sets it up automatically on Linux.</p>
+        <div id="sshResult"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-success" id="sshGenBtn" onclick="generateSSH()">Generate SSH key</button>
+          <button class="btn btn-ghost" onclick="completeStep('ssh')">Skip (I already have one)</button>
         </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
@@ -820,6 +821,26 @@ async function pollBridge(){
     }
   }catch(e){}
   if(STEPS[state.currentStep]?.id==='bridge'&&!state._agentDone)bridgePollTimer=setTimeout(pollBridge,2000);
+}
+
+async function generateSSH(){
+  const btn=el('sshGenBtn');
+  btn.disabled=true;btn.textContent='Generating...';
+  const data=await api('/wizard/generate-ssh','POST');
+  const box=el('sshResult');
+  if(data.status==='ok'){
+    box.innerHTML=`
+      <div class="info-box" style="border-color:var(--green);margin-bottom:16px">
+        <strong style="color:var(--green)">${escHtml(data.message)}</strong>
+        <p style="margin-top:6px;font-size:.85rem;color:var(--fg-muted)">Path: <code>${escHtml(data.path)}</code></p>
+        <div class="code-block" style="margin-top:8px;font-size:.8rem">${escHtml(data.public_key)}</div>
+        <p style="margin-top:8px;font-size:.85rem;color:var(--fg-muted)">This key will be included in your export bundle. The quickstart script on Linux will add it to authorized_keys and enable SSH automatically.</p>
+      </div>`;
+    btn.textContent='Done';
+  }else{
+    box.innerHTML=`<div class="info-box" style="border-color:var(--rose);margin-bottom:16px"><strong style="color:var(--rose)">${escHtml(data.message)}</strong></div>`;
+    btn.disabled=false;btn.textContent='Retry';
+  }
 }
 
 async function runExport(){
