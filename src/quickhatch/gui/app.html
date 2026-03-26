@@ -290,17 +290,32 @@ details[open] summary{margin-bottom:8px}
 </div>
 
 <script>
-const STEPS = [
-  {id:'welcome',       title:'Start',   n:'1'},
-  {id:'ai_setup',      title:'AI',      n:'2'},
-  {id:'questionnaire', title:'Prefs',   n:'3'},
-  {id:'scan',          title:'Scan',    n:'4'},
-  {id:'additional',    title:'Notes',   n:'5'},
-  {id:'bridge',        title:'Agent',   n:'6'},
-  {id:'usb',           title:'USB',     n:'7'},
-  {id:'ssh',           title:'SSH',     n:'8'},
-  {id:'export',        title:'Export',  n:'9'},
+const STEPS_MIGRATION = [
+  {id:'welcome',       title:'Start'},
+  {id:'ai_setup',      title:'AI'},
+  {id:'questionnaire', title:'Prefs'},
+  {id:'scan',          title:'Scan'},
+  {id:'additional',    title:'Notes'},
+  {id:'bridge',        title:'Agent'},
+  {id:'usb',           title:'USB'},
+  {id:'ssh',           title:'SSH'},
+  {id:'export',        title:'Export'},
 ];
+const STEPS_CUSTOMIZE = [
+  {id:'welcome',       title:'Start'},
+  {id:'ai_setup',      title:'AI'},
+  {id:'questionnaire', title:'Prefs'},
+  {id:'scan',          title:'Scan'},
+  {id:'additional',    title:'Notes'},
+  {id:'bridge',        title:'Agent'},
+];
+let STEPS = STEPS_MIGRATION;
+function refreshSteps(){
+  const mode=state.profile?.preferences?.migration_type;
+  STEPS = mode==='customize_linux' ? STEPS_CUSTOMIZE : STEPS_MIGRATION;
+  STEPS.forEach((s,i)=>s.n=String(i+1));
+}
+function isCustomizeMode(){return state.profile?.preferences?.migration_type==='customize_linux'}
 
 let state = {currentStep:0,profile:null,completedSteps:[],agentConnected:false,suggestions:[],pendingQuestions:[]};
 
@@ -314,6 +329,7 @@ async function loadProfile(){
   const data=await api('/wizard/profile');
   state.profile=data.profile;
   state.completedSteps=state.profile.completed_steps||[];
+  refreshSteps();
   state.currentStep=STEPS.length;
   for(let i=0;i<STEPS.length;i++){
     if(!state.completedSteps.includes(STEPS[i].id)){state.currentStep=i;break}
@@ -370,20 +386,25 @@ const stepRenderers={
   welcome(){
     content().innerHTML=`
       <div class="card">
-        <h2>Let's get you to Linux</h2>
-        <p class="subtitle">QuickHatch scans your system, learns what you need, and hands everything to an AI agent that sets up your new Linux install.</p>
+        <h2>Welcome to QuickHatch</h2>
+        <p class="subtitle">An AI-powered assistant that scans your system, learns what you need, and helps set up or customize Linux.</p>
         <div class="field">
-          <label>What describes you best?</label>
+          <label>What would you like to do?</label>
           <div class="choices" id="migType">
             <div class="choice" data-value="fresh_install" onclick="selectChoice('migType',this)">
               <div class="ico">&#x1F331;</div>
-              <div class="title">Fresh start</div>
-              <div class="desc">New to Linux, coming from Windows</div>
+              <div class="title">Migrate from Windows</div>
+              <div class="desc">Scan your Windows PC and set up a new Linux install</div>
             </div>
             <div class="choice" data-value="switching" onclick="selectChoice('migType',this)">
               <div class="ico">&#x1F504;</div>
-              <div class="title">Switching distros</div>
-              <div class="desc">Already on Linux, want something new</div>
+              <div class="title">Switch distros</div>
+              <div class="desc">Already on Linux, moving to a different distro</div>
+            </div>
+            <div class="choice" data-value="customize_linux" onclick="selectChoice('migType',this)">
+              <div class="ico">&#x1F3A8;</div>
+              <div class="title">Customize Linux</div>
+              <div class="desc">Already on Linux, want an AI agent to tweak and set things up</div>
             </div>
           </div>
         </div>
@@ -486,10 +507,10 @@ const stepRenderers={
           </div>
           <input type="text" id="useCaseCustom" placeholder="Other uses (type anything)" style="margin-top:10px">
         </div>
-        <div class="field">
+        ${isCustomizeMode()?'':`<div class="field">
           <label>Preferred distro (optional)</label>
           <input type="text" id="distroPref" placeholder="Leave blank and let the AI decide">
-        </div>
+        </div>`}
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
           <button class="btn btn-primary" onclick="submitPrefs()">Continue</button>
@@ -498,10 +519,13 @@ const stepRenderers={
   },
 
   scan(){
+    const scanDesc=isCustomizeMode()
+      ?'We\'ll scan your Linux system — hardware, installed packages, settings, and files — so the AI knows what you already have.'
+      :'We\'ll detect your hardware, apps, settings, and files so the AI knows what to set up.';
     content().innerHTML=`
       <div class="card">
         <h2>System scan</h2>
-        <p class="subtitle">We'll detect your hardware, apps, settings, and files so the AI knows what to set up.</p>
+        <p class="subtitle">${scanDesc}</p>
         <div id="scanResults"></div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
@@ -529,20 +553,24 @@ const stepRenderers={
   bridge(){
     const port=location.port;
     const provider=state.profile.ai_config?.provider||'claude_code';
+    const customize=isCustomizeMode();
     let cmd='';
     if(provider==='claude_code')
-      cmd=`claude -p "Read http://localhost:${port}/api/profile for my system info. Use the QuickHatch bridge API at http://localhost:${port}/api to communicate. POST /api/suggest for recommendations, POST /api/ask for questions, POST /api/done when finished." --dangerously-skip-permissions`;
+      cmd=`claude -p "Read http://localhost:${port}/api/profile for my system info. Use the QuickHatch bridge API at http://localhost:${port}/api to communicate. POST /api/suggest for recommendations, POST /api/ask for questions, POST /api/done when finished.${customize?' You are running locally on this Linux machine. Execute commands directly to customize the system based on user preferences.':''}" --dangerously-skip-permissions`;
     else if(provider==='codex')
-      cmd=`codex "Read http://localhost:${port}/api/profile and use http://localhost:${port}/api to communicate..."`;
+      cmd=`codex "Read http://localhost:${port}/api/profile and use http://localhost:${port}/api to communicate...${customize?' Run locally on this Linux machine.':''}"`;
     else
       cmd=`Point your AI tool at http://localhost:${port}/api/profile`;
 
     const canLaunch=['claude_code','codex'].includes(provider);
+    const subtitle=customize
+      ?'The agent reads your preferences, scans your system, and customizes your Linux setup directly.'
+      :'The agent reads your profile, analyzes everything, and sends back recommendations in real time.';
 
     content().innerHTML=`
       <div class="card">
         <h2>AI Agent</h2>
-        <p class="subtitle">The agent reads your profile, analyzes everything, and sends back recommendations in real time.</p>
+        <p class="subtitle">${subtitle}</p>
         ${canLaunch?`
           <button class="btn btn-success" id="launchBtn" onclick="launchAgent()" style="margin-bottom:12px">Launch agent</button>
           <div id="launchMsg" style="margin-bottom:8px"></div>
@@ -642,7 +670,19 @@ const stepRenderers={
 };
 
 function renderDone(){
-  content().innerHTML=`
+  const customize=isCustomizeMode();
+  content().innerHTML=customize?`
+    <div class="card">
+      <div class="done-screen">
+        <h2><span>All done</span></h2>
+        <p class="subtitle" style="margin-top:8px">The AI agent has finished customizing your system. Check the suggestions above for a summary of what was done.</p>
+        <div class="done-steps">
+          <div class="ds"><div class="dn">&#x2713;</div>System scanned and analyzed</div>
+          <div class="ds"><div class="dn">&#x2713;</div>Preferences applied by the agent</div>
+          <div class="ds"><div class="dn">&#x2713;</div>You can re-run QuickHatch anytime to tweak further</div>
+        </div>
+      </div>
+    </div>`:`
     <div class="card">
       <div class="done-screen">
         <h2><span>Ready to go</span></h2>
@@ -677,7 +717,9 @@ function toggleCustomField(sel,inputId){
 // ── Submitters ──
 async function submitWelcome(){
   const t=getSelected('migType');if(!t)return;
-  await saveProfile({preferences:{migration_type:t}});await completeStep('welcome');
+  await saveProfile({preferences:{migration_type:t}});
+  refreshSteps();
+  await completeStep('welcome');
 }
 async function submitAI(){
   const p=getSelected('aiChoice');if(!p)return;
@@ -696,7 +738,7 @@ async function submitPrefs(){
     icon_style:iconVal,
     wallpaper_style:wpVal,
     use_cases:useCases,
-    distro_preference:el('distroPref').value||null,
+    distro_preference:(el('distroPref')||{}).value||null,
   };
   await saveProfile({preferences:prefs});await completeStep('questionnaire');
 }

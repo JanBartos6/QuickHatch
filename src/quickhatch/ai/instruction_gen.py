@@ -26,36 +26,68 @@ def generate_instructions(profile: UserProfile) -> str:
 
     sections = []
 
+    is_customize = prefs.migration_type == "customize_linux"
+
     # ── System prompt / role ──
-    sections.append(
-        "# QuickHatch — Migration Instructions for AI Agent\n\n"
-        "You are an AI agent running on the user's **Windows** machine, helping them\n"
-        "migrate to Linux. The user has (or will have) a Linux machine ready — you will\n"
-        "**SSH into it** from Windows to perform the setup remotely.\n\n"
-        "Below is everything we know about their current system, preferences,\n"
-        "and needs. Your job is to:\n\n"
-        "1. **Recommend a Linux distro** based on their hardware, use cases, and preferences\n"
-        "2. **Analyze their installed Windows apps** — for each one, determine if it runs\n"
-        "   natively on Linux, has a good alternative, can run via Wine/Proton, or has no\n"
-        "   Linux equivalent. Suggest the best path for each.\n"
-        "3. **Plan driver setup** — based on their exact hardware (GPU, WiFi, Bluetooth),\n"
-        "   determine what drivers/firmware need to be installed and how.\n"
-        "4. **Configure the desktop** — set up the desktop environment, theming, icons,\n"
-        "   and wallpaper to match their stated preferences.\n"
-        "5. **Handle file migration** — plan how to transfer their documents, browser data,\n"
-        "   and settings.\n"
-        "6. **SSH into the Linux machine and execute the full setup** — install packages,\n"
-        "   configure the system, and verify everything works, all via SSH from Windows.\n\n"
-        "Use your own knowledge and reasoning. The data below is raw — no pre-analysis\n"
-        "has been done. You decide what's best.\n\n"
-        "---\n"
-    )
+    if is_customize:
+        sections.append(
+            "# QuickHatch — Linux Customization Instructions for AI Agent\n\n"
+            "You are an AI agent running **locally on the user's Linux machine**.\n"
+            "The user wants you to customize and configure their existing Linux system.\n"
+            "You can execute commands directly — no SSH needed.\n\n"
+            "Below is everything we know about their current system, preferences,\n"
+            "and needs. Your job is to:\n\n"
+            "1. **Analyze the current system** — check what's installed, what DE is running,\n"
+            "   what hardware is present, and what could be improved.\n"
+            "2. **Configure the desktop** — set up theming, icons, wallpaper, dock/panel,\n"
+            "   and any DE-specific settings to match their stated preferences.\n"
+            "3. **Install requested software** — based on their use cases, install and configure\n"
+            "   the right tools and packages.\n"
+            "4. **Set up drivers** — if GPU, WiFi, or other hardware needs better drivers or\n"
+            "   firmware, install them.\n"
+            "5. **System tuning** — optimize performance, configure locale/keyboard, set up\n"
+            "   development tools, etc. based on their use cases.\n"
+            "6. **Execute everything directly** — run the commands, verify they work, and\n"
+            "   report back what was done.\n\n"
+            "Use your own knowledge and reasoning. The data below is raw — no pre-analysis\n"
+            "has been done. You decide what's best.\n\n"
+            "---\n"
+        )
+    else:
+        sections.append(
+            "# QuickHatch — Migration Instructions for AI Agent\n\n"
+            "You are an AI agent running on the user's **Windows** machine, helping them\n"
+            "migrate to Linux. The user has (or will have) a Linux machine ready — you will\n"
+            "**SSH into it** from Windows to perform the setup remotely.\n\n"
+            "Below is everything we know about their current system, preferences,\n"
+            "and needs. Your job is to:\n\n"
+            "1. **Recommend a Linux distro** based on their hardware, use cases, and preferences\n"
+            "2. **Analyze their installed Windows apps** — for each one, determine if it runs\n"
+            "   natively on Linux, has a good alternative, can run via Wine/Proton, or has no\n"
+            "   Linux equivalent. Suggest the best path for each.\n"
+            "3. **Plan driver setup** — based on their exact hardware (GPU, WiFi, Bluetooth),\n"
+            "   determine what drivers/firmware need to be installed and how.\n"
+            "4. **Configure the desktop** — set up the desktop environment, theming, icons,\n"
+            "   and wallpaper to match their stated preferences.\n"
+            "5. **Handle file migration** — plan how to transfer their documents, browser data,\n"
+            "   and settings.\n"
+            "6. **SSH into the Linux machine and execute the full setup** — install packages,\n"
+            "   configure the system, and verify everything works, all via SSH from Windows.\n\n"
+            "Use your own knowledge and reasoning. The data below is raw — no pre-analysis\n"
+            "has been done. You decide what's best.\n\n"
+            "---\n"
+        )
 
     # ── Migration type ──
+    type_desc = {
+        "fresh_install": "This is a fresh install — the user is new to Linux. Be thorough with explanations.",
+        "switching": "The user is switching from an existing Linux setup. They have Linux experience.",
+        "customize_linux": "The user already has Linux installed and wants it customized. They are on the system right now.",
+    }
     sections.append(
-        "## Migration Type\n\n"
+        "## Mode\n\n"
         f"{prefs.migration_type}\n\n"
-        f"{'This is a fresh install — the user is new to Linux. Be thorough with explanations.' if prefs.migration_type == 'fresh_install' else 'The user is switching from an existing Linux setup. They have Linux experience.'}\n"
+        f"{type_desc.get(prefs.migration_type, 'Unknown mode.')}\n"
     )
 
     # ── User Preferences (raw) ──
@@ -64,7 +96,9 @@ def generate_instructions(profile: UserProfile) -> str:
     sections.append(f"- **Icon style:** {prefs.icon_style}\n")
     sections.append(f"- **Wallpaper preference:** {prefs.wallpaper_style}\n")
     sections.append(f"- **Primary use cases:** {', '.join(prefs.use_cases) if prefs.use_cases else 'Not specified'}\n")
-    if prefs.distro_preference:
+    if is_customize:
+        pass  # No distro recommendation needed — they're already on one
+    elif prefs.distro_preference:
         sections.append(f"- **Distro preference:** {prefs.distro_preference} (user's stated preference — evaluate if it's a good fit)\n")
     else:
         sections.append("- **Distro preference:** None — recommend one based on the data below\n")
@@ -73,7 +107,8 @@ def generate_instructions(profile: UserProfile) -> str:
     sections.append("")
 
     # ── Hardware (raw) ──
-    sections.append("## Hardware (scanned from Windows)\n")
+    hw_label = "scanned from this Linux system" if is_customize else "scanned from Windows"
+    sections.append(f"## Hardware ({hw_label})\n")
     sections.append(f"- **CPU:** {hw.cpu} ({hw.cpu_cores} cores)\n")
     sections.append(f"- **RAM:** {hw.ram_gb} GB\n")
     for gpu in hw.gpus:
@@ -96,14 +131,23 @@ def generate_instructions(profile: UserProfile) -> str:
             )
     sections.append("")
 
-    # ── Installed Windows Applications (raw list) ──
-    sections.append("## Installed Windows Applications\n\n")
+    # ── Installed Applications (raw list) ──
+    if is_customize:
+        sections.append("## Installed Linux Packages\n\n")
+        if profile.apps:
+            sections.append(
+                "These packages are currently installed on the system. Use this to understand\n"
+                "what's already set up and avoid reinstalling things.\n\n"
+            )
+    else:
+        sections.append("## Installed Windows Applications\n\n")
+        if profile.apps:
+            sections.append(
+                "These apps were found on the user's Windows system. For each one,\n"
+                "determine: does it run natively on Linux? Is there a good alternative?\n"
+                "Can it run via Wine/Proton? Or does it have no Linux path?\n\n"
+            )
     if profile.apps:
-        sections.append(
-            "These apps were found on the user's Windows system. For each one,\n"
-            "determine: does it run natively on Linux? Is there a good alternative?\n"
-            "Can it run via Wine/Proton? Or does it have no Linux path?\n\n"
-        )
         for app in profile.apps:
             version = f" (v{app.version})" if app.version else ""
             sections.append(f"- {app.name}{version} [source: {app.source}]\n")
@@ -111,16 +155,22 @@ def generate_instructions(profile: UserProfile) -> str:
         sections.append("No applications were detected (scan may have been skipped).\n")
     sections.append("")
 
-    # ── Windows Settings (raw) ──
+    # ── System Settings (raw) ──
     if profile.windows_settings:
-        sections.append("## Windows Settings (scanned)\n")
+        settings_label = "Current Linux Settings" if is_customize else "Windows Settings (scanned)"
+        sections.append(f"## {settings_label}\n")
         for key, value in profile.windows_settings.items():
             sections.append(f"- **{key}:** {value}\n")
-        sections.append(
-            "\nUse these to match the user's current experience "
-            "(e.g., if they use dark mode, set dark mode on Linux; "
-            "match their keyboard layout and locale).\n"
-        )
+        if is_customize:
+            sections.append(
+                "\nThese are the current settings. Modify them to match the user's preferences.\n"
+            )
+        else:
+            sections.append(
+                "\nUse these to match the user's current experience "
+                "(e.g., if they use dark mode, set dark mode on Linux; "
+                "match their keyboard layout and locale).\n"
+            )
         sections.append("")
 
     # ── User Files Summary (raw) ──
@@ -259,34 +309,61 @@ def generate_instructions(profile: UserProfile) -> str:
         )
 
     # ── What to do ──
-    sections.append(
-        "---\n\n"
-        "## Your Task\n\n"
-        "You are running on the user's Windows machine. Based on ALL of the above data:\n\n"
-        "### Phase 1: Analysis & Planning (on Windows, via bridge API)\n\n"
-        "1. **Recommend a distro** (with reasoning) — or validate the user's pick if they chose one.\n"
-        "   Consider their hardware, use cases, experience level, and desktop preference.\n\n"
-        "2. **Create an app migration plan** — go through every installed app and classify it:\n"
-        "   - Runs natively on Linux (list the package name)\n"
-        "   - Has a good Linux alternative (name it and explain why)\n"
-        "   - Can work via Wine/Proton (note any caveats)\n"
-        "   - No Linux option (explain and suggest workarounds if any)\n\n"
-        "3. **Plan driver/firmware setup** — based on the exact GPU, WiFi, and Bluetooth\n"
-        "   hardware, determine what needs to be installed and provide exact commands.\n\n"
-        "4. **Plan desktop configuration** — based on their style preferences.\n\n"
-        "### Phase 2: Remote Setup (via SSH from Windows → Linux)\n\n"
-        "Once the user has Linux installed and SSH ready (they run `quickstart.sh`):\n\n"
-        "5. **Ask for the Linux machine's IP address and username** via the bridge API.\n\n"
-        "6. **SSH into the Linux machine** and execute all setup:\n"
-        "   - Update packages, install all needed software\n"
-        "   - Install GPU/WiFi/Bluetooth drivers and firmware\n"
-        "   - Configure desktop environment, icons, theme, wallpaper\n"
-        "   - Set up locale, keyboard, timezone\n"
-        "   - Transfer browser bookmarks/data from Windows via scp\n\n"
-        "7. **Verify everything** over SSH — check that WiFi works, display is correct,\n"
-        "   audio works, Bluetooth pairs, GPU is accelerated, etc.\n\n"
-        "Ask the user for clarification if anything is ambiguous.\n"
-    )
+    if is_customize:
+        sections.append(
+            "---\n\n"
+            "## Your Task\n\n"
+            "You are running **locally on this Linux machine**. Execute commands directly.\n"
+            "Based on ALL of the above data:\n\n"
+            "1. **Analyze the current setup** — check what DE, theme, and packages are already\n"
+            "   installed. Identify what needs to change to match the user's preferences.\n\n"
+            "2. **Install software** — based on their use cases, install the right tools:\n"
+            "   development tools, creative apps, gaming (Steam, Proton), browsers, etc.\n"
+            "   Use the system's package manager (apt, dnf, pacman, etc.) and flatpak/snap\n"
+            "   where appropriate.\n\n"
+            "3. **Configure the desktop** — apply their preferred style:\n"
+            "   - Install and set the right DE/WM if needed\n"
+            "   - Apply GTK/Qt themes, icon packs, cursor themes\n"
+            "   - Set wallpaper, configure dock/panel layout\n"
+            "   - Set up keyboard shortcuts, font rendering, etc.\n\n"
+            "4. **Set up drivers** — check GPU, WiFi, Bluetooth. Install proprietary\n"
+            "   drivers or firmware if needed and not already present.\n\n"
+            "5. **System tuning** — locale, keyboard layout, timezone, font rendering,\n"
+            "   swap/zram, any performance tweaks relevant to their use cases.\n\n"
+            "6. **Verify** — confirm changes took effect. Check that display, audio,\n"
+            "   network, and GPU acceleration are all working.\n\n"
+            "Use the bridge API to send progress updates and ask the user questions.\n"
+            "Execute everything directly — you have local access.\n"
+        )
+    else:
+        sections.append(
+            "---\n\n"
+            "## Your Task\n\n"
+            "You are running on the user's Windows machine. Based on ALL of the above data:\n\n"
+            "### Phase 1: Analysis & Planning (on Windows, via bridge API)\n\n"
+            "1. **Recommend a distro** (with reasoning) — or validate the user's pick if they chose one.\n"
+            "   Consider their hardware, use cases, experience level, and desktop preference.\n\n"
+            "2. **Create an app migration plan** — go through every installed app and classify it:\n"
+            "   - Runs natively on Linux (list the package name)\n"
+            "   - Has a good Linux alternative (name it and explain why)\n"
+            "   - Can work via Wine/Proton (note any caveats)\n"
+            "   - No Linux option (explain and suggest workarounds if any)\n\n"
+            "3. **Plan driver/firmware setup** — based on the exact GPU, WiFi, and Bluetooth\n"
+            "   hardware, determine what needs to be installed and provide exact commands.\n\n"
+            "4. **Plan desktop configuration** — based on their style preferences.\n\n"
+            "### Phase 2: Remote Setup (via SSH from Windows → Linux)\n\n"
+            "Once the user has Linux installed and SSH ready (they run `quickstart.sh`):\n\n"
+            "5. **Ask for the Linux machine's IP address and username** via the bridge API.\n\n"
+            "6. **SSH into the Linux machine** and execute all setup:\n"
+            "   - Update packages, install all needed software\n"
+            "   - Install GPU/WiFi/Bluetooth drivers and firmware\n"
+            "   - Configure desktop environment, icons, theme, wallpaper\n"
+            "   - Set up locale, keyboard, timezone\n"
+            "   - Transfer browser bookmarks/data from Windows via scp\n\n"
+            "7. **Verify everything** over SSH — check that WiFi works, display is correct,\n"
+            "   audio works, Bluetooth pairs, GPU is accelerated, etc.\n\n"
+            "Ask the user for clarification if anything is ambiguous.\n"
+        )
 
     return "\n".join(sections)
 
