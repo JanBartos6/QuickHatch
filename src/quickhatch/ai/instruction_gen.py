@@ -27,15 +27,13 @@ def generate_instructions(profile: UserProfile) -> str:
     sections = []
 
     is_customize = prefs.migration_type == "customize_linux"
-    import sys as _sys
-    os_name = "macOS" if _sys.platform == "darwin" else "Linux"
 
     # ── System prompt / role ──
     if is_customize:
         sections.append(
-            f"# QuickHatch — {os_name} Customization Instructions for AI Agent\n\n"
-            f"You are an AI agent running **locally on the user's {os_name} machine**.\n"
-            f"The user wants you to customize and configure their existing {os_name} system.\n"
+            "# QuickHatch — Linux Customization Instructions for AI Agent\n\n"
+            "You are an AI agent running **locally on the user's Linux machine**.\n"
+            "The user wants you to customize and configure their existing Linux system.\n"
             "You can execute commands directly — no SSH needed.\n\n"
             "Below is everything we know about their current system, preferences,\n"
             "and needs. Your job is to:\n\n"
@@ -44,7 +42,7 @@ def generate_instructions(profile: UserProfile) -> str:
             "2. **Configure the desktop** — set up theming, icons, wallpaper, dock/panel,\n"
             "   and any system-specific settings to match their stated preferences.\n"
             "3. **Install requested software** — based on their use cases, install and configure\n"
-            f"   the right tools and packages{' (use Homebrew, mas, or direct downloads)' if _sys.platform == 'darwin' else ''}.\n"
+            "   the right tools and packages.\n"
             "4. **Set up drivers/hardware** — if GPU, WiFi, or other hardware needs attention,\n"
             "   handle it.\n"
             "5. **System tuning** — optimize performance, configure locale/keyboard, set up\n"
@@ -84,7 +82,7 @@ def generate_instructions(profile: UserProfile) -> str:
     type_desc = {
         "fresh_install": "This is a fresh install — the user is new to Linux. Be thorough with explanations.",
         "switching": "The user is switching from an existing Linux setup. They have Linux experience.",
-        "customize_linux": f"The user already has {os_name} and wants it customized. They are on the system right now.",
+        "customize_linux": "The user already has Linux installed and wants it customized. They are on the system right now.",
     }
     sections.append(
         "## Mode\n\n"
@@ -109,7 +107,7 @@ def generate_instructions(profile: UserProfile) -> str:
     sections.append("")
 
     # ── Hardware (raw) ──
-    hw_label = "scanned from this Linux system" if is_customize else "scanned from Windows"
+    hw_label = "scanned from this system" if is_customize else "scanned from source system"
     sections.append(f"## Hardware ({hw_label})\n")
     sections.append(f"- **CPU:** {hw.cpu} ({hw.cpu_cores} cores)\n")
     sections.append(f"- **RAM:** {hw.ram_gb} GB\n")
@@ -309,6 +307,24 @@ def generate_instructions(profile: UserProfile) -> str:
             "6. `POST /api/ask` for any clarifications\n"
             "7. `POST /api/done` when finished\n\n"
         )
+
+    # ── Follow-up questions ──
+    sections.append(
+        "## Before You Start — Ask Follow-Up Questions\n\n"
+        "Before making recommendations or executing changes, ask the user 3-5\n"
+        "targeted follow-up questions based on the scan results above. Examples:\n\n"
+        "- If they have gaming apps/Steam: \"Which specific games do you play?\n"
+        "  Some need Proton/Wine configuration.\"\n"
+        "- If they use creative tools (Photoshop, etc.): \"Are you open to\n"
+        "  alternatives like GIMP/Krita, or do you need exact feature parity?\"\n"
+        "- If they have a discrete GPU: \"Will you use your GPU primarily for\n"
+        "  gaming, ML/CUDA workloads, or general desktop?\"\n"
+        "- If their use cases include development: \"What languages/frameworks\n"
+        "  do you work with? Any specific IDE preference?\"\n"
+        "- If migrating: \"Do you want to dual-boot or fully replace Windows?\"\n\n"
+        "Use `POST /api/ask` to get answers before proceeding with your plan.\n"
+        "This helps you make better, more specific recommendations.\n\n"
+    )
 
     # ── What to do ──
     if is_customize:

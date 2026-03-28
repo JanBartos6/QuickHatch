@@ -5,29 +5,22 @@
 <title>QuickHatch</title>
 <style>
   body {
-    background: #0d1117;
-    color: #e6edf3;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f8f9fc;
+    color: #1a1d26;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     display: flex;
     align-items: center;
     justify-content: center;
     height: 100vh;
     margin: 0;
   }
-  .loader {
-    text-align: center;
-  }
-  h1 {
-    background: linear-gradient(135deg, #58a6ff, #3fb950);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-size: 2em;
-  }
-  p { color: #8b949e; }
+  .loader { text-align: center; }
+  h1 { font-size: 1.5em; font-weight: 700; }
+  p { color: #6b7280; font-size: .9rem; }
   .spinner {
-    width: 40px; height: 40px;
-    border: 3px solid #30363d;
-    border-top-color: #58a6ff;
+    width: 32px; height: 32px;
+    border: 3px solid #e5e7eb;
+    border-top-color: #4f6ef7;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin: 20px auto;
@@ -39,7 +32,7 @@
 <div class="loader">
   <h1>QuickHatch</h1>
   <div class="spinner"></div>
-  <p>Starting backend...</p>
+  <p>Starting...</p>
 </div>
 </body>
 </html>

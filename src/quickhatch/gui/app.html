@@ -5,276 +5,203 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QuickHatch</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 :root {
-  --bg-base: #09090b;
-  --bg-raised: #18181b;
-  --bg-overlay: #27272a;
-  --bg-input: #1c1c1f;
-  --fg: #fafafa;
-  --fg-muted: #a1a1aa;
-  --fg-dim: #52525b;
-  --border: rgba(255,255,255,.06);
-  --border-strong: rgba(255,255,255,.1);
-  --glow: rgba(234,179,8,.08);
-  --amber: #eab308;
-  --amber-dim: #a16207;
-  --teal: #2dd4bf;
-  --teal-dim: #0d9488;
-  --violet: #a78bfa;
-  --rose: #fb7185;
-  --green: #4ade80;
-  --radius: 16px;
-  --radius-sm: 10px;
+  --bg: #f8f9fc;
+  --bg-card: #ffffff;
+  --bg-input: #f1f3f8;
+  --bg-hover: #eef0f6;
+  --fg: #1a1d26;
+  --fg-muted: #6b7280;
+  --fg-dim: #9ca3af;
+  --border: rgba(0,0,0,.08);
+  --border-strong: rgba(0,0,0,.12);
+  --primary: #4f6ef7;
+  --primary-light: #eef1fe;
+  --primary-hover: #3b5ce4;
+  --secondary: #8b5cf6;
+  --secondary-light: #f3effe;
+  --green: #22c55e;
+  --green-light: #ecfdf5;
+  --red: #ef4444;
+  --red-light: #fef2f2;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.06);
   --font: 'Inter', -apple-system, system-ui, sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
-body{
-  font-family:var(--font);background:var(--bg-base);color:var(--fg);
-  line-height:1.5;min-height:100vh;overflow-x:hidden;
-}
-body::before{
-  content:'';position:fixed;inset:0;z-index:-1;
-  background:
-    radial-gradient(ellipse 50% 60% at 20% 0%, rgba(234,179,8,.04) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 50% at 80% 100%, rgba(45,212,191,.03) 0%, transparent 70%);
-}
+body{font-family:var(--font);background:var(--bg);color:var(--fg);line-height:1.5;min-height:100vh}
 
-.app{max-width:720px;margin:0 auto;padding:32px 24px 80px}
+.app{max-width:680px;margin:0 auto;padding:32px 24px 100px}
 
 /* ── Logo ── */
-.logo{text-align:center;padding:48px 0 40px;position:relative}
-.logo h1{
-  font-size:2rem;font-weight:800;letter-spacing:-.03em;
-  color:var(--fg);
-}
-.logo h1 span{
-  background:linear-gradient(135deg,var(--amber),var(--teal));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-}
-.logo p{color:var(--fg-muted);font-size:.875rem;margin-top:4px;font-weight:500;letter-spacing:.02em}
+.logo{text-align:center;padding:40px 0 32px}
+.logo h1{font-size:1.5rem;font-weight:700;letter-spacing:-.02em;color:var(--fg)}
+.logo p{color:var(--fg-muted);font-size:.8rem;margin-top:2px;font-weight:500}
 
 /* ── Progress ── */
 .progress{
-  display:flex;align-items:center;gap:12px;margin-bottom:36px;
-  padding:14px 20px;background:var(--bg-raised);border-radius:var(--radius);
+  display:flex;align-items:center;gap:12px;margin-bottom:32px;
+  padding:12px 18px;background:var(--bg-card);border-radius:var(--radius);
   border:1px solid var(--border);
 }
-.progress-info{
-  display:flex;align-items:center;gap:10px;white-space:nowrap;flex-shrink:0;
-}
-.progress-num{
-  font-size:.75rem;font-weight:700;color:var(--amber);
-  letter-spacing:.02em;
-}
-.progress-title{
-  font-size:.82rem;font-weight:600;color:var(--fg);
-}
-.progress-track{
-  flex:1;height:3px;background:var(--bg-overlay);border-radius:2px;overflow:hidden;
-  min-width:80px;
-}
-.progress-fill{
-  height:100%;border-radius:2px;
-  background:linear-gradient(90deg,var(--teal),var(--amber));
-  transition:width .4s cubic-bezier(.22,1,.36,1);
-}
+.progress-info{display:flex;align-items:center;gap:8px;white-space:nowrap;flex-shrink:0}
+.progress-num{font-size:.75rem;font-weight:600;color:var(--primary);letter-spacing:.01em}
+.progress-title{font-size:.8rem;font-weight:500;color:var(--fg)}
+.progress-track{flex:1;height:3px;background:var(--bg-input);border-radius:2px;overflow:hidden;min-width:80px}
+.progress-fill{height:100%;border-radius:2px;background:var(--primary);transition:width .4s ease}
 
 /* ── Card ── */
 .card{
-  background:var(--bg-raised);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:36px;
-  position:relative;
-  animation:slideUp .4s cubic-bezier(.22,1,.36,1);
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:32px;
+  box-shadow:var(--shadow);animation:fadeIn .3s ease;
 }
-.card::before{
-  content:'';position:absolute;inset:-1px;border-radius:var(--radius);
-  background:linear-gradient(180deg,rgba(255,255,255,.04),transparent 40%);
-  pointer-events:none;z-index:0;
-}
-.card>*{position:relative;z-index:1}
-.card h2{font-size:1.35rem;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
-.card .subtitle{color:var(--fg-muted);font-size:.9rem;margin-bottom:28px;line-height:1.6}
+.card h2{font-size:1.2rem;font-weight:700;letter-spacing:-.01em;margin-bottom:4px}
+.card .subtitle{color:var(--fg-muted);font-size:.85rem;margin-bottom:24px;line-height:1.6}
 
-@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
 /* ── Buttons ── */
 .btn{
-  padding:10px 22px;border:none;border-radius:var(--radius-sm);
-  font-size:.875rem;font-weight:600;cursor:pointer;font-family:var(--font);
-  transition:all .2s cubic-bezier(.22,1,.36,1);
-  display:inline-flex;align-items:center;gap:8px;letter-spacing:.01em;
+  padding:9px 20px;border:none;border-radius:var(--radius-sm);
+  font-size:.85rem;font-weight:600;cursor:pointer;font-family:var(--font);
+  transition:all .15s ease;display:inline-flex;align-items:center;gap:6px;
 }
-.btn-primary{
-  background:var(--amber);color:var(--bg-base);
-}
-.btn-primary:hover{background:#facc15;transform:translateY(-1px);box-shadow:0 4px 16px rgba(234,179,8,.2)}
-.btn-primary:active{transform:translateY(0)}
-.btn-success{background:var(--teal);color:var(--bg-base)}
-.btn-success:hover{background:#5eead4;transform:translateY(-1px);box-shadow:0 4px 16px rgba(45,212,191,.2)}
-.btn-ghost{
-  background:transparent;color:var(--fg-muted);
-  border:1px solid var(--border-strong);
-}
-.btn-ghost:hover{border-color:var(--fg-dim);color:var(--fg)}
-.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-hover);box-shadow:var(--shadow)}
+.btn-success{background:var(--green);color:#fff}
+.btn-success:hover{background:#16a34a;box-shadow:var(--shadow)}
+.btn-ghost{background:transparent;color:var(--fg-muted);border:1px solid var(--border-strong)}
+.btn-ghost:hover{border-color:var(--fg-dim);color:var(--fg);background:var(--bg-input)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
 .btn-row{
   display:flex;gap:10px;justify-content:flex-end;
   position:fixed;bottom:0;left:0;right:0;
-  padding:16px calc(50% - 336px);
-  background:linear-gradient(transparent,var(--bg-base) 30%);
-  z-index:10;
+  padding:16px calc(50% - 316px);
+  background:linear-gradient(transparent,var(--bg) 40%);z-index:10;
 }
-@media(max-width:720px){.btn-row{padding:16px 24px}}
+@media(max-width:680px){.btn-row{padding:16px 24px}}
 
-/* ── Choice Cards ── */
-.choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+/* ── Choices ── */
+.choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
 .choice{
-  background:var(--bg-input);border:1.5px solid var(--border-strong);
-  border-radius:var(--radius-sm);padding:18px 16px;cursor:pointer;
-  transition:all .2s cubic-bezier(.22,1,.36,1);
-  text-align:left;position:relative;overflow:hidden;
+  background:var(--bg-card);border:1.5px solid var(--border-strong);
+  border-radius:var(--radius-sm);padding:16px 14px;cursor:pointer;
+  transition:all .15s ease;text-align:left;
 }
-.choice::before{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,rgba(234,179,8,.06),rgba(45,212,191,.04));
-  opacity:0;transition:opacity .2s;
-}
-.choice:hover{border-color:rgba(255,255,255,.15);transform:translateY(-1px)}
-.choice:hover::before{opacity:1}
-.choice.selected{
-  border-color:var(--amber);
-  background:rgba(234,179,8,.06);
-}
-.choice.selected::before{opacity:1}
-.choice .title{font-weight:600;font-size:.9rem;margin-bottom:2px;position:relative}
-.choice .desc{font-size:.78rem;color:var(--fg-dim);position:relative}
-.choice .ico{font-size:1.4rem;margin-bottom:8px;display:block;position:relative}
+.choice:hover{border-color:var(--primary);background:var(--primary-light)}
+.choice.selected{border-color:var(--primary);background:var(--primary-light)}
+.choice .ico{margin-bottom:8px;display:block;color:var(--primary)}
+.choice .ico svg{width:20px;height:20px}
+.choice .title{font-weight:600;font-size:.85rem;margin-bottom:2px}
+.choice .desc{font-size:.75rem;color:var(--fg-muted)}
 
-/* ── Tags/Pills ── */
-.pill-grid{display:flex;flex-wrap:wrap;gap:8px}
+/* ── Pills ── */
+.pill-grid{display:flex;flex-wrap:wrap;gap:6px}
 .pill{
-  padding:7px 16px;background:var(--bg-input);
+  padding:6px 14px;background:var(--bg-input);
   border:1px solid var(--border-strong);border-radius:99px;
-  cursor:pointer;transition:all .2s;font-size:.82rem;font-weight:500;
+  cursor:pointer;transition:all .15s;font-size:.8rem;font-weight:500;
   user-select:none;color:var(--fg-muted);
 }
-.pill:hover{border-color:var(--fg-dim);color:var(--fg)}
-.pill.selected{
-  background:rgba(234,179,8,.1);border-color:var(--amber);
-  color:var(--amber);
-}
+.pill:hover{border-color:var(--primary);color:var(--fg)}
+.pill.selected{background:var(--primary-light);border-color:var(--primary);color:var(--primary)}
 
 /* ── Forms ── */
-.field{margin-bottom:24px}
-.field label{display:block;font-weight:600;font-size:.82rem;margin-bottom:8px;color:var(--fg);letter-spacing:.01em}
+.field{margin-bottom:22px}
+.field label{display:block;font-weight:600;font-size:.8rem;margin-bottom:6px;color:var(--fg)}
 select,input[type="text"],input[type="password"],textarea{
-  width:100%;padding:10px 14px;background:var(--bg-input);
+  width:100%;padding:9px 12px;background:var(--bg-input);
   border:1px solid var(--border-strong);border-radius:var(--radius-sm);
-  color:var(--fg);font-size:.9rem;font-family:var(--font);
-  transition:all .2s;
+  color:var(--fg);font-size:.85rem;font-family:var(--font);transition:all .15s;
 }
 select:focus,input:focus,textarea:focus{
-  outline:none;border-color:var(--amber);
-  box-shadow:0 0 0 3px rgba(234,179,8,.1);
+  outline:none;border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(79,110,247,.1);
 }
-textarea{min-height:100px;resize:vertical;line-height:1.6}
-select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+textarea{min-height:90px;resize:vertical;line-height:1.6}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
 
-/* ── Agent / Bridge ── */
-.live-panel{
-  background:var(--bg-input);border:1px solid var(--border-strong);
-  border-radius:var(--radius-sm);padding:20px;margin:16px 0;
-}
-.live-status{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+/* ── Agent/Bridge ── */
+.live-panel{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);padding:18px;margin:16px 0}
+.live-status{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.dot.waiting{background:var(--amber);animation:blink 1.4s ease-in-out infinite}
+.dot.waiting{background:var(--primary);animation:pulse 1.4s ease-in-out infinite}
 .dot.connected{background:var(--green)}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-.live-status span{font-size:.82rem;font-weight:500;color:var(--fg-muted)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.live-status span{font-size:.8rem;font-weight:500;color:var(--fg-muted)}
 
-.suggestion{
-  background:var(--bg-overlay);border:1px solid var(--border);
-  border-radius:var(--radius-sm);padding:16px;margin:10px 0;
-}
-.suggestion .cat{
-  font-size:.65rem;text-transform:uppercase;font-weight:700;
-  letter-spacing:.08em;color:var(--amber);margin-bottom:4px;
-}
-.suggestion .stitle{font-weight:600;font-size:.9rem;margin-bottom:6px}
-.suggestion .scontent{color:var(--fg-muted);font-size:.84rem;white-space:pre-wrap;line-height:1.6}
+.suggestion{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin:8px 0;box-shadow:var(--shadow)}
+.suggestion .cat{font-size:.65rem;text-transform:uppercase;font-weight:700;letter-spacing:.06em;color:var(--primary);margin-bottom:3px}
+.suggestion .stitle{font-weight:600;font-size:.85rem;margin-bottom:4px}
+.suggestion .scontent{color:var(--fg-muted);font-size:.82rem;white-space:pre-wrap;line-height:1.6}
+.suggestion .scontent pre{background:var(--bg-input);padding:10px;border-radius:var(--radius-sm);overflow-x:auto;font-size:.78rem;margin-top:6px}
 
-.agent-msg{
-  font-size:.82rem;color:var(--fg-dim);padding:4px 0;
-  animation:slideUp .3s cubic-bezier(.22,1,.36,1);
-}
+.agent-msg{font-size:.8rem;color:var(--fg-dim);padding:3px 0;animation:fadeIn .2s ease}
 .agent-msg:last-child{color:var(--fg-muted)}
-.agent-msg.user-msg{color:var(--amber);font-style:italic}
+.agent-msg.user-msg{color:var(--primary);font-weight:500}
 
 /* ── Code ── */
-code{
-  background:var(--bg-overlay);padding:2px 7px;border-radius:5px;
-  font-size:.84rem;font-family:'SF Mono','JetBrains Mono',monospace;
-}
+code{background:var(--bg-input);padding:2px 6px;border-radius:4px;font-size:.82rem;font-family:'SF Mono','JetBrains Mono',monospace}
 .code-block{
-  background:var(--bg-base);border:1px solid var(--border);
-  border-radius:var(--radius-sm);padding:14px 16px;
-  font-family:'SF Mono','JetBrains Mono',monospace;font-size:.82rem;
-  overflow-x:auto;user-select:all;margin:10px 0;
-  color:var(--fg-muted);line-height:1.7;
+  background:var(--bg-input);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:12px 14px;
+  font-family:'SF Mono','JetBrains Mono',monospace;font-size:.8rem;
+  overflow-x:auto;user-select:all;margin:8px 0;color:var(--fg-muted);line-height:1.7;
 }
 
 /* ── Scan ── */
-.scan-grid{display:flex;flex-direction:column;gap:1px;background:var(--border);border-radius:var(--radius-sm);overflow:hidden;margin:16px 0}
-.scan-row{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:12px 16px;background:var(--bg-input);
-}
-.scan-row .sl{font-weight:600;font-size:.85rem;color:var(--fg)}
-.scan-row .sv{font-size:.85rem;color:var(--fg-muted);text-align:right;max-width:60%}
+.hw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:16px 0}
+.hw-card{background:var(--bg-input);border-radius:var(--radius-sm);padding:14px;border:1px solid var(--border)}
+.hw-card .hw-label{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--fg-dim);margin-bottom:4px}
+.hw-card .hw-value{font-size:.85rem;font-weight:600;color:var(--fg)}
+.hw-card .hw-sub{font-size:.75rem;color:var(--fg-muted);margin-top:2px}
+.disk-bar{margin:4px 0}
+.disk-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.disk-fill{height:100%;border-radius:2px;background:var(--primary);transition:width .3s}
+.disk-fill.high{background:var(--red)}
+.scan-summary{font-size:.82rem;color:var(--fg-muted);margin-top:12px;line-height:1.6}
 
 /* ── Info box ── */
-.info-box{
-  background:var(--bg-input);border:1px solid var(--border-strong);
-  border-radius:var(--radius-sm);padding:20px;margin:16px 0;
-}
-.info-box strong{display:block;font-size:.9rem;margin-bottom:8px}
-.info-box p,.info-box li{color:var(--fg-muted);font-size:.85rem;line-height:1.7}
-.info-box ol{padding-left:20px}
+.info-box{background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);padding:18px;margin:14px 0}
+.info-box strong{display:block;font-size:.85rem;margin-bottom:6px}
+.info-box p,.info-box li{color:var(--fg-muted);font-size:.82rem;line-height:1.7}
+.info-box ol{padding-left:18px}
 .info-box ol li{margin-bottom:4px}
+
+/* ── Steps (install guide) ── */
+.guide-steps{display:flex;flex-direction:column;gap:6px;margin:16px 0}
+.guide-step{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--bg-input);border-radius:var(--radius-sm);border:1px solid var(--border)}
+.guide-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;background:var(--primary);color:#fff;flex-shrink:0;margin-top:1px}
+.guide-text{font-size:.84rem;color:var(--fg);line-height:1.5}
+.guide-text span{display:block;color:var(--fg-muted);font-size:.78rem;margin-top:2px}
 
 /* ── Done ── */
 .done-screen{text-align:center;padding:20px 0}
-.done-screen h2{font-size:1.6rem;font-weight:800;letter-spacing:-.02em}
-.done-screen h2 span{
-  background:linear-gradient(135deg,var(--green),var(--teal));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-}
+.done-screen h2{font-size:1.4rem;font-weight:700;color:var(--fg)}
 .done-steps{
-  text-align:left;max-width:400px;margin:24px auto;
-  display:flex;flex-direction:column;gap:8px;
+  text-align:left;max-width:420px;margin:20px auto;
+  display:flex;flex-direction:column;gap:6px;
 }
 .done-steps .ds{
   display:flex;align-items:center;gap:12px;
-  padding:10px 16px;background:var(--bg-input);
+  padding:10px 14px;background:var(--bg-input);
   border-radius:var(--radius-sm);border:1px solid var(--border);
-  font-size:.88rem;color:var(--fg-muted);
+  font-size:.84rem;color:var(--fg-muted);
 }
 .done-steps .ds .dn{
-  width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-size:.7rem;font-weight:700;background:var(--teal);color:var(--bg-base);flex-shrink:0;
+  width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:.65rem;font-weight:700;background:var(--green);color:#fff;flex-shrink:0;
 }
 
-details{margin:12px 0}
-details summary{
-  cursor:pointer;color:var(--fg-dim);font-size:.82rem;font-weight:500;
-  padding:6px 0;transition:color .2s;
-}
+details{margin:10px 0}
+details summary{cursor:pointer;color:var(--fg-dim);font-size:.8rem;font-weight:500;padding:4px 0;transition:color .15s}
 details summary:hover{color:var(--fg-muted)}
-details[open] summary{margin-bottom:8px}
+details[open] summary{margin-bottom:6px}
 
 .hidden{display:none}
 </style>
@@ -282,30 +209,45 @@ details[open] summary{margin-bottom:8px}
 <body>
 <div class="app">
   <div class="logo">
-    <h1><span>QuickHatch</span></h1>
-    <p>Windows to Linux Migration</p>
+    <h1>QuickHatch</h1>
+    <p>System migration assistant</p>
   </div>
   <div class="progress" id="progressBar"></div>
   <div id="stepContent"></div>
 </div>
 
 <script>
+// ── Icons (inline SVG) ──
+const I={
+  monitor:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+  refresh:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>`,
+  sliders:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>`,
+  zap:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+  terminal:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`,
+  server:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>`,
+  flask:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v7l5 8H4l5-8V3z"/><line x1="8" y1="3" x2="16" y2="3"/></svg>`,
+  key:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>`,
+  check:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+};
+function icon(name){return`<svg style="width:20px;height:20px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${I[name]?.match(/<svg[^>]*>([\s\S]*)<\/svg>/)?.[1]||''}</svg>`}
+
+// ── Steps ──
 const STEPS_MIGRATION = [
   {id:'welcome',       title:'Start'},
-  {id:'ai_setup',      title:'AI'},
-  {id:'questionnaire', title:'Prefs'},
-  {id:'scan',          title:'Scan'},
+  {id:'ai_setup',      title:'AI Tool'},
+  {id:'questionnaire', title:'Preferences'},
+  {id:'scan',          title:'System Scan'},
   {id:'additional',    title:'Notes'},
   {id:'bridge',        title:'Agent'},
-  {id:'usb',           title:'USB'},
-  {id:'ssh',           title:'SSH'},
+  {id:'usb',           title:'Install Linux'},
+  {id:'ssh',           title:'SSH Key'},
   {id:'export',        title:'Export'},
 ];
 const STEPS_CUSTOMIZE = [
   {id:'welcome',       title:'Start'},
-  {id:'ai_setup',      title:'AI'},
-  {id:'questionnaire', title:'Prefs'},
-  {id:'scan',          title:'Scan'},
+  {id:'ai_setup',      title:'AI Tool'},
+  {id:'questionnaire', title:'Preferences'},
+  {id:'scan',          title:'System Scan'},
   {id:'additional',    title:'Notes'},
   {id:'bridge',        title:'Agent'},
 ];
@@ -317,7 +259,7 @@ function refreshSteps(){
 }
 function isCustomizeMode(){return state.profile?.preferences?.migration_type==='customize_linux'}
 
-let state = {currentStep:0,profile:null,completedSteps:[],agentConnected:false,suggestions:[],pendingQuestions:[]};
+let state={currentStep:0,profile:null,completedSteps:[],agentConnected:false,_agentDone:false,_lastMsgCount:-1,_lastSugCount:undefined};
 
 async function api(path,method='GET',body=null){
   const opts={method,headers:{'Content-Type':'application/json'}};
@@ -342,18 +284,12 @@ function renderProgress(){
   const pct=Math.round((state.currentStep/STEPS.length)*100);
   if(!step){
     bar.innerHTML=`
-      <div class="progress-info">
-        <span class="progress-num">DONE</span>
-        <span class="progress-title">All steps complete</span>
-      </div>
+      <div class="progress-info"><span class="progress-num">Done</span><span class="progress-title">All steps complete</span></div>
       <div class="progress-track"><div class="progress-fill" style="width:100%"></div></div>`;
     return;
   }
   bar.innerHTML=`
-    <div class="progress-info">
-      <span class="progress-num">${step.n} / ${STEPS.length}</span>
-      <span class="progress-title">${step.title}</span>
-    </div>
+    <div class="progress-info"><span class="progress-num">${step.n}/${STEPS.length}</span><span class="progress-title">${step.title}</span></div>
     <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>`;
 }
 
@@ -380,31 +316,38 @@ function $(sel){return document.querySelector(sel)}
 function el(id){return document.getElementById(id)}
 const content=()=>document.getElementById('stepContent');
 
-// ── Renderers ──
+// ── Platform detection ──
+function detectPlatform(){
+  const ua=navigator.userAgent.toLowerCase();
+  if(ua.includes('linux')&&!ua.includes('android'))return'linux';
+  if(ua.includes('windows'))return'windows';
+  return'other';
+}
 
+// ── Renderers ──
 const stepRenderers={
   welcome(){
+    const plat=detectPlatform();
     content().innerHTML=`
       <div class="card">
-        <h2>Welcome to QuickHatch</h2>
-        <p class="subtitle">An AI-powered assistant that scans your system, learns what you need, and helps set up or customize Linux.</p>
+        <h2>What would you like to do?</h2>
+        <p class="subtitle">QuickHatch scans your system and hands everything to an AI agent that handles the setup.</p>
         <div class="field">
-          <label>What would you like to do?</label>
           <div class="choices" id="migType">
-            <div class="choice" data-value="fresh_install" onclick="selectChoice('migType',this)">
-              <div class="ico">&#x1F331;</div>
+            <div class="choice${plat==='windows'?' selected':''}" data-value="fresh_install" onclick="selectChoice('migType',this)">
+              <div class="ico">${icon('monitor')}</div>
               <div class="title">Migrate from Windows</div>
-              <div class="desc">Scan your Windows PC and set up a new Linux install</div>
+              <div class="desc">Scan your PC and set up Linux</div>
             </div>
             <div class="choice" data-value="switching" onclick="selectChoice('migType',this)">
-              <div class="ico">&#x1F504;</div>
+              <div class="ico">${icon('refresh')}</div>
               <div class="title">Switch distros</div>
-              <div class="desc">Already on Linux, moving to a different distro</div>
+              <div class="desc">Moving to a different distro</div>
             </div>
-            <div class="choice" data-value="customize_linux" onclick="selectChoice('migType',this)">
-              <div class="ico">&#x1F3A8;</div>
-              <div class="title">Customize this system</div>
-              <div class="desc">Already on Linux or macOS — let an AI agent set things up</div>
+            <div class="choice${plat==='linux'?' selected':''}" data-value="customize_linux" onclick="selectChoice('migType',this)">
+              <div class="ico">${icon('sliders')}</div>
+              <div class="title">Customize Linux</div>
+              <div class="desc">Let an AI agent configure your system</div>
             </div>
           </div>
         </div>
@@ -417,31 +360,31 @@ const stepRenderers={
   ai_setup(){
     content().innerHTML=`
       <div class="card">
-        <h2>Pick your AI assistant</h2>
-        <p class="subtitle">This tool will read your system data and configure Linux for you.</p>
+        <h2>Choose your AI tool</h2>
+        <p class="subtitle">This tool will read your system data and handle the configuration.</p>
         <div class="choices" id="aiChoice">
           <div class="choice" data-value="claude_code" onclick="selectChoice('aiChoice',this)">
-            <div class="ico">&#x2728;</div>
+            <div class="ico">${icon('zap')}</div>
             <div class="title">Claude Code</div>
             <div class="desc">Anthropic &middot; recommended</div>
           </div>
           <div class="choice" data-value="codex" onclick="selectChoice('aiChoice',this)">
-            <div class="ico">&#x1F4BB;</div>
+            <div class="ico">${icon('terminal')}</div>
             <div class="title">Codex CLI</div>
             <div class="desc">OpenAI</div>
           </div>
           <div class="choice" data-value="local_ollama" onclick="selectChoice('aiChoice',this)">
-            <div class="ico">&#x1F3E0;</div>
+            <div class="ico">${icon('server')}</div>
             <div class="title">Ollama</div>
             <div class="desc">Run locally</div>
           </div>
           <div class="choice" data-value="local_lmstudio" onclick="selectChoice('aiChoice',this)">
-            <div class="ico">&#x1F9EA;</div>
+            <div class="ico">${icon('flask')}</div>
             <div class="title">LM Studio</div>
             <div class="desc">Run locally</div>
           </div>
           <div class="choice" data-value="api" onclick="selectChoice('aiChoice',this)">
-            <div class="ico">&#x1F511;</div>
+            <div class="ico">${icon('key')}</div>
             <div class="title">API Key</div>
             <div class="desc">Anthropic or OpenAI</div>
           </div>
@@ -458,7 +401,7 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>Your preferences</h2>
-        <p class="subtitle">Tell us what you like. The AI uses this to configure your desktop.</p>
+        <p class="subtitle">The AI uses these to configure your desktop environment.</p>
         <div class="field">
           <label>Desktop style</label>
           <div class="choices" id="deskChoice">
@@ -479,25 +422,25 @@ const stepRenderers={
         <div class="field">
           <label>Icon style</label>
           <select id="iconStyle" onchange="toggleCustomField(this,'iconCustom')">
-            <option value="flat">Flat & modern</option>
-            <option value="rounded">Rounded & friendly</option>
+            <option value="flat">Flat and modern</option>
+            <option value="rounded">Rounded</option>
             <option value="classic">Classic</option>
             <option value="colorful">Colorful</option>
             <option value="default">No preference</option>
             <option value="custom">Custom...</option>
           </select>
-          <input type="text" id="iconCustom" class="hidden" placeholder="Describe your ideal icon style" style="margin-top:8px">
+          <input type="text" id="iconCustom" class="hidden" placeholder="Describe your ideal icon style" style="margin-top:6px">
         </div>
         <div class="field">
           <label>Wallpaper vibe</label>
           <select id="wpStyle" onchange="toggleCustomField(this,'wpCustom')">
-            <option value="nature">Nature & landscapes</option>
-            <option value="abstract">Abstract & geometric</option>
-            <option value="dark">Dark & moody</option>
-            <option value="minimal">Minimal & clean</option>
+            <option value="nature">Nature and landscapes</option>
+            <option value="abstract">Abstract and geometric</option>
+            <option value="dark">Dark and moody</option>
+            <option value="minimal">Minimal and clean</option>
             <option value="custom">Custom...</option>
           </select>
-          <input type="text" id="wpCustom" class="hidden" placeholder="Describe what you want" style="margin-top:8px">
+          <input type="text" id="wpCustom" class="hidden" placeholder="Describe what you want" style="margin-top:6px">
         </div>
         <div class="field">
           <label>What will you use this for?</label>
@@ -505,7 +448,7 @@ const stepRenderers={
             ${['Development','Gaming','Office','Creative','Browsing','Sysadmin','Data Science','Education','Casual']
               .map(u=>`<span class="pill" data-value="${u.toLowerCase().replace(' ','')}" onclick="toggleCheck(this)">${u}</span>`).join('')}
           </div>
-          <input type="text" id="useCaseCustom" placeholder="Other uses (type anything)" style="margin-top:10px">
+          <input type="text" id="useCaseCustom" placeholder="Other uses (type anything)" style="margin-top:8px">
         </div>
         ${isCustomizeMode()?'':`<div class="field">
           <label>Preferred distro (optional)</label>
@@ -520,8 +463,8 @@ const stepRenderers={
 
   scan(){
     const scanDesc=isCustomizeMode()
-      ?'We\'ll scan your Linux system — hardware, installed packages, settings, and files — so the AI knows what you already have.'
-      :'We\'ll detect your hardware, apps, settings, and files so the AI knows what to set up.';
+      ?'Scanning your Linux system to understand what you already have.'
+      :'Detecting your hardware, apps, settings, and files.';
     content().innerHTML=`
       <div class="card">
         <h2>System scan</h2>
@@ -539,9 +482,9 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>Anything else?</h2>
-        <p class="subtitle">Free text for the AI. Dual-boot? Wayland? 4K monitor? Encryption? Say it here.</p>
+        <p class="subtitle">Dual-boot setup? Wayland? 4K monitor? Encryption? Mention it here.</p>
         <div class="field">
-          <textarea id="additionalInfo" placeholder="Optional extra context...">${escHtml(state.profile.additional_info||'')}</textarea>
+          <textarea id="additionalInfo" placeholder="Optional extra context for the AI...">${escHtml(state.profile.additional_info||'')}</textarea>
         </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
@@ -564,40 +507,38 @@ const stepRenderers={
 
     const canLaunch=['claude_code','codex'].includes(provider);
     const subtitle=customize
-      ?'The agent reads your preferences, scans your system, and customizes your Linux setup directly.'
-      :'The agent reads your profile, analyzes everything, and sends back recommendations in real time.';
+      ?'The agent will scan your system and apply your preferences directly.'
+      :'The agent analyzes your system and sends back recommendations.';
 
     content().innerHTML=`
       <div class="card">
         <h2>AI Agent</h2>
         <p class="subtitle">${subtitle}</p>
         ${canLaunch?`
-          <button class="btn btn-success" id="launchBtn" onclick="launchAgent()" style="margin-bottom:12px">Launch agent</button>
+          <button class="btn btn-primary" id="launchBtn" onclick="launchAgent()" style="margin-bottom:12px">Launch agent</button>
           <div id="launchMsg" style="margin-bottom:8px"></div>
           <details>
             <summary>Or run manually in a terminal</summary>
             <div class="code-block" id="cmdBlock">${escHtml(cmd)}</div>
-            <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(el('cmdBlock').textContent);this.textContent='Copied'" style="margin-top:8px;font-size:.8rem">Copy</button>
+            <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(el('cmdBlock').textContent);this.textContent='Copied'" style="margin-top:6px;font-size:.78rem">Copy</button>
           </details>
         `:`
-          <p style="color:var(--fg-muted);font-size:.88rem;margin-bottom:8px">Run this in a terminal:</p>
+          <p style="color:var(--fg-muted);font-size:.84rem;margin-bottom:8px">Run this in a terminal:</p>
           <div class="code-block" id="cmdBlock">${escHtml(cmd)}</div>
-          <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(el('cmdBlock').textContent);this.textContent='Copied'" style="margin-bottom:12px;font-size:.8rem">Copy</button>
+          <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(el('cmdBlock').textContent);this.textContent='Copied'" style="margin-bottom:12px;font-size:.78rem">Copy</button>
         `}
         <div class="live-panel">
           <div class="live-status">
             <div class="dot" id="agentDot"></div>
             <span id="agentStatus">Waiting for agent...</span>
           </div>
-          <div id="agentMessages" style="margin-bottom:8px"></div>
+          <div id="agentMessages" style="margin-bottom:6px"></div>
           <div id="agentFeed"></div>
         </div>
         <div id="questionArea"></div>
-        <div class="chat-input" style="margin-top:12px">
-          <div style="display:flex;gap:8px">
-            <input type="text" id="chatMsg" placeholder="Reply to the agent..." onkeydown="if(event.key==='Enter')sendChat()" style="flex:1">
-            <button class="btn btn-ghost" onclick="sendChat()" style="flex-shrink:0">Send</button>
-          </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <input type="text" id="chatMsg" placeholder="Reply to the agent..." onkeydown="if(event.key==='Enter')sendChat()" style="flex:1">
+          <button class="btn btn-ghost" onclick="sendChat()" style="flex-shrink:0">Send</button>
         </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
@@ -611,16 +552,22 @@ const stepRenderers={
     const distro=state.profile.preferences?.distro_preference||'your chosen distro';
     content().innerHTML=`
       <div class="card">
-        <h2>Bootable USB</h2>
-        <p class="subtitle">Prepare a USB drive to install ${escHtml(distro)}.</p>
-        <div class="info-box">
-          <strong>Recommended: Ventoy</strong>
-          <ol>
-            <li>Download Ventoy from ventoy.net</li>
-            <li>Install it to your USB drive</li>
-            <li>Copy the distro ISO onto the USB</li>
-            <li>Boot from the USB to begin installation</li>
-          </ol>
+        <h2>Install Linux</h2>
+        <p class="subtitle">Create a bootable USB and install ${escHtml(distro)} on your target machine.</p>
+        <div class="info-box" style="margin-bottom:16px">
+          <strong>Create the USB drive</strong>
+          <p>Download the ISO from the distro's website, then write it to a USB drive (8 GB+) using <strong>Ventoy</strong>, <strong>Rufus</strong>, or <strong>balenaEtcher</strong>.</p>
+        </div>
+        <div class="guide-steps">
+          <div class="guide-step"><div class="guide-num">1</div><div class="guide-text">Plug the USB drive into your target PC</div></div>
+          <div class="guide-step"><div class="guide-num">2</div><div class="guide-text">Enter BIOS/UEFI setup<span>Usually F2, F12, Del, or Esc during boot &mdash; varies by manufacturer</span></div></div>
+          <div class="guide-step"><div class="guide-num">3</div><div class="guide-text">Set the USB drive as the first boot device, then save and restart</div></div>
+          <div class="guide-step"><div class="guide-num">4</div><div class="guide-text">Follow the Linux installer<span>Choose language, timezone, create your user account, and pick a disk</span></div></div>
+          <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">Connect to the internet<span>Use an Ethernet cable or plug in your phone for USB tethering</span></div></div>
+          <div class="guide-step"><div class="guide-num">6</div><div class="guide-text">Copy the migration bundle to the new machine and run <code>bash quickstart.sh</code><span>This enables SSH and prints the IP address you'll give to the agent</span></div></div>
+        </div>
+        <div style="margin-top:16px">
+          <button class="btn btn-ghost" onclick="stepRenderers.usb()" style="font-size:.78rem">Re-read instructions</button>
         </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
@@ -633,20 +580,20 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>SSH key</h2>
-        <p class="subtitle">The AI agent runs here on Windows and SSHes into your Linux machine to set it up. This key lets it connect without a password.</p>
+        <p class="subtitle">The agent connects to your Linux machine over SSH. Generate a key pair so it can authenticate without a password.</p>
         <div class="info-box" style="margin-bottom:16px">
-          <strong>How it works:</strong>
-          <ol style="margin:8px 0 0 18px;color:var(--fg-muted);font-size:.88rem">
-            <li>We generate an SSH key pair on this Windows machine</li>
-            <li>The public key gets bundled with your export</li>
-            <li>On Linux, <code>quickstart.sh</code> adds the key and enables SSH</li>
-            <li>The agent uses the private key to connect from here</li>
+          <strong>How it works</strong>
+          <ol style="margin:6px 0 0 16px">
+            <li>Key pair is generated on this machine</li>
+            <li>Public key is included in the export bundle</li>
+            <li><code>quickstart.sh</code> on Linux adds it to authorized_keys</li>
+            <li>The agent uses the private key to connect</li>
           </ol>
         </div>
         <div id="sshResult"></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-success" id="sshGenBtn" onclick="generateSSH()">Generate SSH key</button>
-          <button class="btn btn-ghost" onclick="completeStep('ssh')">Skip (I already have keys)</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" id="sshGenBtn" onclick="generateSSH()">Generate SSH key</button>
+          <button class="btn btn-ghost" onclick="completeStep('ssh')">Skip</button>
         </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
@@ -659,11 +606,11 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>Export bundle</h2>
-        <p class="subtitle">Generate the migration bundle. Copy it to your Linux machine and run <code>quickstart.sh</code> to enable SSH — the agent on Windows will connect and handle the rest.</p>
+        <p class="subtitle">Generate the migration bundle. Copy it to your Linux machine and run <code>quickstart.sh</code> to prepare for the agent.</p>
         <div id="exportResult"></div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
-          <button class="btn btn-success" id="exportBtn" onclick="runExport()">Export</button>
+          <button class="btn btn-primary" id="exportBtn" onclick="runExport()">Export</button>
         </div>
       </div>`;
   },
@@ -674,25 +621,25 @@ function renderDone(){
   content().innerHTML=customize?`
     <div class="card">
       <div class="done-screen">
-        <h2><span>All done</span></h2>
-        <p class="subtitle" style="margin-top:8px">The AI agent has finished customizing your system. Check the suggestions above for a summary of what was done.</p>
+        <h2>All done</h2>
+        <p class="subtitle" style="margin-top:6px">The AI agent has finished customizing your system.</p>
         <div class="done-steps">
-          <div class="ds"><div class="dn">&#x2713;</div>System scanned and analyzed</div>
-          <div class="ds"><div class="dn">&#x2713;</div>Preferences applied by the agent</div>
-          <div class="ds"><div class="dn">&#x2713;</div>You can re-run QuickHatch anytime to tweak further</div>
+          <div class="ds"><div class="dn">${icon('check')}</div>System scanned and analyzed</div>
+          <div class="ds"><div class="dn">${icon('check')}</div>Preferences applied by the agent</div>
+          <div class="ds"><div class="dn">${icon('check')}</div>Re-run QuickHatch anytime to tweak further</div>
         </div>
       </div>
     </div>`:`
     <div class="card">
       <div class="done-screen">
-        <h2><span>Ready to go</span></h2>
-        <p class="subtitle" style="margin-top:8px">Your migration bundle is ready. Here's what to do next:</p>
+        <h2>Ready to go</h2>
+        <p class="subtitle" style="margin-top:6px">Your migration bundle is ready.</p>
         <div class="done-steps">
           <div class="ds"><div class="dn">1</div>Boot from the USB drive and install Linux</div>
-          <div class="ds"><div class="dn">2</div>Copy the migration bundle to Linux (USB or network)</div>
-          <div class="ds"><div class="dn">3</div>On Linux, run <code>bash quickstart.sh</code> — this sets up SSH</div>
-          <div class="ds"><div class="dn">4</div>Note the IP address and username it shows</div>
-          <div class="ds"><div class="dn">5</div>Back here on Windows, give those to the AI agent — it SSHes in and sets everything up</div>
+          <div class="ds"><div class="dn">2</div>Copy the migration bundle to the new machine</div>
+          <div class="ds"><div class="dn">3</div>Run <code>bash quickstart.sh</code> to enable SSH</div>
+          <div class="ds"><div class="dn">4</div>Give the IP address and username to the agent</div>
+          <div class="ds"><div class="dn">5</div>The agent SSHes in and sets everything up</div>
         </div>
       </div>
     </div>`;
@@ -700,7 +647,6 @@ function renderDone(){
 
 // ── Helpers ──
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-
 function selectChoice(gid,el){
   document.querySelectorAll(`#${gid} .choice`).forEach(c=>c.classList.remove('selected'));
   el.classList.add('selected');
@@ -744,26 +690,42 @@ async function submitPrefs(){
 }
 async function runScan(){
   el('scanBtn').disabled=true;el('scanBtn').textContent='Scanning...';
-  el('scanResults').innerHTML='<p style="color:var(--amber);font-size:.88rem">Scanning your system...</p>';
+  el('scanResults').innerHTML='<p style="color:var(--fg-muted);font-size:.84rem">Scanning your system...</p>';
   const data=await api('/wizard/scan','POST');
   const r=data.results||{};
-  let rows='';
+  let html='';
   if(r.hardware){
-    rows+=row('CPU',escHtml(r.hardware.cpu||'Unknown'));
-    rows+=row('RAM',escHtml(String(r.hardware.ram_gb||'?'))+' GB');
-    (r.hardware.gpus||[]).forEach(g=>{rows+=row('GPU',escHtml(g.name)+' ['+escHtml(g.vendor)+']')});
+    html+='<div class="hw-grid">';
+    html+=hwCard('CPU',escHtml(r.hardware.cpu||'Unknown'),r.hardware.cpu_cores?r.hardware.cpu_cores+' cores':'');
+    html+=hwCard('RAM',r.hardware.ram_gb?r.hardware.ram_gb+' GB':'Unknown','');
+    (r.hardware.gpus||[]).forEach(g=>{html+=hwCard('GPU',escHtml(g.name),escHtml(g.vendor))});
+    if(r.hardware.wifi_adapters?.length)html+=hwCard('WiFi',r.hardware.wifi_adapters.length+' adapter'+(r.hardware.wifi_adapters.length>1?'s':''),'');
+    html+=hwCard('Bluetooth',r.hardware.bluetooth?'Available':'Not detected','');
+    html+=hwCard('Boot',r.hardware.efi?'UEFI':'Legacy BIOS','');
+    html+='</div>';
+    if(r.hardware.disks?.length){
+      html+='<div style="margin-top:10px">';
+      r.hardware.disks.forEach(d=>{
+        const pct=d.total_gb?Math.round(d.used_gb/d.total_gb*100):0;
+        html+=`<div class="disk-bar"><div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--fg-muted);margin-bottom:2px"><span>${escHtml(d.mount_point)}</span><span>${d.used_gb}/${d.total_gb} GB</span></div><div class="disk-track"><div class="disk-fill${pct>85?' high':''}" style="width:${pct}%"></div></div></div>`;
+      });
+      html+='</div>';
+    }
   }
-  if(r.apps)rows+=row('Apps',escHtml(String(r.apps.length))+' installed');
-  if(r.files)rows+=row('Files',escHtml(String(r.files.total_files||0))+' files &middot; '+escHtml(String(r.files.total_size_mb||0))+' MB');
-  if(r.settings)rows+=row('Theme',escHtml(r.settings.theme||'unknown'));
-  if(rows){
-    el('scanResults').innerHTML=`<div class="scan-grid">${rows}</div>`;
+  let summary=[];
+  if(r.apps)summary.push(r.apps.length+' apps');
+  if(r.files)summary.push(r.files.total_files+' files ('+r.files.total_size_mb+' MB)');
+  if(r.settings?.theme)summary.push(r.settings.theme+' theme');
+  if(r.files?.browser_profiles){const b=Object.keys(r.files.browser_profiles);if(b.length)summary.push(b.join(', '))}
+  if(summary.length)html+=`<div class="scan-summary">${summary.join(' &middot; ')}</div>`;
+  if(html){
+    el('scanResults').innerHTML=html;
   }else{
-    el('scanResults').innerHTML='<p style="color:var(--fg-dim);font-size:.88rem">Limited results. The AI will work with your preferences instead.</p>';
+    el('scanResults').innerHTML='<p style="color:var(--fg-dim);font-size:.84rem">Limited results. The AI will work with your preferences.</p>';
   }
   el('scanBtn').classList.add('hidden');el('scanNext').classList.remove('hidden');
 }
-function row(l,v){return`<div class="scan-row"><span class="sl">${l}</span><span class="sv">${v}</span></div>`}
+function hwCard(label,value,sub){return`<div class="hw-card"><div class="hw-label">${label}</div><div class="hw-value">${value}</div>${sub?`<div class="hw-sub">${sub}</div>`:''}</div>`}
 
 async function submitAdditional(){
   await saveProfile({additional_info:el('additionalInfo').value});await completeStep('additional');
@@ -775,38 +737,32 @@ async function launchAgent(){
   try{
     const data=await api('/wizard/launch-agent','POST',{});
     if(data.status==='ok'){
-      msg.innerHTML='<span style="color:var(--green);font-size:.85rem">Agent launched &mdash; check the new terminal window.</span>';
+      msg.innerHTML='<span style="color:var(--green);font-size:.82rem">Agent launched. Check the new terminal window.</span>';
       btn.textContent='Launched';
     }else{
-      msg.innerHTML=`<span style="color:var(--rose);font-size:.85rem">${escHtml(data.message||'Failed')}</span>`;
+      msg.innerHTML=`<span style="color:var(--red);font-size:.82rem">${escHtml(data.message||'Failed')}</span>`;
       btn.textContent='Launch agent';btn.disabled=false;
     }
   }catch(e){
-    msg.innerHTML=`<span style="color:var(--rose);font-size:.85rem">${escHtml(e.message)}</span>`;
+    msg.innerHTML=`<span style="color:var(--red);font-size:.82rem">${escHtml(e.message)}</span>`;
     btn.textContent='Launch agent';btn.disabled=false;
   }
 }
 
 async function sendChat(){
-  const inp=el('chatMsg');
-  const msg=inp.value.trim();
-  if(!msg)return;
+  const inp=el('chatMsg');const msg=inp.value.trim();if(!msg)return;
   inp.value='';
   await api('/wizard/chat','POST',{message:msg});
-  // Force a poll to show the message immediately
-  state._lastMsgCount=-1;
-  pollBridge();
+  state._lastMsgCount=-1;pollBridge();
 }
 
 async function answerQuestion(qid){
-  const inp=el('answer-'+qid);
-  if(!inp)return;
-  const answer=inp.value.trim();
-  if(!answer)return;
+  const inp=el('answer-'+qid);if(!inp)return;
+  const answer=inp.value.trim();if(!answer)return;
   inp.disabled=true;
   await api('/wizard/answer','POST',{question_id:qid,answer});
   const card=el('qcard-'+qid);
-  if(card)card.innerHTML=`<div style="color:var(--fg-dim);font-size:.85rem">Answered: ${escHtml(answer)}</div>`;
+  if(card)card.innerHTML=`<div style="color:var(--fg-dim);font-size:.82rem">Answered: ${escHtml(answer)}</div>`;
 }
 
 let bridgePollTimer=null;
@@ -817,11 +773,10 @@ async function pollBridge(){
       const dot=el('agentDot'),st=el('agentStatus');
       if(data.agent_connected||data.suggestions>0){
         dot.className='dot connected';
-        st.textContent=data.suggestions>0?`Agent working \u2014 ${data.suggestions} suggestion${data.suggestions===1?'':'s'}`:'Agent connected \u2014 analyzing...';
-        if(data.agent_done)st.textContent='Agent finished';
+        st.textContent=data.suggestions>0?`Working \u2014 ${data.suggestions} suggestion${data.suggestions===1?'':'s'}`:'Connected \u2014 analyzing...';
+        if(data.agent_done)st.textContent='Finished';
         state.agentConnected=true;
       }else{dot.className='dot waiting'}
-      // Fetch and display status messages
       const md=await api('/api/messages');
       if(md.messages){
         const msgEl=el('agentMessages');
@@ -833,7 +788,6 @@ async function pollBridge(){
           msgEl.scrollTop=msgEl.scrollHeight;
         }
       }
-      // Fetch and display suggestions
       const sd=await api('/api/suggestions');
       if(sd.suggestions){
         const feed=el('agentFeed');
@@ -846,23 +800,21 @@ async function pollBridge(){
               <div class="scontent">${typeof s.content==='string'?escHtml(s.content):'<pre>'+escHtml(JSON.stringify(s.content,null,2))+'</pre>'}</div>
             </div>`).join('');
         }
-      // Fetch and display pending questions
       const qd=await api('/api/pending-questions');
       if(qd.questions&&qd.questions.length>0){
         const qa=el('questionArea');
         if(qa){
           qa.innerHTML=qd.questions.map(q=>`
-            <div class="info-box" id="qcard-${escHtml(q.id)}" style="border-color:var(--amber);margin-top:10px">
-              <strong style="color:var(--amber)">${escHtml(q.question)}</strong>
-              ${q.choices?`<div class="pill-grid" style="margin:8px 0">${q.choices.map(c=>`<span class="pill" onclick="el('answer-${escHtml(q.id)}').value='${escHtml(c)}'">${escHtml(c)}</span>`).join('')}</div>`:''}
-              <div style="display:flex;gap:8px;margin-top:8px">
+            <div class="info-box" id="qcard-${escHtml(q.id)}" style="border-color:var(--primary);margin-top:10px">
+              <strong style="color:var(--primary)">${escHtml(q.question)}</strong>
+              ${q.choices?`<div class="pill-grid" style="margin:6px 0">${q.choices.map(c=>`<span class="pill" onclick="el('answer-${escHtml(q.id)}').value='${escHtml(c)}'">${escHtml(c)}</span>`).join('')}</div>`:''}
+              <div style="display:flex;gap:8px;margin-top:6px">
                 <input type="text" id="answer-${escHtml(q.id)}" placeholder="Type your answer..." onkeydown="if(event.key==='Enter')answerQuestion('${escHtml(q.id)}')" style="flex:1">
                 <button class="btn btn-primary" onclick="answerQuestion('${escHtml(q.id)}')" style="flex-shrink:0">Answer</button>
               </div>
             </div>`).join('');
         }
       }
-        // Enable continue only when agent signals it's done
         if(data.agent_done){
           state._agentDone=true;
           const btn=el('bridgeNext');
@@ -881,15 +833,15 @@ async function generateSSH(){
   const box=el('sshResult');
   if(data.status==='ok'){
     box.innerHTML=`
-      <div class="info-box" style="border-color:var(--green);margin-bottom:16px">
+      <div class="info-box" style="border-color:var(--green);margin-bottom:14px">
         <strong style="color:var(--green)">${escHtml(data.message)}</strong>
-        <p style="margin-top:6px;font-size:.85rem;color:var(--fg-muted)">Path: <code>${escHtml(data.path)}</code></p>
-        <div class="code-block" style="margin-top:8px;font-size:.8rem">${escHtml(data.public_key)}</div>
-        <p style="margin-top:8px;font-size:.85rem;color:var(--fg-muted)">This key will be included in your export bundle. The quickstart script on Linux will add it to authorized_keys and enable SSH automatically.</p>
+        <p style="margin-top:4px">Path: <code>${escHtml(data.path)}</code></p>
+        <div class="code-block" style="margin-top:6px;font-size:.78rem">${escHtml(data.public_key)}</div>
+        <p style="margin-top:6px">This key will be included in the export bundle. The quickstart script adds it to authorized_keys automatically.</p>
       </div>`;
     btn.textContent='Done';
   }else{
-    box.innerHTML=`<div class="info-box" style="border-color:var(--rose);margin-bottom:16px"><strong style="color:var(--rose)">${escHtml(data.message)}</strong></div>`;
+    box.innerHTML=`<div class="info-box" style="border-color:var(--red);margin-bottom:14px"><strong style="color:var(--red)">${escHtml(data.message)}</strong></div>`;
     btn.disabled=false;btn.textContent='Retry';
   }
 }
@@ -901,7 +853,7 @@ async function runExport(){
     <div class="info-box">
       <strong style="color:var(--green)">Bundle exported</strong>
       <p>Location: <code>${escHtml(data.output_dir||'')}</code></p>
-      <p style="margin-top:6px">Includes: MIGRATION_INSTRUCTIONS.md, profile JSON/YAML, quickstart.sh</p>
+      <p style="margin-top:4px">Includes: MIGRATION_INSTRUCTIONS.md, profile, quickstart.sh</p>
     </div>`;
   el('exportBtn').textContent='Done';
   await completeStep('export');
