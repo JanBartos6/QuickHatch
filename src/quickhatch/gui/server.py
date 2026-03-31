@@ -40,6 +40,14 @@ class GUIState:
 
             if "additional_info" in updates:
                 self.profile.additional_info = updates["additional_info"]
+            if "apps_to_install" in updates:
+                self.profile.apps_to_install = updates["apps_to_install"]
+            if "data_description" in updates:
+                self.profile.data_description = updates["data_description"]
+            if "linux_ip" in updates:
+                self.profile.linux_ip = updates["linux_ip"]
+            if "linux_user" in updates:
+                self.profile.linux_user = updates["linux_user"]
 
 
 def _load_html() -> bytes:

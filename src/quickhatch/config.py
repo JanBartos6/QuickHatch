@@ -90,6 +90,10 @@ class UserProfile:
     windows_settings: dict = field(default_factory=dict)
     ssh_public_key_path: str | None = None
     additional_info: str = ""
+    apps_to_install: list[str] = field(default_factory=list)
+    data_description: str = ""
+    linux_ip: str = ""
+    linux_user: str = ""
     completed_steps: list[str] = field(default_factory=list)
 
     def save_checkpoint(self, path: Path | None = None) -> Path:
@@ -129,6 +133,10 @@ class UserProfile:
                 windows_settings=data.get("windows_settings", {}),
                 ssh_public_key_path=data.get("ssh_public_key_path"),
                 additional_info=data.get("additional_info", ""),
+                apps_to_install=data.get("apps_to_install", []),
+                data_description=data.get("data_description", ""),
+                linux_ip=data.get("linux_ip", ""),
+                linux_user=data.get("linux_user", ""),
                 completed_steps=data.get("completed_steps", []),
             )
         except (json.JSONDecodeError, TypeError, KeyError):

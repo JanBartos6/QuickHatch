@@ -192,6 +192,37 @@ def generate_instructions(profile: UserProfile) -> str:
             sections.append("- **Scanned directories:** " + ", ".join(scanned) + "\n")
         sections.append("")
 
+    # ── User-Selected Apps to Install ──
+    if profile.apps_to_install:
+        sections.append("## Apps the User Wants on Linux\n\n")
+        sections.append(
+            "The user explicitly selected these apps to have on Linux.\n"
+            "**You MUST install all of them** — either the native Linux version,\n"
+            "a direct equivalent, or via Wine/Proton. Do not skip any.\n\n"
+        )
+        for app_name in profile.apps_to_install:
+            sections.append(f"- {app_name}\n")
+        sections.append("")
+
+    # ── Data Migration Description ──
+    if profile.data_description:
+        sections.append(
+            "## Data to Migrate\n\n"
+            "The user described the following data as important to migrate:\n\n"
+            f"{profile.data_description}\n\n"
+            "**You MUST migrate all of this data.** Use `scp` to copy files from\n"
+            "the Windows machine to the Linux machine. For browser data, use\n"
+            "profile migration tools or manual copy. Verify the data is intact.\n"
+        )
+
+    # ── Linux Connection Details ──
+    if profile.linux_ip and profile.linux_user:
+        sections.append(
+            "## Linux Machine Connection\n\n"
+            f"- **IP:** {profile.linux_ip}\n"
+            f"- **Username:** {profile.linux_user}\n\n"
+        )
+
     # ── Additional User Notes ──
     if profile.additional_info:
         sections.append(
@@ -371,16 +402,37 @@ def generate_instructions(profile: UserProfile) -> str:
             "4. **Plan desktop configuration** — based on their style preferences.\n\n"
             "### Phase 2: Remote Setup (via SSH from Windows → Linux)\n\n"
             "Once the user has Linux installed and SSH ready (they run `quickstart.sh`):\n\n"
-            "5. **Ask for the Linux machine's IP address and username** via the bridge API.\n\n"
-            "6. **SSH into the Linux machine** and execute all setup:\n"
-            "   - Update packages, install all needed software\n"
-            "   - Install GPU/WiFi/Bluetooth drivers and firmware\n"
-            "   - Configure desktop environment, icons, theme, wallpaper\n"
-            "   - Set up locale, keyboard, timezone\n"
-            "   - Transfer browser bookmarks/data from Windows via scp\n\n"
-            "7. **Verify everything** over SSH — check that WiFi works, display is correct,\n"
-            "   audio works, Bluetooth pairs, GPU is accelerated, etc.\n\n"
-            "Ask the user for clarification if anything is ambiguous.\n"
+            "5. **SSH into the Linux machine** using the IP/username provided.\n\n"
+            "6. **Install EVERY app** the user selected. Do not skip any:\n"
+            "   - Use the distro's package manager for native apps\n"
+            "   - Use Flatpak/Snap for apps not in the repo\n"
+            "   - Use Wine/Proton for Windows-only apps (install Wine, configure prefix)\n"
+            "   - Verify each app launches correctly after installation\n\n"
+            "7. **Migrate ALL user data:**\n"
+            "   - Use `scp` to copy files from Windows to Linux\n"
+            "   - Browser bookmarks: export from Windows browser, import on Linux\n"
+            "   - Documents, game saves, configs — as described by the user\n"
+            "   - Verify files are intact after transfer\n\n"
+            "8. **Configure the desktop** — install and set up the DE/WM, theme, icons,\n"
+            "   wallpaper, dock/panel, keyboard shortcuts, font rendering.\n\n"
+            "9. **Install drivers** — GPU (proprietary if NVIDIA), WiFi firmware,\n"
+            "   Bluetooth, printer drivers. Test each one.\n\n"
+            "10. **System setup** — locale, keyboard layout, timezone, swap/zram,\n"
+            "    firewall, automatic updates, any distro-specific configuration.\n\n"
+            "### Phase 3: Verification (CRITICAL)\n\n"
+            "**Do NOT call /api/done until ALL of the following are confirmed:**\n\n"
+            "11. **Test every installed app** — launch each one, confirm it opens.\n"
+            "12. **Verify data** — check migrated files exist and are accessible.\n"
+            "13. **Test hardware** — WiFi connects, Bluetooth pairs, GPU acceleration\n"
+            "    works (`glxinfo | grep renderer`), audio plays.\n"
+            "14. **Test desktop** — theme applied, icons correct, wallpaper set.\n"
+            "15. **Ask the user** via the bridge API: \"I've finished setting up.\n"
+            "    Everything looks good on my end. Can you check on the Linux machine\n"
+            "    and let me know if anything is missing or needs adjustment?\"\n\n"
+            "**If anything fails, fix it before moving on.** If you can't fix it,\n"
+            "ask the user for help via `/api/ask`. Do not give up.\n\n"
+            "Send status updates via `/api/message` as you work so the user can\n"
+            "see progress in real time.\n"
         )
 
     return "\n".join(sections)

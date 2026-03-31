@@ -237,17 +237,20 @@ const STEPS_MIGRATION = [
   {id:'ai_setup',      title:'AI Tool'},
   {id:'questionnaire', title:'Preferences'},
   {id:'scan',          title:'System Scan'},
+  {id:'apps_data',     title:'Apps & Data'},
   {id:'additional',    title:'Notes'},
   {id:'bridge',        title:'Agent'},
   {id:'usb',           title:'Install Linux'},
   {id:'ssh',           title:'SSH Key'},
   {id:'export',        title:'Export'},
+  {id:'setup',         title:'Remote Setup'},
 ];
 const STEPS_CUSTOMIZE = [
   {id:'welcome',       title:'Start'},
   {id:'ai_setup',      title:'AI Tool'},
   {id:'questionnaire', title:'Preferences'},
   {id:'scan',          title:'System Scan'},
+  {id:'apps_data',     title:'Apps & Data'},
   {id:'additional',    title:'Notes'},
   {id:'bridge',        title:'Agent'},
 ];
@@ -478,6 +481,40 @@ const stepRenderers={
       </div>`;
   },
 
+  apps_data(){
+    const apps=state.profile.apps||[];
+    const prev=state.profile.apps_to_install||[];
+    const appList=apps.length?apps.slice(0,80).map(a=>{
+      const checked=prev.includes(a.name);
+      return`<label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:.84rem;cursor:pointer;border-bottom:1px solid var(--border)">
+        <input type="checkbox" class="app-check" value="${escHtml(a.name)}"${checked?' checked':''}>
+        <span style="flex:1">${escHtml(a.name)}</span>
+        <span style="color:var(--fg-dim);font-size:.75rem">${escHtml(a.source)}</span>
+      </label>`}).join(''):'<p style="color:var(--fg-muted);font-size:.84rem">No apps detected yet. Run the system scan first, or describe what you need below.</p>';
+    content().innerHTML=`
+      <div class="card">
+        <h2>Apps & Data</h2>
+        <p class="subtitle">Select the apps you want on Linux and describe any important data to migrate.</p>
+        <div class="field">
+          <label>Apps to install on Linux</label>
+          <p style="font-size:.78rem;color:var(--fg-muted);margin-bottom:8px">Check the apps you want. The AI agent will find Linux equivalents or set up Wine/Proton.</p>
+          <div style="max-height:250px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px">${appList}</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-ghost" onclick="document.querySelectorAll('.app-check').forEach(c=>c.checked=true)" style="font-size:.75rem">Select all</button>
+            <button class="btn btn-ghost" onclick="document.querySelectorAll('.app-check').forEach(c=>c.checked=false)" style="font-size:.75rem">Clear</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Data to migrate</label>
+          <textarea id="dataDesc" placeholder="Describe what data matters to you. Examples: browser bookmarks and passwords, Documents folder, game saves, SSH keys, Git repos, IDE settings, music library...">${escHtml(state.profile.data_description||'')}</textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
+          <button class="btn btn-primary" onclick="submitAppsData()">Continue</button>
+        </div>
+      </div>`;
+  },
+
   additional(){
     content().innerHTML=`
       <div class="card">
@@ -615,6 +652,69 @@ const stepRenderers={
         </div>
       </div>`;
   },
+
+  setup(){
+    const ip=state.profile.linux_ip||'';
+    const user=state.profile.linux_user||'';
+    const port=location.port;
+    const provider=state.profile.ai_config?.provider||'claude_code';
+    const hasConn=ip&&user;
+    const sshKey=state.profile.ssh_public_key_path?state.profile.ssh_public_key_path.replace(/\.pub$/,''):'';
+    let cmd='';
+    if(provider==='claude_code')
+      cmd=`claude -p "Read http://localhost:${port}/api/profile for the full migration plan. The user's Linux machine is at ${user||'USER'}@${ip||'IP'}${sshKey?' (SSH key: '+sshKey+')':''}. SSH in and execute the full setup: install all selected apps, migrate data, configure desktop, install drivers, verify everything works. Use http://localhost:${port}/api to post progress updates and ask questions. POST /api/done only when EVERYTHING is confirmed working." --dangerously-skip-permissions`;
+    else
+      cmd=`Point your AI tool at http://localhost:${port}/api/profile`;
+    const canLaunch=['claude_code','codex'].includes(provider);
+
+    content().innerHTML=`
+      <div class="card">
+        <h2>Remote Setup</h2>
+        <p class="subtitle">The agent will SSH into your Linux machine and set everything up. Enter the connection details from <code>quickstart.sh</code>.</p>
+        <div class="field">
+          <label>Linux IP address</label>
+          <input type="text" id="linuxIp" value="${escHtml(ip)}" placeholder="e.g. 192.168.1.42">
+        </div>
+        <div class="field">
+          <label>Linux username</label>
+          <input type="text" id="linuxUser" value="${escHtml(user)}" placeholder="e.g. jan">
+        </div>
+        <div style="margin-bottom:16px">
+          <button class="btn btn-primary" onclick="saveLinuxConn()" id="saveConnBtn">Save connection</button>
+        </div>
+        ${canLaunch?`
+          <button class="btn btn-success" id="setupLaunchBtn" onclick="launchSetupAgent()"${hasConn?'':' disabled'}>Launch agent</button>
+          <div id="setupLaunchMsg" style="margin:8px 0"></div>
+          <details>
+            <summary>Or run manually</summary>
+            <div class="code-block" id="setupCmd">${escHtml(cmd)}</div>
+            <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(el('setupCmd').textContent);this.textContent='Copied'" style="margin-top:6px;font-size:.78rem">Copy</button>
+          </details>
+        `:`
+          <p style="color:var(--fg-muted);font-size:.84rem;margin-bottom:8px">Run this in a terminal:</p>
+          <div class="code-block" id="setupCmd">${escHtml(cmd)}</div>
+          <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(el('setupCmd').textContent);this.textContent='Copied'" style="margin-bottom:12px;font-size:.78rem">Copy</button>
+        `}
+        <div class="live-panel">
+          <div class="live-status">
+            <div class="dot" id="setupDot"></div>
+            <span id="setupStatus">Waiting for agent...</span>
+          </div>
+          <div id="setupMessages" style="margin-bottom:6px"></div>
+          <div id="setupFeed"></div>
+        </div>
+        <div id="setupQuestions"></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <input type="text" id="setupChat" placeholder="Message the agent..." onkeydown="if(event.key==='Enter')sendSetupChat()" style="flex:1">
+          <button class="btn btn-ghost" onclick="sendSetupChat()" style="flex-shrink:0">Send</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
+          <button class="btn btn-primary" id="setupDone" onclick="completeStep('setup')"${state._setupDone?'':' disabled'}>${state._setupDone?'Finish':'Agent is working...'}</button>
+        </div>
+      </div>`;
+    if(!state._setupDone)pollSetup();
+  },
 };
 
 function renderDone(){
@@ -633,15 +733,14 @@ function renderDone(){
     </div>`:`
     <div class="card">
       <div class="done-screen">
-        <h2>Ready to go</h2>
-        <p class="subtitle" style="margin-top:6px">Your migration bundle is ready.</p>
+        <h2>Migration complete</h2>
+        <p class="subtitle" style="margin-top:6px">The agent has finished setting up your Linux machine.</p>
         <div class="done-steps">
-          <div class="ds"><div class="dn">1</div>Boot from the USB drive and install Linux</div>
-          <div class="ds"><div class="dn">2</div>Copy the migration bundle to the new machine</div>
-          <div class="ds"><div class="dn">3</div>Run <code>bash quickstart.sh</code> to enable SSH</div>
-          <div class="ds"><div class="dn">4</div>Give the IP address and username to the agent</div>
-          <div class="ds"><div class="dn">5</div>The agent SSHes in and sets everything up</div>
+          <div class="ds"><div class="dn">${icon('check')}</div>System analyzed and apps mapped</div>
+          <div class="ds"><div class="dn">${icon('check')}</div>Linux installed and configured remotely</div>
+          <div class="ds"><div class="dn">${icon('check')}</div>Apps installed, data migrated</div>
         </div>
+        <p style="color:var(--fg-muted);font-size:.82rem;text-align:center;margin-top:16px">If anything needs fixing, go back to the Remote Setup step and chat with the agent.</p>
       </div>
     </div>`;
 }
@@ -738,6 +837,13 @@ async function runScan(){
   el('scanBtn').classList.add('hidden');el('scanNext').classList.remove('hidden');
 }
 function hwCard(label,value,sub){return`<div class="hw-card"><div class="hw-label">${label}</div><div class="hw-value">${value}</div>${sub?`<div class="hw-sub">${sub}</div>`:''}</div>`}
+
+async function submitAppsData(){
+  const checked=[...document.querySelectorAll('.app-check:checked')].map(c=>c.value);
+  const dataDesc=(el('dataDesc')||{}).value||'';
+  await saveProfile({apps_to_install:checked,data_description:dataDesc});
+  await completeStep('apps_data');
+}
 
 async function submitAdditional(){
   await saveProfile({additional_info:el('additionalInfo').value});await completeStep('additional');
@@ -880,6 +986,103 @@ async function runExport(){
     el('exportResult').innerHTML=`<div class="info-box" style="border-color:var(--red)"><strong style="color:var(--red)">${escHtml(data.message||'Export failed')}</strong></div>`;
     el('exportBtn').disabled=false;el('exportBtn').textContent='Retry';
   }
+}
+
+// ── Setup step functions ──
+async function saveLinuxConn(){
+  const ip=el('linuxIp').value.trim();
+  const user=el('linuxUser').value.trim();
+  if(!ip||!user)return;
+  await saveProfile({linux_ip:ip,linux_user:user});
+  const btn=el('saveConnBtn');btn.textContent='Saved';
+  const lb=el('setupLaunchBtn');if(lb)lb.disabled=false;
+  // Re-render to update the command with actual IP/user
+  stepRenderers.setup();
+}
+
+async function launchSetupAgent(){
+  const btn=el('setupLaunchBtn'),msg=el('setupLaunchMsg');
+  btn.disabled=true;btn.textContent='Launching...';
+  try{
+    const data=await api('/wizard/launch-agent','POST',{phase:'setup'});
+    if(data.status==='ok'){
+      msg.innerHTML='<span style="color:var(--green);font-size:.82rem">Agent launched. Check the new terminal window.</span>';
+      btn.textContent='Launched';
+    }else{
+      msg.innerHTML=`<span style="color:var(--red);font-size:.82rem">${escHtml(data.message||'Failed')}</span>`;
+      btn.textContent='Launch agent';btn.disabled=false;
+    }
+  }catch(e){
+    msg.innerHTML=`<span style="color:var(--red);font-size:.82rem">${escHtml(e.message)}</span>`;
+    btn.textContent='Launch agent';btn.disabled=false;
+  }
+}
+
+async function sendSetupChat(){
+  const inp=el('setupChat');const msg=inp.value.trim();if(!msg)return;
+  inp.value='';
+  await api('/wizard/chat','POST',{message:msg});
+  state._lastSetupMsgCount=-1;pollSetup();
+}
+
+let setupPollTimer=null;
+async function pollSetup(){
+  try{
+    const data=await api('/api/status');
+    if(data.status==='ok'){
+      const dot=el('setupDot'),st=el('setupStatus');
+      if(data.agent_connected||data.suggestions>0){
+        dot.className='dot connected';
+        st.textContent=data.agent_done?'Agent finished — you can still chat':'Working...';
+      }else{dot.className='dot waiting'}
+      const md=await api('/api/messages');
+      if(md.messages){
+        const msgEl=el('setupMessages');
+        if(msgEl&&md.messages.length!==(state._lastSetupMsgCount||0)){
+          state._lastSetupMsgCount=md.messages.length;
+          msgEl.innerHTML=md.messages.map(m=>
+            `<div class="agent-msg${m.role==='user'?' user-msg':''}">${m.role==='user'?'You: ':''}${renderMd(m.content)}</div>`
+          ).join('');
+          msgEl.scrollTop=msgEl.scrollHeight;
+        }
+      }
+      const sd=await api('/api/suggestions');
+      if(sd.suggestions){
+        const feed=el('setupFeed');
+        if(feed&&sd.suggestions.length!==(state._lastSetupSugCount||0)){
+          state._lastSetupSugCount=sd.suggestions.length;
+          feed.innerHTML=sd.suggestions.map(s=>`
+            <div class="suggestion">
+              <div class="cat">${escHtml(s.category)}</div>
+              <div class="stitle">${escHtml(s.title)}</div>
+              <div class="scontent">${typeof s.content==='string'?renderMd(s.content):'<pre>'+escHtml(JSON.stringify(s.content,null,2))+'</pre>'}</div>
+            </div>`).join('');
+        }
+      const qd=await api('/api/pending-questions');
+      if(qd.questions&&qd.questions.length>0){
+        const qa=el('setupQuestions');
+        if(qa){
+          qa.innerHTML=qd.questions.map(q=>`
+            <div class="info-box" id="qcard-${escHtml(q.id)}" style="border-color:var(--primary);margin-top:10px">
+              <strong style="color:var(--primary)">${escHtml(q.question)}</strong>
+              ${q.choices?`<div class="pill-grid" style="margin:6px 0">${q.choices.map(c=>`<span class="pill" onclick="el('answer-${escHtml(q.id)}').value='${escHtml(c)}'">${escHtml(c)}</span>`).join('')}</div>`:''}
+              <div style="display:flex;gap:8px;margin-top:6px">
+                <input type="text" id="answer-${escHtml(q.id)}" placeholder="Type your answer..." onkeydown="if(event.key==='Enter')answerQuestion('${escHtml(q.id)}')" style="flex:1">
+                <button class="btn btn-primary" onclick="answerQuestion('${escHtml(q.id)}')" style="flex-shrink:0">Answer</button>
+              </div>
+            </div>`).join('');
+        }
+      }
+        if(data.agent_done){
+          state._setupDone=true;
+          const btn=el('setupDone');
+          if(btn&&btn.disabled){btn.disabled=false;btn.textContent='Finish'}
+        }
+      }
+    }
+  }catch(e){}
+  // Keep polling even after done — user can still chat
+  if(STEPS[state.currentStep]?.id==='setup')setupPollTimer=setTimeout(pollSetup,2000);
 }
 
 // ── Init ──
