@@ -15,9 +15,63 @@ struct Backend {
     _stdout: Mutex<Option<std::process::ChildStdout>>,
 }
 
-/// Find the Python executable (python or python3).
+/// Get the user's full shell PATH (macOS .app bundles don't inherit it).
+fn get_user_path() -> String {
+    // Try to get PATH from the user's default shell
+    if let Ok(shell) = std::env::var("SHELL") {
+        let result = Command::new(&shell)
+            .args(["-l", "-c", "echo $PATH"])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .output();
+        if let Ok(output) = result {
+            let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !path.is_empty() {
+                return path;
+            }
+        }
+    }
+    // Fallback: common paths on macOS
+    std::env::var("PATH").unwrap_or_else(|_| {
+        "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin".to_string()
+    })
+}
+
+/// Find a Python that has the quickhatch module installed.
 fn find_python() -> String {
-    for name in &["python", "python3"] {
+    let full_path = get_user_path();
+    std::env::set_var("PATH", &full_path);
+
+    // Collect all python candidates from PATH
+    let mut candidates: Vec<String> = Vec::new();
+    for dir in full_path.split(':') {
+        for name in &["python3", "python"] {
+            let path = format!("{}/{}", dir, name);
+            if std::path::Path::new(&path).exists() {
+                candidates.push(path);
+            }
+        }
+    }
+    // Also try bare names (which may resolve via PATH)
+    candidates.push("python3".to_string());
+    candidates.push("python".to_string());
+
+    // Find the first one that can import quickhatch
+    for candidate in &candidates {
+        let result = Command::new(candidate)
+            .args(["-c", "import quickhatch"])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+        if let Ok(status) = result {
+            if status.success() {
+                return candidate.to_string();
+            }
+        }
+    }
+
+    // Fallback: first working python
+    for name in &["python3", "python"] {
         let result = Command::new(name)
             .arg("--version")
             .stdout(Stdio::null())
@@ -29,7 +83,7 @@ fn find_python() -> String {
             }
         }
     }
-    "python".to_string()
+    "python3".to_string()
 }
 
 /// Start the Python backend and return the port and the stdout handle
