@@ -149,7 +149,7 @@ fn launch_agent(state: State<Backend>, provider: String) -> Result<String, Strin
 
         let mut launched = false;
         for (term, prefix_args) in &terminals {
-            let mut args: Vec<&str> = prefix_args.iter().map(|s| s.as_str()).collect();
+            let mut args: Vec<&str> = prefix_args.iter().map(|s| &**s).collect();
             args.push("bash");
             args.push("-c");
             // We need to pass the shell_cmd as a single arg
