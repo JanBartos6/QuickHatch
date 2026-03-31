@@ -269,15 +269,8 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                 self._send_json({"status": "ok", "results": results})
 
             elif self.path == "/wizard/export":
-                from quickhatch.ai.instruction_gen import save_instructions
-                output_dir = Path.home() / "QuickHatch-Migration"
-                output_dir.mkdir(parents=True, exist_ok=True)
-                inst_path = save_instructions(gui_state.profile, output_dir)
-                self._send_json({
-                    "status": "ok",
-                    "output_dir": str(output_dir),
-                    "instruction_file": str(inst_path),
-                })
+                result = _run_export(gui_state)
+                self._send_json(result)
 
             elif self.path == "/wizard/answer":
                 data = self._read_json()
@@ -462,6 +455,68 @@ def _generate_ssh_key(gui_state: GUIState) -> dict:
         return {"status": "error", "message": "ssh-keygen not found. Install OpenSSH first."}
     except subprocess.CalledProcessError as e:
         return {"status": "error", "message": f"ssh-keygen failed: {e.stderr or e.stdout}"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+def _run_export(gui_state: GUIState) -> dict:
+    """Run the full export: instructions, profile, SSH key, quickstart, zip."""
+    import zipfile
+    from dataclasses import asdict
+
+    import yaml
+
+    from quickhatch.ai.instruction_gen import generate_instructions, save_instructions
+
+    output_dir = Path.home() / "QuickHatch-Migration"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    files = []
+
+    try:
+        # Instructions
+        inst_path = save_instructions(gui_state.profile, output_dir)
+        files.append(inst_path.name)
+
+        # Profile JSON (redact API key)
+        profile_dict = asdict(gui_state.profile)
+        if profile_dict.get("ai_config", {}).get("api_key"):
+            profile_dict["ai_config"]["api_key"] = "***STORED_SEPARATELY***"
+        json_path = output_dir / "quickhatch-profile.json"
+        json_path.write_text(json.dumps(profile_dict, indent=2))
+        files.append(json_path.name)
+
+        # Profile YAML
+        yaml_path = output_dir / "quickhatch-profile.yaml"
+        yaml_path.write_text(yaml.dump(profile_dict, default_flow_style=False, sort_keys=False))
+        files.append(yaml_path.name)
+
+        # SSH public key
+        if gui_state.profile.ssh_public_key_path:
+            ssh_pub = Path(gui_state.profile.ssh_public_key_path)
+            if ssh_pub.exists():
+                dest = output_dir / ssh_pub.name
+                dest.write_text(ssh_pub.read_text())
+                files.append(dest.name)
+
+        # Quickstart script
+        from quickhatch.wizard.export import _generate_quickstart
+        qs_path = output_dir / "quickstart.sh"
+        qs_path.write_text(_generate_quickstart(gui_state.profile))
+        files.append(qs_path.name)
+
+        # ZIP bundle
+        zip_path = output_dir / "quickhatch-migration-bundle.zip"
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            for file in output_dir.iterdir():
+                if file.name != zip_path.name and file.is_file():
+                    zf.write(file, file.name)
+        files.append(zip_path.name)
+
+        return {
+            "status": "ok",
+            "output_dir": str(output_dir),
+            "files": files,
+        }
     except Exception as e:
         return {"status": "error", "message": str(e)}
 

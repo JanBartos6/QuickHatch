@@ -556,15 +556,15 @@ const stepRenderers={
         <p class="subtitle">Create a bootable USB and install ${escHtml(distro)} on your target machine.</p>
         <div class="info-box" style="margin-bottom:16px">
           <strong>Create the USB drive</strong>
-          <p>Download the ISO from the distro's website, then write it to a USB drive (8 GB+) using <strong>Ventoy</strong>, <strong>Rufus</strong>, or <strong>balenaEtcher</strong>.</p>
+          <p>Download the ISO from the distro's website, then write it to a USB drive (8 GB+) using a tool like Ventoy, Rufus, or balenaEtcher.</p>
         </div>
         <div class="guide-steps">
           <div class="guide-step"><div class="guide-num">1</div><div class="guide-text">Plug the USB drive into your target PC</div></div>
           <div class="guide-step"><div class="guide-num">2</div><div class="guide-text">Enter BIOS/UEFI setup<span>Usually F2, F12, Del, or Esc during boot &mdash; varies by manufacturer</span></div></div>
           <div class="guide-step"><div class="guide-num">3</div><div class="guide-text">Set the USB drive as the first boot device, then save and restart</div></div>
-          <div class="guide-step"><div class="guide-num">4</div><div class="guide-text">Follow the Linux installer<span>Choose language, timezone, create your user account, and pick a disk</span></div></div>
-          <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">Connect to the internet<span>Use an Ethernet cable or plug in your phone for USB tethering</span></div></div>
-          <div class="guide-step"><div class="guide-num">6</div><div class="guide-text">Copy the migration bundle to the new machine and run <code>bash quickstart.sh</code><span>This enables SSH and prints the IP address you'll give to the agent</span></div></div>
+          <div class="guide-step"><div class="guide-num">4</div><div class="guide-text">Follow the installer<span>For GUI distros: choose language, timezone, create user, pick a disk. For Arch or minimal installs: the agent can walk you through it over SSH once you're connected.</span></div></div>
+          <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">Connect to the internet<span>Ethernet cable, phone USB tethering, or <code>iwctl</code> for Wi-Fi on minimal installs</span></div></div>
+          <div class="guide-step"><div class="guide-num">6</div><div class="guide-text">Copy the migration bundle and run <code>bash quickstart.sh</code><span>This enables SSH and prints the IP address you'll give to the agent. On a minimal install, use a USB drive or <code>scp</code> from another machine.</span></div></div>
         </div>
         <div style="margin-top:16px">
           <button class="btn btn-ghost" onclick="stepRenderers.usb()" style="font-size:.78rem">Re-read instructions</button>
@@ -577,6 +577,7 @@ const stepRenderers={
   },
 
   ssh(){
+    const hasKey=!!state.profile.ssh_public_key_path;
     content().innerHTML=`
       <div class="card">
         <h2>SSH key</h2>
@@ -590,14 +591,14 @@ const stepRenderers={
             <li>The agent uses the private key to connect</li>
           </ol>
         </div>
-        <div id="sshResult"></div>
+        <div id="sshResult">${hasKey?'<div class="info-box" style="border-color:var(--green);margin-bottom:14px"><strong style="color:var(--green)">SSH key already exists</strong></div>':''}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-primary" id="sshGenBtn" onclick="generateSSH()">Generate SSH key</button>
-          <button class="btn btn-ghost" onclick="completeStep('ssh')">Skip</button>
+          <button class="btn btn-primary" id="sshGenBtn" onclick="generateSSH()">${hasKey?'Regenerate':'Generate SSH key'}</button>
+          <button class="btn btn-ghost" onclick="state._sshSkipped=true;el('sshContinue').disabled=false" id="sshSkipBtn"${hasKey?' class="hidden"':''}>I have my own keys</button>
         </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
-          <button class="btn btn-primary" onclick="completeStep('ssh')">Continue</button>
+          <button class="btn btn-primary" id="sshContinue" onclick="completeStep('ssh')" ${hasKey||state._sshSkipped?'':'disabled'}>${hasKey||state._sshSkipped?'Continue':'Generate a key first'}</button>
         </div>
       </div>`;
   },
@@ -647,6 +648,17 @@ function renderDone(){
 
 // ── Helpers ──
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function renderMd(s){
+  // Lightweight markdown: headings, bold, italic, code, links, lists
+  return escHtml(s)
+    .replace(/^### (.+)$/gm,'<strong style="font-size:.88rem;display:block;margin:10px 0 4px">$1</strong>')
+    .replace(/^## (.+)$/gm,'<strong style="font-size:.95rem;display:block;margin:12px 0 4px">$1</strong>')
+    .replace(/^# (.+)$/gm,'<strong style="font-size:1.05rem;display:block;margin:14px 0 6px;color:var(--fg)">$1</strong>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^- (.+)$/gm,'<span style="display:block;padding-left:14px">&bull; $1</span>')
+    .replace(/^\d+\. (.+)$/gm,(m,p1,off,str)=>`<span style="display:block;padding-left:14px">${m.match(/^\d+/)[0]}. ${p1}</span>`);
+}
 function selectChoice(gid,el){
   document.querySelectorAll(`#${gid} .choice`).forEach(c=>c.classList.remove('selected'));
   el.classList.add('selected');
@@ -783,7 +795,7 @@ async function pollBridge(){
         if(msgEl&&md.messages.length!==state._lastMsgCount){
           state._lastMsgCount=md.messages.length;
           msgEl.innerHTML=md.messages.map(m=>
-            `<div class="agent-msg${m.role==='user'?' user-msg':''}">${m.role==='user'?'You: ':''}${escHtml(m.content)}</div>`
+            `<div class="agent-msg${m.role==='user'?' user-msg':''}">${m.role==='user'?'You: ':''}${renderMd(m.content)}</div>`
           ).join('');
           msgEl.scrollTop=msgEl.scrollHeight;
         }
@@ -797,7 +809,7 @@ async function pollBridge(){
             <div class="suggestion">
               <div class="cat">${escHtml(s.category)}</div>
               <div class="stitle">${escHtml(s.title)}</div>
-              <div class="scontent">${typeof s.content==='string'?escHtml(s.content):'<pre>'+escHtml(JSON.stringify(s.content,null,2))+'</pre>'}</div>
+              <div class="scontent">${typeof s.content==='string'?renderMd(s.content):'<pre>'+escHtml(JSON.stringify(s.content,null,2))+'</pre>'}</div>
             </div>`).join('');
         }
       const qd=await api('/api/pending-questions');
@@ -840,6 +852,11 @@ async function generateSSH(){
         <p style="margin-top:6px">This key will be included in the export bundle. The quickstart script adds it to authorized_keys automatically.</p>
       </div>`;
     btn.textContent='Done';
+    // Enable continue
+    const cont=el('sshContinue');
+    if(cont){cont.disabled=false;cont.textContent='Continue'}
+    // Update profile state
+    if(data.path)state.profile.ssh_public_key_path=data.path;
   }else{
     box.innerHTML=`<div class="info-box" style="border-color:var(--red);margin-bottom:14px"><strong style="color:var(--red)">${escHtml(data.message)}</strong></div>`;
     btn.disabled=false;btn.textContent='Retry';
@@ -849,14 +866,20 @@ async function generateSSH(){
 async function runExport(){
   el('exportBtn').disabled=true;el('exportBtn').textContent='Exporting...';
   const data=await api('/wizard/export','POST');
-  el('exportResult').innerHTML=`
-    <div class="info-box">
-      <strong style="color:var(--green)">Bundle exported</strong>
-      <p>Location: <code>${escHtml(data.output_dir||'')}</code></p>
-      <p style="margin-top:4px">Includes: MIGRATION_INSTRUCTIONS.md, profile, quickstart.sh</p>
-    </div>`;
-  el('exportBtn').textContent='Done';
-  await completeStep('export');
+  if(data.status==='ok'){
+    const fileList=(data.files||[]).map(f=>`<li>${escHtml(f)}</li>`).join('');
+    el('exportResult').innerHTML=`
+      <div class="info-box" style="border-color:var(--green)">
+        <strong style="color:var(--green)">Bundle exported</strong>
+        <p>Location: <code>${escHtml(data.output_dir||'')}</code></p>
+        <ul style="margin-top:6px;padding-left:18px">${fileList}</ul>
+      </div>`;
+    el('exportBtn').textContent='Done';
+    await completeStep('export');
+  }else{
+    el('exportResult').innerHTML=`<div class="info-box" style="border-color:var(--red)"><strong style="color:var(--red)">${escHtml(data.message||'Export failed')}</strong></div>`;
+    el('exportBtn').disabled=false;el('exportBtn').textContent='Retry';
+  }
 }
 
 // ── Init ──
