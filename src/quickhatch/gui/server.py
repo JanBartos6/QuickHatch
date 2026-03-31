@@ -71,7 +71,14 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                 return {}
             # Decode with fallback for non-UTF-8 bytes (e.g. Windows-1252 em dashes)
             text = body.decode("utf-8", errors="replace")
-            return json.loads(text)
+            try:
+                return json.loads(text)
+            except json.JSONDecodeError:
+                # Try fixing invalid escape sequences (e.g. from LLM-generated JSON)
+                try:
+                    return json.loads(text.encode("utf-8").decode("unicode_escape", errors="replace"))
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    return {}
 
         def _send_html(self, content: bytes) -> None:
             self.send_response(200)
