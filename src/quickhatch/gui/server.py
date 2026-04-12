@@ -17,6 +17,113 @@ from quickhatch.bridge.server import BridgeState, _make_handler as _make_bridge_
 from quickhatch.config import UserProfile
 
 
+# ── Tool schemas for function-calling ──
+
+_TOOLS_OPENAI = [
+    {
+        "type": "function",
+        "function": {
+            "name": "web_search",
+            "description": (
+                "Search the web using DuckDuckGo. Use this to find Linux compatibility info, "
+                "driver support, application alternatives, or any current information needed "
+                "for the migration analysis."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The search query string",
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of results to return (1-10)",
+                        "default": 5,
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "image_search",
+            "description": (
+                "Search for images using DuckDuckGo. Use this to find screenshots of Linux "
+                "desktop environments, themes, icon packs, or wallpapers to show the user "
+                "what their desktop will look like."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The image search query (e.g. 'KDE Plasma dark theme desktop screenshot')",
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of images to return (1-5)",
+                        "default": 3,
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
+]
+
+_TOOLS_ANTHROPIC = [
+    {
+        "name": "web_search",
+        "description": (
+            "Search the web using DuckDuckGo. Use this to find Linux compatibility info, "
+            "driver support, application alternatives, or any current information needed "
+            "for the migration analysis."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The search query string",
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum number of results to return (1-10)",
+                    "default": 5,
+                },
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "image_search",
+        "description": (
+            "Search for images using DuckDuckGo. Use this to find screenshots of Linux "
+            "desktop environments, themes, icon packs, or wallpapers to show the user "
+            "what their desktop will look like."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The image search query (e.g. 'KDE Plasma dark theme desktop screenshot')",
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum number of images to return (1-5)",
+                    "default": 3,
+                },
+            },
+            "required": ["query"],
+        },
+    },
+]
+
+
 class GUIState:
     """State for the web GUI wizard."""
 
@@ -234,6 +341,17 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                     ],
                 })
 
+            elif self.path == "/wizard/lmstudio-models":
+                models = []
+                try:
+                    import requests
+                    resp = requests.get("http://localhost:1234/v1/models", timeout=5)
+                    if resp.status_code == 200:
+                        models = [m["id"] for m in resp.json().get("data", []) if m.get("id")]
+                except Exception:
+                    pass
+                self._send_json({"status": "ok", "models": models})
+
             elif self.path.startswith("/api/"):
                 self._handle_bridge_get()
 
@@ -319,105 +437,699 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
     return server, actual_port
 
 
-def _launch_agent(gui_state: GUIState, port: int) -> dict:
-    """Launch the AI agent in a new terminal window."""
-    import subprocess
-    import sys
+def _execute_web_search(query: str, max_results: int = 5) -> str:
+    """Execute a DuckDuckGo web search and return formatted results as JSON."""
+    try:
+        from ddgs import DDGS
 
-    provider = gui_state.profile.ai_config.provider or "claude_code"
-    base = f"http://localhost:{port}"
+        max_results = max(1, min(10, max_results))
+        results = DDGS().text(query, max_results=max_results)
+        if not results:
+            return json.dumps({"results": [], "message": "No results found"})
+        formatted = []
+        for r in results:
+            formatted.append({
+                "title": r.get("title", ""),
+                "url": r.get("href", ""),
+                "snippet": r.get("body", ""),
+            })
+        return json.dumps({"results": formatted})
+    except ImportError:
+        return json.dumps({"error": "duckduckgo-search package not installed"})
+    except Exception as e:
+        return json.dumps({"error": f"Search failed: {e}"})
 
-    prompt = (
-        f"You are helping me migrate from Windows to Linux. "
-        f"A QuickHatch bridge API is running at {base}.\n\n"
-        f"== API Reference ==\n"
-        f"GET  {base}/api/profile      — my full system profile\n"
-        f"GET  {base}/api/messages      — all messages (check for my replies)\n"
-        f"POST {base}/api/message       — send status update: {{\"role\":\"agent\",\"content\":\"...\"}}\n"
-        f"POST {base}/api/suggest       — post recommendation: {{\"category\":\"distro|apps|drivers|desktop|plan\",\"title\":\"...\",\"content\":\"...\"}}\n"
-        f"POST {base}/api/ask           — ask me a question (blocks until I answer): {{\"question\":\"...\"}}\n"
-        f"POST {base}/api/done          — signal you're finished: {{\"summary\":\"...\"}}\n\n"
-        f"== Instructions ==\n"
-        f"1. Send a status message: \"Connected! Reading your profile...\"\n"
-        f"2. Fetch my profile with GET /api/profile\n"
-        f"3. Send status updates as you analyze (\"Checking hardware...\", \"Reviewing apps...\" etc)\n"
-        f"4. IMPORTANT: After posting your distro recommendation, use /api/ask to check:\n"
-        f"   \"I'm recommending [distro]. Does that sound good, or would you prefer something else?\"\n"
-        f"   Wait for my answer before continuing. Respect my preference if I picked a specific distro.\n"
-        f"5. Post recommendations for each category (distro, apps, drivers, desktop, plan)\n"
-        f"   Include download links where possible.\n"
-        f"6. After posting all suggestions, check GET /api/messages for any replies from me.\n"
-        f"   If I posted feedback (role: \"user\"), address it and update your suggestions.\n"
-        f"7. Call /api/done when finished.\n\n"
-        f"== Guidelines ==\n"
-        f"- Send /api/message updates frequently so I know you're working\n"
-        f"- Think freely. Use your full knowledge. Provide links, reasoning, pros/cons\n"
-        f"- If I specified a distro preference, prioritize it unless there's a strong reason not to\n"
-        f"- Include ISO download URLs in your distro recommendation\n"
-        f"- Be thorough but don't take forever — aim for quality over quantity"
+
+def _execute_image_search(query: str, max_results: int = 3) -> str:
+    """Execute a DuckDuckGo image search and return image URLs with metadata."""
+    try:
+        from ddgs import DDGS
+
+        max_results = max(1, min(5, max_results))
+        results = DDGS().images(query, max_results=max_results)
+        if not results:
+            return json.dumps({"images": [], "message": "No images found"})
+        formatted = []
+        for r in results:
+            formatted.append({
+                "title": r.get("title", ""),
+                "url": r.get("image", ""),
+                "source": r.get("source", ""),
+            })
+        return json.dumps({"images": formatted})
+    except ImportError:
+        return json.dumps({"error": "ddgs package not installed"})
+    except Exception as e:
+        return json.dumps({"error": f"Image search failed: {e}"})
+
+
+def _call_openai_with_tools(
+    endpoint: str,
+    model: str,
+    messages: list[dict],
+    api_key: str | None,
+    bridge: BridgeState,
+    max_rounds: int = 10,
+) -> str:
+    """Call an OpenAI-compatible API with tool-use loop (LM Studio, OpenAI)."""
+    import requests
+
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    url = f"{endpoint.rstrip('/')}/chat/completions"
+
+    tools_supported = True
+
+    for _round in range(max_rounds):
+        body: dict[str, Any] = {
+            "model": model,
+            "messages": messages,
+            "temperature": 0.7,
+            "max_tokens": 4096,
+        }
+        if tools_supported:
+            body["tools"] = _TOOLS_OPENAI
+
+        try:
+            resp = requests.post(url, json=body, headers=headers, timeout=300)
+            # If model doesn't support tools, retry without
+            if resp.status_code in (400, 422) and tools_supported:
+                tools_supported = False
+                bridge.add_message("agent", "Model doesn't support tool use, proceeding without web search.")
+                body.pop("tools", None)
+                resp = requests.post(url, json=body, headers=headers, timeout=300)
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError:
+            if tools_supported:
+                tools_supported = False
+                body.pop("tools", None)
+                resp = requests.post(url, json=body, headers=headers, timeout=300)
+                resp.raise_for_status()
+            else:
+                raise
+
+        data = resp.json()
+        msg = data["choices"][0]["message"]
+
+        tool_calls = msg.get("tool_calls")
+        if not tool_calls:
+            return msg.get("content", "")
+
+        # Append assistant message (with tool_calls) to conversation
+        messages.append(msg)
+
+        for tc in tool_calls:
+            fn_name = tc["function"]["name"]
+            try:
+                fn_args = json.loads(tc["function"]["arguments"])
+            except (json.JSONDecodeError, KeyError):
+                fn_args = {}
+
+            if fn_name == "web_search":
+                query = fn_args.get("query", "")
+                max_results = fn_args.get("max_results", 5)
+                bridge.add_message("agent", f"Searching: {query}")
+                result = _execute_web_search(query, max_results)
+            elif fn_name == "image_search":
+                query = fn_args.get("query", "")
+                max_results = fn_args.get("max_results", 3)
+                bridge.add_message("agent", f"Finding images: {query}")
+                result = _execute_image_search(query, max_results)
+            else:
+                result = json.dumps({"error": f"Unknown function: {fn_name}"})
+
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tc["id"],
+                "content": result,
+            })
+
+    # Exceeded max rounds — force a final response without tools
+    body = {"model": model, "messages": messages, "temperature": 0.7, "max_tokens": 4096}
+    resp = requests.post(url, json=body, headers=headers, timeout=300)
+    resp.raise_for_status()
+    return resp.json()["choices"][0]["message"]["content"]
+
+
+def _call_anthropic_with_tools(
+    api_key: str,
+    model: str,
+    messages: list[dict],
+    system_prompt: str,
+    bridge: BridgeState,
+    max_rounds: int = 10,
+) -> str:
+    """Call the Anthropic Messages API with tool-use loop."""
+    import requests
+
+    headers = {
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+    }
+
+    for _round in range(max_rounds):
+        body = {
+            "model": model,
+            "max_tokens": 4096,
+            "system": system_prompt,
+            "messages": messages,
+            "tools": _TOOLS_ANTHROPIC,
+        }
+        resp = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers=headers,
+            json=body,
+            timeout=300,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        content_blocks = data.get("content", [])
+
+        # Extract text and tool_use blocks
+        text_parts = []
+        tool_uses = []
+        for block in content_blocks:
+            if block["type"] == "text":
+                text_parts.append(block["text"])
+            elif block["type"] == "tool_use":
+                tool_uses.append(block)
+
+        if not tool_uses:
+            return "\n".join(text_parts)
+
+        # Append assistant's full response to messages
+        messages.append({"role": "assistant", "content": content_blocks})
+
+        # Execute tools and build tool_result blocks
+        tool_results = []
+        for tu in tool_uses:
+            if tu["name"] == "web_search":
+                query = tu["input"].get("query", "")
+                max_results = tu["input"].get("max_results", 5)
+                bridge.add_message("agent", f"Searching: {query}")
+                result = _execute_web_search(query, max_results)
+            elif tu["name"] == "image_search":
+                query = tu["input"].get("query", "")
+                max_results = tu["input"].get("max_results", 3)
+                bridge.add_message("agent", f"Finding images: {query}")
+                result = _execute_image_search(query, max_results)
+            else:
+                result = json.dumps({"error": f"Unknown tool: {tu['name']}"})
+
+            tool_results.append({
+                "type": "tool_result",
+                "tool_use_id": tu["id"],
+                "content": result,
+            })
+
+        messages.append({"role": "user", "content": tool_results})
+
+    # Force final response without tools
+    body = {"model": model, "max_tokens": 4096, "system": system_prompt, "messages": messages}
+    resp = requests.post(
+        "https://api.anthropic.com/v1/messages", headers=headers, json=body, timeout=300
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    return "\n".join(b["text"] for b in data["content"] if b["type"] == "text")
+
+
+def _prefetch_search_context(
+    profile: UserProfile, bridge: BridgeState
+) -> tuple[str, list[dict[str, str]]]:
+    """Run targeted searches based on the user's profile.
+
+    Returns (search_context_text, desktop_images) where desktop_images is a list
+    of {"title": ..., "url": ...} dicts to be injected directly into the desktop section.
+    """
+    context_parts: list[str] = []
+    desktop_images: list[dict[str, str]] = []
+
+    # Build search queries from profile data
+    queries: list[tuple[str, str]] = []  # (label, query)
+
+    # GPU driver search
+    gpus = getattr(profile, "hardware", None) and profile.hardware.gpus or []
+    for gpu in gpus:
+        if gpu.name:
+            queries.append(("GPU driver", f"Linux driver support {gpu.name} 2025"))
+
+    # WiFi search
+    hw = getattr(profile, "hardware", None)
+    if hw and hw.wifi_adapters:
+        for adapter in hw.wifi_adapters[:1]:
+            queries.append(("WiFi", f"Linux driver {adapter} compatibility"))
+
+    # Distro search based on use cases
+    prefs = getattr(profile, "preferences", None)
+    use_cases = prefs.use_cases if prefs else []
+    if use_cases:
+        queries.append(("Distro", f"best Linux distro for {' and '.join(use_cases[:3])} 2025"))
+
+    # Desktop environment search based on look preference
+    look = prefs.desktop_look if prefs else ""
+    if look:
+        look_desc = {
+            "windows_like": "Windows-like taskbar",
+            "macos_like": "macOS-like dock",
+            "minimal": "minimal clean",
+            "tiling": "tiling window manager",
+        }.get(look, look)
+        queries.append(("Desktop", f"Linux desktop environment {look_desc} screenshot"))
+
+    # Execute text searches
+    for label, query in queries:
+        bridge.add_message("agent", f"Searching: {query}")
+        result = _execute_web_search(query, max_results=4)
+        try:
+            data = json.loads(result)
+            results = data.get("results", [])
+            if results:
+                context_parts.append(f"### Search: {label} — \"{query}\"")
+                for r in results:
+                    context_parts.append(f"- [{r['title']}]({r['url']}): {r['snippet'][:200]}")
+                context_parts.append("")
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    # Image searches for desktop visuals — run multiple to get variety
+    image_queries: list[tuple[str, str]] = []
+    if look:
+        de_map = {
+            "windows_like": [
+                "KDE Plasma Windows 11 theme desktop screenshot",
+                "Linux Windows-like desktop customization",
+            ],
+            "macos_like": [
+                "GNOME macOS WhiteSur theme desktop screenshot",
+                "Linux macOS style desktop customization",
+            ],
+            "minimal": [
+                "minimal Linux desktop rice screenshot",
+                "clean minimal GNOME desktop",
+            ],
+            "tiling": [
+                "i3wm tiling desktop rice screenshot",
+                "Hyprland tiling window manager desktop",
+            ],
+        }
+        for q in de_map.get(look, [f"Linux {look} desktop screenshot"]):
+            image_queries.append(("Desktop preview", q))
+
+    # Also search for the icon style
+    icon_style = prefs.icon_style if prefs else ""
+    if icon_style and icon_style not in ("default", "custom"):
+        image_queries.append(("Icon preview", f"Linux {icon_style} icon theme pack screenshot"))
+
+    for label, query in image_queries:
+        bridge.add_message("agent", f"Finding images: {query}")
+        result = _execute_image_search(query, max_results=5)
+        try:
+            data = json.loads(result)
+            images = data.get("images", [])
+            for img in images:
+                url = img.get("url", "")
+                if not url:
+                    continue
+                # Skip URLs known to block hotlinking
+                if any(bad in url.lower() for bad in ["imgur.com", "pinterest.", "instagram.", "facebook."]):
+                    continue
+                desktop_images.append({"title": img.get("title", label), "url": url})
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    # Validate image URLs — keep only those that actually load
+    if desktop_images:
+        import requests as img_req
+        validated: list[dict[str, str]] = []
+        for img in desktop_images:
+            if len(validated) >= 4:
+                break  # enough good images
+            try:
+                resp = img_req.head(img["url"], timeout=5, allow_redirects=True, headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                })
+                ct = resp.headers.get("content-type", "")
+                if resp.status_code == 200 and "image" in ct:
+                    validated.append(img)
+            except Exception:
+                pass
+        desktop_images = validated
+
+    return "\n".join(context_parts), desktop_images
+
+
+def _build_section_prompt(profile: UserProfile, section: str, search_context: str) -> str:
+    """Build a prompt for a single section of the migration analysis."""
+    profile_dict = asdict(profile)
+    if profile_dict.get("ai_config", {}).get("api_key"):
+        profile_dict["ai_config"]["api_key"] = "***REDACTED***"
+    profile_json = json.dumps(profile_dict, indent=2, default=str)
+
+    section_instructions = {
+        "distro": (
+            "Recommend a Linux distribution for this user.\n"
+            "Include: why it's the best fit, key advantages for their use cases, "
+            "alternatives, and a download link.\n"
+        ),
+        "apps": (
+            "Map their Windows applications to Linux equivalents.\n"
+            "Use a Markdown TABLE with columns: | Windows App | Linux Equivalent | Notes |\n"
+            "Include installation commands where useful. Flag apps that have NO Linux equivalent "
+            "and suggest workarounds (Wine, VM, web version).\n"
+        ),
+        "drivers": (
+            "Provide driver guidance for their specific hardware.\n"
+            "Cover: GPU (proprietary vs open-source), WiFi, Bluetooth, and any special peripherals.\n"
+            "Include specific commands to install drivers if needed.\n"
+        ),
+        "desktop": (
+            "Recommend a desktop environment matching their preferences.\n"
+            "Include: theme, icon pack, dock/panel setup, and wallpaper suggestions.\n"
+            "IMPORTANT: Include the image URLs from the search results using Markdown image syntax:\n"
+            "![Description](https://example.com/screenshot.png)\n"
+            "This lets the user SEE what their desktop will look like.\n"
+        ),
+        "plan": (
+            "Provide a step-by-step migration plan.\n"
+            "Cover: data backup, disk partitioning/encryption, installation steps, "
+            "post-install setup, and verification.\n"
+            "Use numbered lists for steps. Be specific about commands.\n"
+        ),
+        "summary": (
+            "Write a short, friendly summary card for the user.\n"
+            "This is the LAST thing they see — make it feel like a confident handoff.\n"
+            "Include:\n"
+            "- A quick-reference table: | Item | Choice |\n"
+            "  with rows for: Distro, Desktop, Theme, Icons, Filesystem, Encryption\n"
+            "- A short 'What to do next' checklist (3-5 items)\n"
+            "- An encouraging closing line\n"
+            "Keep it SHORT — under 200 words. No long explanations.\n"
+        ),
+    }
+
+    return (
+        "You are a Linux migration expert. Write the migration analysis section described below.\n"
+        "Use rich Markdown formatting: **bold**, `code`, ### headings, bullet points, numbered lists, "
+        "[links](url), and ![images](url) where appropriate.\n"
+        "Respond with ONLY the section content — no JSON, no wrapping, just Markdown.\n\n"
+        f"== SECTION: {section.upper()} ==\n"
+        f"{section_instructions.get(section, '')}\n"
+        f"== LIVE SEARCH RESULTS (use these for up-to-date info) ==\n{search_context}\n\n"
+        f"== USER SYSTEM PROFILE ==\n{profile_json}"
     )
 
-    # Write prompt to file so we don't have to pass it inline (avoids quoting hell)
-    prompt_file = Path.home() / ".quickhatch-agent-prompt.txt"
-    prompt_file.write_text(prompt, encoding="utf-8")
+
+def _call_openai_compatible(endpoint: str, model: str, prompt: str, api_key: str | None = None) -> str:
+    """Call an OpenAI-compatible chat completions API (works for LM Studio, OpenAI)."""
+    import requests
+
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    url = f"{endpoint.rstrip('/')}/chat/completions"
+    body = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.7,
+        "max_tokens": 4096,
+    }
+
+    resp = requests.post(url, json=body, headers=headers, timeout=300)
+    resp.raise_for_status()
+    data = resp.json()
+    return data["choices"][0]["message"]["content"]
+
+
+def _call_anthropic(api_key: str, model: str, prompt: str) -> str:
+    """Call the Anthropic Messages API."""
+    import requests
+
+    resp = requests.post(
+        "https://api.anthropic.com/v1/messages",
+        headers={
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": model,
+            "max_tokens": 4096,
+            "messages": [{"role": "user", "content": prompt}],
+        },
+        timeout=300,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    return data["content"][0]["text"]
+
+
+def _parse_agent_response(text: str) -> dict[str, dict]:
+    """Parse the JSON response from the agent, tolerating markdown fences and quirks."""
+    text = text.strip()
+
+    # Strip markdown code fences anywhere in the text
+    import re
+    fence_match = re.search(r"```(?:json)?\s*\n([\s\S]*?)```", text)
+    if fence_match:
+        text = fence_match.group(1).strip()
+
+    # Try direct parse first
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # Extract the outermost JSON object using brace counting
+    # (handles nested braces in string values better than simple find/rfind)
+    start = text.find("{")
+    if start < 0:
+        return {"plan": {"title": "Migration Analysis", "content": text}}
+
+    depth = 0
+    in_string = False
+    escape_next = False
+    end = -1
+    for i in range(start, len(text)):
+        c = text[i]
+        if escape_next:
+            escape_next = False
+            continue
+        if c == "\\":
+            escape_next = True
+            continue
+        if c == '"' and not escape_next:
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                end = i + 1
+                break
+
+    if end > start:
+        json_str = text[start:end]
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            # Models often put literal newlines inside JSON strings — fix them
+            # Replace unescaped newlines inside string values
+            fixed = re.sub(
+                r'(?<=": ")((?:[^"\\]|\\.)*)(?=")',
+                lambda m: m.group(0).replace("\n", "\\n"),
+                json_str,
+            )
+            try:
+                return json.loads(fixed)
+            except json.JSONDecodeError:
+                pass
+
+            # Last resort: try to fix ALL literal newlines between quotes
+            # by replacing newlines that are inside JSON string values
+            lines = json_str.split("\n")
+            joined = ""
+            in_str = False
+            for line in lines:
+                count = line.count('"') - line.count('\\"')
+                if in_str:
+                    joined += "\\n" + line
+                else:
+                    joined += ("\n" if joined else "") + line
+                if count % 2 == 1:
+                    in_str = not in_str
+            try:
+                return json.loads(joined)
+            except json.JSONDecodeError:
+                pass
+
+    return {"plan": {"title": "Migration Analysis", "content": text}}
+
+
+def _call_model_simple(endpoint: str, model: str, prompt: str, api_key: str | None) -> str:
+    """Simple single-turn LLM call (no tools). Works for any provider."""
+    import requests
+
+    if "anthropic" in (endpoint or ""):
+        resp = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": api_key or "",
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json",
+            },
+            json={"model": model, "max_tokens": 4096, "messages": [{"role": "user", "content": prompt}]},
+            timeout=300,
+        )
+        resp.raise_for_status()
+        return resp.json()["content"][0]["text"]
+    else:
+        headers = {"Content-Type": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        resp = requests.post(
+            f"{endpoint.rstrip('/')}/chat/completions",
+            json={"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.7, "max_tokens": 4096},
+            headers=headers,
+            timeout=300,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
+
+
+def _run_agent_background(gui_state: GUIState, port: int) -> None:
+    """Run the AI agent in a background thread, posting results to the bridge.
+
+    Strategy: pre-fetch live search results, then call the model once per section.
+    This avoids relying on tool-use support and produces clean Markdown output.
+    """
+    import requests as req
+
+    base = f"http://localhost:{port}"
+    bridge = gui_state.bridge
+    config = gui_state.profile.ai_config
 
     try:
-        if sys.platform == "win32":
-            # Write a PowerShell script that reads prompt from file
-            ps_file = Path.home() / ".quickhatch-launch-agent.ps1"
-            if provider == "claude_code":
-                ps_content = (
-                    f'$p = Get-Content "{prompt_file}" -Raw\n'
-                    f'claude -p $p --dangerously-skip-permissions\n'
-                    f'Read-Host "Press Enter to close"\n'
-                )
-            elif provider == "codex":
+        bridge.add_message("agent", "Connected! Analyzing your system profile...")
+
+        # Phase 1: Pre-fetch search results and desktop images
+        bridge.add_message("agent", "Gathering live data from the web...")
+        search_context, desktop_images = _prefetch_search_context(gui_state.profile, bridge)
+
+        if desktop_images:
+            bridge.add_message("agent", f"Found {len(desktop_images)} desktop preview images.")
+
+        endpoint = config.endpoint or ""
+        model = config.model_name or ""
+        api_key = config.api_key
+
+        # Phase 2: Generate each section with its own model call
+        section_titles = {
+            "distro": "Recommended Distribution",
+            "apps": "Application Mapping",
+            "drivers": "Driver Notes",
+            "desktop": "Desktop Environment",
+            "plan": "Migration Plan",
+            "summary": "Your Migration at a Glance",
+        }
+
+        for section_key, title in section_titles.items():
+            bridge.add_message("agent", f"Generating {title.lower()}...")
+
+            prompt = _build_section_prompt(gui_state.profile, section_key, search_context)
+            content = _call_model_simple(endpoint, model, prompt, api_key)
+
+            # Strip any residual markdown fences the model might wrap around its response
+            content = content.strip()
+            if content.startswith("```"):
+                lines = content.split("\n")
+                lines = lines[1:]
+                if lines and lines[-1].strip().startswith("```"):
+                    lines = lines[:-1]
+                content = "\n".join(lines)
+
+            # Inject desktop preview images into the desktop section
+            if section_key == "desktop" and desktop_images:
+                content += "\n\n### Desktop Preview\n"
+                content += "Here's what your customized desktop can look like:\n\n"
+                for img in desktop_images[:6]:
+                    content += f"![{img['title']}]({img['url']})\n\n"
+
+            req.post(f"{base}/api/suggest", json={
+                "category": section_key,
+                "title": title,
+                "content": content,
+            }, timeout=5)
+
+        req.post(f"{base}/api/done", json={
+            "summary": "Migration analysis complete! Review the recommendations above."
+        }, timeout=5)
+
+    except Exception as e:
+        bridge.add_message("agent", f"Error: {e}")
+
+
+def _launch_agent(gui_state: GUIState, port: int) -> dict:
+    """Launch the AI agent — calls the configured API in a background thread."""
+    config = gui_state.profile.ai_config
+    provider = config.provider or "api"
+
+    if provider == "codex":
+        # Codex still launches as a CLI in a terminal
+        import subprocess
+        import sys
+
+        base = f"http://localhost:{port}"
+        prompt = _build_agent_prompt(gui_state.profile)
+        prompt_file = Path.home() / ".quickhatch-agent-prompt.txt"
+        prompt_file.write_text(prompt, encoding="utf-8")
+
+        try:
+            if sys.platform == "win32":
+                ps_file = Path.home() / ".quickhatch-launch-agent.ps1"
                 ps_content = (
                     f'$p = Get-Content "{prompt_file}" -Raw\n'
                     f'codex $p\n'
                     f'Read-Host "Press Enter to close"\n'
                 )
+                ps_file.write_text(ps_content, encoding="utf-8")
+                subprocess.Popen([
+                    "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                    "-Command", f'Start-Process powershell -ArgumentList "-NoProfile","-ExecutionPolicy","Bypass","-File","{ps_file}"'
+                ])
             else:
-                return {"status": "error", "message": f"Point your AI tool at {base}/api/profile"}
-
-            ps_file.write_text(ps_content, encoding="utf-8")
-            # Launch PowerShell in a new window with the script
-            subprocess.Popen([
-                "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
-                "-Command", f'Start-Process powershell -ArgumentList "-NoProfile","-ExecutionPolicy","Bypass","-File","{ps_file}"'
-            ])
-        else:
-            # Linux - write prompt to file, launch in terminal
-            prompt_file = Path.home() / ".quickhatch-agent-prompt.txt"
-            prompt_file.write_text(prompt, encoding="utf-8")
-
-            if provider == "claude_code":
-                shell_cmd = f'claude -p "$(cat {prompt_file})" --dangerously-skip-permissions'
-            elif provider == "codex":
                 shell_cmd = f'codex "$(cat {prompt_file})"'
-            else:
-                return {"status": "error", "message": f"Point your AI tool at {base}/api/profile"}
+                for term_cmd in [
+                    ["x-terminal-emulator", "-e", "bash", "-c", shell_cmd],
+                    ["gnome-terminal", "--", "bash", "-c", shell_cmd],
+                    ["konsole", "-e", "bash", "-c", shell_cmd],
+                    ["xterm", "-e", "bash", "-c", shell_cmd],
+                ]:
+                    try:
+                        subprocess.Popen(term_cmd)
+                        break
+                    except FileNotFoundError:
+                        continue
+                else:
+                    subprocess.Popen(["bash", "-c", shell_cmd])
+            return {"status": "ok", "message": "Codex launched in a new terminal."}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
 
-            # Try common terminal emulators
-            for term_cmd in [
-                ["x-terminal-emulator", "-e", "bash", "-c", shell_cmd],
-                ["gnome-terminal", "--", "bash", "-c", shell_cmd],
-                ["konsole", "-e", "bash", "-c", shell_cmd],
-                ["xfce4-terminal", "-e", f"bash -c '{shell_cmd}'"],
-                ["xterm", "-e", "bash", "-c", shell_cmd],
-            ]:
-                try:
-                    subprocess.Popen(term_cmd)
-                    break
-                except FileNotFoundError:
-                    continue
-            else:
-                # Fallback: spawn directly
-                subprocess.Popen(["bash", "-c", shell_cmd])
+    # For API-based providers (LM Studio, Anthropic, OpenAI), run in background
+    if not config.endpoint:
+        return {"status": "error", "message": "No API endpoint configured. Go back to AI setup."}
 
-        return {"status": "ok", "message": "Agent launched! Check the new terminal window."}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    thread = threading.Thread(target=_run_agent_background, args=(gui_state, port), daemon=True)
+    thread.start()
+    return {"status": "ok", "message": "Agent started! Analyzing your system..."}
 
 
 def _generate_ssh_key(gui_state: GUIState) -> dict:
