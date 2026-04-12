@@ -58,6 +58,12 @@ class BridgeState:
         self.agent_connected = False
         self.agent_done = False
 
+    def reset_for_rerun(self) -> None:
+        """Clear suggestions and done state for a fresh agent run."""
+        with self.lock:
+            self.suggestions.clear()
+            self.agent_done = False
+
     def add_suggestion(self, category: str, title: str, content: Any) -> str:
         sid = str(uuid.uuid4())[:8]
         suggestion = Suggestion(id=sid, category=category, title=title, content=content)

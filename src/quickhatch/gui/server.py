@@ -426,6 +426,18 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                 result = _launch_agent(gui_state, server.server_address[1])
                 self._send_json(result)
 
+            elif self.path == "/wizard/rerun-agent":
+                data = self._read_json()
+                user_msg = data.get("message", "")
+                # Clear old suggestions, reset done state
+                bridge_state.reset_for_rerun()
+                # Add user message to bridge messages
+                if user_msg:
+                    bridge_state.add_message("user", user_msg)
+                # Re-launch agent with user feedback context
+                result = _launch_agent(gui_state, server.server_address[1], user_feedback=user_msg)
+                self._send_json(result)
+
             elif self.path.startswith("/api/"):
                 self._handle_bridge_post()
 
@@ -782,7 +794,9 @@ def _prefetch_search_context(
     return "\n".join(context_parts), desktop_images
 
 
-def _build_section_prompt(profile: UserProfile, section: str, search_context: str) -> str:
+def _build_section_prompt(
+    profile: UserProfile, section: str, search_context: str, user_feedback: str = ""
+) -> str:
     """Build a prompt for a single section of the migration analysis."""
     profile_dict = asdict(profile)
     if profile_dict.get("ai_config", {}).get("api_key"):
@@ -839,7 +853,8 @@ def _build_section_prompt(profile: UserProfile, section: str, search_context: st
         f"== SECTION: {section.upper()} ==\n"
         f"{section_instructions.get(section, '')}\n"
         f"== LIVE SEARCH RESULTS (use these for up-to-date info) ==\n{search_context}\n\n"
-        f"== USER SYSTEM PROFILE ==\n{profile_json}"
+        + (f"== USER FEEDBACK (the user changed their mind — follow this!) ==\n{user_feedback}\n\n" if user_feedback else "")
+        + f"== USER SYSTEM PROFILE ==\n{profile_json}"
     )
 
 
@@ -1004,7 +1019,7 @@ def _call_model_simple(endpoint: str, model: str, prompt: str, api_key: str | No
         return resp.json()["choices"][0]["message"]["content"]
 
 
-def _run_agent_background(gui_state: GUIState, port: int) -> None:
+def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "") -> None:
     """Run the AI agent in a background thread, posting results to the bridge.
 
     Strategy: pre-fetch live search results, then call the model once per section.
@@ -1043,7 +1058,7 @@ def _run_agent_background(gui_state: GUIState, port: int) -> None:
         for section_key, title in section_titles.items():
             bridge.add_message("agent", f"Generating {title.lower()}...")
 
-            prompt = _build_section_prompt(gui_state.profile, section_key, search_context)
+            prompt = _build_section_prompt(gui_state.profile, section_key, search_context, user_feedback)
             content = _call_model_simple(endpoint, model, prompt, api_key)
 
             # Strip any residual markdown fences the model might wrap around its response
@@ -1076,18 +1091,17 @@ def _run_agent_background(gui_state: GUIState, port: int) -> None:
         bridge.add_message("agent", f"Error: {e}")
 
 
-def _launch_agent(gui_state: GUIState, port: int) -> dict:
+def _launch_agent(gui_state: GUIState, port: int, user_feedback: str = "") -> dict:
     """Launch the AI agent — calls the configured API in a background thread."""
     config = gui_state.profile.ai_config
     provider = config.provider or "api"
 
     if provider == "codex":
-        # Codex still launches as a CLI in a terminal
         import subprocess
         import sys
 
         base = f"http://localhost:{port}"
-        prompt = _build_agent_prompt(gui_state.profile)
+        prompt = _build_section_prompt(gui_state.profile, "plan", "")
         prompt_file = Path.home() / ".quickhatch-agent-prompt.txt"
         prompt_file.write_text(prompt, encoding="utf-8")
 
@@ -1127,7 +1141,12 @@ def _launch_agent(gui_state: GUIState, port: int) -> dict:
     if not config.endpoint:
         return {"status": "error", "message": "No API endpoint configured. Go back to AI setup."}
 
-    thread = threading.Thread(target=_run_agent_background, args=(gui_state, port), daemon=True)
+    thread = threading.Thread(
+        target=_run_agent_background,
+        args=(gui_state, port),
+        kwargs={"user_feedback": user_feedback},
+        daemon=True,
+    )
     thread.start()
     return {"status": "ok", "message": "Agent started! Analyzing your system..."}
 

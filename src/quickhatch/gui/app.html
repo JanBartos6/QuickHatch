@@ -1002,8 +1002,19 @@ async function launchAgent(){
 async function sendChat(){
   const inp=el('chatMsg');const msg=inp.value.trim();if(!msg)return;
   inp.value='';
-  await api('/wizard/chat','POST',{message:msg});
-  state._lastMsgCount=-1;pollBridge();
+  // Clear old suggestions from UI and reset agent state
+  const feed=el('agentFeed');
+  if(feed)feed.innerHTML='';
+  state._lastSugCount=0;
+  state._agentDone=false;
+  const st=el('agentStatus');
+  if(st)st.textContent='Regenerating based on your feedback...';
+  const dot=el('agentDot');
+  if(dot)dot.className='dot connected';
+  // Trigger re-run with user feedback
+  await api('/wizard/rerun-agent','POST',{message:msg});
+  state._lastMsgCount=-1;
+  pollBridge();
 }
 
 async function answerQuestion(qid){
