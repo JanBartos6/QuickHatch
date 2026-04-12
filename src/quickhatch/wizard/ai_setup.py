@@ -29,30 +29,24 @@ def run(profile: UserProfile) -> None:
     provider = questionary.select(
         "Which AI assistant do you want to use on your new Linux system?",
         choices=[
-            questionary.Choice("Claude Code (recommended)", value="claude_code"),
+            questionary.Choice("Claude API (recommended)", value="api_anthropic"),
             questionary.Choice("OpenAI Codex CLI", value="codex"),
+            questionary.Choice("OpenAI API", value="api_openai"),
             questionary.Choice("Local model - Ollama", value="local_ollama"),
             questionary.Choice("Local model - LM Studio", value="local_lmstudio"),
-            questionary.Choice("API key (Anthropic or OpenAI)", value="api"),
         ],
     ).ask()
 
     if provider is None:
         raise KeyboardInterrupt
 
-    profile.ai_config.provider = provider
+    # Normalize api_anthropic/api_openai to "api" for downstream code
+    if provider in ("api_anthropic", "api_openai"):
+        profile.ai_config.provider = "api"
+    else:
+        profile.ai_config.provider = provider
 
-    if provider == "claude_code":
-        if _check_cli("claude"):
-            print_success("Claude Code CLI detected!")
-        else:
-            print_warning(
-                "Claude Code CLI not found on this system. "
-                "It will be set up on your new Linux machine."
-            )
-        print_info("Claude Code manages its own model — no extra config needed.")
-
-    elif provider == "codex":
+    if provider == "codex":
         if _check_cli("codex"):
             print_success("Codex CLI detected!")
         else:
@@ -72,54 +66,73 @@ def run(profile: UserProfile) -> None:
 
     elif provider == "local_lmstudio":
         print_info("LM Studio will be set up on your new Linux system.")
-        model = questionary.text(
-            "Which model do you want to use?",
-            default="local-model",
-        ).ask()
+        endpoint = "http://localhost:1234/v1"
+        models: list[str] = []
+        if _check_local_endpoint(endpoint):
+            try:
+                import requests
+
+                resp = requests.get(f"{endpoint}/models", timeout=5)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    models = [m["id"] for m in data.get("data", []) if m.get("id")]
+            except Exception:
+                pass
+
+        if models:
+            print_success(f"LM Studio detected with {len(models)} model(s) loaded.")
+            model = questionary.select(
+                "Which model do you want to use?",
+                choices=models,
+            ).ask()
+        else:
+            print_warning(
+                "Could not reach LM Studio at localhost:1234, or no models are loaded. "
+                "Make sure LM Studio is running with a model loaded."
+            )
+            model = questionary.text(
+                "Enter the model name manually:",
+                default="local-model",
+            ).ask()
         if model is None:
             raise KeyboardInterrupt
         profile.ai_config.model_name = model
-        profile.ai_config.endpoint = "http://localhost:1234/v1"
+        profile.ai_config.endpoint = endpoint
 
-    elif provider == "api":
-        api_provider = questionary.select(
-            "Which API provider?",
+    elif provider == "api_anthropic":
+        model = questionary.select(
+            "Which Claude model?",
             choices=[
-                questionary.Choice("Anthropic (Claude)", value="anthropic"),
-                questionary.Choice("OpenAI", value="openai"),
+                questionary.Choice("Claude Opus 4.6 (most capable)", value="claude-opus-4-6"),
+                questionary.Choice("Claude Sonnet 4.6 (balanced)", value="claude-sonnet-4-6"),
+                questionary.Choice("Claude Haiku 4.5 (fastest)", value="claude-haiku-4-5-20251001"),
             ],
         ).ask()
-        if api_provider is None:
-            raise KeyboardInterrupt
-
-        if api_provider == "anthropic":
-            model = questionary.select(
-                "Which Claude model?",
-                choices=[
-                    questionary.Choice("Claude Opus 4.6 (most capable)", value="claude-opus-4-6"),
-                    questionary.Choice("Claude Sonnet 4.6 (balanced)", value="claude-sonnet-4-6"),
-                    questionary.Choice("Claude Haiku 4.5 (fastest)", value="claude-haiku-4-5-20251001"),
-                ],
-            ).ask()
-            profile.ai_config.endpoint = "https://api.anthropic.com"
-        else:
-            model = questionary.select(
-                "Which OpenAI model?",
-                choices=[
-                    questionary.Choice("GPT-4o (most capable)", value="gpt-4o"),
-                    questionary.Choice("GPT-4o mini (faster/cheaper)", value="gpt-4o-mini"),
-                    questionary.Choice("o3 (reasoning)", value="o3"),
-                ],
-            ).ask()
-            profile.ai_config.endpoint = "https://api.openai.com"
-
         if model is None:
             raise KeyboardInterrupt
         profile.ai_config.model_name = model
+        profile.ai_config.endpoint = "https://api.anthropic.com"
 
-        api_key = questionary.password(
-            f"Enter your {api_provider.title()} API key:"
+        api_key = questionary.password("Enter your Anthropic API key:").ask()
+        if api_key is None:
+            raise KeyboardInterrupt
+        profile.ai_config.api_key = api_key
+
+    elif provider == "api_openai":
+        model = questionary.select(
+            "Which OpenAI model?",
+            choices=[
+                questionary.Choice("GPT-4o (most capable)", value="gpt-4o"),
+                questionary.Choice("GPT-4o mini (faster/cheaper)", value="gpt-4o-mini"),
+                questionary.Choice("o3 (reasoning)", value="o3"),
+            ],
         ).ask()
+        if model is None:
+            raise KeyboardInterrupt
+        profile.ai_config.model_name = model
+        profile.ai_config.endpoint = "https://api.openai.com"
+
+        api_key = questionary.password("Enter your OpenAI API key:").ask()
         if api_key is None:
             raise KeyboardInterrupt
         profile.ai_config.api_key = api_key

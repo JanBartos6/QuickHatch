@@ -72,7 +72,7 @@ class Preferences:
 class AIConfig:
     """AI assistant configuration."""
 
-    provider: str = ""  # "claude_code", "codex", "local_ollama", "local_lmstudio", "api"
+    provider: str = ""  # "codex", "local_ollama", "local_lmstudio", "api"
     model_name: str | None = None
     api_key: str | None = None
     endpoint: str | None = None

@@ -37,7 +37,7 @@ def _populate_demo_profile(profile: UserProfile) -> None:
         distro_preference="",
         additional_notes="",
     )
-    profile.ai_config = AIConfig(provider="claude_code")
+    profile.ai_config = AIConfig(provider="api")
     profile.hardware = HardwareInfo(
         cpu="AMD Ryzen 7 5800X 8-Core Processor",
         cpu_cores=8,

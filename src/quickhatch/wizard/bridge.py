@@ -50,12 +50,7 @@ def _get_launch_commands(profile: UserProfile, port: int) -> dict[str, str]:
     prompt_file = _write_prompt_file(profile, port)
     provider = profile.ai_config.provider
 
-    if provider == "claude_code":
-        return {
-            "powershell": f'claude -p (Get-Content {prompt_file} -Raw)',
-            "bash": f'claude -p "$(cat {prompt_file})"',
-        }
-    elif provider == "codex":
+    if provider == "codex":
         return {
             "powershell": f'codex (Get-Content {prompt_file} -Raw)',
             "bash": f'codex "$(cat {prompt_file})"',
