@@ -135,11 +135,17 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .live-status span{font-size:.8rem;font-weight:500;color:var(--fg-muted)}
 
-.suggestion{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin:8px 0;box-shadow:var(--shadow)}
-.suggestion .cat{font-size:.65rem;text-transform:uppercase;font-weight:700;letter-spacing:.06em;color:var(--primary);margin-bottom:3px}
-.suggestion .stitle{font-weight:600;font-size:.85rem;margin-bottom:4px}
-.suggestion .scontent{color:var(--fg-muted);font-size:.82rem;white-space:pre-wrap;line-height:1.6}
-.suggestion .scontent pre{background:var(--bg-input);padding:10px;border-radius:var(--radius-sm);overflow-x:auto;font-size:.78rem;margin-top:6px}
+.suggestion{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:18px;margin:10px 0;box-shadow:var(--shadow)}
+.suggestion .cat{font-size:.65rem;text-transform:uppercase;font-weight:700;letter-spacing:.06em;color:var(--primary);margin-bottom:2px}
+.suggestion .stitle{font-weight:700;font-size:.92rem;margin-bottom:8px;color:var(--fg)}
+.suggestion .scontent{color:var(--fg-muted);font-size:.82rem;line-height:1.65}
+.suggestion .scontent pre{background:var(--bg-input);padding:10px;border-radius:var(--radius-sm);overflow-x:auto;font-size:.78rem;margin:6px 0}
+.suggestion .scontent table{margin:8px 0}
+.suggestion .scontent img{margin:6px 0}
+.suggestion .scontent strong{color:var(--fg)}
+.suggestion .scontent a{text-decoration:none}
+.suggestion .scontent a:hover{text-decoration:underline}
+.suggestion .scontent code{font-family:'Fira Code',monospace}
 
 .agent-msg{font-size:.8rem;color:var(--fg-dim);padding:3px 0;animation:fadeIn .2s ease}
 .agent-msg:last-child{color:var(--fg-muted)}
@@ -366,15 +372,20 @@ const stepRenderers={
         <h2>Choose your AI tool</h2>
         <p class="subtitle">This tool will read your system data and handle the configuration.</p>
         <div class="choices" id="aiChoice">
-          <div class="choice" data-value="claude_code" onclick="selectChoice('aiChoice',this)">
+          <div class="choice" data-value="api" onclick="selectChoice('aiChoice',this)">
             <div class="ico">${icon('zap')}</div>
-            <div class="title">Claude Code</div>
+            <div class="title">Claude API</div>
             <div class="desc">Anthropic &middot; recommended</div>
           </div>
           <div class="choice" data-value="codex" onclick="selectChoice('aiChoice',this)">
             <div class="ico">${icon('terminal')}</div>
             <div class="title">Codex CLI</div>
             <div class="desc">OpenAI</div>
+          </div>
+          <div class="choice" data-value="api_openai" onclick="selectChoice('aiChoice',this)">
+            <div class="ico">${icon('key')}</div>
+            <div class="title">OpenAI API</div>
+            <div class="desc">GPT-4o / o3</div>
           </div>
           <div class="choice" data-value="local_ollama" onclick="selectChoice('aiChoice',this)">
             <div class="ico">${icon('server')}</div>
@@ -385,11 +396,6 @@ const stepRenderers={
             <div class="ico">${icon('flask')}</div>
             <div class="title">LM Studio</div>
             <div class="desc">Run locally</div>
-          </div>
-          <div class="choice" data-value="api" onclick="selectChoice('aiChoice',this)">
-            <div class="ico">${icon('key')}</div>
-            <div class="title">API Key</div>
-            <div class="desc">Anthropic or OpenAI</div>
           </div>
         </div>
         <div id="aiExtra"></div>
@@ -532,17 +538,9 @@ const stepRenderers={
 
   bridge(){
     const port=location.port;
-    const provider=state.profile.ai_config?.provider||'claude_code';
+    const provider=state.profile.ai_config?.provider||'api';
     const customize=isCustomizeMode();
-    let cmd='';
-    if(provider==='claude_code')
-      cmd=`claude -p "Read http://localhost:${port}/api/profile for my system info. Use the QuickHatch bridge API at http://localhost:${port}/api to communicate. POST /api/suggest for recommendations, POST /api/ask for questions, POST /api/done when finished.${customize?' You are running locally on this Linux machine. Execute commands directly to customize the system based on user preferences.':''}" --dangerously-skip-permissions`;
-    else if(provider==='codex')
-      cmd=`codex "Read http://localhost:${port}/api/profile and use http://localhost:${port}/api to communicate...${customize?' Run locally on this Linux machine.':''}"`;
-    else
-      cmd=`Point your AI tool at http://localhost:${port}/api/profile`;
-
-    const canLaunch=['claude_code','codex'].includes(provider);
+    const modelName=state.profile.ai_config?.model_name||'AI model';
     const subtitle=customize
       ?'The agent will scan your system and apply your preferences directly.'
       :'The agent analyzes your system and sends back recommendations.';
@@ -551,19 +549,15 @@ const stepRenderers={
       <div class="card">
         <h2>AI Agent</h2>
         <p class="subtitle">${subtitle}</p>
-        ${canLaunch?`
-          <button class="btn btn-primary" id="launchBtn" onclick="launchAgent()" style="margin-bottom:12px">Launch agent</button>
-          <div id="launchMsg" style="margin-bottom:8px"></div>
-          <details>
-            <summary>Or run manually in a terminal</summary>
-            <div class="code-block" id="cmdBlock">${escHtml(cmd)}</div>
-            <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(el('cmdBlock').textContent);this.textContent='Copied'" style="margin-top:6px;font-size:.78rem">Copy</button>
-          </details>
-        `:`
-          <p style="color:var(--fg-muted);font-size:.84rem;margin-bottom:8px">Run this in a terminal:</p>
-          <div class="code-block" id="cmdBlock">${escHtml(cmd)}</div>
-          <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(el('cmdBlock').textContent);this.textContent='Copied'" style="margin-bottom:12px;font-size:.78rem">Copy</button>
-        `}
+        <button class="btn btn-primary" id="launchBtn" onclick="launchAgent()" style="margin-bottom:12px">
+          Launch agent${modelName!=='AI model'?' ('+escHtml(modelName)+')':''}
+        </button>
+        <div id="launchMsg" style="margin-bottom:8px"></div>
+        <details style="margin-bottom:12px">
+          <summary style="font-size:.82rem;color:var(--fg-muted);cursor:pointer">Or connect manually via API</summary>
+          <div class="code-block" id="cmdBlock">Point your AI tool at http://localhost:${port}/api/profile</div>
+          <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(el('cmdBlock').textContent);this.textContent='Copied'" style="margin-top:6px;font-size:.78rem">Copy</button>
+        </details>
         <div class="live-panel">
           <div class="live-status">
             <div class="dot" id="agentDot"></div>
@@ -657,16 +651,9 @@ const stepRenderers={
     const ip=state.profile.linux_ip||'';
     const user=state.profile.linux_user||'';
     const port=location.port;
-    const provider=state.profile.ai_config?.provider||'claude_code';
+    const provider=state.profile.ai_config?.provider||'api';
     const hasConn=ip&&user;
     const sshKey=state.profile.ssh_public_key_path?state.profile.ssh_public_key_path.replace(/\.pub$/,''):'';
-    let cmd='';
-    if(provider==='claude_code')
-      cmd=`claude -p "Read http://localhost:${port}/api/profile for the full migration plan. The user's Linux machine is at ${user||'USER'}@${ip||'IP'}${sshKey?' (SSH key: '+sshKey+')':''}. SSH in and execute the full setup: install all selected apps, migrate data, configure desktop, install drivers, verify everything works. Use http://localhost:${port}/api to post progress updates and ask questions. POST /api/done only when EVERYTHING is confirmed working." --dangerously-skip-permissions`;
-    else
-      cmd=`Point your AI tool at http://localhost:${port}/api/profile`;
-    const canLaunch=['claude_code','codex'].includes(provider);
-
     content().innerHTML=`
       <div class="card">
         <h2>Remote Setup</h2>
@@ -682,19 +669,13 @@ const stepRenderers={
         <div style="margin-bottom:16px">
           <button class="btn btn-primary" onclick="saveLinuxConn()" id="saveConnBtn">Save connection</button>
         </div>
-        ${canLaunch?`
-          <button class="btn btn-success" id="setupLaunchBtn" onclick="launchSetupAgent()"${hasConn?'':' disabled'}>Launch agent</button>
-          <div id="setupLaunchMsg" style="margin:8px 0"></div>
-          <details>
-            <summary>Or run manually</summary>
-            <div class="code-block" id="setupCmd">${escHtml(cmd)}</div>
-            <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(el('setupCmd').textContent);this.textContent='Copied'" style="margin-top:6px;font-size:.78rem">Copy</button>
-          </details>
-        `:`
-          <p style="color:var(--fg-muted);font-size:.84rem;margin-bottom:8px">Run this in a terminal:</p>
-          <div class="code-block" id="setupCmd">${escHtml(cmd)}</div>
-          <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(el('setupCmd').textContent);this.textContent='Copied'" style="margin-bottom:12px;font-size:.78rem">Copy</button>
-        `}
+        <button class="btn btn-success" id="setupLaunchBtn" onclick="launchSetupAgent()"${hasConn?'':' disabled'}>Launch agent</button>
+        <div id="setupLaunchMsg" style="margin:8px 0"></div>
+        <details style="margin-bottom:12px">
+          <summary style="font-size:.82rem;color:var(--fg-muted);cursor:pointer">Or connect manually via API</summary>
+          <div class="code-block" id="setupCmd">Point your AI tool at http://localhost:${port}/api/profile</div>
+          <button class="btn btn-ghost" onclick="navigator.clipboard.writeText(el('setupCmd').textContent);this.textContent='Copied'" style="margin-top:6px;font-size:.78rem">Copy</button>
+        </details>
         <div class="live-panel">
           <div class="live-status">
             <div class="dot" id="setupDot"></div>
@@ -748,19 +729,158 @@ function renderDone(){
 // ── Helpers ──
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function renderMd(s){
-  // Lightweight markdown: headings, bold, italic, code, links, lists
-  return escHtml(s)
-    .replace(/^### (.+)$/gm,'<strong style="font-size:.88rem;display:block;margin:10px 0 4px">$1</strong>')
-    .replace(/^## (.+)$/gm,'<strong style="font-size:.95rem;display:block;margin:12px 0 4px">$1</strong>')
-    .replace(/^# (.+)$/gm,'<strong style="font-size:1.05rem;display:block;margin:14px 0 6px;color:var(--fg)">$1</strong>')
+  // Robust markdown renderer for LLM output
+  const blocks=[];  // extracted blocks (code, table) to protect from escaping
+  const PH=(i)=>`\x00B${i}\x00`;
+
+  // 1) Extract fenced code blocks
+  let text=s.replace(/```(\w*)\n([\s\S]*?)```/g,(_,lang,code)=>{
+    blocks.push(`<pre style="background:var(--bg-input);padding:10px;border-radius:var(--radius-sm);overflow-x:auto;font-size:.78rem;margin:6px 0">${escHtml(code.trim())}</pre>`);
+    return PH(blocks.length-1);
+  });
+
+  // 2) Extract and render tables (pipe-delimited)
+  // Greedy: grabs all consecutive lines that contain at least one pipe
+  text=text.replace(/((?:^[ \t]*\|.+\n?){2,})/gm,(tableStr)=>{
+    const rows=tableStr.trim().split('\n').map(r=>r.trim()).filter(r=>r.includes('|'));
+    if(rows.length<2)return tableStr;
+    const isSep=r=>/^\|?[\s:|-]+\|?$/.test(r)&&r.includes('---');
+    const sepIdx=rows.findIndex((r,i)=>i>0&&isSep(r));
+    const hasHeader=sepIdx===1;
+    const parseRow=r=>{
+      // Strip leading/trailing pipes, split on pipes
+      let s=r.replace(/^\|/,'').replace(/\|$/,'');
+      return s.split('|').map(c=>c.trim());
+    };
+    // Validate: check that all data rows have similar column counts
+    const dataCols=parseRow(rows[hasHeader?0:0]).length;
+    if(dataCols<2)return tableStr;
+    let html='<table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:8px 0">';
+    let dataIdx=0;
+    rows.forEach((row,i)=>{
+      if(i===sepIdx)return;  // skip separator
+      const cells=parseRow(row);
+      if(cells.length<2)return;  // skip malformed rows
+      const tag=hasHeader&&i===0?'th':'td';
+      const stripe=tag==='td'&&dataIdx%2===1?'background:rgba(255,255,255,.03);':'';
+      const style=tag==='th'
+        ?`style="text-align:left;padding:8px 12px;border-bottom:2px solid var(--border);font-weight:600;font-size:.78rem;color:var(--fg-muted);white-space:nowrap"`
+        :`style="text-align:left;padding:7px 12px;border-bottom:1px solid var(--border);${stripe}"`;
+      html+='<tr>'+cells.map(c=>`<${tag} ${style}>${renderMdInline(c)}</${tag}>`).join('')+'</tr>';
+      if(tag==='td')dataIdx++;
+    });
+    html+='</table>';
+    blocks.push(html);
+    return PH(blocks.length-1);
+  });
+
+  // 2b) Catch orphan pipe-rows not caught by the table regex (single rows)
+  text=text.replace(/^[ \t]*(\|.+\|)[ \t]*$/gm,(m,row)=>{
+    const cells=row.replace(/^\|/,'').replace(/\|$/,'').split('|').map(c=>c.trim());
+    if(cells.length<2||/^[\s:|-]+$/.test(cells.join('')))return m; // skip separators
+    let html='<table style="width:100%;border-collapse:collapse;font-size:.82rem;margin:4px 0"><tr>';
+    html+=cells.map(c=>`<td style="text-align:left;padding:7px 12px;border-bottom:1px solid var(--border)">${renderMdInline(c)}</td>`).join('');
+    html+='</tr></table>';
+    blocks.push(html);
+    return PH(blocks.length-1);
+  });
+
+  // 3) Extract images before escaping (URLs contain special chars)
+  text=text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,(_,alt,url)=>{
+    blocks.push(`<div style="margin:10px 0"><img src="${escHtml(url)}" alt="${escHtml(alt)}" style="max-width:100%;max-height:400px;border-radius:var(--radius-sm);border:1px solid var(--border)" onerror="this.parentElement.style.display='none'"><div style="font-size:.72rem;color:var(--fg-dim);margin-top:3px">${escHtml(alt)}</div></div>`);
+    return PH(blocks.length-1);
+  });
+
+  // 4) Extract links before escaping
+  text=text.replace(/\[([^\]]+)\]\(([^)]+)\)/g,(_,label,url)=>{
+    blocks.push(`<a href="${escHtml(url)}" target="_blank" style="color:var(--primary)">${escHtml(label)}</a>`);
+    return PH(blocks.length-1);
+  });
+
+  // 5) Now escape HTML in remaining text
+  text=escHtml(text);
+
+  // 6) Headings (#### down to #)
+  text=text
+    .replace(/^#{4,}\s+(.+)$/gm,'<div style="font-weight:600;font-size:.86rem;margin:10px 0 4px;color:var(--fg)">$1</div>')
+    .replace(/^###\s+(.+)$/gm,'<div style="font-weight:600;font-size:.9rem;margin:10px 0 4px;color:var(--fg)">$1</div>')
+    .replace(/^##\s+(.+)$/gm,'<div style="font-weight:700;font-size:.95rem;margin:12px 0 5px;color:var(--fg)">$1</div>')
+    .replace(/^#\s+(.+)$/gm,'<div style="font-weight:700;font-size:1.05rem;margin:14px 0 6px;color:var(--fg)">$1</div>');
+
+  // 7) Bold and italic
+  text=text
+    .replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>')
     .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-    .replace(/`([^`]+)`/g,'<code>$1</code>')
-    .replace(/^- (.+)$/gm,'<span style="display:block;padding-left:14px">&bull; $1</span>')
-    .replace(/^\d+\. (.+)$/gm,(m,p1,off,str)=>`<span style="display:block;padding-left:14px">${m.match(/^\d+/)[0]}. ${p1}</span>`);
+    .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g,'<em>$1</em>');
+
+  // 8) Inline code
+  text=text.replace(/`([^`]+)`/g,'<code style="background:var(--bg-input);padding:1px 5px;border-radius:3px;font-size:.8em">$1</code>');
+
+  // 9) Bullet lists (-, *, •, with optional indentation)
+  text=text.replace(/^[ \t]*[*\-\u2022]\s+(.+)$/gm,'<div style="padding-left:16px;margin:2px 0">&bull; $1</div>');
+
+  // 10) Numbered lists
+  text=text.replace(/^[ \t]*(\d+)\.\s+(.+)$/gm,'<div style="padding-left:16px;margin:2px 0"><strong style="color:var(--primary)">$1.</strong> $2</div>');
+
+  // 11) Horizontal rules
+  text=text.replace(/^---+$/gm,'<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">');
+
+  // 12) Line breaks
+  text=text.replace(/\n\n+/g,'<div style="margin:8px 0"></div>').replace(/\n/g,'<br>');
+
+  // 13) Restore protected blocks
+  text=text.replace(/\x00B(\d+)\x00/g,(_,i)=>blocks[+i]);
+  return text;
 }
-function selectChoice(gid,el){
+function renderMdInline(s){
+  // Inline-only markdown for table cells (bold, italic, code, links)
+  return escHtml(s)
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code style="background:var(--bg-input);padding:1px 4px;border-radius:3px;font-size:.8em">$1</code>');
+}
+function selectChoice(gid,elem){
   document.querySelectorAll(`#${gid} .choice`).forEach(c=>c.classList.remove('selected'));
-  el.classList.add('selected');
+  elem.classList.add('selected');
+  if(gid==='aiChoice') showAIExtra(elem.dataset.value);
+}
+async function showAIExtra(provider){
+  const box=document.getElementById('aiExtra');
+  if(!box)return;
+  if(provider==='local_lmstudio'){
+    box.innerHTML='<p style="color:var(--fg-muted);font-size:.84rem">Checking LM Studio...</p>';
+    try{
+      const r=await fetch('/wizard/lmstudio-models');const d=await r.json();
+      if(d.models&&d.models.length){
+        box.innerHTML='<div class="field"><label>Model</label><select id="aiModel">'+
+          d.models.map(m=>`<option value="${m}">${m}</option>`).join('')+'</select></div>';
+      }else{
+        box.innerHTML='<div class="field"><label>Model name</label><input type="text" id="aiModel" value="local-model" placeholder="e.g. qwen3-8b"><p style="color:var(--fg-muted);font-size:.78rem">Could not reach LM Studio at localhost:1234. Make sure it\'s running with a model loaded.</p></div>';
+      }
+    }catch(e){
+      box.innerHTML='<div class="field"><label>Model name</label><input type="text" id="aiModel" value="local-model"></div>';
+    }
+  }else if(provider==='local_ollama'){
+    box.innerHTML='<div class="field"><label>Model name</label><input type="text" id="aiModel" value="llama3" placeholder="e.g. llama3, codellama, mistral"></div>';
+  }else if(provider==='api'){
+    box.innerHTML='<div class="field"><label>Claude model</label><select id="aiModel">'+
+      '<option value="claude-opus-4-6">Claude Opus 4.6 (most capable)</option>'+
+      '<option value="claude-sonnet-4-6">Claude Sonnet 4.6 (balanced)</option>'+
+      '<option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (fastest)</option>'+
+      '</select></div>'+
+      '<div class="field"><label>Anthropic API key</label><input type="password" id="aiApiKey" placeholder="sk-ant-..."></div>';
+  }else if(provider==='api_openai'){
+    box.innerHTML='<div class="field"><label>OpenAI model</label><select id="aiModel">'+
+      '<option value="gpt-4o">GPT-4o (most capable)</option>'+
+      '<option value="gpt-4o-mini">GPT-4o mini (faster/cheaper)</option>'+
+      '<option value="o3">o3 (reasoning)</option>'+
+      '</select></div>'+
+      '<div class="field"><label>OpenAI API key</label><input type="password" id="aiApiKey" placeholder="sk-..."></div>';
+  }else if(provider==='codex'){
+    box.innerHTML='';
+  }else{
+    box.innerHTML='';
+  }
 }
 function toggleCheck(el){el.classList.toggle('selected')}
 function getSelected(gid){const s=document.querySelector(`#${gid} .choice.selected`);return s?s.dataset.value:''}
@@ -780,7 +900,16 @@ async function submitWelcome(){
 }
 async function submitAI(){
   const p=getSelected('aiChoice');if(!p)return;
-  await saveProfile({ai_config:{provider:p}});await completeStep('ai_setup');
+  const modelEl=document.getElementById('aiModel');
+  const keyEl=document.getElementById('aiApiKey');
+  const cfg={provider:p==='api_openai'?'api':p==='api'?'api':p};
+  if(modelEl)cfg.model_name=modelEl.value;
+  if(keyEl&&keyEl.value)cfg.api_key=keyEl.value;
+  if(p==='local_lmstudio')cfg.endpoint='http://localhost:1234/v1';
+  else if(p==='local_ollama')cfg.endpoint='http://localhost:11434';
+  else if(p==='api')cfg.endpoint='https://api.anthropic.com';
+  else if(p==='api_openai')cfg.endpoint='https://api.openai.com';
+  await saveProfile({ai_config:cfg});await completeStep('ai_setup');
 }
 async function submitPrefs(){
   let iconVal=el('iconStyle').value;
@@ -835,6 +964,9 @@ async function runScan(){
     el('scanResults').innerHTML='<p style="color:var(--fg-dim);font-size:.84rem">Limited results. The AI will work with your preferences.</p>';
   }
   el('scanBtn').classList.add('hidden');el('scanNext').classList.remove('hidden');
+  // Refresh client profile so subsequent steps see the scan results
+  const fresh=await api('/wizard/profile');
+  if(fresh.profile)state.profile=fresh.profile;
 }
 function hwCard(label,value,sub){return`<div class="hw-card"><div class="hw-label">${label}</div><div class="hw-value">${value}</div>${sub?`<div class="hw-sub">${sub}</div>`:''}</div>`}
 
