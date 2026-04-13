@@ -423,7 +423,8 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
 
             elif self.path == "/wizard/launch-agent":
                 data = self._read_json()
-                result = _launch_agent(gui_state, server.server_address[1])
+                phase = data.get("phase", "analysis")
+                result = _launch_agent(gui_state, server.server_address[1], phase=phase)
                 self._send_json(result)
 
             elif self.path == "/wizard/rerun-agent":
@@ -1091,7 +1092,7 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
         bridge.add_message("agent", f"Error: {e}")
 
 
-def _launch_agent(gui_state: GUIState, port: int, user_feedback: str = "") -> dict:
+def _launch_agent(gui_state: GUIState, port: int, user_feedback: str = "", phase: str = "analysis") -> dict:
     """Launch the AI agent — calls the configured API in a background thread."""
     config = gui_state.profile.ai_config
     provider = config.provider or "api"
@@ -1141,6 +1142,16 @@ def _launch_agent(gui_state: GUIState, port: int, user_feedback: str = "") -> di
     if not config.endpoint:
         return {"status": "error", "message": "No API endpoint configured. Go back to AI setup."}
 
+    # Check if this is a setup-phase launch (SSH into Linux machine)
+    if phase == "setup":
+        thread = threading.Thread(
+            target=_run_setup_agent,
+            args=(gui_state, port),
+            daemon=True,
+        )
+        thread.start()
+        return {"status": "ok", "message": "Setup agent started! Connecting via SSH..."}
+
     thread = threading.Thread(
         target=_run_agent_background,
         args=(gui_state, port),
@@ -1149,6 +1160,180 @@ def _launch_agent(gui_state: GUIState, port: int, user_feedback: str = "") -> di
     )
     thread.start()
     return {"status": "ok", "message": "Agent started! Analyzing your system..."}
+
+
+def _ssh_exec(host: str, user: str, cmd: str, key_path: str | None = None, timeout: int = 120) -> tuple[int, str, str]:
+    """Execute a command on a remote host via SSH. Returns (returncode, stdout, stderr)."""
+    import subprocess
+
+    ssh_args = [
+        "ssh", "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=10",
+        "-o", "BatchMode=yes",
+    ]
+    if key_path:
+        ssh_args += ["-i", key_path]
+    ssh_args += [f"{user}@{host}", cmd]
+
+    try:
+        result = subprocess.run(
+            ssh_args, capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=timeout,
+        )
+        return result.returncode, result.stdout, result.stderr
+    except subprocess.TimeoutExpired:
+        return -1, "", "Command timed out"
+    except FileNotFoundError:
+        return -1, "", "ssh not found — install OpenSSH"
+
+
+def _run_setup_agent(gui_state: GUIState, port: int) -> None:
+    """Run the setup phase: SSH into the Linux machine and execute migration commands.
+
+    Strategy:
+    1. Test SSH connectivity
+    2. Ask the LLM to generate shell commands for each setup phase
+    3. Execute each command via SSH and report results
+    """
+    import requests as req
+
+    base = f"http://localhost:{port}"
+    bridge = gui_state.bridge
+    config = gui_state.profile.ai_config
+    profile = gui_state.profile
+
+    host = getattr(profile, "linux_ip", "") or ""
+    user = getattr(profile, "linux_user", "") or ""
+    key_path = None
+    if profile.ssh_public_key_path:
+        # Use the private key (public key path minus .pub)
+        priv = profile.ssh_public_key_path.replace(".pub", "")
+        if Path(priv).exists():
+            key_path = priv
+
+    if not host or not user:
+        bridge.add_message("agent", "Error: No Linux IP/username configured.")
+        return
+
+    try:
+        # Phase 1: Test SSH
+        bridge.add_message("agent", f"Connecting to {user}@{host}...")
+        rc, out, err = _ssh_exec(host, user, "echo 'QuickHatch connected!' && uname -a", key_path)
+        if rc != 0:
+            bridge.add_message("agent", f"SSH connection failed: {err.strip()}")
+            bridge.add_message("agent", "Make sure you ran quickstart.sh on the Linux machine and the IP/username are correct.")
+            return
+        bridge.add_message("agent", f"Connected! {out.strip()}")
+
+        # Phase 2: Gather system info from the remote machine
+        bridge.add_message("agent", "Gathering remote system info...")
+        rc, out, _ = _ssh_exec(host, user, "cat /etc/os-release 2>/dev/null; echo '---'; df -h / 2>/dev/null; echo '---'; free -h 2>/dev/null", key_path)
+        remote_info = out.strip() if rc == 0 else "Could not gather system info"
+
+        # Phase 3: Ask LLM for setup commands, one phase at a time
+        endpoint = config.endpoint or ""
+        model = config.model_name or ""
+        api_key = config.api_key
+
+        profile_dict = asdict(profile)
+        if profile_dict.get("ai_config", {}).get("api_key"):
+            profile_dict["ai_config"]["api_key"] = "***REDACTED***"
+        profile_json = json.dumps(profile_dict, indent=2, default=str)
+
+        setup_phases = [
+            ("System Update", "Update the system packages. Use the correct package manager for the distro."),
+            ("Driver Installation", "Install GPU drivers and any hardware-specific drivers from the migration plan."),
+            ("Desktop & Theming", "Install and configure the desktop environment, theme, icons, and dock based on user preferences."),
+            ("Application Installation", "Install all the Linux equivalents from the application mapping."),
+            ("Configuration", "Apply system configuration: shell setup, fonts, wallpaper, and any remaining tweaks."),
+        ]
+
+        for phase_name, phase_desc in setup_phases:
+            bridge.add_message("agent", f"Planning: {phase_name}...")
+
+            prompt = (
+                "You are a Linux system administrator executing a migration remotely via SSH.\n"
+                f"The target machine is running: {remote_info[:500]}\n\n"
+                f"Current phase: {phase_name}\n"
+                f"Task: {phase_desc}\n\n"
+                "Generate a list of shell commands to execute. Return ONLY a JSON array of strings,\n"
+                "where each string is one shell command. Example:\n"
+                '[\"sudo pacman -Syu --noconfirm\", \"sudo pacman -S --noconfirm firefox\"]\n\n'
+                "Rules:\n"
+                "- Use non-interactive flags (--noconfirm, -y, etc.)\n"
+                "- Each command should be independent (no && chaining)\n"
+                "- Skip commands that require user input\n"
+                "- Be specific to the detected distro and package manager\n\n"
+                f"== USER SYSTEM PROFILE ==\n{profile_json}"
+            )
+
+            response = _call_model_simple(endpoint, model, prompt, api_key)
+
+            # Parse commands from response
+            commands: list[str] = []
+            response = response.strip()
+            # Strip markdown fences
+            if response.startswith("```"):
+                lines = response.split("\n")
+                lines = lines[1:]
+                if lines and lines[-1].strip().startswith("```"):
+                    lines = lines[:-1]
+                response = "\n".join(lines)
+            try:
+                parsed = json.loads(response)
+                if isinstance(parsed, list):
+                    commands = [str(c) for c in parsed if isinstance(c, str)]
+            except json.JSONDecodeError:
+                # Try to extract JSON array from text
+                import re
+                match = re.search(r'\[[\s\S]*\]', response)
+                if match:
+                    try:
+                        parsed = json.loads(match.group())
+                        commands = [str(c) for c in parsed if isinstance(c, str)]
+                    except json.JSONDecodeError:
+                        pass
+
+            if not commands:
+                bridge.add_message("agent", f"Warning: No commands generated for {phase_name}. Skipping.")
+                continue
+
+            # Execute commands
+            bridge.add_message("agent", f"Executing {phase_name} ({len(commands)} commands)...")
+            results_md = f"### {phase_name}\n\n"
+
+            for i, cmd in enumerate(commands, 1):
+                bridge.add_message("agent", f"[{i}/{len(commands)}] `{cmd}`")
+                rc, out, err = _ssh_exec(host, user, cmd, key_path, timeout=300)
+                status = "OK" if rc == 0 else f"FAILED (exit {rc})"
+                results_md += f"**{i}.** `{cmd}` — {status}\n"
+                if rc != 0 and err.strip():
+                    results_md += f"  - Error: {err.strip()[:200]}\n"
+                elif out.strip() and len(out.strip()) < 200:
+                    results_md += f"  - {out.strip()}\n"
+
+            # Post results as a suggestion
+            req.post(f"{base}/api/suggest", json={
+                "category": phase_name.lower().replace(" ", "_"),
+                "title": phase_name,
+                "content": results_md,
+            }, timeout=5)
+
+        # Final verification
+        bridge.add_message("agent", "Running verification checks...")
+        rc, out, _ = _ssh_exec(host, user, "echo '=== GPU ===' && (nvidia-smi 2>/dev/null || echo 'No NVIDIA driver') && echo '=== Desktop ===' && (echo $XDG_CURRENT_DESKTOP 2>/dev/null || echo 'N/A') && echo '=== Disk ===' && df -h /", key_path)
+
+        req.post(f"{base}/api/suggest", json={
+            "category": "verification",
+            "title": "Setup Verification",
+            "content": f"### System Check\n\n```\n{out.strip()}\n```",
+        }, timeout=5)
+
+        req.post(f"{base}/api/done", json={
+            "summary": "Remote setup complete! Your Linux machine should be ready to use."
+        }, timeout=5)
+
+    except Exception as e:
+        bridge.add_message("agent", f"Error: {e}")
 
 
 def _generate_ssh_key(gui_state: GUIState) -> dict:
