@@ -449,6 +449,42 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                 result = _launch_agent(gui_state, server.server_address[1], phase=phase)
                 self._send_json(result)
 
+            elif self.path == "/wizard/stop-agent":
+                bridge_state.request_stop()
+                bridge_state.add_message("agent", "Stop requested — finishing current step and exiting.")
+                self._send_json({"status": "ok"})
+
+            elif self.path == "/wizard/test-ssh":
+                data = self._read_json()
+                host_in = (data.get("ip") or "").strip()
+                user_in = (data.get("user") or "").strip()
+                if not host_in or not user_in:
+                    self._send_json({"status": "error", "message": "Enter IP and username first."})
+                else:
+                    port_num = 22
+                    host = host_in
+                    if ":" in host_in:
+                        h, _, p = host_in.rpartition(":")
+                        host = h
+                        try:
+                            port_num = int(p)
+                        except ValueError:
+                            pass
+                    key_path = None
+                    if gui_state.profile.ssh_public_key_path:
+                        priv = gui_state.profile.ssh_public_key_path.replace(".pub", "")
+                        if Path(priv).exists():
+                            key_path = priv
+                    if not key_path:
+                        default_key = Path.home() / ".ssh" / "id_ed25519"
+                        if default_key.exists():
+                            key_path = str(default_key)
+                    rc, out, err = _ssh_exec(host, user_in, "uname -sr && hostname", key_path, timeout=15, port=port_num)
+                    if rc == 0:
+                        self._send_json({"status": "ok", "info": out.strip().replace("\n", " · ")})
+                    else:
+                        self._send_json({"status": "error", "message": (err.strip() or "SSH connection failed")[:200]})
+
             elif self.path == "/wizard/rerun-agent":
                 data = self._read_json()
                 user_msg = data.get("message", "")
@@ -1140,6 +1176,14 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
         }
 
         for section_key, title in section_titles.items():
+            if bridge.stop_requested:
+                bridge.add_message("agent", "Stopped.")
+                req.post(
+                    f"{base}/api/done",
+                    json={"summary": "Analysis stopped by user."},
+                    timeout=5,
+                )
+                return
             bridge.add_message("agent", f"Generating {title.lower()}...")
 
             prompt = _build_section_prompt(
@@ -1491,6 +1535,15 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
         results_log: list[str] = []  # track all commands and results for the final summary
 
         for iteration in range(MAX_ITERATIONS):
+            # Honor Stop requests from the UI
+            if bridge.stop_requested:
+                bridge.add_message("agent", "Stopped.")
+                req.post(
+                    f"{base}/api/done",
+                    json={"summary": "Agent stopped by user."},
+                    timeout=5,
+                )
+                return
             # Call the LLM
             if "anthropic" in endpoint:
                 response_text = _call_anthropic(

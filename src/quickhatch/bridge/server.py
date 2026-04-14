@@ -57,12 +57,19 @@ class BridgeState:
         self._on_message: list[Any] = []
         self.agent_connected = False
         self.agent_done = False
+        self.stop_requested = False
 
     def reset_for_rerun(self) -> None:
         """Clear suggestions and done state for a fresh agent run."""
         with self.lock:
             self.suggestions.clear()
             self.agent_done = False
+            self.stop_requested = False
+
+    def request_stop(self) -> None:
+        """Signal any running agent to stop at the next iteration."""
+        with self.lock:
+            self.stop_requested = True
 
     def add_suggestion(self, category: str, title: str, content: Any) -> str:
         sid = str(uuid.uuid4())[:8]
