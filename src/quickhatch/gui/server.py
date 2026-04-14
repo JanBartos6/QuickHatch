@@ -1162,6 +1162,58 @@ def _launch_agent(gui_state: GUIState, port: int, user_feedback: str = "", phase
     return {"status": "ok", "message": "Agent started! Analyzing your system..."}
 
 
+def _extract_json_objects(text: str) -> list[dict]:
+    """Extract one or more top-level JSON objects from text.
+
+    Handles cases where the model emits multiple JSON objects in one response
+    (e.g. a status followed by an ssh_exec), possibly with text between them.
+    """
+    objects: list[dict] = []
+    i = 0
+    n = len(text)
+    while i < n:
+        if text[i] != "{":
+            i += 1
+            continue
+        # Try to find a matching closing brace with proper string handling
+        depth = 0
+        in_string = False
+        escape_next = False
+        start = i
+        end = -1
+        for j in range(i, n):
+            c = text[j]
+            if escape_next:
+                escape_next = False
+                continue
+            if c == "\\":
+                escape_next = True
+                continue
+            if c == '"' and not escape_next:
+                in_string = not in_string
+                continue
+            if in_string:
+                continue
+            if c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
+                if depth == 0:
+                    end = j + 1
+                    break
+        if end > start:
+            try:
+                obj = json.loads(text[start:end])
+                if isinstance(obj, dict):
+                    objects.append(obj)
+            except json.JSONDecodeError:
+                pass
+            i = end
+        else:
+            i += 1
+    return objects
+
+
 def _ssh_exec(host: str, user: str, cmd: str, key_path: str | None = None, timeout: int = 120, port: int = 22) -> tuple[int, str, str]:
     """Execute a command on a remote host via SSH. Returns (returncode, stdout, stderr)."""
     import subprocess
@@ -1261,35 +1313,44 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
         model = config.model_name or ""
         api_key = config.api_key
 
-        # Step 4: Build system prompt for the agentic loop
+        # Step 4: Gather any existing migration plan from the analysis phase
+        migration_plan_md = ""
+        if bridge.suggestions:
+            plan_parts = ["The migration plan has already been generated during the analysis phase.\n"
+                          "Use this as your blueprint — do not re-plan from scratch.\n"]
+            for s in bridge.suggestions:
+                plan_parts.append(f"\n### {s.title}\n{s.content}")
+            migration_plan_md = "\n".join(plan_parts)
+
+        # Step 5: Build system prompt for the agentic loop
         system_prompt = (
             "You are a Linux system administrator. You are connected to a remote machine via SSH "
-            "and your job is to set up the full migration from Windows to Linux based on the user's profile.\n\n"
+            "and your job is to execute the migration plan (provided below) on the remote machine.\n\n"
             "You have ONE tool: ssh_exec — it runs a shell command on the remote machine and returns the output.\n"
             "To use it, respond with a JSON object:\n"
             '  {"action": "ssh_exec", "command": "your shell command here", "reason": "why you are running this"}\n\n'
             "When you are completely done with the entire setup, respond with:\n"
             '  {"action": "done", "summary": "brief summary of what was accomplished"}\n\n'
             "To post a progress update to the user (shown in the UI), respond with:\n"
-            '  {"action": "status", "message": "what you are doing now"}\n'
-            "You can combine status with ssh_exec in a single response.\n\n"
+            '  {"action": "status", "message": "what you are doing now"}\n\n'
             "RULES:\n"
             "- Run ONE command at a time, then analyze the output before deciding the next step\n"
             "- If a command fails, diagnose WHY from the error output and fix it — don't just retry\n"
             "- Use non-interactive flags always (--noconfirm, -y, DEBIAN_FRONTEND=noninteractive, etc.)\n"
-            "- You are logged in as the user shown in the system info — use sudo if needed\n"
-            "- Adapt to the detected distro and package manager\n"
+            "- You are logged in as the user shown in the system info — use sudo only if needed\n"
+            "- Follow the migration plan above, but ADAPT to actual conditions (e.g. disk space, missing packages)\n"
             "- If disk space is low, address that FIRST before installing packages\n"
             "- After installing major components, verify they work before moving on\n\n"
-            "YOUR MISSION (in order):\n"
+            "EXECUTION ORDER (based on the plan):\n"
             "1. Prepare the system (expand disk/tmpfs if needed, update packages)\n"
             "2. Install and configure GPU drivers\n"
-            "3. Install the desktop environment and apply theming (per user preferences)\n"
-            "4. Install all application equivalents from the migration plan\n"
-            "5. Apply system configuration (shell, fonts, wallpaper, etc.)\n"
+            "3. Install the desktop environment and apply theming\n"
+            "4. Install all application equivalents from the plan\n"
+            "5. Apply system configuration\n"
             "6. Run final verification checks\n\n"
             f"== REMOTE SYSTEM INFO ==\n{system_info}\n\n"
-            f"== USER MIGRATION PROFILE ==\n{profile_json}"
+            + (f"== MIGRATION PLAN (pre-generated) ==\n{migration_plan_md}\n\n" if migration_plan_md else "")
+            + f"== USER MIGRATION PROFILE ==\n{profile_json}"
         )
 
         # Step 5: Agentic conversation loop
@@ -1322,7 +1383,7 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
             # Append assistant response to history
             messages.append({"role": "assistant", "content": response_text})
 
-            # Parse the action from the response
+            # Parse actions from the response — there may be multiple JSON objects
             response_text = response_text.strip()
             # Strip markdown fences
             if response_text.startswith("```"):
@@ -1332,21 +1393,9 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                     lines = lines[:-1]
                 response_text = "\n".join(lines)
 
-            action = None
-            try:
-                action = json.loads(response_text)
-            except json.JSONDecodeError:
-                # Try to find JSON in the response
-                import re
-                match = re.search(r'\{[\s\S]*\}', response_text)
-                if match:
-                    try:
-                        action = json.loads(match.group())
-                    except json.JSONDecodeError:
-                        pass
+            actions = _extract_json_objects(response_text)
 
-            if not action or not isinstance(action, dict):
-                # Model didn't return valid JSON — ask it to try again
+            if not actions:
                 bridge.add_message("agent", f"Model response (non-JSON): {response_text[:200]}")
                 messages.append({
                     "role": "user",
@@ -1354,87 +1403,85 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                 })
                 continue
 
-            act = action.get("action", "")
+            # Process each action in order. Feed a consolidated user message
+            # back to the model at the end so history stays aligned.
+            pending_feedback: list[str] = []
+            finished = False
 
-            # Handle status updates
-            if action.get("message"):
-                bridge.add_message("agent", action["message"])
+            for action in actions:
+                act = action.get("action", "")
 
-            # Handle "done"
-            if act == "done":
-                summary = action.get("summary", "Setup complete.")
-                bridge.add_message("agent", f"Finished: {summary}")
+                if action.get("message"):
+                    bridge.add_message("agent", action["message"])
 
-                # Post the full execution log
-                log_md = "### Execution Log\n\n"
-                for entry in results_log:
-                    log_md += entry + "\n"
-                req.post(f"{base}/api/suggest", json={
-                    "category": "execution_log",
-                    "title": "Setup Execution Log",
-                    "content": log_md,
-                }, timeout=5)
+                if act == "done":
+                    summary = action.get("summary", "Setup complete.")
+                    bridge.add_message("agent", f"Finished: {summary}")
+                    log_md = "### Execution Log\n\n"
+                    for entry in results_log:
+                        log_md += entry + "\n"
+                    req.post(f"{base}/api/suggest", json={
+                        "category": "execution_log",
+                        "title": "Setup Execution Log",
+                        "content": log_md,
+                    }, timeout=5)
+                    req.post(f"{base}/api/done", json={"summary": summary}, timeout=5)
+                    finished = True
+                    break
 
-                req.post(f"{base}/api/done", json={"summary": summary}, timeout=5)
-                return
+                if act == "ssh_exec":
+                    cmd = action.get("command", "")
+                    reason = action.get("reason", "")
+                    if not cmd:
+                        pending_feedback.append("Error: empty command. Provide a valid shell command.")
+                        continue
 
-            # Handle "ssh_exec"
-            if act == "ssh_exec":
-                cmd = action.get("command", "")
-                reason = action.get("reason", "")
-                if not cmd:
-                    messages.append({"role": "user", "content": "Error: empty command. Provide a valid shell command."})
+                    bridge.add_message("agent", f"`{cmd}`" + (f" — {reason}" if reason else ""))
+
+                    rc, out, err = _ssh_exec(host, user, cmd, key_path, timeout=300, port=ssh_port)
+
+                    result_parts = [f"[result for: {cmd}]", f"Exit code: {rc}"]
+                    if out.strip():
+                        stdout_text = out.strip()
+                        if len(stdout_text) > 2000:
+                            stdout_text = stdout_text[:1000] + "\n... (truncated) ...\n" + stdout_text[-500:]
+                        result_parts.append(f"STDOUT:\n{stdout_text}")
+                    if err.strip():
+                        stderr_text = err.strip()
+                        if len(stderr_text) > 1000:
+                            stderr_text = stderr_text[:500] + "\n... (truncated) ...\n" + stderr_text[-300:]
+                        result_parts.append(f"STDERR:\n{stderr_text}")
+
+                    pending_feedback.append("\n".join(result_parts))
+
+                    status = "OK" if rc == 0 else f"FAILED ({rc})"
+                    results_log.append(f"**`{cmd}`** — {status}")
+                    if rc != 0 and err.strip():
+                        results_log.append(f"  Error: {err.strip()[:150]}")
+
+                    if len(results_log) % 5 == 0:
+                        req.post(f"{base}/api/suggest", json={
+                            "category": "progress",
+                            "title": f"Progress ({len(results_log)} commands executed)",
+                            "content": "\n".join(results_log[-10:]),
+                        }, timeout=5)
                     continue
 
-                bridge.add_message("agent", f"`{cmd}`" + (f" — {reason}" if reason else ""))
+                if act == "status":
+                    # status-only — no feedback needed
+                    continue
 
-                rc, out, err = _ssh_exec(host, user, cmd, key_path, timeout=300, port=ssh_port)
+                pending_feedback.append(f"Unknown action '{act}'. Use ssh_exec, status, or done.")
 
-                # Build result message for the model
-                result_parts = [f"Exit code: {rc}"]
-                if out.strip():
-                    # Truncate very long output to avoid filling context
-                    stdout_text = out.strip()
-                    if len(stdout_text) > 2000:
-                        stdout_text = stdout_text[:1000] + "\n... (truncated) ...\n" + stdout_text[-500:]
-                    result_parts.append(f"STDOUT:\n{stdout_text}")
-                if err.strip():
-                    stderr_text = err.strip()
-                    if len(stderr_text) > 1000:
-                        stderr_text = stderr_text[:500] + "\n... (truncated) ...\n" + stderr_text[-300:]
-                    result_parts.append(f"STDERR:\n{stderr_text}")
+            if finished:
+                return
 
-                result_msg = "\n".join(result_parts)
-
-                # Log for the summary
-                status = "OK" if rc == 0 else f"FAILED ({rc})"
-                results_log.append(f"**`{cmd}`** — {status}")
-                if rc != 0 and err.strip():
-                    results_log.append(f"  Error: {err.strip()[:150]}")
-
-                # Feed result back to the model
-                messages.append({"role": "user", "content": result_msg})
-
-                # Post incremental progress to the bridge
-                if len(results_log) % 5 == 0:
-                    req.post(f"{base}/api/suggest", json={
-                        "category": "progress",
-                        "title": f"Progress ({len(results_log)} commands executed)",
-                        "content": "\n".join(results_log[-10:]),
-                    }, timeout=5)
-
-                continue
-
-            # Handle "status" only (no command)
-            if act == "status":
+            # Send consolidated feedback back to the model
+            if pending_feedback:
+                messages.append({"role": "user", "content": "\n\n".join(pending_feedback)})
+            else:
+                # Only status messages — prompt the model to continue
                 messages.append({"role": "user", "content": "OK, continue with the next step."})
-                continue
-
-            # Unknown action
-            messages.append({
-                "role": "user",
-                "content": f"Unknown action '{act}'. Use ssh_exec, status, or done.",
-            })
 
         # Max iterations reached
         bridge.add_message("agent", "Warning: Maximum iterations reached. Stopping.")
