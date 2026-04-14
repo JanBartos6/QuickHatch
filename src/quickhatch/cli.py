@@ -8,8 +8,7 @@ import threading
 import webbrowser
 
 from quickhatch.config import UserProfile
-from quickhatch.console import console, print_error, print_info, print_success, print_warning
-
+from quickhatch.console import console, print_error, print_info, print_success
 
 WIZARD_STEPS = [
     ("welcome", "Welcome"),
@@ -42,13 +41,34 @@ def _populate_demo_profile(profile: UserProfile) -> None:
         cpu="AMD Ryzen 7 5800X 8-Core Processor",
         cpu_cores=8,
         ram_gb=32.0,
-        gpus=[GPUInfo(name="NVIDIA GeForce RTX 3070", vendor="nvidia", vram_mb=8192, driver_version="546.33")],
+        gpus=[
+            GPUInfo(
+                name="NVIDIA GeForce RTX 3070",
+                vendor="nvidia",
+                vram_mb=8192,
+                driver_version="546.33",
+            )
+        ],
         wifi_adapters=["Intel Wi-Fi 6E AX210 160MHz"],
         bluetooth=True,
         efi=True,
         disks=[
-            DiskInfo(device="C:", mount_point="C:\\", filesystem="NTFS", total_gb=500, used_gb=310, free_gb=190),
-            DiskInfo(device="D:", mount_point="D:\\", filesystem="NTFS", total_gb=1000, used_gb=650, free_gb=350),
+            DiskInfo(
+                device="C:",
+                mount_point="C:\\",
+                filesystem="NTFS",
+                total_gb=500,
+                used_gb=310,
+                free_gb=190,
+            ),
+            DiskInfo(
+                device="D:",
+                mount_point="D:\\",
+                filesystem="NTFS",
+                total_gb=1000,
+                used_gb=650,
+                free_gb=350,
+            ),
         ],
     )
     profile.apps = [
@@ -80,9 +100,24 @@ def _populate_demo_profile(profile: UserProfile) -> None:
     profile.files_summary = {
         "total_files": 47832,
         "total_size_mb": 28450,
-        "top_types": {".py": 1250, ".js": 890, ".pdf": 340, ".png": 2100, ".jpg": 1800, ".docx": 120, ".mp4": 45},
-        "browser_profiles": {"chrome": "C:\\Users\\User\\AppData\\Local\\Google\\Chrome\\User Data", "firefox": "C:\\Users\\User\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles"},
-        "scanned_dirs": ["C:\\Users\\User\\Documents", "C:\\Users\\User\\Desktop", "C:\\Users\\User\\Downloads"],
+        "top_types": {
+            ".py": 1250,
+            ".js": 890,
+            ".pdf": 340,
+            ".png": 2100,
+            ".jpg": 1800,
+            ".docx": 120,
+            ".mp4": 45,
+        },
+        "browser_profiles": {
+            "chrome": "C:\\Users\\User\\AppData\\Local\\Google\\Chrome\\User Data",
+            "firefox": "C:\\Users\\User\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles",
+        },
+        "scanned_dirs": [
+            "C:\\Users\\User\\Documents",
+            "C:\\Users\\User\\Desktop",
+            "C:\\Users\\User\\Downloads",
+        ],
     }
     print_success("Demo profile loaded with sample Windows data")
 
@@ -90,11 +125,17 @@ def _populate_demo_profile(profile: UserProfile) -> None:
 def main() -> None:
     """Run the QuickHatch migration wizard."""
     parser = argparse.ArgumentParser(description="QuickHatch — Windows to Linux Migration Wizard")
-    parser.add_argument("--gui", action="store_true", help="Launch web GUI instead of terminal wizard")
+    parser.add_argument(
+        "--gui", action="store_true", help="Launch web GUI instead of terminal wizard"
+    )
     parser.add_argument("--demo", action="store_true", help="Load demo data (for testing on Linux)")
     parser.add_argument("--port", type=int, default=0, help="Port for GUI/bridge server (0 = auto)")
-    parser.add_argument("--no-browser", action="store_true", help="Don't auto-open browser (GUI mode)")
-    parser.add_argument("--tauri", action="store_true", help="Machine-readable output for Tauri wrapper")
+    parser.add_argument(
+        "--no-browser", action="store_true", help="Don't auto-open browser (GUI mode)"
+    )
+    parser.add_argument(
+        "--tauri", action="store_true", help="Machine-readable output for Tauri wrapper"
+    )
     args = parser.parse_args()
 
     if args.gui:

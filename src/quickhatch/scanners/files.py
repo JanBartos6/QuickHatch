@@ -6,7 +6,7 @@ import os
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from quickhatch.console import print_info, print_warning
+from quickhatch.console import print_info
 
 
 def _get_user_dirs() -> list[Path]:

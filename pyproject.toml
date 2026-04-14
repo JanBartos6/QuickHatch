@@ -2,6 +2,9 @@
 name = "quickhatch"
 version = "0.1.0"
 description = "Windows-to-Linux migration wizard powered by AI"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [{name = "Jan Bartos"}]
 requires-python = ">=3.10"
 dependencies = [
     "rich>=13.0",
@@ -12,8 +15,18 @@ dependencies = [
     "ddgs>=7.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.4",
+]
+
 [project.scripts]
 quickhatch = "quickhatch.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/JanBartos6/QuickHatch"
+Issues = "https://github.com/JanBartos6/QuickHatch/issues"
 
 [build-system]
 requires = ["hatchling"]
@@ -21,3 +34,15 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/quickhatch"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501"]  # line length handled by formatter

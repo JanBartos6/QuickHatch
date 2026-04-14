@@ -9,7 +9,13 @@ from pathlib import Path
 import questionary
 
 from quickhatch.config import UserProfile
-from quickhatch.console import console, print_error, print_info, print_step, print_success, print_warning
+from quickhatch.console import (
+    console,
+    print_error,
+    print_info,
+    print_step,
+    print_success,
+)
 
 
 def _find_ssh_keygen() -> str | None:
@@ -93,8 +99,7 @@ def run(profile: UserProfile) -> None:
     ssh_keygen = _find_ssh_keygen()
     if not ssh_keygen:
         print_error(
-            "ssh-keygen not found. Install OpenSSH or Git for Windows, "
-            "then re-run this step."
+            "ssh-keygen not found. Install OpenSSH or Git for Windows, then re-run this step."
         )
         console.print(
             "\n[bold]To install OpenSSH on Windows:[/bold]\n"
@@ -119,10 +124,14 @@ def run(profile: UserProfile) -> None:
         result = subprocess.run(
             [
                 ssh_keygen,
-                "-t", "ed25519",
-                "-C", comment,
-                "-f", str(key_path),
-                "-N", "",  # No passphrase for agent use
+                "-t",
+                "ed25519",
+                "-C",
+                comment,
+                "-f",
+                str(key_path),
+                "-N",
+                "",  # No passphrase for agent use
             ],
             capture_output=True,
             text=True,

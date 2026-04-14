@@ -13,9 +13,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
 
-from quickhatch.bridge.server import BridgeState, _make_handler as _make_bridge_handler
+from quickhatch.bridge.server import BridgeState
 from quickhatch.config import UserProfile
-
 
 # ── Tool schemas for function-calling ──
 
@@ -191,7 +190,9 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
             except json.JSONDecodeError:
                 # Try fixing invalid escape sequences (e.g. from LLM-generated JSON)
                 try:
-                    return json.loads(text.encode("utf-8").decode("unicode_escape", errors="replace"))
+                    return json.loads(
+                        text.encode("utf-8").decode("unicode_escape", errors="replace")
+                    )
                 except (json.JSONDecodeError, UnicodeDecodeError):
                     return {}
 
@@ -224,13 +225,15 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                 ua = self.headers.get("User-Agent", "")
                 if "curl" in ua.lower() or "python" in ua.lower():
                     bridge_state.agent_connected = True
-                self._send_json({
-                    "status": "ok",
-                    "agent_connected": bridge_state.agent_connected,
-                    "pending_questions": len(bridge_state.get_pending_questions()),
-                    "suggestions": len(bridge_state.suggestions),
-                    "agent_done": bridge_state.agent_done,
-                })
+                self._send_json(
+                    {
+                        "status": "ok",
+                        "agent_connected": bridge_state.agent_connected,
+                        "pending_questions": len(bridge_state.get_pending_questions()),
+                        "suggestions": len(bridge_state.suggestions),
+                        "agent_done": bridge_state.agent_done,
+                    }
+                )
 
             elif self.path.startswith("/api/response/"):
                 qid = self.path.split("/")[-1]
@@ -246,8 +249,13 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
             elif self.path == "/api/suggestions":
                 with bridge_state.lock:
                     data = [
-                        {"id": s.id, "category": s.category, "title": s.title,
-                         "content": s.content, "accepted": s.accepted}
+                        {
+                            "id": s.id,
+                            "category": s.category,
+                            "title": s.title,
+                            "content": s.content,
+                            "accepted": s.accepted,
+                        }
                         for s in bridge_state.suggestions
                     ]
                 self._send_json({"status": "ok", "suggestions": data})
@@ -259,10 +267,15 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
 
             elif self.path == "/api/pending-questions":
                 pending = bridge_state.get_pending_questions()
-                self._send_json({"status": "ok", "questions": [
-                    {"id": q.id, "question": q.question, "choices": q.choices}
-                    for q in pending
-                ]})
+                self._send_json(
+                    {
+                        "status": "ok",
+                        "questions": [
+                            {"id": q.id, "question": q.question, "choices": q.choices}
+                            for q in pending
+                        ],
+                    }
+                )
 
             else:
                 self._send_json({"status": "error", "message": "Not found"}, 404)
@@ -289,7 +302,9 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                 if answered:
                     self._send_json({"status": "ok", "answer": q.answer})
                 else:
-                    self._send_json({"status": "timeout", "message": "User did not respond in time"})
+                    self._send_json(
+                        {"status": "timeout", "message": "User did not respond in time"}
+                    )
 
             elif self.path == "/api/ask/async":
                 question = data.get("question", "")
@@ -325,26 +340,29 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                 self._send_json({"status": "ok", "profile": profile_dict})
 
             elif self.path == "/wizard/steps":
-                self._send_json({
-                    "status": "ok",
-                    "completed": gui_state.profile.completed_steps,
-                    "steps": [
-                        {"id": "welcome", "title": "Welcome"},
-                        {"id": "ai_setup", "title": "AI Assistant"},
-                        {"id": "questionnaire", "title": "Preferences"},
-                        {"id": "scan", "title": "System Scan"},
-                        {"id": "additional", "title": "Additional Info"},
-                        {"id": "bridge", "title": "AI Analysis"},
-                        {"id": "usb", "title": "Bootable USB"},
-                        {"id": "ssh", "title": "SSH Setup"},
-                        {"id": "export", "title": "Export"},
-                    ],
-                })
+                self._send_json(
+                    {
+                        "status": "ok",
+                        "completed": gui_state.profile.completed_steps,
+                        "steps": [
+                            {"id": "welcome", "title": "Welcome"},
+                            {"id": "ai_setup", "title": "AI Assistant"},
+                            {"id": "questionnaire", "title": "Preferences"},
+                            {"id": "scan", "title": "System Scan"},
+                            {"id": "additional", "title": "Additional Info"},
+                            {"id": "bridge", "title": "AI Analysis"},
+                            {"id": "usb", "title": "Bootable USB"},
+                            {"id": "ssh", "title": "SSH Setup"},
+                            {"id": "export", "title": "Export"},
+                        ],
+                    }
+                )
 
             elif self.path == "/wizard/lmstudio-models":
                 models = []
                 try:
                     import requests
+
                     resp = requests.get("http://localhost:1234/v1/models", timeout=5)
                     if resp.status_code == 200:
                         models = [m["id"] for m in resp.json().get("data", []) if m.get("id")]
@@ -378,9 +396,11 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                 with gui_state.lock:
                     if results.get("apps"):
                         from quickhatch.config import AppInfo
+
                         gui_state.profile.apps = [AppInfo(**a) for a in results["apps"]]
                     if results.get("hardware"):
-                        from quickhatch.config import HardwareInfo, GPUInfo, DiskInfo
+                        from quickhatch.config import DiskInfo, GPUInfo, HardwareInfo
+
                         hw = results["hardware"]
                         gui_state.profile.hardware = HardwareInfo(
                             **{k: v for k, v in hw.items() if k not in ("gpus", "disks")},
@@ -406,7 +426,9 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                     bridge_state.answer_question(qid, answer)
                     self._send_json({"status": "ok"})
                 else:
-                    self._send_json({"status": "error", "message": "Missing question_id or answer"}, 400)
+                    self._send_json(
+                        {"status": "error", "message": "Missing question_id or answer"}, 400
+                    )
 
             elif self.path == "/wizard/chat":
                 data = self._read_json()
@@ -461,11 +483,13 @@ def _execute_web_search(query: str, max_results: int = 5) -> str:
             return json.dumps({"results": [], "message": "No results found"})
         formatted = []
         for r in results:
-            formatted.append({
-                "title": r.get("title", ""),
-                "url": r.get("href", ""),
-                "snippet": r.get("body", ""),
-            })
+            formatted.append(
+                {
+                    "title": r.get("title", ""),
+                    "url": r.get("href", ""),
+                    "snippet": r.get("body", ""),
+                }
+            )
         return json.dumps({"results": formatted})
     except ImportError:
         return json.dumps({"error": "duckduckgo-search package not installed"})
@@ -484,11 +508,13 @@ def _execute_image_search(query: str, max_results: int = 3) -> str:
             return json.dumps({"images": [], "message": "No images found"})
         formatted = []
         for r in results:
-            formatted.append({
-                "title": r.get("title", ""),
-                "url": r.get("image", ""),
-                "source": r.get("source", ""),
-            })
+            formatted.append(
+                {
+                    "title": r.get("title", ""),
+                    "url": r.get("image", ""),
+                    "source": r.get("source", ""),
+                }
+            )
         return json.dumps({"images": formatted})
     except ImportError:
         return json.dumps({"error": "ddgs package not installed"})
@@ -529,7 +555,9 @@ def _call_openai_with_tools(
             # If model doesn't support tools, retry without
             if resp.status_code in (400, 422) and tools_supported:
                 tools_supported = False
-                bridge.add_message("agent", "Model doesn't support tool use, proceeding without web search.")
+                bridge.add_message(
+                    "agent", "Model doesn't support tool use, proceeding without web search."
+                )
                 body.pop("tools", None)
                 resp = requests.post(url, json=body, headers=headers, timeout=300)
             resp.raise_for_status()
@@ -572,11 +600,13 @@ def _call_openai_with_tools(
             else:
                 result = json.dumps({"error": f"Unknown function: {fn_name}"})
 
-            messages.append({
-                "role": "tool",
-                "tool_call_id": tc["id"],
-                "content": result,
-            })
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tc["id"],
+                    "content": result,
+                }
+            )
 
     # Exceeded max rounds — force a final response without tools
     body = {"model": model, "messages": messages, "temperature": 0.7, "max_tokens": 4096}
@@ -652,11 +682,13 @@ def _call_anthropic_with_tools(
             else:
                 result = json.dumps({"error": f"Unknown tool: {tu['name']}"})
 
-            tool_results.append({
-                "type": "tool_result",
-                "tool_use_id": tu["id"],
-                "content": result,
-            })
+            tool_results.append(
+                {
+                    "type": "tool_result",
+                    "tool_use_id": tu["id"],
+                    "content": result,
+                }
+            )
 
         messages.append({"role": "user", "content": tool_results})
 
@@ -721,7 +753,7 @@ def _prefetch_search_context(
             data = json.loads(result)
             results = data.get("results", [])
             if results:
-                context_parts.append(f"### Search: {label} — \"{query}\"")
+                context_parts.append(f'### Search: {label} — "{query}"')
                 for r in results:
                     context_parts.append(f"- [{r['title']}]({r['url']}): {r['snippet'][:200]}")
                 context_parts.append("")
@@ -768,7 +800,10 @@ def _prefetch_search_context(
                 if not url:
                     continue
                 # Skip URLs known to block hotlinking
-                if any(bad in url.lower() for bad in ["imgur.com", "pinterest.", "instagram.", "facebook."]):
+                if any(
+                    bad in url.lower()
+                    for bad in ["imgur.com", "pinterest.", "instagram.", "facebook."]
+                ):
                     continue
                 desktop_images.append({"title": img.get("title", label), "url": url})
         except (json.JSONDecodeError, KeyError):
@@ -777,14 +812,20 @@ def _prefetch_search_context(
     # Validate image URLs — keep only those that actually load
     if desktop_images:
         import requests as img_req
+
         validated: list[dict[str, str]] = []
         for img in desktop_images:
             if len(validated) >= 4:
                 break  # enough good images
             try:
-                resp = img_req.head(img["url"], timeout=5, allow_redirects=True, headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-                })
+                resp = img_req.head(
+                    img["url"],
+                    timeout=5,
+                    allow_redirects=True,
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                    },
+                )
                 ct = resp.headers.get("content-type", "")
                 if resp.status_code == 200 and "image" in ct:
                     validated.append(img)
@@ -880,12 +921,18 @@ def _build_section_prompt(
         f"== SECTION: {section.upper()} ==\n"
         f"{section_instructions.get(section, '')}\n"
         f"== LIVE SEARCH RESULTS (use these for up-to-date info) ==\n{search_context}\n\n"
-        + (f"== USER FEEDBACK (the user changed their mind — follow this!) ==\n{user_feedback}\n\n" if user_feedback else "")
+        + (
+            f"== USER FEEDBACK (the user changed their mind — follow this!) ==\n{user_feedback}\n\n"
+            if user_feedback
+            else ""
+        )
         + f"== USER SYSTEM PROFILE ==\n{profile_json}"
     )
 
 
-def _call_openai_compatible(endpoint: str, model: str, prompt: str, api_key: str | None = None) -> str:
+def _call_openai_compatible(
+    endpoint: str, model: str, prompt: str, api_key: str | None = None
+) -> str:
     """Call an OpenAI-compatible chat completions API (works for LM Studio, OpenAI)."""
     import requests
 
@@ -936,6 +983,7 @@ def _parse_agent_response(text: str) -> dict[str, dict]:
 
     # Strip markdown code fences anywhere in the text
     import re
+
     fence_match = re.search(r"```(?:json)?\s*\n([\s\S]*?)```", text)
     if fence_match:
         text = fence_match.group(1).strip()
@@ -1027,7 +1075,11 @@ def _call_model_simple(endpoint: str, model: str, prompt: str, api_key: str | No
                 "anthropic-version": "2023-06-01",
                 "Content-Type": "application/json",
             },
-            json={"model": model, "max_tokens": 4096, "messages": [{"role": "user", "content": prompt}]},
+            json={
+                "model": model,
+                "max_tokens": 4096,
+                "messages": [{"role": "user", "content": prompt}],
+            },
             timeout=300,
         )
         resp.raise_for_status()
@@ -1038,7 +1090,12 @@ def _call_model_simple(endpoint: str, model: str, prompt: str, api_key: str | No
             headers["Authorization"] = f"Bearer {api_key}"
         resp = requests.post(
             f"{endpoint.rstrip('/')}/chat/completions",
-            json={"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.7, "max_tokens": 4096},
+            json={
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.7,
+                "max_tokens": 4096,
+            },
             headers=headers,
             timeout=300,
         )
@@ -1085,7 +1142,9 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
         for section_key, title in section_titles.items():
             bridge.add_message("agent", f"Generating {title.lower()}...")
 
-            prompt = _build_section_prompt(gui_state.profile, section_key, search_context, user_feedback)
+            prompt = _build_section_prompt(
+                gui_state.profile, section_key, search_context, user_feedback
+            )
             content = _call_model_simple(endpoint, model, prompt, api_key)
 
             # Strip any residual markdown fences the model might wrap around its response
@@ -1104,21 +1163,29 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
                 for img in desktop_images[:6]:
                     content += f"![{img['title']}]({img['url']})\n\n"
 
-            req.post(f"{base}/api/suggest", json={
-                "category": section_key,
-                "title": title,
-                "content": content,
-            }, timeout=5)
+            req.post(
+                f"{base}/api/suggest",
+                json={
+                    "category": section_key,
+                    "title": title,
+                    "content": content,
+                },
+                timeout=5,
+            )
 
-        req.post(f"{base}/api/done", json={
-            "summary": "Migration analysis complete! Review the recommendations above."
-        }, timeout=5)
+        req.post(
+            f"{base}/api/done",
+            json={"summary": "Migration analysis complete! Review the recommendations above."},
+            timeout=5,
+        )
 
     except Exception as e:
         bridge.add_message("agent", f"Error: {e}")
 
 
-def _launch_agent(gui_state: GUIState, port: int, user_feedback: str = "", phase: str = "analysis") -> dict:
+def _launch_agent(
+    gui_state: GUIState, port: int, user_feedback: str = "", phase: str = "analysis"
+) -> dict:
     """Launch the AI agent — calls the configured API in a background thread."""
     config = gui_state.profile.ai_config
     provider = config.provider or "api"
@@ -1127,7 +1194,6 @@ def _launch_agent(gui_state: GUIState, port: int, user_feedback: str = "", phase
         import subprocess
         import sys
 
-        base = f"http://localhost:{port}"
         prompt = _build_section_prompt(gui_state.profile, "plan", "")
         prompt_file = Path.home() / ".quickhatch-agent-prompt.txt"
         prompt_file.write_text(prompt, encoding="utf-8")
@@ -1137,14 +1203,20 @@ def _launch_agent(gui_state: GUIState, port: int, user_feedback: str = "", phase
                 ps_file = Path.home() / ".quickhatch-launch-agent.ps1"
                 ps_content = (
                     f'$p = Get-Content "{prompt_file}" -Raw\n'
-                    f'codex $p\n'
+                    f"codex $p\n"
                     f'Read-Host "Press Enter to close"\n'
                 )
                 ps_file.write_text(ps_content, encoding="utf-8")
-                subprocess.Popen([
-                    "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
-                    "-Command", f'Start-Process powershell -ArgumentList "-NoProfile","-ExecutionPolicy","Bypass","-File","{ps_file}"'
-                ])
+                subprocess.Popen(
+                    [
+                        "powershell",
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-Command",
+                        f'Start-Process powershell -ArgumentList "-NoProfile","-ExecutionPolicy","Bypass","-File","{ps_file}"',
+                    ]
+                )
             else:
                 shell_cmd = f'codex "$(cat {prompt_file})"'
                 for term_cmd in [
@@ -1240,13 +1312,22 @@ def _extract_json_objects(text: str) -> list[dict]:
     return objects
 
 
-def _ssh_exec(host: str, user: str, cmd: str, key_path: str | None = None, timeout: int = 120, port: int = 22) -> tuple[int, str, str]:
+def _ssh_exec(
+    host: str, user: str, cmd: str, key_path: str | None = None, timeout: int = 120, port: int = 22
+) -> tuple[int, str, str]:
     """Execute a command on a remote host via SSH. Returns (returncode, stdout, stderr)."""
     import subprocess
 
     ssh_args = [
-        "ssh", "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=10",
-        "-o", "BatchMode=yes", "-p", str(port),
+        "ssh",
+        "-o",
+        "StrictHostKeyChecking=no",
+        "-o",
+        "ConnectTimeout=10",
+        "-o",
+        "BatchMode=yes",
+        "-p",
+        str(port),
     ]
     if key_path:
         ssh_args += ["-i", key_path]
@@ -1254,8 +1335,12 @@ def _ssh_exec(host: str, user: str, cmd: str, key_path: str | None = None, timeo
 
     try:
         result = subprocess.run(
-            ssh_args, capture_output=True, text=True,
-            encoding="utf-8", errors="replace", timeout=timeout,
+            ssh_args,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
         )
         return result.returncode, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
@@ -1306,7 +1391,9 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
     try:
         # Step 1: Test SSH connectivity
         bridge.add_message("agent", f"Connecting to {user}@{host}:{ssh_port}...")
-        rc, out, err = _ssh_exec(host, user, "echo 'QuickHatch connected!' && uname -a", key_path, port=ssh_port)
+        rc, out, err = _ssh_exec(
+            host, user, "echo 'QuickHatch connected!' && uname -a", key_path, port=ssh_port
+        )
         if rc != 0:
             bridge.add_message("agent", f"SSH connection failed: {err.strip()}")
             return
@@ -1342,8 +1429,10 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
         # Step 4: Gather any existing migration plan from the analysis phase
         migration_plan_md = ""
         if bridge.suggestions:
-            plan_parts = ["The migration plan has already been generated during the analysis phase.\n"
-                          "Use this as your blueprint — do not re-plan from scratch.\n"]
+            plan_parts = [
+                "The migration plan has already been generated during the analysis phase.\n"
+                "Use this as your blueprint — do not re-plan from scratch.\n"
+            ]
             for s in bridge.suggestions:
                 plan_parts.append(f"\n### {s.title}\n{s.content}")
             migration_plan_md = "\n".join(plan_parts)
@@ -1385,7 +1474,11 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
             "6. Apply system configuration (shell, fonts, display manager, services)\n"
             "7. Run final verification: theme is active, services enabled, user can log in\n\n"
             f"== REMOTE SYSTEM INFO ==\n{system_info}\n\n"
-            + (f"== MIGRATION PLAN (pre-generated) ==\n{migration_plan_md}\n\n" if migration_plan_md else "")
+            + (
+                f"== MIGRATION PLAN (pre-generated) ==\n{migration_plan_md}\n\n"
+                if migration_plan_md
+                else ""
+            )
             + f"== USER MIGRATION PROFILE ==\n{profile_json}"
         )
 
@@ -1400,16 +1493,24 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
         for iteration in range(MAX_ITERATIONS):
             # Call the LLM
             if "anthropic" in endpoint:
-                response_text = _call_anthropic(api_key, model, system_prompt if iteration == 0 else "continue")
+                response_text = _call_anthropic(
+                    api_key, model, system_prompt if iteration == 0 else "continue"
+                )
                 # For anthropic, we'd need to manage messages differently — simplified here
             else:
                 import requests
+
                 headers = {"Content-Type": "application/json"}
                 if api_key:
                     headers["Authorization"] = f"Bearer {api_key}"
                 resp = requests.post(
                     f"{endpoint.rstrip('/')}/chat/completions",
-                    json={"model": model, "messages": messages, "temperature": 0.3, "max_tokens": 1024},
+                    json={
+                        "model": model,
+                        "messages": messages,
+                        "temperature": 0.3,
+                        "max_tokens": 1024,
+                    },
                     headers=headers,
                     timeout=300,
                 )
@@ -1433,10 +1534,12 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
 
             if not actions:
                 bridge.add_message("agent", f"Model response (non-JSON): {response_text[:200]}")
-                messages.append({
-                    "role": "user",
-                    "content": "Please respond with a valid JSON object as specified. Either {\"action\": \"ssh_exec\", \"command\": \"...\"} or {\"action\": \"done\", \"summary\": \"...\"}",
-                })
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": 'Please respond with a valid JSON object as specified. Either {"action": "ssh_exec", "command": "..."} or {"action": "done", "summary": "..."}',
+                    }
+                )
                 continue
 
             # Process each action in order. Feed a consolidated user message
@@ -1456,11 +1559,15 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                     log_md = "### Execution Log\n\n"
                     for entry in results_log:
                         log_md += entry + "\n"
-                    req.post(f"{base}/api/suggest", json={
-                        "category": "execution_log",
-                        "title": "Setup Execution Log",
-                        "content": log_md,
-                    }, timeout=5)
+                    req.post(
+                        f"{base}/api/suggest",
+                        json={
+                            "category": "execution_log",
+                            "title": "Setup Execution Log",
+                            "content": log_md,
+                        },
+                        timeout=5,
+                    )
                     req.post(f"{base}/api/done", json={"summary": summary}, timeout=5)
                     finished = True
                     break
@@ -1469,7 +1576,9 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                     cmd = action.get("command", "")
                     reason = action.get("reason", "")
                     if not cmd:
-                        pending_feedback.append("Error: empty command. Provide a valid shell command.")
+                        pending_feedback.append(
+                            "Error: empty command. Provide a valid shell command."
+                        )
                         continue
 
                     bridge.add_message("agent", f"`{cmd}`" + (f" — {reason}" if reason else ""))
@@ -1480,12 +1589,16 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                     if out.strip():
                         stdout_text = out.strip()
                         if len(stdout_text) > 2000:
-                            stdout_text = stdout_text[:1000] + "\n... (truncated) ...\n" + stdout_text[-500:]
+                            stdout_text = (
+                                stdout_text[:1000] + "\n... (truncated) ...\n" + stdout_text[-500:]
+                            )
                         result_parts.append(f"STDOUT:\n{stdout_text}")
                     if err.strip():
                         stderr_text = err.strip()
                         if len(stderr_text) > 1000:
-                            stderr_text = stderr_text[:500] + "\n... (truncated) ...\n" + stderr_text[-300:]
+                            stderr_text = (
+                                stderr_text[:500] + "\n... (truncated) ...\n" + stderr_text[-300:]
+                            )
                         result_parts.append(f"STDERR:\n{stderr_text}")
 
                     pending_feedback.append("\n".join(result_parts))
@@ -1496,11 +1609,15 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                         results_log.append(f"  Error: {err.strip()[:150]}")
 
                     if len(results_log) % 5 == 0:
-                        req.post(f"{base}/api/suggest", json={
-                            "category": "progress",
-                            "title": f"Progress ({len(results_log)} commands executed)",
-                            "content": "\n".join(results_log[-10:]),
-                        }, timeout=5)
+                        req.post(
+                            f"{base}/api/suggest",
+                            json={
+                                "category": "progress",
+                                "title": f"Progress ({len(results_log)} commands executed)",
+                                "content": "\n".join(results_log[-10:]),
+                            },
+                            timeout=5,
+                        )
                     continue
 
                 if act == "status":
@@ -1521,9 +1638,13 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
 
         # Max iterations reached
         bridge.add_message("agent", "Warning: Maximum iterations reached. Stopping.")
-        req.post(f"{base}/api/done", json={
-            "summary": f"Setup stopped after {MAX_ITERATIONS} iterations. Review the log for details."
-        }, timeout=5)
+        req.post(
+            f"{base}/api/done",
+            json={
+                "summary": f"Setup stopped after {MAX_ITERATIONS} iterations. Review the log for details."
+            },
+            timeout=5,
+        )
 
     except Exception as e:
         bridge.add_message("agent", f"Error: {e}")
@@ -1532,6 +1653,7 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
 def _generate_ssh_key(gui_state: GUIState) -> dict:
     """Generate an ed25519 SSH key pair for the migration."""
     import subprocess
+
     key_path = Path.home() / ".ssh" / "quickhatch_ed25519"
     pub_path = key_path.with_suffix(".pub")
 
@@ -1583,7 +1705,7 @@ def _run_export(gui_state: GUIState) -> dict:
 
     import yaml
 
-    from quickhatch.ai.instruction_gen import generate_instructions, save_instructions
+    from quickhatch.ai.instruction_gen import save_instructions
 
     output_dir = Path.home() / "QuickHatch-Migration"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1617,6 +1739,7 @@ def _run_export(gui_state: GUIState) -> dict:
 
         # Quickstart script
         from quickhatch.wizard.export import _generate_quickstart
+
         qs_path = output_dir / "quickstart.sh"
         qs_path.write_text(_generate_quickstart(gui_state.profile))
         files.append(qs_path.name)
@@ -1641,10 +1764,12 @@ def _run_export(gui_state: GUIState) -> dict:
 def _run_scan() -> dict:
     """Run system scanners and return results as dicts."""
     from dataclasses import asdict
+
     results = {}
 
     try:
         from quickhatch.scanners.apps import scan as scan_apps
+
         apps = scan_apps()
         results["apps"] = [asdict(a) for a in apps]
     except Exception:
@@ -1652,6 +1777,7 @@ def _run_scan() -> dict:
 
     try:
         from quickhatch.scanners.hardware import scan as scan_hw
+
         hw = scan_hw()
         results["hardware"] = asdict(hw)
     except Exception:
@@ -1659,12 +1785,14 @@ def _run_scan() -> dict:
 
     try:
         from quickhatch.scanners.settings import scan as scan_settings
+
         results["settings"] = scan_settings()
     except Exception:
         results["settings"] = {}
 
     try:
         from quickhatch.scanners.files import scan as scan_files
+
         results["files"] = scan_files()
     except Exception:
         results["files"] = {}

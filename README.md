@@ -108,10 +108,13 @@ See `docs/testing-in-vm.md` (WIP) for detailed steps.
 
 ## Limitations
 
-- GPU passthrough is not handled — NVIDIA drivers will install on bare metal but not inside VirtualBox with VMSVGA.
-- No Wayland-specific mouse integration for VirtualBox; the agent works via SSH but manual GUI testing inside the VM may need Guest Additions.
-- The setup agent requires SSH key authentication. Password-only SSH is not supported.
-- Multi-distro support is real but Arch is the most tested (it has the fewest installer crutches, so if it works on Arch it works everywhere).
+- **No automated data transfer.** QuickHatch does not copy your Windows files to Linux. The wizard asks about important data and the plan includes instructions for moving it, but actually transferring bytes is on you (external drive, cloud sync, or `scp` from a still-running Windows machine).
+- **No automated USB flashing.** The "Bootable USB" step is a guided walkthrough — you use Rufus, Ventoy, or balenaEtcher yourself.
+- **GPU passthrough is not handled.** NVIDIA drivers will install on bare metal but not inside VirtualBox with the default VMSVGA adapter.
+- **Wayland + VirtualBox mouse integration is flaky** without Guest Additions. For testing, enable SDDM autologin so you can skip the login screen.
+- **The setup agent requires SSH key authentication.** Password-only SSH is not supported.
+- **Arch is the most tested distro.** It has the fewest installer crutches, so if it works on Arch it usually works everywhere. Fedora and Ubuntu should work; other distros are at your own risk.
+- **Only two modes currently:** `Migrate from Windows → fresh Linux` and `Customize existing Linux`. Distro-to-distro switching is not implemented.
 
 ## Project status
 

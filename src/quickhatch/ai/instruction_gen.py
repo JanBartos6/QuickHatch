@@ -7,8 +7,6 @@ app alternatives, driver setup, desktop config, etc.
 
 from __future__ import annotations
 
-import json
-from dataclasses import asdict
 from pathlib import Path
 
 from quickhatch.config import UserProfile
@@ -81,7 +79,6 @@ def generate_instructions(profile: UserProfile) -> str:
     # ── Migration type ──
     type_desc = {
         "fresh_install": "This is a fresh install — the user is new to Linux. Be thorough with explanations.",
-        "switching": "The user is switching from an existing Linux setup. They have Linux experience.",
         "customize_linux": "The user already has Linux installed and wants it customized. They are on the system right now.",
     }
     sections.append(
@@ -95,11 +92,15 @@ def generate_instructions(profile: UserProfile) -> str:
     sections.append(f"- **Desktop style:** {prefs.desktop_look}\n")
     sections.append(f"- **Icon style:** {prefs.icon_style}\n")
     sections.append(f"- **Wallpaper preference:** {prefs.wallpaper_style}\n")
-    sections.append(f"- **Primary use cases:** {', '.join(prefs.use_cases) if prefs.use_cases else 'Not specified'}\n")
+    sections.append(
+        f"- **Primary use cases:** {', '.join(prefs.use_cases) if prefs.use_cases else 'Not specified'}\n"
+    )
     if is_customize:
         pass  # No distro recommendation needed — they're already on one
     elif prefs.distro_preference:
-        sections.append(f"- **Distro preference:** {prefs.distro_preference} (user's stated preference — evaluate if it's a good fit)\n")
+        sections.append(
+            f"- **Distro preference:** {prefs.distro_preference} (user's stated preference — evaluate if it's a good fit)\n"
+        )
     else:
         sections.append("- **Distro preference:** None — recommend one based on the data below\n")
     if prefs.additional_notes:
@@ -176,13 +177,17 @@ def generate_instructions(profile: UserProfile) -> str:
     # ── User Files Summary (raw) ──
     if profile.files_summary:
         sections.append("## User Files Summary\n")
-        sections.append(f"- **Total files scanned:** {profile.files_summary.get('total_files', 0)}\n")
+        sections.append(
+            f"- **Total files scanned:** {profile.files_summary.get('total_files', 0)}\n"
+        )
         sections.append(f"- **Total size:** {profile.files_summary.get('total_size_mb', 0)} MB\n")
         top_types = profile.files_summary.get("top_types", {})
         if top_types:
-            sections.append("- **Top file types:** " + ", ".join(
-                f"{ext} ({count})" for ext, count in list(top_types.items())[:10]
-            ) + "\n")
+            sections.append(
+                "- **Top file types:** "
+                + ", ".join(f"{ext} ({count})" for ext, count in list(top_types.items())[:10])
+                + "\n"
+            )
         browsers = profile.files_summary.get("browser_profiles", {})
         if browsers:
             sections.append("- **Browser profiles found:** " + ", ".join(browsers.keys()) + "\n")
@@ -207,12 +212,19 @@ def generate_instructions(profile: UserProfile) -> str:
     # ── Data Migration Description ──
     if profile.data_description:
         sections.append(
-            "## Data to Migrate\n\n"
-            "The user described the following data as important to migrate:\n\n"
+            "## Data the User Wants to Migrate\n\n"
+            "The user described the following data as important:\n\n"
             f"{profile.data_description}\n\n"
-            "**You MUST migrate all of this data.** Use `scp` to copy files from\n"
-            "the Windows machine to the Linux machine. For browser data, use\n"
-            "profile migration tools or manual copy. Verify the data is intact.\n"
+            "**IMPORTANT:** QuickHatch does NOT automatically copy Windows files to Linux.\n"
+            "You do not have access to the user's Windows filesystem. Your job is to:\n"
+            "1. In the migration plan, give clear step-by-step instructions for the user\n"
+            "   to transfer this data themselves (via external drive, cloud sync, or\n"
+            "   a running Windows machine they can `scp` from).\n"
+            "2. On the Linux machine, set up any destination directories, import tools,\n"
+            "   or configuration files the user will need (e.g. browser profile dirs,\n"
+            "   shell dotfiles placeholders, SSH key permissions).\n"
+            "3. Verify after the user says the transfer is done.\n"
+            "Do NOT pretend to copy files that are not reachable from the Linux target.\n"
         )
 
     # ── Linux Connection Details ──
@@ -232,10 +244,7 @@ def generate_instructions(profile: UserProfile) -> str:
         )
 
     if prefs.additional_notes:
-        sections.append(
-            "## Notes from Questionnaire\n\n"
-            f"{prefs.additional_notes}\n"
-        )
+        sections.append(f"## Notes from Questionnaire\n\n{prefs.additional_notes}\n")
 
     # ── SSH Access ──
     if profile.ssh_public_key_path:
@@ -321,14 +330,14 @@ def generate_instructions(profile: UserProfile) -> str:
             "  ```json\n"
             '  {"question": "I recommend Fedora 41 for your setup because... What do you think?"}\n'
             "  ```\n"
-            "  The user types a free-text response. You can optionally add `\"choices\": [...]`\n"
+            '  The user types a free-text response. You can optionally add `"choices": [...]`\n'
             "  but prefer open-ended questions — let the user speak freely.\n"
-            "  Returns `{\"answer\": \"user's response\"}`\n\n"
-            "- `POST /api/ask/async` — Ask without blocking, returns `{\"question_id\": \"abc\"}`\n"
+            '  Returns `{"answer": "user\'s response"}`\n\n'
+            '- `POST /api/ask/async` — Ask without blocking, returns `{"question_id": "abc"}`\n'
             "  Then poll `GET /api/response/abc` for the answer.\n\n"
             "**Messages & completion:**\n"
-            "- `POST /api/message` — Display a message: `{\"content\": \"Installing drivers...\", \"role\": \"agent\"}`\n"
-            "- `POST /api/done` — Signal completion: `{\"summary\": \"All done!\"}`\n\n"
+            '- `POST /api/message` — Display a message: `{"content": "Installing drivers...", "role": "agent"}`\n'
+            '- `POST /api/done` — Signal completion: `{"summary": "All done!"}`\n\n'
             "### Workflow\n\n"
             "1. `GET /api/profile` to read the user's system data\n"
             "2. Analyze it, then `POST /api/suggest` your distro recommendation\n"
@@ -344,15 +353,15 @@ def generate_instructions(profile: UserProfile) -> str:
         "## Before You Start — Ask Follow-Up Questions\n\n"
         "Before making recommendations or executing changes, ask the user 3-5\n"
         "targeted follow-up questions based on the scan results above. Examples:\n\n"
-        "- If they have gaming apps/Steam: \"Which specific games do you play?\n"
-        "  Some need Proton/Wine configuration.\"\n"
-        "- If they use creative tools (Photoshop, etc.): \"Are you open to\n"
-        "  alternatives like GIMP/Krita, or do you need exact feature parity?\"\n"
-        "- If they have a discrete GPU: \"Will you use your GPU primarily for\n"
-        "  gaming, ML/CUDA workloads, or general desktop?\"\n"
-        "- If their use cases include development: \"What languages/frameworks\n"
-        "  do you work with? Any specific IDE preference?\"\n"
-        "- If migrating: \"Do you want to dual-boot or fully replace Windows?\"\n\n"
+        '- If they have gaming apps/Steam: "Which specific games do you play?\n'
+        '  Some need Proton/Wine configuration."\n'
+        '- If they use creative tools (Photoshop, etc.): "Are you open to\n'
+        '  alternatives like GIMP/Krita, or do you need exact feature parity?"\n'
+        '- If they have a discrete GPU: "Will you use your GPU primarily for\n'
+        '  gaming, ML/CUDA workloads, or general desktop?"\n'
+        '- If their use cases include development: "What languages/frameworks\n'
+        '  do you work with? Any specific IDE preference?"\n'
+        '- If migrating: "Do you want to dual-boot or fully replace Windows?"\n\n'
         "Use `POST /api/ask` to get answers before proceeding with your plan.\n"
         "This helps you make better, more specific recommendations.\n\n"
     )
@@ -428,7 +437,7 @@ def generate_instructions(profile: UserProfile) -> str:
             "14. **Test desktop** — theme applied, icons correct, wallpaper set.\n"
             "15. **Ask the user** via the bridge API: \"I've finished setting up.\n"
             "    Everything looks good on my end. Can you check on the Linux machine\n"
-            "    and let me know if anything is missing or needs adjustment?\"\n\n"
+            '    and let me know if anything is missing or needs adjustment?"\n\n'
             "**If anything fails, fix it before moving on.** If you can't fix it,\n"
             "ask the user for help via `/api/ask`. Do not give up.\n\n"
             "Send status updates via `/api/message` as you work so the user can\n"

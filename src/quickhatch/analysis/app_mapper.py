@@ -31,17 +31,46 @@ def map_apps(apps: list[AppInfo]) -> list[AppInfo]:
 
     # Known cross-platform apps (run natively on Linux)
     native_linux = {
-        "firefox", "chrome", "chromium", "brave", "vlc", "obs", "obs studio",
-        "blender", "gimp", "audacity", "filezilla", "steam", "discord",
-        "slack", "spotify", "zoom", "visual studio code", "vs code",
-        "code", "postman", "docker", "virtualbox", "git", "python",
-        "node", "nodejs", "java", "thunderbird", "keepassxc", "signal",
-        "telegram", "libreoffice", "inkscape", "krita", "kdenlive",
-        "handbrake", "qbittorrent", "deluge", "transmission",
+        "firefox",
+        "chrome",
+        "chromium",
+        "brave",
+        "vlc",
+        "obs",
+        "obs studio",
+        "blender",
+        "gimp",
+        "audacity",
+        "filezilla",
+        "steam",
+        "discord",
+        "slack",
+        "spotify",
+        "zoom",
+        "visual studio code",
+        "vs code",
+        "code",
+        "postman",
+        "docker",
+        "virtualbox",
+        "git",
+        "python",
+        "node",
+        "nodejs",
+        "java",
+        "thunderbird",
+        "keepassxc",
+        "signal",
+        "telegram",
+        "libreoffice",
+        "inkscape",
+        "krita",
+        "kdenlive",
+        "handbrake",
+        "qbittorrent",
+        "deluge",
+        "transmission",
     }
-
-    # Electron apps generally work on Linux
-    electron_keywords = {"electron", "nw.js", "cef"}
 
     mapped_count = 0
 
@@ -67,7 +96,5 @@ def map_apps(apps: list[AppInfo]) -> list[AppInfo]:
         # Mark as unknown
         app.compatibility = "unknown"
 
-    print_info(
-        f"Mapped {mapped_count}/{len(apps)} applications to Linux alternatives"
-    )
+    print_info(f"Mapped {mapped_count}/{len(apps)} applications to Linux alternatives")
     return apps

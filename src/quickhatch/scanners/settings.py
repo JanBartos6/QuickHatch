@@ -76,7 +76,7 @@ def _scan_linux_settings(settings: dict) -> dict:
         for line in (result.stdout or "").split("\n"):
             if "X11 Layout" in line:
                 layouts = line.split(":", 1)[1].strip()
-                settings["keyboard_layouts"] = [l.strip() for l in layouts.split(",") if l.strip()]
+                settings["keyboard_layouts"] = [x.strip() for x in layouts.split(",") if x.strip()]
                 break
         if "keyboard_layouts" not in settings:
             settings["keyboard_layouts"] = ["us"]
@@ -104,8 +104,12 @@ def _scan_macos_settings(settings: dict) -> dict:
     # Default browser
     try:
         result = subprocess.run(
-            ["defaults", "read", "com.apple.LaunchServices/com.apple.launchservices.secure",
-             "LSHandlers"],
+            [
+                "defaults",
+                "read",
+                "com.apple.LaunchServices/com.apple.launchservices.secure",
+                "LSHandlers",
+            ],
             capture_output=True,
             text=True,
             timeout=5,
@@ -270,7 +274,7 @@ def scan() -> dict:
             errors="replace",
             timeout=10,
         )
-        langs = [l.strip() for l in (result.stdout or "").strip().split("\n") if l.strip()]
+        langs = [x.strip() for x in (result.stdout or "").strip().split("\n") if x.strip()]
         settings["keyboard_layouts"] = langs if langs else ["en-US"]
     except (FileNotFoundError, subprocess.TimeoutExpired):
         settings["keyboard_layouts"] = ["en-US"]

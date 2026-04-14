@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
-import shlex
 import zipfile
 from dataclasses import asdict
 from pathlib import Path
@@ -12,7 +10,7 @@ from pathlib import Path
 import questionary
 import yaml
 
-from quickhatch.ai.instruction_gen import generate_instructions, save_instructions
+from quickhatch.ai.instruction_gen import save_instructions
 from quickhatch.config import UserProfile
 from quickhatch.console import console, print_info, print_step, print_success
 
@@ -119,7 +117,7 @@ def _generate_quickstart(profile: UserProfile) -> str:
     script += "# QuickHatch — Linux Preparation Script\n"
     script += "# Run this on your new Linux machine to prepare it for remote setup.\n"
     script += "# The AI agent on your Windows PC will SSH in and do the rest.\n\n"
-    script += 'set -e\n\n'
+    script += "set -e\n\n"
     script += 'echo "========================================"\n'
     script += 'echo "  QuickHatch — Preparing Linux"\n'
     script += 'echo "========================================"\n'
@@ -147,7 +145,7 @@ def _generate_quickstart(profile: UserProfile) -> str:
         script += '    echo "[+] SSH key added to authorized_keys"\n'
         script += "else\n"
         script += f'    echo "[!] Warning: {pub_name} not found in this directory."\n'
-        script += f'    echo "    Make sure you copied the full migration bundle."\n'
+        script += '    echo "    Make sure you copied the full migration bundle."\n'
         script += "fi\n\n"
 
     # Enable SSH daemon
@@ -166,14 +164,14 @@ def _generate_quickstart(profile: UserProfile) -> str:
     script += 'echo ""\n'
     script += 'echo "Give the AI agent on Windows these details:"\n'
     script += 'echo ""\n'
-    script += 'USERNAME=$(whoami)\n'
+    script += "USERNAME=$(whoami)\n"
     script += 'echo "  Username: $USERNAME"\n'
     script += "# Try to get the local IP address\n"
     script += 'IP=$(hostname -I 2>/dev/null | awk "{print \\$1}" || ip route get 1 2>/dev/null | awk "{print \\$7;exit}" || echo "unknown")\n'
     script += 'echo "  IP address: $IP"\n'
     script += 'echo ""\n'
     script += 'echo "The agent will connect with:"\n'
-    script += f'echo "  ssh $USERNAME@$IP"\n'
+    script += 'echo "  ssh $USERNAME@$IP"\n'
     script += 'echo ""\n'
     script += 'echo "You can now go back to QuickHatch on Windows."\n'
 

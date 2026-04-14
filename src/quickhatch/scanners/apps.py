@@ -35,7 +35,7 @@ def _scan_winget() -> list[AppInfo]:
         # Skip header lines (find the separator line with dashes)
         data_start = 0
         for i, line in enumerate(lines):
-            if set(line.strip()) <= {"-", " "}  and len(line.strip()) > 10:
+            if set(line.strip()) <= {"-", " "} and len(line.strip()) > 10:
                 data_start = i + 1
                 break
 
@@ -46,9 +46,7 @@ def _scan_winget() -> list[AppInfo]:
             # winget list output is column-aligned; extract name from first column
             name = parts[:40].strip()
             if name and len(name) > 1:
-                apps.append(
-                    AppInfo(name=name, source="winget")
-                )
+                apps.append(AppInfo(name=name, source="winget"))
         return apps
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return []
@@ -157,7 +155,9 @@ def _scan_dpkg() -> list[AppInfo]:
         for line in (result.stdout or "").strip().split("\n"):
             if "\t" in line:
                 name, version = line.split("\t", 1)
-                apps.append(AppInfo(name=name.strip(), version=version.strip() or None, source="dpkg"))
+                apps.append(
+                    AppInfo(name=name.strip(), version=version.strip() or None, source="dpkg")
+                )
         return apps
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return []
@@ -180,7 +180,9 @@ def _scan_rpm() -> list[AppInfo]:
         for line in (result.stdout or "").strip().split("\n"):
             if "\t" in line:
                 name, version = line.split("\t", 1)
-                apps.append(AppInfo(name=name.strip(), version=version.strip() or None, source="rpm"))
+                apps.append(
+                    AppInfo(name=name.strip(), version=version.strip() or None, source="rpm")
+                )
         return apps
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return []
@@ -275,11 +277,13 @@ def _scan_brew() -> list[AppInfo]:
                 for line in (result.stdout or "").strip().split("\n"):
                     parts = line.strip().split()
                     if parts:
-                        apps.append(AppInfo(
-                            name=parts[0],
-                            version=parts[1] if len(parts) > 1 else None,
-                            source=source,
-                        ))
+                        apps.append(
+                            AppInfo(
+                                name=parts[0],
+                                version=parts[1] if len(parts) > 1 else None,
+                                source=source,
+                            )
+                        )
         except (FileNotFoundError, subprocess.TimeoutExpired):
             pass
     return apps
@@ -288,6 +292,7 @@ def _scan_brew() -> list[AppInfo]:
 def _scan_macos_apps() -> list[AppInfo]:
     """Scan /Applications folder on macOS."""
     from pathlib import Path
+
     apps = []
     try:
         for app_dir in sorted(Path("/Applications").glob("*.app")):

@@ -6,7 +6,7 @@ from rich.table import Table
 
 from quickhatch.analysis.distro_engine import recommend
 from quickhatch.config import UserProfile
-from quickhatch.console import console, print_info, print_step, print_success
+from quickhatch.console import console, print_step, print_success, print_warning
 
 
 def run(profile: UserProfile) -> None:
@@ -36,7 +36,9 @@ def run(profile: UserProfile) -> None:
     table.add_column("Why", style="dim", min_width=30)
 
     for i, (name, score, reason) in enumerate(top_5, 1):
-        medal = {1: "[gold1]#1[/gold1]", 2: "[grey70]#2[/grey70]", 3: "[orange3]#3[/orange3]"}.get(i, f"#{i}")
+        medal = {1: "[gold1]#1[/gold1]", 2: "[grey70]#2[/grey70]", 3: "[orange3]#3[/orange3]"}.get(
+            i, f"#{i}"
+        )
         table.add_row(medal, name, f"{score:.0f}", reason)
 
     console.print(table)
@@ -92,9 +94,7 @@ def run(profile: UserProfile) -> None:
         "tiling": ("Hyprland, i3, or Sway", "Keyboard-driven window management"),
         "custom": ("Your choice", "Configure after installation"),
     }
-    de_name, de_reason = de_map.get(
-        profile.preferences.desktop_look, ("GNOME", "Default choice")
-    )
+    de_name, de_reason = de_map.get(profile.preferences.desktop_look, ("GNOME", "Default choice"))
     profile.recommended_desktop = de_name
 
     console.print(

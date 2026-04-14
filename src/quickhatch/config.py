@@ -59,7 +59,7 @@ class HardwareInfo:
 class Preferences:
     """User preferences for the Linux migration."""
 
-    migration_type: str = ""  # "fresh_install" or "switching"
+    migration_type: str = ""  # "fresh_install" or "customize_linux"
     desktop_look: str = ""  # "windows_like", "macos_like", "minimal", "tiling", "custom"
     icon_style: str = ""  # "flat", "rounded", "classic", "colorful"
     wallpaper_style: str = ""  # "nature", "abstract", "dark", "minimal", "custom"

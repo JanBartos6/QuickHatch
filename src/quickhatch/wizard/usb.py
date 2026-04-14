@@ -10,7 +10,13 @@ from pathlib import Path
 import questionary
 
 from quickhatch.config import UserProfile
-from quickhatch.console import console, print_error, print_info, print_step, print_success, print_warning
+from quickhatch.console import (
+    console,
+    print_info,
+    print_step,
+    print_success,
+    print_warning,
+)
 
 
 def _list_usb_drives() -> list[dict]:
@@ -39,11 +45,13 @@ def _list_usb_drives() -> list[dict]:
                 if isinstance(data, dict):
                     data = [data]
                 for d in data:
-                    drives.append({
-                        "number": d.get("Number"),
-                        "name": d.get("FriendlyName", "USB Drive"),
-                        "size_gb": d.get("SizeGB", 0),
-                    })
+                    drives.append(
+                        {
+                            "number": d.get("Number"),
+                            "name": d.get("FriendlyName", "USB Drive"),
+                            "size_gb": d.get("SizeGB", 0),
+                        }
+                    )
         except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
             pass
     elif sys.platform == "darwin":
@@ -57,6 +65,7 @@ def _list_usb_drives() -> list[dict]:
             )
             if result.returncode == 0 and result.stdout.strip():
                 import plistlib
+
                 data = plistlib.loads(result.stdout.encode())
                 for disk_id in data.get("AllDisks", []):
                     if "s" in disk_id:  # Skip partitions, keep whole disks
@@ -71,11 +80,13 @@ def _list_usb_drives() -> list[dict]:
                         dinfo = plistlib.loads(info.stdout.encode())
                         name = dinfo.get("MediaName") or dinfo.get("IORegistryEntryName", disk_id)
                         size_bytes = dinfo.get("TotalSize", 0)
-                        drives.append({
-                            "number": f"/dev/{disk_id}",
-                            "name": name,
-                            "size_gb": round(size_bytes / (1024**3), 1),
-                        })
+                        drives.append(
+                            {
+                                "number": f"/dev/{disk_id}",
+                                "name": name,
+                                "size_gb": round(size_bytes / (1024**3), 1),
+                            }
+                        )
                     except (subprocess.TimeoutExpired, Exception):
                         pass
         except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
@@ -110,11 +121,13 @@ def _list_usb_drives() -> list[dict]:
                                 size_gb = round(float(size_str[:-1]) / 1024, 1)
                         except ValueError:
                             pass
-                        drives.append({
-                            "number": f"/dev/{dev['name']}",
-                            "name": name,
-                            "size_gb": size_gb,
-                        })
+                        drives.append(
+                            {
+                                "number": f"/dev/{dev['name']}",
+                                "name": name,
+                                "size_gb": size_gb,
+                            }
+                        )
         except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
             pass
     return drives
@@ -187,9 +200,7 @@ def run(profile: UserProfile) -> None:
                 "  3. [bold]balenaEtcher[/bold] - Cross-platform, very easy\n"
             )
         else:
-            console.print(
-                f"\nSearch for '{distro} download ISO' to get the installer.\n"
-            )
+            console.print(f"\nSearch for '{distro} download ISO' to get the installer.\n")
         print_success("Follow the tool's instructions to create the bootable USB.")
         profile.completed_steps.append("usb")
         return
@@ -212,9 +223,7 @@ def run(profile: UserProfile) -> None:
     if drives:
         console.print("[bold]Detected USB drives:[/bold]")
         for d in drives:
-            console.print(
-                f"  - Disk {d['number']}: {d['name']} ({d['size_gb']} GB)"
-            )
+            console.print(f"  - Disk {d['number']}: {d['name']} ({d['size_gb']} GB)")
         console.print()
         print_warning(
             "WRITING TO A USB DRIVE WILL ERASE ALL DATA ON IT. "
@@ -234,9 +243,7 @@ def run(profile: UserProfile) -> None:
         "    d. Boot from the USB to start installation\n"
     )
 
-    questionary.confirm(
-        "Press Enter when you're ready to continue...", default=True
-    ).ask()
+    questionary.confirm("Press Enter when you're ready to continue...", default=True).ask()
 
     print_success("USB creation step complete!")
     profile.completed_steps.append("usb")

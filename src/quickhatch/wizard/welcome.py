@@ -20,10 +20,10 @@ def run(profile: UserProfile) -> None:
     migration_type = questionary.select(
         "What are you doing?",
         choices=[
-            questionary.Choice("Fresh install - I'm new to Linux", value="fresh_install"),
             questionary.Choice(
-                "Switching from an existing Linux setup", value="switching"
+                "Migrate from Windows to a fresh Linux install", value="fresh_install"
             ),
+            questionary.Choice("Customize an existing Linux system", value="customize_linux"),
         ],
     ).ask()
 
@@ -36,8 +36,8 @@ def run(profile: UserProfile) -> None:
         print_info("Great! We'll guide you through everything step by step.")
     else:
         print_info(
-            "We'll help you migrate your setup. "
-            "We'll still scan Windows to know what you need."
+            "We'll scan your current Linux system and let the AI agent "
+            "configure it to match your preferences."
         )
 
     profile.completed_steps.append("welcome")

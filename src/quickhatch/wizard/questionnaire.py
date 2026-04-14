@@ -19,12 +19,8 @@ def run(profile: UserProfile) -> None:
                 "Windows-like (taskbar, start menu, familiar layout)",
                 value="windows_like",
             ),
-            questionary.Choice(
-                "macOS-like (dock, top bar, clean aesthetic)", value="macos_like"
-            ),
-            questionary.Choice(
-                "Minimal (clean, distraction-free)", value="minimal"
-            ),
+            questionary.Choice("macOS-like (dock, top bar, clean aesthetic)", value="macos_like"),
+            questionary.Choice("Minimal (clean, distraction-free)", value="minimal"),
             questionary.Choice(
                 "Tiling window manager (keyboard-driven, for power users)",
                 value="tiling",
@@ -86,9 +82,7 @@ def run(profile: UserProfile) -> None:
     profile.preferences.use_cases = use_cases
 
     # Distro preference
-    knows_distro = questionary.confirm(
-        "Do you already have a Linux distro in mind?"
-    ).ask()
+    knows_distro = questionary.confirm("Do you already have a Linux distro in mind?").ask()
     if knows_distro is None:
         raise KeyboardInterrupt
 
@@ -118,9 +112,7 @@ def run(profile: UserProfile) -> None:
         profile.preferences.distro_preference = distro
         print_success(f"Noted: you prefer {distro}")
     else:
-        print_info(
-            "No worries! We'll recommend one based on your needs and hardware."
-        )
+        print_info("No worries! We'll recommend one based on your needs and hardware.")
 
     # Additional notes
     additional = questionary.text(

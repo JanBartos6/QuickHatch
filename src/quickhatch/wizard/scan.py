@@ -4,7 +4,7 @@ import questionary
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from quickhatch.config import UserProfile
-from quickhatch.console import console, print_info, print_step, print_success, print_warning
+from quickhatch.console import console, print_step, print_success, print_warning
 
 
 def run(profile: UserProfile) -> None:
@@ -24,7 +24,9 @@ def run(profile: UserProfile) -> None:
             questionary.Choice("Installed applications", value="apps", checked=True),
             questionary.Choice("Hardware information", value="hardware", checked=True),
             questionary.Choice("Windows settings (theme, locale)", value="settings", checked=True),
-            questionary.Choice("User files (Documents, Desktop, etc.)", value="files", checked=True),
+            questionary.Choice(
+                "User files (Documents, Desktop, etc.)", value="files", checked=True
+            ),
         ],
     ).ask()
 

@@ -7,8 +7,8 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
 
-from quickhatch.bridge.server import BridgeState, PendingQuestion, Suggestion
-from quickhatch.console import console, print_info, print_success, print_warning
+from quickhatch.bridge.server import PendingQuestion, Suggestion
+from quickhatch.console import console
 
 
 def display_suggestion(suggestion: Suggestion) -> None:
@@ -45,12 +45,14 @@ def display_suggestion(suggestion: Suggestion) -> None:
     if isinstance(content, list):
         content = "\n".join(f"- {item}" for item in content)
 
-    console.print(Panel(
-        Markdown(str(content)) if "\n" in str(content) else str(content),
-        title=f"[bold {color}]{title}[/bold {color}]",
-        border_style=color,
-        padding=(1, 2),
-    ))
+    console.print(
+        Panel(
+            Markdown(str(content)) if "\n" in str(content) else str(content),
+            title=f"[bold {color}]{title}[/bold {color}]",
+            border_style=color,
+            padding=(1, 2),
+        )
+    )
 
 
 def _display_distro_suggestion(content: dict, title: str) -> None:
@@ -102,11 +104,13 @@ def _display_apps_suggestion(content: dict, title: str) -> None:
 def prompt_question(question: PendingQuestion) -> str:
     """Display a question from the LLM and get user's answer."""
     console.print()
-    console.print(Panel(
-        question.question,
-        title="[bold yellow]Agent is asking[/bold yellow]",
-        border_style="yellow",
-    ))
+    console.print(
+        Panel(
+            question.question,
+            title="[bold yellow]Agent is asking[/bold yellow]",
+            border_style="yellow",
+        )
+    )
 
     if question.choices:
         answer = questionary.select(

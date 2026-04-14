@@ -11,7 +11,14 @@ import questionary
 from quickhatch.bridge.display import display_message, display_suggestion, prompt_question
 from quickhatch.bridge.server import BridgeServer, BridgeState
 from quickhatch.config import UserProfile
-from quickhatch.console import console, print_error, print_info, print_step, print_success, print_warning
+from quickhatch.console import (
+    console,
+    print_error,
+    print_info,
+    print_step,
+    print_success,
+    print_warning,
+)
 
 
 def _write_prompt_file(profile: UserProfile, port: int) -> Path:
@@ -52,13 +59,13 @@ def _get_launch_commands(profile: UserProfile, port: int) -> dict[str, str]:
 
     if provider == "codex":
         return {
-            "powershell": f'codex (Get-Content {prompt_file} -Raw)',
+            "powershell": f"codex (Get-Content {prompt_file} -Raw)",
             "bash": f'codex "$(cat {prompt_file})"',
         }
     else:
         return {
-            "powershell": f'Get-Content {prompt_file}',
-            "bash": f'cat {prompt_file}',
+            "powershell": f"Get-Content {prompt_file}",
+            "bash": f"cat {prompt_file}",
         }
 
 
@@ -71,12 +78,12 @@ def _print_api_docs(port: int) -> None:
         f"  [cyan]GET  /api/status[/cyan]         — Check bridge status\n"
         f"  [cyan]GET  /api/suggestions[/cyan]    — List all suggestions posted so far\n"
         f"  [cyan]POST /api/suggest[/cyan]        — Post a suggestion/analysis\n"
-        f"       body: {{\"category\": \"distro|apps|drivers|desktop|plan\", \"title\": \"...\", \"content\": ...}}\n"
+        f'       body: {{"category": "distro|apps|drivers|desktop|plan", "title": "...", "content": ...}}\n'
         f"  [cyan]POST /api/ask[/cyan]            — Ask the user a question (blocks until answered)\n"
-        f"       body: {{\"question\": \"...\", \"choices\": [\"a\", \"b\"] or null}}\n"
+        f'       body: {{"question": "...", "choices": ["a", "b"] or null}}\n'
         f"  [cyan]POST /api/ask/async[/cyan]      — Ask without blocking, poll GET /api/response/{{id}}\n"
         f"  [cyan]POST /api/message[/cyan]        — Send a message to display\n"
-        f"       body: {{\"role\": \"agent\", \"content\": \"...\"}}\n"
+        f'       body: {{"role": "agent", "content": "..."}}\n'
         f"  [cyan]POST /api/done[/cyan]           — Signal migration setup is complete\n"
     )
 
@@ -125,25 +132,21 @@ def run(profile: UserProfile) -> None:
         print_success("Command saved to .quickhatch-agent-cmd.ps1")
         console.print(
             "\n[bold]Open a new PowerShell terminal and run:[/bold]\n\n"
-            f"  [cyan].\\\\.quickhatch-agent-cmd.ps1[/cyan]\n\n"
+            "  [cyan].\\\\.quickhatch-agent-cmd.ps1[/cyan]\n\n"
             "Or copy this:\n"
         )
         console.print(cmds["powershell"], highlight=False, soft_wrap=True)
-        console.print(
-            f"\n[dim]On bash/WSL instead: bash .quickhatch-agent-cmd.sh[/dim]"
-        )
+        console.print("\n[dim]On bash/WSL instead: bash .quickhatch-agent-cmd.sh[/dim]")
     else:
         print_success("Command saved to .quickhatch-agent-cmd.sh")
         console.print(
             "\n[bold]Open a new terminal and run:[/bold]\n\n"
-            f"  [cyan]bash .quickhatch-agent-cmd.sh[/cyan]\n\n"
+            "  [cyan]bash .quickhatch-agent-cmd.sh[/cyan]\n\n"
             "Or copy this:\n"
         )
         console.print(cmds["bash"], highlight=False, soft_wrap=True)
 
-    console.print(
-        f"\n[dim]Or point any AI tool at: http://localhost:{port}/api/profile[/dim]\n"
-    )
+    console.print(f"\n[dim]Or point any AI tool at: http://localhost:{port}/api/profile[/dim]\n")
 
     # Store port in profile for export
     profile.ai_config.endpoint = f"http://localhost:{port}"
@@ -212,4 +215,3 @@ def _handle_pending_questions(state: BridgeState) -> None:
 
 
 # Need Panel import
-from rich.panel import Panel

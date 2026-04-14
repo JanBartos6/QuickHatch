@@ -160,12 +160,14 @@ def _make_handler(state: BridgeState):
 
             elif self.path == "/api/status":
                 state.agent_connected = True
-                self._send_json({
-                    "status": "ok",
-                    "pending_questions": len(state.get_pending_questions()),
-                    "suggestions": len(state.suggestions),
-                    "agent_done": state.agent_done,
-                })
+                self._send_json(
+                    {
+                        "status": "ok",
+                        "pending_questions": len(state.get_pending_questions()),
+                        "suggestions": len(state.suggestions),
+                        "agent_done": state.agent_done,
+                    }
+                )
 
             elif self.path.startswith("/api/response/"):
                 qid = self.path.split("/")[-1]
@@ -219,7 +221,9 @@ def _make_handler(state: BridgeState):
                 if answered:
                     self._send_json({"status": "ok", "answer": q.answer})
                 else:
-                    self._send_json({"status": "timeout", "message": "User did not respond in time"})
+                    self._send_json(
+                        {"status": "timeout", "message": "User did not respond in time"}
+                    )
 
             elif self.path == "/api/ask/async":
                 # Non-blocking ask — LLM polls /api/response/{id} later

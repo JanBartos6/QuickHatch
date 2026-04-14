@@ -1,12 +1,11 @@
 """Step 1: Choose AI assistant for the migration."""
 
 import shutil
-import subprocess
 
 import questionary
 
 from quickhatch.config import UserProfile
-from quickhatch.console import print_error, print_info, print_step, print_success, print_warning
+from quickhatch.console import print_info, print_step, print_success, print_warning
 
 
 def _check_cli(cmd: str) -> bool:

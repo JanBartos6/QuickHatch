@@ -5,8 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from quickhatch.config import HardwareInfo, Preferences, UserProfile
-from quickhatch.console import print_info
+from quickhatch.config import UserProfile
 
 
 def _load_distros() -> dict:

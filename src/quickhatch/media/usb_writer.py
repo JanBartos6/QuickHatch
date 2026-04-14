@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import ctypes
-import platform
 import subprocess
 import sys
 from pathlib import Path
@@ -36,17 +35,21 @@ def _list_usb_windows() -> list[dict]:
     try:
         result = subprocess.run(
             [
-                "powershell", "-Command",
+                "powershell",
+                "-Command",
                 "Get-Disk | Where-Object { $_.BusType -eq 'USB' } | "
                 "Select-Object Number, FriendlyName, @{N='SizeGB';E={[math]::Round($_.Size/1GB,1)}} | "
-                "ConvertTo-Json"
+                "ConvertTo-Json",
             ],
-            capture_output=True, text=True, timeout=15,
+            capture_output=True,
+            text=True,
+            timeout=15,
         )
         if result.returncode != 0:
             return []
 
         import json
+
         data = json.loads(result.stdout)
         if isinstance(data, dict):
             data = [data]
@@ -68,12 +71,15 @@ def _list_usb_linux() -> list[dict]:
     try:
         result = subprocess.run(
             ["lsblk", "-J", "-o", "NAME,SIZE,TYPE,TRAN,MODEL,RM"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if result.returncode != 0:
             return []
 
         import json
+
         data = json.loads(result.stdout)
         drives = []
 
@@ -82,11 +88,13 @@ def _list_usb_linux() -> list[dict]:
             if device.get("type") == "disk" and (
                 device.get("tran") == "usb" or device.get("rm") is True
             ):
-                drives.append({
-                    "device": f"/dev/{device['name']}",
-                    "name": (device.get("model") or device["name"]).strip(),
-                    "size": device.get("size", "?"),
-                })
+                drives.append(
+                    {
+                        "device": f"/dev/{device['name']}",
+                        "name": (device.get("model") or device["name"]).strip(),
+                        "size": device.get("size", "?"),
+                    }
+                )
 
         return drives
     except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
@@ -127,7 +135,9 @@ def _write_windows(iso_path: Path, device: str) -> bool:
         """
         result = subprocess.run(
             ["powershell", "-Command", ps_script],
-            capture_output=True, text=True, timeout=600,
+            capture_output=True,
+            text=True,
+            timeout=600,
         )
         return result.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired) as e:
@@ -140,11 +150,13 @@ def _write_linux(iso_path: Path, device: str) -> bool:
     try:
         # Unmount any partitions on the device first
         import glob
+
         for part in glob.glob(f"{device}*"):
             if part != device:
                 subprocess.run(
                     ["sudo", "umount", part],
-                    capture_output=True, timeout=10,
+                    capture_output=True,
+                    timeout=10,
                 )
 
         console.print(f"Writing {iso_path.name} to {device}...")
@@ -152,7 +164,8 @@ def _write_linux(iso_path: Path, device: str) -> bool:
 
         result = subprocess.run(
             [
-                "sudo", "dd",
+                "sudo",
+                "dd",
                 f"if={iso_path}",
                 f"of={device}",
                 "bs=4M",

@@ -246,7 +246,7 @@ const STEPS_MIGRATION = [
   {id:'apps_data',     title:'Apps & Data'},
   {id:'additional',    title:'Notes'},
   {id:'bridge',        title:'Agent'},
-  {id:'usb',           title:'Install Linux'},
+  {id:'usb',           title:'Bootable USB'},
   {id:'ssh',           title:'SSH Key'},
   {id:'export',        title:'Export'},
   {id:'setup',         title:'Remote Setup'},
@@ -346,17 +346,12 @@ const stepRenderers={
             <div class="choice${plat==='windows'?' selected':''}" data-value="fresh_install" onclick="selectChoice('migType',this)">
               <div class="ico">${icon('monitor')}</div>
               <div class="title">Migrate from Windows</div>
-              <div class="desc">Scan your PC and set up Linux</div>
-            </div>
-            <div class="choice" data-value="switching" onclick="selectChoice('migType',this)">
-              <div class="ico">${icon('refresh')}</div>
-              <div class="title">Switch distros</div>
-              <div class="desc">Moving to a different distro</div>
+              <div class="desc">Scan your PC and set up a new Linux install</div>
             </div>
             <div class="choice${plat==='linux'?' selected':''}" data-value="customize_linux" onclick="selectChoice('migType',this)">
               <div class="ico">${icon('sliders')}</div>
               <div class="title">Customize Linux</div>
-              <div class="desc">Let an AI agent configure your system</div>
+              <div class="desc">Let an AI agent configure an existing Linux system</div>
             </div>
           </div>
         </div>
@@ -583,8 +578,9 @@ const stepRenderers={
     const distro=state.profile.preferences?.distro_preference||'your chosen distro';
     content().innerHTML=`
       <div class="card">
-        <h2>Install Linux</h2>
-        <p class="subtitle">Create a bootable USB and install ${escHtml(distro)} on your target machine.</p>
+        <h2>Bootable USB (guided)</h2>
+        <p class="subtitle">These are instructions, not an automation. QuickHatch doesn't flash USB drives itself — you'll use a standard tool like Rufus or balenaEtcher.</p>
+        <p class="subtitle">Once Linux is installed on the target machine, QuickHatch takes over via SSH.</p>
         <div class="info-box" style="margin-bottom:16px">
           <strong>Create the USB drive</strong>
           <p>Download the ISO from the distro's website, then write it to a USB drive (8 GB+) using a tool like Ventoy, Rufus, or balenaEtcher.</p>

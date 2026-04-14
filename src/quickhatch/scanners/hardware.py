@@ -11,7 +11,7 @@ from pathlib import Path
 import psutil
 
 from quickhatch.config import DiskInfo, GPUInfo, HardwareInfo
-from quickhatch.console import print_info, print_warning
+from quickhatch.console import print_info
 
 
 def _get_cpu() -> tuple[str, int]:
@@ -296,7 +296,15 @@ def _get_wifi() -> list[str]:
                     if phy_path.exists():
                         try:
                             result2 = subprocess.run(
-                                ["lspci", "-s", (phy_path / "uevent").read_text().split("PCI_SLOT_NAME=")[1].split("\n")[0], "-mm"],
+                                [
+                                    "lspci",
+                                    "-s",
+                                    (phy_path / "uevent")
+                                    .read_text()
+                                    .split("PCI_SLOT_NAME=")[1]
+                                    .split("\n")[0],
+                                    "-mm",
+                                ],
                                 capture_output=True,
                                 text=True,
                                 timeout=5,
@@ -341,7 +349,7 @@ def _get_wifi() -> list[str]:
                     timeout=5,
                 )
                 lines = (result.stdout or "").split("\n")
-                for i, line in enumerate(lines):
+                for line in lines:
                     if "Wi-Fi" in line:
                         adapters.append("Wi-Fi")
                         break

@@ -5,7 +5,7 @@ from rich.table import Table
 from quickhatch.analysis.app_mapper import map_apps
 from quickhatch.analysis.driver_check import check_drivers
 from quickhatch.config import UserProfile
-from quickhatch.console import console, print_info, print_step, print_success, print_warning
+from quickhatch.console import console, print_step, print_success, print_warning
 
 
 def run(profile: UserProfile) -> None:
@@ -60,7 +60,6 @@ def run(profile: UserProfile) -> None:
     console.print(table)
     console.print()
 
-    total_mapped = native_count + alt_count + wine_count
     print_success(
         f"Compatibility summary: {native_count} native, "
         f"{alt_count} alternatives, {wine_count} via Wine, "
@@ -87,7 +86,9 @@ def run(profile: UserProfile) -> None:
                 driver_table.add_row(
                     rec["component"],
                     status_style,
-                    rec["recommendation"][:80] + "..." if len(rec["recommendation"]) > 80 else rec["recommendation"],
+                    rec["recommendation"][:80] + "..."
+                    if len(rec["recommendation"]) > 80
+                    else rec["recommendation"],
                 )
 
             console.print(driver_table)
