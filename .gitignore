@@ -17,3 +17,13 @@ package-lock.json
 .quickhatch-prompt.txt
 .quickhatch-agent-cmd.sh
 .quickhatch-agent-cmd.ps1
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Claude Code working files
+.claude/
