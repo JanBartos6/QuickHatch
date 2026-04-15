@@ -303,6 +303,85 @@ select{cursor:pointer;appearance:none;padding-right:var(--s7);background-image:u
 .conn-grid .field{margin-bottom:0}
 @media(max-width:560px){.conn-grid{grid-template-columns:1fr}}
 
+/* ── Apps list (apps_data step) ── */
+.apps-header{
+  display:flex;align-items:center;gap:var(--s3);justify-content:space-between;
+  margin-bottom:var(--s3);
+}
+.apps-header input[type="search"]{flex:1;max-width:360px}
+.apps-stats{color:var(--text-muted)}
+
+.apps-legend{
+  display:flex;flex-wrap:wrap;gap:var(--s3);
+  padding:var(--s2) var(--s3);background:var(--surface-alt);
+  border-radius:var(--r-sm);border:1px solid var(--border);
+  margin-bottom:var(--s3);font-size:var(--t-xs);
+}
+
+.apps-list{
+  border:1px solid var(--border);border-radius:var(--r-md);
+  background:var(--surface);overflow:hidden;
+  max-height:420px;overflow-y:auto;
+}
+.apps-group{border-bottom:1px solid var(--border)}
+.apps-group:last-child{border-bottom:none}
+.apps-group.hidden{display:none}
+.apps-group-head{
+  display:flex;align-items:center;gap:var(--s2);
+  padding:var(--s2) var(--s3);background:var(--surface-alt);
+  border-bottom:1px solid var(--border);
+  font-size:var(--t-xs);font-weight:600;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0;z-index:1;
+}
+.apps-group-title{flex:1}
+.apps-group-count{font-variant-numeric:tabular-nums;font-weight:500}
+.apps-group-toggle{
+  background:transparent;border:none;cursor:pointer;
+  font-size:var(--t-xs);padding:2px var(--s2);border-radius:var(--r-sm);
+  color:var(--primary);font-weight:500;
+}
+.apps-group-toggle:hover{background:var(--primary-soft)}
+
+.app-row{
+  display:flex;align-items:center;gap:var(--s3);
+  padding:var(--s2) var(--s3);cursor:pointer;
+  font-size:var(--t-sm);transition:background var(--dur) var(--ease);
+  border-bottom:1px solid var(--border);
+}
+.app-row:last-child{border-bottom:none}
+.app-row:hover{background:var(--surface-alt)}
+.app-row.hidden{display:none}
+.app-row input[type="checkbox"]{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;flex-shrink:0}
+.app-name{flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app-alt{font-size:var(--t-xs)}
+
+/* Compatibility badges */
+.compat-badge{
+  display:inline-flex;align-items:center;gap:var(--s1);
+  font-size:var(--t-xs);font-weight:500;
+  padding:2px var(--s2);border-radius:99px;
+  color:var(--text-muted);background:var(--surface-alt);
+  border:1px solid var(--border);white-space:nowrap;
+}
+.compat-dot{
+  width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;
+}
+.compat-native{color:var(--success);background:var(--success-soft);border-color:transparent}
+.compat-alt{color:#b45309;background:#fef3c7;border-color:transparent}
+.compat-unknown{color:var(--text-dim)}
+
+input[type="search"]{
+  height:36px;padding:0 var(--s3);background:var(--surface);
+  border:1px solid var(--border-strong);border-radius:var(--r-sm);
+  color:var(--text);font-size:var(--t-sm);font-family:var(--font);
+  transition:border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+input[type="search"]:focus{
+  outline:none;border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(79,110,247,.15);
+}
+input[type="search"]::-webkit-search-cancel-button{cursor:pointer}
+
 /* ── Suggestion cards ── */
 .suggestion{
   background:var(--surface);border:1px solid var(--border);
@@ -727,35 +806,59 @@ const stepRenderers={
   apps_data(){
     const apps=state.profile.apps||[];
     const prev=state.profile.apps_to_install||[];
-    const appList=apps.length?apps.slice(0,80).map(a=>{
-      const checked=prev.includes(a.name);
-      return`<label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:.84rem;cursor:pointer;border-bottom:1px solid var(--border)">
-        <input type="checkbox" class="app-check" value="${escHtml(a.name)}"${checked?' checked':''}>
-        <span style="flex:1">${escHtml(a.name)}</span>
-        <span style="color:var(--fg-dim);font-size:.75rem">${escHtml(a.source)}</span>
-      </label>`}).join(''):'<p style="color:var(--fg-muted);font-size:.84rem">No apps detected yet. Run the system scan first, or describe what you need below.</p>';
+    state._appsPrev=new Set(prev);
+    state._appsSelected=new Set(prev);
+
+    const empty=!apps.length;
     content().innerHTML=`
       <div class="card">
-        <h2>Apps & Data</h2>
-        <p class="subtitle">Select the apps you want on Linux and describe any important data to migrate.</p>
-        <div class="field">
-          <label>Apps to install on Linux</label>
-          <p style="font-size:.78rem;color:var(--fg-muted);margin-bottom:8px">Check the apps you want. The AI agent will find Linux equivalents or set up Wine/Proton.</p>
-          <div style="max-height:250px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px">${appList}</div>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button class="btn btn-ghost" onclick="document.querySelectorAll('.app-check').forEach(c=>c.checked=true)" style="font-size:.75rem">Select all</button>
-            <button class="btn btn-ghost" onclick="document.querySelectorAll('.app-check').forEach(c=>c.checked=false)" style="font-size:.75rem">Clear</button>
+        <h2>Apps &amp; Data</h2>
+        <p class="subtitle">Pick which apps to bring over, and note any data you want the agent to help you move.</p>
+
+        ${empty?`
+          <div class="info-box"><strong>No apps detected yet</strong><p>Run the system scan first, or describe what you need in the notes below.</p></div>
+        `:`
+          <div class="apps-header">
+            <input type="search" id="appSearch" placeholder="Search apps…" oninput="filterApps()">
+            <div class="stack-h apps-stats muted" style="font-size:var(--t-xs);gap:var(--s3)">
+              <span id="appStatsFound">${apps.length} apps</span>
+              <span>·</span>
+              <span id="appStatsSelected">${prev.length} selected</span>
+            </div>
           </div>
-        </div>
+
+          <div class="apps-legend">
+            <span class="compat-badge compat-native"><span class="compat-dot"></span>Runs natively on Linux</span>
+            <span class="compat-badge compat-alt"><span class="compat-dot"></span>Has an alternative</span>
+            <span class="compat-badge compat-unknown"><span class="compat-dot"></span>Needs a plan</span>
+          </div>
+
+          <div class="apps-list" id="appsList"></div>
+
+          <div class="stack-h" style="margin-top:var(--s3);gap:var(--s2)">
+            <button class="btn btn-ghost btn-sm" onclick="appsBulk(true)">Select all visible</button>
+            <button class="btn btn-ghost btn-sm" onclick="appsBulk(false)">Clear visible</button>
+            <button class="btn btn-ghost btn-sm" onclick="appsSmartSelect()">Smart select</button>
+          </div>
+        `}
+
+        <hr>
+
         <div class="field">
           <label>Data to migrate</label>
-          <textarea id="dataDesc" placeholder="Describe what data matters to you. Examples: browser bookmarks and passwords, Documents folder, game saves, SSH keys, Git repos, IDE settings, music library...">${escHtml(state.profile.data_description||'')}</textarea>
+          <p class="muted" style="font-size:var(--t-xs);margin-bottom:var(--s2)">QuickHatch won't copy Windows files directly — describe what matters and the agent will tell you how to move it.</p>
+          <textarea id="dataDesc" placeholder="e.g. browser bookmarks and passwords, Documents and Pictures folders, game saves in %APPDATA%, SSH keys, Git repos, IDE settings…">${escHtml(state.profile.data_description||'')}</textarea>
         </div>
+
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
           <button class="btn btn-primary" onclick="submitAppsData()">Continue</button>
         </div>
       </div>`;
+
+    if(!empty){
+      renderAppsList(apps);
+    }
   },
 
   additional(){
@@ -1262,8 +1365,155 @@ async function runScan(){
 }
 function hwCard(label,value,sub){return`<div class="hw-card"><div class="hw-label">${label}</div><div class="hw-value">${value}</div>${sub?`<div class="hw-sub">${sub}</div>`:''}</div>`}
 
+// ── Apps categorization ──
+const APP_CATEGORIES = [
+  {id:'browsers', title:'Browsers', match:/\b(chrome|chromium|firefox|brave|edge|opera|vivaldi|tor browser|arc|librewolf)\b/i},
+  {id:'dev', title:'Development', match:/\b(vs ?code|visual studio|cursor|sublime|atom|jetbrains|pycharm|intellij|rider|webstorm|android studio|xcode|git(hub)?|docker|postman|insomnia|ngrok|wsl|nodejs|node\.js|python|java|\.net|mysql|postgres|mongodb|redis|terraform|aws cli|azure cli|gcp|kubectl|helm|ollama|lm studio)\b/i},
+  {id:'media', title:'Media', match:/\b(vlc|spotify|audacity|obs|obs studio|handbrake|kodi|plex|winamp|foobar|blender|davinci resolve|premiere|after effects|shotcut|kdenlive|photoshop|illustrator|lightroom|gimp|inkscape|krita|figma|affinity)\b/i},
+  {id:'office', title:'Office & Productivity', match:/\b(libreoffice|microsoft 365|microsoft office|word|excel|powerpoint|onenote|outlook|notion|obsidian|evernote|todoist|onedrive|dropbox|google drive|icloud|zotero|mendeley|typora)\b/i},
+  {id:'communication', title:'Communication', match:/\b(discord|slack|zoom|teams|skype|whatsapp|signal|telegram|thunderbird|mailbird|betterbird)\b/i},
+  {id:'gaming', title:'Gaming', match:/\b(steam|epic games|ubisoft connect|ea( app)?|origin|battle\.net|gog galaxy|heroic|lutris|minecraft|proton|playnite|riot( client)?|rockstar)\b/i},
+  {id:'utilities', title:'Utilities', match:/\b(7-zip|winrar|winzip|notepad\+\+|everything|flameshot|sharex|greenshot|autohotkey|powertoys|rufus|ventoy|balena|crystaldisk|hwinfo|cpu-?z|gpu-?z|msi afterburner|cpuid|speccy|hwmonitor|teracopy|fastcopy)\b/i},
+  {id:'security', title:'Security & VPN', match:/\b(bitwarden|1password|lastpass|keepassxc?|mullvad|nordvpn|protonvpn|wireguard|openvpn|malwarebytes|windscribe)\b/i},
+  {id:'system', title:'System & Drivers', match:/\b(nvidia|realtek|intel(r)?|amd|razer|logitech|corsair|steelseries|asus|msi|gigabyte|dell|hp |lenovo|broadcom|microsoft visual c\+\+|\.net|dotnet|direct ?x|windows sdk|openssh)\b/i},
+];
+
+function categorizeApp(name){
+  for(const cat of APP_CATEGORIES){
+    if(cat.match.test(name))return cat.id;
+  }
+  return 'other';
+}
+
+function compatClass(a){
+  const c=(a.compatibility||'unknown').toLowerCase();
+  if(c==='native')return'native';
+  if(c==='alternative'||c==='alt'||c==='wine')return'alt';
+  if(c==='none')return'unknown';
+  return'unknown';
+}
+
+function compatLabel(a){
+  const c=(a.compatibility||'unknown').toLowerCase();
+  if(c==='native')return'Native';
+  if(c==='alternative'||c==='alt')return'Alt';
+  if(c==='wine')return'Wine';
+  if(c==='none')return'No Linux';
+  return'?';
+}
+
+function renderAppsList(apps){
+  const list=el('appsList');if(!list)return;
+  // Group apps by category
+  const groups={};
+  const order=['browsers','dev','media','office','communication','gaming','utilities','security','system','other'];
+  for(const a of apps){
+    const cat=categorizeApp(a.name||'');
+    (groups[cat]=groups[cat]||[]).push(a);
+  }
+  const titleOf=id=>{
+    const c=APP_CATEGORIES.find(x=>x.id===id);
+    return c?c.title:'Other';
+  };
+  let html='';
+  for(const id of order){
+    const items=groups[id];if(!items||!items.length)continue;
+    // Sort alphabetically within a group
+    items.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    html+=`<div class="apps-group" data-cat="${id}">
+      <div class="apps-group-head">
+        <span class="apps-group-title">${escHtml(titleOf(id))}</span>
+        <span class="apps-group-count muted">${items.length}</span>
+        <button class="apps-group-toggle" onclick="toggleGroup(this)" type="button" aria-label="Toggle select"><span class="dim">Select all</span></button>
+      </div>
+      <div class="apps-group-body">`;
+    for(const a of items){
+      const name=a.name||'';
+      const checked=state._appsSelected.has(name);
+      const cls=compatClass(a);
+      const label=compatLabel(a);
+      const alt=a.linux_alternative?` <span class="app-alt muted">→ ${escHtml(a.linux_alternative)}</span>`:'';
+      html+=`<label class="app-row" data-name="${escHtml(name.toLowerCase())}" data-cat="${id}">
+        <input type="checkbox" class="app-check" value="${escHtml(name)}" onchange="onAppToggle(this)"${checked?' checked':''}>
+        <span class="app-name">${escHtml(name)}${alt}</span>
+        <span class="compat-badge compat-${cls}" title="${escHtml(label)}"><span class="compat-dot"></span>${escHtml(label)}</span>
+      </label>`;
+    }
+    html+=`</div></div>`;
+  }
+  list.innerHTML=html;
+  updateAppsStats();
+}
+
+function toggleGroup(btn){
+  const group=btn.closest('.apps-group');
+  const visibleChecks=[...group.querySelectorAll('.app-row:not(.hidden) .app-check')];
+  if(!visibleChecks.length)return;
+  const anyUnchecked=visibleChecks.some(c=>!c.checked);
+  visibleChecks.forEach(c=>{
+    c.checked=anyUnchecked;
+    if(anyUnchecked)state._appsSelected.add(c.value);else state._appsSelected.delete(c.value);
+  });
+  updateAppsStats();
+}
+
+function onAppToggle(cb){
+  if(cb.checked)state._appsSelected.add(cb.value);
+  else state._appsSelected.delete(cb.value);
+  updateAppsStats();
+}
+
+function filterApps(){
+  const q=(el('appSearch').value||'').trim().toLowerCase();
+  const rows=document.querySelectorAll('.app-row');
+  const groups=document.querySelectorAll('.apps-group');
+  rows.forEach(r=>{
+    r.classList.toggle('hidden', q && !r.dataset.name.includes(q));
+  });
+  // Hide groups with no visible rows
+  groups.forEach(g=>{
+    const anyVisible=[...g.querySelectorAll('.app-row')].some(r=>!r.classList.contains('hidden'));
+    g.classList.toggle('hidden', !anyVisible);
+  });
+  updateAppsStats();
+}
+
+function appsBulk(select){
+  const visible=[...document.querySelectorAll('.app-row:not(.hidden) .app-check')];
+  visible.forEach(c=>{
+    c.checked=select;
+    if(select)state._appsSelected.add(c.value);
+    else state._appsSelected.delete(c.value);
+  });
+  updateAppsStats();
+}
+
+function appsSmartSelect(){
+  // Select everything that has Linux-native or alternative compatibility
+  const rows=[...document.querySelectorAll('.app-row')];
+  rows.forEach(r=>{
+    const badge=r.querySelector('.compat-badge');
+    const cls=badge?badge.className:'';
+    const cb=r.querySelector('.app-check');
+    const should=cls.includes('compat-native')||cls.includes('compat-alt');
+    cb.checked=should;
+    if(should)state._appsSelected.add(cb.value);else state._appsSelected.delete(cb.value);
+  });
+  updateAppsStats();
+}
+
+function updateAppsStats(){
+  const total=document.querySelectorAll('.app-row').length;
+  const visible=[...document.querySelectorAll('.app-row:not(.hidden)')].length;
+  const selected=state._appsSelected?state._appsSelected.size:0;
+  const foundEl=el('appStatsFound');
+  const selEl=el('appStatsSelected');
+  if(foundEl)foundEl.textContent=visible===total?`${total} apps`:`${visible} of ${total} apps`;
+  if(selEl)selEl.textContent=`${selected} selected`;
+}
+
 async function submitAppsData(){
-  const checked=[...document.querySelectorAll('.app-check:checked')].map(c=>c.value);
+  const checked=state._appsSelected?[...state._appsSelected]:[...document.querySelectorAll('.app-check:checked')].map(c=>c.value);
   const dataDesc=(el('dataDesc')||{}).value||'';
   await saveProfile({apps_to_install:checked,data_description:dataDesc});
   await completeStep('apps_data');

@@ -395,9 +395,17 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                 results = _run_scan()
                 with gui_state.lock:
                     if results.get("apps"):
+                        from quickhatch.analysis.app_mapper import map_apps
                         from quickhatch.config import AppInfo
 
-                        gui_state.profile.apps = [AppInfo(**a) for a in results["apps"]]
+                        apps = [AppInfo(**a) for a in results["apps"]]
+                        try:
+                            apps = map_apps(apps)
+                        except Exception:
+                            pass
+                        gui_state.profile.apps = apps
+                        # Reflect the enriched apps in the response
+                        results["apps"] = [asdict(a) for a in apps]
                     if results.get("hardware"):
                         from quickhatch.config import DiskInfo, GPUInfo, HardwareInfo
 
