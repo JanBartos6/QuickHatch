@@ -25,6 +25,7 @@ WIZARD_STEPS = [
 
 def _populate_demo_profile(profile: UserProfile) -> None:
     """Fill profile with realistic demo data for testing on Linux."""
+    from quickhatch.analysis.app_mapper import map_apps
     from quickhatch.config import AIConfig, AppInfo, DiskInfo, GPUInfo, HardwareInfo, Preferences
 
     profile.preferences = Preferences(
@@ -91,6 +92,11 @@ def _populate_demo_profile(profile: UserProfile) -> None:
         AppInfo(name="Blender", version="4.0", source="winget"),
         AppInfo(name="Epic Games Store", version="15.6", source="registry"),
     ]
+    # Enrich with Linux compatibility info so the Apps step shows proper badges
+    try:
+        profile.apps = map_apps(profile.apps)
+    except Exception:
+        pass
     profile.windows_settings = {
         "theme": "dark",
         "default_browser": "Google Chrome",
