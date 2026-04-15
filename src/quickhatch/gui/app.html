@@ -36,6 +36,17 @@
   --success-soft: #e8f7ee;
   --danger:       #dc2626;
   --danger-soft:  #fdecec;
+  --warning:      #b45309;
+  --warning-soft: #fef3c7;
+
+  /* Category accent chips (for suggestion cards) */
+  --cat-distro:  #16a34a;
+  --cat-apps:    #4f6ef7;
+  --cat-drivers: #b45309;
+  --cat-desktop: #8b5cf6;
+  --cat-plan:    #0891b2;
+  --cat-summary: #db2777;
+  --cat-default: #525867;
 
   /* Spacing */
   --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
@@ -83,6 +94,47 @@
   --green-light: var(--success-soft);
   --red: var(--danger);
   --red-light: var(--danger-soft);
+
+  /* Focus ring color — used in rgba() so kept as raw values */
+  --ring: 79, 110, 247;
+}
+
+/* ── Dark mode ── */
+[data-theme="dark"] {
+  --bg:          #0e1017;
+  --surface:     #171a22;
+  --surface-alt: #1e2230;
+  --border:      #262b3a;
+  --border-strong: #363c4f;
+
+  --text:       #e8eaf0;
+  --text-muted: #9098ab;
+  --text-dim:   #636a7c;
+
+  --primary:      #7b8dff;
+  --primary-hover:#a1b0ff;
+  --primary-soft: rgba(123,141,255,.14);
+  --success:      #34d399;
+  --success-soft: rgba(52,211,153,.14);
+  --danger:       #f87171;
+  --danger-soft:  rgba(248,113,113,.14);
+  --warning:      #fbbf24;
+  --warning-soft: rgba(251,191,36,.14);
+
+  --cat-distro:  #34d399;
+  --cat-apps:    #7b8dff;
+  --cat-drivers: #fbbf24;
+  --cat-desktop: #c084fc;
+  --cat-plan:    #22d3ee;
+  --cat-summary: #f472b6;
+  --cat-default: #9098ab;
+
+  --shadow-1: 0 1px 2px rgba(0,0,0,.25), 0 1px 3px rgba(0,0,0,.25);
+  --shadow-2: 0 8px 24px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.25);
+  --ring: 123, 141, 255;
+}
+
+:root {
   --radius: var(--r-md);
   --radius-sm: var(--r-sm);
   --shadow: var(--shadow-1);
@@ -104,17 +156,53 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 .logo h1{font-size:var(--t-2xl);font-weight:700;letter-spacing:-.02em;color:var(--text)}
 .logo p{color:var(--text-muted);font-size:var(--t-sm);margin-top:var(--s1);font-weight:500}
 
-/* ── Progress bar ── */
-.progress{
-  display:flex;align-items:center;gap:var(--s3);margin-bottom:var(--s6);
+/* ── Stepper ── */
+.progress{margin-bottom:var(--s5)}
+.stepper{
+  display:flex;align-items:flex-start;gap:var(--s1);
   padding:var(--s3) var(--s4);background:var(--surface);
   border-radius:var(--r-md);border:1px solid var(--border);
+  overflow-x:auto;scrollbar-width:none;
 }
-.progress-info{display:flex;align-items:center;gap:var(--s2);white-space:nowrap;flex-shrink:0}
-.progress-num{font-size:var(--t-xs);font-weight:600;color:var(--primary);letter-spacing:.02em;font-variant-numeric:tabular-nums}
-.progress-title{font-size:var(--t-sm);font-weight:500;color:var(--text)}
-.progress-track{flex:1;height:4px;background:var(--surface-alt);border-radius:99px;overflow:hidden;min-width:80px}
-.progress-fill{height:100%;border-radius:99px;background:var(--primary);transition:width var(--dur-slow) var(--ease)}
+.stepper::-webkit-scrollbar{display:none}
+.step{
+  display:flex;flex-direction:column;align-items:center;gap:var(--s1);
+  padding:var(--s1) var(--s2);border-radius:var(--r-sm);
+  min-width:56px;flex:1;position:relative;
+  transition:background var(--dur) var(--ease);
+}
+.step + .step::before{
+  content:'';position:absolute;left:-8px;top:10px;width:16px;height:1px;
+  background:var(--border-strong);
+}
+.step-marker{
+  width:20px;height:20px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;
+  background:var(--surface-alt);color:var(--text-dim);
+  border:1px solid var(--border-strong);
+  transition:all var(--dur) var(--ease);
+}
+.step-label{
+  font-size:var(--t-xs);color:var(--text-dim);
+  font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:100%;text-align:center;
+}
+.step-done .step-marker{background:var(--success);color:#fff;border-color:var(--success)}
+.step-done .step-label{color:var(--text-muted)}
+.step-done + .step::before, .step-current + .step::before{background:var(--primary)}
+.step-current .step-marker{
+  background:var(--primary);color:#fff;border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(var(--ring),.2);
+}
+.step-current .step-label{color:var(--text);font-weight:600}
+.step[role="button"]{cursor:pointer}
+.step[role="button"]:hover{background:var(--surface-alt)}
+.step[role="button"]:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+
+/* Legacy aliases, still referenced by a few old paths */
+.progress-info{display:none}
+.progress-track{display:none}
 
 /* ── Card ── */
 .card{
@@ -384,12 +472,36 @@ input[type="search"]::-webkit-search-cancel-button{cursor:pointer}
 
 /* ── Suggestion cards ── */
 .suggestion{
+  --sug-accent: var(--cat-default);
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--r-md);padding:var(--s5);margin:var(--s3) 0;
   box-shadow:var(--shadow-1);
+  position:relative;overflow:hidden;
 }
-.suggestion .cat{font-size:var(--t-xs);text-transform:uppercase;font-weight:700;letter-spacing:.08em;color:var(--primary);margin-bottom:var(--s1)}
-.suggestion .stitle{font-weight:700;font-size:var(--t-lg);margin-bottom:var(--s3);color:var(--text);letter-spacing:-.01em}
+.suggestion::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--sug-accent);
+}
+.suggestion-distro{--sug-accent:var(--cat-distro)}
+.suggestion-apps{--sug-accent:var(--cat-apps)}
+.suggestion-drivers{--sug-accent:var(--cat-drivers)}
+.suggestion-desktop{--sug-accent:var(--cat-desktop)}
+.suggestion-plan{--sug-accent:var(--cat-plan)}
+.suggestion-summary{--sug-accent:var(--cat-summary)}
+
+.sug-head{
+  display:flex;align-items:flex-start;gap:var(--s3);margin-bottom:var(--s4);
+}
+.sug-icon{
+  width:36px;height:36px;flex-shrink:0;border-radius:var(--r-sm);
+  background:var(--surface-alt);color:var(--sug-accent);
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--border);
+}
+.sug-icon svg{width:18px;height:18px}
+.sug-meta{flex:1;min-width:0;padding-top:2px}
+.suggestion .cat{font-size:var(--t-xs);text-transform:uppercase;font-weight:700;letter-spacing:.08em;color:var(--sug-accent);margin-bottom:2px}
+.suggestion .stitle{font-weight:700;font-size:var(--t-lg);color:var(--text);letter-spacing:-.01em;line-height:var(--leading-tight)}
 .suggestion .scontent{color:var(--text-muted);font-size:var(--t-sm);line-height:1.65}
 .suggestion .scontent pre{background:var(--surface-alt);padding:var(--s3);border-radius:var(--r-sm);overflow-x:auto;font-size:var(--t-xs);margin:var(--s2) 0;font-family:var(--font-mono);line-height:1.55}
 .suggestion .scontent table{margin:var(--s2) 0;width:100%;border-collapse:collapse}
@@ -513,6 +625,61 @@ h4.md-h{font-size:var(--t-sm);margin:var(--s3) 0 var(--s1);text-transform:upperc
 .info-box.info-primary{border-color:var(--primary);background:var(--primary-soft)}
 .info-box.info-primary strong{color:var(--primary)}
 
+/* ── Toasts ── */
+.toast-stack{
+  position:fixed;bottom:var(--s5);right:var(--s5);z-index:100;
+  display:flex;flex-direction:column;gap:var(--s2);
+  pointer-events:none;
+}
+.toast{
+  display:flex;align-items:center;gap:var(--s2);
+  padding:var(--s3) var(--s4);min-width:220px;max-width:380px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-md);box-shadow:var(--shadow-2);
+  font-size:var(--t-sm);color:var(--text);
+  transform:translateX(20px);opacity:0;
+  transition:transform var(--dur) var(--ease), opacity var(--dur) var(--ease);
+}
+.toast-in{transform:translateX(0);opacity:1}
+.toast-out{transform:translateX(20px);opacity:0}
+.toast-icon{
+  width:20px;height:20px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;flex-shrink:0;
+  background:var(--surface-alt);color:var(--text-muted);
+}
+.toast-success .toast-icon{background:var(--success-soft);color:var(--success)}
+.toast-error .toast-icon{background:var(--danger-soft);color:var(--danger)}
+
+/* ── Error card ── */
+.error-card{position:relative}
+.error-card p{margin-bottom:var(--s2)}
+
+/* ── Motion ── */
+@media (prefers-reduced-motion: no-preference){
+  .suggestion{animation:fadeIn var(--dur-slow) var(--ease) both}
+  .agent-launch{animation:fadeIn var(--dur-slow) var(--ease) both}
+}
+
+/* ── Footer ── */
+.app-footer{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--s3);
+  padding:var(--s4) var(--s5);margin-top:var(--s7);
+  font-size:var(--t-xs);color:var(--text-dim);
+  border-top:1px solid var(--border);flex-wrap:wrap;
+}
+.app-footer a{color:var(--text-muted);text-decoration:none;border-bottom:1px dashed transparent;transition:color var(--dur) var(--ease), border-color var(--dur) var(--ease)}
+.app-footer a:hover{color:var(--text);border-bottom-color:var(--text-dim)}
+.footer-links{display:flex;gap:var(--s4);align-items:center}
+.theme-toggle{
+  background:transparent;border:1px solid var(--border-strong);
+  color:var(--text-muted);cursor:pointer;
+  font-size:var(--t-xs);padding:var(--s1) var(--s2);border-radius:var(--r-sm);
+  font-family:var(--font);
+  transition:border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.theme-toggle:hover{border-color:var(--text-dim);color:var(--text)}
+
 /* ── Utilities ── */
 .hidden{display:none !important}
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border-strong);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle}
@@ -541,6 +708,14 @@ hr{border:none;border-top:1px solid var(--border);margin:var(--s4) 0}
   </div>
   <div class="progress" id="progressBar"></div>
   <div id="stepContent"></div>
+  <footer class="app-footer">
+    <div>QuickHatch <span class="dim">· v0.1</span></div>
+    <div class="footer-links">
+      <a href="https://github.com/JanBartos6/QuickHatch" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/JanBartos6/QuickHatch/tree/main/docs" target="_blank" rel="noopener">Docs</a>
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle color theme"></button>
+    </div>
+  </footer>
 </div>
 
 <script>
@@ -610,17 +785,28 @@ async function loadProfile(){
 
 function renderProgress(){
   const bar=document.getElementById('progressBar');
-  const step=STEPS[state.currentStep];
-  const pct=Math.round((state.currentStep/STEPS.length)*100);
-  if(!step){
-    bar.innerHTML=`
-      <div class="progress-info"><span class="progress-num">Done</span><span class="progress-title">All steps complete</span></div>
-      <div class="progress-track"><div class="progress-fill" style="width:100%"></div></div>`;
-    return;
-  }
-  bar.innerHTML=`
-    <div class="progress-info"><span class="progress-num">${step.n}/${STEPS.length}</span><span class="progress-title">${step.title}</span></div>
-    <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>`;
+  const current=state.currentStep;
+  const items=STEPS.map((s,i)=>{
+    const done=state.completedSteps.includes(s.id);
+    const isCurrent=i===current;
+    const clickable=done||i<current;
+    let cls='step';
+    if(isCurrent)cls+=' step-current';
+    else if(done)cls+=' step-done';
+    else cls+=' step-pending';
+    const attrs=clickable?`role="button" tabindex="0" onclick="jumpToStep(${i})" onkeydown="if(event.key==='Enter')jumpToStep(${i})"`:'';
+    return `<div class="${cls}" ${attrs}>
+      <div class="step-marker">${done?'<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>':s.n||(i+1)}</div>
+      <div class="step-label">${escHtml(s.title)}</div>
+    </div>`;
+  }).join('');
+  bar.innerHTML=`<div class="stepper" role="list" aria-label="Progress">${items}</div>`;
+}
+
+function jumpToStep(i){
+  if(i<0||i>=STEPS.length)return;
+  state.currentStep=i;
+  render();
 }
 
 async function completeStep(stepId){
@@ -629,9 +815,10 @@ async function completeStep(stepId){
   state.currentStep++;render();
 }
 
-async function saveProfile(updates){
+async function saveProfile(updates, opts){
   await api('/wizard/update','POST',updates);
   Object.assign(state.profile,updates);
+  if(opts&&opts.toast!==false&&opts&&opts.toast)toast(opts.toast,'success');
 }
 
 function render(){
@@ -1112,6 +1299,103 @@ function renderDone(){
 
 // ── Helpers ──
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+// ── Theme ──
+function getTheme(){
+  const saved=localStorage.getItem('qh-theme');
+  if(saved==='light'||saved==='dark')return saved;
+  return window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+}
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme',theme);
+  document.documentElement.style.colorScheme=theme;
+  const btn=document.getElementById('themeToggle');
+  if(btn)btn.textContent=theme==='dark'?'☀ Light':'☾ Dark';
+}
+function toggleTheme(){
+  const next=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+  localStorage.setItem('qh-theme',next);
+  applyTheme(next);
+}
+
+// ── Toasts ──
+let toastContainer=null;
+function toast(message, kind='info', durationMs=2600){
+  if(!toastContainer){
+    toastContainer=document.createElement('div');
+    toastContainer.className='toast-stack';
+    document.body.appendChild(toastContainer);
+  }
+  const t=document.createElement('div');
+  t.className='toast toast-'+kind;
+  t.innerHTML=`<span class="toast-icon">${kind==='error'?'✕':kind==='success'?'✓':'•'}</span><span>${escHtml(message)}</span>`;
+  toastContainer.appendChild(t);
+  // Trigger enter animation next frame
+  requestAnimationFrame(()=>t.classList.add('toast-in'));
+  setTimeout(()=>{
+    t.classList.remove('toast-in');
+    t.classList.add('toast-out');
+    setTimeout(()=>t.remove(),220);
+  },durationMs);
+}
+
+// ── Error card helper ──
+function errorCard(message, onRetryAttr){
+  return `<div class="info-box info-danger error-card">
+    <strong>Something went wrong</strong>
+    <p>${escHtml(message)}</p>
+    ${onRetryAttr?`<button class="btn btn-ghost btn-sm" ${onRetryAttr} style="margin-top:var(--s2)">Retry</button>`:''}
+  </div>`;
+}
+
+// ── Suggestion card identity ──
+const CAT_META = {
+  distro:     {icon:'server',    label:'Distribution',       color:'distro'},
+  apps:       {icon:'grid',      label:'Applications',       color:'apps'},
+  drivers:    {icon:'chip',      label:'Drivers',            color:'drivers'},
+  desktop:    {icon:'monitor',   label:'Desktop environment',color:'desktop'},
+  plan:       {icon:'list',      label:'Migration plan',     color:'plan'},
+  summary:    {icon:'sparkle',   label:'Summary',            color:'summary'},
+  // Setup-phase categories
+  system_update:          {icon:'refresh', label:'System update',   color:'plan'},
+  driver_installation:    {icon:'chip',    label:'Drivers',         color:'drivers'},
+  'desktop_&_theming':    {icon:'monitor', label:'Desktop & theme', color:'desktop'},
+  application_installation:{icon:'grid',   label:'Applications',    color:'apps'},
+  configuration:          {icon:'sliders', label:'Configuration',   color:'summary'},
+  verification:           {icon:'check',   label:'Verification',    color:'distro'},
+  execution_log:          {icon:'terminal',label:'Execution log',   color:'default'},
+  progress:               {icon:'refresh', label:'Progress',        color:'default'},
+};
+const CAT_ICONS = {
+  server:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>',
+  grid:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
+  chip:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="1"/><line x1="9" y1="2" x2="9" y2="6"/><line x1="15" y1="2" x2="15" y2="6"/><line x1="9" y1="18" x2="9" y2="22"/><line x1="15" y1="18" x2="15" y2="22"/><line x1="18" y1="9" x2="22" y2="9"/><line x1="18" y1="15" x2="22" y2="15"/><line x1="2" y1="9" x2="6" y2="9"/><line x1="2" y1="15" x2="6" y2="15"/></svg>',
+  monitor:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+  list:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>',
+  sparkle:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4m0 12v4M4 12H2m20 0h-2M5.5 5.5l2 2m9 9l2 2m0-13l-2 2m-9 9l-2 2"/><circle cx="12" cy="12" r="4"/></svg>',
+  refresh:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>',
+  sliders:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>',
+  check:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  terminal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
+};
+function renderSuggestion(s){
+  const meta = CAT_META[s.category] || {icon:'list', label:s.category, color:'default'};
+  const iconSvg = CAT_ICONS[meta.icon] || CAT_ICONS.list;
+  const content = typeof s.content==='string'
+    ? renderMd(s.content)
+    : '<pre>'+escHtml(JSON.stringify(s.content,null,2))+'</pre>';
+  return `<div class="suggestion suggestion-${meta.color}">
+    <div class="sug-head">
+      <div class="sug-icon">${iconSvg}</div>
+      <div class="sug-meta">
+        <div class="cat">${escHtml(meta.label)}</div>
+        <div class="stitle">${escHtml(s.title)}</div>
+      </div>
+    </div>
+    <div class="scontent">${content}</div>
+  </div>`;
+}
+
 function copyFrom(btn,targetId){
   const target=el(targetId);if(!target)return;
   navigator.clipboard.writeText(target.textContent).then(()=>{
@@ -1323,9 +1607,18 @@ async function submitPrefs(){
   await saveProfile({preferences:prefs});await completeStep('questionnaire');
 }
 async function runScan(){
-  el('scanBtn').disabled=true;el('scanBtn').textContent='Scanning…';
+  const btn=el('scanBtn');
+  btn.disabled=true;btn.textContent='Scanning…';
   el('scanResults').innerHTML='<p class="muted" style="font-size:var(--t-sm)">Scanning…</p>';
-  const data=await api('/wizard/scan','POST');
+  let data;
+  try{
+    data=await api('/wizard/scan','POST');
+  }catch(e){
+    el('scanResults').innerHTML=errorCard('Could not run the scan: '+(e.message||'unknown error'), 'onclick="runScan()"');
+    btn.disabled=false;btn.textContent='Try again';
+    toast('Scan failed','error');
+    return;
+  }
   const r=data.results||{};
   let html='';
   if(r.hardware){
@@ -1715,12 +2008,7 @@ async function pollBridge(){
         if(feed&&sd.suggestions.length!==state._lastSugCount){
           state._lastSugCount=sd.suggestions.length;
           if(section&&sd.suggestions.length)section.classList.remove('hidden');
-          feed.innerHTML=sd.suggestions.map(s=>`
-            <div class="suggestion">
-              <div class="cat">${escHtml(s.category)}</div>
-              <div class="stitle">${escHtml(s.title)}</div>
-              <div class="scontent">${typeof s.content==='string'?renderMd(s.content):'<pre>'+escHtml(JSON.stringify(s.content,null,2))+'</pre>'}</div>
-            </div>`).join('');
+          feed.innerHTML=sd.suggestions.map(renderSuggestion).join('');
         }
       }
 
@@ -1769,9 +2057,11 @@ async function generateSSH(){
     const cont=el('sshContinue');
     if(cont){cont.disabled=false;cont.textContent='Continue'}
     if(data.path)state.profile.ssh_public_key_path=data.path;
+    toast('SSH key ready','success');
   }else{
-    box.innerHTML=`<div class="info-box info-danger"><strong>${escHtml(data.message)}</strong></div>`;
+    box.innerHTML=errorCard(data.message||'Could not generate key', 'onclick="generateSSH()"');
     btn.disabled=false;btn.textContent='Retry';
+    toast('Key generation failed','error');
   }
 }
 
@@ -1787,10 +2077,12 @@ async function runExport(){
         <ul>${fileList}</ul>
       </div>`;
     el('exportBtn').textContent='Done';
+    toast('Bundle exported','success');
     await completeStep('export');
   }else{
-    el('exportResult').innerHTML=`<div class="info-box info-danger"><strong>${escHtml(data.message||'Export failed')}</strong></div>`;
+    el('exportResult').innerHTML=errorCard(data.message||'Export failed', 'onclick="runExport()"');
     el('exportBtn').disabled=false;el('exportBtn').textContent='Retry';
+    toast('Export failed','error');
   }
 }
 
@@ -1798,11 +2090,12 @@ async function runExport(){
 async function saveLinuxConn(){
   const ip=el('linuxIp').value.trim();
   const user=el('linuxUser').value.trim();
-  if(!ip||!user)return;
+  if(!ip||!user){toast('Enter IP and username first','error');return;}
   await saveProfile({linux_ip:ip,linux_user:user});
+  toast('Connection saved','success');
   const btn=el('saveConnBtn');btn.textContent='Saved';
   const lb=el('setupLaunchBtn');if(lb)lb.disabled=false;
-  // Re-render to update the command with actual IP/user
+  const tb=el('testConnBtn');if(tb)tb.disabled=false;
   stepRenderers.setup();
 }
 
@@ -1873,12 +2166,7 @@ async function pollSetup(){
         if(feed&&sd.suggestions.length!==(state._lastSetupSugCount||0)){
           state._lastSetupSugCount=sd.suggestions.length;
           if(section&&sd.suggestions.length)section.classList.remove('hidden');
-          feed.innerHTML=sd.suggestions.map(s=>`
-            <div class="suggestion">
-              <div class="cat">${escHtml(s.category)}</div>
-              <div class="stitle">${escHtml(s.title)}</div>
-              <div class="scontent">${typeof s.content==='string'?renderMd(s.content):'<pre>'+escHtml(JSON.stringify(s.content,null,2))+'</pre>'}</div>
-            </div>`).join('');
+          feed.innerHTML=sd.suggestions.map(renderSuggestion).join('');
         }
       }
 
@@ -1909,6 +2197,7 @@ async function pollSetup(){
 }
 
 // ── Init ──
+applyTheme(getTheme());
 (async()=>{await loadProfile();render()})();
 </script>
 </body>
