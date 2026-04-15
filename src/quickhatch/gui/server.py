@@ -172,11 +172,13 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
             pass
 
         def _send_json(self, data: Any, status: int = 200) -> None:
+            payload = json.dumps(data).encode()
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(payload)))
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
-            self.wfile.write(json.dumps(data).encode())
+            self.wfile.write(payload)
 
         def _read_json(self) -> Any:
             length = int(self.headers.get("Content-Length", 0))
@@ -461,8 +463,11 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                 self._send_json(result)
 
             elif self.path == "/wizard/stop-agent":
+                self._read_json()  # drain request body so Windows doesn't RST
                 bridge_state.request_stop()
-                bridge_state.add_message("agent", "Stop requested — finishing current step and exiting.")
+                bridge_state.add_message(
+                    "agent", "Stop requested — finishing current step and exiting."
+                )
                 self._send_json({"status": "ok"})
 
             elif self.path == "/wizard/test-ssh":
@@ -490,11 +495,18 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                         default_key = Path.home() / ".ssh" / "id_ed25519"
                         if default_key.exists():
                             key_path = str(default_key)
-                    rc, out, err = _ssh_exec(host, user_in, "uname -sr && hostname", key_path, timeout=15, port=port_num)
+                    rc, out, err = _ssh_exec(
+                        host, user_in, "uname -sr && hostname", key_path, timeout=15, port=port_num
+                    )
                     if rc == 0:
                         self._send_json({"status": "ok", "info": out.strip().replace("\n", " · ")})
                     else:
-                        self._send_json({"status": "error", "message": (err.strip() or "SSH connection failed")[:200]})
+                        self._send_json(
+                            {
+                                "status": "error",
+                                "message": (err.strip() or "SSH connection failed")[:200],
+                            }
+                        )
 
             elif self.path == "/wizard/rerun-agent":
                 data = self._read_json()
