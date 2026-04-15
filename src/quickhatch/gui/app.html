@@ -338,6 +338,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 }
 .gallery-chip.community{border-color:rgba(180,83,9,.25);background:var(--warning-soft);color:var(--warning)}
 .gallery-chip.verified{border-color:rgba(22,163,74,.25);background:var(--success-soft);color:var(--success)}
+.gallery-chip.no-license{border-color:rgba(180,83,9,.25);background:var(--warning-soft);color:var(--warning);font-weight:600}
 .gallery-swatch{
   width:12px;height:12px;border-radius:999px;border:1px solid rgba(15,18,32,.12);
 }
@@ -1092,6 +1093,7 @@ function renderGalleryPicker(){
                 <div class="gallery-body">
                   <div class="gallery-meta">
                     <span class="gallery-chip ${entry.verified?'verified':'community'}">${entry.verified?'Verified':'Community'}</span>
+                    ${entry.license_status==='unknown'?`<span class="gallery-chip no-license" title="Source repo has no license — browse as inspiration, this recipe will not be auto-applied.">No license</span>`:''}
                     <span class="gallery-chip">${escHtml((entry.de||'unknown').toUpperCase())}</span>
                     <span class="gallery-chip">${escHtml(entry.mood||'mixed')}</span>
                   </div>

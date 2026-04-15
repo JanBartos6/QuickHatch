@@ -1,5 +1,83 @@
 [
   {
+    "author": "u/AliFurkanY",
+    "busyness": 0.06,
+    "de": "cinnamon",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "CINNAMON + Papirus Icon Theme + Papirus icons. Inspired by [Cinnamon] AmogOS is complete! (Icon, Art &amp; Idea by u/__peekatchoo__).",
+    "dotfiles_last_commit": "2025-08-21",
+    "dotfiles_license": null,
+    "dotfiles_url": "https://github.com/Amog-OS/AmogOS",
+    "font_mono": null,
+    "font_ui": null,
+    "icons": "papirus",
+    "id": "unixporn-nhomed",
+    "indexed_at": "2026-04-15",
+    "install_method": "manual",
+    "license_status": "unknown",
+    "mood": "light",
+    "packages": {
+      "arch": [],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#708e88",
+      "#9ab1ad",
+      "#474d4c"
+    ],
+    "post_date": "2021-05-21",
+    "preview_image": "gallery/unixporn-nhomed.webp",
+    "source": "r/unixporn",
+    "source_url": "https://reddit.com/r/unixporn/comments/nhomed/cinnamon_amogos_is_complete_icon_art_idea_by_u/",
+    "staleness_score": 0.44,
+    "theme": "papirus-icon-theme",
+    "title": "[Cinnamon] AmogOS is complete! (Icon, Art &amp; Idea by u/__peekatchoo__)",
+    "upvotes": 2872,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": ""
+  },
+  {
+    "author": "u/Skehmatics",
+    "busyness": 0.03,
+    "de": "gnome",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "GNOME + Adwaita. Inspired by [GNOME] When people ask why I use GNU/Linux....",
+    "dotfiles_last_commit": "2026-04-08",
+    "dotfiles_license": "GPL-2.0",
+    "dotfiles_url": "https://github.com/nana-4/Flat-Plat",
+    "font_mono": null,
+    "font_ui": null,
+    "icons": null,
+    "id": "unixporn-5crgng",
+    "indexed_at": "2026-04-15",
+    "install_method": "manual",
+    "license_status": "permissive",
+    "mood": "dark",
+    "packages": {
+      "arch": [],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#f9f9f9",
+      "#424242",
+      "#040404"
+    ],
+    "post_date": "2016-11-13",
+    "preview_image": "gallery/unixporn-5crgng.webp",
+    "source": "r/unixporn",
+    "source_url": "https://reddit.com/r/unixporn/comments/5crgng/gnome_when_people_ask_why_i_use_gnulinux/",
+    "staleness_score": 0.01,
+    "theme": "adwaita",
+    "title": "[GNOME] When people ask why I use GNU/Linux...",
+    "upvotes": 2739,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": ""
+  },
+  {
     "author": "end-4",
     "busyness": 0.0,
     "de": "hyprland",
@@ -14,6 +92,7 @@
     "id": "github-end-4-dots-hyprland",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -52,6 +131,7 @@
     "id": "github-prasanthrangan-hyprdots",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -90,6 +170,7 @@
     "id": "github-noctalia-dev-noctalia-shell",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -128,6 +209,7 @@
     "id": "github-mylinuxforwork-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -166,6 +248,7 @@
     "id": "github-gh0stzk-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -204,6 +287,7 @@
     "id": "github-jakoolit-arch-hyprland",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [
@@ -246,6 +330,7 @@
     "id": "github-siduck-chadwm",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -284,6 +369,7 @@
     "id": "github-keyitdev-sddm-astronaut-theme",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -322,6 +408,7 @@
     "id": "github-dusklinux-dusky",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -360,6 +447,7 @@
     "id": "github-hlissner-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -398,6 +486,7 @@
     "id": "github-ryan4yin-nix-config",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -436,6 +525,7 @@
     "id": "github-1amsimp1e-dots",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -474,6 +564,7 @@
     "id": "github-dikiaap-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -512,6 +603,7 @@
     "id": "github-koeqaife-hyprland-material-you",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -550,6 +642,7 @@
     "id": "github-zemmsoares-awesome-rices",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -588,6 +681,7 @@
     "id": "github-folke-dot",
     "indexed_at": "2026-04-15",
     "install_method": "ansible",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [
@@ -1092,6 +1186,7 @@
     "id": "github-nickjj-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -1130,6 +1225,7 @@
     "id": "github-denisse-dev-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -1168,6 +1264,7 @@
     "id": "github-cosmicnvim-cosmicnvim",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -1206,6 +1303,7 @@
     "id": "github-meowrch-meowrch",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -1244,6 +1342,7 @@
     "id": "github-xnm1-linux-nixos-hyprland-config-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -1282,6 +1381,7 @@
     "id": "github-frost-phoenix-nixos-config",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -1320,6 +1420,7 @@
     "id": "github-elifouts-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -1358,6 +1459,7 @@
     "id": "github-danihek-hellwal",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -1396,6 +1498,7 @@
     "id": "github-szorfein-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -1434,6 +1537,7 @@
     "id": "github-qxb3-conf",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -1472,6 +1576,7 @@
     "id": "github-snowarch-inir",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -1510,6 +1615,7 @@
     "id": "github-zproger-bspwm-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -1548,6 +1654,7 @@
     "id": "github-diinki-linux-retroism",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -1586,6 +1693,7 @@
     "id": "github-debuggyo-exo",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -1624,6 +1732,7 @@
     "id": "github-keyitdev-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -1662,6 +1771,7 @@
     "id": "github-anotherhadi-nixy",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -1700,6 +1810,7 @@
     "id": "github-ayamir-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -1738,6 +1849,7 @@
     "id": "github-yurihikari-garuda-hyprdots",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [
@@ -1778,6 +1890,7 @@
     "id": "github-vyrx-dev-symphony",
     "indexed_at": "2026-04-15",
     "install_method": "stow",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -1816,6 +1929,7 @@
     "id": "github-diinki-diinki-aero",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -1854,6 +1968,7 @@
     "id": "github-cybersnake223-hypr",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -1892,6 +2007,7 @@
     "id": "github-ad1822-hyprdots",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [
@@ -2175,6 +2291,7 @@
     "id": "github-techdufus-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2213,6 +2330,7 @@
     "id": "github-felipecrs-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2251,6 +2369,7 @@
     "id": "github-heapbytes-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2289,6 +2408,7 @@
     "id": "github-martins3-my-linux-config",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2327,6 +2447,7 @@
     "id": "github-madic-creates-sway-de",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2365,6 +2486,7 @@
     "id": "github-redyf-nixdots",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2403,6 +2525,7 @@
     "id": "github-2kabhishek-dots2k",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2441,6 +2564,7 @@
     "id": "github-hyprland-community-hyprls",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -2479,6 +2603,7 @@
     "id": "github-hancore-linux-waybar-themes",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2517,6 +2642,7 @@
     "id": "github-diinki-diinki-retrofuture",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2555,6 +2681,7 @@
     "id": "github-riccardopp-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2593,6 +2720,7 @@
     "id": "github-tsm-061-ctos",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2631,6 +2759,7 @@
     "id": "github-shell-ninja-hyprconf",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2669,6 +2798,7 @@
     "id": "github-2ssk-dot-files",
     "indexed_at": "2026-04-15",
     "install_method": "stow",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2693,6 +2823,45 @@
     "wallpaper_hint": ""
   },
   {
+    "author": "u/Open-Musician-6626",
+    "busyness": 0.07,
+    "de": "hyprland",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "HYPRLAND + Adwaita + Papirus icons. Inspired by My first Hyprland setup on Raspberry Pi 5.",
+    "dotfiles_last_commit": "2025-06-13",
+    "dotfiles_license": null,
+    "dotfiles_url": "https://github.com/typerGithub/MyDots",
+    "font_mono": null,
+    "font_ui": null,
+    "icons": "papirus",
+    "id": "hyprland-1fp86p7",
+    "indexed_at": "2026-04-15",
+    "install_method": "manual",
+    "license_status": "unknown",
+    "mood": "dark",
+    "packages": {
+      "arch": [],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#474c55",
+      "#1c252f",
+      "#313942"
+    ],
+    "post_date": "2024-09-25",
+    "preview_image": "gallery/hyprland-1fp86p7.webp",
+    "source": "r/hyprland",
+    "source_url": "https://reddit.com/r/hyprland/comments/1fp86p7/my_first_hyprland_setup_on_raspberry_pi_5/",
+    "staleness_score": 0.57,
+    "theme": "adwaita",
+    "title": "My first Hyprland setup on Raspberry Pi 5",
+    "upvotes": 233,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": ""
+  },
+  {
     "author": "retrozinndev",
     "busyness": 0.08,
     "de": "hyprland",
@@ -2707,6 +2876,7 @@
     "id": "github-retrozinndev-colorshell",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -2745,6 +2915,7 @@
     "id": "github-elysiaos-elysiaos",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [
@@ -2789,6 +2960,7 @@
     "id": "github-cybrcore-cybrdots",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2827,6 +2999,7 @@
     "id": "github-viegphunt-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "stow",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2865,6 +3038,7 @@
     "id": "github-orhun-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -2903,6 +3077,7 @@
     "id": "github-cxorz-dotfiles-hyprland",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2941,6 +3116,7 @@
     "id": "github-potamides-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -2979,6 +3155,7 @@
     "id": "github-victorsosamx-vswaybar-studio",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -3003,6 +3180,45 @@
     "wallpaper_hint": ""
   },
   {
+    "author": "u/Fine-Athlete-4764",
+    "busyness": 0.06,
+    "de": "hyprland",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "HYPRLAND + Catppuccin + Nerd Font UI font. Inspired by [Hacker-Man] First rice. Let's gooo.....",
+    "dotfiles_last_commit": "2025-02-13",
+    "dotfiles_license": null,
+    "dotfiles_url": "https://github.com/HV4512/Green-Black-Dotfiles",
+    "font_mono": "nerd-font",
+    "font_ui": "nerd-font",
+    "icons": null,
+    "id": "hyprland-1inxosk",
+    "indexed_at": "2026-04-15",
+    "install_method": "manual",
+    "license_status": "unknown",
+    "mood": "dark",
+    "packages": {
+      "arch": [],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#000000",
+      "#280e39",
+      "#8f6f9c"
+    ],
+    "post_date": "2025-02-12",
+    "preview_image": "gallery/hyprland-1inxosk.webp",
+    "source": "r/hyprland",
+    "source_url": "https://reddit.com/r/hyprland/comments/1inxosk/hackerman_first_rice_lets_gooo/",
+    "staleness_score": 0.79,
+    "theme": "catppuccin",
+    "title": "[Hacker-Man] First rice. Let's gooo....",
+    "upvotes": 173,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": ""
+  },
+  {
     "author": "cebem1nt",
     "busyness": 0.14,
     "de": "hyprland",
@@ -3017,6 +3233,7 @@
     "id": "github-cebem1nt-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3055,6 +3272,7 @@
     "id": "github-notmugil-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -3093,6 +3311,7 @@
     "id": "github-ascaniolamp-hyprlain",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3117,6 +3336,45 @@
     "wallpaper_hint": ""
   },
   {
+    "author": "u/saatvik333",
+    "busyness": 0.07,
+    "de": "hyprland",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "HYPRLAND + Everforest + Bibata icons. Inspired by first hyprland rice.",
+    "dotfiles_last_commit": "2025-09-25",
+    "dotfiles_license": null,
+    "dotfiles_url": "https://github.com/saatvik333/hyprland-dotfiles",
+    "font_mono": null,
+    "font_ui": null,
+    "icons": "bibata",
+    "id": "hyprland-1jtjljz",
+    "indexed_at": "2026-04-15",
+    "install_method": "manual",
+    "license_status": "unknown",
+    "mood": "dark",
+    "packages": {
+      "arch": [],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#687383",
+      "#d8c3ad",
+      "#2f333e"
+    ],
+    "post_date": "2025-04-07",
+    "preview_image": "gallery/hyprland-1jtjljz.webp",
+    "source": "r/hyprland",
+    "source_url": "https://reddit.com/r/hyprland/comments/1jtjljz/first_hyprland_rice/",
+    "staleness_score": 0.37,
+    "theme": "everforest",
+    "title": "first hyprland rice",
+    "upvotes": 151,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": ""
+  },
+  {
     "author": "Jguer",
     "busyness": 0.05,
     "de": "sway",
@@ -3131,6 +3389,7 @@
     "id": "github-jguer-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3169,6 +3428,7 @@
     "id": "github-heisenburgh-pixarch",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [
@@ -3218,6 +3478,7 @@
     "id": "github-iogamaster-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3256,6 +3517,7 @@
     "id": "github-swaykh-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3294,6 +3556,7 @@
     "id": "github-opensuse-opensuseway",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3332,6 +3595,7 @@
     "id": "github-exploitoverload-pwnixos",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3370,6 +3634,7 @@
     "id": "github-marcusmix-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3408,6 +3673,7 @@
     "id": "github-dybdeskarphet-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3446,6 +3712,7 @@
     "id": "github-sekiryl-hyprdots",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3484,6 +3751,7 @@
     "id": "github-benmezger-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3522,6 +3790,7 @@
     "id": "github-bertof-nix-rice",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -3560,6 +3829,7 @@
     "id": "github-command-z-z-arch-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3598,6 +3868,7 @@
     "id": "github-vallen217-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3622,6 +3893,45 @@
     "wallpaper_hint": ""
   },
   {
+    "author": "u/Ok-Construction-3237",
+    "busyness": 0.01,
+    "de": "hyprland",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "HYPRLAND + System Ui UI font. Inspired by My first rice.",
+    "dotfiles_last_commit": "2026-02-04",
+    "dotfiles_license": null,
+    "dotfiles_url": "https://github.com/Sm1tee/dotfiles",
+    "font_mono": "system-ui",
+    "font_ui": "system-ui",
+    "icons": null,
+    "id": "hyprland-1jv48oq",
+    "indexed_at": "2026-04-15",
+    "install_method": "manual",
+    "license_status": "unknown",
+    "mood": "dark",
+    "packages": {
+      "arch": [],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#000000",
+      "#7c4040",
+      "#000002"
+    ],
+    "post_date": "2025-04-09",
+    "preview_image": "gallery/hyprland-1jv48oq.webp",
+    "source": "r/hyprland",
+    "source_url": "https://reddit.com/r/hyprland/comments/1jv48oq/my_first_rice/",
+    "staleness_score": 0.13,
+    "theme": null,
+    "title": "My first rice",
+    "upvotes": 103,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": ""
+  },
+  {
     "author": "sh1zicus",
     "busyness": 0.02,
     "de": "hyprland",
@@ -3636,6 +3946,7 @@
     "id": "github-sh1zicus-dots-hyprland",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [
@@ -3676,6 +3987,7 @@
     "id": "github-datsfilipe-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3714,6 +4026,7 @@
     "id": "github-pinpox-base16-universal-manager",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -3752,6 +4065,7 @@
     "id": "github-zhaleff-blacknode",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3790,6 +4104,7 @@
     "id": "github-mrusme-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3828,6 +4143,7 @@
     "id": "github-caioax-lyne-dots",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [
@@ -3870,6 +4186,7 @@
     "id": "github-3d3f-ii-sddm-theme",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3908,6 +4225,7 @@
     "id": "github-sbalghari-sbdots",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [
@@ -3948,6 +4266,7 @@
     "id": "github-haaarshsingh-dots",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -3986,6 +4305,7 @@
     "id": "github-simonvic-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -4024,6 +4344,7 @@
     "id": "github-elpritchos-omadora",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -4062,6 +4383,7 @@
     "id": "github-nocturnussx-hyprland-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -4100,6 +4422,7 @@
     "id": "github-myamusashi-vast-shell",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -4138,6 +4461,7 @@
     "id": "github-mastermindzh-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [
@@ -4305,6 +4629,7 @@
     "id": "github-ziap-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -4343,6 +4668,7 @@
     "id": "github-n6v26r-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -4381,6 +4707,7 @@
     "id": "github-swarsel-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -4419,6 +4746,7 @@
     "id": "github-victorsosamx-vshyprland-manager",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -4457,6 +4785,7 @@
     "id": "github-justus0405-i3wm-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [
@@ -4501,6 +4830,7 @@
     "id": "github-shikikan-neko08-nyartix-rice",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -4539,6 +4869,7 @@
     "id": "github-issmirnov-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -4577,6 +4908,7 @@
     "id": "github-flyingcakes85-lovebites",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -4615,6 +4947,7 @@
     "id": "github-schmeekygeek-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -4653,6 +4986,7 @@
     "id": "github-yunfachi-nix-config",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -4691,6 +5025,7 @@
     "id": "github-rayhaanfay-xfce-creation-of-adam",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -4729,6 +5064,7 @@
     "id": "github-youwes09-ateon",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [
@@ -4771,6 +5107,7 @@
     "id": "github-shell-ninja-hyprconf-v2",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -4809,6 +5146,7 @@
     "id": "github-deridray-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [
@@ -4850,6 +5188,7 @@
     "id": "github-frogprog09-my-linux",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -4888,6 +5227,7 @@
     "id": "github-mubin-thinks-minimal-wm-config",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],
@@ -4926,6 +5266,7 @@
     "id": "github-firestreaker2-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "script",
+    "license_status": "permissive",
     "mood": "light",
     "packages": {
       "arch": [],
@@ -4964,6 +5305,7 @@
     "id": "github-saschagrunert-dotfiles",
     "indexed_at": "2026-04-15",
     "install_method": "manual",
+    "license_status": "permissive",
     "mood": "dark",
     "packages": {
       "arch": [],

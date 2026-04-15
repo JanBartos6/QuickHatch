@@ -5,6 +5,15 @@ All notable changes to QuickHatch will be documented here. Format loosely follow
 ## [Unreleased]
 
 - Added community recipe gallery with ~100 curated Linux desktop configurations.
+- Gallery Phase 1.5: loosened the Reddit filter so r/unixporn and DE-specific
+  subs actually contribute entries. Replaces the pathological "median + 1 stdev"
+  upvote gate with per-subreddit absolute floors (500 for r/unixporn, 30–100
+  for DE subs) combined with a top-40%-of-bucket rule. Adds a DE fallback
+  from subreddit name (r/hyprland → hyprland) and a title/body showcase-hint
+  gate for general DE subs. License gate softened for Reddit: entries with no
+  detectable OSI license are admitted with `license_status: "unknown"` and a
+  "No license" chip in the gallery — Phase 2 apply logic will skip them so
+  we never copy unlicensed work.
 
 ## [0.1.0] — 2026-04-15
 

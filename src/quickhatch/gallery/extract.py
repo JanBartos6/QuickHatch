@@ -346,6 +346,15 @@ def extract_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
         else (["#1f2937", "#4b5563", "#d1d5db"], "dark", 0.4)
     )
 
+    license_status = candidate.get(
+        "license_status", "permissive" if candidate.get("dotfiles_license") else "unknown"
+    )
+    callout = (
+        "Source repo has no license — this entry is shown as inspiration only. "
+        "The agent will not auto-apply it."
+        if license_status == "unknown"
+        else COMMUNITY_ENTRY_WARNING
+    )
     return {
         "id": candidate["id"],
         "source": candidate["source"],
@@ -356,7 +365,7 @@ def extract_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
         "title": candidate["title"],
         "preview_image": preview_image,
         "description_short": normalize_description({**candidate, **parsed}),
-        "description_callout": COMMUNITY_ENTRY_WARNING,
+        "description_callout": callout,
         "de": parsed.get("de") or candidate.get("de") or "unknown",
         "theme": parsed.get("theme"),
         "icons": parsed.get("icons"),
@@ -368,6 +377,7 @@ def extract_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
         "busyness": busyness,
         "dotfiles_url": candidate["dotfiles_url"],
         "dotfiles_license": candidate["dotfiles_license"],
+        "license_status": license_status,
         "dotfiles_last_commit": candidate["dotfiles_last_commit"],
         "install_method": detect_install_method(repo_dir),
         "packages": packages,

@@ -60,6 +60,21 @@ DE_KEYWORDS = {
     "openbox": ("openbox",),
 }
 
+# DE-specific subreddits where the DE is unambiguous from the sub itself.
+# Used as a fallback when detect_de() on title+body returns nothing — a post
+# of "Rice" in r/hyprland is obviously Hyprland even if the title doesn't
+# name it.
+SUBREDDIT_DE = {
+    "hyprland": "hyprland",
+    "kde": "plasma",
+    "gnome": "gnome",
+    "i3wm": "i3",
+    "swaywm": "sway",
+    "bspwm": "bspwm",
+    "awesomewm": "awesome",
+    "xfce": "xfce",
+}
+
 THEME_KEYWORDS = (
     "adwaita",
     "breeze",

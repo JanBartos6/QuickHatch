@@ -14,6 +14,7 @@ import requests
 from .common import (
     FILTERED_CACHE_DIR,
     RAW_CACHE_DIR,
+    SUBREDDIT_DE,
     api_repo_metadata,
     detect_de,
     detect_named_design_tokens,
@@ -27,13 +28,75 @@ from .common import (
     normalize_recipe_id,
     parse_date,
     parse_repo_url,
-    reddit_threshold,
     write_json,
 )
 
 RepoMetadataFetcher = Callable[[str], dict[str, Any] | None]
 REPO_HOST_QUERIES = ("github.com", "gitlab.com", "codeberg.org")
 DOTFILE_HINTS = ("dotfiles", "dots", "rice", "config", "theme", "icons", "wallpaper", "font")
+
+# Per-subreddit absolute minimum upvote score for a post to even be considered.
+# Tuned against r/unixporn + DE-specific subs in 2024–2026: values that include
+# the top ~40% of a typical yearly bucket while discarding noise/dupes.
+REDDIT_MIN_SCORE: dict[str, int] = {
+    "unixporn": 500,
+    "hyprland": 100,
+    "kde": 50,
+    "gnome": 50,
+    "i3wm": 30,
+    "swaywm": 30,
+}
+REDDIT_DEFAULT_MIN_SCORE = 100
+# Within each (subreddit, year) bucket, keep the top N% of posts (by score).
+# Combined with the absolute min above: a candidate must pass BOTH.
+REDDIT_KEEP_TOP_FRACTION = 0.40
+
+# DE-specific subs (r/hyprland, r/kde, etc.) are general discussion subs where
+# rice showcases are a minority; require a hint in the title (or stronger body
+# phrase) to pull a rice showcase out from tool-release / news noise. r/unixporn
+# is purely a rice-sharing sub and is trusted without this extra gate.
+#
+# Title tokens are loose (a single word can indicate a showcase); body tokens
+# must be phrase-matched to avoid false positives from URLs or paths that
+# contain "dotfiles".
+SHOWCASE_TITLE_HINTS = (
+    "setup",
+    "rice",
+    "ricing",
+    "dots",
+    "desktop",
+    "theme",
+    "my hyprland",
+    "my kde",
+    "my gnome",
+    "my plasma",
+    "my i3",
+    "my sway",
+    "first rice",
+    "first setup",
+    "my first",
+)
+SHOWCASE_BODY_PHRASES = (
+    "my setup",
+    "my rice",
+    "my desktop",
+    "my config",
+    "first rice",
+    "first setup",
+    "my first",
+    "ricing",
+)
+GENERAL_DE_SUBREDDITS = frozenset(
+    ("hyprland", "kde", "gnome", "i3wm", "swaywm", "bspwm", "awesomewm", "xfce")
+)
+
+
+def _is_setup_showcase(title: str, body: str) -> bool:
+    title_lower = title.lower()
+    if any(hint in title_lower for hint in SHOWCASE_TITLE_HINTS):
+        return True
+    body_lower = body.lower()
+    return any(phrase in body_lower for phrase in SHOWCASE_BODY_PHRASES)
 
 
 def _flatten_reddit_post(post: dict[str, Any]) -> dict[str, Any]:
@@ -124,7 +187,12 @@ def collect_raw_candidates(raw_dir: Path = RAW_CACHE_DIR) -> list[dict[str, Any]
 
 
 def compute_reddit_thresholds(candidates: list[dict[str, Any]]) -> dict[tuple[str, int], float]:
-    """Calculate subreddit/year score thresholds for Reddit candidates."""
+    """Calculate subreddit/year score thresholds for Reddit candidates.
+
+    A post is kept if it passes BOTH:
+    - the per-subreddit absolute floor (``REDDIT_MIN_SCORE`` / default)
+    - the top ``REDDIT_KEEP_TOP_FRACTION`` of its (subreddit, year) bucket
+    """
     buckets: dict[tuple[str, int], list[int]] = defaultdict(list)
     for candidate in candidates:
         if candidate.get("kind") != "reddit":
@@ -134,7 +202,19 @@ def compute_reddit_thresholds(candidates: list[dict[str, Any]]) -> dict[tuple[st
         score = candidate.get("upvotes", 0)
         if subreddit and isinstance(year, int):
             buckets[(subreddit, year)].append(int(score))
-    return {key: reddit_threshold(scores) for key, scores in buckets.items()}
+
+    thresholds: dict[tuple[str, int], float] = {}
+    for (subreddit, year), scores in buckets.items():
+        if not scores:
+            thresholds[(subreddit, year)] = float("inf")
+            continue
+        floor = REDDIT_MIN_SCORE.get(subreddit, REDDIT_DEFAULT_MIN_SCORE)
+        sorted_scores = sorted(scores, reverse=True)
+        keep_n = max(1, int(round(len(sorted_scores) * REDDIT_KEEP_TOP_FRACTION)))
+        # The score of the Nth-ranked post is the lower bound of the top-N slice.
+        top_cutoff = sorted_scores[keep_n - 1]
+        thresholds[(subreddit, year)] = float(max(floor, top_cutoff))
+    return thresholds
 
 
 def _reddit_comment_cache_path(post_id: str) -> Path:
@@ -258,6 +338,12 @@ def filter_candidate(
         threshold = reddit_thresholds.get((subreddit, year), float("inf"))
         if candidate.get("upvotes", 0) < threshold:
             return None
+        # For general DE subs, drop posts that don't look like a setup showcase.
+        # r/unixporn is a dedicated rice sub and doesn't need this extra gate.
+        if subreddit in GENERAL_DE_SUBREDDITS and not _is_setup_showcase(
+            candidate.get("title", ""), candidate.get("body", "")
+        ):
+            return None
         repo_url = candidate.get("dotfiles_url", "")
         if not parse_repo_url(repo_url):
             repo_url = (reddit_repo_map or {}).get(candidate.get("source_id", ""), "")
@@ -273,14 +359,24 @@ def filter_candidate(
     metadata = candidate.get("repo_metadata") if candidate.get("kind") != "reddit" else None
     if metadata is None:
         metadata = repo_metadata_fetcher(repo_url)
+    if not metadata:
+        return None
     license_spdx = extract_license_spdx(metadata)
     last_commit = extract_repo_activity_date(metadata)
-    if not license_spdx or not last_commit or not is_recent(last_commit):
+    if not last_commit or not is_recent(last_commit):
         return None
 
+    # GitHub-sourced entries keep the strict license gate (we're redistributing
+    # their configs in Phase 2 apply). Reddit-sourced entries are softer — a
+    # community-tier inspiration entry with no license is still useful for
+    # browsing; the Phase 2 apply step will skip entries whose license_status
+    # is "unknown" so we never copy un-licensed work.
     if candidate.get("kind") != "reddit":
-        if extract_repo_stars(metadata) < 50 or not is_recent(last_commit):
+        if not license_spdx:
             return None
+        if extract_repo_stars(metadata) < 50:
+            return None
+    license_status = "permissive" if license_spdx else "unknown"
 
     text = " ".join(
         filter(
@@ -294,18 +390,26 @@ def filter_candidate(
     )
     if not candidate.get("de"):
         candidate["de"] = detect_de(text)
+    # Fallback: DE-specific subs (r/hyprland, r/kde, ...) imply the DE even
+    # when the title doesn't literally mention it. Prevents legitimate rice
+    # showcases like "Rice" or "My first setup" from being dropped.
+    if not candidate.get("de") and candidate.get("kind") == "reddit":
+        candidate["de"] = SUBREDDIT_DE.get(candidate.get("subreddit", ""))
     if not candidate.get("de") and candidate.get("kind") == "reddit":
         return None
 
     signals = dict(candidate.get("signals", {}))
     if not signals:
         signals = detect_named_design_tokens(text)
-    if not signals and candidate.get("kind") == "reddit":
-        return None
+    # Signals are useful metadata but not required at filter time for Reddit
+    # entries: the extract stage clones the dotfile repo and enriches tokens
+    # from the README. GitHub candidates already have richer text so we don't
+    # need a hard gate there either.
 
     return {
         **candidate,
         "dotfiles_license": license_spdx,
+        "license_status": license_status,
         "dotfiles_last_commit": last_commit,
         "signals": signals,
         "packages": {"arch": [], "fedora": [], "ubuntu": []},
