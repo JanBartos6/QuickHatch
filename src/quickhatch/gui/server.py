@@ -320,8 +320,11 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
 
             elif self.path == "/api/done":
                 bridge_state.agent_done = True
-                summary = data.get("summary", "")
-                bridge_state.add_message("agent", f"Migration setup complete! {summary}")
+                summary = data.get("summary", "").strip()
+                if summary:
+                    bridge_state.add_message("agent", f"Finished: {summary}")
+                else:
+                    bridge_state.add_message("agent", "Finished.")
                 self._send_json({"status": "ok"})
 
             else:
@@ -1160,10 +1163,10 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
     config = gui_state.profile.ai_config
 
     try:
-        bridge.add_message("agent", "Connected! Analyzing your system profile...")
+        bridge.add_message("agent", "Connected — reading your profile.")
 
         # Phase 1: Pre-fetch search results and desktop images
-        bridge.add_message("agent", "Gathering live data from the web...")
+        bridge.add_message("agent", "Gathering live data from the web…")
         search_context, desktop_images = _prefetch_search_context(gui_state.profile, bridge)
 
         if desktop_images:
@@ -1192,7 +1195,7 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
                     timeout=5,
                 )
                 return
-            bridge.add_message("agent", f"Generating {title.lower()}...")
+            bridge.add_message("agent", f"Generating {title.lower()}…")
 
             prompt = _build_section_prompt(
                 gui_state.profile, section_key, search_context, user_feedback
@@ -1227,7 +1230,7 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
 
         req.post(
             f"{base}/api/done",
-            json={"summary": "Migration analysis complete! Review the recommendations above."},
+            json={"summary": "Analysis done. Review the recommendations below."},
             timeout=5,
         )
 
@@ -1442,17 +1445,17 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
 
     try:
         # Step 1: Test SSH connectivity
-        bridge.add_message("agent", f"Connecting to {user}@{host}:{ssh_port}...")
+        bridge.add_message("agent", f"Connecting to {user}@{host}:{ssh_port}…")
         rc, out, err = _ssh_exec(
             host, user, "echo 'QuickHatch connected!' && uname -a", key_path, port=ssh_port
         )
         if rc != 0:
             bridge.add_message("agent", f"SSH connection failed: {err.strip()}")
             return
-        bridge.add_message("agent", f"Connected! {out.strip()}")
+        bridge.add_message("agent", f"Connected — {out.strip()}")
 
         # Step 2: Gather initial system info
-        bridge.add_message("agent", "Gathering remote system info...")
+        bridge.add_message("agent", "Gathering remote system info…")
         info_cmd = (
             "echo '=== OS ==='; cat /etc/os-release 2>/dev/null; "
             "echo '=== DISK ==='; df -h / 2>/dev/null; "

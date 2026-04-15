@@ -537,7 +537,7 @@ hr{border:none;border-top:1px solid var(--border);margin:var(--s4) 0}
 <div class="app">
   <div class="logo">
     <h1>QuickHatch</h1>
-    <p>System migration assistant</p>
+    <p>From Windows to a working Linux desktop</p>
   </div>
   <div class="progress" id="progressBar"></div>
   <div id="stepContent"></div>
@@ -561,25 +561,25 @@ function icon(name){return`<svg style="width:20px;height:20px" viewBox="0 0 24 2
 // ── Steps ──
 const STEPS_MIGRATION = [
   {id:'welcome',       title:'Start'},
-  {id:'ai_setup',      title:'AI Tool'},
+  {id:'ai_setup',      title:'AI'},
   {id:'questionnaire', title:'Preferences'},
-  {id:'scan',          title:'System Scan'},
-  {id:'apps_data',     title:'Apps & Data'},
+  {id:'scan',          title:'Scan'},
+  {id:'apps_data',     title:'Apps & data'},
   {id:'additional',    title:'Notes'},
-  {id:'bridge',        title:'Agent'},
+  {id:'bridge',        title:'Analysis'},
   {id:'usb',           title:'Bootable USB'},
-  {id:'ssh',           title:'SSH Key'},
+  {id:'ssh',           title:'SSH key'},
   {id:'export',        title:'Export'},
-  {id:'setup',         title:'Remote Setup'},
+  {id:'setup',         title:'Remote setup'},
 ];
 const STEPS_CUSTOMIZE = [
   {id:'welcome',       title:'Start'},
-  {id:'ai_setup',      title:'AI Tool'},
+  {id:'ai_setup',      title:'AI'},
   {id:'questionnaire', title:'Preferences'},
-  {id:'scan',          title:'System Scan'},
-  {id:'apps_data',     title:'Apps & Data'},
+  {id:'scan',          title:'Scan'},
+  {id:'apps_data',     title:'Apps & data'},
   {id:'additional',    title:'Notes'},
-  {id:'bridge',        title:'Agent'},
+  {id:'bridge',        title:'Analysis'},
 ];
 let STEPS = STEPS_MIGRATION;
 function refreshSteps(){
@@ -660,19 +660,19 @@ const stepRenderers={
     const plat=detectPlatform();
     content().innerHTML=`
       <div class="card">
-        <h2>What would you like to do?</h2>
-        <p class="subtitle">QuickHatch scans your system and hands everything to an AI agent that handles the setup.</p>
+        <h2>Let's get you on Linux</h2>
+        <p class="subtitle">QuickHatch scans what you have, asks a few preferences, and hands it all to an AI agent that does the setup.</p>
         <div class="field">
           <div class="choices" id="migType">
             <div class="choice${plat==='windows'?' selected':''}" data-value="fresh_install" onclick="selectChoice('migType',this)">
               <div class="ico">${icon('monitor')}</div>
-              <div class="title">Migrate from Windows</div>
-              <div class="desc">Scan your PC and set up a new Linux install</div>
+              <div class="title">Move from Windows</div>
+              <div class="desc">Scan this PC, install Linux on a target, carry over what matters</div>
             </div>
             <div class="choice${plat==='linux'?' selected':''}" data-value="customize_linux" onclick="selectChoice('migType',this)">
               <div class="ico">${icon('sliders')}</div>
               <div class="title">Customize Linux</div>
-              <div class="desc">Let an AI agent configure an existing Linux system</div>
+              <div class="desc">Tune an existing Linux install with an AI agent</div>
             </div>
           </div>
         </div>
@@ -685,8 +685,8 @@ const stepRenderers={
   ai_setup(){
     content().innerHTML=`
       <div class="card">
-        <h2>Choose your AI tool</h2>
-        <p class="subtitle">This tool will read your system data and handle the configuration.</p>
+        <h2>Pick an AI</h2>
+        <p class="subtitle">The model reads your system, generates a plan, and executes it on the target machine. Works with API providers or a model you run locally.</p>
         <div class="choices" id="aiChoice">
           <div class="choice" data-value="api" onclick="selectChoice('aiChoice',this)">
             <div class="ico">${icon('zap')}</div>
@@ -726,7 +726,7 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>Your preferences</h2>
-        <p class="subtitle">The AI uses these to configure your desktop environment.</p>
+        <p class="subtitle">A few taste choices so the agent knows what to build. You can tweak everything later.</p>
         <div class="field">
           <label>Desktop style</label>
           <div class="choices" id="deskChoice">
@@ -788,16 +788,16 @@ const stepRenderers={
 
   scan(){
     const scanDesc=isCustomizeMode()
-      ?'Scanning your Linux system to understand what you already have.'
-      :'Detecting your hardware, apps, settings, and files.';
+      ?'Reads your hardware, installed packages, and desktop settings. No network calls, nothing leaves this machine.'
+      :'Reads your hardware, installed apps, and settings. Runs locally — nothing leaves this machine.';
     content().innerHTML=`
       <div class="card">
-        <h2>System scan</h2>
+        <h2>Scan this machine</h2>
         <p class="subtitle">${scanDesc}</p>
         <div id="scanResults"></div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
-          <button class="btn btn-primary" id="scanBtn" onclick="runScan()">Scan now</button>
+          <button class="btn btn-primary" id="scanBtn" onclick="runScan()">Scan</button>
           <button class="btn btn-success hidden" id="scanNext" onclick="completeStep('scan')">Continue</button>
         </div>
       </div>`;
@@ -813,7 +813,7 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>Apps &amp; Data</h2>
-        <p class="subtitle">Pick which apps to bring over, and note any data you want the agent to help you move.</p>
+        <p class="subtitle">Choose what to bring with you, and note any data you want the agent to help you move.</p>
 
         ${empty?`
           <div class="info-box"><strong>No apps detected yet</strong><p>Run the system scan first, or describe what you need in the notes below.</p></div>
@@ -828,9 +828,9 @@ const stepRenderers={
           </div>
 
           <div class="apps-legend">
-            <span class="compat-badge compat-native"><span class="compat-dot"></span>Runs natively on Linux</span>
-            <span class="compat-badge compat-alt"><span class="compat-dot"></span>Has an alternative</span>
-            <span class="compat-badge compat-unknown"><span class="compat-dot"></span>Needs a plan</span>
+            <span class="compat-badge compat-native"><span class="compat-dot"></span>Runs on Linux natively</span>
+            <span class="compat-badge compat-alt"><span class="compat-dot"></span>Has a good alternative</span>
+            <span class="compat-badge compat-unknown"><span class="compat-dot"></span>Agent will figure it out</span>
           </div>
 
           <div class="apps-list" id="appsList"></div>
@@ -865,9 +865,9 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>Anything else?</h2>
-        <p class="subtitle">Dual-boot setup? Wayland? 4K monitor? Encryption? Mention it here.</p>
+        <p class="subtitle">Special setups the agent should know about — dual-boot, encryption, HiDPI, a specific kernel, hardware quirks. Skip if nothing comes to mind.</p>
         <div class="field">
-          <textarea id="additionalInfo" placeholder="Optional extra context for the AI...">${escHtml(state.profile.additional_info||'')}</textarea>
+          <textarea id="additionalInfo" placeholder="e.g. dual-boot with Windows on the second drive, Btrfs with snapshots, enable full-disk encryption, HiDPI scaling at 200%, liquid-cooling pump on a custom fan curve…">${escHtml(state.profile.additional_info||'')}</textarea>
         </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
@@ -881,13 +881,13 @@ const stepRenderers={
     const customize=isCustomizeMode();
     const modelName=state.profile.ai_config?.model_name||'AI model';
     const subtitle=customize
-      ?'The agent will review your system and propose changes.'
-      :'The agent will analyze your system and produce a migration plan.';
+      ?'The agent reviews this system and proposes what to change.'
+      :'The agent reads your profile and produces a migration plan you can review before anything runs on the target.';
     const launchLabel=`Start analysis${modelName!=='AI model'?' · '+escHtml(modelName):''}`;
 
     content().innerHTML=`
       <div class="card">
-        <h2>AI Agent</h2>
+        <h2>Analysis</h2>
         <p class="subtitle">${subtitle}</p>
 
         <div class="agent-launch" id="agentLaunch">
@@ -933,7 +933,7 @@ const stepRenderers={
 
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
-          <button class="btn btn-primary" id="bridgeNext" onclick="completeStep('bridge')" ${state._agentDone||state.completedSteps.includes('bridge')?'':'disabled'}>${state._agentDone||state.completedSteps.includes('bridge')?'Continue':'Waiting…'}</button>
+          <button class="btn btn-primary" id="bridgeNext" onclick="completeStep('bridge')" ${state._agentDone||state.completedSteps.includes('bridge')?'':'disabled'}>${state._agentDone||state.completedSteps.includes('bridge')?'Continue':'Agent working…'}</button>
         </div>
       </div>`;
     if(!state._agentDone)pollBridge();
@@ -943,20 +943,19 @@ const stepRenderers={
     const distro=state.profile.preferences?.distro_preference||'your chosen distro';
     content().innerHTML=`
       <div class="card">
-        <h2>Bootable USB (guided)</h2>
-        <p class="subtitle">These are instructions, not an automation. QuickHatch doesn't flash USB drives itself — you'll use a standard tool like Rufus or balenaEtcher.</p>
-        <p class="subtitle">Once Linux is installed on the target machine, QuickHatch takes over via SSH.</p>
-        <div class="info-box" style="margin-bottom:16px">
+        <h2>Bootable USB</h2>
+        <p class="subtitle">A walkthrough, not an automation. QuickHatch doesn't flash USB drives itself — you'll use a standard tool. Once Linux is installed on the target, QuickHatch takes over via SSH.</p>
+        <div class="info-box">
           <strong>Create the USB drive</strong>
-          <p>Download the ISO from the distro's website, then write it to a USB drive (8 GB+) using a tool like Ventoy, Rufus, or balenaEtcher.</p>
+          <p>Download the ISO from the distro's website, then write it to a USB drive (8 GB+) using <a href="https://rufus.ie" target="_blank" rel="noopener">Rufus</a>, <a href="https://www.ventoy.net" target="_blank" rel="noopener">Ventoy</a>, or <a href="https://etcher.balena.io" target="_blank" rel="noopener">balenaEtcher</a>.</p>
         </div>
         <div class="guide-steps">
-          <div class="guide-step"><div class="guide-num">1</div><div class="guide-text">Plug the USB drive into your target PC</div></div>
-          <div class="guide-step"><div class="guide-num">2</div><div class="guide-text">Enter BIOS/UEFI setup<span>Usually F2, F12, Del, or Esc during boot &mdash; varies by manufacturer</span></div></div>
-          <div class="guide-step"><div class="guide-num">3</div><div class="guide-text">Set the USB drive as the first boot device, then save and restart</div></div>
-          <div class="guide-step"><div class="guide-num">4</div><div class="guide-text">Follow the installer<span>For GUI distros: choose language, timezone, create user, pick a disk. For Arch or minimal installs: the agent can walk you through it over SSH once you're connected.</span></div></div>
-          <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">Connect to the internet<span>Ethernet cable, phone USB tethering, or <code>iwctl</code> for Wi-Fi on minimal installs</span></div></div>
-          <div class="guide-step"><div class="guide-num">6</div><div class="guide-text">Copy the migration bundle and run <code>bash quickstart.sh</code><span>This enables SSH and prints the IP address you'll give to the agent. On a minimal install, use a USB drive or <code>scp</code> from another machine.</span></div></div>
+          <div class="guide-step"><div class="guide-num">1</div><div class="guide-text">Plug the USB into the target PC</div></div>
+          <div class="guide-step"><div class="guide-num">2</div><div class="guide-text">Enter BIOS/UEFI<span>F2, F12, Del, or Esc during boot — depends on the manufacturer</span></div></div>
+          <div class="guide-step"><div class="guide-num">3</div><div class="guide-text">Boot from the USB<span>Move it to the top of the boot order and save</span></div></div>
+          <div class="guide-step"><div class="guide-num">4</div><div class="guide-text">Run the installer<span>Graphical distros: pick language, timezone, user, disk. Minimal distros (Arch, etc.): SSH in afterward and let the agent handle the rest.</span></div></div>
+          <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">Get online<span>Ethernet or phone tethering is easiest. Wi-Fi via <code>iwctl</code> works on minimal installs.</span></div></div>
+          <div class="guide-step"><div class="guide-num">6</div><div class="guide-text">Copy the bundle and run <code>bash quickstart.sh</code><span>It enables SSH and prints the IP address. Move the bundle with a second USB or <code>scp</code> from this PC.</span></div></div>
         </div>
         <div style="margin-top:16px">
           <button class="btn btn-ghost" onclick="stepRenderers.usb()" style="font-size:.78rem">Re-read instructions</button>
@@ -973,20 +972,20 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>SSH key</h2>
-        <p class="subtitle">The agent connects to your Linux machine over SSH. Generate a key pair so it can authenticate without a password.</p>
-        <div class="info-box" style="margin-bottom:16px">
+        <p class="subtitle">The agent authenticates to the target over SSH with a key pair — no passwords. This step generates one if you don't already have one.</p>
+        <div class="info-box">
           <strong>How it works</strong>
-          <ol style="margin:6px 0 0 16px">
-            <li>Key pair is generated on this machine</li>
-            <li>Public key is included in the export bundle</li>
-            <li><code>quickstart.sh</code> on Linux adds it to authorized_keys</li>
-            <li>The agent uses the private key to connect</li>
+          <ol>
+            <li>Key pair generated on this machine</li>
+            <li>Public key included in the export bundle</li>
+            <li><code>quickstart.sh</code> adds it to <code>authorized_keys</code> on Linux</li>
+            <li>Agent uses the private key to connect</li>
           </ol>
         </div>
-        <div id="sshResult">${hasKey?'<div class="info-box info-success"><strong>SSH key already exists</strong></div>':''}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-primary" id="sshGenBtn" onclick="generateSSH()">${hasKey?'Regenerate':'Generate SSH key'}</button>
-          <button class="btn btn-ghost" onclick="state._sshSkipped=true;el('sshContinue').disabled=false" id="sshSkipBtn"${hasKey?' class="hidden"':''}>I have my own keys</button>
+        <div id="sshResult">${hasKey?'<div class="info-box info-success"><strong>Existing key found — ready to go.</strong></div>':''}</div>
+        <div class="stack-h" style="flex-wrap:wrap">
+          <button class="btn btn-primary" id="sshGenBtn" onclick="generateSSH()">${hasKey?'Regenerate key':'Generate key'}</button>
+          <button class="btn btn-ghost" onclick="state._sshSkipped=true;el('sshContinue').disabled=false" id="sshSkipBtn"${hasKey?' class="hidden"':''}>I'll use my own key</button>
         </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
@@ -999,7 +998,7 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>Export bundle</h2>
-        <p class="subtitle">Generate the migration bundle. Copy it to your Linux machine and run <code>quickstart.sh</code> to prepare for the agent.</p>
+        <p class="subtitle">Packages the plan, profile, SSH key, and the <code>quickstart.sh</code> helper into one ZIP. Move it to the target Linux machine by USB or <code>scp</code>.</p>
         <div id="exportResult"></div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
@@ -1015,8 +1014,8 @@ const stepRenderers={
     const hasConn=ip&&user;
     content().innerHTML=`
       <div class="card">
-        <h2>Remote Setup</h2>
-        <p class="subtitle">The agent connects to your Linux machine over SSH and applies the plan. Enter the connection details from the <code>quickstart.sh</code> output.</p>
+        <h2>Remote setup</h2>
+        <p class="subtitle">SSH into the target machine and apply the plan. Enter the IP and username printed by <code>quickstart.sh</code> — then test the connection before starting.</p>
 
         <div class="conn-grid">
           <div class="field"><label>IP address</label>
@@ -1076,7 +1075,7 @@ const stepRenderers={
 
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
-          <button class="btn btn-primary" id="setupDone" onclick="completeStep('setup')"${state._setupDone?'':' disabled'}>${state._setupDone?'Finish':'Waiting…'}</button>
+          <button class="btn btn-primary" id="setupDone" onclick="completeStep('setup')"${state._setupDone?'':' disabled'}>${state._setupDone?'Finish':'Agent working…'}</button>
         </div>
       </div>`;
     if(!state._setupDone)pollSetup();
@@ -1088,25 +1087,25 @@ function renderDone(){
   content().innerHTML=customize?`
     <div class="card">
       <div class="done-screen">
-        <h2>All done</h2>
-        <p class="subtitle" style="margin-top:6px">The AI agent has finished customizing your system.</p>
+        <h2>You're set up</h2>
+        <p class="subtitle" style="margin-top:var(--s1)">The agent has finished tuning your Linux install.</p>
         <div class="done-steps">
-          <div class="ds"><div class="dn">${icon('check')}</div>System scanned and analyzed</div>
-          <div class="ds"><div class="dn">${icon('check')}</div>Preferences applied by the agent</div>
-          <div class="ds"><div class="dn">${icon('check')}</div>Re-run QuickHatch anytime to tweak further</div>
+          <div class="ds"><div class="dn">${icon('check')}</div>System scanned</div>
+          <div class="ds"><div class="dn">${icon('check')}</div>Preferences applied</div>
+          <div class="ds"><div class="dn">${icon('check')}</div>Re-run QuickHatch any time to tweak further</div>
         </div>
       </div>
     </div>`:`
     <div class="card">
       <div class="done-screen">
-        <h2>Migration complete</h2>
-        <p class="subtitle" style="margin-top:6px">The agent has finished setting up your Linux machine.</p>
+        <h2>Welcome to Linux</h2>
+        <p class="subtitle" style="margin-top:var(--s1)">The agent finished on the target. Go log in and try it out.</p>
         <div class="done-steps">
-          <div class="ds"><div class="dn">${icon('check')}</div>System analyzed and apps mapped</div>
-          <div class="ds"><div class="dn">${icon('check')}</div>Linux installed and configured remotely</div>
-          <div class="ds"><div class="dn">${icon('check')}</div>Apps installed, data migrated</div>
+          <div class="ds"><div class="dn">${icon('check')}</div>System analyzed, apps mapped</div>
+          <div class="ds"><div class="dn">${icon('check')}</div>Linux configured remotely</div>
+          <div class="ds"><div class="dn">${icon('check')}</div>Apps installed, plan delivered</div>
         </div>
-        <p style="color:var(--fg-muted);font-size:.82rem;text-align:center;margin-top:16px">If anything needs fixing, go back to the Remote Setup step and chat with the agent.</p>
+        <p class="muted" style="font-size:var(--t-sm);text-align:center;margin-top:var(--s4)">Something off? Head back to Remote setup and chat with the agent.</p>
       </div>
     </div>`;
 }
@@ -1324,8 +1323,8 @@ async function submitPrefs(){
   await saveProfile({preferences:prefs});await completeStep('questionnaire');
 }
 async function runScan(){
-  el('scanBtn').disabled=true;el('scanBtn').textContent='Scanning...';
-  el('scanResults').innerHTML='<p style="color:var(--fg-muted);font-size:.84rem">Scanning your system...</p>';
+  el('scanBtn').disabled=true;el('scanBtn').textContent='Scanning…';
+  el('scanResults').innerHTML='<p class="muted" style="font-size:var(--t-sm)">Scanning…</p>';
   const data=await api('/wizard/scan','POST');
   const r=data.results||{};
   let html='';
@@ -1356,7 +1355,7 @@ async function runScan(){
   if(html){
     el('scanResults').innerHTML=html;
   }else{
-    el('scanResults').innerHTML='<p style="color:var(--fg-dim);font-size:.84rem">Limited results. The AI will work with your preferences.</p>';
+    el('scanResults').innerHTML='<p class="dim" style="font-size:var(--t-sm)">Limited results. The agent will fall back to your preferences.</p>';
   }
   el('scanBtn').classList.add('hidden');el('scanNext').classList.remove('hidden');
   // Refresh client profile so subsequent steps see the scan results
@@ -1755,7 +1754,7 @@ async function pollBridge(){
 
 async function generateSSH(){
   const btn=el('sshGenBtn');
-  btn.disabled=true;btn.textContent='Generating...';
+  btn.disabled=true;btn.textContent='Generating…';
   const data=await api('/wizard/generate-ssh','POST');
   const box=el('sshResult');
   if(data.status==='ok'){
@@ -1777,7 +1776,7 @@ async function generateSSH(){
 }
 
 async function runExport(){
-  el('exportBtn').disabled=true;el('exportBtn').textContent='Exporting...';
+  el('exportBtn').disabled=true;el('exportBtn').textContent='Exporting…';
   const data=await api('/wizard/export','POST');
   if(data.status==='ok'){
     const fileList=(data.files||[]).map(f=>`<li>${escHtml(f)}</li>`).join('');
