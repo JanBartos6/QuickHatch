@@ -1,0 +1,74 @@
+name: Bug report
+description: Something isn't working as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please give us enough info to reproduce.
+
+        **Security issues:** do NOT use this form — see [SECURITY.md](https://github.com/JanBartos6/QuickHatch/blob/main/SECURITY.md).
+
+  - type: input
+    id: version
+    attributes:
+      label: QuickHatch version
+      placeholder: e.g. 0.1.0 (run `python -m quickhatch --version` if available, or check the GUI footer)
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Host OS
+      description: The machine running QuickHatch
+      placeholder: e.g. Windows 11 23H2
+    validations:
+      required: true
+
+  - type: input
+    id: target
+    attributes:
+      label: Target Linux distro (if relevant)
+      placeholder: e.g. Arch Linux 2026.04, fresh install in VirtualBox
+
+  - type: dropdown
+    id: ai_provider
+    attributes:
+      label: AI provider
+      options:
+        - LM Studio (local)
+        - Ollama (local)
+        - Claude API (Anthropic)
+        - OpenAI API
+        - Codex CLI
+        - Other / N/A
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Model name
+      placeholder: e.g. google/gemma-4-26b-a4b, claude-sonnet-4-6, gpt-4o
+
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what actually happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Agent output, console errors, terminal output. Paste as text or attach a file.
+      render: shell
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshots, hypotheses, related issues — drop them here.

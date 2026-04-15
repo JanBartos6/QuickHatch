@@ -1,5 +1,10 @@
 # QuickHatch
 
+[![CI](https://github.com/JanBartos6/QuickHatch/actions/workflows/ci.yml/badge.svg)](https://github.com/JanBartos6/QuickHatch/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](pyproject.toml)
+[![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
 **An AI-driven wizard that migrates a Windows workstation to Linux.**
 
 QuickHatch scans your Windows system, asks about your preferences, generates a tailored migration plan using an AI model, and can then SSH into your new Linux machine to install and configure everything for you — desktop environment, drivers, applications, themes, and user accounts.

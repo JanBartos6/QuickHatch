@@ -6,6 +6,29 @@ readme = "README.md"
 license = {file = "LICENSE"}
 authors = [{name = "Jan Bartos"}]
 requires-python = ">=3.10"
+keywords = [
+    "linux", "migration", "windows", "ai", "llm", "agent",
+    "wizard", "arch", "ubuntu", "fedora", "ssh", "automation",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Installation/Setup",
+    "Topic :: System :: Operating System",
+    "Topic :: System :: Systems Administration",
+]
 dependencies = [
     "rich>=13.0",
     "questionary>=2.0",
@@ -19,6 +42,8 @@ dependencies = [
 dev = [
     "pytest>=7.0",
     "ruff>=0.4",
+    "build>=1.0",
+    "pre-commit>=3.0",
 ]
 
 [project.scripts]
@@ -26,7 +51,10 @@ quickhatch = "quickhatch.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/JanBartos6/QuickHatch"
+Documentation = "https://github.com/JanBartos6/QuickHatch/tree/main/docs"
 Issues = "https://github.com/JanBartos6/QuickHatch/issues"
+Changelog = "https://github.com/JanBartos6/QuickHatch/blob/main/CHANGELOG.md"
+Source = "https://github.com/JanBartos6/QuickHatch"
 
 [build-system]
 requires = ["hatchling"]

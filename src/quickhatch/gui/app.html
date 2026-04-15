@@ -709,7 +709,7 @@ hr{border:none;border-top:1px solid var(--border);margin:var(--s4) 0}
   <div class="progress" id="progressBar"></div>
   <div id="stepContent"></div>
   <footer class="app-footer">
-    <div>QuickHatch <span class="dim">· v0.1</span></div>
+    <div>QuickHatch <span class="dim" id="versionBadge">·</span></div>
     <div class="footer-links">
       <a href="https://github.com/JanBartos6/QuickHatch" target="_blank" rel="noopener">GitHub</a>
       <a href="https://github.com/JanBartos6/QuickHatch/tree/main/docs" target="_blank" rel="noopener">Docs</a>
@@ -1032,8 +1032,25 @@ const stepRenderers={
         <hr>
 
         <div class="field">
-          <label>Data to migrate</label>
-          <p class="muted" style="font-size:var(--t-xs);margin-bottom:var(--s2)">QuickHatch won't copy Windows files directly — describe what matters and the agent will tell you how to move it.</p>
+          <label>How will you move your files to Linux?</label>
+          <p class="muted" style="font-size:var(--t-xs);margin-bottom:var(--s2)">QuickHatch doesn't copy Windows files directly. Pick how you'll do it so the plan can include the right steps.</p>
+          <div class="choices" id="dataTransfer">
+            ${[
+              ['external_drive', 'External drive', 'I\'ll copy files to a USB or external drive first'],
+              ['cloud', 'Cloud sync', 'Already in Dropbox, OneDrive, iCloud, Git, etc.'],
+              ['keep_windows', 'Keep Windows around', 'Dual-boot or network share — Windows stays reachable'],
+              ['nothing', 'Nothing to move', 'Fresh start, no data to carry over'],
+            ].map(([v,t,d])=>`
+              <div class="choice${state.profile.data_transfer_method===v?' selected':''}" data-value="${v}" onclick="selectChoice('dataTransfer',this)">
+                <div class="title">${t}</div>
+                <div class="desc">${d}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <div class="field">
+          <label>What's important?</label>
+          <p class="muted" style="font-size:var(--t-xs);margin-bottom:var(--s2)">Tell the agent what to watch for — it'll include the specific steps in the plan.</p>
           <textarea id="dataDesc" placeholder="e.g. browser bookmarks and passwords, Documents and Pictures folders, game saves in %APPDATA%, SSH keys, Git repos, IDE settings…">${escHtml(state.profile.data_description||'')}</textarea>
         </div>
 
@@ -1522,40 +1539,59 @@ function selectChoice(gid,elem){
   elem.classList.add('selected');
   if(gid==='aiChoice') showAIExtra(elem.dataset.value);
 }
+function aiAvailabilityCallout(provider){
+  const local = ['local_lmstudio','local_ollama','codex'].includes(provider);
+  if(local){
+    return `<div class="info-box info-primary" style="margin-top:var(--s3)">
+      <strong>Keep this PC running</strong>
+      <p>The model lives on this machine. The agent runs for ~10–60 minutes during Remote setup — close the wizard or shut this PC off and the agent stops.</p>
+    </div>`;
+  }
+  // API providers
+  if(provider==='api'||provider==='api_openai'){
+    return `<div class="info-box info-primary" style="margin-top:var(--s3)">
+      <strong>This PC needs internet during setup</strong>
+      <p>The model runs in the cloud. Make sure this machine stays online while the agent is working — the wizard talks to the API for every command the agent decides on.</p>
+    </div>`;
+  }
+  return '';
+}
+
 async function showAIExtra(provider){
   const box=document.getElementById('aiExtra');
   if(!box)return;
+  const callout=aiAvailabilityCallout(provider);
   if(provider==='local_lmstudio'){
-    box.innerHTML='<p style="color:var(--fg-muted);font-size:.84rem">Checking LM Studio...</p>';
+    box.innerHTML='<p class="muted" style="font-size:var(--t-sm)">Checking LM Studio…</p>';
     try{
       const r=await fetch('/wizard/lmstudio-models');const d=await r.json();
       if(d.models&&d.models.length){
         box.innerHTML='<div class="field"><label>Model</label><select id="aiModel">'+
-          d.models.map(m=>`<option value="${m}">${m}</option>`).join('')+'</select></div>';
+          d.models.map(m=>`<option value="${m}">${m}</option>`).join('')+'</select></div>'+callout;
       }else{
-        box.innerHTML='<div class="field"><label>Model name</label><input type="text" id="aiModel" value="local-model" placeholder="e.g. qwen3-8b"><p style="color:var(--fg-muted);font-size:.78rem">Could not reach LM Studio at localhost:1234. Make sure it\'s running with a model loaded.</p></div>';
+        box.innerHTML='<div class="field"><label>Model name</label><input type="text" id="aiModel" value="local-model" placeholder="e.g. qwen3-8b"><p class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Could not reach LM Studio at localhost:1234. Start its server with a model loaded.</p></div>'+callout;
       }
     }catch(e){
-      box.innerHTML='<div class="field"><label>Model name</label><input type="text" id="aiModel" value="local-model"></div>';
+      box.innerHTML='<div class="field"><label>Model name</label><input type="text" id="aiModel" value="local-model"></div>'+callout;
     }
   }else if(provider==='local_ollama'){
-    box.innerHTML='<div class="field"><label>Model name</label><input type="text" id="aiModel" value="llama3" placeholder="e.g. llama3, codellama, mistral"></div>';
+    box.innerHTML='<div class="field"><label>Model name</label><input type="text" id="aiModel" value="llama3" placeholder="e.g. llama3, codellama, mistral"></div>'+callout;
   }else if(provider==='api'){
     box.innerHTML='<div class="field"><label>Claude model</label><select id="aiModel">'+
       '<option value="claude-opus-4-6">Claude Opus 4.6 (most capable)</option>'+
       '<option value="claude-sonnet-4-6">Claude Sonnet 4.6 (balanced)</option>'+
       '<option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (fastest)</option>'+
       '</select></div>'+
-      '<div class="field"><label>Anthropic API key</label><input type="password" id="aiApiKey" placeholder="sk-ant-..."></div>';
+      '<div class="field"><label>Anthropic API key</label><input type="password" id="aiApiKey" placeholder="sk-ant-…"></div>'+callout;
   }else if(provider==='api_openai'){
     box.innerHTML='<div class="field"><label>OpenAI model</label><select id="aiModel">'+
       '<option value="gpt-4o">GPT-4o (most capable)</option>'+
       '<option value="gpt-4o-mini">GPT-4o mini (faster/cheaper)</option>'+
       '<option value="o3">o3 (reasoning)</option>'+
       '</select></div>'+
-      '<div class="field"><label>OpenAI API key</label><input type="password" id="aiApiKey" placeholder="sk-..."></div>';
+      '<div class="field"><label>OpenAI API key</label><input type="password" id="aiApiKey" placeholder="sk-…"></div>'+callout;
   }else if(provider==='codex'){
-    box.innerHTML='';
+    box.innerHTML=callout;
   }else{
     box.innerHTML='';
   }
@@ -1807,7 +1843,12 @@ function updateAppsStats(){
 async function submitAppsData(){
   const checked=state._appsSelected?[...state._appsSelected]:[...document.querySelectorAll('.app-check:checked')].map(c=>c.value);
   const dataDesc=(el('dataDesc')||{}).value||'';
-  await saveProfile({apps_to_install:checked,data_description:dataDesc});
+  const transfer=getSelected('dataTransfer')||'';
+  await saveProfile({
+    apps_to_install:checked,
+    data_description:dataDesc,
+    data_transfer_method:transfer,
+  });
   await completeStep('apps_data');
 }
 
@@ -2198,7 +2239,16 @@ async function pollSetup(){
 
 // ── Init ──
 applyTheme(getTheme());
-(async()=>{await loadProfile();render()})();
+(async()=>{
+  await loadProfile();
+  render();
+  // Best-effort version fetch for the footer badge
+  try{
+    const v=await api('/wizard/version');
+    const badge=document.getElementById('versionBadge');
+    if(badge&&v&&v.version)badge.textContent='· v'+v.version;
+  }catch(_){}
+})();
 </script>
 </body>
 </html>

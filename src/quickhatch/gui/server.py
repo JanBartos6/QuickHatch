@@ -150,6 +150,8 @@ class GUIState:
                 self.profile.apps_to_install = updates["apps_to_install"]
             if "data_description" in updates:
                 self.profile.data_description = updates["data_description"]
+            if "data_transfer_method" in updates:
+                self.profile.data_transfer_method = updates["data_transfer_method"]
             if "linux_ip" in updates:
                 self.profile.linux_ip = updates["linux_ip"]
             if "linux_user" in updates:
@@ -343,6 +345,11 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                 if profile_dict.get("ai_config", {}).get("api_key"):
                     profile_dict["ai_config"]["api_key"] = "***SET***"
                 self._send_json({"status": "ok", "profile": profile_dict})
+
+            elif self.path == "/wizard/version":
+                from quickhatch import __version__
+
+                self._send_json({"status": "ok", "version": __version__})
 
             elif self.path == "/wizard/steps":
                 self._send_json(
@@ -940,7 +947,11 @@ def _build_section_prompt(
         "plan": (
             "Provide a complete step-by-step migration plan.\n"
             "Cover in order:\n"
-            "1. Data backup strategy\n"
+            "1. Data backup strategy — MATCH the user's chosen `data_transfer_method`:\n"
+            "   - 'external_drive': Windows → USB → Linux. List the specific dirs to copy.\n"
+            "   - 'cloud': install the Linux sync client / CLI, authenticate, sync.\n"
+            "   - 'keep_windows': give scp/rsync commands from Linux, or NTFS mount steps.\n"
+            "   - 'nothing': skip this section entirely.\n"
             "2. Disk partitioning and encryption (specific partition sizes, filesystem choices)\n"
             "3. Installation steps (with EXACT commands where possible)\n"
             "4. User account creation — create the primary user with sudo rights in group `wheel`\n"

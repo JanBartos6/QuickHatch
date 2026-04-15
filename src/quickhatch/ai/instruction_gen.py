@@ -210,21 +210,41 @@ def generate_instructions(profile: UserProfile) -> str:
         sections.append("")
 
     # ── Data Migration Description ──
-    if profile.data_description:
+    transfer_method_desc = {
+        "external_drive": (
+            "The user will copy files to a USB / external drive before booting Linux.\n"
+            "Plan: tell them which directories to copy from Windows, which Linux directories "
+            "to put them in, and what post-copy fixups are needed (permissions, config edits)."
+        ),
+        "cloud": (
+            "The user's files are already in a cloud service (Dropbox, OneDrive, iCloud, Git, etc.).\n"
+            "Plan: install the appropriate Linux client or CLI, authenticate, sync. For Git "
+            "repos: clone them. For OneDrive on Linux: rclone or the `onedrive` CLI."
+        ),
+        "keep_windows": (
+            "The user will keep Windows accessible (dual-boot, network share, or a separate "
+            "machine).\nPlan: give them `scp`/`rsync` commands to run from Linux to pull "
+            "files. If dual-booting, mention mounting the Windows NTFS partition read-only "
+            "and copying from there."
+        ),
+        "nothing": ("The user has nothing to migrate. Skip any data-migration steps in the plan."),
+    }
+    if profile.data_description or profile.data_transfer_method:
+        transfer_note = transfer_method_desc.get(profile.data_transfer_method, "")
+        sections.append("## Data the User Wants to Migrate\n\n")
+        if profile.data_transfer_method and transfer_note:
+            sections.append(
+                f"**Chosen transfer method:** `{profile.data_transfer_method}`\n\n{transfer_note}\n\n"
+            )
+        if profile.data_description:
+            sections.append(f"### What matters to them\n\n{profile.data_description}\n\n")
         sections.append(
-            "## Data the User Wants to Migrate\n\n"
-            "The user described the following data as important:\n\n"
-            f"{profile.data_description}\n\n"
-            "**IMPORTANT:** QuickHatch does NOT automatically copy Windows files to Linux.\n"
-            "You do not have access to the user's Windows filesystem. Your job is to:\n"
-            "1. In the migration plan, give clear step-by-step instructions for the user\n"
-            "   to transfer this data themselves (via external drive, cloud sync, or\n"
-            "   a running Windows machine they can `scp` from).\n"
-            "2. On the Linux machine, set up any destination directories, import tools,\n"
-            "   or configuration files the user will need (e.g. browser profile dirs,\n"
-            "   shell dotfiles placeholders, SSH key permissions).\n"
-            "3. Verify after the user says the transfer is done.\n"
-            "Do NOT pretend to copy files that are not reachable from the Linux target.\n"
+            "**IMPORTANT:** QuickHatch does NOT automatically copy Windows files. "
+            "You have SSH access to the Linux target only. Your job:\n"
+            "1. Give clear step-by-step instructions tailored to the user's chosen transfer method.\n"
+            "2. On the Linux side, set up destination directories, import tools, or config placeholders.\n"
+            "3. Verify after the user confirms the transfer is done.\n"
+            "Never claim to have copied files you can't actually reach.\n"
         )
 
     # ── Linux Connection Details ──

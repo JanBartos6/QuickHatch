@@ -92,6 +92,9 @@ class UserProfile:
     additional_info: str = ""
     apps_to_install: list[str] = field(default_factory=list)
     data_description: str = ""
+    # How the user plans to physically move their Windows files to Linux.
+    # One of: "external_drive", "cloud", "keep_windows", "nothing", "" (not yet answered).
+    data_transfer_method: str = ""
     linux_ip: str = ""
     linux_user: str = ""
     completed_steps: list[str] = field(default_factory=list)
