@@ -6,13 +6,17 @@ import hashlib
 import json
 import math
 import re
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from statistics import median
 from typing import Any
 from urllib.parse import quote, urlparse
 
 import requests
+
+# Re-exported as ``UTC`` for Python 3.10 compatibility (``datetime.UTC`` landed
+# in 3.11). All gallery modules import this name instead of ``datetime.UTC``.
+UTC = timezone.utc
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
@@ -276,7 +280,35 @@ def parse_repo_url(url: str) -> tuple[str, str, str] | None:
         repo = repo[:-4]
     if host not in {"github.com", "gitlab.com", "codeberg.org"}:
         return None
+    # Reject URLs that clearly don't point to a clonable repo root: issues,
+    # pull requests, releases, wikis, raw file URLs.
+    if len(parts) >= 3 and parts[2] in {
+        "issues",
+        "pull",
+        "pulls",
+        "releases",
+        "wiki",
+        "discussions",
+        "actions",
+        "projects",
+    }:
+        return None
     return host, owner, repo
+
+
+def canonical_repo_url(url: str) -> str:
+    """Normalize any forge URL down to its clonable repo root.
+
+    Turns ``https://github.com/foo/bar/tree/main/sub`` or
+    ``https://github.com/foo/bar/blob/main/file.png`` into
+    ``https://github.com/foo/bar``. Returns empty string if the URL doesn't
+    point to a supported forge repo.
+    """
+    parsed = parse_repo_url(url)
+    if parsed is None:
+        return ""
+    host, owner, repo = parsed
+    return f"https://{host}/{owner}/{repo}"
 
 
 def api_repo_metadata(repo_url: str, *, refresh: bool = False) -> dict[str, Any] | None:

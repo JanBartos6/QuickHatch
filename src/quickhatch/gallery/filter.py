@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from collections import defaultdict
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -15,7 +15,9 @@ from .common import (
     FILTERED_CACHE_DIR,
     RAW_CACHE_DIR,
     SUBREDDIT_DE,
+    UTC,
     api_repo_metadata,
+    canonical_repo_url,
     detect_de,
     detect_named_design_tokens,
     ensure_pipeline_dirs,
@@ -349,11 +351,16 @@ def filter_candidate(
             repo_url = (reddit_repo_map or {}).get(candidate.get("source_id", ""), "")
         if not parse_repo_url(repo_url):
             repo_url = _lookup_reddit_repo_url(candidate.get("source_id", ""))
+        # Normalize to repo root so /tree/..., /blob/..., /issues/... URLs
+        # become clonable. An empty string here means parse_repo_url rejected
+        # the URL (e.g., it pointed to /issues/ or /releases/).
+        repo_url = canonical_repo_url(repo_url)
         candidate["dotfiles_url"] = repo_url
     else:
-        repo_url = candidate.get("dotfiles_url", "")
+        repo_url = canonical_repo_url(candidate.get("dotfiles_url", ""))
+        candidate["dotfiles_url"] = repo_url
 
-    if not parse_repo_url(repo_url):
+    if not repo_url:
         return None
 
     metadata = candidate.get("repo_metadata") if candidate.get("kind") != "reddit" else None

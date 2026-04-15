@@ -7,7 +7,7 @@ import fnmatch
 import os
 import re
 import subprocess
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +23,7 @@ from .common import (
     PACKAGE_DISTROS,
     REQUEST_TIMEOUT,
     USER_AGENT,
+    UTC,
     detect_de,
     detect_font,
     detect_icons,
@@ -320,11 +321,41 @@ def staleness_score(last_commit: str) -> float:
 
 def extract_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
     """Process one filtered candidate into the shipped gallery schema."""
+    from .llm_extract import llm_extract_metadata
+
     ensure_pipeline_dirs()
     repo_dir = DOTFILES_CACHE_DIR / candidate["id"]
     clone_dotfiles_repo(candidate["dotfiles_url"], repo_dir)
 
-    parsed = parse_repo_metadata(repo_dir, candidate)
+    # Primary metadata extraction path: LLM with grounding rules over
+    # README + package manifests + top style configs. Results are cached to
+    # disk so re-running the pipeline doesn't repeat calls.
+    llm_result = llm_extract_metadata(repo_dir, candidate)
+    if llm_result is not None:
+        if not llm_result.get("is_dotfiles"):
+            reason = llm_result.get("rejection_reason") or "not a dotfiles/rice repo"
+            raise ValueError(f"{candidate['id']} rejected by LLM classifier: {reason}")
+        parsed = {
+            "de": llm_result.get("de") or candidate.get("de"),
+            "theme": llm_result.get("theme"),
+            "icons": llm_result.get("icons"),
+            "font_ui": llm_result.get("font_ui"),
+            "font_mono": llm_result.get("font_mono"),
+        }
+        llm_signature = llm_result.get("signature_features") or []
+        llm_cursor = llm_result.get("cursor")
+        llm_wallpaper = llm_result.get("wallpaper_hint")
+        llm_mood = llm_result.get("mood")
+        llm_confidence = llm_result.get("confidence")
+    else:
+        # Fallback to the keyword-regex extractor when the LLM call fails.
+        parsed = parse_repo_metadata(repo_dir, candidate)
+        llm_signature = []
+        llm_cursor = None
+        llm_wallpaper = None
+        llm_mood = None
+        llm_confidence = "low"
+
     if not parsed.get("de"):
         raise ValueError(f"{candidate['id']} does not expose an identifiable desktop environment")
     if not any(parsed.get(field) for field in ("theme", "icons", "font_ui", "font_mono")):
@@ -340,11 +371,14 @@ def extract_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
         except (requests.RequestException, UnidentifiedImageError, OSError):
             continue
 
-    palette, mood, busyness = (
+    palette, image_mood, busyness = (
         extract_palette_metrics(preview_path)
         if preview_path.exists()
         else (["#1f2937", "#4b5563", "#d1d5db"], "dark", 0.4)
     )
+    # LLM-declared mood wins when available (grounded in config files),
+    # otherwise fall back to the image-derived heuristic.
+    mood = llm_mood or image_mood
 
     license_status = candidate.get(
         "license_status", "permissive" if candidate.get("dotfiles_license") else "unknown"
@@ -369,12 +403,15 @@ def extract_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
         "de": parsed.get("de") or candidate.get("de") or "unknown",
         "theme": parsed.get("theme"),
         "icons": parsed.get("icons"),
+        "cursor": llm_cursor,
         "font_ui": parsed.get("font_ui"),
         "font_mono": parsed.get("font_mono"),
-        "wallpaper_hint": candidate.get("wallpaper_hint") or "",
+        "wallpaper_hint": llm_wallpaper or candidate.get("wallpaper_hint") or "",
         "palette": palette,
         "mood": mood,
         "busyness": busyness,
+        "signature_features": llm_signature,
+        "extraction_confidence": llm_confidence,
         "dotfiles_url": candidate["dotfiles_url"],
         "dotfiles_license": candidate["dotfiles_license"],
         "license_status": license_status,

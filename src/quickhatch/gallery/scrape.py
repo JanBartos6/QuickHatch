@@ -4,13 +4,20 @@ from __future__ import annotations
 
 import argparse
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import requests
 
-from .common import RAW_CACHE_DIR, ensure_pipeline_dirs, request_json_cached, slugify, write_json
+from .common import (
+    RAW_CACHE_DIR,
+    UTC,
+    ensure_pipeline_dirs,
+    request_json_cached,
+    slugify,
+    write_json,
+)
 
 REDDIT_TOP_SOURCES = [
     ("unixporn", "top", "all", None),
