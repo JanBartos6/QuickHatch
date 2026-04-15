@@ -17,6 +17,7 @@ package-lock.json
 .quickhatch-prompt.txt
 .quickhatch-agent-cmd.sh
 .quickhatch-agent-cmd.ps1
+.scrape-cache/
 
 # IDE / editor
 .vscode/

@@ -61,6 +61,7 @@ class Preferences:
 
     migration_type: str = ""  # "fresh_install" or "customize_linux"
     desktop_look: str = ""  # "windows_like", "macos_like", "minimal", "tiling", "custom"
+    gallery_picks: list[str] = field(default_factory=list)
     icon_style: str = ""  # "flat", "rounded", "classic", "colorful"
     wallpaper_style: str = ""  # "nature", "abstract", "dark", "minimal", "custom"
     use_cases: list[str] = field(default_factory=list)
@@ -138,6 +139,7 @@ class UserProfile:
                 additional_info=data.get("additional_info", ""),
                 apps_to_install=data.get("apps_to_install", []),
                 data_description=data.get("data_description", ""),
+                data_transfer_method=data.get("data_transfer_method", ""),
                 linux_ip=data.get("linux_ip", ""),
                 linux_user=data.get("linux_user", ""),
                 completed_steps=data.get("completed_steps", []),

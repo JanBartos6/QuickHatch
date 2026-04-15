@@ -72,6 +72,13 @@ class TestBuildSectionPrompt:
         assert "USER SYSTEM PROFILE" in prompt
         assert "development" in prompt  # from use_cases
 
+    def test_desktop_prompt_mentions_gallery_recipe_when_pinned(self, profile):
+        profile.preferences.gallery_picks = ["unixporn-zyx123"]
+        prompt = _build_section_prompt(profile, "desktop", "")
+        assert "PINNED GALLERY RECIPES" in prompt
+        assert "unixporn-zyx123" in prompt
+        assert "Recipe `unixporn-zyx123` will be applied" in prompt
+
     def test_unknown_section_doesnt_crash(self, profile):
         """An unrecognized section name shouldn't raise."""
         prompt = _build_section_prompt(profile, "notreal", "")

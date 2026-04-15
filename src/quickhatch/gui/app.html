@@ -149,7 +149,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-.app{max-width:720px;margin:0 auto;padding:var(--s6) var(--s5) var(--s9)}
+.app{max-width:1080px;margin:0 auto;padding:var(--s6) var(--s5) var(--s9)}
 
 /* ── Logo / header ── */
 .logo{text-align:center;padding:var(--s7) 0 var(--s6)}
@@ -272,6 +272,93 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 }
 .pill:hover{border-color:var(--primary);color:var(--text)}
 .pill.selected{background:var(--primary-soft);border-color:var(--primary);color:var(--primary)}
+
+/* ── Gallery picker ── */
+.gallery-shell{
+  display:grid;grid-template-columns:260px minmax(0,1fr);gap:var(--s4);
+  align-items:start;
+}
+.gallery-sidebar{
+  position:sticky;top:var(--s4);
+  background:var(--surface-alt);border:1px solid var(--border);
+  border-radius:var(--r-md);padding:var(--s4);
+  display:flex;flex-direction:column;gap:var(--s3);
+}
+.gallery-sidebar .field{margin-bottom:0}
+.gallery-results{display:flex;flex-direction:column;gap:var(--s3)}
+.gallery-toolbar{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--s3);
+  flex-wrap:wrap;
+}
+.gallery-summary{
+  display:flex;flex-wrap:wrap;gap:var(--s2);
+  font-size:var(--t-xs);color:var(--text-muted);
+}
+.gallery-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--s3);
+}
+.gallery-item{
+  background:var(--surface);border:1px solid var(--border-strong);
+  border-radius:var(--r-md);overflow:hidden;cursor:pointer;
+  transition:border-color var(--dur) var(--ease), transform var(--dur-fast) var(--ease), box-shadow var(--dur) var(--ease);
+  display:flex;flex-direction:column;min-height:100%;
+}
+.gallery-item:hover{
+  border-color:var(--primary);transform:translateY(-1px);
+  box-shadow:var(--shadow-1);
+}
+.gallery-item.selected{
+  border-color:var(--primary);box-shadow:0 0 0 1px var(--primary) inset;
+}
+.gallery-thumb{
+  position:relative;aspect-ratio:16/10;background:var(--surface-alt);
+  overflow:hidden;border-bottom:1px solid var(--border);
+}
+.gallery-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.gallery-pin{
+  position:absolute;top:var(--s2);right:var(--s2);
+  padding:4px 8px;border-radius:999px;font-size:var(--t-xs);font-weight:700;
+  background:rgba(15,18,32,.72);color:#fff;backdrop-filter:blur(10px);
+}
+[data-theme="dark"] .gallery-pin{background:rgba(232,234,240,.12);color:var(--text)}
+.gallery-item.selected .gallery-pin{background:var(--primary);color:#fff}
+.gallery-body{
+  padding:var(--s3);display:flex;flex-direction:column;gap:var(--s2);flex:1;
+}
+.gallery-title{font-size:var(--t-sm);font-weight:700;line-height:var(--leading-tight)}
+.gallery-desc{
+  font-size:var(--t-xs);color:var(--text-muted);line-height:var(--leading);
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+}
+.gallery-meta,.gallery-tags,.gallery-palette{display:flex;flex-wrap:wrap;gap:var(--s1)}
+.gallery-chip{
+  display:inline-flex;align-items:center;height:24px;padding:0 var(--s2);
+  border-radius:999px;border:1px solid var(--border);background:var(--surface-alt);
+  font-size:var(--t-xs);color:var(--text-muted);
+}
+.gallery-chip.community{border-color:rgba(180,83,9,.25);background:var(--warning-soft);color:var(--warning)}
+.gallery-chip.verified{border-color:rgba(22,163,74,.25);background:var(--success-soft);color:var(--success)}
+.gallery-swatch{
+  width:12px;height:12px;border-radius:999px;border:1px solid rgba(15,18,32,.12);
+}
+.gallery-callout{
+  margin-top:auto;padding:var(--s2);border-radius:var(--r-sm);
+  background:var(--warning-soft);color:var(--warning);font-size:var(--t-xs);line-height:1.45;
+}
+.gallery-empty{
+  padding:var(--s5);border:1px dashed var(--border-strong);border-radius:var(--r-md);
+  text-align:center;background:var(--surface-alt);color:var(--text-muted);
+}
+.checkbox-row{
+  display:flex;align-items:center;gap:var(--s2);
+  font-size:var(--t-xs);color:var(--text-muted);
+}
+.checkbox-row input{accent-color:var(--primary)}
+
+@media(max-width:860px){
+  .gallery-shell{grid-template-columns:1fr}
+  .gallery-sidebar{position:static}
+}
 
 /* ── Forms ── */
 .field{margin-bottom:var(--s5)}
@@ -764,7 +851,20 @@ function refreshSteps(){
 }
 function isCustomizeMode(){return state.profile?.preferences?.migration_type==='customize_linux'}
 
-let state={currentStep:0,profile:null,completedSteps:[],agentConnected:false,_agentDone:false,_lastMsgCount:-1,_lastSugCount:undefined};
+let state={
+  currentStep:0,
+  profile:null,
+  completedSteps:[],
+  agentConnected:false,
+  _agentDone:false,
+  _lastMsgCount:-1,
+  _lastSugCount:undefined,
+  galleryEntries:null,
+  galleryError:'',
+  galleryLoading:false,
+  galleryPinned:[],
+  galleryFilters:{de:'all',mood:'all',busyness:'all',verifiedOnly:false},
+};
 
 async function api(path,method='GET',body=null){
   const opts={method,headers:{'Content-Type':'application/json'}};
@@ -776,6 +876,7 @@ async function loadProfile(){
   const data=await api('/wizard/profile');
   state.profile=data.profile;
   state.completedSteps=state.profile.completed_steps||[];
+   state.galleryPinned=[...(state.profile?.preferences?.gallery_picks||[])];
   refreshSteps();
   state.currentStep=STEPS.length;
   for(let i=0;i<STEPS.length;i++){
@@ -817,7 +918,15 @@ async function completeStep(stepId){
 
 async function saveProfile(updates, opts){
   await api('/wizard/update','POST',updates);
-  Object.assign(state.profile,updates);
+  if(updates.preferences){
+    state.profile.preferences=Object.assign({},state.profile.preferences||{},updates.preferences);
+  }
+  if(updates.ai_config){
+    state.profile.ai_config=Object.assign({},state.profile.ai_config||{},updates.ai_config);
+  }
+  Object.keys(updates).forEach(key=>{
+    if(key!=='preferences'&&key!=='ai_config')state.profile[key]=updates[key];
+  });
   if(opts&&opts.toast!==false&&opts&&opts.toast)toast(opts.toast,'success');
 }
 
@@ -832,6 +941,185 @@ function render(){
 function $(sel){return document.querySelector(sel)}
 function el(id){return document.getElementById(id)}
 const content=()=>document.getElementById('stepContent');
+
+function currentPrefs(){return state.profile?.preferences||{}}
+function galleryEntries(){return state.galleryEntries||[]}
+function galleryPinIndex(recipeId){return(state.galleryPinned||[]).indexOf(recipeId)}
+function galleryHasVerified(){return galleryEntries().some(entry=>entry.verified)}
+async function loadGallery(force){
+  if(state.galleryLoading)return;
+  if(state.galleryEntries&&!force)return;
+  state.galleryLoading=true;state.galleryError='';
+  try{
+    const data=await api('/wizard/gallery');
+    state.galleryEntries=data.entries||[];
+    if(!state.galleryPinned.length){
+      state.galleryPinned=[...(data.picks||state.profile?.preferences?.gallery_picks||[])];
+    }
+  }catch(e){
+    state.galleryError=e?.message||'Could not load the recipe gallery.';
+  }finally{
+    state.galleryLoading=false;
+    if(STEPS[state.currentStep]?.id==='questionnaire')render();
+  }
+}
+function setGalleryFilter(key,value){
+  state.galleryFilters=Object.assign({},state.galleryFilters||{},{
+    [key]:value,
+  });
+  render();
+}
+function clearGalleryFilters(){
+  state.galleryFilters={de:'all',mood:'all',busyness:'all',verifiedOnly:false};
+  render();
+}
+function toggleGalleryPin(recipeId){
+  const picks=[...(state.galleryPinned||[])];
+  const idx=picks.indexOf(recipeId);
+  if(idx>=0)picks.splice(idx,1);
+  else{
+    if(picks.length>=10){toast('Pick up to 10 favorites','error');return;}
+    picks.push(recipeId);
+  }
+  state.galleryPinned=picks;
+  render();
+}
+function filteredGalleryEntries(){
+  const filters=state.galleryFilters||{};
+  return galleryEntries().filter(entry=>{
+    if(filters.de!=='all'&&entry.de!==filters.de)return false;
+    if(filters.mood!=='all'&&entry.mood!==filters.mood)return false;
+    if(filters.busyness==='minimal'&&Number(entry.busyness||0)>0.4)return false;
+    if(filters.busyness==='busy'&&Number(entry.busyness||0)<0.4)return false;
+    if(filters.verifiedOnly&&!entry.verified)return false;
+    return true;
+  });
+}
+function inferDesktopLookFromGallery(){
+  const pinned=(state.galleryPinned||[])
+    .map(id=>galleryEntries().find(entry=>entry.id===id))
+    .filter(Boolean);
+  if(!pinned.length)return'custom';
+  const des=pinned.map(entry=>entry.de);
+  if(des.some(de=>['hyprland','i3','sway','bspwm','dwm','river'].includes(de)))return'tiling';
+  if(pinned.some(entry=>(entry.title||'').toLowerCase().includes('macos')||String(entry.theme||'').includes('whitesur')))return'macos_like';
+  if(des.some(de=>de==='plasma'))return'windows_like';
+  const avgBusyness=pinned.reduce((sum,entry)=>sum+Number(entry.busyness||0),0)/pinned.length;
+  if(avgBusyness<0.35)return'minimal';
+  return'custom';
+}
+function renderGalleryPicker(){
+  const allEntries=galleryEntries();
+  const filtered=filteredGalleryEntries();
+  const picks=state.galleryPinned||[];
+  const prefs=currentPrefs();
+  const deOptions=[...new Set(allEntries.map(entry=>entry.de).filter(Boolean))].sort();
+  const verifiedCount=allEntries.filter(entry=>entry.verified).length;
+
+  if(state.galleryLoading&&!allEntries.length){
+    return `<div class="info-box info-primary"><strong>Loading recipe library…</strong><p>Reading the curated desktop gallery shipped with QuickHatch.</p></div>`;
+  }
+  if(state.galleryError&&!allEntries.length){
+    return errorCard(state.galleryError,'onclick="loadGallery(true)"');
+  }
+
+  return `
+    <div class="field">
+      <label>Desktop recipes</label>
+      <p class="muted" style="font-size:var(--t-sm);margin-bottom:var(--s3)">Browse real community setups and pin 3-10 favorites. The first pin becomes the primary desktop reference for the plan.</p>
+      <div class="gallery-shell">
+        <aside class="gallery-sidebar">
+          <div>
+            <div class="section-heading" style="margin-bottom:var(--s2)">Filters</div>
+            <p class="muted" style="font-size:var(--t-xs)">Narrow by DE, mood, and layout density before pinning your shortlist.</p>
+          </div>
+          <div class="field">
+            <label style="margin-bottom:var(--s1)">Desktop Environment</label>
+            <select onchange="setGalleryFilter('de',this.value)">
+              <option value="all"${state.galleryFilters.de==='all'?' selected':''}>All environments</option>
+              ${deOptions.map(de=>`<option value="${de}"${state.galleryFilters.de===de?' selected':''}>${escHtml(de.toUpperCase())}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field">
+            <label style="margin-bottom:var(--s1)">Mood</label>
+            <select onchange="setGalleryFilter('mood',this.value)">
+              <option value="all"${state.galleryFilters.mood==='all'?' selected':''}>Light + dark</option>
+              <option value="dark"${state.galleryFilters.mood==='dark'?' selected':''}>Dark only</option>
+              <option value="light"${state.galleryFilters.mood==='light'?' selected':''}>Light only</option>
+            </select>
+          </div>
+          <div class="field">
+            <label style="margin-bottom:var(--s1)">Density</label>
+            <select onchange="setGalleryFilter('busyness',this.value)">
+              <option value="all"${state.galleryFilters.busyness==='all'?' selected':''}>Any density</option>
+              <option value="minimal"${state.galleryFilters.busyness==='minimal'?' selected':''}>Calmer / minimal</option>
+              <option value="busy"${state.galleryFilters.busyness==='busy'?' selected':''}>Busier layouts</option>
+            </select>
+          </div>
+          <label class="checkbox-row">
+            <input type="checkbox" onchange="setGalleryFilter('verifiedOnly',this.checked)" ${state.galleryFilters.verifiedOnly?'checked':''}>
+            <span>Verified only${verifiedCount?` (${verifiedCount})`:''}</span>
+          </label>
+          ${!verifiedCount?`<div class="info-box" style="margin:0"><strong>Phase 1 ships community recipes only</strong><p>Verified recipes arrive in the follow-up verification pass.</p></div>`:''}
+          <div class="info-box info-primary" style="margin:0">
+            <strong>${picks.length}/10 pinned</strong>
+            <p>${picks.length<3?'Pick at least 3 recipes to continue.':'You can continue once your shortlist feels right.'}</p>
+          </div>
+          ${picks.length?`<div class="muted" style="font-size:var(--t-xs)">Primary recipe: <strong style="color:var(--text)">${escHtml(picks[0])}</strong>${prefs.gallery_picks?.length&&prefs.gallery_picks[0]===picks[0]?' · saved':''}</div>`:''}
+          <button class="btn btn-ghost btn-sm" onclick="clearGalleryFilters()">Reset filters</button>
+        </aside>
+        <div class="gallery-results">
+          <div class="gallery-toolbar">
+            <div class="gallery-summary">
+              <span>${filtered.length} recipes shown</span>
+              <span>·</span>
+              <span>${allEntries.length} total</span>
+              <span>·</span>
+              <span>${picks.length} pinned</span>
+            </div>
+            <p class="muted" style="font-size:var(--t-xs)">Community entries include attribution and a reproducible dotfile source.</p>
+          </div>
+          ${filtered.length?`<div class="gallery-grid">
+            ${filtered.map(entry=>{
+              const pinIndex=galleryPinIndex(entry.id);
+              const selected=pinIndex>=0;
+              const palette=(entry.palette||[]).slice(0,3);
+              return `<div class="gallery-item${selected?' selected':''}" role="button" tabindex="0" onclick="toggleGalleryPin('${entry.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGalleryPin('${entry.id}')}" aria-pressed="${selected?'true':'false'}">
+                <div class="gallery-thumb">
+                  ${entry.preview_image_url?`<img loading="lazy" src="${entry.preview_image_url}" alt="${escHtml(entry.title)}">`:''}
+                  <span class="gallery-pin">${selected?`Pin ${pinIndex+1}`:'Pin'}</span>
+                </div>
+                <div class="gallery-body">
+                  <div class="gallery-meta">
+                    <span class="gallery-chip ${entry.verified?'verified':'community'}">${entry.verified?'Verified':'Community'}</span>
+                    <span class="gallery-chip">${escHtml((entry.de||'unknown').toUpperCase())}</span>
+                    <span class="gallery-chip">${escHtml(entry.mood||'mixed')}</span>
+                  </div>
+                  <div class="gallery-title">${escHtml(entry.title||entry.id)}</div>
+                  <div class="gallery-desc">${escHtml(entry.description_short||'')}</div>
+                  <div class="gallery-tags">
+                    ${entry.theme?`<span class="gallery-chip">${escHtml(entry.theme)}</span>`:''}
+                    ${entry.icons?`<span class="gallery-chip">${escHtml(entry.icons)}</span>`:''}
+                    ${entry.font_ui?`<span class="gallery-chip">${escHtml(entry.font_ui)}</span>`:''}
+                  </div>
+                  ${palette.length?`<div class="gallery-palette">${palette.map(color=>`<span class="gallery-swatch" title="${color}" style="background:${color}"></span>`).join('')}</div>`:''}
+                  <div class="gallery-summary">
+                    <span>${escHtml(entry.source||'community')}</span>
+                    <span>·</span>
+                    <span>${Number(entry.upvotes||0).toLocaleString()} votes</span>
+                  </div>
+                  <div class="gallery-callout">${escHtml(entry.description_callout||'Community recipe')}</div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>`:`<div class="gallery-empty">
+            <strong>No recipes match these filters.</strong>
+            <p style="margin-top:var(--s2)">Relax a filter or clear the verified toggle to broaden the shortlist.</p>
+          </div>`}
+        </div>
+      </div>
+    </div>`;
+}
 
 // ── Platform detection ──
 function detectPlatform(){
@@ -910,61 +1198,57 @@ const stepRenderers={
   },
 
   questionnaire(){
+    const prefs=currentPrefs();
+    if(!state.galleryEntries&&!state.galleryLoading&&!state.galleryError)loadGallery();
+    const presetUses=['development','gaming','office','creative','browsing','sysadmin','datascience','education','casual'];
+    const selectedUses=(prefs.use_cases||[]).map(v=>String(v).toLowerCase().replace(/\s+/g,''));
+    const customUses=(prefs.use_cases||[]).filter(v=>!presetUses.includes(String(v).toLowerCase().replace(/\s+/g,'')));
+    const iconKnown=['flat','rounded','classic','colorful','default'];
+    const wpKnown=['nature','abstract','dark','minimal'];
+    const iconValue=iconKnown.includes(prefs.icon_style)?prefs.icon_style:(prefs.icon_style?'custom':'flat');
+    const wpValue=wpKnown.includes(prefs.wallpaper_style)?prefs.wallpaper_style:(prefs.wallpaper_style?'custom':'nature');
     content().innerHTML=`
       <div class="card">
         <h2>Your preferences</h2>
-        <p class="subtitle">A few taste choices so the agent knows what to build. You can tweak everything later.</p>
-        <div class="field">
-          <label>Desktop style</label>
-          <div class="choices" id="deskChoice">
-            <div class="choice" data-value="windows_like" onclick="selectChoice('deskChoice',this)">
-              <div class="title">Windows-like</div><div class="desc">Taskbar + start menu</div>
-            </div>
-            <div class="choice" data-value="macos_like" onclick="selectChoice('deskChoice',this)">
-              <div class="title">macOS-like</div><div class="desc">Dock + top bar</div>
-            </div>
-            <div class="choice" data-value="minimal" onclick="selectChoice('deskChoice',this)">
-              <div class="title">Minimal</div><div class="desc">Clean and simple</div>
-            </div>
-            <div class="choice" data-value="tiling" onclick="selectChoice('deskChoice',this)">
-              <div class="title">Tiling WM</div><div class="desc">Keyboard-driven</div>
-            </div>
-          </div>
-        </div>
+        <p class="subtitle">Pin concrete desktop recipes instead of vague style labels, then add a few preference hints the agent can personalize inside that shortlist.</p>
+        ${renderGalleryPicker()}
         <div class="field">
           <label>Icon style</label>
           <select id="iconStyle" onchange="toggleCustomField(this,'iconCustom')">
-            <option value="flat">Flat and modern</option>
-            <option value="rounded">Rounded</option>
-            <option value="classic">Classic</option>
-            <option value="colorful">Colorful</option>
-            <option value="default">No preference</option>
-            <option value="custom">Custom...</option>
+            <option value="flat"${iconValue==='flat'?' selected':''}>Flat and modern</option>
+            <option value="rounded"${iconValue==='rounded'?' selected':''}>Rounded</option>
+            <option value="classic"${iconValue==='classic'?' selected':''}>Classic</option>
+            <option value="colorful"${iconValue==='colorful'?' selected':''}>Colorful</option>
+            <option value="default"${iconValue==='default'?' selected':''}>No preference</option>
+            <option value="custom"${iconValue==='custom'?' selected':''}>Custom...</option>
           </select>
-          <input type="text" id="iconCustom" class="hidden" placeholder="Describe your ideal icon style" style="margin-top:6px">
+          <input type="text" id="iconCustom" class="${iconValue==='custom'?'':'hidden'}" value="${escHtml(iconValue==='custom'?(prefs.icon_style||''):'')}" placeholder="Describe your ideal icon style" style="margin-top:6px">
         </div>
         <div class="field">
           <label>Wallpaper vibe</label>
           <select id="wpStyle" onchange="toggleCustomField(this,'wpCustom')">
-            <option value="nature">Nature and landscapes</option>
-            <option value="abstract">Abstract and geometric</option>
-            <option value="dark">Dark and moody</option>
-            <option value="minimal">Minimal and clean</option>
-            <option value="custom">Custom...</option>
+            <option value="nature"${wpValue==='nature'?' selected':''}>Nature and landscapes</option>
+            <option value="abstract"${wpValue==='abstract'?' selected':''}>Abstract and geometric</option>
+            <option value="dark"${wpValue==='dark'?' selected':''}>Dark and moody</option>
+            <option value="minimal"${wpValue==='minimal'?' selected':''}>Minimal and clean</option>
+            <option value="custom"${wpValue==='custom'?' selected':''}>Custom...</option>
           </select>
-          <input type="text" id="wpCustom" class="hidden" placeholder="Describe what you want" style="margin-top:6px">
+          <input type="text" id="wpCustom" class="${wpValue==='custom'?'':'hidden'}" value="${escHtml(wpValue==='custom'?(prefs.wallpaper_style||''):'')}" placeholder="Describe what you want" style="margin-top:6px">
         </div>
         <div class="field">
           <label>What will you use this for?</label>
           <div class="pill-grid" id="useCases">
             ${['Development','Gaming','Office','Creative','Browsing','Sysadmin','Data Science','Education','Casual']
-              .map(u=>`<span class="pill" data-value="${u.toLowerCase().replace(' ','')}" onclick="toggleCheck(this)">${u}</span>`).join('')}
+              .map(u=>{
+                const value=u.toLowerCase().replace(' ','');
+                return `<span class="pill${selectedUses.includes(value)?' selected':''}" data-value="${value}" onclick="toggleCheck(this)">${u}</span>`;
+              }).join('')}
           </div>
-          <input type="text" id="useCaseCustom" placeholder="Other uses (type anything)" style="margin-top:8px">
+          <input type="text" id="useCaseCustom" value="${escHtml(customUses.join(', '))}" placeholder="Other uses (type anything)" style="margin-top:8px">
         </div>
         ${isCustomizeMode()?'':`<div class="field">
           <label>Preferred distro (optional)</label>
-          <input type="text" id="distroPref" placeholder="Leave blank and let the AI decide">
+          <input type="text" id="distroPref" value="${escHtml(prefs.distro_preference||'')}" placeholder="Leave blank and let the AI decide">
         </div>`}
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
@@ -1626,6 +1910,9 @@ async function submitAI(){
   await saveProfile({ai_config:cfg});await completeStep('ai_setup');
 }
 async function submitPrefs(){
+  const picks=[...(state.galleryPinned||[])];
+  if(picks.length<3){toast('Pin at least 3 desktop recipes','error');return;}
+  if(picks.length>10){toast('Pick no more than 10 recipes','error');return;}
   let iconVal=el('iconStyle').value;
   if(iconVal==='custom'&&el('iconCustom').value.trim())iconVal=el('iconCustom').value.trim();
   let wpVal=el('wpStyle').value;
@@ -1633,8 +1920,14 @@ async function submitPrefs(){
   let useCases=getChecked('useCases');
   const customUse=el('useCaseCustom').value.trim();
   if(customUse)useCases.push(customUse);
+  const pickResponse=await api('/wizard/gallery-picks','POST',picks);
+  if(pickResponse.status!=='ok'){
+    toast(pickResponse.message||'Could not save gallery picks','error');
+    return;
+  }
   const prefs={
-    desktop_look:getSelected('deskChoice')||'custom',
+    desktop_look:inferDesktopLookFromGallery(),
+    gallery_picks:picks,
     icon_style:iconVal,
     wallpaper_style:wpVal,
     use_cases:useCases,

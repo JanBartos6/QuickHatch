@@ -90,6 +90,12 @@ def generate_instructions(profile: UserProfile) -> str:
     # ── User Preferences (raw) ──
     sections.append("## User Preferences\n")
     sections.append(f"- **Desktop style:** {prefs.desktop_look}\n")
+    if prefs.gallery_picks:
+        sections.append(f"- **Pinned gallery recipes:** {', '.join(prefs.gallery_picks)}\n")
+        sections.append(
+            "  Recipe picks are authoritative references. If a recipe is pinned, personalize within it "
+            "instead of inventing a different desktop from scratch.\n"
+        )
     sections.append(f"- **Icon style:** {prefs.icon_style}\n")
     sections.append(f"- **Wallpaper preference:** {prefs.wallpaper_style}\n")
     sections.append(
@@ -429,9 +435,18 @@ def generate_instructions(profile: UserProfile) -> str:
             "3. **Plan driver/firmware setup** — based on the exact GPU, WiFi, and Bluetooth\n"
             "   hardware, determine what needs to be installed and provide exact commands.\n\n"
             "4. **Plan desktop configuration** — based on their style preferences.\n\n"
-            "### Phase 2: Remote Setup (via SSH from Windows → Linux)\n\n"
-            "Once the user has Linux installed and SSH ready (they run `quickstart.sh`):\n\n"
-            "5. **SSH into the Linux machine** using the IP/username provided.\n\n"
+            + (
+                "   If `preferences.gallery_picks` is non-empty, assume the first pinned recipe will be "
+                "applied. Your job is to personalize within that recipe (wallpaper, accent color, app "
+                "integration) without conflicting with its DE/theme/icon choices.\n\n"
+                if prefs.gallery_picks
+                else ""
+            )
+            + (
+                "### Phase 2: Remote Setup (via SSH from Windows → Linux)\n\n"
+                "Once the user has Linux installed and SSH ready (they run `quickstart.sh`):\n\n"
+            )
+            + "5. **SSH into the Linux machine** using the IP/username provided.\n\n"
             "6. **Install EVERY app** the user selected. Do not skip any:\n"
             "   - Use the distro's package manager for native apps\n"
             "   - Use Flatpak/Snap for apps not in the repo\n"

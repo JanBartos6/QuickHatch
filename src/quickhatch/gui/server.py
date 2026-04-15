@@ -7,14 +7,21 @@ Combines the bridge API (for LLM communication) with a wizard API
 from __future__ import annotations
 
 import json
+import mimetypes
 import threading
 from dataclasses import asdict
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urlparse
 
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import UserProfile
+from quickhatch.gallery.library import (
+    find_gallery_entries,
+    gallery_asset_path,
+    load_gallery_entries,
+)
 
 # ── Tool schemas for function-calling ──
 
@@ -164,6 +171,51 @@ def _load_html() -> bytes:
     return html_path.read_bytes()
 
 
+def _gallery_entries_for_response() -> list[dict[str, Any]]:
+    """Load gallery entries and add absolute asset URLs for the SPA."""
+    entries = []
+    for entry in load_gallery_entries():
+        item = dict(entry)
+        preview_image = item.get("preview_image", "")
+        item["preview_image_url"] = (
+            f"/wizard/gallery-assets/{preview_image}" if preview_image else ""
+        )
+        entries.append(item)
+    return entries
+
+
+def _gallery_prompt_block(profile: UserProfile) -> str:
+    """Format pinned gallery picks for prompt context."""
+    picks = profile.preferences.gallery_picks
+    if not picks:
+        return ""
+    entries = find_gallery_entries(picks)
+    if not entries:
+        joined = ", ".join(picks)
+        return (
+            "== PINNED GALLERY RECIPES ==\n"
+            f"The user pinned these recipe IDs: {joined}\n"
+            "Treat the first ID as primary and personalize within that recipe.\n\n"
+        )
+
+    lines = [
+        "== PINNED GALLERY RECIPES ==",
+        "These pinned recipes are authoritative desktop references. Do not invent a conflicting setup.",
+    ]
+    for index, entry in enumerate(entries, start=1):
+        prefix = "Primary" if index == 1 else f"Alternate {index}"
+        lines.append(
+            f"- {prefix} recipe `{entry.get('id', '')}`: "
+            f"{entry.get('de', 'unknown')} / {entry.get('theme') or 'theme unspecified'} / "
+            f"{entry.get('icons') or 'icons unspecified'} / source {entry.get('source_url', '')}"
+        )
+    lines.append(
+        "If you mention desktop steps, assume the primary recipe will be applied and only personalize "
+        "within it: wallpaper choice, accent color, and app-specific additions."
+    )
+    return "\n".join(lines) + "\n\n"
+
+
 def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int]:
     """Create and return the GUI HTTP server."""
 
@@ -203,6 +255,14 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
         def _send_html(self, content: bytes) -> None:
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(content)
+
+        def _send_bytes(self, content: bytes, content_type: str, status: int = 200) -> None:
+            self.send_response(status)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(content)))
+            self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             self.wfile.write(content)
 
@@ -337,21 +397,24 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
         # ── Main route dispatch ──
 
         def do_GET(self):
-            if self.path == "/" or self.path == "/index.html":
+            parsed_path = urlparse(self.path)
+            route = parsed_path.path
+
+            if route == "/" or route == "/index.html":
                 self._send_html(_load_html())
 
-            elif self.path == "/wizard/profile":
+            elif route == "/wizard/profile":
                 profile_dict = asdict(gui_state.profile)
                 if profile_dict.get("ai_config", {}).get("api_key"):
                     profile_dict["ai_config"]["api_key"] = "***SET***"
                 self._send_json({"status": "ok", "profile": profile_dict})
 
-            elif self.path == "/wizard/version":
+            elif route == "/wizard/version":
                 from quickhatch import __version__
 
                 self._send_json({"status": "ok", "version": __version__})
 
-            elif self.path == "/wizard/steps":
+            elif route == "/wizard/steps":
                 self._send_json(
                     {
                         "status": "ok",
@@ -370,7 +433,33 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                     }
                 )
 
-            elif self.path == "/wizard/lmstudio-models":
+            elif route == "/wizard/gallery":
+                self._send_json(
+                    {
+                        "status": "ok",
+                        "entries": _gallery_entries_for_response(),
+                        "picks": list(gui_state.profile.preferences.gallery_picks),
+                    }
+                )
+
+            elif route.startswith("/wizard/gallery-assets/"):
+                relative_path = unquote(route.removeprefix("/wizard/gallery-assets/")).lstrip("/")
+                asset_path = gallery_asset_path(relative_path)
+                package_data_root = (Path(__file__).resolve().parents[1] / "data").resolve()
+                try:
+                    asset_path.relative_to(package_data_root)
+                except ValueError:
+                    self._send_json({"status": "error", "message": "Not found"}, 404)
+                    return
+                if not asset_path.exists() or not asset_path.is_file():
+                    self._send_json({"status": "error", "message": "Not found"}, 404)
+                    return
+                content_type = (
+                    mimetypes.guess_type(asset_path.name)[0] or "application/octet-stream"
+                )
+                self._send_bytes(asset_path.read_bytes(), content_type)
+
+            elif route == "/wizard/lmstudio-models":
                 models = []
                 try:
                     import requests
@@ -382,7 +471,7 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                     pass
                 self._send_json({"status": "ok", "models": models})
 
-            elif self.path.startswith("/api/"):
+            elif route.startswith("/api/"):
                 self._handle_bridge_get()
 
             else:
@@ -394,6 +483,36 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                 gui_state.update_profile(data)
                 gui_state.profile.save_checkpoint()
                 self._send_json({"status": "ok"})
+
+            elif self.path == "/wizard/gallery-picks":
+                data = self._read_json()
+                picks = data if isinstance(data, list) else data.get("picks", [])
+                if not isinstance(picks, list):
+                    self._send_json(
+                        {"status": "error", "message": "Expected an array of recipe IDs."}, 400
+                    )
+                    return
+                deduped_picks = list(
+                    dict.fromkeys(str(item) for item in picks if str(item).strip())
+                )
+                if len(deduped_picks) > 10:
+                    self._send_json({"status": "error", "message": "Pick up to 10 recipes."}, 400)
+                    return
+                valid_ids = {entry.get("id") for entry in load_gallery_entries()}
+                invalid = [recipe_id for recipe_id in deduped_picks if recipe_id not in valid_ids]
+                if invalid:
+                    self._send_json(
+                        {
+                            "status": "error",
+                            "message": "Unknown gallery recipe IDs.",
+                            "invalid": invalid,
+                        },
+                        400,
+                    )
+                    return
+                gui_state.profile.preferences.gallery_picks = deduped_picks
+                gui_state.profile.save_checkpoint()
+                self._send_json({"status": "ok", "picks": deduped_picks})
 
             elif self.path == "/wizard/complete_step":
                 data = self._read_json()
@@ -910,6 +1029,10 @@ def _build_section_prompt(
     if profile_dict.get("ai_config", {}).get("api_key"):
         profile_dict["ai_config"]["api_key"] = "***REDACTED***"
     profile_json = json.dumps(profile_dict, indent=2, default=str)
+    gallery_block = _gallery_prompt_block(profile)
+    primary_recipe = (
+        profile.preferences.gallery_picks[0] if profile.preferences.gallery_picks else ""
+    )
 
     section_instructions = {
         "distro": (
@@ -935,14 +1058,24 @@ def _build_section_prompt(
         "desktop": (
             "Recommend a desktop environment matching their preferences.\n"
             "Include: theme, icon pack, dock/panel setup, and wallpaper suggestions.\n"
-            "CRITICAL — describe the full end-state, not just what to install:\n"
-            "- How to ACTIVATE the theme (e.g. write /etc/xdg/kdeglobals with [Icons]\\nTheme=Papirus,\n"
-            "  or use kwriteconfig6 --file kdeglobals --group Icons --key Theme Papirus)\n"
-            "- How to set the wallpaper programmatically\n"
-            "- How to enable the display manager (systemctl enable sddm/gdm/lightdm)\n"
-            "- Any GTK theme config needed for non-KDE apps (gsettings, ~/.config/gtk-3.0/settings.ini)\n"
-            "IMPORTANT: Include image URLs from the search results using Markdown image syntax:\n"
-            "![Description](https://example.com/screenshot.png)\n"
+            + (
+                f"Recipe `{primary_recipe}` will be applied — your job is to personalize within it, "
+                "not replace it with a different design direction.\n"
+                "Respect the recipe's DE/theme/icon stack and only adapt wallpaper, accent choices, "
+                "and app-specific additions.\n"
+                if primary_recipe
+                else ""
+            )
+            + (
+                "CRITICAL — describe the full end-state, not just what to install:\n"
+                "- How to ACTIVATE the theme (e.g. write /etc/xdg/kdeglobals with [Icons]\\nTheme=Papirus,\n"
+                "  or use kwriteconfig6 --file kdeglobals --group Icons --key Theme Papirus)\n"
+                "- How to set the wallpaper programmatically\n"
+                "- How to enable the display manager (systemctl enable sddm/gdm/lightdm)\n"
+                "- Any GTK theme config needed for non-KDE apps (gsettings, ~/.config/gtk-3.0/settings.ini)\n"
+                "IMPORTANT: Include image URLs from the search results using Markdown image syntax:\n"
+                "![Description](https://example.com/screenshot.png)\n"
+            )
         ),
         "plan": (
             "Provide a complete step-by-step migration plan.\n"
@@ -991,6 +1124,7 @@ def _build_section_prompt(
         f"== SECTION: {section.upper()} ==\n"
         f"{section_instructions.get(section, '')}\n"
         f"== LIVE SEARCH RESULTS (use these for up-to-date info) ==\n{search_context}\n\n"
+        + gallery_block
         + (
             f"== USER FEEDBACK (the user changed their mind — follow this!) ==\n{user_feedback}\n\n"
             if user_feedback

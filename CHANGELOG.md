@@ -4,7 +4,7 @@ All notable changes to QuickHatch will be documented here. Format loosely follow
 
 ## [Unreleased]
 
-_Nothing yet._
+- Added community recipe gallery with ~100 curated Linux desktop configurations.
 
 ## [0.1.0] — 2026-04-15
 
