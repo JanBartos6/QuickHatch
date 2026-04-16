@@ -281,6 +281,86 @@ def assemble_context(repo_dir: Path, title: str = "", body: str = "") -> str:
     return context
 
 
+# Strings the LLM sometimes emits as field values that should be treated as
+# "no value" even though the JSON schema admits them (the schema just says
+# "string or null", not "a real token").
+_SANITIZE_NULL_TOKENS = frozenset(
+    {
+        "",
+        "null",
+        "none",
+        "n/a",
+        "na",
+        "unknown",
+        "default",
+        "system",
+        "system-ui",  # CSS fallback, not a real font identity
+        "sans-serif",
+        "serif",
+        "monospace",
+        "normal",
+        "regular",
+        "true",
+        "false",
+        "-",
+        "_",
+        ".",
+        "—",
+        "__proto__",  # JavaScript prototype pollution string, Gemma hallucination
+        "prototype",
+    }
+)
+# Characters that indicate the model leaked JSON syntax into a field value
+# (e.g. font_ui = ":{" or font_mono = "} , {").
+_SANITIZE_BAD_CHARS = frozenset('{}[]"<>')
+_SANITIZE_MAX_LEN = 60
+
+
+def _sanitize_field(value: Any) -> str | None:
+    """Return a cleaned field value, or ``None`` if the value is meaningless.
+
+    Catches Gemma hallucinations like ":{", "__proto__", literal-string
+    "null", truncated fragments ("settt_mono_font_font-fa"), and similar
+    schema-conforming-but-garbage output.
+    """
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        return None
+    cleaned = value.strip().strip("`'\"")
+    if not cleaned:
+        return None
+    if cleaned.lower() in _SANITIZE_NULL_TOKENS:
+        return None
+    if len(cleaned) > _SANITIZE_MAX_LEN:
+        return None
+    if any(ch in _SANITIZE_BAD_CHARS for ch in cleaned):
+        return None
+    # Require at least one letter so tokens like ":{" or ",," drop out even
+    # if the bad-chars check missed them.
+    if not any(ch.isalpha() for ch in cleaned):
+        return None
+    return cleaned
+
+
+def sanitize_llm_result(result: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Normalize a cached LLM extraction result, filtering hallucinated fields."""
+    if result is None:
+        return None
+    cleaned = dict(result)
+    for field in ("de", "theme", "icons", "cursor", "font_ui", "font_mono", "wallpaper_hint"):
+        cleaned[field] = _sanitize_field(cleaned.get(field))
+    # signature_features: drop empty/garbage entries, cap length.
+    sig = cleaned.get("signature_features") or []
+    if isinstance(sig, list):
+        cleaned["signature_features"] = [s for s in (_sanitize_field(item) for item in sig) if s][
+            :5
+        ]
+    else:
+        cleaned["signature_features"] = []
+    return cleaned
+
+
 def call_llm(context: str) -> dict[str, Any] | None:
     """Send the assembled context to the LLM and parse its JSON response."""
     if not context.strip():
@@ -348,13 +428,17 @@ def llm_extract_metadata(
     cache_path = LLM_CACHE_DIR / _cache_key(repo_dir, context)
     if cache_path.exists() and not refresh:
         try:
-            return json.loads(cache_path.read_text(encoding="utf-8"))
+            cached = json.loads(cache_path.read_text(encoding="utf-8"))
+            return sanitize_llm_result(cached)
         except (OSError, json.JSONDecodeError):
             pass
     result = call_llm(context)
     if result is not None:
+        # Cache the raw model output so the sanitizer can be improved later
+        # without needing to re-call the LLM, but return the sanitized view.
         cache_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-    return result
+        return sanitize_llm_result(result)
+    return None
 
 
 __all__ = [
