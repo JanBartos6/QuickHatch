@@ -1,0 +1,426 @@
+{
+  "github-jessfraz-dotfiles": {
+    "description": "A no-nonsense i3 rice from a veteran systems engineer — dark terminal-first, Inter for UI, JetBrainsMono Nerd Font for code, and urxvt as the daily driver. Feels like sitting at a grown-up dev workstation built for long shell sessions, not a showcase.",
+    "best_for": ["developer tools", "coding", "minimal distraction", "power user", "servers and CLIs"]
+  },
+  "github-caelestia-dots-shell": {
+    "description": "The Caelestia shell is a QuickShell-powered Hyprland experience with meticulously custom QML widgets, a deep dark palette, and a polished, almost OS-like feel. Everything from lockscreen to notifications feels hand-designed — more like a curated product than a hobby rice.",
+    "best_for": ["aesthetic showcase", "Hyprland enthusiast", "macos lover", "developer tools", "modern Wayland"]
+  },
+  "unixporn-r5ot7x": {
+    "description": "A KDE Plasma rice built around Catppuccin Mocha Lavender — soft purple darks, crisp JetBrainsMono Nerd Font, and the usual Plasma panel restraint. Best when you want a modern dark theme without abandoning KDE's familiar widgets.",
+    "best_for": ["writing", "coding", "aesthetic showcase", "Plasma fan", "dark mode enjoyer"]
+  },
+  "github-siduck-chadwm": {
+    "description": "A patched dwm build ('chadwm') paired with eww widgets, rofi, and Catppuccin across the board. A rare ultra-light window manager setup that still looks intentional and pretty — minimalist but decorated.",
+    "best_for": ["tiling enthusiast", "minimal distraction", "low-resource machines", "coding", "aesthetic showcase"]
+  },
+  "github-hlissner-dotfiles": {
+    "description": "Henrik Lissner's legendary dotfiles — Hyprland, foot terminal, rofi, zsh with zgenom, and zero window gaps. Focused, fast, dark, and practical; built by the author of Doom Emacs for getting actual work done.",
+    "best_for": ["coding", "developer tools", "power user", "minimal distraction", "Emacs lover"]
+  },
+  "github-xnm1-linux-nixos-hyprland-config-dotfiles": {
+    "description": "A complete NixOS + Hyprland stack with Catppuccin Macchiato, Colloid teal icons, and every piece of the desktop configured: waybar, rofi, dunst, hyprlock, kitty, fish + starship, thunar, helix. The 'comprehensive reference build' kind of rice.",
+    "best_for": ["NixOS user", "coding", "developer tools", "aesthetic showcase", "tiling enthusiast"]
+  },
+  "github-ryan4yin-nix-config": {
+    "description": "Ryan4Yin's NixOS config for niri — clean, scrollable tiling with Catppuccin colors, multiple terminals (foot, kitty, alacritty), and zellij for session management. Good reference for anyone migrating to niri on NixOS.",
+    "best_for": ["NixOS user", "tiling enthusiast", "coding", "niri enthusiast", "developer tools"]
+  },
+  "github-meowrch-meowrch": {
+    "description": "Meowrch bundles a polished Hyprland experience: Catppuccin Mocha, waybar, rofi, dunst, hyprlock, kitty, fish + starship, yazi. Feels like a distro-in-dotfiles — complete, opinionated, and ready for daily use out of the box.",
+    "best_for": ["coding", "aesthetic showcase", "Hyprland enthusiast", "opinionated defaults", "catppuccin lover"]
+  },
+  "github-ahmad9059-hyprflux": {
+    "description": "HyprFlux is a purple-accented Hyprland setup with a QuickShell panel, rofi launcher, swaync notifications, and a cohesive dark UI. The compact, purple-LED vibe feels like a cyberpunk terminal — intentional and focused rather than maximalist.",
+    "best_for": ["aesthetic showcase", "coding", "developer tools", "Hyprland enthusiast", "cyberpunk look"]
+  },
+  "github-nickjj-dotfiles": {
+    "description": "Niri + TokyoNight Moon, waybar, walker launcher, mako notifications, ghostty terminal, zsh + tmux + neovim. A pragmatic developer-first setup focused on fast keyboard workflow and readable typography over visual flair.",
+    "best_for": ["coding", "developer tools", "tiling enthusiast", "tmux user", "minimal distraction"]
+  },
+  "github-frost-phoenix-nixos-config": {
+    "description": "NixOS Hyprland config with the Colloid theme, Papirus Dark icons, Bibata cursor, and Maple Mono everywhere. Clean and modern with zsh + powerlevel10k — a polished daily driver that leans toward refined rather than flashy.",
+    "best_for": ["NixOS user", "coding", "aesthetic showcase", "macos lover", "Hyprland enthusiast"]
+  },
+  "github-elifouts-dotfiles": {
+    "description": "A rare *light-mood* Hyprland rice: Bibata Modern Ice cursor, CodeNewRoman Nerd Font, wofi launcher, swaync notifications, subtle animations with 10px rounded corners. Airy and soft instead of the usual dark maximalism.",
+    "best_for": ["writing", "daytime work", "minimal distraction", "light mode lover", "aesthetic showcase"]
+  },
+  "unixporn-nhomed": {
+    "description": "AmogOS — a whimsical LXDE + Openbox + xfce4-panel rice styled as an Among Us send-up, with Arc Grey Darker theme and Papirus icons. Playful and memey rather than serious; a community-beloved joke-made-real desktop.",
+    "best_for": ["fun/novelty", "aesthetic showcase", "low-resource machines", "nostalgic lightweight", "conversation starter"]
+  },
+  "github-szorfein-dotfiles": {
+    "description": "Sway rice with huge 26px inner gaps, 16px rounded corners, polybar, Iosevka monospace, and eww widgets — an airy, sparse layout that treats whitespace as a design element. swayfx for the extra decoration.",
+    "best_for": ["tiling enthusiast", "minimal distraction", "aesthetic showcase", "writing", "Wayland-only"]
+  },
+  "github-cybersnake223-hypr": {
+    "description": "Purple-themed Hyprland with adw-gtk3-dark, Colloid Dark icons, Oreo purple cursors, and JetBrainsMono Nerd Font throughout. Waybar + rofi + mako + hyprlock + yazi — a full modern Wayland stack with a distinctive grape palette.",
+    "best_for": ["aesthetic showcase", "coding", "Hyprland enthusiast", "dark mode enjoyer", "purple/lavender lover"]
+  },
+  "github-dusklinux-dusky": {
+    "description": "Dusky is a GNOME-adjacent Hyprland rice — adw-gtk3 theme, Papirus icons, Bibata cursor, Adwaita Sans UI font, and JetBrainsMono Nerd Font for code. Matugen-driven wallpaper-aware colors keep the whole desktop feeling coherent.",
+    "best_for": ["macos lover", "GNOME refugee", "coding", "aesthetic showcase", "Hyprland enthusiast"]
+  },
+  "unixporn-1k7c8i1": {
+    "description": "Pastel bspwm rice with a soft #AEAED1 accent, waybar, rofi, dunst, Space Mono Nerd Font. Light-mood and airy — a gentle, almost pastel alternative to the sea of dark rices.",
+    "best_for": ["writing", "light mode lover", "aesthetic showcase", "tiling enthusiast", "daytime work"]
+  },
+  "github-dustinlyons-nixos-config": {
+    "description": "Dustin Lyons' Plasma + NixOS + nix-darwin config — Inter UI font, polybar, Emacs as the editor, and plasma-manager plus home-manager to keep it all declarative across Mac and Linux.",
+    "best_for": ["NixOS user", "macOS-and-Linux user", "coding", "Emacs lover", "declarative setup"]
+  },
+  "unixporn-1kcebee": {
+    "description": "A first-timer's Hyprland rice built on the mylinuxforwork dotfiles — quickshell panel, rofi launcher, swaync, hyprlock, kitty, fish. Adaptive Material-themed colors based on wallpaper; a clean, approachable starting point.",
+    "best_for": ["beginner", "Hyprland enthusiast", "coding", "aesthetic showcase", "Arch/Fedora user"]
+  },
+  "github-aymanlyesri-archeclipse": {
+    "description": "ArchEclipse uses AGS v3 (GTK widgets) as the panel with pywal-driven dynamic colors — a chameleon rice that rethemes around whatever wallpaper you pick. Hyprland + kitty + zsh + starship + ranger for the dev side.",
+    "best_for": ["aesthetic showcase", "dynamic theming lover", "Hyprland enthusiast", "developer tools", "coding"]
+  },
+  "github-snowarch-inir": {
+    "description": "A compact niri rice with Catppuccin Mocha Lavender, fuzzel launcher, kitty terminal, and fish + starship. Takes advantage of niri's scrollable tiling for a more relaxed, horizontal workflow than traditional WMs.",
+    "best_for": ["niri enthusiast", "writing", "tiling enthusiast", "catppuccin lover", "coding"]
+  },
+  "github-yurihikari-garuda-hyprdots": {
+    "description": "Garuda-flavored Hyprland — Catppuccin Macchiato Mauve theme, Tela Circle purple icons, BreezeX-RosePine cursor, and full-on maximalist animations. Rich, colorful, and unapologetically decorated.",
+    "best_for": ["aesthetic showcase", "Garuda user", "Hyprland enthusiast", "maximalist", "purple/lavender lover"]
+  },
+  "github-ad1822-hyprdots": {
+    "description": "A Catppuccin Macchiato Hyprland rice with Iosevka Nerd Font, Papirus icons, JetBrains Mono for code, and animations *off* for speed. Feels like a tasteful daily driver — small gaps, 6px corners, no flash.",
+    "best_for": ["coding", "catppuccin lover", "minimal distraction", "tiling enthusiast", "daily driver"]
+  },
+  "github-cebem1nt-dotfiles": {
+    "description": "'Kripton' theme on Hyprland — CaskaydiaCove Nerd Font, Bibata cursor, alacritty + zsh + thunar. A balanced dark setup with waybar, rofi, swaync, hyprlock and neovim for editing.",
+    "best_for": ["coding", "Hyprland enthusiast", "developer tools", "dark mode enjoyer", "minimal distraction"]
+  },
+  "github-ayamir-dotfiles": {
+    "description": "A dwm rice with Catppuccin colors, polybar, rofi, dunst, kitty terminal, and fish shell. Proves that even a suckless stack can look clean and cohesive with the right config.",
+    "best_for": ["tiling enthusiast", "suckless fan", "minimal distraction", "coding", "low-resource machines"]
+  },
+  "github-2ssk-dot-files": {
+    "description": "A TokyoNight Hyprland rice with Bibata cursor, JetBrainsMono Nerd Font, waybar, rofi, dunst, hyprlock, kitty, fish + starship, yazi. A comprehensive, middle-of-the-road dark setup — nothing unusual, everything polished.",
+    "best_for": ["coding", "Hyprland enthusiast", "tokyonight lover", "catppuccin lover", "aesthetic showcase"]
+  },
+  "github-sejjy-mechabar": {
+    "description": "Mechabar is a Waybar-focused Hyprland rice with Catppuccin themes and Commit Mono Nerd Font. The panel itself is the showpiece — dense, structured, with modular components you can borrow.",
+    "best_for": ["aesthetic showcase", "waybar customizer", "coding", "catppuccin lover", "Hyprland enthusiast"]
+  },
+  "github-zproger-bspwm-dotfiles": {
+    "description": "A light-mood bspwm rice with polybar, rofi, alacritty, fish, ranger, and neovim. Distinctly airier than most bspwm configs — feels like a bright studio rather than a hacker den.",
+    "best_for": ["light mode lover", "tiling enthusiast", "writing", "developer tools", "coding"]
+  },
+  "github-debuggyo-exo": {
+    "description": "Exo blends Hyprland with Material Design 3 principles — adw-gtk3, maximalist animations, 20px rounded corners, Matugen-driven adaptive colors via swww. Feels like a designer Android ROM for your desktop.",
+    "best_for": ["aesthetic showcase", "material design lover", "macos lover", "Hyprland enthusiast", "dynamic theming lover"]
+  },
+  "github-endeavouros-team-endeavouros-i3wm-setup": {
+    "description": "EndeavourOS's official i3wm reference setup: arc-dark theme, rofi, dunst, thunar, xed. Conservative and well-documented — a perfect starting point for someone new to tiling.",
+    "best_for": ["beginner", "tiling enthusiast", "EndeavourOS user", "coding", "i3 starter"]
+  },
+  "github-swaykh-dotfiles": {
+    "description": "Niri rice with Pywal16-driven colors (so the whole desktop reshapes around your wallpaper), waybar, rofi, dunst, hyprlock, kitty, zsh + starship, lf file manager, neovim. Sparse 5px gaps, no animations.",
+    "best_for": ["niri enthusiast", "dynamic theming lover", "coding", "tiling enthusiast", "minimal distraction"]
+  },
+  "github-dikiaap-dotfiles": {
+    "description": "A classic i3 setup with the Arc theme, Paper icons, DMZ-White cursor, Source Sans Pro UI font, Hack for code. i3bar + rofi + dunst + zsh + alacritty + tmux — the kind of reliable, boring-in-a-good-way rice that just works.",
+    "best_for": ["tiling enthusiast", "coding", "minimal distraction", "beginner", "i3 starter"]
+  },
+  "github-zhaleff-blacknode": {
+    "description": "Catppuccin Mocha Hyprland build with wallust-generated palettes tied to the wallpaper — waybar, rofi, dunst, hyprlock, kitty, zsh, yazi, neovim. Minimal fuss; the whole look updates when you change the wallpaper.",
+    "best_for": ["coding", "catppuccin lover", "dynamic theming lover", "Hyprland enthusiast", "dark mode enjoyer"]
+  },
+  "github-dmadisetti-dots": {
+    "description": "i3 with blur enabled and *huge* 40px outer gaps — Inter UI, fish + polybar + rofi + dunst + kitty + vim. Breathing-room maximalism: negative space as the core aesthetic principle.",
+    "best_for": ["tiling enthusiast", "aesthetic showcase", "minimal distraction", "writing", "light mode lover"]
+  },
+  "github-jguer-dotfiles": {
+    "description": "A TokyoNight sway rice with Inter Medium UI, FiraCode Nerd Font for code, waybar, wofi, swaylock-effects, kitty, and neovim. A measured, evenly-tuned Wayland setup from a maintainer of yay.",
+    "best_for": ["coding", "developer tools", "tokyonight lover", "sway user", "tiling enthusiast"]
+  },
+  "github-cxorz-dotfiles-hyprland": {
+    "description": "'Material Black Blueberry' Hyprland — a ChromeOS-flavored take on Material Design 3 with a #268BD2 blue accent, maximalist animations, 10px rounded corners, quickshell-style panels and yazi.",
+    "best_for": ["material design lover", "aesthetic showcase", "ChromeOS fan", "Hyprland enthusiast", "maximalist"]
+  },
+  "github-pazl27-dotfiles": {
+    "description": "Gruvbox Hyprland with CodeNewRoman Nerd Font UI and JetBrainsMono Nerd Font for code — waybar, rofi, dunst, hyprlock, kitty, zsh, yazi, neovim. A warm, amber-toned rice that avoids the usual teal/purple clichés.",
+    "best_for": ["gruvbox lover", "coding", "writing", "developer tools", "Hyprland enthusiast"]
+  },
+  "github-anotherhadi-nixy": {
+    "description": "Nixy pairs NixOS with the Caelestia shell on Hyprland and Stylix-driven base16 theming. A declarative full-stack build where the whole aesthetic flows from a single Nix expression.",
+    "best_for": ["NixOS user", "aesthetic showcase", "Hyprland enthusiast", "declarative setup", "coding"]
+  },
+  "github-ascaniolamp-hyprlain": {
+    "description": "'Hyprlain' — a Serial Experiments Lain-themed Hyprland rice with Adwaita Mono Nerd Font, waybar, dunst, hyprlock, kitty. The wallpaper does much of the heavy lifting; the desktop itself is minimal and quietly melancholy.",
+    "best_for": ["aesthetic showcase", "anime lover", "dark mode enjoyer", "Hyprland enthusiast", "conversation starter"]
+  },
+  "github-viegphunt-dotfiles": {
+    "description": "A clean Hyprland rice with JetBrainsMono Nerd Font, ghostty terminal, waybar + rofi + swaync + hyprlock + zsh + neovim. Nothing ornate — just a well-tuned modern Wayland developer desktop.",
+    "best_for": ["coding", "developer tools", "Hyprland enthusiast", "ghostty user", "minimal distraction"]
+  },
+  "github-acaibowlz-niri-setup": {
+    "description": "Colloid-themed niri with matching Colloid icons, Adwaita cursor, Ubuntu Mono Nerd Font for UI, and JetBrainsMono Nerd Font for code. A clean scrollable-tiling setup that feels GNOME-adjacent in its restraint.",
+    "best_for": ["niri enthusiast", "GNOME refugee", "tiling enthusiast", "coding", "light+dark switchable"]
+  },
+  "github-simonvic-dotfiles": {
+    "description": "Sway (with swayfx) running a dense waybar + rofi + dunst + swaylock + kitty + zsh + neovim stack, 4px borders. Practical and dark — a focused work-desktop rather than a showpiece.",
+    "best_for": ["coding", "sway user", "tiling enthusiast", "developer tools", "minimal distraction"]
+  },
+  "hyprland-1jv48oq": {
+    "description": "First-rice from Reddit, 'Juno Ocean v40' theme — Hyprland + quickshell panel, hyprlock, kitty, fish + starship, thunar, vscode. Dark teal accent (#1D343A); polished despite being a first attempt.",
+    "best_for": ["beginner", "Hyprland enthusiast", "coding", "aesthetic showcase", "dark mode enjoyer"]
+  },
+  "github-redyf-nixdots": {
+    "description": "A TokyoNight NixOS + Hyprland rice with Zen Browser, ghostty, zsh, and Stylix-enabled consistent theming across every app. Minimalist and declarative — your whole aesthetic lives in flake.nix.",
+    "best_for": ["NixOS user", "tokyonight lover", "minimal distraction", "coding", "Hyprland enthusiast"]
+  },
+  "github-sly-harvey-nixos": {
+    "description": "Sly-Harvey's NixOS config ships a dark Hyprland desktop with Inter UI, home-manager, nix-flatpak dev shells, and plasma-manager for cross-flow between WMs. An opinionated reproducible NixOS reference.",
+    "best_for": ["NixOS user", "coding", "declarative setup", "developer tools", "Hyprland enthusiast"]
+  },
+  "github-caioax-lyne-dots": {
+    "description": "Lyne-dots uses a quickshell bar with dynamic matugen-generated colors tied to wallpaper, plus Catppuccin Mocha base, kitty, zsh + powerlevel10k, neovim. The 'lyne' CLI lets you switch themes on the fly.",
+    "best_for": ["aesthetic showcase", "dynamic theming lover", "Hyprland enthusiast", "catppuccin lover", "coding"]
+  },
+  "github-n6v26r-dotfiles": {
+    "description": "A GNOME config that borrows heavily from the tiling world — polybar, rofi, dunst, hyprlock, kitty, zsh + starship, ranger, neovim, 10/20px gaps, maximalist animations. Catppuccin Mocha Lavender top to bottom.",
+    "best_for": ["catppuccin lover", "maximalist", "tiling enthusiast", "coding", "aesthetic showcase"]
+  },
+  "github-youwes09-ateon": {
+    "description": "Ateon is an AGS/Astal + Material Design 3 Hyprland shell with matugen wallpaper-derived colors, Inter UI, JetBrainsMono Nerd Font, foot terminal, fish + starship. Maximalist animations, 5px corners.",
+    "best_for": ["material design lover", "aesthetic showcase", "Hyprland enthusiast", "macos lover", "dynamic theming lover"]
+  },
+  "github-elysiaos-elysiaos": {
+    "description": "ElysiaOS is a light-mood Hyprland build with a custom 'elysiaos-bar', its own launcher, and a muted #687363 sage accent. Feels like a distro-in-disguise — opinionated, branded, cohesive.",
+    "best_for": ["aesthetic showcase", "light mode lover", "Hyprland enthusiast", "opinionated defaults", "macos lover"]
+  },
+  "github-deridray-dotfiles": {
+    "description": "TokyoNight Hyprland with Bibata cursor, Inter UI, waybar, hyprlock, kitty, fish + starship, vscode. Maximalist animations and 20px rounded corners make it visually rich while keeping the workflow fast.",
+    "best_for": ["tokyonight lover", "coding", "Hyprland enthusiast", "aesthetic showcase", "maximalist"]
+  },
+  "github-sekiryl-hyprdots": {
+    "description": "Rose Pine Purple Dark on Hyprland with matching Rose Pine icons, BreezeX cursor, SF Pro Display UI, GeistMono for code. Uses Hyprpanel; feels like a quiet, refined macOS-adjacent dark mode.",
+    "best_for": ["rose-pine lover", "macos lover", "aesthetic showcase", "Hyprland enthusiast", "writing"]
+  },
+  "github-potamides-dotfiles": {
+    "description": "Awesome WM with Colloid Dark Compact Gruvbox theme, gruvbox-plus-dark icons, simp1e-gruvbox cursor, alacritty + tmux + ranger + neovim + qutebrowser. A keyboard-first, text-only kind of daily driver.",
+    "best_for": ["tiling enthusiast", "gruvbox lover", "keyboard-driven", "tmux user", "developer tools"]
+  },
+  "github-shikikan-neko08-nyartix-rice": {
+    "description": "'Frostneko' i3 rice with Papirus icons, Iosevka Custom monospace, polybar + rofi + dunst + kitty + zsh + starship + ranger + vim. Pastel light-mood; anime-flavored without going overboard.",
+    "best_for": ["tiling enthusiast", "light mode lover", "anime lover", "coding", "i3 starter"]
+  },
+  "github-issmirnov-dotfiles": {
+    "description": "Hyprland rice built to mimic a macOS window-manager stack (yabai/skhd vibes) — waybar, hyprlock, alacritty, zsh, vim. Subtle animations, 15px corners, 20px gaps, FontAwesome-driven UI fonts.",
+    "best_for": ["macos lover", "Hyprland enthusiast", "tiling enthusiast", "coding", "keyboard-driven"]
+  },
+  "github-gvolpe-nix-config": {
+    "description": "Niri on NixOS with a 'Juno Ocean' theme, waybar, kitty — light-mood, subtle animations, 4px gaps and corners. A deliberate, understated reference config from a known Nix contributor.",
+    "best_for": ["NixOS user", "niri enthusiast", "light mode lover", "coding", "tiling enthusiast"]
+  },
+  "github-dybdeskarphet-dotfiles": {
+    "description": "Niri with Mulish UI font, JetBrainsMono Nerd Font for code, waybar + rofi + dunst + hyprlock + wezterm + fish. A measured dark setup with swww wallpaper management.",
+    "best_for": ["niri enthusiast", "coding", "wezterm user", "dark mode enjoyer", "tiling enthusiast"]
+  },
+  "github-justus0405-i3wm-dotfiles": {
+    "description": "A light-mood Catppuccin i3 rice with polybar, rofi, alacritty, sddm, nemo. Easygoing and approachable — a good 'my first tiling WM' kit.",
+    "best_for": ["beginner", "tiling enthusiast", "catppuccin lover", "light mode lover", "i3 starter"]
+  },
+  "github-saschagrunert-dotfiles": {
+    "description": "i3 rice with Arc theme, Papirus icons, Bibata cursor, alacritty + dunst + fish + ranger + neovim. 1px borders; quiet and restrained with a Dracula.nvim editor theme for contrast.",
+    "best_for": ["tiling enthusiast", "coding", "minimal distraction", "developer tools", "i3 starter"]
+  },
+  "github-keyitdev-dotfiles": {
+    "description": "i3 with Papirus icons, polybar + rofi + dunst + kitty + zsh + zed editor. Straightforward, light-mood, easy to learn from — a community-favorite for newcomers to i3.",
+    "best_for": ["beginner", "tiling enthusiast", "i3 starter", "coding", "light mode lover"]
+  },
+  "github-sirethanator-hyprland-dots": {
+    "description": "Colloid-themed Hyprland with Bibata cursor, 0xProto Nerd Font, waybar + rofi + swaync + hyprlock + kitty + neovim. Clean and quietly modern — Colloid gives it a subtle, GNOME-flavored restraint.",
+    "best_for": ["Hyprland enthusiast", "macos lover", "coding", "GNOME refugee", "developer tools"]
+  },
+  "github-tsm-061-ctos": {
+    "description": "'ctOS' is a Wayland-only Hyprland build with quickshell, uwsm, greetd greeter and lockscreen — stripped to the essentials. JetBrainsMono Nerd Font, kitty, vscode. For users who want systemd-managed Hyprland done properly.",
+    "best_for": ["Hyprland enthusiast", "systemd user", "minimal distraction", "Wayland-only", "coding"]
+  },
+  "github-neurarian-matshell": {
+    "description": "Matshell is an AGS/Astal desktop shell built around matugen material-design theming — the whole UI adapts to whatever wallpaper you set. Works on both Hyprland and River.",
+    "best_for": ["material design lover", "dynamic theming lover", "Hyprland enthusiast", "River user", "aesthetic showcase"]
+  },
+  "github-pablonoya-awesomewm-configuration": {
+    "description": "Awesome WM config with Kuyen icons, Manrope UI font, xresources color generation, media controls in the top bar, a weather widget, and Google Calendar integration. A functional, info-rich panel.",
+    "best_for": ["tiling enthusiast", "awesome WM user", "keyboard-driven", "productivity", "developer tools"]
+  },
+  "github-orhun-dotfiles": {
+    "description": "Orhun Parmaksız's i3 rice — Kanagawa theme, i3bar, alacritty + bash + starship + neovim, zellij for multiplexing. Calm and readable; an everyday workspace from a well-known Rust community contributor.",
+    "best_for": ["coding", "kanagawa lover", "tiling enthusiast", "developer tools", "light mode lover"]
+  },
+  "github-r0naldoom-dotfiles": {
+    "description": "Hyprland with a Noctalia (QuickShell) panel, rofi, hyprlock, kitty, fish, neovim, maximalist animations and 20px rounded corners. Light-mood with warm accents — a fresh spin on the usual dark-rice formula.",
+    "best_for": ["light mode lover", "aesthetic showcase", "Hyprland enthusiast", "maximalist", "coding"]
+  },
+  "github-opensuse-opensuseway": {
+    "description": "OpenSUSE's official sway reference setup — waybar, wofi, swaync, alacritty, SourceSansPro UI. Conservative and well-documented; a natural sway starter for OpenSUSE users.",
+    "best_for": ["OpenSUSE user", "tiling enthusiast", "sway user", "beginner", "light mode lover"]
+  },
+  "github-datsfilipe-dotfiles": {
+    "description": "Niri with Inter UI and wezterm, managed by home-manager + Nix + sops-manager. A compact but reproducible dev-focused config spanning niri / sway / i3.",
+    "best_for": ["NixOS user", "niri enthusiast", "developer tools", "tiling enthusiast", "coding"]
+  },
+  "github-vyrx-dev-symphony": {
+    "description": "Symphony on Hyprland uses matugen dynamic theming, adw-gtk3-dark base, Bibata cursor, waybar + rofi + swaync + hyprlock + kitty + fish + starship + yazi + neovim, maximalist animations. Includes 'Symmetry' and 'Focus' custom modes.",
+    "best_for": ["aesthetic showcase", "Hyprland enthusiast", "dynamic theming lover", "maximalist", "coding"]
+  },
+  "github-cybrcore-cybrdots": {
+    "description": "Cybrdots ships a 12-wallpaper 'cybr palette', Inter UI, rofi + waybar + swaync, fish shell. Light-mood Hyprland that feels more boutique than typical rice — curated rather than accumulated.",
+    "best_for": ["Hyprland enthusiast", "aesthetic showcase", "light mode lover", "writing", "minimal distraction"]
+  },
+  "hyprland-1jtjljz": {
+    "description": "A first-Hyprland Reddit rice with SF Pro UI and Liga SF NO Mono Nerd Font — waybar, wofi, dunst, hyprlock, kitty, fish + starship, neovim, wallust-driven wallpaper colors. Surprisingly macOS-flavored for a WM build.",
+    "best_for": ["macos lover", "Hyprland enthusiast", "beginner", "coding", "aesthetic showcase"]
+  },
+  "github-johackim-dotfiles": {
+    "description": "A pywal-themed i3 rice — the colors reshape whenever you change wallpaper. polybar + dunst + zsh + neovim + rxvt; dark, terminal-first, and adaptive.",
+    "best_for": ["dynamic theming lover", "tiling enthusiast", "developer tools", "coding", "keyboard-driven"]
+  },
+  "github-klaxalk-linux-setup": {
+    "description": "A minimal i3 + i3bar setup with Powerline fonts. Light-mood and sparse — a starting point more than a statement, good if you want a bare frame you can style yourself.",
+    "best_for": ["beginner", "tiling enthusiast", "i3 starter", "minimal distraction", "low-resource machines"]
+  },
+  "github-shell-ninja-hyprconf-v2": {
+    "description": "shell-ninja's second-gen Hyprland config — waybar, rofi, sddm, kitty + fish + neovim, fastfetch, dolphin file manager. Light-mood and practical; theme rotates via hyprconf-v2's wallpapers.",
+    "best_for": ["Hyprland enthusiast", "coding", "light mode lover", "beginner", "developer tools"]
+  },
+  "github-sbalghari-sbdots": {
+    "description": "A quiet Hyprland setup with Inter UI, waybar, rofi, kitty + fish + starship, hyprlock, Catppuccin Mocha Lavender wallpaper. Light-mood and understated — a clean daily driver more than a rice for show.",
+    "best_for": ["Hyprland enthusiast", "minimal distraction", "light mode lover", "writing", "coding"]
+  },
+  "github-haaarshsingh-dots": {
+    "description": "i3-gaps with Adapta-Nokto theme, Qogirr cursor, Averta UI font, polybar + compton-rounded-corners + dunst + fish + starship + neovim. Pastel light-mood with real rounded corners — unusually soft for i3.",
+    "best_for": ["light mode lover", "tiling enthusiast", "aesthetic showcase", "writing", "coding"]
+  },
+  "github-rayhaanfay-xfce-creation-of-adam": {
+    "description": "XFCE themed around the Sistine Chapel's 'Creation of Adam' — Ghost-Mantis theme, Nordzy Cyan Dark icons, JetBrainsMono Nerd Font. An artistic, unusual rice that rejects the usual Catppuccin/TokyoNight defaults.",
+    "best_for": ["aesthetic showcase", "XFCE user", "conversation starter", "low-resource machines", "art lover"]
+  },
+  "github-dileep-kishore-nixos-config": {
+    "description": "Niri on NixOS with Catppuccin colors, Monaspace font, waybar, kitty, walker launcher, ghostty. A clean declarative setup that takes advantage of niri's scrollable workflow.",
+    "best_for": ["NixOS user", "niri enthusiast", "catppuccin lover", "coding", "tiling enthusiast"]
+  },
+  "github-flyingcakes85-lovebites": {
+    "description": "LoveBites is an XFCE rice with a custom 'lovebites' theme, PapirusRed icons, Iosevka Nerd Font everywhere, tint2 + picom + conky + xfwm4. A soft, affectionate-feeling dark theme that leans warm and quiet.",
+    "best_for": ["XFCE user", "writing", "aesthetic showcase", "low-resource machines", "dark mode enjoyer"]
+  },
+  "github-diinki-diinki-retrofuture": {
+    "description": "Sway + swayfx with a custom 'diinki-retro-dark' theme, waybar, wofi, kitty. No animations, hard 1px borders, 0px rounded corners — an intentionally retro-futuristic, angular look.",
+    "best_for": ["aesthetic showcase", "retro lover", "sway user", "tiling enthusiast", "conversation starter"]
+  },
+  "github-schmeekygeek-dotfiles": {
+    "description": "bspwm with Iosevka Comfy Motion UI, polybar + rofi + alacritty + bash + starship + neovim, conky widgets, rose-pine wallpaper. Dark-mood and terminal-focused.",
+    "best_for": ["tiling enthusiast", "bspwm user", "developer tools", "coding", "rose-pine lover"]
+  },
+  "github-mastermindzh-dotfiles": {
+    "description": "i3-gaps with polybar, rofi, dunst, xfce4-terminal, vscode, Dracula wallpaper. 10px gaps, practical over pretty — a 'get work done' setup rather than an aesthetic showcase.",
+    "best_for": ["tiling enthusiast", "coding", "developer tools", "i3 starter", "dracula lover"]
+  },
+  "github-denisse-dev-dotfiles": {
+    "description": "Dracula sway rice with waybar, swaylock, alacritty, emacs. Monolike font across UI and code; dark and focused with emacs as the center of gravity.",
+    "best_for": ["Emacs lover", "sway user", "dracula lover", "coding", "developer tools"]
+  },
+  "github-mrusme-dotfiles": {
+    "description": "Hyprland with the premium Berkeley Mono font, waybar, mako, swaylock, zsh + starship, lf file manager, neovim. Dark, typography-forward, and quietly professional.",
+    "best_for": ["coding", "writing", "Hyprland enthusiast", "typography lover", "developer tools"]
+  },
+  "github-firestreaker2-dotfiles": {
+    "description": "A light-mood Hyprland rice with a blue theme, Adwaita cursor, JetBrainsMono Nerd Font UI, waybar + wofi + hyprlock + kitty + fish + starship + neovim. Subtle animations, 10px corners.",
+    "best_for": ["Hyprland enthusiast", "light mode lover", "coding", "beginner", "writing"]
+  },
+  "github-diinki-diinki-aero": {
+    "description": "'Diinki-Aero' — a Windows Aero tribute on Hyprland, with crystal-remix icons, waybar, wofi, hard 1px borders, 12px corners. A rare and deliberate Windows-7-meets-Wayland aesthetic.",
+    "best_for": ["aesthetic showcase", "Windows refugee", "retro lover", "Hyprland enthusiast", "conversation starter"]
+  },
+  "github-gnuunixchad-dotfiles": {
+    "description": "River WM with Adwaita Dark, Adwaita cursor, Noto Sans UI, dunst + foot + zsh + lf + neovim. A rare and clean River setup — Wayland tiling with GNOME-flavored defaults.",
+    "best_for": ["River user", "tiling enthusiast", "Wayland-only", "coding", "GNOME refugee"]
+  },
+  "github-2kabhishek-dots2k": {
+    "description": "A dark XFCE rice with FiraCode Nerd Font, kitty + fish + ranger + vim — a lighter-weight, more flexible alternative to GNOME or Plasma for dev work.",
+    "best_for": ["XFCE user", "coding", "low-resource machines", "developer tools", "keyboard-driven"]
+  },
+  "github-marcusmix-dotfiles": {
+    "description": "A light i3 build with waybar, hyprlock, kitty, bash + neovim — maximalist animations, 10px corners. Light-mood and approachable; a Linux-Mint-adjacent tiling entry point.",
+    "best_for": ["beginner", "tiling enthusiast", "light mode lover", "Mint user", "coding"]
+  },
+  "github-vallen217-dotfiles": {
+    "description": "'Eidolon' themed Hyprland with Kora icons, Catppuccin Mocha light cursors, waybar + rofi + dunst + hyprlock + kitty + fish + neovim, maximalist animations. Dark with a mysterious, shadowy feel.",
+    "best_for": ["aesthetic showcase", "Hyprland enthusiast", "dark mode enjoyer", "maximalist", "catppuccin lover"]
+  },
+  "github-shell-ninja-hyprconf": {
+    "description": "shell-ninja's original hyprconf — Hyprland with rofi, waybar, hyprlock, hypridle, hyprsunset, dolphin, kitty + fish + neovim, pywal-driven wallpapers. Light-mood with dynamic color changes.",
+    "best_for": ["Hyprland enthusiast", "light mode lover", "dynamic theming lover", "coding", "beginner"]
+  },
+  "github-sh1zicus-dots-hyprland": {
+    "description": "Hyprland with AGS widgets, Adwaita icons, Rubik UI, JetBrainsMono Nerd Font for code, anyrun launcher, foot terminal, fish + starship. Modular Hyprland config with a Material Design 3 feel.",
+    "best_for": ["Hyprland enthusiast", "material design lover", "aesthetic showcase", "coding", "developer tools"]
+  },
+  "github-felipecrs-dotfiles": {
+    "description": "A practical GNOME config with FiraCode Nerd Font, zsh + powerlevel10k + chezmoi for cross-machine dotfile sync, vscode. No rice theatrics — a pragmatic, reproducible developer setup.",
+    "best_for": ["GNOME user", "coding", "developer tools", "declarative setup", "cross-machine sync"]
+  },
+  "i3wm-m7w790": {
+    "description": "An ArcoLinux i3 + Openbox rice themed with pywal, adi1090x's polybar themes, rofi. Light-mood, approachable, and documented — a good bridge from traditional desktop to tiling.",
+    "best_for": ["ArcoLinux user", "beginner", "tiling enthusiast", "i3 starter", "light mode lover"]
+  },
+  "github-jakoolit-opensuse-hyprland": {
+    "description": "JaKooLit's OpenSUSE Hyprland install script and configs — Latte theme, Bibata icons, JetBrainsMono Nerd Font, zsh. A well-maintained full-featured starter for Hyprland on OpenSUSE Tumbleweed.",
+    "best_for": ["OpenSUSE user", "Hyprland enthusiast", "beginner", "coding", "light mode lover"]
+  },
+  "gnome-12dampb": {
+    "description": "'Skeuowaita' — a skeuomorphic Adwaita icon remix for GNOME by Frostbitten-jello. Leans into textured, 3D-feeling icons as a deliberate pushback against flat design.",
+    "best_for": ["GNOME user", "skeuomorphism lover", "aesthetic showcase", "dark mode enjoyer", "icon theme"]
+  },
+  "github-swarsel-dotfiles": {
+    "description": "Swarsel's sway config with FiraCode Nerd Font Propo, waybar, emacs. Light-mood and measured — a sway daily driver leaning on Emacs for everything editable.",
+    "best_for": ["Emacs lover", "sway user", "tiling enthusiast", "coding", "light mode lover"]
+  },
+  "github-madic-creates-sway-de": {
+    "description": "A Sway rice deliberately themed as Windows 10 — Windows-10 GTK theme and icon pack, waybar, bemenu, alacritty, pywal. A unique bridge for Windows-refugee users who want tiling underneath the familiar chrome.",
+    "best_for": ["Windows refugee", "sway user", "beginner", "tiling enthusiast", "conversation starter"]
+  },
+  "github-edu-flores-linux-dotfiles": {
+    "description": "i3 with adw-gtk theme, Quintom cursor, Inter UI, JetBrainsMono Nerd Font, polybar + alacritty + zsh + rofi + dunst. Dark and practical, with GNOME-adjacent defaults bolted onto a tiling base.",
+    "best_for": ["tiling enthusiast", "GNOME refugee", "coding", "i3 starter", "dark mode enjoyer"]
+  },
+  "github-exploitoverload-pwnixos": {
+    "description": "PwNixOS — a Catppuccin Hyprland NixOS build with waybar, kitty, powerlevel10k, clipse clipboard manager. Security-pentester-flavored (the name is a pun on pwn + NixOS), but the desktop itself is a clean dark dev setup.",
+    "best_for": ["NixOS user", "security researcher", "coding", "Hyprland enthusiast", "catppuccin lover"]
+  },
+  "hyprland-1inxosk": {
+    "description": "'Hacker-Man' first Hyprland rice — Bibata Modern Pink cursor, CaskaydiaCove Nerd Font, swaylock, kitty, zsh + starship, yazi, waypaper. Green-black Matrix-adjacent palette with pink accents.",
+    "best_for": ["aesthetic showcase", "conversation starter", "Hyprland enthusiast", "beginner", "dark mode enjoyer"]
+  },
+  "github-benmezger-dotfiles": {
+    "description": "i3 with Inter UI, polybar + rofi + dunst + i3status-rust. A quiet, focused rice — nothing flashy, just a well-tuned tiling workspace oriented around readable type.",
+    "best_for": ["tiling enthusiast", "coding", "developer tools", "minimal distraction", "i3 starter"]
+  },
+  "github-deathbeam-dotfiles": {
+    "description": "bspwm with a quickshell panel, dunst, foot terminal, zsh + starship + neovim, 0 gaps, 1px borders, no animations. Brutalist and utilitarian — space used to the edges.",
+    "best_for": ["tiling enthusiast", "minimal distraction", "coding", "bspwm user", "keyboard-driven"]
+  },
+  "github-1amsimp1e-dots": {
+    "description": "1amSimp1e's multi-branch Hyprland dots ('Late Night', 'Balcony', 'Summer') with Papirus icons, swaylock, kitty, ranger, neovim, starship. Aesthetic-first with distinct moodboards per branch.",
+    "best_for": ["aesthetic showcase", "Hyprland enthusiast", "dark mode enjoyer", "anime lover", "maximalist"]
+  },
+  "github-athxrvx-idempotentsystems": {
+    "description": "Nord-themed sway with polybar, wofi, eww widgets, zsh + starship. Light-mood and minimalist; the name ('idempotent') hints at the declarative, reproducible philosophy behind it.",
+    "best_for": ["sway user", "nord lover", "tiling enthusiast", "declarative setup", "coding"]
+  },
+  "github-gabrieltenma-dotfiles-gnm": {
+    "description": "GNOME rice with Graphite-Dark theme, Product Sans UI, ArcMenu + Dash to Dock extensions, Aylur's Widgets. Keeps GNOME's polish but adds a more desktop-traditional launcher and dock.",
+    "best_for": ["GNOME user", "macos lover", "Windows refugee", "aesthetic showcase", "beginner"]
+  },
+  "github-command-z-z-arch-dotfiles": {
+    "description": "Arch + Hyprland with Catppuccin Frappe Dark cursor, Operator Mono Lig for code, waybar + eww + rofi + swaync + swaylock + kitty + zsh + starship + ranger. Dark, subtle-animation, 11px corners, 20px gaps.",
+    "best_for": ["Arch user", "Hyprland enthusiast", "catppuccin lover", "coding", "tiling enthusiast"]
+  }
+}

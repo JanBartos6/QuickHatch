@@ -1,20 +1,44 @@
 [
   {
+    "accent_color": null,
     "author": "u/shashwatsuthar",
+    "best_for": [
+      "writing",
+      "coding",
+      "aesthetic showcase",
+      "Plasma fan",
+      "dark mode enjoyer"
+    ],
     "busyness": 0.06,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "plasma",
+    "decorations": {},
+    "description": "A KDE Plasma rice built around Catppuccin Mocha Lavender \u2014 soft purple darks, crisp JetBrainsMono Nerd Font, and the usual Plasma panel restraint. Best when you want a modern dark theme without abandoning KDE's familiar widgets.",
     "description_callout": "Source repo has no license \u2014 this entry is shown as inspiration only. The agent will not auto-apply it.",
     "description_short": "PLASMA + Catppuccin Mocha Lavender Dark. Inspired by [KDE] Pixarch.",
     "dotfiles_last_commit": "2026-03-17",
     "dotfiles_license": null,
-    "dotfiles_url": "https://github.com/ryanoasis/nerd-fonts/tree/master/patched-fonts/BigBlueTerminal/complete",
+    "dotfiles_url": "https://github.com/ryanoasis/nerd-fonts",
     "extraction_confidence": "high",
     "font_mono": "JetBrainsMono Nerd Font",
     "font_ui": null,
     "icons": null,
     "id": "unixporn-r5ot7x",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "unknown",
     "mood": "dark",
@@ -44,21 +68,45 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "u/AliFurkanY",
+    "best_for": [
+      "fun/novelty",
+      "aesthetic showcase",
+      "low-resource machines",
+      "nostalgic lightweight",
+      "conversation starter"
+    ],
     "busyness": 0.06,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "lxde",
+    "decorations": {},
+    "description": "AmogOS \u2014 a whimsical LXDE + Openbox + xfce4-panel rice styled as an Among Us send-up, with Arc Grey Darker theme and Papirus icons. Playful and memey rather than serious; a community-beloved joke-made-real desktop.",
     "description_callout": "Source repo has no license \u2014 this entry is shown as inspiration only. The agent will not auto-apply it.",
     "description_short": "LXDE + Arc Grey Darker + Papirus icons. Inspired by [Cinnamon] AmogOS is complete! (Icon, Art &amp; Idea by u/__peekatchoo__).",
     "dotfiles_last_commit": "2025-08-21",
     "dotfiles_license": null,
     "dotfiles_url": "https://github.com/Amog-OS/AmogOS",
     "extraction_confidence": "high",
-    "font_mono": "Colour Emoji Font",
+    "font_mono": "colour-emoji",
     "font_ui": null,
     "icons": "papirus",
     "id": "unixporn-nhomed",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "unknown",
     "mood": "mixed",
@@ -91,21 +139,58 @@
     "wallpaper_hint": "AmogOS Wallpapers"
   },
   {
+    "accent_color": "#AEAED1",
     "author": "u/nextiaindex",
+    "best_for": [
+      "writing",
+      "light mode lover",
+      "aesthetic showcase",
+      "tiling enthusiast",
+      "daytime work"
+    ],
     "busyness": 0.04,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty",
+        "foot"
+      ],
+      "dock": null,
+      "editor": "vim",
+      "file_manager": "yazi",
+      "launcher": "rofi",
+      "lockscreen": null,
+      "notifications": "dunst",
+      "panel": "waybar",
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "bspwm",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": 10,
+      "gaps_out_px": 5,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "Pastel bspwm rice with a soft #AEAED1 accent, waybar, rofi, dunst, Space Mono Nerd Font. Light-mood and airy \u2014 a gentle, almost pastel alternative to the sea of dark rices.",
     "description_callout": "Source repo has no license \u2014 this entry is shown as inspiration only. The agent will not auto-apply it.",
     "description_short": "BSPWM + Space Mono Nerd Font UI font. Inspired by [bspwm] i don't use anime wallpapers.",
     "dotfiles_last_commit": "2026-04-09",
     "dotfiles_license": null,
-    "dotfiles_url": "https://github.com/nextiaindex/dotfiles/tree/main/.config/fastfetch",
+    "dotfiles_url": "https://github.com/nextiaindex/dotfiles",
     "extraction_confidence": "high",
     "font_mono": "Space Mono Nerd Font",
     "font_ui": "Space Mono Nerd Font",
     "icons": null,
     "id": "unixporn-1k7c8i1",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "unknown",
     "mood": "light",
@@ -139,10 +224,46 @@
     "wallpaper_hint": "bspwm"
   },
   {
+    "accent_color": null,
     "author": "u/No-Bodybuilder-9954",
+    "best_for": [
+      "beginner",
+      "Hyprland enthusiast",
+      "coding",
+      "aesthetic showcase",
+      "Arch/Fedora user"
+    ],
     "busyness": 0.05,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "vim",
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "swaync",
+      "panel": "quickshell",
+      "prompt": null,
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "A first-timer's Hyprland rice built on the mylinuxforwork dotfiles \u2014 quickshell panel, rofi launcher, swaync, hyprlock, kitty, fish. Adaptive Material-themed colors based on wallpaper; a clean, approachable starting point.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Jetbrainsmono Nerd Font UI font. Inspired by [Hyprland] Finally installed Arch (im noob :P).",
     "dotfiles_last_commit": "2026-04-12",
@@ -153,7 +274,7 @@
     "font_ui": "JetBrainsMono Nerd Font",
     "icons": null,
     "id": "unixporn-1kcebee",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "mixed",
@@ -184,10 +305,34 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "caelestia-dots",
+    "best_for": [
+      "aesthetic showcase",
+      "Hyprland enthusiast",
+      "macos lover",
+      "developer tools",
+      "modern Wayland"
+    ],
     "busyness": 0.0,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": "vscode",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {},
+    "description": "The Caelestia shell is a QuickShell-powered Hyprland experience with meticulously custom QML widgets, a deep dark palette, and a polished, almost OS-like feel. Everything from lockscreen to notifications feels hand-designed \u2014 more like a curated product than a hobby rice.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Rubik UI font. Inspired by caelestia-dots/shell.",
     "dotfiles_last_commit": "2026-04-15",
@@ -195,10 +340,10 @@
     "dotfiles_url": "https://github.com/caelestia-dots/shell",
     "extraction_confidence": "high",
     "font_mono": null,
-    "font_ui": "Rubik",
+    "font_ui": "rubik",
     "icons": null,
     "id": "github-caelestia-dots-shell",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -230,10 +375,34 @@
     "wallpaper_hint": "caelestia-shell/imagedata/imagedata.1.png"
   },
   {
+    "accent_color": null,
     "author": "jessfraz",
+    "best_for": [
+      "developer tools",
+      "coding",
+      "minimal distraction",
+      "power user",
+      "servers and CLIs"
+    ],
     "busyness": 0.24,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "i3",
+    "decorations": {},
+    "description": "A no-nonsense i3 rice from a veteran systems engineer \u2014 dark terminal-first, Inter for UI, JetBrainsMono Nerd Font for code, and urxvt as the daily driver. Feels like sitting at a grown-up dev workstation built for long shell sessions, not a showcase.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "I3 + Inter UI font. Inspired by jessfraz/dotfiles.",
     "dotfiles_last_commit": "2026-04-07",
@@ -244,7 +413,7 @@
     "font_ui": "Inter",
     "icons": null,
     "id": "github-jessfraz-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "dark",
@@ -278,10 +447,34 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "dustinlyons",
+    "best_for": [
+      "NixOS user",
+      "macOS-and-Linux user",
+      "coding",
+      "Emacs lover",
+      "declarative setup"
+    ],
     "busyness": 0.08,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": "emacs",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "polybar",
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "plasma",
+    "decorations": {},
+    "description": "Dustin Lyons' Plasma + NixOS + nix-darwin config \u2014 Inter UI font, polybar, Emacs as the editor, and plasma-manager plus home-manager to keep it all declarative across Mac and Linux.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "PLASMA + Inter UI font. Inspired by dustinlyons/nixos-config.",
     "dotfiles_last_commit": "2026-04-15",
@@ -292,7 +485,7 @@
     "font_ui": "Inter",
     "icons": null,
     "id": "github-dustinlyons-nixos-config",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "light",
@@ -326,10 +519,36 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "siduck",
+    "best_for": [
+      "tiling enthusiast",
+      "minimal distraction",
+      "low-resource machines",
+      "coding",
+      "aesthetic showcase"
+    ],
     "busyness": 0.07,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "eww",
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "dwm",
+    "decorations": {},
+    "description": "A patched dwm build ('chadwm') paired with eww widgets, rofi, and Catppuccin across the board. A rare ultra-light window manager setup that still looks intentional and pretty \u2014 minimalist but decorated.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "DWM + Catppuccin + Jetbrainsmono Nerd Font UI font. Inspired by siduck/chadwm.",
     "dotfiles_last_commit": "2025-12-30",
@@ -340,7 +559,7 @@
     "font_ui": "JetBrainsMono Nerd Font",
     "icons": null,
     "id": "github-siduck-chadwm",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -368,10 +587,48 @@
     "wallpaper_hint": "chad.png"
   },
   {
+    "accent_color": null,
     "author": "dusklinux",
+    "best_for": [
+      "macos lover",
+      "GNOME refugee",
+      "coding",
+      "aesthetic showcase",
+      "Hyprland enthusiast"
+    ],
     "busyness": 0.05,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty",
+        "alacritty",
+        "ghostty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "yazi",
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "swaync",
+      "panel": null,
+      "prompt": "starship",
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
     "cursor": "bibata-modern-classic",
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "Dusky is a GNOME-adjacent Hyprland rice \u2014 adw-gtk3 theme, Papirus icons, Bibata cursor, Adwaita Sans UI font, and JetBrainsMono Nerd Font for code. Matugen-driven wallpaper-aware colors keep the whole desktop feeling coherent.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Adw Gtk3 + Papirus icons + Adwaita Sans UI font. Inspired by dusklinux/dusky.",
     "dotfiles_last_commit": "2026-04-15",
@@ -382,7 +639,7 @@
     "font_ui": "Adwaita Sans",
     "icons": "papirus",
     "id": "github-dusklinux-dusky",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -408,7 +665,7 @@
     "source": "github",
     "source_url": "https://github.com/dusklinux/dusky",
     "staleness_score": 0.0,
-    "theme": "adw-gtk3",
+    "theme": "adw",
     "title": "dusklinux/dusky",
     "upvotes": 2028,
     "verified": false,
@@ -416,10 +673,46 @@
     "wallpaper_hint": "matugen"
   },
   {
+    "accent_color": null,
     "author": "hlissner",
+    "best_for": [
+      "coding",
+      "developer tools",
+      "power user",
+      "minimal distraction",
+      "Emacs lover"
+    ],
     "busyness": 0.11,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "foot"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "waybar",
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": "foot"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": "subtle",
+      "blur": null,
+      "border_size_px": 0,
+      "gaps_in_px": 0,
+      "gaps_out_px": 0,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "Henrik Lissner's legendary dotfiles \u2014 Hyprland, foot terminal, rofi, zsh with zgenom, and zero window gaps. Focused, fast, dark, and practical; built by the author of Doom Emacs for getting actual work done.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Inter UI font. Inspired by hlissner/dotfiles.",
     "dotfiles_last_commit": "2026-02-11",
@@ -430,7 +723,7 @@
     "font_ui": "Inter",
     "icons": null,
     "id": "github-hlissner-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -464,21 +757,45 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "ryan4yin",
+    "best_for": [
+      "NixOS user",
+      "tiling enthusiast",
+      "coding",
+      "niri enthusiast",
+      "developer tools"
+    ],
     "busyness": 0.09,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "niri",
+    "decorations": {},
+    "description": "Ryan4Yin's NixOS config for niri \u2014 clean, scrollable tiling with Catppuccin colors, multiple terminals (foot, kitty, alacritty), and zellij for session management. Good reference for anyone migrating to niri on NixOS.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "NIRI + Catppuccin. Inspired by ryan4yin/nix-config.",
     "dotfiles_last_commit": "2026-04-09",
     "dotfiles_license": "MIT",
     "dotfiles_url": "https://github.com/ryan4yin/nix-config",
     "extraction_confidence": "high",
-    "font_mono": "Nerd Font",
+    "font_mono": " Nerd Font",
     "font_ui": null,
     "icons": null,
     "id": "github-ryan4yin-nix-config",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "mixed",
@@ -512,10 +829,44 @@
     "wallpaper_hint": "https://github.com/ryan4yin/wallpapers"
   },
   {
+    "accent_color": null,
     "author": "1amSimp1e",
+    "best_for": [
+      "aesthetic showcase",
+      "Hyprland enthusiast",
+      "dark mode enjoyer",
+      "anime lover",
+      "maximalist"
+    ],
     "busyness": 0.05,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "ranger",
+      "launcher": null,
+      "lockscreen": "swaylock",
+      "notifications": null,
+      "panel": null,
+      "prompt": "starship",
+      "shell": null,
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "1amSimp1e's multi-branch Hyprland dots ('Late Night', 'Balcony', 'Summer') with Papirus icons, swaylock, kitty, ranger, neovim, starship. Aesthetic-first with distinct moodboards per branch.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Papirus icons. Inspired by 1amSimp1e/dots.",
     "dotfiles_last_commit": "2024-12-06",
@@ -526,7 +877,7 @@
     "font_ui": null,
     "icons": "papirus",
     "id": "github-1amsimp1e-dots",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -560,10 +911,36 @@
     "wallpaper_hint": "Hyprland/Late Night, Hyprland/Balcony, Hypr/Summer"
   },
   {
+    "accent_color": null,
     "author": "dikiaap",
+    "best_for": [
+      "tiling enthusiast",
+      "coding",
+      "minimal distraction",
+      "beginner",
+      "i3 starter"
+    ],
     "busyness": 0.04,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": null,
+      "notifications": "dunst",
+      "panel": "i3bar",
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": null
+    },
     "cursor": "DMZ-White",
     "de": "i3",
+    "decorations": {},
+    "description": "A classic i3 setup with the Arc theme, Paper icons, DMZ-White cursor, Source Sans Pro UI font, Hack for code. i3bar + rofi + dunst + zsh + alacritty + tmux \u2014 the kind of reliable, boring-in-a-good-way rice that just works.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "I3 + Arc + Paper icons + Source Sans Pro UI font. Inspired by dikiaap/dotfiles.",
     "dotfiles_last_commit": "2025-06-15",
@@ -571,10 +948,10 @@
     "dotfiles_url": "https://github.com/dikiaap/dotfiles",
     "extraction_confidence": "high",
     "font_mono": "Hack",
-    "font_ui": "Source Sans Pro",
+    "font_ui": "SourceSansPro",
     "icons": "paper",
     "id": "github-dikiaap-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "dark",
@@ -608,10 +985,36 @@
     "wallpaper_hint": "Dark Planet"
   },
   {
+    "accent_color": null,
     "author": "nickjj",
+    "best_for": [
+      "coding",
+      "developer tools",
+      "tiling enthusiast",
+      "tmux user",
+      "minimal distraction"
+    ],
     "busyness": 0.06,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "ghostty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": "mako",
+      "panel": "waybar",
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": "ghostty"
+    },
     "cursor": null,
     "de": "niri",
+    "decorations": {},
+    "description": "Niri + TokyoNight Moon, waybar, walker launcher, mako notifications, ghostty terminal, zsh + tmux + neovim. A pragmatic developer-first setup focused on fast keyboard workflow and readable typography over visual flair.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "NIRI + Tokyonight Moon + Inconsolata Nf UI font. Inspired by nickjj/dotfiles.",
     "dotfiles_last_commit": "2026-04-13",
@@ -619,10 +1022,10 @@
     "dotfiles_url": "https://github.com/nickjj/dotfiles",
     "extraction_confidence": "high",
     "font_mono": null,
-    "font_ui": "Inconsolata NF",
+    "font_ui": "inconsolata-nf",
     "icons": null,
     "id": "github-nickjj-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -656,10 +1059,36 @@
     "wallpaper_hint": "gruvbox-dark-medium"
   },
   {
+    "accent_color": null,
     "author": "denisse-dev",
+    "best_for": [
+      "Emacs lover",
+      "sway user",
+      "dracula lover",
+      "coding",
+      "developer tools"
+    ],
     "busyness": 0.06,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "alacritty"
+      ],
+      "dock": null,
+      "editor": "emacs",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": "swaylock",
+      "notifications": null,
+      "panel": "waybar",
+      "prompt": null,
+      "shell": null,
+      "terminal": "alacritty"
+    },
     "cursor": null,
     "de": "sway",
+    "decorations": {},
+    "description": "Dracula sway rice with waybar, swaylock, alacritty, emacs. Monolike font across UI and code; dark and focused with emacs as the center of gravity.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "SWAY + Dracula + Monolike UI font. Inspired by denisse-dev/dotfiles.",
     "dotfiles_last_commit": "2025-08-26",
@@ -670,7 +1099,7 @@
     "font_ui": "monolike",
     "icons": null,
     "id": "github-denisse-dev-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -698,21 +1127,55 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "gvolpe",
+    "best_for": [
+      "NixOS user",
+      "niri enthusiast",
+      "light mode lover",
+      "coding",
+      "tiling enthusiast"
+    ],
     "busyness": 0.08,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "waybar",
+      "prompt": null,
+      "shell": null,
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "niri",
+    "decorations": {
+      "animations": "subtle",
+      "blur": null,
+      "border_size_px": 4,
+      "gaps_in_px": 6,
+      "gaps_out_px": 12,
+      "rounded_corners_px": 4,
+      "shadows": null
+    },
+    "description": "Niri on NixOS with a 'Juno Ocean' theme, waybar, kitty \u2014 light-mood, subtle animations, 4px gaps and corners. A deliberate, understated reference config from a known Nix contributor.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "NIRI + Juno Ocean. Inspired by gvolpe/nix-config.",
     "dotfiles_last_commit": "2026-04-14",
     "dotfiles_license": "Apache-2.0",
     "dotfiles_url": "https://github.com/gvolpe/nix-config",
     "extraction_confidence": "high",
-    "font_mono": "__ersatz__",
+    "font_mono": "ersatz",
     "font_ui": null,
     "icons": null,
     "id": "github-gvolpe-nix-config",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "light",
@@ -746,21 +1209,57 @@
     "wallpaper_hint": "hyprlax"
   },
   {
+    "accent_color": null,
     "author": "meowrch",
+    "best_for": [
+      "coding",
+      "aesthetic showcase",
+      "Hyprland enthusiast",
+      "opinionated defaults",
+      "catppuccin lover"
+    ],
     "busyness": 0.02,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "vscode",
+      "file_manager": "yazi",
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "dunst",
+      "panel": "waybar",
+      "prompt": "starship",
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "Meowrch bundles a polished Hyprland experience: Catppuccin Mocha, waybar, rofi, dunst, hyprlock, kitty, fish + starship, yazi. Feels like a distro-in-dotfiles \u2014 complete, opinionated, and ready for daily use out of the box.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Catppuccin Mocha. Inspired by meowrch/meowrch.",
     "dotfiles_last_commit": "2026-04-05",
     "dotfiles_license": "MIT",
     "dotfiles_url": "https://github.com/meowrch/meowrch",
     "extraction_confidence": "high",
-    "font_mono": "__ersatz__",
+    "font_mono": "ersatz",
     "font_ui": null,
     "icons": null,
     "id": "github-meowrch-meowrch",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "dark",
@@ -794,10 +1293,47 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "XNM1",
+    "best_for": [
+      "NixOS user",
+      "coding",
+      "developer tools",
+      "aesthetic showcase",
+      "tiling enthusiast"
+    ],
     "busyness": 0.02,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty",
+        "wezterm"
+      ],
+      "dock": null,
+      "editor": "helix",
+      "file_manager": "thunar",
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "dunst",
+      "panel": "waybar",
+      "prompt": "starship",
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": "subtle",
+      "blur": null,
+      "border_size_px": 2,
+      "gaps_in_px": 5,
+      "gaps_out_px": 10,
+      "rounded_corners_px": 10,
+      "shadows": null
+    },
+    "description": "A complete NixOS + Hyprland stack with Catppuccin Macchiato, Colloid teal icons, and every piece of the desktop configured: waybar, rofi, dunst, hyprlock, kitty, fish + starship, thunar, helix. The 'comprehensive reference build' kind of rice.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Catppuccin Macchiato + Colloid Teal Dark icons + Jetbrainsmono Nerd Font UI font. Inspired by XNM1/linux-nixos-hyprland-config-dotfiles.",
     "dotfiles_last_commit": "2026-04-12",
@@ -808,7 +1344,7 @@
     "font_ui": "JetBrainsMono Nerd Font",
     "icons": "colloid-teal-dark",
     "id": "github-xnm1-linux-nixos-hyprland-config-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -842,21 +1378,47 @@
     "wallpaper_hint": "hyprpaper"
   },
   {
+    "accent_color": null,
     "author": "Frost-Phoenix",
+    "best_for": [
+      "NixOS user",
+      "coding",
+      "aesthetic showcase",
+      "macos lover",
+      "Hyprland enthusiast"
+    ],
     "busyness": 0.02,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": "powerlevel10k",
+      "shell": null,
+      "terminal": null
+    },
     "cursor": "bibata-modern-ice",
     "de": "hyprland",
+    "decorations": {},
+    "description": "NixOS Hyprland config with the Colloid theme, Papirus Dark icons, Bibata cursor, and Maple Mono everywhere. Clean and modern with zsh + powerlevel10k \u2014 a polished daily driver that leans toward refined rather than flashy.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Colloid Gtk Theme + Papirus Dark icons + Maple Mono UI font. Inspired by Frost-Phoenix/nixos-config.",
     "dotfiles_last_commit": "2026-04-10",
     "dotfiles_license": "MIT",
     "dotfiles_url": "https://github.com/Frost-Phoenix/nixos-config",
     "extraction_confidence": "high",
-    "font_mono": "font_family=Maple Mono",
-    "font_ui": "Maple Mono",
+    "font_mono": "font_family=maple-mono",
+    "font_ui": "maple-mono",
     "icons": "papirus-dark",
     "id": "github-frost-phoenix-nixos-config",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "dark",
@@ -876,7 +1438,7 @@
     "source": "github",
     "source_url": "https://github.com/Frost-Phoenix/nixos-config",
     "staleness_score": 0.01,
-    "theme": "colloid-gtk-theme",
+    "theme": "colloid",
     "title": "Frost-Phoenix/nixos-config",
     "upvotes": 904,
     "verified": false,
@@ -884,21 +1446,57 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "elifouts",
+    "best_for": [
+      "writing",
+      "daytime work",
+      "minimal distraction",
+      "light mode lover",
+      "aesthetic showcase"
+    ],
     "busyness": 0.04,
+    "components": {
+      "all_launchers": [
+        "wofi"
+      ],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": "wofi",
+      "lockscreen": "hyprlock",
+      "notifications": "swaync",
+      "panel": "waybar",
+      "prompt": "starship",
+      "shell": "bash",
+      "terminal": "kitty"
+    },
     "cursor": "Bibata-Modern-Ice",
     "de": "hyprland",
+    "decorations": {
+      "animations": "subtle",
+      "blur": null,
+      "border_size_px": 0,
+      "gaps_in_px": 2,
+      "gaps_out_px": 10,
+      "rounded_corners_px": 10,
+      "shadows": null
+    },
+    "description": "A rare *light-mood* Hyprland rice: Bibata Modern Ice cursor, CodeNewRoman Nerd Font, wofi launcher, swaync notifications, subtle animations with 10px rounded corners. Airy and soft instead of the usual dark maximalism.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND. Inspired by elifouts/Dotfiles.",
     "dotfiles_last_commit": "2026-03-19",
     "dotfiles_license": "GPL-3.0",
     "dotfiles_url": "https://github.com/elifouts/Dotfiles",
     "extraction_confidence": "high",
-    "font_mono": "CodeNewRoman Nerd Font Propo",
+    "font_mono": "CodeNewRoman Nerd Font",
     "font_ui": null,
     "icons": null,
     "id": "github-elifouts-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "light",
@@ -926,10 +1524,136 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
+    "author": "ahmad9059",
+    "best_for": [
+      "aesthetic showcase",
+      "coding",
+      "developer tools",
+      "Hyprland enthusiast",
+      "cyberpunk look"
+    ],
+    "busyness": 0.01,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty",
+        "foot",
+        "ghostty"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": "yazi",
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "swaync",
+      "panel": "quickshell",
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
+    "cursor": null,
+    "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "HyprFlux is a purple-accented Hyprland setup with a QuickShell panel, rofi launcher, swaync notifications, and a cohesive dark UI. The compact, purple-LED vibe feels like a cyberpunk terminal \u2014 intentional and focused rather than maximalist.",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "HYPRLAND + Hyprflux Compact. Inspired by ahmad9059/HyprFlux.",
+    "dotfiles_last_commit": "2026-03-30",
+    "dotfiles_license": "MIT",
+    "dotfiles_url": "https://github.com/ahmad9059/HyprFlux",
+    "extraction_confidence": "high",
+    "font_mono": "JetBrainsMono Nerd Font",
+    "font_ui": null,
+    "icons": null,
+    "id": "github-ahmad9059-hyprflux",
+    "indexed_at": "2026-04-16",
+    "install_method": "script",
+    "license_status": "permissive",
+    "mood": "dark",
+    "packages": {
+      "arch": [
+        "git",
+        "vim"
+      ],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#090915",
+      "#3a3b47",
+      "#0b0917"
+    ],
+    "post_date": "2026-03-30",
+    "preview_image": "gallery/github-ahmad9059-hyprflux.webp",
+    "signature_features": [
+      "Waybar",
+      "Rofi",
+      "SDDM",
+      "Kitty",
+      "Zsh, Tmux, Neovim (developer features)"
+    ],
+    "source": "github",
+    "source_url": "https://github.com/ahmad9059/HyprFlux",
+    "staleness_score": 0.03,
+    "theme": "hyprflux-compact",
+    "title": "ahmad9059/HyprFlux",
+    "upvotes": 869,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": "purple-led accent system, dark UI, and cohesive defaults"
+  },
+  {
+    "accent_color": null,
     "author": "szorfein",
+    "best_for": [
+      "tiling enthusiast",
+      "minimal distraction",
+      "aesthetic showcase",
+      "writing",
+      "Wayland-only"
+    ],
     "busyness": 0.06,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty",
+        "foot"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": "yazi",
+      "launcher": "rofi",
+      "lockscreen": null,
+      "notifications": "dunst",
+      "panel": "polybar",
+      "prompt": "starship",
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "sway",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": 26,
+      "gaps_out_px": 0,
+      "rounded_corners_px": 16,
+      "shadows": null
+    },
+    "description": "Sway rice with huge 26px inner gaps, 16px rounded corners, polybar, Iosevka monospace, and eww widgets \u2014 an airy, sparse layout that treats whitespace as a design element. swayfx for the extra decoration.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "SWAY + __L1 UI font. Inspired by szorfein/dotfiles.",
     "dotfiles_last_commit": "2026-04-11",
@@ -937,10 +1661,10 @@
     "dotfiles_url": "https://github.com/szorfein/dotfiles",
     "extraction_confidence": "high",
     "font_mono": "Iosevka",
-    "font_ui": "__l1",
+    "font_ui": "l1",
     "icons": null,
     "id": "github-szorfein-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "light",
@@ -974,10 +1698,40 @@
     "wallpaper_hint": "swayfx"
   },
   {
+    "accent_color": null,
     "author": "snowarch",
+    "best_for": [
+      "niri enthusiast",
+      "writing",
+      "tiling enthusiast",
+      "catppuccin lover",
+      "coding"
+    ],
     "busyness": 0.03,
+    "components": {
+      "all_launchers": [
+        "fuzzel"
+      ],
+      "all_terminals": [
+        "kitty",
+        "alacritty",
+        "foot"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": "dolphin",
+      "launcher": "fuzzel",
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": "starship",
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "niri",
+    "decorations": {},
+    "description": "A compact niri rice with Catppuccin Mocha Lavender, fuzzel launcher, kitty terminal, and fish + starship. Takes advantage of niri's scrollable tiling for a more relaxed, horizontal workflow than traditional WMs.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "NIRI + Catppuccin. Inspired by snowarch/iNiR.",
     "dotfiles_last_commit": "2026-04-12",
@@ -988,7 +1742,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-snowarch-inir",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -1022,21 +1776,118 @@
     "wallpaper_hint": "catppuccin-mocha-lavender"
   },
   {
+    "accent_color": null,
+    "author": "sejjy",
+    "best_for": [
+      "aesthetic showcase",
+      "waybar customizer",
+      "coding",
+      "catppuccin lover",
+      "Hyprland enthusiast"
+    ],
+    "busyness": 0.09,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
+    "cursor": null,
+    "de": "hyprland",
+    "decorations": {},
+    "description": "Mechabar is a Waybar-focused Hyprland rice with Catppuccin themes and Commit Mono Nerd Font. The panel itself is the showpiece \u2014 dense, structured, with modular components you can borrow.",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "HYPRLAND + Catppuccin. Inspired by sejjy/mechabar.",
+    "dotfiles_last_commit": "2026-04-04",
+    "dotfiles_license": "MIT",
+    "dotfiles_url": "https://github.com/sejjy/mechabar",
+    "extraction_confidence": "high",
+    "font_mono": "Commit Mono Nerd Font",
+    "font_ui": null,
+    "icons": null,
+    "id": "github-sejjy-mechabar",
+    "indexed_at": "2026-04-16",
+    "install_method": "manual",
+    "license_status": "permissive",
+    "mood": "mixed",
+    "packages": {
+      "arch": [],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#1a1b29",
+      "#0b0b11",
+      "#11121b"
+    ],
+    "post_date": "2026-04-04",
+    "preview_image": "gallery/github-sejjy-mechabar.webp",
+    "signature_features": [
+      "Waybar configuration",
+      "Catppuccin themes (Mocha, Macchiato, Mac"
+    ],
+    "source": "github",
+    "source_url": "https://github.com/sejjy/mechabar",
+    "staleness_score": 0.02,
+    "theme": "catppuccin",
+    "title": "sejjy/mechabar",
+    "upvotes": 785,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": ""
+  },
+  {
+    "accent_color": null,
     "author": "Zproger",
+    "best_for": [
+      "light mode lover",
+      "tiling enthusiast",
+      "writing",
+      "developer tools",
+      "coding"
+    ],
     "busyness": 0.05,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "alacritty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "ranger",
+      "launcher": "rofi",
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "polybar",
+      "prompt": null,
+      "shell": "fish",
+      "terminal": "alacritty"
+    },
     "cursor": null,
     "de": "bspwm",
+    "decorations": {},
+    "description": "A light-mood bspwm rice with polybar, rofi, alacritty, fish, ranger, and neovim. Distinctly airier than most bspwm configs \u2014 feels like a bright studio rather than a hacker den.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "BSPWM. Inspired by Zproger/bspwm-dotfiles.",
     "dotfiles_last_commit": "2026-01-05",
     "dotfiles_license": "MIT",
     "dotfiles_url": "https://github.com/Zproger/bspwm-dotfiles",
     "extraction_confidence": "high",
-    "font_mono": "__ersatz__",
+    "font_mono": "ersatz",
     "font_ui": null,
     "icons": null,
     "id": "github-zproger-bspwm-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "light",
@@ -1070,10 +1921,44 @@
     "wallpaper_hint": "nitrogen"
   },
   {
+    "accent_color": null,
     "author": "debuggyo",
+    "best_for": [
+      "aesthetic showcase",
+      "material design lover",
+      "macos lover",
+      "Hyprland enthusiast",
+      "dynamic theming lover"
+    ],
     "busyness": 0.03,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": "hyprlock",
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": "maximalist",
+      "blur": null,
+      "border_size_px": 1,
+      "gaps_in_px": 2,
+      "gaps_out_px": 5,
+      "rounded_corners_px": 20,
+      "shadows": null
+    },
+    "description": "Exo blends Hyprland with Material Design 3 principles \u2014 adw-gtk3, maximalist animations, 20px rounded corners, Matugen-driven adaptive colors via swww. Feels like a designer Android ROM for your desktop.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Adw Gtk3. Inspired by debuggyo/Exo.",
     "dotfiles_last_commit": "2026-01-16",
@@ -1084,7 +1969,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-debuggyo-exo",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "mixed",
@@ -1110,7 +1995,7 @@
     "source": "github",
     "source_url": "https://github.com/debuggyo/Exo",
     "staleness_score": 0.17,
-    "theme": "adw-gtk3",
+    "theme": "adw",
     "title": "debuggyo/Exo",
     "upvotes": 606,
     "verified": false,
@@ -1118,10 +2003,37 @@
     "wallpaper_hint": "Matugen (dynamic/adaptive) via swww"
   },
   {
+    "accent_color": null,
     "author": "Keyitdev",
+    "best_for": [
+      "beginner",
+      "tiling enthusiast",
+      "i3 starter",
+      "coding",
+      "light mode lover"
+    ],
     "busyness": 0.03,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty",
+        "alacritty"
+      ],
+      "dock": null,
+      "editor": "zed",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": "dunst",
+      "panel": "polybar",
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "i3",
+    "decorations": {},
+    "description": "i3 with Papirus icons, polybar + rofi + dunst + kitty + zsh + zed editor. Straightforward, light-mood, easy to learn from \u2014 a community-favorite for newcomers to i3.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "I3 + Papirus icons. Inspired by Keyitdev/dotfiles.",
     "dotfiles_last_commit": "2025-11-12",
@@ -1132,7 +2044,7 @@
     "font_ui": null,
     "icons": "papirus",
     "id": "github-keyitdev-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "light",
@@ -1166,21 +2078,56 @@
     "wallpaper_hint": "feh"
   },
   {
+    "accent_color": null,
     "author": "AymanLyesri",
+    "best_for": [
+      "aesthetic showcase",
+      "dynamic theming lover",
+      "Hyprland enthusiast",
+      "developer tools",
+      "coding"
+    ],
     "busyness": 0.11,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty",
+        "foot"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": "ranger",
+      "launcher": null,
+      "lockscreen": "hyprlock",
+      "notifications": null,
+      "panel": "ags",
+      "prompt": "starship",
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "ArchEclipse uses AGS v3 (GTK widgets) as the panel with pywal-driven dynamic colors \u2014 a chameleon rice that rethemes around whatever wallpaper you pick. Hyprland + kitty + zsh + starship + ranger for the dev side.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + //None// UI font. Inspired by AymanLyesri/ArchEclipse.",
     "dotfiles_last_commit": "2026-04-11",
     "dotfiles_license": "GPL-3.0",
     "dotfiles_url": "https://github.com/AymanLyesri/ArchEclipse",
     "extraction_confidence": "high",
-    "font_mono": "JetBrainsMono NF",
+    "font_mono": "jetbrainsmono-nf",
     "font_ui": "//none//",
     "icons": null,
     "id": "github-aymanlyesri-archeclipse",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "dark",
@@ -1293,10 +2240,34 @@
     "wallpaper_hint": "pywal"
   },
   {
+    "accent_color": null,
     "author": "Sly-Harvey",
+    "best_for": [
+      "NixOS user",
+      "coding",
+      "declarative setup",
+      "developer tools",
+      "Hyprland enthusiast"
+    ],
     "busyness": 0.05,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {},
+    "description": "Sly-Harvey's NixOS config ships a dark Hyprland desktop with Inter UI, home-manager, nix-flatpak dev shells, and plasma-manager for cross-flow between WMs. An opinionated reproducible NixOS reference.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Inter UI font. Inspired by Sly-Harvey/NixOS.",
     "dotfiles_last_commit": "2026-04-13",
@@ -1307,7 +2278,7 @@
     "font_ui": "Inter",
     "icons": null,
     "id": "github-sly-harvey-nixos",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "dark",
@@ -1341,10 +2312,36 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "endeavouros-team",
+    "best_for": [
+      "beginner",
+      "tiling enthusiast",
+      "EndeavourOS user",
+      "coding",
+      "i3 starter"
+    ],
     "busyness": 0.06,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": null,
+      "notifications": "dunst",
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "i3",
+    "decorations": {},
+    "description": "EndeavourOS's official i3wm reference setup: arc-dark theme, rofi, dunst, thunar, xed. Conservative and well-documented \u2014 a perfect starting point for someone new to tiling.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "I3 + Arc Dark. Inspired by endeavouros-team/endeavouros-i3wm-setup.",
     "dotfiles_last_commit": "2026-03-19",
@@ -1355,7 +2352,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-endeavouros-team-endeavouros-i3wm-setup",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -1389,10 +2386,34 @@
     "wallpaper_hint": "feh"
   },
   {
+    "accent_color": null,
     "author": "anotherhadi",
+    "best_for": [
+      "NixOS user",
+      "aesthetic showcase",
+      "Hyprland enthusiast",
+      "declarative setup",
+      "coding"
+    ],
     "busyness": 0.04,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {},
+    "description": "Nixy pairs NixOS with the Caelestia shell on Hyprland and Stylix-driven base16 theming. A declarative full-stack build where the whole aesthetic flows from a single Nix expression.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Base16. Inspired by anotherhadi/nixy.",
     "dotfiles_last_commit": "2026-04-12",
@@ -1403,7 +2424,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-anotherhadi-nixy",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "mixed",
@@ -1434,10 +2455,43 @@
     "wallpaper_hint": "awesome-wallpapers"
   },
   {
+    "accent_color": null,
     "author": "ayamir",
+    "best_for": [
+      "tiling enthusiast",
+      "suckless fan",
+      "minimal distraction",
+      "coding",
+      "low-resource machines"
+    ],
     "busyness": 0.01,
+    "components": {
+      "all_launchers": [
+        "rofi",
+        "dmenu"
+      ],
+      "all_terminals": [
+        "kitty",
+        "alacritty",
+        "wezterm",
+        "st",
+        "ghostty"
+      ],
+      "dock": null,
+      "editor": "vim",
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": null,
+      "notifications": "dunst",
+      "panel": "polybar",
+      "prompt": null,
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "dwm",
+    "decorations": {},
+    "description": "A dwm rice with Catppuccin colors, polybar, rofi, dunst, kitty terminal, and fish shell. Proves that even a suckless stack can look clean and cohesive with the right config.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "DWM + Catppuccin. Inspired by ayamir/dotfiles.",
     "dotfiles_last_commit": "2026-04-10",
@@ -1448,7 +2502,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-ayamir-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "mixed",
@@ -1482,10 +2536,115 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
+    "author": "u/apples_nd_oranges",
+    "best_for": [
+      "GNOME user",
+      "skeuomorphism lover",
+      "aesthetic showcase",
+      "dark mode enjoyer",
+      "icon theme"
+    ],
+    "busyness": 0.04,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
+    "cursor": null,
+    "de": "gnome",
+    "decorations": {},
+    "description": "'Skeuowaita' \u2014 a skeuomorphic Adwaita icon remix for GNOME by Frostbitten-jello. Leans into textured, 3D-feeling icons as a deliberate pushback against flat design.",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "GNOME + Adwaita. Inspired by Just and update and some new icons, tweaks to the icon theme I have been working on :) ... what do you guys think?.",
+    "dotfiles_last_commit": "2026-03-18",
+    "dotfiles_license": "GPL-3.0",
+    "dotfiles_url": "https://github.com/Frostbitten-jello/Skeuowaita",
+    "extraction_confidence": "low",
+    "font_mono": null,
+    "font_ui": null,
+    "icons": null,
+    "id": "gnome-12dampb",
+    "indexed_at": "2026-04-16",
+    "install_method": "manual",
+    "license_status": "permissive",
+    "mood": "dark",
+    "packages": {
+      "arch": [],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#533288",
+      "#8d89a1",
+      "#4a2c77"
+    ],
+    "post_date": "2023-04-06",
+    "preview_image": "gallery/gnome-12dampb.webp",
+    "signature_features": [],
+    "source": "r/gnome",
+    "source_url": "https://reddit.com/r/gnome/comments/12dampb/just_and_update_and_some_new_icons_tweaks_to_the/",
+    "staleness_score": 0.05,
+    "theme": "adwaita",
+    "title": "Just and update and some new icons, tweaks to the icon theme I have been working on :) ... what do you guys think?",
+    "upvotes": 485,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": ""
+  },
+  {
+    "accent_color": null,
     "author": "yurihikari",
+    "best_for": [
+      "aesthetic showcase",
+      "Garuda user",
+      "Hyprland enthusiast",
+      "maximalist",
+      "purple/lavender lover"
+    ],
     "busyness": 0.06,
+    "components": {
+      "all_launchers": [
+        "rofi",
+        "wofi"
+      ],
+      "all_terminals": [
+        "kitty",
+        "alacritty",
+        "foot"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": null,
+      "panel": "waybar",
+      "prompt": null,
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": "BreezeX-Ros\u00e9Pine",
     "de": "hyprland",
+    "decorations": {
+      "animations": "maximalist",
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "Garuda-flavored Hyprland \u2014 Catppuccin Macchiato Mauve theme, Tela Circle purple icons, BreezeX-RosePine cursor, and full-on maximalist animations. Rich, colorful, and unapologetically decorated.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Catppuccin Macchiato Mauve Standard+Default + Tela Circle Purple Dark icons + Noto Sans UI font. Inspired by yurihikari/garuda-hyprdots.",
     "dotfiles_last_commit": "2026-01-01",
@@ -1494,9 +2653,9 @@
     "extraction_confidence": "high",
     "font_mono": null,
     "font_ui": "Noto Sans",
-    "icons": "Tela-circle-purple-dark",
+    "icons": "tela-circle-purple-dark",
     "id": "github-yurihikari-garuda-hyprdots",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "mixed",
@@ -1531,21 +2690,59 @@
     "wallpaper_hint": "March 7th Wallpaper"
   },
   {
+    "accent_color": null,
     "author": "vyrx-dev",
+    "best_for": [
+      "aesthetic showcase",
+      "Hyprland enthusiast",
+      "dynamic theming lover",
+      "maximalist",
+      "coding"
+    ],
     "busyness": 0.04,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty",
+        "alacritty",
+        "ghostty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "yazi",
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "swaync",
+      "panel": "waybar",
+      "prompt": "starship",
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": "Bibata-Modern-Ice",
     "de": "hyprland",
+    "decorations": {
+      "animations": "maximalist",
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "Symphony on Hyprland uses matugen dynamic theming, adw-gtk3-dark base, Bibata cursor, waybar + rofi + swaync + hyprlock + kitty + fish + starship + yazi + neovim, maximalist animations. Includes 'Symmetry' and 'Focus' custom modes.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Adw Gtk3 Dark. Inspired by vyrx-dev/symphony.",
     "dotfiles_last_commit": "2026-04-15",
     "dotfiles_license": "MIT",
     "dotfiles_url": "https://github.com/vyrx-dev/symphony",
     "extraction_confidence": "high",
-    "font_mono": "__ersatz_mono_font__",
+    "font_mono": "ersatz_mono",
     "font_ui": null,
     "icons": null,
     "id": "github-vyrx-dev-symphony",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "stow",
     "license_status": "permissive",
     "mood": "mixed",
@@ -1579,10 +2776,44 @@
     "wallpaper_hint": "Matugen (dynamic)"
   },
   {
+    "accent_color": null,
     "author": "diinki",
+    "best_for": [
+      "aesthetic showcase",
+      "Windows refugee",
+      "retro lover",
+      "Hyprland enthusiast",
+      "conversation starter"
+    ],
     "busyness": 0.02,
+    "components": {
+      "all_launchers": [
+        "wofi"
+      ],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": "wofi",
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "waybar",
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": "none",
+      "blur": null,
+      "border_size_px": 1,
+      "gaps_in_px": 5,
+      "gaps_out_px": 10,
+      "rounded_corners_px": 12,
+      "shadows": null
+    },
+    "description": "'Diinki-Aero' \u2014 a Windows Aero tribute on Hyprland, with crystal-remix icons, waybar, wofi, hard 1px borders, 12px corners. A rare and deliberate Windows-7-meets-Wayland aesthetic.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Diinki Aero + Crystal Remix Icon Theme Di/I/Nki Version icons. Inspired by diinki/diinki-aero.",
     "dotfiles_last_commit": "2025-05-21",
@@ -1593,7 +2824,7 @@
     "font_ui": null,
     "icons": "crystal-remix-icon-theme-di/i/nki-version",
     "id": "github-diinki-diinki-aero",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "mixed",
@@ -1627,10 +2858,56 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
+    "additional_sources": [
+      {
+        "author": "u/_Cybersnake_",
+        "source": "r/hyprland",
+        "source_url": "https://reddit.com/r/hyprland/comments/1b4izs2/hyprland_finally_a_rice_i_can_hold_on_to/",
+        "upvotes": 142
+      }
+    ],
     "author": "Cybersnake223",
+    "best_for": [
+      "aesthetic showcase",
+      "coding",
+      "Hyprland enthusiast",
+      "dark mode enjoyer",
+      "purple/lavender lover"
+    ],
     "busyness": 0.06,
+    "components": {
+      "all_launchers": [
+        "rofi",
+        "anyrun"
+      ],
+      "all_terminals": [
+        "kitty",
+        "foot"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "yazi",
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "mako",
+      "panel": "waybar",
+      "prompt": "starship",
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
     "cursor": "oreo_purple_cursors",
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "Purple-themed Hyprland with adw-gtk3-dark, Colloid Dark icons, Oreo purple cursors, and JetBrainsMono Nerd Font throughout. Waybar + rofi + mako + hyprlock + yazi \u2014 a full modern Wayland stack with a distinctive grape palette.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Adw Gtk3 Dark + Colloid Dark icons + Jetbrainsmono Nerd Font UI font. Inspired by Cybersnake223/Hypr.",
     "dotfiles_last_commit": "2026-04-09",
@@ -1639,9 +2916,9 @@
     "extraction_confidence": "high",
     "font_mono": "JetBrainsMono Nerd Font",
     "font_ui": "JetBrainsMono Nerd Font",
-    "icons": "Colloid-Dark",
+    "icons": "colloid-dark",
     "id": "github-cybersnake223-hypr",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "dark",
@@ -1675,10 +2952,44 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "ad1822",
+    "best_for": [
+      "coding",
+      "catppuccin lover",
+      "minimal distraction",
+      "tiling enthusiast",
+      "daily driver"
+    ],
     "busyness": 0.11,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": "hyprlock",
+      "notifications": "dunst",
+      "panel": "waybar",
+      "prompt": "starship",
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": "none",
+      "blur": null,
+      "border_size_px": 2,
+      "gaps_in_px": 3,
+      "gaps_out_px": 6,
+      "rounded_corners_px": 6,
+      "shadows": null
+    },
+    "description": "A Catppuccin Macchiato Hyprland rice with Iosevka Nerd Font, Papirus icons, JetBrains Mono for code, and animations *off* for speed. Feels like a tasteful daily driver \u2014 small gaps, 6px corners, no flash.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Catppuccin + __Null__ UI font. Inspired by ad1822/hyprdots.",
     "dotfiles_last_commit": "2026-02-27",
@@ -1686,10 +2997,10 @@
     "dotfiles_url": "https://github.com/ad1822/hyprdots",
     "extraction_confidence": "high",
     "font_mono": "Iosevka Nerd Font",
-    "font_ui": "__null__",
+    "font_ui": "null",
     "icons": null,
     "id": "github-ad1822-hyprdots",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -1968,21 +3279,45 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "felipecrs",
+    "best_for": [
+      "GNOME user",
+      "coding",
+      "developer tools",
+      "declarative setup",
+      "cross-machine sync"
+    ],
     "busyness": 0.03,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": "vscode",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "gnome",
+    "decorations": {},
+    "description": "A practical GNOME config with FiraCode Nerd Font, zsh + powerlevel10k + chezmoi for cross-machine dotfile sync, vscode. No rice theatrics \u2014 a pragmatic, reproducible developer setup.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "GNOME + __Null__ UI font. Inspired by felipecrs/dotfiles.",
     "dotfiles_last_commit": "2026-04-11",
     "dotfiles_license": "MIT",
     "dotfiles_url": "https://github.com/felipecrs/dotfiles",
     "extraction_confidence": "low",
-    "font_mono": "FiraCode Nerd Font Mono",
-    "font_ui": "__null__",
+    "font_mono": "FiraCode Nerd Font",
+    "font_ui": "null",
     "icons": null,
     "id": "github-felipecrs-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "light",
@@ -2014,10 +3349,42 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "madic-creates",
+    "best_for": [
+      "Windows refugee",
+      "sway user",
+      "beginner",
+      "tiling enthusiast",
+      "conversation starter"
+    ],
     "busyness": 0.01,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": "lf",
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "waybar",
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": null
+    },
     "cursor": null,
     "de": "sway",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "A Sway rice deliberately themed as Windows 10 \u2014 Windows-10 GTK theme and icon pack, waybar, bemenu, alacritty, pywal. A unique bridge for Windows-refugee users who want tiling underneath the familiar chrome.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "SWAY + Windows 10 + Windows 10 icons. Inspired by madic-creates/Sway-DE.",
     "dotfiles_last_commit": "2025-04-05",
@@ -2028,7 +3395,7 @@
     "font_ui": null,
     "icons": "windows-10",
     "id": "github-madic-creates-sway-de",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -2062,10 +3429,34 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "redyf",
+    "best_for": [
+      "NixOS user",
+      "tokyonight lover",
+      "minimal distraction",
+      "coding",
+      "Hyprland enthusiast"
+    ],
     "busyness": 0.01,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {},
+    "description": "A TokyoNight NixOS + Hyprland rice with Zen Browser, ghostty, zsh, and Stylix-enabled consistent theming across every app. Minimalist and declarative \u2014 your whole aesthetic lives in flake.nix.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Tokyonight + Tx 02 UI font. Inspired by redyf/nixdots.",
     "dotfiles_last_commit": "2026-04-12",
@@ -2073,10 +3464,10 @@
     "dotfiles_url": "https://github.com/redyf/nixdots",
     "extraction_confidence": "high",
     "font_mono": null,
-    "font_ui": "TX-02",
+    "font_ui": "tx-02",
     "icons": null,
     "id": "github-redyf-nixdots",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -2110,13 +3501,40 @@
     "wallpaper_hint": "minimalist/tokyonight"
   },
   {
+    "accent_color": null,
     "author": "2KAbhishek",
+    "best_for": [
+      "XFCE user",
+      "coding",
+      "low-resource machines",
+      "developer tools",
+      "keyboard-driven"
+    ],
     "busyness": 0.06,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty",
+        "alacritty"
+      ],
+      "dock": null,
+      "editor": "vim",
+      "file_manager": "ranger",
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "xfce",
+    "decorations": {},
+    "description": "A dark XFCE rice with FiraCode Nerd Font, kitty + fish + ranger + vim \u2014 a lighter-weight, more flexible alternative to GNOME or Plasma for dev work.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "XFCE + Firacode Nerd Font UI font. Inspired by 2KAbhishek/dots2k.",
-    "dotfiles_last_commit": "2026-04-06",
+    "dotfiles_last_commit": "2026-04-16",
     "dotfiles_license": "GPL-3.0",
     "dotfiles_url": "https://github.com/2KAbhishek/dots2k",
     "extraction_confidence": "high",
@@ -2124,7 +3542,7 @@
     "font_ui": "FiraCode Nerd Font",
     "icons": null,
     "id": "github-2kabhishek-dots2k",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -2138,12 +3556,12 @@
       "#040405",
       "#1f2525"
     ],
-    "post_date": "2026-04-06",
+    "post_date": "2026-04-16",
     "preview_image": "gallery/github-2kabhishek-dots2k.webp",
     "signature_features": [],
     "source": "github",
     "source_url": "https://github.com/2KAbhishek/dots2k",
-    "staleness_score": 0.02,
+    "staleness_score": 0.0,
     "theme": null,
     "title": "2KAbhishek/dots2k",
     "upvotes": 320,
@@ -2152,10 +3570,46 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "diinki",
+    "best_for": [
+      "aesthetic showcase",
+      "retro lover",
+      "sway user",
+      "tiling enthusiast",
+      "conversation starter"
+    ],
     "busyness": 0.07,
+    "components": {
+      "all_launchers": [
+        "wofi"
+      ],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": "wofi",
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "waybar",
+      "prompt": null,
+      "shell": null,
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "sway",
+    "decorations": {
+      "animations": "none",
+      "blur": null,
+      "border_size_px": 1,
+      "gaps_in_px": 5,
+      "gaps_out_px": 10,
+      "rounded_corners_px": 0,
+      "shadows": null
+    },
+    "description": "Sway + swayfx with a custom 'diinki-retro-dark' theme, waybar, wofi, kitty. No animations, hard 1px borders, 0px rounded corners \u2014 an intentionally retro-futuristic, angular look.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "SWAY + Diinki Retro Dark. Inspired by diinki/diinki-retrofuture.",
     "dotfiles_last_commit": "2026-04-14",
@@ -2166,7 +3620,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-diinki-diinki-retrofuture",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "mixed",
@@ -2200,10 +3654,120 @@
     "wallpaper_hint": "bespoke wallpapers included in repo"
   },
   {
+    "accent_color": null,
+    "author": "dmadisetti",
+    "best_for": [
+      "tiling enthusiast",
+      "aesthetic showcase",
+      "minimal distraction",
+      "writing",
+      "light mode lover"
+    ],
+    "busyness": 0.03,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "vim",
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": null,
+      "notifications": "dunst",
+      "panel": "polybar",
+      "prompt": null,
+      "shell": "fish",
+      "terminal": "kitty"
+    },
+    "cursor": null,
+    "de": "i3",
+    "decorations": {
+      "animations": "subtle",
+      "blur": true,
+      "border_size_px": 2,
+      "gaps_in_px": 8,
+      "gaps_out_px": 40,
+      "rounded_corners_px": 2,
+      "shadows": null
+    },
+    "description": "i3 with blur enabled and *huge* 40px outer gaps \u2014 Inter UI, fish + polybar + rofi + dunst + kitty + vim. Breathing-room maximalism: negative space as the core aesthetic principle.",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "I3 + Inter UI font. Inspired by dmadisetti/.dots.",
+    "dotfiles_last_commit": "2026-04-13",
+    "dotfiles_license": "MIT",
+    "dotfiles_url": "https://github.com/dmadisetti/.dots",
+    "extraction_confidence": "high",
+    "font_mono": null,
+    "font_ui": "Inter",
+    "icons": null,
+    "id": "github-dmadisetti-dots",
+    "indexed_at": "2026-04-16",
+    "install_method": "manual",
+    "license_status": "permissive",
+    "mood": "light",
+    "packages": {
+      "arch": [],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#000000",
+      "#b0b6f6",
+      "#c3e1fd"
+    ],
+    "post_date": "2026-04-13",
+    "preview_image": "gallery/github-dmadisetti-dots.webp",
+    "signature_features": [
+      "i3",
+      "fish",
+      "nvim",
+      "kitty",
+      "sshd/gce/gce-server-server-server-server"
+    ],
+    "source": "github",
+    "source_url": "https://github.com/dmadisetti/.dots",
+    "staleness_score": 0.01,
+    "theme": null,
+    "title": "dmadisetti/.dots",
+    "upvotes": 280,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": ""
+  },
+  {
+    "accent_color": null,
     "author": "TSM-061",
+    "best_for": [
+      "Hyprland enthusiast",
+      "systemd user",
+      "minimal distraction",
+      "Wayland-only",
+      "coding"
+    ],
     "busyness": 0.01,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "vscode",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {},
+    "description": "'ctOS' is a Wayland-only Hyprland build with quickshell, uwsm, greetd greeter and lockscreen \u2014 stripped to the essentials. JetBrainsMono Nerd Font, kitty, vscode. For users who want systemd-managed Hyprland done properly.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Jetbrainsmono Nerd Font UI font. Inspired by TSM-061/ctOS.",
     "dotfiles_last_commit": "2026-03-17",
@@ -2214,7 +3778,7 @@
     "font_ui": "JetBrainsMono Nerd Font",
     "icons": null,
     "id": "github-tsm-061-ctos",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "dark",
@@ -2248,10 +3812,110 @@
     "wallpaper_hint": ""
   },
   {
-    "author": "shell-ninja",
-    "busyness": 0.05,
+    "accent_color": null,
+    "author": "JaKooLit",
+    "best_for": [
+      "OpenSUSE user",
+      "Hyprland enthusiast",
+      "beginner",
+      "coding",
+      "light mode lover"
+    ],
+    "busyness": 0.15,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": null
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {},
+    "description": "JaKooLit's OpenSUSE Hyprland install script and configs \u2014 Latte theme, Bibata icons, JetBrainsMono Nerd Font, zsh. A well-maintained full-featured starter for Hyprland on OpenSUSE Tumbleweed.",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "HYPRLAND + Latte + Bibata icons + Jetbrainsmono UI font. Inspired by JaKooLit/OpenSuse-Hyprland.",
+    "dotfiles_last_commit": "2026-01-23",
+    "dotfiles_license": "GPL-3.0",
+    "dotfiles_url": "https://github.com/JaKooLit/OpenSuse-Hyprland",
+    "extraction_confidence": "low",
+    "font_mono": "JetBrainsMono",
+    "font_ui": "jetbrainsmono",
+    "icons": "bibata",
+    "id": "github-jakoolit-opensuse-hyprland",
+    "indexed_at": "2026-04-16",
+    "install_method": "script",
+    "license_status": "permissive",
+    "mood": "light",
+    "packages": {
+      "arch": [],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#ff823f",
+      "#f8d9b7",
+      "#f3874a"
+    ],
+    "post_date": "2026-01-23",
+    "preview_image": "gallery/github-jakoolit-opensuse-hyprland.webp",
+    "signature_features": [],
+    "source": "github",
+    "source_url": "https://github.com/JaKooLit/OpenSuse-Hyprland",
+    "staleness_score": 0.15,
+    "theme": "latte",
+    "title": "JaKooLit/OpenSuse-Hyprland",
+    "upvotes": 251,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": ""
+  },
+  {
+    "accent_color": null,
+    "author": "shell-ninja",
+    "best_for": [
+      "Hyprland enthusiast",
+      "light mode lover",
+      "dynamic theming lover",
+      "coding",
+      "beginner"
+    ],
+    "busyness": 0.05,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "dolphin",
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": "fish",
+      "terminal": "kitty"
+    },
+    "cursor": null,
+    "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "shell-ninja's original hyprconf \u2014 Hyprland with rofi, waybar, hyprlock, hypridle, hyprsunset, dolphin, kitty + fish + neovim, pywal-driven wallpapers. Light-mood with dynamic color changes.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + __Lfu__ UI font. Inspired by shell-ninja/hyprconf.",
     "dotfiles_last_commit": "2026-04-15",
@@ -2259,10 +3923,10 @@
     "dotfiles_url": "https://github.com/shell-ninja/hyprconf",
     "extraction_confidence": "high",
     "font_mono": null,
-    "font_ui": "__lfu__",
+    "font_ui": "lfu",
     "icons": null,
     "id": "github-shell-ninja-hyprconf",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "light",
@@ -2290,16 +3954,57 @@
     "staleness_score": 0.0,
     "theme": null,
     "title": "shell-ninja/hyprconf",
-    "upvotes": 246,
+    "upvotes": 248,
     "verified": false,
     "verified_distros": [],
     "wallpaper_hint": "pywal"
   },
   {
+    "accent_color": null,
     "author": "2SSK",
+    "best_for": [
+      "coding",
+      "Hyprland enthusiast",
+      "tokyonight lover",
+      "catppuccin lover",
+      "aesthetic showcase"
+    ],
     "busyness": 0.07,
+    "components": {
+      "all_launchers": [
+        "rofi",
+        "wofi",
+        "tofi"
+      ],
+      "all_terminals": [
+        "kitty",
+        "alacritty",
+        "foot",
+        "ghostty"
+      ],
+      "dock": null,
+      "editor": "vim",
+      "file_manager": "yazi",
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "dunst",
+      "panel": "waybar",
+      "prompt": "starship",
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": "bibata-modern-ice",
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "A TokyoNight Hyprland rice with Bibata cursor, JetBrainsMono Nerd Font, waybar, rofi, dunst, hyprlock, kitty, fish + starship, yazi. A comprehensive, middle-of-the-road dark setup \u2014 nothing unusual, everything polished.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Tokyo Night. Inspired by 2SSK/dot-files.",
     "dotfiles_last_commit": "2026-04-08",
@@ -2310,7 +4015,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-2ssk-dot-files",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "stow",
     "license_status": "permissive",
     "mood": "dark",
@@ -2336,7 +4041,7 @@
     "source": "github",
     "source_url": "https://github.com/2SSK/dot-files",
     "staleness_score": 0.01,
-    "theme": "tokyo-night",
+    "theme": "tokyonight",
     "title": "2SSK/dot-files",
     "upvotes": 233,
     "verified": false,
@@ -2344,10 +4049,36 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "gnuunixchad",
+    "best_for": [
+      "River user",
+      "tiling enthusiast",
+      "Wayland-only",
+      "coding",
+      "GNOME refugee"
+    ],
     "busyness": 0.04,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "foot"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "lf",
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": "dunst",
+      "panel": null,
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": "foot"
+    },
     "cursor": "adwaita",
     "de": "river",
+    "decorations": {},
+    "description": "River WM with Adwaita Dark, Adwaita cursor, Noto Sans UI, dunst + foot + zsh + lf + neovim. A rare and clean River setup \u2014 Wayland tiling with GNOME-flavored defaults.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "RIVER + Adwaita Dark + Noto Sans UI font. Inspired by gnuunixchad/dotfiles.",
     "dotfiles_last_commit": "2026-04-15",
@@ -2358,7 +4089,7 @@
     "font_ui": "Noto Sans",
     "icons": null,
     "id": "github-gnuunixchad-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "stow",
     "license_status": "permissive",
     "mood": "dark",
@@ -2392,10 +4123,46 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": "#687363",
     "author": "ElysiaOS",
+    "best_for": [
+      "aesthetic showcase",
+      "light mode lover",
+      "Hyprland enthusiast",
+      "opinionated defaults",
+      "macos lover"
+    ],
     "busyness": 0.02,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": "thunar",
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "swaync",
+      "panel": "waybar",
+      "prompt": "starship",
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": 5,
+      "gaps_in_px": 5,
+      "gaps_out_px": 20,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "ElysiaOS is a light-mood Hyprland build with a custom 'elysiaos-bar', its own launcher, and a muted #687363 sage accent. Feels like a distro-in-disguise \u2014 opinionated, branded, cohesive.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND. Inspired by ElysiaOS/ElysiaOS.",
     "dotfiles_last_commit": "2026-01-07",
@@ -2406,7 +4173,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-elysiaos-elysiaos",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "light",
@@ -2446,10 +4213,34 @@
     "wallpaper_hint": "swww"
   },
   {
+    "accent_color": null,
     "author": "cybrcore",
+    "best_for": [
+      "Hyprland enthusiast",
+      "aesthetic showcase",
+      "light mode lover",
+      "writing",
+      "minimal distraction"
+    ],
     "busyness": 0.03,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {},
+    "description": "Cybrdots ships a 12-wallpaper 'cybr palette', Inter UI, rofi + waybar + swaync, fish shell. Light-mood Hyprland that feels more boutique than typical rice \u2014 curated rather than accumulated.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Inter UI font. Inspired by cybrcore/cybrdots.",
     "dotfiles_last_commit": "2026-04-12",
@@ -2460,7 +4251,7 @@
     "font_ui": "Inter",
     "icons": null,
     "id": "github-cybrcore-cybrdots",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "light",
@@ -2494,10 +4285,46 @@
     "wallpaper_hint": "cybrcolors palette + 12 wallpapers"
   },
   {
+    "accent_color": null,
     "author": "ViegPhunt",
+    "best_for": [
+      "coding",
+      "developer tools",
+      "Hyprland enthusiast",
+      "ghostty user",
+      "minimal distraction"
+    ],
     "busyness": 0.02,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "ghostty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "swaync",
+      "panel": "waybar",
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": "ghostty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "A clean Hyprland rice with JetBrainsMono Nerd Font, ghostty terminal, waybar + rofi + swaync + hyprlock + zsh + neovim. Nothing ornate \u2014 just a well-tuned modern Wayland developer desktop.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Jetbrainsmono Nerd Font UI font. Inspired by ViegPhunt/Dotfiles.",
     "dotfiles_last_commit": "2026-03-04",
@@ -2508,7 +4335,7 @@
     "font_ui": "JetBrainsMono Nerd Font",
     "icons": null,
     "id": "github-viegphunt-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "stow",
     "license_status": "permissive",
     "mood": "dark",
@@ -2542,10 +4369,37 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "orhun",
+    "best_for": [
+      "coding",
+      "kanagawa lover",
+      "tiling enthusiast",
+      "developer tools",
+      "light mode lover"
+    ],
     "busyness": 0.07,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "alacritty",
+        "ghostty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "i3bar",
+      "prompt": "starship",
+      "shell": "bash",
+      "terminal": "alacritty"
+    },
     "cursor": null,
     "de": "i3",
+    "decorations": {},
+    "description": "Orhun Parmaks\u0131z's i3 rice \u2014 Kanagawa theme, i3bar, alacritty + bash + starship + neovim, zellij for multiplexing. Calm and readable; an everyday workspace from a well-known Rust community contributor.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "I3 + Kanagawa. Inspired by orhun/dotfiles.",
     "dotfiles_last_commit": "2026-02-02",
@@ -2556,7 +4410,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-orhun-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "light",
@@ -2590,10 +4444,119 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
+    "author": "u/M31_Andromeda7",
+    "best_for": [
+      "ArcoLinux user",
+      "beginner",
+      "tiling enthusiast",
+      "i3 starter",
+      "light mode lover"
+    ],
+    "busyness": 0.09,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
+    "cursor": null,
+    "de": "openbox",
+    "decorations": {},
+    "description": "An ArcoLinux i3 + Openbox rice themed with pywal, adi1090x's polybar themes, rofi. Light-mood, approachable, and documented \u2014 a good bridge from traditional desktop to tiling.",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "OPENBOX. Inspired by Not really sure if screenshots are allowed here. Here\u2019s my ArcoLinux i3 rice.",
+    "dotfiles_last_commit": "2025-07-26",
+    "dotfiles_license": "GPL-3.0",
+    "dotfiles_url": "https://github.com/adi1090x/polybar-themes",
+    "extraction_confidence": "high",
+    "font_mono": "fantasque-sans-mono",
+    "font_ui": null,
+    "icons": null,
+    "id": "i3wm-m7w790",
+    "indexed_at": "2026-04-16",
+    "install_method": "manual",
+    "license_status": "permissive",
+    "mood": "light",
+    "packages": {
+      "arch": [],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#354153",
+      "#313543",
+      "#424b59"
+    ],
+    "post_date": "2021-03-18",
+    "preview_image": "gallery/i3wm-m7w790.webp",
+    "signature_features": [
+      "polybar",
+      "rofi",
+      "openbox",
+      "i3",
+      "arch-linux-based (arco-linux)"
+    ],
+    "source": "r/i3wm",
+    "source_url": "https://reddit.com/r/i3wm/comments/m7w790/not_really_sure_if_screenshots_are_allowed_here/",
+    "staleness_score": 0.49,
+    "theme": null,
+    "title": "Not really sure if screenshots are allowed here. Here\u2019s my ArcoLinux i3 rice",
+    "upvotes": 186,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": "pywal-generated"
+  },
+  {
+    "accent_color": "#268BD2",
     "author": "cxOrz",
+    "best_for": [
+      "material design lover",
+      "aesthetic showcase",
+      "ChromeOS fan",
+      "Hyprland enthusiast",
+      "maximalist"
+    ],
     "busyness": 0.04,
+    "components": {
+      "all_launchers": [
+        "rofi",
+        "wofi"
+      ],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": "yazi",
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": null,
+      "panel": "waybar",
+      "prompt": null,
+      "shell": null,
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": "maximalist",
+      "blur": null,
+      "border_size_px": 2,
+      "gaps_in_px": 5,
+      "gaps_out_px": 10,
+      "rounded_corners_px": 10,
+      "shadows": null
+    },
+    "description": "'Material Black Blueberry' Hyprland \u2014 a ChromeOS-flavored take on Material Design 3 with a #268BD2 blue accent, maximalist animations, 10px rounded corners, quickshell-style panels and yazi.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Material Black Blueberry. Inspired by cxOrz/dotfiles-hyprland.",
     "dotfiles_last_commit": "2026-04-02",
@@ -2604,7 +4567,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-cxorz-dotfiles-hyprland",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "dark",
@@ -2638,10 +4601,36 @@
     "wallpaper_hint": "ChromeOS style with Material Design 3"
   },
   {
+    "accent_color": null,
     "author": "potamides",
+    "best_for": [
+      "tiling enthusiast",
+      "gruvbox lover",
+      "keyboard-driven",
+      "tmux user",
+      "developer tools"
+    ],
     "busyness": 0.07,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "alacritty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "ranger",
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": "bash",
+      "terminal": "alacritty"
+    },
     "cursor": "simp1e-gruvbox-dark",
     "de": "awesome",
+    "decorations": {},
+    "description": "Awesome WM with Colloid Dark Compact Gruvbox theme, gruvbox-plus-dark icons, simp1e-gruvbox cursor, alacritty + tmux + ranger + neovim + qutebrowser. A keyboard-first, text-only kind of daily driver.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "AWESOME + Colloid Dark Compact Gruvbox + Gruvbox Plus Dark icons. Inspired by potamides/dotfiles.",
     "dotfiles_last_commit": "2026-04-10",
@@ -2652,7 +4641,7 @@
     "font_ui": null,
     "icons": "gruvbox-plus-dark",
     "id": "github-potamides-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "light",
@@ -2686,10 +4675,44 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "u/Fine-Athlete-4764",
+    "best_for": [
+      "aesthetic showcase",
+      "conversation starter",
+      "Hyprland enthusiast",
+      "beginner",
+      "dark mode enjoyer"
+    ],
     "busyness": 0.06,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": "yazi",
+      "launcher": null,
+      "lockscreen": "swaylock",
+      "notifications": null,
+      "panel": null,
+      "prompt": "starship",
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
     "cursor": "bibata-modern-pink",
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": 2,
+      "gaps_in_px": 5,
+      "gaps_out_px": 20,
+      "rounded_corners_px": 0,
+      "shadows": null
+    },
+    "description": "'Hacker-Man' first Hyprland rice \u2014 Bibata Modern Pink cursor, CaskaydiaCove Nerd Font, swaylock, kitty, zsh + starship, yazi, waypaper. Green-black Matrix-adjacent palette with pink accents.",
     "description_callout": "Source repo has no license \u2014 this entry is shown as inspiration only. The agent will not auto-apply it.",
     "description_short": "HYPRLAND + Caskaydiacove Nerd Font UI font. Inspired by [Hacker-Man] First rice. Let's gooo.....",
     "dotfiles_last_commit": "2025-02-13",
@@ -2700,7 +4723,7 @@
     "font_ui": "CaskaydiaCove Nerd Font",
     "icons": null,
     "id": "hyprland-1inxosk",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "unknown",
     "mood": "mixed",
@@ -2730,21 +4753,57 @@
     "wallpaper_hint": "waypaper"
   },
   {
+    "accent_color": null,
     "author": "cebem1nt",
+    "best_for": [
+      "coding",
+      "Hyprland enthusiast",
+      "developer tools",
+      "dark mode enjoyer",
+      "minimal distraction"
+    ],
     "busyness": 0.14,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "alacritty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "thunar",
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "swaync",
+      "panel": "waybar",
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": "alacritty"
+    },
     "cursor": "bibata-modern-ice",
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "'Kripton' theme on Hyprland \u2014 CaskaydiaCove Nerd Font, Bibata cursor, alacritty + zsh + thunar. A balanced dark setup with waybar, rofi, swaync, hyprlock and neovim for editing.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Kripton + Cascadia Mono UI font. Inspired by cebem1nt/dotfiles.",
     "dotfiles_last_commit": "2026-04-13",
     "dotfiles_license": "MIT",
     "dotfiles_url": "https://github.com/cebem1nt/dotfiles",
     "extraction_confidence": "high",
-    "font_mono": "CaskaydiaCove Nerd Font Propo",
-    "font_ui": "Cascadia Mono",
+    "font_mono": "CaskaydiaCove Nerd Font",
+    "font_ui": "cascadia-mono",
     "icons": null,
     "id": "github-cebem1nt-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -2778,63 +4837,55 @@
     "wallpaper_hint": ""
   },
   {
-    "author": "NotMugil",
-    "busyness": 0.06,
-    "cursor": null,
-    "de": "hyprland",
-    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
-    "description_short": "HYPRLAND + Catppuccin. Inspired by NotMugil/dotfiles.",
-    "dotfiles_last_commit": "2026-03-28",
-    "dotfiles_license": "MIT",
-    "dotfiles_url": "https://github.com/NotMugil/dotfiles",
-    "extraction_confidence": "low",
-    "font_mono": null,
-    "font_ui": null,
-    "icons": null,
-    "id": "github-notmugil-dotfiles",
-    "indexed_at": "2026-04-15",
-    "install_method": "script",
-    "license_status": "permissive",
-    "mood": "light",
-    "packages": {
-      "arch": [],
-      "fedora": [],
-      "ubuntu": []
-    },
-    "palette": [
-      "#cc7deb",
-      "#7e4adc",
-      "#dd4aef"
-    ],
-    "post_date": "2026-03-28",
-    "preview_image": "gallery/github-notmugil-dotfiles.webp",
-    "signature_features": [],
-    "source": "github",
-    "source_url": "https://github.com/NotMugil/dotfiles",
-    "staleness_score": 0.04,
-    "theme": "catppuccin",
-    "title": "NotMugil/dotfiles",
-    "upvotes": 169,
-    "verified": false,
-    "verified_distros": [],
-    "wallpaper_hint": ""
-  },
-  {
+    "accent_color": null,
     "author": "Ascaniolamp",
+    "best_for": [
+      "aesthetic showcase",
+      "anime lover",
+      "dark mode enjoyer",
+      "Hyprland enthusiast",
+      "conversation starter"
+    ],
     "busyness": 0.06,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": "hyprlock",
+      "notifications": "dunst",
+      "panel": "waybar",
+      "prompt": null,
+      "shell": null,
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "'Hyprlain' \u2014 a Serial Experiments Lain-themed Hyprland rice with Adwaita Mono Nerd Font, waybar, dunst, hyprlock, kitty. The wallpaper does much of the heavy lifting; the desktop itself is minimal and quietly melancholy.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Adwaita Mono Nerd Font UI font. Inspired by Ascaniolamp/Hyprlain.",
     "dotfiles_last_commit": "2026-03-17",
     "dotfiles_license": "GPL-3.0",
     "dotfiles_url": "https://github.com/Ascaniolamp/Hyprlain",
     "extraction_confidence": "high",
-    "font_mono": "Adwait/u_mono_nerd_font",
+    "font_mono": "adwait/u_mono_nerd",
     "font_ui": "Adwaita Mono Nerd Font",
     "icons": null,
     "id": "github-ascaniolamp-hyprlain",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "dark",
@@ -2868,10 +4919,47 @@
     "wallpaper_hint": "Serial Experiments Lain"
   },
   {
+    "accent_color": null,
     "author": "u/saatvik333",
+    "best_for": [
+      "macos lover",
+      "Hyprland enthusiast",
+      "beginner",
+      "coding",
+      "aesthetic showcase"
+    ],
     "busyness": 0.07,
+    "components": {
+      "all_launchers": [
+        "wofi"
+      ],
+      "all_terminals": [
+        "kitty",
+        "alacritty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": "wofi",
+      "lockscreen": "hyprlock",
+      "notifications": "dunst",
+      "panel": "waybar",
+      "prompt": "starship",
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "A first-Hyprland Reddit rice with SF Pro UI and Liga SF NO Mono Nerd Font \u2014 waybar, wofi, dunst, hyprlock, kitty, fish + starship, neovim, wallust-driven wallpaper colors. Surprisingly macOS-flavored for a WM build.",
     "description_callout": "Source repo has no license \u2014 this entry is shown as inspiration only. The agent will not auto-apply it.",
     "description_short": "HYPRLAND + Sf Pro UI font. Inspired by first hyprland rice.",
     "dotfiles_last_commit": "2025-09-25",
@@ -2882,7 +4970,7 @@
     "font_ui": "SF Pro",
     "icons": null,
     "id": "hyprland-1jtjljz",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "unknown",
     "mood": "dark",
@@ -2916,21 +5004,49 @@
     "wallpaper_hint": "wallust"
   },
   {
+    "accent_color": null,
     "author": "Jguer",
+    "best_for": [
+      "coding",
+      "developer tools",
+      "tokyonight lover",
+      "sway user",
+      "tiling enthusiast"
+    ],
     "busyness": 0.05,
+    "components": {
+      "all_launchers": [
+        "wofi"
+      ],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": "wofi",
+      "lockscreen": "swaylock",
+      "notifications": null,
+      "panel": "waybar",
+      "prompt": null,
+      "shell": null,
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "sway",
+    "decorations": {},
+    "description": "A TokyoNight sway rice with Inter Medium UI, FiraCode Nerd Font for code, waybar, wofi, swaylock-effects, kitty, and neovim. A measured, evenly-tuned Wayland setup from a maintainer of yay.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "SWAY + Tokyo Night + Inter Medium UI font. Inspired by Jguer/dotfiles.",
     "dotfiles_last_commit": "2026-01-31",
     "dotfiles_license": "GPL-2.0",
     "dotfiles_url": "https://github.com/Jguer/dotfiles",
     "extraction_confidence": "high",
-    "font_mono": "FiraCode Nerd Font Mono",
-    "font_ui": "Inter Medium",
+    "font_mono": "FiraCode Nerd Font",
+    "font_ui": "inter-medium",
     "icons": null,
     "id": "github-jguer-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -2956,7 +5072,7 @@
     "source": "github",
     "source_url": "https://github.com/Jguer/dotfiles",
     "staleness_score": 0.14,
-    "theme": "tokyo-night",
+    "theme": "tokyonight",
     "title": "Jguer/dotfiles",
     "upvotes": 147,
     "verified": false,
@@ -2964,10 +5080,48 @@
     "wallpaper_hint": "tokyo-night"
   },
   {
+    "accent_color": "#D49621",
     "author": "SwayKh",
+    "best_for": [
+      "niri enthusiast",
+      "dynamic theming lover",
+      "coding",
+      "tiling enthusiast",
+      "minimal distraction"
+    ],
     "busyness": 0.09,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty",
+        "wezterm",
+        "foot"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "lf",
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "dunst",
+      "panel": "waybar",
+      "prompt": "starship",
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "niri",
+    "decorations": {
+      "animations": "none",
+      "blur": null,
+      "border_size_px": 2,
+      "gaps_in_px": 5,
+      "gaps_out_px": 5,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "Niri rice with Pywal16-driven colors (so the whole desktop reshapes around your wallpaper), waybar, rofi, dunst, hyprlock, kitty, zsh + starship, lf file manager, neovim. Sparse 5px gaps, no animations.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "NIRI + Jetbrainsmono Nerd Font UI font. Inspired by SwayKh/dotfiles.",
     "dotfiles_last_commit": "2026-03-28",
@@ -2978,7 +5132,7 @@
     "font_ui": "JetBrainsMono Nerd Font",
     "icons": null,
     "id": "github-swaykh-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -3012,10 +5166,46 @@
     "wallpaper_hint": "Pywal16 colors"
   },
   {
+    "accent_color": null,
     "author": "openSUSE",
+    "best_for": [
+      "OpenSUSE user",
+      "tiling enthusiast",
+      "sway user",
+      "beginner",
+      "light mode lover"
+    ],
     "busyness": 0.08,
+    "components": {
+      "all_launchers": [
+        "wofi"
+      ],
+      "all_terminals": [
+        "alacritty"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": "wofi",
+      "lockscreen": null,
+      "notifications": "swaync",
+      "panel": "waybar",
+      "prompt": null,
+      "shell": null,
+      "terminal": "alacritty"
+    },
     "cursor": null,
     "de": "sway",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "OpenSUSE's official sway reference setup \u2014 waybar, wofi, swaync, alacritty, SourceSansPro UI. Conservative and well-documented; a natural sway starter for OpenSUSE users.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "SWAY + Source Sans Pro UI font. Inspired by openSUSE/openSUSEway.",
     "dotfiles_last_commit": "2025-12-27",
@@ -3023,10 +5213,10 @@
     "dotfiles_url": "https://github.com/openSUSE/openSUSEway",
     "extraction_confidence": "high",
     "font_mono": null,
-    "font_ui": "Source Sans Pro",
+    "font_ui": "SourceSansPro",
     "icons": null,
     "id": "github-opensuse-opensuseway",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "light",
@@ -3057,10 +5247,36 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "exploitoverload",
+    "best_for": [
+      "NixOS user",
+      "security researcher",
+      "coding",
+      "Hyprland enthusiast",
+      "catppuccin lover"
+    ],
     "busyness": 0.02,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "waybar",
+      "prompt": "powerlevel10k",
+      "shell": null,
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {},
+    "description": "PwNixOS \u2014 a Catppuccin Hyprland NixOS build with waybar, kitty, powerlevel10k, clipse clipboard manager. Security-pentester-flavored (the name is a pun on pwn + NixOS), but the desktop itself is a clean dark dev setup.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Catppuccin. Inspired by exploitoverload/PwNixOS.",
     "dotfiles_last_commit": "2025-02-28",
@@ -3071,7 +5287,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-exploitoverload-pwnixos",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -3104,21 +5320,45 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "pablonoya",
+    "best_for": [
+      "tiling enthusiast",
+      "awesome WM user",
+      "keyboard-driven",
+      "productivity",
+      "developer tools"
+    ],
     "busyness": 0.08,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "awesome",
+    "decorations": {},
+    "description": "Awesome WM config with Kuyen icons, Manrope UI font, xresources color generation, media controls in the top bar, a weather widget, and Google Calendar integration. A functional, info-rich panel.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "AWESOME + K\u00fcyen icons + Manrope UI font. Inspired by pablonoya/awesomewm-configuration.",
     "dotfiles_last_commit": "2026-03-01",
     "dotfiles_license": "GPL-3.0",
     "dotfiles_url": "https://github.com/pablonoya/awesomewm-configuration",
     "extraction_confidence": "high",
-    "font_mono": "JetBrainsMono Slashed",
-    "font_ui": "Manrope",
-    "icons": "k\u00fcyen",
+    "font_mono": "jetbrainsmono-slashed",
+    "font_ui": "manrope",
+    "icons": "kuyen",
     "id": "github-pablonoya-awesomewm-configuration",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -3152,21 +5392,127 @@
     "wallpaper_hint": "video wallpaper"
   },
   {
+    "accent_color": null,
+    "author": "acaibowlz",
+    "best_for": [
+      "niri enthusiast",
+      "GNOME refugee",
+      "tiling enthusiast",
+      "coding",
+      "light+dark switchable"
+    ],
+    "busyness": 0.05,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": "dunst",
+      "panel": "waybar",
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
+    "cursor": "adwaita",
+    "de": "niri",
+    "decorations": {},
+    "description": "Colloid-themed niri with matching Colloid icons, Adwaita cursor, Ubuntu Mono Nerd Font for UI, and JetBrainsMono Nerd Font for code. A clean scrollable-tiling setup that feels GNOME-adjacent in its restraint.",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "NIRI + Colloid Gtk Theme + Colloid Icon Theme icons + Ubuntu Mono Nerd Font UI font. Inspired by acaibowlz/niri-setup.",
+    "dotfiles_last_commit": "2026-03-25",
+    "dotfiles_license": "GPL-3.0",
+    "dotfiles_url": "https://github.com/acaibowlz/niri-setup",
+    "extraction_confidence": "high",
+    "font_mono": "JetBrainsMono Nerd Font",
+    "font_ui": "Ubuntu Mono Nerd Font",
+    "icons": "colloid",
+    "id": "github-acaibowlz-niri-setup",
+    "indexed_at": "2026-04-16",
+    "install_method": "manual",
+    "license_status": "permissive",
+    "mood": "dark",
+    "packages": {
+      "arch": [],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#1e1e1e",
+      "#080808",
+      "#404142"
+    ],
+    "post_date": "2026-03-25",
+    "preview_image": "gallery/github-acaibowlz-niri-setup.webp",
+    "signature_features": [
+      "waybar",
+      "fuzzel",
+      "unbutu-mono-nerd-font",
+      "colloid-gtk-theme",
+      "colloid-icon-\u3002de/vinceliuice/Colloid-gtk"
+    ],
+    "source": "github",
+    "source_url": "https://github.com/acaibowlz/niri-setup",
+    "staleness_score": 0.04,
+    "theme": "colloid",
+    "title": "acaibowlz/niri-setup",
+    "upvotes": 129,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": ""
+  },
+  {
+    "accent_color": null,
     "author": "MarcusMix",
+    "best_for": [
+      "beginner",
+      "tiling enthusiast",
+      "light mode lover",
+      "Mint user",
+      "coding"
+    ],
     "busyness": 0.06,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": "hyprlock",
+      "notifications": null,
+      "panel": "waybar",
+      "prompt": null,
+      "shell": "bash",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "i3",
+    "decorations": {
+      "animations": "maximalist",
+      "blur": null,
+      "border_size_px": 2,
+      "gaps_in_px": 5,
+      "gaps_out_px": 20,
+      "rounded_corners_px": 10,
+      "shadows": null
+    },
+    "description": "A light i3 build with waybar, hyprlock, kitty, bash + neovim \u2014 maximalist animations, 10px corners. Light-mood and approachable; a Linux-Mint-adjacent tiling entry point.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "I3. Inspired by MarcusMix/dotfiles.",
     "dotfiles_last_commit": "2025-07-02",
     "dotfiles_license": "MIT",
     "dotfiles_url": "https://github.com/MarcusMix/dotfiles",
     "extraction_confidence": "high",
-    "font_mono": "__null__",
+    "font_mono": "null",
     "font_ui": null,
     "icons": null,
     "id": "github-marcusmix-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "light",
@@ -3200,10 +5546,47 @@
     "wallpaper_hint": "Linux Mint"
   },
   {
+    "accent_color": null,
     "author": "dybdeskarphet",
+    "best_for": [
+      "niri enthusiast",
+      "coding",
+      "wezterm user",
+      "dark mode enjoyer",
+      "tiling enthusiast"
+    ],
     "busyness": 0.06,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "wezterm",
+        "foot"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "dunst",
+      "panel": "waybar",
+      "prompt": null,
+      "shell": "fish",
+      "terminal": "wezterm"
+    },
     "cursor": null,
     "de": "niri",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "Niri with Mulish UI font, JetBrainsMono Nerd Font for code, waybar + rofi + dunst + hyprlock + wezterm + fish. A measured dark setup with swww wallpaper management.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "NIRI + Mulish UI font. Inspired by dybdeskarphet/dotfiles.",
     "dotfiles_last_commit": "2025-12-14",
@@ -3211,10 +5594,10 @@
     "dotfiles_url": "https://github.com/dybdeskarphet/dotfiles",
     "extraction_confidence": "high",
     "font_mono": "JetBrainsMono Nerd Font",
-    "font_ui": "Mulish",
+    "font_ui": "mulish",
     "icons": null,
     "id": "github-dybdeskarphet-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -3248,10 +5631,46 @@
     "wallpaper_hint": "swww"
   },
   {
+    "accent_color": null,
     "author": "sekiryl",
+    "best_for": [
+      "rose-pine lover",
+      "macos lover",
+      "aesthetic showcase",
+      "Hyprland enthusiast",
+      "writing"
+    ],
     "busyness": 0.01,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "thunar",
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": null,
+      "panel": null,
+      "prompt": "starship",
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": "BreezeX-RosePine-Linux",
     "de": "hyprland",
+    "decorations": {
+      "animations": "subtle",
+      "blur": null,
+      "border_size_px": 3,
+      "gaps_in_px": 5,
+      "gaps_out_px": 20,
+      "rounded_corners_px": 10,
+      "shadows": null
+    },
+    "description": "Rose Pine Purple Dark on Hyprland with matching Rose Pine icons, BreezeX cursor, SF Pro Display UI, GeistMono for code. Uses Hyprpanel; feels like a quiet, refined macOS-adjacent dark mode.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Rose Pine Purple Dark + Rose Pine Icons icons + Sf Pro Display UI font. Inspired by sekiryl/hyprdots.",
     "dotfiles_last_commit": "2025-11-26",
@@ -3260,9 +5679,9 @@
     "extraction_confidence": "high",
     "font_mono": "GeistMono Nerd Font",
     "font_ui": "SF Pro Display",
-    "icons": "rose-pine-icons",
+    "icons": "rose-pine",
     "id": "github-sekiryl-hyprdots",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -3296,10 +5715,36 @@
     "wallpaper_hint": "Squiggly"
   },
   {
+    "accent_color": null,
     "author": "benmezger",
+    "best_for": [
+      "tiling enthusiast",
+      "coding",
+      "developer tools",
+      "minimal distraction",
+      "i3 starter"
+    ],
     "busyness": 0.11,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": null,
+      "notifications": "dunst",
+      "panel": "polybar",
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "i3",
+    "decorations": {},
+    "description": "i3 with Inter UI, polybar + rofi + dunst + i3status-rust. A quiet, focused rice \u2014 nothing flashy, just a well-tuned tiling workspace oriented around readable type.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "I3 + Inter UI font. Inspired by benmezger/dotfiles.",
     "dotfiles_last_commit": "2026-04-15",
@@ -3310,7 +5755,7 @@
     "font_ui": "Inter",
     "icons": null,
     "id": "github-benmezger-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -3338,21 +5783,57 @@
     "wallpaper_hint": "i3status-rust"
   },
   {
+    "accent_color": null,
     "author": "command-z-z",
+    "best_for": [
+      "Arch user",
+      "Hyprland enthusiast",
+      "catppuccin lover",
+      "coding",
+      "tiling enthusiast"
+    ],
     "busyness": 0.07,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": "ranger",
+      "launcher": "rofi",
+      "lockscreen": "swaylock",
+      "notifications": "swaync",
+      "panel": "waybar",
+      "prompt": "starship",
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
     "cursor": "catppuccin-frappe-dark-cursors",
     "de": "hyprland",
+    "decorations": {
+      "animations": "subtle",
+      "blur": null,
+      "border_size_px": 4,
+      "gaps_in_px": 8,
+      "gaps_out_px": 20,
+      "rounded_corners_px": 11,
+      "shadows": null
+    },
+    "description": "Arch + Hyprland with Catppuccin Frappe Dark cursor, Operator Mono Lig for code, waybar + eww + rofi + swaync + swaylock + kitty + zsh + starship + ranger. Dark, subtle-animation, 11px corners, 20px gaps.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Catppuccin. Inspired by command-z-z/Arch-dotfiles.",
     "dotfiles_last_commit": "2024-11-12",
     "dotfiles_license": "GPL-3.0",
     "dotfiles_url": "https://github.com/command-z-z/Arch-dotfiles",
     "extraction_confidence": "high",
-    "font_mono": "Operator Mono Lig",
+    "font_mono": "operator-mono-lig",
     "font_ui": null,
     "icons": null,
     "id": "github-command-z-z-arch-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -3386,10 +5867,44 @@
     "wallpaper_hint": "hyprpaper"
   },
   {
+    "accent_color": null,
     "author": "deathbeam",
+    "best_for": [
+      "tiling enthusiast",
+      "minimal distraction",
+      "coding",
+      "bspwm user",
+      "keyboard-driven"
+    ],
     "busyness": 0.04,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "foot"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": "dunst",
+      "panel": "quickshell",
+      "prompt": "starship",
+      "shell": "zsh",
+      "terminal": "foot"
+    },
     "cursor": null,
     "de": "bspwm",
+    "decorations": {
+      "animations": "none",
+      "blur": null,
+      "border_size_px": 1,
+      "gaps_in_px": 0,
+      "gaps_out_px": 0,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "bspwm with a quickshell panel, dunst, foot terminal, zsh + starship + neovim, 0 gaps, 1px borders, no animations. Brutalist and utilitarian \u2014 space used to the edges.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "BSPWM + &T; Inter UI font. Inspired by deathbeam/dotfiles.",
     "dotfiles_last_commit": "2026-04-15",
@@ -3397,10 +5912,10 @@
     "dotfiles_url": "https://github.com/deathbeam/dotfiles",
     "extraction_confidence": "low",
     "font_mono": null,
-    "font_ui": "&t; Inter",
+    "font_ui": "&t;-inter",
     "icons": null,
     "id": "github-deathbeam-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "light",
@@ -3434,10 +5949,46 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "Vallen217",
+    "best_for": [
+      "aesthetic showcase",
+      "Hyprland enthusiast",
+      "dark mode enjoyer",
+      "maximalist",
+      "catppuccin lover"
+    ],
     "busyness": 0.03,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "dunst",
+      "panel": "waybar",
+      "prompt": null,
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": "catppuccin-mocha-light-cursors",
     "de": "hyprland",
+    "decorations": {
+      "animations": "maximalist",
+      "blur": null,
+      "border_size_px": 1,
+      "gaps_in_px": 5,
+      "gaps_out_px": 8,
+      "rounded_corners_px": 6,
+      "shadows": null
+    },
+    "description": "'Eidolon' themed Hyprland with Kora icons, Catppuccin Mocha light cursors, waybar + rofi + dunst + hyprlock + kitty + fish + neovim, maximalist animations. Dark with a mysterious, shadowy feel.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Eidolon + Kora icons. Inspired by Vallen217/dotfiles.",
     "dotfiles_last_commit": "2025-05-22",
@@ -3448,7 +5999,7 @@
     "font_ui": null,
     "icons": "kora",
     "id": "github-vallen217-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -3482,10 +6033,45 @@
     "wallpaper_hint": "darkbloom"
   },
   {
+    "accent_color": "#1D343A",
     "author": "u/Ok-Construction-3237",
+    "best_for": [
+      "beginner",
+      "Hyprland enthusiast",
+      "coding",
+      "aesthetic showcase",
+      "dark mode enjoyer"
+    ],
     "busyness": 0.01,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty",
+        "ghostty"
+      ],
+      "dock": null,
+      "editor": "vscode",
+      "file_manager": "thunar",
+      "launcher": null,
+      "lockscreen": "hyprlock",
+      "notifications": null,
+      "panel": "quickshell",
+      "prompt": "starship",
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": "vimix-white-cursors",
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "First-rice from Reddit, 'Juno Ocean v40' theme \u2014 Hyprland + quickshell panel, hyprlock, kitty, fish + starship, thunar, vscode. Dark teal accent (#1D343A); polished despite being a first attempt.",
     "description_callout": "Source repo has no license \u2014 this entry is shown as inspiration only. The agent will not auto-apply it.",
     "description_short": "HYPRLAND + Juno Ocean V40 + Adwaita Sans UI font. Inspired by My first rice.",
     "dotfiles_last_commit": "2026-02-04",
@@ -3496,7 +6082,7 @@
     "font_ui": "Adwaita Sans",
     "icons": null,
     "id": "hyprland-1jv48oq",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "unknown",
     "mood": "dark",
@@ -3530,10 +6116,47 @@
     "wallpaper_hint": "user-customized"
   },
   {
+    "accent_color": null,
     "author": "sh1zicus",
+    "best_for": [
+      "Hyprland enthusiast",
+      "material design lover",
+      "aesthetic showcase",
+      "coding",
+      "developer tools"
+    ],
     "busyness": 0.02,
+    "components": {
+      "all_launchers": [
+        "anyrun",
+        "fuzzel"
+      ],
+      "all_terminals": [
+        "foot"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": "anyrun",
+      "lockscreen": "hyprlock",
+      "notifications": null,
+      "panel": "ags",
+      "prompt": "starship",
+      "shell": "fish",
+      "terminal": "foot"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "Hyprland with AGS widgets, Adwaita icons, Rubik UI, JetBrainsMono Nerd Font for code, anyrun launcher, foot terminal, fish + starship. Modular Hyprland config with a Material Design 3 feel.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Adwaita icons + Rubik UI font. Inspired by sh1zicus/dots-hyprland.",
     "dotfiles_last_commit": "2025-05-01",
@@ -3541,10 +6164,10 @@
     "dotfiles_url": "https://github.com/sh1zicus/dots-hyprland",
     "extraction_confidence": "high",
     "font_mono": "JetBrainsMono Nerd Font",
-    "font_ui": "Rubik",
-    "icons": "Adwaita",
+    "font_ui": "rubik",
+    "icons": "adwaita",
     "id": "github-sh1zicus-dots-hyprland",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "dark",
@@ -3580,10 +6203,36 @@
     "wallpaper_hint": "Material Design 3"
   },
   {
+    "accent_color": null,
     "author": "datsfilipe",
+    "best_for": [
+      "NixOS user",
+      "niri enthusiast",
+      "developer tools",
+      "tiling enthusiast",
+      "coding"
+    ],
     "busyness": 0.07,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "wezterm"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": "wezterm"
+    },
     "cursor": null,
     "de": "niri",
+    "decorations": {},
+    "description": "Niri with Inter UI and wezterm, managed by home-manager + Nix + sops-manager. A compact but reproducible dev-focused config spanning niri / sway / i3.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "NIRI + Inter UI font. Inspired by datsfilipe/dotfiles.",
     "dotfiles_last_commit": "2026-04-13",
@@ -3594,7 +6243,7 @@
     "font_ui": "Inter",
     "icons": null,
     "id": "github-datsfilipe-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -3628,10 +6277,47 @@
     "wallpaper_hint": "niri"
   },
   {
+    "accent_color": null,
     "author": "zhaleff",
+    "best_for": [
+      "coding",
+      "catppuccin lover",
+      "dynamic theming lover",
+      "Hyprland enthusiast",
+      "dark mode enjoyer"
+    ],
     "busyness": 0.04,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty",
+        "alacritty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "yazi",
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "dunst",
+      "panel": "waybar",
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "Catppuccin Mocha Hyprland build with wallust-generated palettes tied to the wallpaper \u2014 waybar, rofi, dunst, hyprlock, kitty, zsh, yazi, neovim. Minimal fuss; the whole look updates when you change the wallpaper.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Catppuccin Mocha. Inspired by zhaleff/BlackNode.",
     "dotfiles_last_commit": "2026-04-13",
@@ -3642,7 +6328,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-zhaleff-blacknode",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "dark",
@@ -3676,21 +6362,45 @@
     "wallpaper_hint": "wallust"
   },
   {
+    "accent_color": null,
     "author": "mrusme",
+    "best_for": [
+      "coding",
+      "writing",
+      "Hyprland enthusiast",
+      "typography lover",
+      "developer tools"
+    ],
     "busyness": 0.01,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "lf",
+      "launcher": null,
+      "lockscreen": "swaylock",
+      "notifications": "mako",
+      "panel": "waybar",
+      "prompt": "starship",
+      "shell": "zsh",
+      "terminal": null
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {},
+    "description": "Hyprland with the premium Berkeley Mono font, waybar, mako, swaylock, zsh + starship, lf file manager, neovim. Dark, typography-forward, and quietly professional.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND. Inspired by mrusme/dotfiles.",
     "dotfiles_last_commit": "2026-01-15",
     "dotfiles_license": "MIT",
     "dotfiles_url": "https://github.com/mrusme/dotfiles",
     "extraction_confidence": "medium",
-    "font_mono": "Berkeley Mono",
+    "font_mono": "berkeley-mono",
     "font_ui": null,
     "icons": null,
     "id": "github-mrusme-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -3722,21 +6432,55 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "caioax",
+    "best_for": [
+      "aesthetic showcase",
+      "dynamic theming lover",
+      "Hyprland enthusiast",
+      "catppuccin lover",
+      "coding"
+    ],
     "busyness": 0.04,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "quickshell",
+      "prompt": "powerlevel10k",
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "Lyne-dots uses a quickshell bar with dynamic matugen-generated colors tied to wallpaper, plus Catppuccin Mocha base, kitty, zsh + powerlevel10k, neovim. The 'lyne' CLI lets you switch themes on the fly.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Catppuccin Mocha. Inspired by caioax/lyne-dots.",
     "dotfiles_last_commit": "2026-04-12",
     "dotfiles_license": "GPL-3.0",
     "dotfiles_url": "https://github.com/caioax/lyne-dots",
     "extraction_confidence": "high",
-    "font_mono": "Nerd Font",
+    "font_mono": " Nerd Font",
     "font_ui": null,
     "icons": null,
     "id": "github-caioax-lyne-dots",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "dark",
@@ -3774,10 +6518,44 @@
     "wallpaper_hint": "matugen-generated-colors"
   },
   {
+    "accent_color": null,
     "author": "sbalghari",
+    "best_for": [
+      "Hyprland enthusiast",
+      "minimal distraction",
+      "light mode lover",
+      "writing",
+      "coding"
+    ],
     "busyness": 0.05,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": "hyprlock",
+      "notifications": null,
+      "panel": null,
+      "prompt": "starship",
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "A quiet Hyprland setup with Inter UI, waybar, rofi, kitty + fish + starship, hyprlock, Catppuccin Mocha Lavender wallpaper. Light-mood and understated \u2014 a clean daily driver more than a rice for show.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Inter UI font. Inspired by sbalghari/sbdots.",
     "dotfiles_last_commit": "2026-01-09",
@@ -3788,7 +6566,7 @@
     "font_ui": "Inter",
     "icons": null,
     "id": "github-sbalghari-sbdots",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "light",
@@ -3824,10 +6602,46 @@
     "wallpaper_hint": "catppuccin-mocha-lavender"
   },
   {
+    "accent_color": null,
     "author": "SirEthanator",
+    "best_for": [
+      "Hyprland enthusiast",
+      "macos lover",
+      "coding",
+      "GNOME refugee",
+      "developer tools"
+    ],
     "busyness": 0.02,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "swaync",
+      "panel": "waybar",
+      "prompt": "starship",
+      "shell": null,
+      "terminal": "kitty"
+    },
     "cursor": "bibata",
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "Colloid-themed Hyprland with Bibata cursor, 0xProto Nerd Font, waybar + rofi + swaync + hyprlock + kitty + neovim. Clean and quietly modern \u2014 Colloid gives it a subtle, GNOME-flavored restraint.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Colloid Gtk Theme. Inspired by SirEthanator/Hyprland-Dots.",
     "dotfiles_last_commit": "2025-12-05",
@@ -3838,7 +6652,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-sirethanator-hyprland-dots",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "stow",
     "license_status": "permissive",
     "mood": "dark",
@@ -3860,7 +6674,7 @@
     "source": "github",
     "source_url": "https://github.com/SirEthanator/Hyprland-Dots",
     "staleness_score": 0.24,
-    "theme": "colloid-gtk-theme",
+    "theme": "colloid",
     "title": "SirEthanator/Hyprland-Dots",
     "upvotes": 82,
     "verified": false,
@@ -3868,10 +6682,42 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "haaarshsingh",
+    "best_for": [
+      "light mode lover",
+      "tiling enthusiast",
+      "aesthetic showcase",
+      "writing",
+      "coding"
+    ],
     "busyness": 0.03,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": "dunst",
+      "panel": "polybar",
+      "prompt": "starship",
+      "shell": "fish",
+      "terminal": null
+    },
     "cursor": "qogirr",
     "de": "i3",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": 15,
+      "gaps_out_px": 12,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "i3-gaps with Adapta-Nokto theme, Qogirr cursor, Averta UI font, polybar + compton-rounded-corners + dunst + fish + starship + neovim. Pastel light-mood with real rounded corners \u2014 unusually soft for i3.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "I3 + Adapta Nokto Eta + Averta UI font. Inspired by haaarshsingh/dots.",
     "dotfiles_last_commit": "2026-01-02",
@@ -3879,10 +6725,10 @@
     "dotfiles_url": "https://github.com/haaarshsingh/dots",
     "extraction_confidence": "high",
     "font_mono": null,
-    "font_ui": "Averta",
+    "font_ui": "averta",
     "icons": null,
     "id": "github-haaarshsingh-dots",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "light",
@@ -3916,10 +6762,46 @@
     "wallpaper_hint": "pastel"
   },
   {
+    "accent_color": null,
     "author": "simonvic",
+    "best_for": [
+      "coding",
+      "sway user",
+      "tiling enthusiast",
+      "developer tools",
+      "minimal distraction"
+    ],
     "busyness": 0.01,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": "swaylock",
+      "notifications": "dunst",
+      "panel": "waybar",
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "sway",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": 4,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "Sway (with swayfx) running a dense waybar + rofi + dunst + swaylock + kitty + zsh + neovim stack, 4px borders. Practical and dark \u2014 a focused work-desktop rather than a showpiece.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "SWAY + Sans, Nerdfont UI font. Inspired by simonvic/dotfiles.",
     "dotfiles_last_commit": "2026-04-12",
@@ -3927,10 +6809,10 @@
     "dotfiles_url": "https://github.com/simonvic/dotfiles",
     "extraction_confidence": "high",
     "font_mono": null,
-    "font_ui": "sans, nerdfont",
+    "font_ui": "sans,-nerd",
     "icons": null,
     "id": "github-simonvic-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -3964,52 +6846,37 @@
     "wallpaper_hint": ""
   },
   {
-    "author": "elpritchos",
-    "busyness": 0.06,
-    "cursor": null,
-    "de": "hyprland",
-    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
-    "description_short": "HYPRLAND + Kanagawa + 0X000000 icons + Cascadia Mono Nf UI font. Inspired by elpritchos/omadora.",
-    "dotfiles_last_commit": "2026-04-11",
-    "dotfiles_license": "MIT",
-    "dotfiles_url": "https://github.com/elpritchos/omadora",
-    "extraction_confidence": "low",
-    "font_mono": "cascadia-mono-nf",
-    "font_ui": "cascadia-mono-nf",
-    "icons": "0x000000",
-    "id": "github-elpritchos-omadora",
-    "indexed_at": "2026-04-15",
-    "install_method": "script",
-    "license_status": "permissive",
-    "mood": "light",
-    "packages": {
-      "arch": [],
-      "fedora": [],
-      "ubuntu": []
-    },
-    "palette": [
-      "#ffdd00",
-      "#766615",
-      "#fedf00"
-    ],
-    "post_date": "2026-04-11",
-    "preview_image": "gallery/github-elpritchos-omadora.webp",
-    "signature_features": [],
-    "source": "github",
-    "source_url": "https://github.com/elpritchos/omadora",
-    "staleness_score": 0.01,
-    "theme": "kanagawa",
-    "title": "elpritchos/omadora",
-    "upvotes": 78,
-    "verified": false,
-    "verified_distros": [],
-    "wallpaper_hint": ""
-  },
-  {
+    "accent_color": null,
     "author": "dileep-kishore",
+    "best_for": [
+      "NixOS user",
+      "niri enthusiast",
+      "catppuccin lover",
+      "coding",
+      "tiling enthusiast"
+    ],
     "busyness": 0.02,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty",
+        "wezterm"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "waybar",
+      "prompt": null,
+      "shell": null,
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "niri",
+    "decorations": {},
+    "description": "Niri on NixOS with Catppuccin colors, Monaspace font, waybar, kitty, walker launcher, ghostty. A clean declarative setup that takes advantage of niri's scrollable workflow.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "NIRI + Catppuccin. Inspired by dileep-kishore/nixos-config.",
     "dotfiles_last_commit": "2025-10-16",
@@ -4020,7 +6887,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-dileep-kishore-nixos-config",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -4054,10 +6921,44 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "Mastermindzh",
+    "best_for": [
+      "tiling enthusiast",
+      "coding",
+      "developer tools",
+      "i3 starter",
+      "dracula lover"
+    ],
     "busyness": 0.03,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [],
+      "dock": null,
+      "editor": "vscode",
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "polybar",
+      "prompt": null,
+      "shell": "bash",
+      "terminal": null
+    },
     "cursor": null,
     "de": "i3",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": 10,
+      "gaps_out_px": 0,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "i3-gaps with polybar, rofi, dunst, xfce4-terminal, vscode, Dracula wallpaper. 10px gaps, practical over pretty \u2014 a 'get work done' setup rather than an aesthetic showcase.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "I3. Inspired by Mastermindzh/dotfiles.",
     "dotfiles_last_commit": "2025-09-10",
@@ -4068,7 +6969,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-mastermindzh-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "mixed",
@@ -4231,21 +7132,45 @@
     "wallpaper_hint": "dracula"
   },
   {
+    "accent_color": null,
     "author": "klaxalk",
+    "best_for": [
+      "beginner",
+      "tiling enthusiast",
+      "i3 starter",
+      "minimal distraction",
+      "low-resource machines"
+    ],
     "busyness": 0.01,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "i3bar",
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "i3",
+    "decorations": {},
+    "description": "A minimal i3 + i3bar setup with Powerline fonts. Light-mood and sparse \u2014 a starting point more than a statement, good if you want a bare frame you can style yourself.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "I3. Inspired by klaxalk/linux-setup.",
     "dotfiles_last_commit": "2026-04-02",
     "dotfiles_license": "MIT",
     "dotfiles_url": "https://github.com/klaxalk/linux-setup",
     "extraction_confidence": "high",
-    "font_mono": "Powerline",
+    "font_mono": "powerline",
     "font_ui": null,
     "icons": null,
     "id": "github-klaxalk-linux-setup",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "light",
@@ -4273,21 +7198,57 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "n6v26r",
+    "best_for": [
+      "catppuccin lover",
+      "maximalist",
+      "tiling enthusiast",
+      "coding",
+      "aesthetic showcase"
+    ],
     "busyness": 0.07,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "ranger",
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "dunst",
+      "panel": "polybar",
+      "prompt": "starship",
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "gnome",
+    "decorations": {
+      "animations": "maximalist",
+      "blur": null,
+      "border_size_px": 3,
+      "gaps_in_px": 10,
+      "gaps_out_px": 20,
+      "rounded_corners_px": 10,
+      "shadows": null
+    },
+    "description": "A GNOME config that borrows heavily from the tiling world \u2014 polybar, rofi, dunst, hyprlock, kitty, zsh + starship, ranger, neovim, 10/20px gaps, maximalist animations. Catppuccin Mocha Lavender top to bottom.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "GNOME + Catppuccin Mocha Lavender. Inspired by n6v26r/.dotfiles.",
     "dotfiles_last_commit": "2026-01-24",
     "dotfiles_license": "MIT",
     "dotfiles_url": "https://github.com/n6v26r/.dotfiles",
     "extraction_confidence": "high",
-    "font_mono": "FiraCode Nerd Font Mono + JetBrains",
+    "font_mono": "FiraCode Nerd Font",
     "font_ui": null,
     "icons": null,
     "id": "github-n6v26r-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "mixed",
@@ -4318,10 +7279,42 @@
     "wallpaper_hint": "catppuccin-mocha-lavender"
   },
   {
+    "accent_color": null,
     "author": "Swarsel",
+    "best_for": [
+      "Emacs lover",
+      "sway user",
+      "tiling enthusiast",
+      "coding",
+      "light mode lover"
+    ],
     "busyness": 0.03,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": "emacs",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "waybar",
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "sway",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "Swarsel's sway config with FiraCode Nerd Font Propo, waybar, emacs. Light-mood and measured \u2014 a sway daily driver leaning on Emacs for everything editable.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "SWAY + Firacode Nerd Font Propo UI font. Inspired by Swarsel/.dotfiles.",
     "dotfiles_last_commit": "2026-04-03",
@@ -4332,7 +7325,7 @@
     "font_ui": "firacode-nerd-font-propo",
     "icons": null,
     "id": "github-swarsel-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "light",
@@ -4360,10 +7353,38 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "Justus0405",
+    "best_for": [
+      "beginner",
+      "tiling enthusiast",
+      "catppuccin lover",
+      "light mode lover",
+      "i3 starter"
+    ],
     "busyness": 0.03,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "alacritty"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "polybar",
+      "prompt": null,
+      "shell": null,
+      "terminal": "alacritty"
+    },
     "cursor": null,
     "de": "i3",
+    "decorations": {},
+    "description": "A light-mood Catppuccin i3 rice with polybar, rofi, alacritty, sddm, nemo. Easygoing and approachable \u2014 a good 'my first tiling WM' kit.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "I3 + Catppuccin. Inspired by Justus0405/i3wm-dotfiles.",
     "dotfiles_last_commit": "2026-03-24",
@@ -4374,7 +7395,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-justus0405-i3wm-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "light",
@@ -4414,21 +7435,128 @@
     "wallpaper_hint": "Catppuccin"
   },
   {
+    "accent_color": null,
+    "author": "Neurarian",
+    "best_for": [
+      "material design lover",
+      "dynamic theming lover",
+      "Hyprland enthusiast",
+      "River user",
+      "aesthetic showcase"
+    ],
+    "busyness": 0.02,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
+    "cursor": null,
+    "de": "hyprland",
+    "decorations": {},
+    "description": "Matshell is an AGS/Astal desktop shell built around matugen material-design theming \u2014 the whole UI adapts to whatever wallpaper you set. Works on both Hyprland and River.",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "HYPRLAND + Matugen Generated + Adwaita Icon Theme icons. Inspired by Neurarian/matshell.",
+    "dotfiles_last_commit": "2026-04-11",
+    "dotfiles_license": "GPL-3.0",
+    "dotfiles_url": "https://github.com/Neurarian/matshell",
+    "extraction_confidence": "high",
+    "font_mono": "ersatz_mono",
+    "font_ui": null,
+    "icons": "adwaita",
+    "id": "github-neurarian-matshell",
+    "indexed_at": "2026-04-16",
+    "install_method": "script",
+    "license_status": "permissive",
+    "mood": "mixed",
+    "packages": {
+      "arch": [],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#ffb68d",
+      "#343335",
+      "#fdb68d"
+    ],
+    "post_date": "2026-04-11",
+    "preview_image": "gallery/github-neurarian-matshell.webp",
+    "signature_features": [
+      "AGS/Astal desktop shell",
+      "adaptive-layout",
+      "matugen-based-theming",
+      "hyprland-and-river-support"
+    ],
+    "source": "github",
+    "source_url": "https://github.com/Neurarian/matshell",
+    "staleness_score": 0.01,
+    "theme": "matugen-generated",
+    "title": "Neurarian/matshell",
+    "upvotes": 66,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": "dynamic-material-design"
+  },
+  {
+    "accent_color": null,
     "author": "shikikan-neko08",
+    "best_for": [
+      "tiling enthusiast",
+      "light mode lover",
+      "anime lover",
+      "coding",
+      "i3 starter"
+    ],
     "busyness": 0.1,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "vim",
+      "file_manager": "ranger",
+      "launcher": "rofi",
+      "lockscreen": null,
+      "notifications": "dunst",
+      "panel": "polybar",
+      "prompt": "starship",
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "i3",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": 9,
+      "gaps_out_px": 5,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "'Frostneko' i3 rice with Papirus icons, Iosevka Custom monospace, polybar + rofi + dunst + kitty + zsh + starship + ranger + vim. Pastel light-mood; anime-flavored without going overboard.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "I3 + Frostneko + Papirus (Nya) icons. Inspired by shikikan-neko08/nyartix-rice.",
     "dotfiles_last_commit": "2026-01-13",
     "dotfiles_license": "GPL-3.0",
     "dotfiles_url": "https://github.com/shikikan-neko08/nyartix-rice",
     "extraction_confidence": "high",
-    "font_mono": "Iosevka Custom",
+    "font_mono": "iosevka-custom",
     "font_ui": null,
-    "icons": "papirus (nya)",
+    "icons": "papirus",
     "id": "github-shikikan-neko08-nyartix-rice",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "light",
@@ -4462,10 +7590,44 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "issmirnov",
+    "best_for": [
+      "macos lover",
+      "Hyprland enthusiast",
+      "tiling enthusiast",
+      "coding",
+      "keyboard-driven"
+    ],
     "busyness": 0.01,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "alacritty"
+      ],
+      "dock": null,
+      "editor": "vim",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": "hyprlock",
+      "notifications": null,
+      "panel": "waybar",
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": "alacritty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": "subtle",
+      "blur": null,
+      "border_size_px": 4,
+      "gaps_in_px": 5,
+      "gaps_out_px": 20,
+      "rounded_corners_px": 15,
+      "shadows": null
+    },
+    "description": "Hyprland rice built to mimic a macOS window-manager stack (yabai/skhd vibes) \u2014 waybar, hyprlock, alacritty, zsh, vim. Subtle animations, 15px corners, 20px gaps, FontAwesome-driven UI fonts.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Fontawesome, Roboto, Helvetica, Arial, Sans Serif UI font. Inspired by issmirnov/dotfiles.",
     "dotfiles_last_commit": "2026-04-07",
@@ -4473,10 +7635,10 @@
     "dotfiles_url": "https://github.com/issmirnov/dotfiles",
     "extraction_confidence": "high",
     "font_mono": null,
-    "font_ui": "FontAwesome, Roboto, Helvetica, Arial, sans-serif",
+    "font_ui": "fontawesome,-roboto,-helvetica,-arial,-sans-serif",
     "icons": null,
     "id": "github-issmirnov-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -4507,10 +7669,34 @@
     "wallpaper_hint": "hyprpaper"
   },
   {
+    "accent_color": null,
     "author": "flyingcakes85",
+    "best_for": [
+      "XFCE user",
+      "writing",
+      "aesthetic showcase",
+      "low-resource machines",
+      "dark mode enjoyer"
+    ],
     "busyness": 0.05,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "xfce",
+    "decorations": {},
+    "description": "LoveBites is an XFCE rice with a custom 'lovebites' theme, PapirusRed icons, Iosevka Nerd Font everywhere, tint2 + picom + conky + xfwm4. A soft, affectionate-feeling dark theme that leans warm and quiet.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "XFCE + Lovebites + Papirusred icons + Iosevka Nerd Font UI font. Inspired by flyingcakes85/LoveBites.",
     "dotfiles_last_commit": "2025-10-14",
@@ -4521,7 +7707,7 @@
     "font_ui": "Iosevka Nerd Font",
     "icons": "papirusred",
     "id": "github-flyingcakes85-lovebites",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -4554,10 +7740,124 @@
     "wallpaper_hint": "Rikka Takarada Minimalist"
   },
   {
+    "accent_color": null,
+    "author": "r0naldoom",
+    "best_for": [
+      "light mode lover",
+      "aesthetic showcase",
+      "Hyprland enthusiast",
+      "maximalist",
+      "coding"
+    ],
+    "busyness": 0.05,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty",
+        "alacritty",
+        "ghostty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": "fish",
+      "terminal": "kitty"
+    },
+    "cursor": null,
+    "de": "hyprland",
+    "decorations": {
+      "animations": "maximalist",
+      "blur": null,
+      "border_size_px": 2,
+      "gaps_in_px": 3,
+      "gaps_out_px": 8,
+      "rounded_corners_px": 20,
+      "shadows": null
+    },
+    "description": "Hyprland with a Noctalia (QuickShell) panel, rofi, hyprlock, kitty, fish, neovim, maximalist animations and 20px rounded corners. Light-mood with warm accents \u2014 a fresh spin on the usual dark-rice formula.",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "HYPRLAND. Inspired by r0naldoom/dotfiles.",
+    "dotfiles_last_commit": "2026-02-01",
+    "dotfiles_license": "GPL-3.0",
+    "dotfiles_url": "https://github.com/r0naldoom/dotfiles",
+    "extraction_confidence": "high",
+    "font_mono": "JetBrainsMono Nerd Font",
+    "font_ui": null,
+    "icons": null,
+    "id": "github-r0naldoom-dotfiles",
+    "indexed_at": "2026-04-16",
+    "install_method": "manual",
+    "license_status": "permissive",
+    "mood": "light",
+    "packages": {
+      "arch": [],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#f8fafb",
+      "#1f1d20",
+      "#844b55"
+    ],
+    "post_date": "2026-02-01",
+    "preview_image": "gallery/github-r0naldoom-dotfiles.webp",
+    "signature_features": [
+      "Noctalia Shell (QuickShell)",
+      "Rofi",
+      "im",
+      "im_de_type_wayland_only",
+      "im_de_type_wayland_only_reason_reason_re"
+    ],
+    "source": "github",
+    "source_url": "https://github.com/r0naldoom/dotfiles",
+    "staleness_score": 0.14,
+    "theme": null,
+    "title": "r0naldoom/dotfiles",
+    "upvotes": 59,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": ""
+  },
+  {
+    "accent_color": null,
     "author": "schmeekygeek",
+    "best_for": [
+      "tiling enthusiast",
+      "bspwm user",
+      "developer tools",
+      "coding",
+      "rose-pine lover"
+    ],
     "busyness": 0.08,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "alacritty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": "rofi",
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "polybar",
+      "prompt": "starship",
+      "shell": "bash",
+      "terminal": "alacritty"
+    },
     "cursor": null,
     "de": "bspwm",
+    "decorations": {},
+    "description": "bspwm with Iosevka Comfy Motion UI, polybar + rofi + alacritty + bash + starship + neovim, conky widgets, rose-pine wallpaper. Dark-mood and terminal-focused.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "BSPWM + Iosevkacomfymotion UI font. Inspired by schmeekygeek/dotfiles.",
     "dotfiles_last_commit": "2026-01-01",
@@ -4565,10 +7865,10 @@
     "dotfiles_url": "https://github.com/schmeekygeek/dotfiles",
     "extraction_confidence": "medium",
     "font_mono": null,
-    "font_ui": "IosevkaComfyMotion",
+    "font_ui": "iosevkacomfymotion",
     "icons": null,
     "id": "github-schmeekygeek-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -4602,10 +7902,34 @@
     "wallpaper_hint": "rose-pine"
   },
   {
+    "accent_color": null,
     "author": "GabrielTenma",
+    "best_for": [
+      "GNOME user",
+      "macos lover",
+      "Windows refugee",
+      "aesthetic showcase",
+      "beginner"
+    ],
     "busyness": 0.04,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "gnome-extensions",
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "gnome",
+    "decorations": {},
+    "description": "GNOME rice with Graphite-Dark theme, Product Sans UI, ArcMenu + Dash to Dock extensions, Aylur's Widgets. Keeps GNOME's polish but adds a more desktop-traditional launcher and dock.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "GNOME + Graphite Dark + Product Sans UI font. Inspired by GabrielTenma/dotfiles-gnm.",
     "dotfiles_last_commit": "2025-01-01",
@@ -4613,10 +7937,10 @@
     "dotfiles_url": "https://github.com/GabrielTenma/dotfiles-gnm",
     "extraction_confidence": "high",
     "font_mono": null,
-    "font_ui": "Product Sans",
+    "font_ui": "product-sans",
     "icons": null,
     "id": "github-gabrieltenma-dotfiles-gnm",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -4650,21 +7974,45 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
     "author": "RayhaanFay",
+    "best_for": [
+      "aesthetic showcase",
+      "XFCE user",
+      "conversation starter",
+      "low-resource machines",
+      "art lover"
+    ],
     "busyness": 0.04,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
     "cursor": null,
     "de": "xfce",
+    "decorations": {},
+    "description": "XFCE themed around the Sistine Chapel's 'Creation of Adam' \u2014 Ghost-Mantis theme, Nordzy Cyan Dark icons, JetBrainsMono Nerd Font. An artistic, unusual rice that rejects the usual Catppuccin/TokyoNight defaults.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "XFCE + Ghost Mantis + Nordzy Cyan Dark Mod icons. Inspired by RayhaanFay/xfce-creation-of-adam.",
     "dotfiles_last_commit": "2025-12-15",
     "dotfiles_license": "MIT",
     "dotfiles_url": "https://github.com/RayhaanFay/xfce-creation-of-adam",
     "extraction_confidence": "high",
-    "font_mono": "fonts/JetBrainsMono Nerd Font.ttf",
+    "font_mono": "fonts/JetBrainsMono Nerd Font",
     "font_ui": null,
     "icons": "nordzy-cyan-dark-mod",
     "id": "github-rayhaanfay-xfce-creation-of-adam",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "dark",
@@ -4695,10 +8043,44 @@
     "wallpaper_hint": "The Creation of Adam"
   },
   {
+    "accent_color": null,
     "author": "Youwes09",
+    "best_for": [
+      "material design lover",
+      "aesthetic showcase",
+      "Hyprland enthusiast",
+      "macos lover",
+      "dynamic theming lover"
+    ],
     "busyness": 0.02,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "foot"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": "hyprlock",
+      "notifications": null,
+      "panel": "ags",
+      "prompt": "starship",
+      "shell": "fish",
+      "terminal": "foot"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": "maximalist",
+      "blur": null,
+      "border_size_px": 2,
+      "gaps_in_px": 5,
+      "gaps_out_px": 10,
+      "rounded_corners_px": 5,
+      "shadows": null
+    },
+    "description": "Ateon is an AGS/Astal + Material Design 3 Hyprland shell with matugen wallpaper-derived colors, Inter UI, JetBrainsMono Nerd Font, foot terminal, fish + starship. Maximalist animations, 5px corners.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Inter UI font. Inspired by Youwes09/Ateon.",
     "dotfiles_last_commit": "2026-03-11",
@@ -4709,7 +8091,7 @@
     "font_ui": "Inter",
     "icons": null,
     "id": "github-youwes09-ateon",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "mixed",
@@ -4746,10 +8128,44 @@
     "wallpaper_hint": "matugen-generated-colors-from-wallpaper"
   },
   {
+    "accent_color": null,
     "author": "shell-ninja",
+    "best_for": [
+      "Hyprland enthusiast",
+      "coding",
+      "light mode lover",
+      "beginner",
+      "developer tools"
+    ],
     "busyness": 0.04,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "dolphin",
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": null,
+      "panel": null,
+      "prompt": null,
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "shell-ninja's second-gen Hyprland config \u2014 waybar, rofi, sddm, kitty + fish + neovim, fastfetch, dolphin file manager. Light-mood and practical; theme rotates via hyprconf-v2's wallpapers.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND. Inspired by shell-ninja/hyprconf-v2.",
     "dotfiles_last_commit": "2026-03-27",
@@ -4760,7 +8176,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-shell-ninja-hyprconf-v2",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "light",
@@ -4794,10 +8210,45 @@
     "wallpaper_hint": "hyprconf-v2/Wallpapers/__theme_name/"
   },
   {
+    "accent_color": null,
     "author": "deridray",
+    "best_for": [
+      "tokyonight lover",
+      "coding",
+      "Hyprland enthusiast",
+      "aesthetic showcase",
+      "maximalist"
+    ],
     "busyness": 0.04,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "kitty",
+        "alacritty"
+      ],
+      "dock": null,
+      "editor": "vscode",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": "hyprlock",
+      "notifications": null,
+      "panel": "waybar",
+      "prompt": "starship",
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": "bibata-cursor-theme",
     "de": "hyprland",
+    "decorations": {
+      "animations": "maximalist",
+      "blur": null,
+      "border_size_px": 0,
+      "gaps_in_px": 5,
+      "gaps_out_px": 20,
+      "rounded_corners_px": 20,
+      "shadows": null
+    },
+    "description": "TokyoNight Hyprland with Bibata cursor, Inter UI, waybar, hyprlock, kitty, fish + starship, vscode. Maximalist animations and 20px rounded corners make it visually rich while keeping the workflow fast.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Tokyonight Gtk Theme + Inter UI font. Inspired by deridray/dotfiles.",
     "dotfiles_last_commit": "2026-03-08",
@@ -4808,7 +8259,7 @@
     "font_ui": "Inter",
     "icons": null,
     "id": "github-deridray-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "dark",
@@ -4836,7 +8287,7 @@
     "source": "github",
     "source_url": "https://github.com/deridray/dotfiles",
     "staleness_score": 0.07,
-    "theme": "tokyonight-gtk-theme",
+    "theme": "tokyonight",
     "title": "deridray/dotfiles",
     "upvotes": 52,
     "verified": false,
@@ -4844,10 +8295,42 @@
     "wallpaper_hint": "hyprland-dusk"
   },
   {
+    "accent_color": null,
     "author": "johackim",
+    "best_for": [
+      "dynamic theming lover",
+      "tiling enthusiast",
+      "developer tools",
+      "coding",
+      "keyboard-driven"
+    ],
     "busyness": 0.07,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": "dunst",
+      "panel": "polybar",
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": null
+    },
     "cursor": null,
     "de": "i3",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": null,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "A pywal-themed i3 rice \u2014 the colors reshape whenever you change wallpaper. polybar + dunst + zsh + neovim + rxvt; dark, terminal-first, and adaptive.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "I3 + Pywal. Inspired by johackim/dotfiles.",
     "dotfiles_last_commit": "2026-04-13",
@@ -4858,7 +8341,7 @@
     "font_ui": null,
     "icons": null,
     "id": "github-johackim-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "dark",
@@ -4968,10 +8451,47 @@
     "wallpaper_hint": "pywal"
   },
   {
+    "accent_color": null,
     "author": "Pazl27",
+    "best_for": [
+      "gruvbox lover",
+      "coding",
+      "writing",
+      "developer tools",
+      "Hyprland enthusiast"
+    ],
     "busyness": 0.06,
+    "components": {
+      "all_launchers": [
+        "rofi"
+      ],
+      "all_terminals": [
+        "kitty",
+        "alacritty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "yazi",
+      "launcher": "rofi",
+      "lockscreen": "hyprlock",
+      "notifications": "dunst",
+      "panel": "waybar",
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": "kitty"
+    },
     "cursor": null,
     "de": "hyprland",
+    "decorations": {
+      "animations": "subtle",
+      "blur": null,
+      "border_size_px": 3,
+      "gaps_in_px": 2,
+      "gaps_out_px": 5,
+      "rounded_corners_px": 10,
+      "shadows": null
+    },
+    "description": "Gruvbox Hyprland with CodeNewRoman Nerd Font UI and JetBrainsMono Nerd Font for code \u2014 waybar, rofi, dunst, hyprlock, kitty, zsh, yazi, neovim. A warm, amber-toned rice that avoids the usual teal/purple clich\u00e9s.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Gruvbox + Codenewroman Nerd Font Propo UI font. Inspired by Pazl27/dotfiles.",
     "dotfiles_last_commit": "2026-02-27",
@@ -4979,10 +8499,10 @@
     "dotfiles_url": "https://github.com/Pazl27/dotfiles",
     "extraction_confidence": "high",
     "font_mono": "JetBrainsMono Nerd Font",
-    "font_ui": "CodeNewRoman Nerd Font Propo",
+    "font_ui": "CodeNewRoman Nerd Font",
     "icons": null,
     "id": "github-pazl27-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "stow",
     "license_status": "permissive",
     "mood": "dark",
@@ -5016,21 +8536,131 @@
     "wallpaper_hint": ""
   },
   {
+    "accent_color": null,
+    "author": "edu-flores",
+    "best_for": [
+      "tiling enthusiast",
+      "GNOME refugee",
+      "coding",
+      "i3 starter",
+      "dark mode enjoyer"
+    ],
+    "busyness": 0.06,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "alacritty"
+      ],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": "dunst",
+      "panel": null,
+      "prompt": null,
+      "shell": "zsh",
+      "terminal": "alacritty"
+    },
+    "cursor": "quintom-cursor-theme-git",
+    "de": "i3",
+    "decorations": {},
+    "description": "i3 with adw-gtk theme, Quintom cursor, Inter UI, JetBrainsMono Nerd Font, polybar + alacritty + zsh + rofi + dunst. Dark and practical, with GNOME-adjacent defaults bolted onto a tiling base.",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "I3 + Adw Gtk Theme Git + Inter UI font. Inspired by edu-flores/linux-dotfiles.",
+    "dotfiles_last_commit": "2025-04-19",
+    "dotfiles_license": "MIT",
+    "dotfiles_url": "https://github.com/edu-flores/linux-dotfiles",
+    "extraction_confidence": "high",
+    "font_mono": "JetBrainsMono Nerd Font",
+    "font_ui": "Inter",
+    "icons": null,
+    "id": "github-edu-flores-linux-dotfiles",
+    "indexed_at": "2026-04-16",
+    "install_method": "script",
+    "license_status": "permissive",
+    "mood": "dark",
+    "packages": {
+      "arch": [],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#1d1d1d",
+      "#ceddf6",
+      "#e3eafa"
+    ],
+    "post_date": "2025-04-19",
+    "preview_image": "gallery/github-edu-flores-linux-dotfiles.webp",
+    "signature_features": [
+      "polybar",
+      "alacritty",
+      "unid_er_shell_shell_shell_shell_shell_er",
+      "rofi",
+      "dunst"
+    ],
+    "source": "github",
+    "source_url": "https://github.com/edu-flores/linux-dotfiles",
+    "staleness_score": 0.67,
+    "theme": "adw-gtk-theme-git",
+    "title": "edu-flores/linux-dotfiles",
+    "upvotes": 51,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": ""
+  },
+  {
+    "accent_color": null,
     "author": "FireStreaker2",
+    "best_for": [
+      "Hyprland enthusiast",
+      "light mode lover",
+      "coding",
+      "beginner",
+      "writing"
+    ],
     "busyness": 0.03,
+    "components": {
+      "all_launchers": [
+        "wofi"
+      ],
+      "all_terminals": [
+        "kitty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": null,
+      "launcher": "wofi",
+      "lockscreen": "hyprlock",
+      "notifications": null,
+      "panel": "waybar",
+      "prompt": "starship",
+      "shell": "fish",
+      "terminal": "kitty"
+    },
     "cursor": "Adwaita",
     "de": "hyprland",
+    "decorations": {
+      "animations": "subtle",
+      "blur": null,
+      "border_size_px": 2,
+      "gaps_in_px": 5,
+      "gaps_out_px": 20,
+      "rounded_corners_px": 10,
+      "shadows": null
+    },
+    "description": "A light-mood Hyprland rice with a blue theme, Adwaita cursor, JetBrainsMono Nerd Font UI, waybar + wofi + hyprlock + kitty + fish + starship + neovim. Subtle animations, 10px corners.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "HYPRLAND + Bluegtk + Jetbrainsmono Nerd Font UI font. Inspired by FireStreaker2/dotfiles.",
     "dotfiles_last_commit": "2025-06-06",
     "dotfiles_license": "MIT",
     "dotfiles_url": "https://github.com/FireStreaker2/dotfiles",
     "extraction_confidence": "high",
-    "font_mono": "__ersatz_mono_font__",
+    "font_mono": "ersatz_mono",
     "font_ui": "JetBrainsMono Nerd Font",
     "icons": null,
     "id": "github-firestreaker2-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "script",
     "license_status": "permissive",
     "mood": "light",
@@ -5056,7 +8686,7 @@
     "source": "github",
     "source_url": "https://github.com/FireStreaker2/dotfiles",
     "staleness_score": 0.58,
-    "theme": "bluegtk",
+    "theme": "blue",
     "title": "FireStreaker2/dotfiles",
     "upvotes": 51,
     "verified": false,
@@ -5064,21 +8694,129 @@
     "wallpaper_hint": "wallpaper2.png"
   },
   {
+    "accent_color": null,
+    "author": "athxrvx",
+    "best_for": [
+      "sway user",
+      "nord lover",
+      "tiling enthusiast",
+      "declarative setup",
+      "coding"
+    ],
+    "busyness": 0.03,
+    "components": {
+      "all_launchers": [
+        "wofi"
+      ],
+      "all_terminals": [],
+      "dock": null,
+      "editor": null,
+      "file_manager": null,
+      "launcher": "wofi",
+      "lockscreen": null,
+      "notifications": null,
+      "panel": "polybar",
+      "prompt": null,
+      "shell": null,
+      "terminal": null
+    },
+    "cursor": null,
+    "de": "sway",
+    "decorations": {},
+    "description": "Nord-themed sway with polybar, wofi, eww widgets, zsh + starship. Light-mood and minimalist; the name ('idempotent') hints at the declarative, reproducible philosophy behind it.",
+    "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
+    "description_short": "SWAY + Nordic. Inspired by athxrvx/IdempotentSystems.",
+    "dotfiles_last_commit": "2025-04-29",
+    "dotfiles_license": "MIT",
+    "dotfiles_url": "https://github.com/athxrvx/IdempotentSystems",
+    "extraction_confidence": "low",
+    "font_mono": "zsh-+-starship",
+    "font_ui": null,
+    "icons": null,
+    "id": "github-athxrvx-idempotentsystems",
+    "indexed_at": "2026-04-16",
+    "install_method": "manual",
+    "license_status": "permissive",
+    "mood": "light",
+    "packages": {
+      "arch": [],
+      "fedora": [],
+      "ubuntu": []
+    },
+    "palette": [
+      "#000000",
+      "#cbc1d8",
+      "#020001"
+    ],
+    "post_date": "2025-04-29",
+    "preview_image": "gallery/github-athxrvx-idempotentsystems.webp",
+    "signature_features": [
+      "swaywm",
+      "waybar",
+      "wofi",
+      "eww",
+      "eww-widgets/eww_widgets_widgets_widgets_"
+    ],
+    "source": "github",
+    "source_url": "https://github.com/athxrvx/IdempotentSystems",
+    "staleness_score": 0.65,
+    "theme": "nord",
+    "title": "athxrvx/IdempotentSystems",
+    "upvotes": 50,
+    "verified": false,
+    "verified_distros": [],
+    "wallpaper_hint": ""
+  },
+  {
+    "accent_color": null,
     "author": "saschagrunert",
+    "best_for": [
+      "tiling enthusiast",
+      "coding",
+      "minimal distraction",
+      "developer tools",
+      "i3 starter"
+    ],
     "busyness": 0.09,
+    "components": {
+      "all_launchers": [],
+      "all_terminals": [
+        "alacritty"
+      ],
+      "dock": null,
+      "editor": "neovim",
+      "file_manager": "ranger",
+      "launcher": null,
+      "lockscreen": null,
+      "notifications": "dunst",
+      "panel": null,
+      "prompt": null,
+      "shell": "fish",
+      "terminal": "alacritty"
+    },
     "cursor": "bibata",
     "de": "i3",
+    "decorations": {
+      "animations": null,
+      "blur": null,
+      "border_size_px": 1,
+      "gaps_in_px": null,
+      "gaps_out_px": null,
+      "rounded_corners_px": null,
+      "shadows": null
+    },
+    "description": "i3 rice with Arc theme, Papirus icons, Bibata cursor, alacritty + dunst + fish + ranger + neovim. 1px borders; quiet and restrained with a Dracula.nvim editor theme for contrast.",
     "description_callout": "Community recipe \u2014 not personally verified, but the agent will attempt it and adapt on errors.",
     "description_short": "I3 + Arc + Papirus icons. Inspired by saschagrunert/dotfiles.",
     "dotfiles_last_commit": "2026-03-25",
     "dotfiles_license": "MIT",
     "dotfiles_url": "https://github.com/saschagrunert/dotfiles",
     "extraction_confidence": "high",
-    "font_mono": "__erased__",
+    "font_mono": "erased",
     "font_ui": null,
     "icons": "papirus",
     "id": "github-saschagrunert-dotfiles",
-    "indexed_at": "2026-04-15",
+    "indexed_at": "2026-04-16",
     "install_method": "manual",
     "license_status": "permissive",
     "mood": "light",
