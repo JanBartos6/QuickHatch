@@ -1208,9 +1208,22 @@ def _prefetch_search_context(
 
 
 def _build_section_prompt(
-    profile: UserProfile, section: str, search_context: str, user_feedback: str = ""
+    profile: UserProfile,
+    section: str,
+    search_context: str,
+    user_feedback: str = "",
+    chosen_distro: str | None = None,
 ) -> str:
-    """Build a prompt for a single section of the migration analysis."""
+    """Build a prompt for a single section of the migration analysis.
+
+    ``chosen_distro`` lets the caller pass a distro decided earlier in the
+    analysis (e.g. extracted from the ``distro`` section's output) so
+    downstream sections (``plan``, ``desktop``, ``summary``) can receive the
+    matching install primer. If ``chosen_distro`` is None, falls back to
+    the user's stated ``preferences.distro_preference``.
+    """
+    from quickhatch.ai.install_primer import primer_prompt_block, resolve_primer
+
     profile_dict = asdict(profile)
     if profile_dict.get("ai_config", {}).get("api_key"):
         profile_dict["ai_config"]["api_key"] = "***REDACTED***"
@@ -1222,6 +1235,17 @@ def _build_section_prompt(
     library_block = ""
     if section in ("desktop", "summary"):
         library_block = _gallery_library_prompt_block()
+
+    # Distro primer injection — only for sections where install knowledge
+    # actually matters (plan = writes install steps; desktop = references
+    # package manager + init system; summary = may cite the chosen stack).
+    # Priority: explicit chosen_distro arg > user's stated preference.
+    primer_block = ""
+    resolved_distro = chosen_distro or profile.preferences.distro_preference or ""
+    if section in ("plan", "desktop", "summary") and resolved_distro:
+        if resolve_primer(resolved_distro) is not None:
+            primer_block = primer_prompt_block(resolved_distro)
+
     primary_recipe = (
         profile.preferences.gallery_picks[0] if profile.preferences.gallery_picks else ""
     )
@@ -1317,6 +1341,7 @@ def _build_section_prompt(
         f"{section_instructions.get(section, '')}\n"
         f"== LIVE SEARCH RESULTS (use these for up-to-date info) ==\n{search_context}\n\n"
         + library_block
+        + primer_block
         + gallery_block
         + (
             f"== USER FEEDBACK (the user changed their mind — follow this!) ==\n{user_feedback}\n\n"
@@ -1536,6 +1561,15 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
             "summary": "Your Migration at a Glance",
         }
 
+        # ``chosen_distro`` is the distro identifier the agent settled on
+        # in the distro section. It gets threaded into subsequent section
+        # prompts so they can pull in the right install primer.
+        chosen_distro: str | None = None
+        # Seed from user preference if they stated one; the distro section's
+        # output may confirm or override this.
+        if gui_state.profile.preferences.distro_preference:
+            chosen_distro = gui_state.profile.preferences.distro_preference
+
         for section_key, title in section_titles.items():
             if bridge.stop_requested:
                 bridge.add_message("agent", "Stopped.")
@@ -1548,7 +1582,11 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
             bridge.add_message("agent", f"Generating {title.lower()}…")
 
             prompt = _build_section_prompt(
-                gui_state.profile, section_key, search_context, user_feedback
+                gui_state.profile,
+                section_key,
+                search_context,
+                user_feedback,
+                chosen_distro=chosen_distro,
             )
             content = _call_model_simple(endpoint, model, prompt, api_key)
 
@@ -1560,6 +1598,25 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
                 if lines and lines[-1].strip().startswith("```"):
                     lines = lines[:-1]
                 content = "\n".join(lines)
+
+            # After the distro section runs, scan its output for a known
+            # distro identifier. Whichever our primer library recognizes
+            # becomes the ``chosen_distro`` for downstream sections (plan,
+            # desktop, summary) so they get the matching install primer.
+            # Only overrides when the section actually found a match — if
+            # the distro section is vague, fall back to whatever was seeded
+            # from user preference.
+            if section_key == "distro":
+                from quickhatch.ai.install_primer import resolve_primer
+
+                match = resolve_primer(content)
+                if match is not None:
+                    chosen_distro = match["canonical"]
+                    bridge.add_message(
+                        "agent",
+                        f"Distro resolved: {chosen_distro} — loading install primer "
+                        "for downstream sections.",
+                    )
 
             # Inject desktop preview images into the desktop section
             if section_key == "desktop" and desktop_images:
@@ -1831,14 +1888,31 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
         model = config.model_name or ""
         api_key = config.api_key
 
-        # Step 4a: Load the distro-specific install primer, if the user
-        # picked a distro we support. The primer gets injected into the
-        # agent's system prompt so it knows the exact install command
-        # sequence for that distro (pacstrap/dnf/debootstrap/etc.) without
-        # improvising flags.
-        from quickhatch.ai.install_primer import primer_prompt_block
+        # Step 4a: Load the distro-specific install primer.
+        #
+        # Priority for which distro's primer to load:
+        #   1. User's explicitly stated preference (preferences.distro_preference)
+        #   2. The distro section output from the analysis phase — if the
+        #      user left their preference blank, the agent recommended a
+        #      distro during analysis and that recommendation is what the
+        #      remote-setup agent should align with.
+        from quickhatch.ai.install_primer import primer_prompt_block, resolve_primer
 
-        distro_primer_md = primer_prompt_block(profile.preferences.distro_preference)
+        distro_hint = (profile.preferences.distro_preference or "").strip()
+        if not distro_hint and bridge.suggestions:
+            # Look for the distro-category suggestion first, then any
+            # suggestion whose title hints at a distro recommendation.
+            for s in bridge.suggestions:
+                if getattr(s, "category", "") == "distro" or "distribut" in (s.title or "").lower():
+                    match = resolve_primer(s.content or "")
+                    if match is not None:
+                        distro_hint = match["canonical"]
+                        bridge.add_message(
+                            "agent",
+                            f"Using distro recommendation from analysis: {distro_hint}",
+                        )
+                        break
+        distro_primer_md = primer_prompt_block(distro_hint)
 
         # Step 4b: Gather any existing migration plan from the analysis phase
         migration_plan_md = ""

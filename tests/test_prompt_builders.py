@@ -85,6 +85,62 @@ class TestBuildSectionPrompt:
         assert isinstance(prompt, str) and len(prompt) > 100
 
 
+class TestInstallPrimerInjection:
+    """The distro install primer should be injected into plan/desktop/summary
+    prompts, using chosen_distro first then falling back to user preference.
+    """
+
+    def test_plan_section_injects_primer_from_user_preference(self, profile):
+        profile.preferences.distro_preference = "Arch Linux"
+        prompt = _build_section_prompt(profile, "plan", "")
+        assert "DISTRO INSTALL PRIMER: Arch Linux" in prompt
+        assert "pacstrap" in prompt  # from the family primer body
+
+    def test_desktop_section_injects_primer(self, profile):
+        profile.preferences.distro_preference = "fedora"
+        prompt = _build_section_prompt(profile, "desktop", "")
+        assert "DISTRO INSTALL PRIMER: Fedora Workstation" in prompt
+        assert "kickstart" in prompt.lower()
+
+    def test_summary_section_injects_primer(self, profile):
+        profile.preferences.distro_preference = "ubuntu"
+        prompt = _build_section_prompt(profile, "summary", "")
+        assert "DISTRO INSTALL PRIMER: Ubuntu LTS" in prompt
+
+    def test_non_install_sections_skip_primer(self, profile):
+        """Distro, apps, and drivers sections don't need install primers."""
+        profile.preferences.distro_preference = "Arch Linux"
+        for section in ("distro", "apps", "drivers"):
+            prompt = _build_section_prompt(profile, section, "")
+            assert "DISTRO INSTALL PRIMER" not in prompt, (
+                f"Section {section} should not include the install primer"
+            )
+
+    def test_chosen_distro_arg_overrides_user_preference(self, profile):
+        """If chosen_distro is passed, it wins over the user's stated preference."""
+        profile.preferences.distro_preference = "Arch Linux"
+        prompt = _build_section_prompt(profile, "plan", "", chosen_distro="Fedora Workstation")
+        # Fedora primer present, Arch primer NOT present
+        assert "DISTRO INSTALL PRIMER: Fedora Workstation" in prompt
+        assert "DISTRO INSTALL PRIMER: Arch Linux" not in prompt
+
+    def test_chosen_distro_none_falls_back_to_user_preference(self, profile):
+        profile.preferences.distro_preference = "nixos"
+        prompt = _build_section_prompt(profile, "plan", "", chosen_distro=None)
+        assert "DISTRO INSTALL PRIMER: NixOS" in prompt
+
+    def test_no_distro_preference_and_no_chosen_distro_skips_primer(self, profile):
+        """If neither is set, no primer is injected (graceful degradation)."""
+        profile.preferences.distro_preference = None
+        prompt = _build_section_prompt(profile, "plan", "", chosen_distro=None)
+        assert "DISTRO INSTALL PRIMER" not in prompt
+
+    def test_unknown_distro_skips_primer(self, profile):
+        """If the distro name doesn't resolve to a known primer, no block is emitted."""
+        prompt = _build_section_prompt(profile, "plan", "", chosen_distro="Banana OS")
+        assert "DISTRO INSTALL PRIMER" not in prompt
+
+
 class TestCuratedLibraryInjection:
     """The curated gallery library should be injected into design-section prompts.
 
