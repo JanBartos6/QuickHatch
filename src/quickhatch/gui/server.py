@@ -1831,7 +1831,16 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
         model = config.model_name or ""
         api_key = config.api_key
 
-        # Step 4: Gather any existing migration plan from the analysis phase
+        # Step 4a: Load the distro-specific install primer, if the user
+        # picked a distro we support. The primer gets injected into the
+        # agent's system prompt so it knows the exact install command
+        # sequence for that distro (pacstrap/dnf/debootstrap/etc.) without
+        # improvising flags.
+        from quickhatch.ai.install_primer import primer_prompt_block
+
+        distro_primer_md = primer_prompt_block(profile.preferences.distro_preference)
+
+        # Step 4b: Gather any existing migration plan from the analysis phase
         migration_plan_md = ""
         if bridge.suggestions:
             plan_parts = [
@@ -1879,6 +1888,7 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
             "6. Apply system configuration (shell, fonts, display manager, services)\n"
             "7. Run final verification: theme is active, services enabled, user can log in\n\n"
             f"== REMOTE SYSTEM INFO ==\n{system_info}\n\n"
+            + distro_primer_md
             + (
                 f"== MIGRATION PLAN (pre-generated) ==\n{migration_plan_md}\n\n"
                 if migration_plan_md

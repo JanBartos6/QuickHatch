@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "description": "Distro install primers for the QuickHatch remote-setup agent. Each primer is a condensed install guide the harness injects into the agent's prompt when the distro is known. Aliases are lowercased matches against the user's distro_preference.",
+  "distros": [
+    {
+      "file": "arch.md",
+      "canonical": "Arch Linux",
+      "family": "arch",
+      "release_model": "rolling",
+      "aliases": ["arch", "archlinux", "arch-linux"]
+    },
+    {
+      "file": "endeavouros.md",
+      "canonical": "EndeavourOS",
+      "family": "arch",
+      "release_model": "rolling",
+      "aliases": ["endeavouros", "endeavour", "endeavour-os", "eos"]
+    },
+    {
+      "file": "cachyos.md",
+      "canonical": "CachyOS",
+      "family": "arch",
+      "release_model": "rolling",
+      "aliases": ["cachyos", "cachy", "cachy-os"]
+    },
+    {
+      "file": "garuda.md",
+      "canonical": "Garuda Linux",
+      "family": "arch",
+      "release_model": "rolling",
+      "aliases": ["garuda", "garuda-linux", "garuda-dr460nized"]
+    },
+    {
+      "file": "fedora.md",
+      "canonical": "Fedora Workstation",
+      "family": "fedora",
+      "release_model": "point",
+      "aliases": ["fedora", "fedora-workstation", "fedora-ws"]
+    },
+    {
+      "file": "fedora-silverblue.md",
+      "canonical": "Fedora Silverblue",
+      "family": "fedora",
+      "release_model": "atomic",
+      "aliases": [
+        "silverblue",
+        "fedora-silverblue",
+        "kinoite",
+        "fedora-kinoite",
+        "fedora-atomic"
+      ]
+    },
+    {
+      "file": "bazzite.md",
+      "canonical": "Bazzite",
+      "family": "fedora",
+      "release_model": "atomic",
+      "aliases": ["bazzite", "ublue", "universal-blue"]
+    },
+    {
+      "file": "ubuntu.md",
+      "canonical": "Ubuntu LTS",
+      "family": "debian",
+      "release_model": "point",
+      "aliases": ["ubuntu", "ubuntu-lts", "ubuntu-desktop", "ubuntu-server"]
+    },
+    {
+      "file": "debian.md",
+      "canonical": "Debian stable",
+      "family": "debian",
+      "release_model": "point",
+      "aliases": ["debian", "debian-stable", "debian-bookworm", "debian-trixie"]
+    },
+    {
+      "file": "linux-mint.md",
+      "canonical": "Linux Mint",
+      "family": "debian",
+      "release_model": "point",
+      "aliases": ["mint", "linux-mint", "linuxmint"]
+    },
+    {
+      "file": "pop-os.md",
+      "canonical": "Pop!_OS",
+      "family": "debian",
+      "release_model": "point",
+      "aliases": ["pop", "pop-os", "pop!_os", "popos"]
+    },
+    {
+      "file": "zorin.md",
+      "canonical": "Zorin OS",
+      "family": "debian",
+      "release_model": "point",
+      "aliases": ["zorin", "zorin-os", "zorinos"]
+    },
+    {
+      "file": "elementary.md",
+      "canonical": "elementary OS",
+      "family": "debian",
+      "release_model": "point",
+      "aliases": ["elementary", "elementary-os", "elementaryos", "pantheon"]
+    },
+    {
+      "file": "kde-neon.md",
+      "canonical": "KDE Neon",
+      "family": "debian",
+      "release_model": "rolling-apps",
+      "aliases": ["kde-neon", "kde-neon-user", "neon", "kdeneon"]
+    },
+    {
+      "file": "opensuse-tumbleweed.md",
+      "canonical": "openSUSE Tumbleweed",
+      "family": "opensuse",
+      "release_model": "rolling",
+      "aliases": [
+        "tumbleweed",
+        "opensuse-tumbleweed",
+        "opensuse",
+        "opensuse-tw",
+        "suse"
+      ]
+    },
+    {
+      "file": "opensuse-leap.md",
+      "canonical": "openSUSE Leap",
+      "family": "opensuse",
+      "release_model": "point",
+      "aliases": ["leap", "opensuse-leap"]
+    },
+    {
+      "file": "nixos.md",
+      "canonical": "NixOS",
+      "family": "nixos",
+      "release_model": "point",
+      "aliases": ["nixos", "nix-os", "nix"]
+    },
+    {
+      "file": "alpine.md",
+      "canonical": "Alpine Linux",
+      "family": "alpine",
+      "release_model": "point",
+      "aliases": ["alpine", "alpine-linux"]
+    },
+    {
+      "file": "void.md",
+      "canonical": "Void Linux",
+      "family": "void",
+      "release_model": "rolling",
+      "aliases": ["void", "void-linux", "voidlinux"]
+    },
+    {
+      "file": "gentoo.md",
+      "canonical": "Gentoo Linux",
+      "family": "gentoo",
+      "release_model": "rolling",
+      "aliases": ["gentoo", "gentoo-linux"]
+    }
+  ]
+}
