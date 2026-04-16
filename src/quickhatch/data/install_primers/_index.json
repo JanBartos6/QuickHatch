@@ -107,6 +107,20 @@
       "aliases": ["kde-neon", "kde-neon-user", "neon", "kdeneon"]
     },
     {
+      "file": "kali.md",
+      "canonical": "Kali Linux",
+      "family": "debian",
+      "release_model": "rolling",
+      "aliases": [
+        "kali",
+        "kali-linux",
+        "kalilinux",
+        "kali-rolling",
+        "pentest",
+        "pentesting"
+      ]
+    },
+    {
       "file": "opensuse-tumbleweed.md",
       "canonical": "openSUSE Tumbleweed",
       "family": "opensuse",

@@ -44,6 +44,7 @@ class TestListSupportedDistros:
             "Alpine Linux",
             "Void Linux",
             "Gentoo Linux",
+            "Kali Linux",
         ],
     )
     def test_major_distros_present(self, canonical):
@@ -90,6 +91,11 @@ class TestResolvePrimer:
             ("alpine", "Alpine Linux"),
             ("void", "Void Linux"),
             ("gentoo", "Gentoo Linux"),
+            ("kali", "Kali Linux"),
+            ("Kali", "Kali Linux"),
+            ("kali-linux", "Kali Linux"),
+            ("kali-rolling", "Kali Linux"),
+            ("pentest", "Kali Linux"),
         ],
     )
     def test_alias_matches(self, hint, expected):
