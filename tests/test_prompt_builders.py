@@ -85,6 +85,44 @@ class TestBuildSectionPrompt:
         assert isinstance(prompt, str) and len(prompt) > 100
 
 
+class TestCuratedLibraryInjection:
+    """The curated gallery library should be injected into design-section prompts.
+
+    The harness LLM needs access to the full 100+ recipe reference library
+    when recommending a desktop, so it can either pick a known-good design
+    or borrow components when the user's ask isn't an exact match.
+    """
+
+    def test_desktop_section_includes_library_block(self, profile):
+        prompt = _build_section_prompt(profile, "desktop", "")
+        assert "CURATED DESIGN LIBRARY" in prompt
+
+    def test_library_block_has_inspiration_framing(self, profile):
+        prompt = _build_section_prompt(profile, "desktop", "")
+        # The block must frame the library as authoritative reference data
+        # AND as inspiration for off-library requests — both matter.
+        assert "highly curated" in prompt.lower()
+        assert "inspiration" in prompt.lower() or "borrow" in prompt.lower()
+
+    def test_library_includes_real_entries(self, profile):
+        prompt = _build_section_prompt(profile, "desktop", "")
+        # At least one concrete recipe id should appear in the block.
+        assert "`github-" in prompt or "`unixporn-" in prompt or "`hyprland-" in prompt
+
+    def test_summary_section_also_gets_library(self, profile):
+        """Summary section may reference the recommended design — it gets the library too."""
+        prompt = _build_section_prompt(profile, "summary", "")
+        assert "CURATED DESIGN LIBRARY" in prompt
+
+    def test_non_design_sections_skip_library(self, profile):
+        """Apps/drivers/plan/distro don't need the library — it would bloat the prompt."""
+        for section in ("apps", "drivers", "plan", "distro"):
+            prompt = _build_section_prompt(profile, section, "")
+            assert "CURATED DESIGN LIBRARY" not in prompt, (
+                f"Section {section} should NOT include the library block"
+            )
+
+
 class TestApiKeyRedaction:
     def test_section_prompt_redacts_api_key(self, profile):
         profile.ai_config.api_key = "sk-sensitive-xyz"

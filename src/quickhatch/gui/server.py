@@ -184,6 +184,106 @@ def _gallery_entries_for_response() -> list[dict[str, Any]]:
     return entries
 
 
+def _format_recipe_short(entry: dict[str, Any]) -> str:
+    """Render a single recipe as a compact one-paragraph line for library injection.
+
+    Used when we want to expose the whole curated library to the LLM as
+    reference/inspiration. Keeps the per-entry footprint small (~200-300
+    chars) so the full 100+ library fits in a single prompt.
+    """
+    from quickhatch.gallery.curate import build_digest
+
+    d = build_digest(entry)
+    header_bits = [f"`{d.get('id', 'unknown')}`"]
+    if d.get("de"):
+        header_bits.append(d["de"])
+    if d.get("theme"):
+        header_bits.append(f"theme={d['theme']}")
+    if d.get("mood"):
+        header_bits.append(d["mood"])
+    desc = d.get("description") or ""
+    best_for = d.get("best_for") or []
+
+    # Core layout shorthand (panel+launcher+terminal most relevant)
+    comps = d.get("components") or {}
+    comp_shorts = []
+    for key in ("panel", "launcher", "terminal"):
+        val = comps.get(key)
+        if val:
+            comp_shorts.append(f"{key}={val}")
+    # Font shorthand (mono tends to be the more distinctive signal)
+    font_bits = []
+    if d.get("font_mono"):
+        font_bits.append(f"mono={d['font_mono']}")
+    if d.get("font_ui"):
+        font_bits.append(f"ui={d['font_ui']}")
+
+    line = f"- {' / '.join(header_bits)}"
+    if desc:
+        line += f" — {desc}"
+    extras = []
+    if comp_shorts:
+        extras.append(", ".join(comp_shorts))
+    if font_bits:
+        extras.append(", ".join(font_bits))
+    if best_for:
+        extras.append("best_for: " + ", ".join(best_for))
+    if extras:
+        line += " [" + " | ".join(extras) + "]"
+    return line
+
+
+def _gallery_library_prompt_block() -> str:
+    """Inject the full curated gallery library as reference/inspiration data.
+
+    The harness LLM gets this on every desktop-section prompt so it has a
+    rich bank of community-verified, visually beautiful Linux desktops
+    to match against, borrow from, or blend when the user's preferences
+    don't land cleanly on any single one.
+    """
+    from quickhatch.gallery.library import load_gallery_entries
+
+    try:
+        entries = load_gallery_entries()
+    except Exception:
+        return ""
+    if not entries:
+        return ""
+    lines = [
+        "== CURATED DESIGN LIBRARY ==",
+        "",
+        "The block below is a highly curated reference library of beautiful, "
+        "community-verified Linux desktop designs. Every entry has been upvoted "
+        "heavily on r/unixporn, GitHub, or DE-specific subreddits, and each has "
+        "been programmatically parsed down to its theme, icon pack, fonts, panel, "
+        "launcher, and window-manager decorations. The human-written description "
+        "after each entry summarizes what living with that desktop feels like, "
+        "and `best_for` lists the user intents it fits.",
+        "",
+        "HOW TO USE THIS LIBRARY:",
+        "1. If the user's preferences map cleanly to one of these recipes, "
+        "recommend it directly by id — it is already a proven good-looking design.",
+        "2. If no single recipe matches, BORROW from them: pick the theme from "
+        "one, the panel choice from another, the font stack from a third. These "
+        "are reference designs known to look great; combining their pieces is a "
+        "safer bet than inventing a new aesthetic from scratch.",
+        "3. If the user asks for something specific that IS NOT in the library "
+        '(e.g. "I want a tiling WM with a macOS-style centered dock in '
+        'Everforest colors"), still look here for inspiration — use the closest '
+        "recipes' component choices, font pairings, decoration values, and "
+        "palettes as your starting point, then adapt only what needs adapting.",
+        "4. Default to picking from this library over inventing. A beautiful "
+        "reference desktop adapted slightly beats a from-scratch design every "
+        "time.",
+        "",
+    ]
+    for entry in entries:
+        lines.append(_format_recipe_short(entry))
+    lines.append("")
+    lines.append(f"(End of library — {len(entries)} recipes total.)")
+    return "\n".join(lines) + "\n\n"
+
+
 def _format_recipe_digest(entry: dict[str, Any]) -> str:
     """Render a single gallery recipe as a compact markdown block for prompts.
 
@@ -1116,6 +1216,12 @@ def _build_section_prompt(
         profile_dict["ai_config"]["api_key"] = "***REDACTED***"
     profile_json = json.dumps(profile_dict, indent=2, default=str)
     gallery_block = _gallery_prompt_block(profile)
+    # Inject the full curated library only on design-relevant sections
+    # (desktop, summary). On other sections it would bloat the prompt
+    # without adding value.
+    library_block = ""
+    if section in ("desktop", "summary"):
+        library_block = _gallery_library_prompt_block()
     primary_recipe = (
         profile.preferences.gallery_picks[0] if profile.preferences.gallery_picks else ""
     )
@@ -1210,6 +1316,7 @@ def _build_section_prompt(
         f"== SECTION: {section.upper()} ==\n"
         f"{section_instructions.get(section, '')}\n"
         f"== LIVE SEARCH RESULTS (use these for up-to-date info) ==\n{search_context}\n\n"
+        + library_block
         + gallery_block
         + (
             f"== USER FEEDBACK (the user changed their mind — follow this!) ==\n{user_feedback}\n\n"
