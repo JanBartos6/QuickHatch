@@ -7,17 +7,22 @@ from pathlib import Path
 from typing import Any
 
 from .common import (
-    FILTERED_CACHE_DIR,
+    EXTRACTED_CACHE_DIR,
     GALLERY_IMAGE_DIR,
     GALLERY_JSON_PATH,
     ensure_pipeline_dirs,
     load_json,
     write_json,
 )
+from .curate import cap_with_diversity, dedupe_by_repo, merge_descriptions, normalize_entry
+
+# Where curator-authored descriptions + best_for tags live. One entry per
+# recipe id: {"recipe-id": {"description": "...", "best_for": [...]}, ...}.
+DESCRIPTIONS_JSON_PATH = GALLERY_JSON_PATH.parent / "gallery_descriptions.json"
 
 
-def build_gallery(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Sort and normalize extracted entries for shipping."""
+def build_gallery(entries: list[dict[str, Any]], *, cap: int = 250) -> list[dict[str, Any]]:
+    """Normalize, dedupe, cap, and sort extracted entries for shipping."""
     preview_ready = [
         entry
         for entry in entries
@@ -25,8 +30,14 @@ def build_gallery(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
         and entry.get("de")
         and entry.get("de") != "unknown"
     ]
+    normalized = [normalize_entry(dict(e)) for e in preview_ready]
+    deduped = dedupe_by_repo(normalized)
+    capped = cap_with_diversity(deduped, cap=cap)
+    if DESCRIPTIONS_JSON_PATH.exists():
+        descriptions = load_json(DESCRIPTIONS_JSON_PATH, default={})
+        capped = merge_descriptions(capped, descriptions)
     return sorted(
-        preview_ready,
+        capped,
         key=lambda entry: (
             not entry.get("verified", False),
             entry.get("source") != "r/unixporn",
@@ -38,13 +49,28 @@ def build_gallery(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def run_build(
     *,
-    source_path: Path = FILTERED_CACHE_DIR / "deduped.json",
+    source_path: Path | None = None,
     output_path: Path = GALLERY_JSON_PATH,
+    cap: int = 250,
 ) -> list[dict[str, Any]]:
-    """Read deduped entry data and write the packaged gallery.json."""
+    """Read extracted entry data and write the packaged gallery.json.
+
+    When ``source_path`` is ``None``, reads every ``.json`` file from
+    ``EXTRACTED_CACHE_DIR``. A path may be supplied to read from a legacy
+    deduped file instead.
+    """
     ensure_pipeline_dirs()
-    entries = load_json(source_path, default=[])
-    gallery = build_gallery(entries)
+    if source_path is None:
+        entries: list[dict[str, Any]] = []
+        for path in sorted(EXTRACTED_CACHE_DIR.glob("*.json")):
+            try:
+                entries.append(load_json(path, default=None))
+            except Exception:
+                continue
+        entries = [e for e in entries if e]
+    else:
+        entries = load_json(source_path, default=[])
+    gallery = build_gallery(entries, cap=cap)
     write_json(output_path, gallery)
     return gallery
 

@@ -321,6 +321,7 @@ def staleness_score(last_commit: str) -> float:
 
 def extract_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
     """Process one filtered candidate into the shipped gallery schema."""
+    from .components import extract_all as extract_components_all
     from .llm_extract import llm_extract_metadata
 
     ensure_pipeline_dirs()
@@ -380,6 +381,9 @@ def extract_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
     # otherwise fall back to the image-derived heuristic.
     mood = llm_mood or image_mood
 
+    # Deterministic component + decoration extraction from actual config files.
+    components_data = extract_components_all(repo_dir)
+
     license_status = candidate.get(
         "license_status", "permissive" if candidate.get("dotfiles_license") else "unknown"
     )
@@ -408,8 +412,11 @@ def extract_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
         "font_mono": parsed.get("font_mono"),
         "wallpaper_hint": llm_wallpaper or candidate.get("wallpaper_hint") or "",
         "palette": palette,
+        "accent_color": components_data.get("accent_color"),
         "mood": mood,
         "busyness": busyness,
+        "components": components_data.get("components", {}),
+        "decorations": components_data.get("decorations", {}),
         "signature_features": llm_signature,
         "extraction_confidence": llm_confidence,
         "dotfiles_url": candidate["dotfiles_url"],
