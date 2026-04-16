@@ -63,6 +63,32 @@ class TestFamilyStitch:
         assert load_family_text(None) is None
         assert load_family_text("nonexistent") is None
 
+    def test_rocky_and_alma_share_primer_file(self):
+        """Rocky and Alma both point at rhel-clones.md — both should load the same body."""
+        rocky = load_primer_text("rocky")
+        alma = load_primer_text("alma")
+        assert rocky is not None and alma is not None
+        assert rocky == alma  # exact same stitched output since same family + same file
+        # Both should contain both distros' mirror URLs (it's a combined primer)
+        assert "download.rockylinux.org" in rocky
+        assert "repo.almalinux.org" in rocky
+
+    def test_ubuntu_flavors_documented(self):
+        """Official Ubuntu flavors listed in the Ubuntu card, not separate primers."""
+        text = load_primer_text("ubuntu")
+        assert text is not None
+        for flavor in ("kubuntu-desktop", "xubuntu-desktop", "lubuntu-desktop"):
+            assert flavor in text, f"Missing flavor metapackage: {flavor}"
+
+    def test_artix_has_init_branching(self):
+        """Artix primer must cover init choice since systemctl doesn't apply."""
+        text = load_primer_text("artix")
+        assert text is not None
+        assert "openrc" in text.lower()
+        assert "runit" in text.lower()
+        # Explicit note that systemctl won't work
+        assert "systemctl" in text.lower()
+
 
 class TestListSupportedDistros:
     def test_expected_count(self):
@@ -96,6 +122,12 @@ class TestListSupportedDistros:
             "Void Linux",
             "Gentoo Linux",
             "Kali Linux",
+            "Manjaro Linux",
+            "Artix Linux",
+            "MX Linux",
+            "Parrot OS",
+            "Rocky Linux",
+            "AlmaLinux",
         ],
     )
     def test_major_distros_present(self, canonical):
@@ -147,6 +179,28 @@ class TestResolvePrimer:
             ("kali-linux", "Kali Linux"),
             ("kali-rolling", "Kali Linux"),
             ("pentest", "Kali Linux"),
+            ("manjaro", "Manjaro Linux"),
+            ("Manjaro", "Manjaro Linux"),
+            ("manjaro-linux", "Manjaro Linux"),
+            ("artix", "Artix Linux"),
+            ("Artix", "Artix Linux"),
+            ("arch-openrc", "Artix Linux"),
+            ("arch-runit", "Artix Linux"),
+            ("no-systemd", "Artix Linux"),
+            ("mx", "MX Linux"),
+            ("mx-linux", "MX Linux"),
+            ("mxlinux", "MX Linux"),
+            ("parrot", "Parrot OS"),
+            ("parrot-os", "Parrot OS"),
+            ("parrot-security", "Parrot OS"),
+            ("rocky", "Rocky Linux"),
+            ("Rocky Linux", "Rocky Linux"),
+            ("rocky-linux", "Rocky Linux"),
+            ("rockylinux", "Rocky Linux"),
+            ("alma", "AlmaLinux"),
+            ("AlmaLinux", "AlmaLinux"),
+            ("alma-linux", "AlmaLinux"),
+            ("almalinux", "AlmaLinux"),
         ],
     )
     def test_alias_matches(self, hint, expected):

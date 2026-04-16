@@ -55,6 +55,25 @@ sudo subiquity --autoinstall-url=file:///tmp/user-data        # server
 sudo ubiquity --automation-file=/tmp/user-data                # desktop
 ```
 
+## Ubuntu flavors (same base, different DE metapackage)
+
+All official Ubuntu flavors use the same Ubuntu base install — just swap
+the desktop metapackage. No separate primer needed.
+
+| Flavor | Metapackage | DE |
+|---|---|---|
+| Kubuntu | `kubuntu-desktop` | KDE Plasma |
+| Xubuntu | `xubuntu-desktop` | XFCE |
+| Lubuntu | `lubuntu-desktop` | LXQt |
+| Ubuntu MATE | `ubuntu-mate-desktop` | MATE |
+| Ubuntu Budgie | `ubuntu-budgie-desktop` | Budgie |
+| Ubuntu Studio | `ubuntustudio-desktop` | XFCE + creative tools |
+| Ubuntu Unity | `ubuntu-unity-desktop` | Unity |
+| Edubuntu | `edubuntu-desktop-gnome` | GNOME + education apps |
+
+Agent substitutes the metapackage in the debootstrap / autoinstall step
+from the family primer. Everything else is identical to stock Ubuntu.
+
 ## Distro-specific pitfalls
 
 - **Snap vs apt confusion** — default ISO installs Firefox/Chromium/Thunderbird

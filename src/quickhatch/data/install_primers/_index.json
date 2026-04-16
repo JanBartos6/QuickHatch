@@ -36,6 +36,29 @@
       "aliases": ["garuda", "garuda-linux", "garuda-dr460nized"]
     },
     {
+      "file": "manjaro.md",
+      "canonical": "Manjaro Linux",
+      "family": "arch",
+      "release_model": "rolling",
+      "aliases": ["manjaro", "manjaro-linux", "manjarolinux"]
+    },
+    {
+      "file": "artix.md",
+      "canonical": "Artix Linux",
+      "family": "arch",
+      "release_model": "rolling",
+      "aliases": [
+        "artix",
+        "artix-linux",
+        "artixlinux",
+        "arch-openrc",
+        "arch-runit",
+        "arch-s6",
+        "arch-dinit",
+        "no-systemd"
+      ]
+    },
+    {
       "file": "fedora.md",
       "canonical": "Fedora Workstation",
       "family": "fedora",
@@ -61,6 +84,32 @@
       "family": "fedora",
       "release_model": "atomic",
       "aliases": ["bazzite", "ublue", "universal-blue"]
+    },
+    {
+      "file": "rhel-clones.md",
+      "canonical": "Rocky Linux",
+      "family": "fedora",
+      "release_model": "point",
+      "aliases": [
+        "rocky",
+        "rocky-linux",
+        "rockylinux",
+        "rocky9",
+        "rocky10"
+      ]
+    },
+    {
+      "file": "rhel-clones.md",
+      "canonical": "AlmaLinux",
+      "family": "fedora",
+      "release_model": "point",
+      "aliases": [
+        "alma",
+        "alma-linux",
+        "almalinux",
+        "alma9",
+        "alma10"
+      ]
     },
     {
       "file": "ubuntu.md",
@@ -124,6 +173,26 @@
         "pentest",
         "pentesting"
       ]
+    },
+    {
+      "file": "parrot.md",
+      "canonical": "Parrot OS",
+      "family": "debian",
+      "release_model": "rolling",
+      "aliases": [
+        "parrot",
+        "parrot-os",
+        "parrotos",
+        "parrot-security",
+        "parrotsec"
+      ]
+    },
+    {
+      "file": "mx-linux.md",
+      "canonical": "MX Linux",
+      "family": "debian",
+      "release_model": "point",
+      "aliases": ["mx", "mx-linux", "mxlinux"]
     },
     {
       "file": "opensuse-tumbleweed.md",
