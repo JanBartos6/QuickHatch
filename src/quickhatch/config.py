@@ -67,6 +67,13 @@ class Preferences:
     use_cases: list[str] = field(default_factory=list)
     distro_preference: str | None = None
     additional_notes: str = ""
+    # Does the user have a second machine available during setup (to run
+    # the QuickHatch agent while installing Linux on the target)?
+    # "yes" / "no" / "" (unanswered). When "no", the analysis phase produces
+    # a self-contained bash install script for the user to run offline on
+    # the live USB — no agent needed during install, no second-machine
+    # orchestration.
+    another_machine: str = ""
 
 
 @dataclass

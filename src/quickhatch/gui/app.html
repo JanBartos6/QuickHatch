@@ -847,7 +847,13 @@ const STEPS_CUSTOMIZE = [
 let STEPS = STEPS_MIGRATION;
 function refreshSteps(){
   const mode=state.profile?.preferences?.migration_type;
-  STEPS = mode==='customize_linux' ? STEPS_CUSTOMIZE : STEPS_MIGRATION;
+  STEPS = mode==='customize_linux' ? [...STEPS_CUSTOMIZE] : [...STEPS_MIGRATION];
+  // Offline single-machine mode: user has no second device, so the
+  // Remote Setup step doesn't apply — they'll run install.sh directly
+  // on the live USB. Drop that step so the wizard ends at Export.
+  if(state.profile?.preferences?.another_machine==='no'){
+    STEPS = STEPS.filter(s=>s.id!=='setup');
+  }
   STEPS.forEach((s,i)=>s.n=String(i+1));
 }
 function isCustomizeMode(){return state.profile?.preferences?.migration_type==='customize_linux'}
@@ -1324,6 +1330,8 @@ const stepRenderers={
   },
 
   additional(){
+    const anotherMachine=(state.profile.preferences?.another_machine||'');
+    const customize=isCustomizeMode();
     content().innerHTML=`
       <div class="card">
         <h2>Anything else?</h2>
@@ -1331,6 +1339,19 @@ const stepRenderers={
         <div class="field">
           <textarea id="additionalInfo" placeholder="e.g. dual-boot with Windows on the second drive, Btrfs with snapshots, enable full-disk encryption, HiDPI scaling at 200%, liquid-cooling pump on a custom fan curve…">${escHtml(state.profile.additional_info||'')}</textarea>
         </div>
+        ${customize?'':`
+        <div class="field" style="margin-top:var(--s4)">
+          <label>Will you have a second machine (or device) available during the Linux install?</label>
+          <div class="pill-grid" id="anotherMachineGrid">
+            <span class="pill${anotherMachine==='yes'?' selected':''}" data-value="yes" onclick="pickAnotherMachine(this)">Yes — I'll keep this PC on, or have another device</span>
+            <span class="pill${anotherMachine==='no'?' selected':''}" data-value="no" onclick="pickAnotherMachine(this)">No — this is my only machine, I'll be installing from a live USB</span>
+          </div>
+          <div class="muted" style="font-size:var(--t-xs);margin-top:var(--s2);line-height:1.5">
+            <strong>If yes</strong>, the AI agent runs live during install — it SSHes in, watches each command's output, and recovers from errors on its own. Higher quality, needs the other device online the whole time.<br>
+            <strong>If no</strong>, the AI writes a single offline install script up front. You run it on the live USB with no internet-to-the-agent needed during install. Quality depends on the plan being right the first time since there's no feedback loop — best for straightforward setups.
+          </div>
+        </div>
+        `}
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
           <button class="btn btn-primary" onclick="submitAdditional()">Continue</button>
@@ -1441,6 +1462,44 @@ const stepRenderers={
     const provider=state.profile.ai_config?.provider||'';
     const isLocal=['local_ollama','local_lmstudio','codex'].includes(provider);
     const isAPI=['api','openai_api','claude_api'].includes(provider);
+    const anotherMachine=state.profile.preferences?.another_machine||'';
+    const offlineMode=anotherMachine==='no';
+
+    // Offline single-machine mode: the user has no second device, so the
+    // analysis phase generated install.sh instead. Skip SSH key generation
+    // entirely — run install.sh on the live USB, no remote-setup agent.
+    if(offlineMode){
+      content().innerHTML=`
+        <div class="card">
+          <h2>Offline install script</h2>
+          <p class="subtitle">You said you won't have a second machine during setup. The AI wrote a self-contained install script during analysis. No SSH key, no remote agent — you'll run the script directly on the live USB.</p>
+          <div class="info-box info-success">
+            <strong>What's in your bundle</strong>
+            <ol>
+              <li><code>install.sh</code> — the full install, written for your chosen distro + your use cases + your gallery pick. Partitioning, base system, desktop, apps, theming, bootloader, reboot.</li>
+              <li><code>MIGRATION_INSTRUCTIONS.md</code> — the same plan in readable Markdown, in case you want to check every step before running.</li>
+              <li><code>quickhatch-profile.json</code> — your settings, for reference.</li>
+            </ol>
+          </div>
+          <div class="info-box" style="margin-top:var(--s3)">
+            <strong>How to run it</strong>
+            <ol>
+              <li>Flash your distro ISO with Rufus. Boot "Try / Live", not Install.</li>
+              <li>Plug in the QuickHatch bundle USB and extract it in the live env.</li>
+              <li>Read <code>install.sh</code> if you want to double-check (it's plain bash, no magic).</li>
+              <li>Run <code>sudo bash install.sh</code>. Follow its prompts — it asks you to type the target disk path to confirm before any partitioning.</li>
+              <li>When it finishes, it reboots. Post-install config (desktop, apps, theming) runs on first boot via a systemd oneshot — you'll see progress messages; it self-disables when done.</li>
+            </ol>
+            <p class="muted" style="font-size:var(--t-xs);margin-top:var(--s2)">No feedback loop with the AI during install — the plan has to be right the first time. If something goes wrong you can read the log at <code>/var/log/quickhatch-firstboot.log</code> on the installed system and fix it manually.</p>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
+            <button class="btn btn-primary" onclick="completeStep('ssh')">Continue to export</button>
+          </div>
+        </div>`;
+      return;
+    }
+
     const providerNote=isLocal
       ?'Your local model (LM Studio / Ollama / Codex) needs to stay loaded on this PC the whole time, and this PC stays on and reachable on the same network as your Linux machine.'
       :isAPI
@@ -2154,7 +2213,26 @@ async function submitAppsData(){
 }
 
 async function submitAdditional(){
-  await saveProfile({additional_info:el('additionalInfo').value});await completeStep('additional');
+  const payload={additional_info:el('additionalInfo').value};
+  // Capture the "another machine" choice if the grid is present
+  const grid=el('anotherMachineGrid');
+  if(grid){
+    const selected=grid.querySelector('.pill.selected');
+    const choice=selected?selected.dataset.value:'';
+    // Merge into preferences (don't clobber other fields)
+    const prefs=state.profile.preferences||{};
+    payload.preferences={...prefs,another_machine:choice};
+  }
+  await saveProfile(payload);
+  // Re-compute the step list: answer changes whether Remote Setup is needed
+  refreshSteps();
+  await completeStep('additional');
+}
+
+function pickAnotherMachine(el){
+  const grid=el.parentElement;
+  grid.querySelectorAll('.pill').forEach(p=>p.classList.remove('selected'));
+  el.classList.add('selected');
 }
 
 async function launchAgent(){

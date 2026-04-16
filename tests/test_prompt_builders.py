@@ -85,6 +85,24 @@ class TestBuildSectionPrompt:
         assert isinstance(prompt, str) and len(prompt) > 100
 
 
+class TestOfflineInstallScript:
+    """When another_machine=='no', the install_script section prompt should be
+    generated, instructing the LLM to output a self-contained bash script.
+    """
+
+    def test_install_script_section_has_bash_output_mandate(self, profile):
+        # Not using the section loop (that's in server.py), but the section's
+        # prompt text should exist and demand raw bash output.
+        prompt = _build_section_prompt(profile, "install_script", "")
+        assert "bash script" in prompt.lower()
+        # Must instruct the LLM to skip Markdown fences / prose
+        assert "only a bash script" in prompt.lower() or "only bash" in prompt.lower()
+        # Must reference the disk-confirm safety step
+        assert "lsblk" in prompt.lower() or "disk" in prompt.lower()
+        # Must reference the first-boot staging for post-install config
+        assert "first-boot" in prompt.lower() or "firstboot" in prompt.lower()
+
+
 class TestInstallPrimerInjection:
     """The distro install primer should be injected into plan/desktop/summary
     prompts, using chosen_distro first then falling back to user preference.

@@ -1326,6 +1326,45 @@ def _build_section_prompt(
             "- An encouraging closing line\n"
             "Keep it SHORT — under 200 words. No long explanations.\n"
         ),
+        "install_script": (
+            "Generate ONE self-contained bash script that performs the FULL install\n"
+            "of the chosen distro + desktop + apps + theming, to be run by the user\n"
+            "on a LIVE USB environment with NO active AI agent. This is the offline,\n"
+            "single-machine path — the user has no second PC, no agent loop, just\n"
+            "this script.\n\n"
+            "Respond with ONLY a bash script. No Markdown, no prose, no explanation,\n"
+            "no ``` fences. The very first line must be `#!/usr/bin/env bash`.\n\n"
+            "HARD REQUIREMENTS:\n"
+            "- Fill in placeholders using the USER MIGRATION PROFILE below. Real\n"
+            "  values, not templates. Hostname, username, timezone, locale, disk,\n"
+            "  SSH public key, gallery recipe url, apps list — all concrete.\n"
+            "- Follow the DISTRO INSTALL PRIMER above exactly. Its command sequence\n"
+            "  is authoritative. Substitute the primer's <ANGLE_BRACKETS> with real\n"
+            "  values from the profile.\n"
+            "- Start with a `set -e` and a disk-wipe confirmation: show `lsblk`\n"
+            "  output, prompt the user to retype the target disk path (e.g. they\n"
+            "  type `/dev/nvme0n1` to confirm). Exit if the user doesn't match.\n"
+            "- Prompt interactively ONLY for: disk confirmation, root password,\n"
+            "  user password. Everything else is baked in.\n"
+            "- Stage post-install configuration as a first-boot systemd oneshot\n"
+            "  service that runs after reboot, self-disables when done, and logs\n"
+            "  to /var/log/quickhatch-firstboot.log. The script writes that\n"
+            "  follow-up script to /mnt/usr/local/bin/quickhatch-firstboot.sh\n"
+            "  and enables its service via arch-chroot / nsenter / chroot as\n"
+            "  appropriate for the distro.\n"
+            "- The first-boot service does: pacman/apt/dnf -S the full DE +\n"
+            "  apps + drivers from the plan, enable display manager, apply\n"
+            "  gallery recipe dotfiles (clone + run install method), activate\n"
+            "  theme/icons/wallpaper with the right config commands.\n"
+            "- Reboot at the end of the main script with a 10-second countdown.\n"
+            "- Be defensive: every network fetch has a retry loop. Every package\n"
+            "  install has a fallback (update mirrors, retry).\n"
+            "- Output progress messages the user can read (`echo '[*] Partitioning'`\n"
+            "  / `echo '[+] Base install complete'`).\n"
+            "- Keep the script under 400 lines. Density matters; verbose = harder\n"
+            "  to audit.\n"
+            "OUTPUT FORMAT: literally only the bash script. No surrounding text.\n"
+        ),
     }
 
     return (
@@ -1561,6 +1600,12 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
             "plan": "Migration Plan",
             "summary": "Your Migration at a Glance",
         }
+        # Add a self-install bash script when the user said they don't have
+        # a second machine available — the wizard will ship it as
+        # install.sh in the export bundle so they can run it offline on
+        # the live USB, no agent needed.
+        if (gui_state.profile.preferences.another_machine or "").strip().lower() == "no":
+            section_titles["install_script"] = "Offline Install Script"
 
         # ``chosen_distro`` is the distro identifier the agent settled on
         # in the distro section. It gets threaded into subsequent section
@@ -2461,6 +2506,33 @@ def _run_export(gui_state: GUIState) -> dict:
         qs_path = output_dir / "quickstart.sh"
         qs_path.write_text(_generate_quickstart(gui_state.profile))
         files.append(qs_path.name)
+
+        # Offline install script (present only when the user said they
+        # don't have a second machine — analysis phase generated it as
+        # the install_script section).
+        install_script_content = ""
+        for s in gui_state.bridge.suggestions:
+            if getattr(s, "category", "") == "install_script" and (s.content or "").strip():
+                install_script_content = s.content.strip()
+                break
+        if install_script_content:
+            # Normalize: strip any accidental ``` fences the model added
+            if install_script_content.startswith("```"):
+                lines = install_script_content.split("\n")
+                lines = lines[1:]
+                if lines and lines[-1].strip().startswith("```"):
+                    lines = lines[:-1]
+                install_script_content = "\n".join(lines)
+            # Ensure shebang
+            if not install_script_content.startswith("#!"):
+                install_script_content = "#!/usr/bin/env bash\n" + install_script_content
+            install_path = output_dir / "install.sh"
+            install_path.write_text(install_script_content, encoding="utf-8")
+            try:
+                install_path.chmod(0o755)
+            except OSError:
+                pass  # Windows
+            files.append(install_path.name)
 
         # ZIP bundle
         zip_path = output_dir / "quickhatch-migration-bundle.zip"
