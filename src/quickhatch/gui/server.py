@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import re
 import threading
 from dataclasses import asdict
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -1811,6 +1812,109 @@ def _ssh_exec(
         return -1, "", "ssh not found — install OpenSSH"
 
 
+# Shell script shipped to the target to detect whether we're booted from a
+# live ISO or an installed system. Prints the first positive signal or
+# "INSTALLED" if no live markers matched.
+_LIVE_ENV_DETECTION_SCRIPT = r"""
+if grep -qE '\\b(boot=live|live-media|toram|rd\\.live\\.image|archisolabel|archisodevice|boot=casper)\\b' /proc/cmdline 2>/dev/null; then
+    echo 'LIVE:cmdline'
+    exit 0
+fi
+for marker in /run/live /rofs /cdrom/casper /run/archiso /lib/live /run/calamares; do
+    if [ -d "$marker" ]; then
+        echo "LIVE:marker=$marker"
+        exit 0
+    fi
+done
+if mount 2>/dev/null | grep -qE ' on / type (overlay|aufs|squashfs|tmpfs)\b'; then
+    echo 'LIVE:overlay-root'
+    exit 0
+fi
+# Live ISOs commonly auto-login as these users. Distinguish from a real
+# installed user account by also checking for an unsquashfs or live-config
+# utility, which installed systems usually don't carry.
+case "$(whoami)" in
+    liveuser|live|kali|parrot|manjaro|endeavour|artix|voidlive)
+        if command -v unsquashfs >/dev/null 2>&1 || [ -x /usr/lib/live/boot ] || [ -d /run/initramfs/live ]; then
+            echo 'LIVE:user'
+            exit 0
+        fi
+        ;;
+esac
+echo 'INSTALLED'
+"""
+
+
+def _detect_live_env(
+    host: str, user: str, key_path: str | None, port: int = 22
+) -> tuple[bool, str]:
+    """Probe the target for live-ISO signals over SSH.
+
+    Returns ``(is_live, marker)``. ``marker`` is a short string naming
+    which signal triggered (useful for the bridge message), or the
+    literal ``"INSTALLED"`` / ``"detect-failed"`` on the negative path.
+    """
+    rc, out, _ = _ssh_exec(host, user, _LIVE_ENV_DETECTION_SCRIPT, key_path, timeout=30, port=port)
+    if rc != 0:
+        return False, "detect-failed"
+    line = out.strip().splitlines()[-1] if out.strip() else ""
+    if line.startswith("LIVE:"):
+        return True, line
+    return False, "INSTALLED"
+
+
+def _wait_for_ssh_reconnect(
+    host: str,
+    user: str,
+    key_path: str | None,
+    port: int = 22,
+    *,
+    timeout: int = 300,
+    interval: int = 5,
+    stop_flag_getter=None,
+) -> bool:
+    """Poll SSH until the target accepts a connection again, or ``timeout``
+    seconds elapse. Returns ``True`` on reconnect.
+
+    ``stop_flag_getter`` is an optional zero-arg callable that returns True
+    when the user has pressed Stop; allows abandoning the wait loop.
+    """
+    import time as _time
+
+    deadline = _time.time() + timeout
+    while _time.time() < deadline:
+        if stop_flag_getter is not None and stop_flag_getter():
+            return False
+        rc, out, _ = _ssh_exec(host, user, "echo __reconnected__", key_path, timeout=10, port=port)
+        if rc == 0 and "__reconnected__" in out:
+            return True
+        _time.sleep(interval)
+    return False
+
+
+# Commands that trigger the reconnect-after-reboot dance. Matched
+# conservatively — the agent's "reboot" is distinct from other uses of
+# the word (e.g. config file contents mentioning reboot).
+_REBOOT_COMMAND_RE = re.compile(
+    r"(^|;|&&|\|\||\s|\bsudo\s+)"
+    r"(reboot|shutdown\s+-r|systemctl\s+reboot|init\s+6|telinit\s+6)"
+    r"(\s|;|&&|$)"
+)
+
+
+def _is_reboot_command(cmd: str) -> bool:
+    """True if ``cmd`` will reboot the target (triggering a reconnect loop).
+
+    Pure-comment lines (starting with ``#``) are explicitly rejected — a
+    false positive there would leave the agent stuck waiting for a
+    reconnect that never comes.
+    """
+    stripped = cmd.lstrip()
+    if stripped.startswith("#"):
+        return False
+    return bool(_REBOOT_COMMAND_RE.search(cmd))
+
+
 def _run_setup_agent(gui_state: GUIState, port: int) -> None:
     """Run the setup phase as an agentic loop: SSH into the Linux machine,
     let the LLM decide what to run, execute it, feed results back, repeat.
@@ -1878,6 +1982,20 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
         rc, system_info, _ = _ssh_exec(host, user, info_cmd, key_path, port=ssh_port)
         system_info = system_info.strip() if rc == 0 else "Could not gather system info"
 
+        # Step 2b: Detect whether we're in a live ISO or an installed system.
+        # If LIVE, the agent's first job is to install the distro using the
+        # primer; if INSTALLED, it skips install and goes straight to config.
+        bridge.add_message("agent", "Detecting live-ISO vs installed system…")
+        is_live, live_marker = _detect_live_env(host, user, key_path, port=ssh_port)
+        if is_live:
+            bridge.add_message(
+                "agent",
+                f"Live environment detected ({live_marker}) — agent will install the "
+                "distro first, then reboot and continue with configuration.",
+            )
+        else:
+            bridge.add_message("agent", "Installed system — skipping install phase.")
+
         # Step 3: Build profile context
         profile_dict = asdict(profile)
         if profile_dict.get("ai_config", {}).get("api_key"):
@@ -1926,6 +2044,48 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
             migration_plan_md = "\n".join(plan_parts)
 
         # Step 5: Build system prompt for the agentic loop
+        # Live-env mode block — injected only when we detected a live ISO.
+        # Tells the LLM its first job is to install the distro from scratch
+        # using the primer, then reboot. The reconnect-after-reboot logic
+        # in the command loop handles the SSH handoff automatically.
+        live_env_block = ""
+        if is_live:
+            live_env_block = (
+                "\n== LIVE ENVIRONMENT MODE ==\n"
+                f"Detection signal: {live_marker}\n\n"
+                "You are currently in a LIVE USB environment. The target distro is NOT\n"
+                "installed on disk yet. Your FIRST job is to do a fresh installation\n"
+                "using the DISTRO INSTALL PRIMER above, THEN continue with the post-\n"
+                "install configuration. Concretely:\n\n"
+                "1. Confirm the target disk with the user (bridge chat) before ANY\n"
+                "   partitioning. Show `lsblk -f` output so they can see what's\n"
+                "   there. Never wipe without explicit confirmation.\n"
+                "2. Follow the install primer step-by-step: partition, mkfs, mount,\n"
+                "   base install (pacstrap / debootstrap / dnf --installroot / etc.),\n"
+                "   chroot config.\n"
+                "3. During chroot config, **pre-install the SSH setup** for the\n"
+                "   installed system so we can reconnect after reboot. That means:\n"
+                "     - Install openssh-server / openssh in the target rootfs\n"
+                "     - Enable sshd for first boot (systemctl / rc-update / sv)\n"
+                "     - Create the user account that will own the installation\n"
+                "     - Copy this SSH key into that user's authorized_keys with\n"
+                "       correct permissions (0700 ~/.ssh, 0600 authorized_keys)\n"
+                f"     - The public key to install is already known — it's the one\n"
+                f"       authenticating THIS session, so you can pull it from the\n"
+                f"       live env's /root/.ssh/authorized_keys or /home/{user}/.ssh/\n"
+                f"       authorized_keys file on the current (live) system.\n"
+                "4. Install the bootloader (grub / systemd-boot per the primer).\n"
+                "5. Issue `reboot`. QuickHatch auto-detects reboot commands and\n"
+                "   polls for the installed system's sshd to come back up — you\n"
+                "   will transparently reconnect; just continue from the next\n"
+                "   command as if nothing happened.\n"
+                "6. After reconnect, proceed to post-install config (desktop env,\n"
+                "   drivers, theming, apps) as described below.\n\n"
+                "IMPORTANT: If the user's preferences or migration plan specify a\n"
+                "user account name or password, use those. Otherwise ask the user\n"
+                "via the bridge chat once, early; do not invent credentials silently.\n\n"
+            )
+
         system_prompt = (
             "You are a Linux system administrator. You are connected to a remote machine via SSH "
             "and your job is to execute the migration plan (provided below) on the remote machine.\n\n"
@@ -1953,15 +2113,16 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
             "  (e.g. write /etc/xdg/kdeglobals for KDE, /etc/dconf/db/local.d/ for GNOME)\n"
             "- Create a regular user with sudo rights (group `wheel`) — don't leave users on root-only\n"
             "- Enable all required systemd services (display manager, NetworkManager, bluetooth, etc.)\n\n"
-            "EXECUTION ORDER (based on the plan):\n"
+            "EXECUTION ORDER (post-install, after any live-env install completes):\n"
             "1. Prepare the system (expand disk/tmpfs if needed, update packages)\n"
             "2. Install and configure GPU drivers (verify with nvidia-smi, glxinfo, etc.)\n"
             "3. Install the desktop environment AND activate theme/icons system-wide\n"
             "4. Install all application equivalents from the plan\n"
-            "5. Create a primary user with sudo rights and proper groups\n"
+            "5. Create a primary user with sudo rights and proper groups (live-env installs do this step earlier, during chroot)\n"
             "6. Apply system configuration (shell, fonts, display manager, services)\n"
             "7. Run final verification: theme is active, services enabled, user can log in\n\n"
             f"== REMOTE SYSTEM INFO ==\n{system_info}\n\n"
+            + live_env_block
             + distro_primer_md
             + (
                 f"== MIGRATION PLAN (pre-generated) ==\n{migration_plan_md}\n\n"
@@ -2080,6 +2241,65 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                         continue
 
                     bridge.add_message("agent", f"`{cmd}`" + (f" — {reason}" if reason else ""))
+
+                    # Reboot commands tear down the live-env SSH session.
+                    # Fire the command (short timeout — we expect it to
+                    # disconnect us), then poll for SSH on the installed
+                    # system to come back up. If the user configured a
+                    # new login during install, they should have set
+                    # linux_user accordingly in the wizard; we reconnect
+                    # with whatever `user` is set to now.
+                    if _is_reboot_command(cmd):
+                        bridge.add_message(
+                            "agent",
+                            "Reboot issued — waiting for the target to come back online "
+                            "(up to 5 min)…",
+                        )
+                        _ssh_exec(
+                            host, user, cmd, key_path, timeout=15, port=ssh_port
+                        )  # fire + disconnect
+                        reconnected = _wait_for_ssh_reconnect(
+                            host,
+                            user,
+                            key_path,
+                            port=ssh_port,
+                            timeout=300,
+                            interval=5,
+                            stop_flag_getter=lambda: bridge.stop_requested,
+                        )
+                        if not reconnected:
+                            bridge.add_message(
+                                "agent",
+                                "Timed out waiting for reconnect. The install may have "
+                                "failed, network may be down, or the installed system's "
+                                "sshd was not enabled. Stopping.",
+                            )
+                            results_log.append(f"**`{cmd}`** — TIMEOUT (no reconnect)")
+                            break
+                        bridge.add_message(
+                            "agent",
+                            "Reconnected to the installed system. Continuing with "
+                            "post-install configuration.",
+                        )
+                        # After the first successful reconnect we are no
+                        # longer in a live env — flip the flag so downstream
+                        # prompt/logic treats the session as installed.
+                        is_live = False
+                        # Gather fresh system info so the next turn sees
+                        # the installed-system reality.
+                        fresh_rc, fresh_info, _ = _ssh_exec(
+                            host,
+                            user,
+                            "cat /etc/os-release 2>/dev/null; echo '===USER==='; whoami; id",
+                            key_path,
+                            port=ssh_port,
+                        )
+                        if fresh_rc == 0:
+                            pending_feedback.append(
+                                f"[post-reboot system info]\n{fresh_info.strip()}"
+                            )
+                        results_log.append(f"**`{cmd}`** — OK (reconnected)")
+                        continue
 
                     rc, out, err = _ssh_exec(host, user, cmd, key_path, timeout=300, port=ssh_port)
 

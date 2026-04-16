@@ -107,72 +107,176 @@ def run(profile: UserProfile) -> None:
 
 
 def _generate_quickstart(profile: UserProfile) -> str:
-    """Generate a shell script to prepare the Linux machine for remote setup.
+    """Generate a shell script that prepares the Linux target for agent SSH.
 
-    This script runs on the NEW Linux machine. It only sets up SSH access
-    so the AI agent (running on Windows) can connect remotely to do the
-    actual configuration.
+    Works in two scenarios:
+
+    1. **Live USB** — user booted from a distro ISO without installing.
+       Script installs sshd if missing, starts it (via systemctl / OpenRC /
+       runit / s6 / dinit depending on the init in the live env), adds the
+       public key to root's and the live user's authorized_keys. Agent
+       detects the live env and drives the install itself.
+
+    2. **Already-installed system** — user went through the distro's
+       normal installer and created an account. Script does the same
+       setup but against that user's home directory.
+
+    In both cases, prints a machine-readable environment marker and the
+    IP + username the user should paste back into QuickHatch.
     """
-    script = "#!/usr/bin/env bash\n"
-    script += "# QuickHatch — Linux Preparation Script\n"
-    script += "# Run this on your new Linux machine to prepare it for remote setup.\n"
-    script += "# The AI agent on your Windows PC will SSH in and do the rest.\n\n"
-    script += "set -e\n\n"
-    script += 'echo "========================================"\n'
-    script += 'echo "  QuickHatch — Preparing Linux"\n'
-    script += 'echo "========================================"\n'
-    script += 'echo ""\n\n'
+    pub_name = Path(profile.ssh_public_key_path).name if profile.ssh_public_key_path else ""
+    key_block = ""
+    if pub_name:
+        key_block = f"""
+# --- Install SSH key into the current user's authorized_keys ---
+USER_HOME="$HOME"
+if [ "$(id -u)" = "0" ] && [ -n "${{SUDO_USER:-}}" ] && [ "${{SUDO_USER}}" != "root" ]; then
+    # Running under sudo — install into the invoking user, not root
+    USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
+fi
+mkdir -p "$USER_HOME/.ssh"
+chmod 700 "$USER_HOME/.ssh"
+if [ -f "{pub_name}" ]; then
+    grep -qxF "$(cat {pub_name})" "$USER_HOME/.ssh/authorized_keys" 2>/dev/null \\
+        || cat "{pub_name}" >> "$USER_HOME/.ssh/authorized_keys"
+    chmod 600 "$USER_HOME/.ssh/authorized_keys"
+    if [ "$(id -u)" = "0" ] && [ -n "${{SUDO_USER:-}}" ]; then
+        chown -R "$SUDO_USER" "$USER_HOME/.ssh"
+    fi
+    echo "[+] SSH key added to $USER_HOME/.ssh/authorized_keys"
+else
+    echo "[!] Warning: {pub_name} not found in this directory."
+    echo "    Make sure you ran this script from the extracted bundle."
+fi
 
-    # Install openssh-server if needed
-    script += "# Ensure SSH server is installed\n"
-    script += "if ! command -v sshd &> /dev/null; then\n"
-    script += '    echo "[*] Installing SSH server..."\n'
-    script += "    sudo apt install -y openssh-server 2>/dev/null || \\\n"
-    script += "    sudo dnf install -y openssh-server 2>/dev/null || \\\n"
-    script += "    sudo pacman -S --noconfirm openssh 2>/dev/null || \\\n"
-    script += "    sudo zypper install -y openssh 2>/dev/null || true\n"
-    script += "fi\n\n"
+# Also install into root's authorized_keys on a live env (so the agent
+# can install the distro from scratch without needing a user account).
+if [ -f "{pub_name}" ]; then
+    if [ "$(id -u)" = "0" ]; then
+        mkdir -p /root/.ssh
+        chmod 700 /root/.ssh
+        grep -qxF "$(cat {pub_name})" /root/.ssh/authorized_keys 2>/dev/null \\
+            || cat "{pub_name}" >> /root/.ssh/authorized_keys
+        chmod 600 /root/.ssh/authorized_keys
+    elif command -v sudo >/dev/null 2>&1; then
+        sudo mkdir -p /root/.ssh
+        sudo chmod 700 /root/.ssh
+        sudo bash -c "grep -qxF \\"$(cat {pub_name})\\" /root/.ssh/authorized_keys 2>/dev/null || cat '{pub_name}' >> /root/.ssh/authorized_keys"
+        sudo chmod 600 /root/.ssh/authorized_keys
+    fi
+fi
+"""
 
-    # SSH key setup
-    if profile.ssh_public_key_path:
-        pub_name = Path(profile.ssh_public_key_path).name
-        script += "# Add the QuickHatch SSH key\n"
-        script += 'echo "[*] Setting up SSH access..."\n'
-        script += "mkdir -p ~/.ssh && chmod 700 ~/.ssh\n"
-        script += f'if [ -f "{pub_name}" ]; then\n'
-        script += f'    grep -qxF "$(cat {pub_name})" ~/.ssh/authorized_keys 2>/dev/null || cat "{pub_name}" >> ~/.ssh/authorized_keys\n'
-        script += "    chmod 600 ~/.ssh/authorized_keys\n"
-        script += '    echo "[+] SSH key added to authorized_keys"\n'
-        script += "else\n"
-        script += f'    echo "[!] Warning: {pub_name} not found in this directory."\n'
-        script += '    echo "    Make sure you copied the full migration bundle."\n'
-        script += "fi\n\n"
+    return (
+        r"""#!/usr/bin/env bash
+# QuickHatch — Linux Preparation Script
+# Run this on the Linux target (live USB OR installed system).
+# The AI agent on your Windows PC will SSH in and do the rest.
 
-    # Enable SSH daemon
-    script += "# Enable and start SSH daemon\n"
-    script += "if command -v systemctl &> /dev/null; then\n"
-    script += "    sudo systemctl enable --now sshd 2>/dev/null || sudo systemctl enable --now ssh 2>/dev/null || true\n"
-    script += '    echo "[+] SSH daemon enabled and running"\n'
-    script += "fi\n\n"
+set -e
 
-    # Print connection info for the user to give back to the Windows agent
-    script += "# Show connection info\n"
-    script += 'echo ""\n'
-    script += 'echo "========================================"\n'
-    script += 'echo "  Ready for remote setup!"\n'
-    script += 'echo "========================================"\n'
-    script += 'echo ""\n'
-    script += 'echo "Give the AI agent on Windows these details:"\n'
-    script += 'echo ""\n'
-    script += "USERNAME=$(whoami)\n"
-    script += 'echo "  Username: $USERNAME"\n'
-    script += "# Try to get the local IP address\n"
-    script += 'IP=$(hostname -I 2>/dev/null | awk "{print \\$1}" || ip route get 1 2>/dev/null | awk "{print \\$7;exit}" || echo "unknown")\n'
-    script += 'echo "  IP address: $IP"\n'
-    script += 'echo ""\n'
-    script += 'echo "The agent will connect with:"\n'
-    script += 'echo "  ssh $USERNAME@$IP"\n'
-    script += 'echo ""\n'
-    script += 'echo "You can now go back to QuickHatch on Windows."\n'
+echo "========================================"
+echo "  QuickHatch — Preparing Linux"
+echo "========================================"
+echo ""
 
-    return script
+# --- Detect live ISO vs installed system ---
+IS_LIVE=no
+if grep -qE '\b(boot=live|live-media|toram|rd\.live\.image|archisolabel|archisodevice|boot=casper)\b' /proc/cmdline 2>/dev/null; then
+    IS_LIVE=yes
+fi
+for marker in /run/live /rofs /cdrom/casper /run/archiso /lib/live /run/calamares; do
+    [ -d "$marker" ] && IS_LIVE=yes
+done
+if mount 2>/dev/null | grep -qE ' on / type (overlay|aufs|squashfs|tmpfs)\b'; then
+    IS_LIVE=yes
+fi
+
+if [ "$IS_LIVE" = "yes" ]; then
+    echo "[*] Detected LIVE USB environment."
+    echo "    The agent will install the distro from scratch via SSH."
+else
+    echo "[*] Detected INSTALLED system."
+    echo "    The agent will configure the existing install via SSH."
+fi
+echo ""
+
+# --- Ensure SSH server is installed ---
+if ! command -v sshd >/dev/null 2>&1; then
+    echo "[*] Installing SSH server..."
+    if command -v apt >/dev/null 2>&1; then
+        sudo apt install -y openssh-server
+    elif command -v dnf >/dev/null 2>&1; then
+        sudo dnf install -y openssh-server
+    elif command -v pacman >/dev/null 2>&1; then
+        sudo pacman -S --noconfirm openssh
+    elif command -v zypper >/dev/null 2>&1; then
+        sudo zypper install -y openssh
+    elif command -v apk >/dev/null 2>&1; then
+        sudo apk add openssh
+    elif command -v xbps-install >/dev/null 2>&1; then
+        sudo xbps-install -Sy openssh
+    else
+        echo "[!] Could not identify the package manager. Install openssh-server manually."
+        exit 1
+    fi
+fi
+"""
+        + key_block
+        + r"""
+# --- Enable + start the SSH daemon across init systems ---
+START_OK=no
+if command -v systemctl >/dev/null 2>&1; then
+    sudo systemctl enable --now sshd 2>/dev/null \
+        || sudo systemctl enable --now ssh 2>/dev/null \
+        && START_OK=yes
+fi
+if [ "$START_OK" = "no" ] && command -v rc-service >/dev/null 2>&1; then
+    # OpenRC (Artix OpenRC, Alpine, Gentoo-OpenRC)
+    sudo rc-update add sshd default 2>/dev/null \
+        || sudo rc-update add ssh default 2>/dev/null || true
+    sudo rc-service sshd start 2>/dev/null \
+        || sudo rc-service ssh start 2>/dev/null || true
+    START_OK=yes
+fi
+if [ "$START_OK" = "no" ] && command -v sv >/dev/null 2>&1; then
+    # runit (Void, Artix-runit)
+    sudo ln -sf /etc/sv/sshd /var/service/ 2>/dev/null || \
+        sudo ln -sf /etc/runit/sv/sshd /var/service/ 2>/dev/null || true
+    START_OK=yes
+fi
+if [ "$START_OK" = "no" ] && command -v dinitctl >/dev/null 2>&1; then
+    # dinit (Chimera, Artix-dinit)
+    sudo dinitctl enable sshd 2>/dev/null || true
+    START_OK=yes
+fi
+if [ "$START_OK" = "no" ]; then
+    # Last resort — just launch the daemon directly for this session
+    sudo /usr/sbin/sshd 2>/dev/null || sudo sshd 2>/dev/null || true
+fi
+echo "[+] SSH daemon enabled and running"
+echo ""
+
+# --- Report environment marker + IP for the user ---
+echo "========================================"
+echo "  Ready for remote setup!"
+echo "========================================"
+echo ""
+USERNAME=$(whoami)
+IP=$(hostname -I 2>/dev/null | awk '{print $1}' || \
+     ip route get 1 2>/dev/null | awk '{print $7; exit}' || \
+     echo "unknown")
+
+echo "[QuickHatch] Environment: $(echo $IS_LIVE | tr a-z A-Z)"
+echo "[QuickHatch] Username:    $USERNAME"
+echo "[QuickHatch] IP address:  $IP"
+echo ""
+echo "Paste the IP + username into QuickHatch's Remote Setup step."
+if [ "$IS_LIVE" = "yes" ]; then
+    echo ""
+    echo "NOTE: You're in a live USB. Leave this terminal open — the agent"
+    echo "      will install the distro, reboot, and reconnect. Don't touch"
+    echo "      the keyboard unless the agent asks you to."
+fi
+"""
+    )

@@ -1406,18 +1406,25 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>Bootable USB</h2>
-        <p class="subtitle">A walkthrough, not an automation. QuickHatch doesn't flash USB drives itself — you'll use a standard tool. Once Linux is installed on the target, QuickHatch takes over via SSH.</p>
+        <p class="subtitle">Flash the ISO, boot the target machine straight into the live environment, and run one command — the agent takes it from there. You don't have to click through the installer yourself.</p>
         <div class="info-box">
           <strong>Create the USB drive</strong>
-          <p>Download the ISO from the distro's website, then write it to a USB drive (8 GB+) using <a href="https://rufus.ie" target="_blank" rel="noopener">Rufus</a>, <a href="https://www.ventoy.net" target="_blank" rel="noopener">Ventoy</a>, or <a href="https://etcher.balena.io" target="_blank" rel="noopener">balenaEtcher</a>.</p>
+          <p>Download the ISO for ${escHtml(distro)} from the distro's website, then write it to an 8 GB+ USB drive with <a href="https://rufus.ie" target="_blank" rel="noopener">Rufus</a>, <a href="https://www.ventoy.net" target="_blank" rel="noopener">Ventoy</a>, or <a href="https://etcher.balena.io" target="_blank" rel="noopener">balenaEtcher</a>.</p>
         </div>
-        <div class="guide-steps">
-          <div class="guide-step"><div class="guide-num">1</div><div class="guide-text">Plug the USB into the target PC</div></div>
-          <div class="guide-step"><div class="guide-num">2</div><div class="guide-text">Enter BIOS/UEFI<span>F2, F12, Del, or Esc during boot — depends on the manufacturer</span></div></div>
-          <div class="guide-step"><div class="guide-num">3</div><div class="guide-text">Boot from the USB<span>Move it to the top of the boot order and save</span></div></div>
-          <div class="guide-step"><div class="guide-num">4</div><div class="guide-text">Run the installer<span>Graphical distros: pick language, timezone, user, disk. Minimal distros (Arch, etc.): SSH in afterward and let the agent handle the rest.</span></div></div>
-          <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">Get online<span>Ethernet or phone tethering is easiest. Wi-Fi via <code>iwctl</code> works on minimal installs.</span></div></div>
-          <div class="guide-step"><div class="guide-num">6</div><div class="guide-text">Copy the bundle and run <code>bash quickstart.sh</code><span>It enables SSH and prints the IP address. Move the bundle with a second USB or <code>scp</code> from this PC.</span></div></div>
+        <div class="info-box info-success" style="margin-top:var(--s3)">
+          <strong>The whole thing in 6 steps</strong>
+          <div class="guide-steps">
+            <div class="guide-step"><div class="guide-num">1</div><div class="guide-text">Plug the USB into the target PC<span>If you're going to copy the export bundle over, a second USB is handy.</span></div></div>
+            <div class="guide-step"><div class="guide-num">2</div><div class="guide-text">Boot from USB<span>Enter BIOS/UEFI (F2, F12, Del, or Esc during boot) and move the USB to the top of the boot order.</span></div></div>
+            <div class="guide-step"><div class="guide-num">3</div><div class="guide-text">Pick "Try / Live" at the boot menu<span>Do NOT click Install — let the live environment boot instead. The agent does the install for you.</span></div></div>
+            <div class="guide-step"><div class="guide-num">4</div><div class="guide-text">Get online<span>Ethernet works out of the box. Wi-Fi: <code>nmcli device wifi connect SSID password …</code> or <code>iwctl</code> on Arch-based live envs.</span></div></div>
+            <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">Copy the QuickHatch bundle onto the live env<span>Plug in the bundle USB and mount it, or <code>scp</code> it from this PC.</span></div></div>
+            <div class="guide-step"><div class="guide-num">6</div><div class="guide-text">Run <code>bash quickstart.sh</code><span>It detects the live env, enables SSH, adds this PC's key, prints the IP. Leave the terminal open afterwards — the agent will install the distro, reboot, and reconnect automatically.</span></div></div>
+          </div>
+        </div>
+        <div class="info-box" style="margin-top:var(--s3)">
+          <strong>Prefer to install Linux yourself first?</strong>
+          <p style="margin:var(--s2) 0 0 0">Also supported. Click Install in the live menu, pick a username/password in the distro installer, reboot into the fresh install, then run <code>bash quickstart.sh</code> on the installed system. The agent detects "installed" vs "live" automatically and skips straight to desktop + drivers + apps configuration.</p>
         </div>
         <div style="margin-top:16px">
           <button class="btn btn-ghost" onclick="stepRenderers.usb()" style="font-size:.78rem">Re-read instructions</button>
@@ -1454,15 +1461,19 @@ const stepRenderers={
         </div>
 
         <div class="info-box" style="margin-top:var(--s3)">
-          <strong>The whole Linux-side flow (preview)</strong>
+          <strong>The whole Linux-side flow</strong>
           <ol>
-            <li><strong>Flash</strong> your distro ISO to a USB with Rufus. Boot from it.</li>
-            <li><strong>Install</strong> Linux — the installer will ask you to pick a username + password. Pick anything; the agent handles everything else.</li>
-            <li><strong>Plug in</strong> the QuickHatch bundle USB and log into your new Linux account.</li>
-            <li><strong>Run one command</strong> (the bundle has it written out): <code>bash quickstart.sh</code>. That installs SSH, adds this PC's key, prints your IP + username.</li>
-            <li><strong>Come back here</strong>, paste the IP into Remote Setup, click Start. The agent takes it from there — drivers, desktop, apps, everything.</li>
+            <li><strong>Flash</strong> your distro ISO to a USB with Rufus.</li>
+            <li><strong>Boot the live environment</strong> on the target — pick "Try / Live" at the boot menu, don't click Install.</li>
+            <li><strong>Plug in</strong> the QuickHatch bundle (second USB or <code>scp</code> from this PC).</li>
+            <li><strong>Run one command</strong>: <code>bash quickstart.sh</code>. That installs SSH, adds this PC's key, prints your IP + the fact that it's a live env.</li>
+            <li><strong>Come back here</strong>, paste the IP into Remote Setup, click Start. The agent detects the live env, installs the distro from scratch, reboots, reconnects, and configures desktop + drivers + apps. <strong>No installer clicks needed.</strong></li>
           </ol>
-          <p class="muted" style="font-size:var(--t-xs);margin-top:var(--s2)">That's it. One Rufus flash, one install, one command. The rest is automated.</p>
+          <p class="muted" style="font-size:var(--t-xs);margin-top:var(--s2)">One Rufus flash, one boot, one command. Everything else is automated by the agent.</p>
+        </div>
+        <div class="info-box" style="margin-top:var(--s3)">
+          <strong>Alternative: install Linux yourself first</strong>
+          <p style="margin:var(--s2) 0 0 0">If you'd rather go through your distro's installer manually (pick partitions, user, password), that also works. Install Linux normally, then run <code>bash quickstart.sh</code> on the installed system. The same script detects "installed" vs "live" and adapts — the agent skips the install phase and goes straight to desktop config.</p>
         </div>
 
         <div class="info-box info-warn" style="margin-top:var(--s3)">
