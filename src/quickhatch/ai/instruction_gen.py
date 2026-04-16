@@ -89,15 +89,25 @@ def generate_instructions(profile: UserProfile) -> str:
 
     # ── User Preferences (raw) ──
     sections.append("## User Preferences\n")
-    sections.append(f"- **Desktop style:** {prefs.desktop_look}\n")
+    if prefs.desktop_look:
+        sections.append("- **How they want the desktop to look** (free-text, user's own words):\n")
+        sections.append(f"  > {prefs.desktop_look}\n")
+        sections.append(
+            "  Match this description against the curated design library. "
+            "Pick the closest recipe by id and personalize within it, or blend "
+            "components from a couple of recipes if no single one matches.\n"
+        )
     if prefs.gallery_picks:
         sections.append(f"- **Pinned gallery recipes:** {', '.join(prefs.gallery_picks)}\n")
         sections.append(
             "  Recipe picks are authoritative references. If a recipe is pinned, personalize within it "
             "instead of inventing a different desktop from scratch.\n"
         )
-    sections.append(f"- **Icon style:** {prefs.icon_style}\n")
-    sections.append(f"- **Wallpaper preference:** {prefs.wallpaper_style}\n")
+    # Legacy fields — only surface if populated (older checkpoints may have them)
+    if prefs.icon_style:
+        sections.append(f"- **Icon style:** {prefs.icon_style}\n")
+    if prefs.wallpaper_style:
+        sections.append(f"- **Wallpaper preference:** {prefs.wallpaper_style}\n")
     sections.append(
         f"- **Primary use cases:** {', '.join(prefs.use_cases) if prefs.use_cases else 'Not specified'}\n"
     )

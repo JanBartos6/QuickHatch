@@ -1201,57 +1201,29 @@ const stepRenderers={
 
   questionnaire(){
     const prefs=currentPrefs();
-    if(!state.galleryEntries&&!state.galleryLoading&&!state.galleryError)loadGallery();
-    const presetUses=['development','gaming','office','creative','browsing','sysadmin','datascience','education','casual'];
-    const selectedUses=(prefs.use_cases||[]).map(v=>String(v).toLowerCase().replace(/\s+/g,''));
-    const customUses=(prefs.use_cases||[]).filter(v=>!presetUses.includes(String(v).toLowerCase().replace(/\s+/g,'')));
-    const iconKnown=['flat','rounded','classic','colorful','default'];
-    const wpKnown=['nature','abstract','dark','minimal'];
-    const iconValue=iconKnown.includes(prefs.icon_style)?prefs.icon_style:(prefs.icon_style?'custom':'flat');
-    const wpValue=wpKnown.includes(prefs.wallpaper_style)?prefs.wallpaper_style:(prefs.wallpaper_style?'custom':'nature');
+    const useCasesText=Array.isArray(prefs.use_cases)?prefs.use_cases.join(', '):(prefs.use_cases||'');
     content().innerHTML=`
       <div class="card">
-        <h2>Your preferences</h2>
-        <p class="subtitle">Pin concrete desktop recipes instead of vague style labels, then add a few preference hints the agent can personalize inside that shortlist.</p>
-        ${renderGalleryPicker()}
+        <h2>Describe your ideal desktop</h2>
+        <p class="subtitle">Just tell us, in your own words, how you want your Linux desktop to look and feel. The AI is working with a curated library of 100+ beautiful community-verified designs — it'll match or adapt the closest one to what you describe.</p>
+
         <div class="field">
-          <label>Icon style</label>
-          <select id="iconStyle" onchange="toggleCustomField(this,'iconCustom')">
-            <option value="flat"${iconValue==='flat'?' selected':''}>Flat and modern</option>
-            <option value="rounded"${iconValue==='rounded'?' selected':''}>Rounded</option>
-            <option value="classic"${iconValue==='classic'?' selected':''}>Classic</option>
-            <option value="colorful"${iconValue==='colorful'?' selected':''}>Colorful</option>
-            <option value="default"${iconValue==='default'?' selected':''}>No preference</option>
-            <option value="custom"${iconValue==='custom'?' selected':''}>Custom...</option>
-          </select>
-          <input type="text" id="iconCustom" class="${iconValue==='custom'?'':'hidden'}" value="${escHtml(iconValue==='custom'?(prefs.icon_style||''):'')}" placeholder="Describe your ideal icon style" style="margin-top:6px">
+          <label>How should it look?</label>
+          <textarea id="designDescription" rows="5" placeholder="e.g. 'Dark, minimal, macOS-inspired. I like warm neutral colors, subtle blur on active windows, a clean centered bar at the top. No cluttered widgets. Nerd font for code.'">${escHtml(prefs.desktop_look||'')}</textarea>
+          <div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Mention anything that matters: colors, fonts, panel style, window decorations, overall mood. The more specific, the closer the match.</div>
         </div>
+
         <div class="field">
-          <label>Wallpaper vibe</label>
-          <select id="wpStyle" onchange="toggleCustomField(this,'wpCustom')">
-            <option value="nature"${wpValue==='nature'?' selected':''}>Nature and landscapes</option>
-            <option value="abstract"${wpValue==='abstract'?' selected':''}>Abstract and geometric</option>
-            <option value="dark"${wpValue==='dark'?' selected':''}>Dark and moody</option>
-            <option value="minimal"${wpValue==='minimal'?' selected':''}>Minimal and clean</option>
-            <option value="custom"${wpValue==='custom'?' selected':''}>Custom...</option>
-          </select>
-          <input type="text" id="wpCustom" class="${wpValue==='custom'?'':'hidden'}" value="${escHtml(wpValue==='custom'?(prefs.wallpaper_style||''):'')}" placeholder="Describe what you want" style="margin-top:6px">
+          <label>What will you use this machine for?</label>
+          <input type="text" id="useCasesText" value="${escHtml(useCasesText)}" placeholder="e.g. web development in Rust and Python, some writing, occasional gaming">
+          <div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Comma-separated. Affects app suggestions and which designs get prioritized.</div>
         </div>
-        <div class="field">
-          <label>What will you use this for?</label>
-          <div class="pill-grid" id="useCases">
-            ${['Development','Gaming','Office','Creative','Browsing','Sysadmin','Data Science','Education','Casual']
-              .map(u=>{
-                const value=u.toLowerCase().replace(' ','');
-                return `<span class="pill${selectedUses.includes(value)?' selected':''}" data-value="${value}" onclick="toggleCheck(this)">${u}</span>`;
-              }).join('')}
-          </div>
-          <input type="text" id="useCaseCustom" value="${escHtml(customUses.join(', '))}" placeholder="Other uses (type anything)" style="margin-top:8px">
-        </div>
+
         ${isCustomizeMode()?'':`<div class="field">
-          <label>Preferred distro (optional)</label>
-          <input type="text" id="distroPref" value="${escHtml(prefs.distro_preference||'')}" placeholder="Leave blank and let the AI decide">
+          <label>Preferred Linux distribution <span class="muted" style="font-weight:400">(optional)</span></label>
+          <input type="text" id="distroPref" value="${escHtml(prefs.distro_preference||'')}" placeholder="Leave blank and the AI will recommend one based on your hardware">
         </div>`}
+
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
           <button class="btn btn-primary" onclick="submitPrefs()">Continue</button>
@@ -1459,27 +1431,55 @@ const stepRenderers={
 
   ssh(){
     const hasKey=!!state.profile.ssh_public_key_path;
+    const provider=state.profile.ai_config?.provider||'';
+    const isLocal=['local_ollama','local_lmstudio','codex'].includes(provider);
+    const isAPI=['api','openai_api','claude_api'].includes(provider);
+    const providerNote=isLocal
+      ?'Your local model (LM Studio / Ollama / Codex) needs to stay loaded on this PC the whole time, and this PC stays on and reachable on the same network as your Linux machine.'
+      :isAPI
+      ?'This PC stays on and online the whole time — every command the agent decides on hits the API, so losing internet or closing the wizard mid-run pauses setup.'
+      :'This PC stays on and connected to the AI you picked. Closing the wizard stops the agent mid-run.';
     content().innerHTML=`
       <div class="card">
         <h2>SSH key</h2>
-        <p class="subtitle">The agent authenticates to the target over SSH with a key pair — no passwords. This step generates one if you don't already have one.</p>
+        <p class="subtitle">The remote-setup agent connects to your new Linux machine over SSH with a key pair — no passwords, no fiddling. Click Generate and you're done here.</p>
+
         <div class="info-box">
-          <strong>How it works</strong>
+          <strong>What happens when you click Generate</strong>
           <ol>
-            <li>Key pair generated on this machine</li>
-            <li>Public key included in the export bundle</li>
-            <li><code>quickstart.sh</code> adds it to <code>authorized_keys</code> on Linux</li>
-            <li>Agent uses the private key to connect</li>
+            <li>A fresh <code>ed25519</code> keypair is created on this PC.</li>
+            <li>The public key goes into the export bundle at the next step.</li>
+            <li>The private key stays on this machine — only this wizard can use it.</li>
           </ol>
         </div>
-        <div id="sshResult">${hasKey?'<div class="info-box info-success"><strong>Existing key found — ready to go.</strong></div>':''}</div>
-        <div class="stack-h" style="flex-wrap:wrap">
+
+        <div class="info-box" style="margin-top:var(--s3)">
+          <strong>The whole Linux-side flow (preview)</strong>
+          <ol>
+            <li><strong>Flash</strong> your distro ISO to a USB with Rufus. Boot from it.</li>
+            <li><strong>Install</strong> Linux — the installer will ask you to pick a username + password. Pick anything; the agent handles everything else.</li>
+            <li><strong>Plug in</strong> the QuickHatch bundle USB and log into your new Linux account.</li>
+            <li><strong>Run one command</strong> (the bundle has it written out): <code>bash quickstart.sh</code>. That installs SSH, adds this PC's key, prints your IP + username.</li>
+            <li><strong>Come back here</strong>, paste the IP into Remote Setup, click Start. The agent takes it from there — drivers, desktop, apps, everything.</li>
+          </ol>
+          <p class="muted" style="font-size:var(--t-xs);margin-top:var(--s2)">That's it. One Rufus flash, one install, one command. The rest is automated.</p>
+        </div>
+
+        <div class="info-box info-warn" style="margin-top:var(--s3)">
+          <strong>Heads up about the agent</strong>
+          <p style="margin:var(--s2) 0 var(--s2) 0">${providerNote}</p>
+          <p style="margin:0"><strong>Can't keep this PC running, or don't want to?</strong> Skip the agent. The export bundle also includes the full migration plan as a Markdown document — you can follow it yourself on Linux, step by step. You'll still get a good setup; you'll just do the clicking. In that case, you can skip this SSH step entirely.</p>
+        </div>
+
+        <div id="sshResult">${hasKey?'<div class="info-box info-success" style="margin-top:var(--s3)"><strong>Existing key found — ready to go.</strong></div>':''}</div>
+        <div class="stack-h" style="flex-wrap:wrap;margin-top:var(--s3)">
           <button class="btn btn-primary" id="sshGenBtn" onclick="generateSSH()">${hasKey?'Regenerate key':'Generate key'}</button>
-          <button class="btn btn-ghost" onclick="state._sshSkipped=true;el('sshContinue').disabled=false" id="sshSkipBtn"${hasKey?' class="hidden"':''}>I'll use my own key</button>
+          <button class="btn btn-ghost" onclick="state._sshSkipped=true;el('sshContinue').disabled=false" id="sshSkipBtn"${hasKey?' class="hidden"':''}>I already have my own key</button>
+          <button class="btn btn-ghost" onclick="state._sshSkipped=true;el('sshContinue').disabled=false" id="sshManualBtn"${hasKey?' class="hidden"':''}>Skip — I'll follow the Markdown plan manually</button>
         </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
-          <button class="btn btn-primary" id="sshContinue" onclick="completeStep('ssh')" ${hasKey||state._sshSkipped?'':'disabled'}>${hasKey||state._sshSkipped?'Continue':'Generate a key first'}</button>
+          <button class="btn btn-primary" id="sshContinue" onclick="completeStep('ssh')" ${hasKey||state._sshSkipped?'':'disabled'}>${hasKey||state._sshSkipped?'Continue':'Generate a key or pick manual mode'}</button>
         </div>
       </div>`;
   },
@@ -1912,28 +1912,23 @@ async function submitAI(){
   await saveProfile({ai_config:cfg});await completeStep('ai_setup');
 }
 async function submitPrefs(){
-  const picks=[...(state.galleryPinned||[])];
-  if(picks.length<3){toast('Pin at least 3 desktop recipes','error');return;}
-  if(picks.length>10){toast('Pick no more than 10 recipes','error');return;}
-  let iconVal=el('iconStyle').value;
-  if(iconVal==='custom'&&el('iconCustom').value.trim())iconVal=el('iconCustom').value.trim();
-  let wpVal=el('wpStyle').value;
-  if(wpVal==='custom'&&el('wpCustom').value.trim())wpVal=el('wpCustom').value.trim();
-  let useCases=getChecked('useCases');
-  const customUse=el('useCaseCustom').value.trim();
-  if(customUse)useCases.push(customUse);
-  const pickResponse=await api('/wizard/gallery-picks','POST',picks);
-  if(pickResponse.status!=='ok'){
-    toast(pickResponse.message||'Could not save gallery picks','error');
-    return;
-  }
+  const designDesc=(el('designDescription')||{}).value.trim();
+  if(!designDesc){toast('Describe how you want it to look so the AI has something to match','error');return;}
+  const useCasesRaw=(el('useCasesText')||{}).value.trim();
+  const useCases=useCasesRaw
+    ?useCasesRaw.split(',').map(s=>s.trim()).filter(Boolean)
+    :[];
   const prefs={
-    desktop_look:inferDesktopLookFromGallery(),
-    gallery_picks:picks,
-    icon_style:iconVal,
-    wallpaper_style:wpVal,
+    desktop_look:designDesc,
     use_cases:useCases,
     distro_preference:(el('distroPref')||{}).value||null,
+    // Legacy fields kept in the schema but no longer user-facing. The
+    // curated library + the free-text description above give the harness
+    // everything it needs; dedicated icon/wallpaper/picks inputs were
+    // redundant once we had 100+ grounded recipes to match against.
+    icon_style:'',
+    wallpaper_style:'',
+    gallery_picks:[],
   };
   await saveProfile({preferences:prefs});await completeStep('questionnaire');
 }
