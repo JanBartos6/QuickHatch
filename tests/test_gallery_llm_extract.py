@@ -5,10 +5,37 @@ from __future__ import annotations
 import pytest
 
 from quickhatch.gallery.llm_extract import (
+    _normalize_de,
     _sanitize_field,
     _strip_images,
     sanitize_llm_result,
 )
+
+
+class TestNormalizeDe:
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [
+            ("Hyprland", "hyprland"),
+            ("hyprland", "hyprland"),
+            ("KDE Plasma", "plasma"),
+            ("KDE Plasma 6", "plasma"),
+            ("KDE", "plasma"),
+            ("plasma desktop", "plasma"),
+            ("i3wm", "i3"),
+            ("i3-gaps", "i3"),
+            ("swayfx", "sway"),
+            ("Sway", "sway"),
+            ("GNOME Shell", "gnome"),
+            ("awesomewm", "awesome"),
+            ("Hyprland (X11)", "hyprland"),
+            ("Hyprland v0.47", "hyprland"),
+            (None, None),
+            ("", None),
+        ],
+    )
+    def test_canonical_de_token(self, raw, expected):
+        assert _normalize_de(raw) == expected
 
 
 class TestStripImages:

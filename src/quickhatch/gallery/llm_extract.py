@@ -343,6 +343,33 @@ def _sanitize_field(value: Any) -> str | None:
     return cleaned
 
 
+def _normalize_de(value: str | None) -> str | None:
+    """Map free-form DE strings to canonical lowercase tokens."""
+    if not value:
+        return None
+    lower = value.lower().strip()
+    aliases = {
+        "kde": "plasma",
+        "kde plasma": "plasma",
+        "plasma desktop": "plasma",
+        "kde plasma 6": "plasma",
+        "kde plasma 5": "plasma",
+        "i3wm": "i3",
+        "i3-gaps": "i3",
+        "swayfx": "sway",
+        "gnome shell": "gnome",
+        "gnome-shell": "gnome",
+        "awesomewm": "awesome",
+        "lxde": "lxde",
+    }
+    if lower in aliases:
+        return aliases[lower]
+    # Strip suffixes like " (X11)", " v0.47", trailing version numbers.
+    lower = re.sub(r"\s*\(.*\)$", "", lower)
+    lower = re.sub(r"\s+v?\d[\d.]*$", "", lower)
+    return aliases.get(lower, lower) or None
+
+
 def sanitize_llm_result(result: dict[str, Any] | None) -> dict[str, Any] | None:
     """Normalize a cached LLM extraction result, filtering hallucinated fields."""
     if result is None:
@@ -350,6 +377,7 @@ def sanitize_llm_result(result: dict[str, Any] | None) -> dict[str, Any] | None:
     cleaned = dict(result)
     for field in ("de", "theme", "icons", "cursor", "font_ui", "font_mono", "wallpaper_hint"):
         cleaned[field] = _sanitize_field(cleaned.get(field))
+    cleaned["de"] = _normalize_de(cleaned.get("de"))
     # signature_features: drop empty/garbage entries, cap length.
     sig = cleaned.get("signature_features") or []
     if isinstance(sig, list):
