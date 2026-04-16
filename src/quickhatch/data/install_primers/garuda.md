@@ -1,25 +1,32 @@
-# Garuda Linux install primer
+# Garuda Linux card
 
-Arch-based, gaming-focused, pre-riced (fancy GRUB theme, bootloader splash,
-themed GRUB menu, Dragonized/Dr460nized KDE as default look). Uses the
-Chaotic-AUR repo for pre-built AUR packages and ships zen kernel + zfs/btrfs
-snapshotting by default.
+Family: **arch** — uses `families/arch-family.md` as the base procedure.
+Arch-based, gaming-focused, pre-riced (fancy GRUB theme, KDE Dr460nized,
+btrfs + snapper snapshots by default, Chaotic-AUR enabled).
 
-## Live environment
+## Per-distro values
 
-- Boots to KDE Plasma as `garuda` user.
-- Installer: Calamares.
+| Key | Value |
+|---|---|
+| Live env | KDE Plasma as `garuda` user |
+| Extra repos | `[chaotic-aur]`, `[garuda]` |
+| Pacstrap kernel | `linux-zen` + `linux-zen-headers` (not the stock `linux`) |
+| Pacstrap extras | `garuda-common-settings garuda-hooks garuda-setup-assistant btrfs-progs snapper chaotic-keyring chaotic-mirrorlist` + the chosen flavor metapackage |
+| Filesystem | **btrfs with subvolumes** (not ext4) — snapper-compatible layout |
+| Flavor metapackages | `garuda-dr460nized` (KDE, default), `garuda-sway`, `garuda-hyprland`, `garuda-bspwm`, `garuda-gnome`, `garuda-xfce` |
+| Installer alternative | Calamares; prefer pacstrap path from family primer |
+| AUR helper | `paru` preinstalled |
+| sudo group | `wheel` |
 
-## Approach — pacstrap with Garuda repos
-
-Add Chaotic-AUR + Garuda's own repo to the live env, then pacstrap:
+## Repo + key setup (add BEFORE pacstrap)
 
 ```bash
-# Add Chaotic-AUR keys + repo (used by Garuda for pre-built AUR)
+# Chaotic-AUR (used by Garuda for pre-built AUR packages)
 pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
 pacman-key --lsign-key 3056513887B78AEB
-pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
-        'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+pacman -U \
+  'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
+  'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
 
 cat >> /etc/pacman.conf <<'EOF'
 [chaotic-aur]
@@ -29,10 +36,13 @@ Include = /etc/pacman.d/chaotic-mirrorlist
 SigLevel = Required DatabaseOptional
 Server = https://repos.garudalinux.org/garuda/$arch
 EOF
+```
 
-# Partition (Garuda's calamares sets up btrfs with subvolumes for snapshots;
-# for simplicity, the agent can skip subvolumes or emulate them).
+## Partition layout (btrfs + subvolumes)
 
+Override the family primer's ext4 partitioning with btrfs:
+
+```bash
 DISK=/dev/nvme0n1
 parted -s "$DISK" mklabel gpt \
   mkpart ESP fat32 1MiB 513MiB set 1 esp on \
@@ -40,7 +50,6 @@ parted -s "$DISK" mklabel gpt \
 mkfs.fat -F32 "${DISK}p1"
 mkfs.btrfs -L garuda -f "${DISK}p2"
 
-# Btrfs subvolumes matching Garuda's layout
 mount "${DISK}p2" /mnt
 btrfs su cr /mnt/@
 btrfs su cr /mnt/@home
@@ -59,47 +68,23 @@ mount -o subvol=@cache,compress=zstd "${DISK}p2" /mnt/var/cache
 mount -o subvol=@log,compress=zstd "${DISK}p2" /mnt/var/log
 mount -o subvol=@tmp,compress=zstd "${DISK}p2" /mnt/var/tmp
 mount "${DISK}p1" /mnt/boot
-
-# Pacstrap with Garuda's flavor metapackage
-pacstrap -K /mnt base linux-zen linux-zen-headers linux-firmware \
-  sudo networkmanager openssh grub efibootmgr sof-firmware \
-  intel-ucode garuda-common-settings garuda-hooks \
-  garuda-setup-assistant btrfs-progs snapper \
-  chaotic-keyring chaotic-mirrorlist
-
-# Flavor metapackage (pick one)
-# Dragonized KDE (default):  pacstrap /mnt garuda-dr460nized
-# Sway:                      pacstrap /mnt garuda-sway
-# Hyprland:                  pacstrap /mnt garuda-hyprland
-# BSPWM:                     pacstrap /mnt garuda-bspwm
-
-genfstab -U /mnt >> /mnt/etc/fstab
-
-# chroot — standard Arch-style setup plus Garuda's services
-arch-chroot /mnt /bin/bash <<'EOF'
-# ... (timezone, locale, hostname, user, ssh key — as Arch primer)
-
-systemctl enable NetworkManager sshd
-systemctl enable snapper-timeline.timer snapper-cleanup.timer   # snapshotting
-
-grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=garuda
-grub-mkconfig -o /boot/grub/grub.cfg
-EOF
-
-umount -R /mnt
-reboot
 ```
 
-## Common pitfalls
+Post-install, ALSO enable snapper timers inside the chroot:
 
-- **Chaotic-AUR outages** — the mirror occasionally fails. Have a backup
-  mirror or skip Chaotic (user can still install AUR packages later via
-  `paru`/`yay`).
-- **Btrfs subvolume layout** — Garuda expects a specific one for Timeshift
-  snapshots. Simplifying the layout breaks snapshots; keep it as shown.
-- **Zen kernel + NVIDIA** — `nvidia-dkms` generally works but may need
-  `nvidia-open` or `nvidia-lts` depending on GPU generation.
-- **Fancy GRUB theme** — Garuda's GRUB has animated backgrounds. If user
-  complains about boot delay, set `GRUB_TIMEOUT=0` in `/etc/default/grub`.
-- **Gaming metapackage** — `garuda-gamer` pulls in Steam, Lutris, Heroic,
-  Wine, etc. Install separately if user wants these.
+```bash
+systemctl enable snapper-timeline.timer snapper-cleanup.timer
+```
+
+## Distro-specific pitfalls
+
+- **Btrfs subvolume layout** — Garuda expects the exact layout above for
+  Timeshift snapshots. Simplifying breaks snapshots; keep as shown.
+- **Chaotic-AUR outages** — occasional; have a backup mirror or skip
+  chaotic (`paru` can still build from AUR source).
+- **linux-zen + NVIDIA** — `nvidia-dkms` generally works; `nvidia-open`
+  or `nvidia-lts` may be needed for specific GPU generations.
+- **Fancy GRUB theme** — boot delay annoyance. Set `GRUB_TIMEOUT=0` in
+  `/etc/default/grub` to skip.
+- **`garuda-gamer` metapackage** — Steam, Lutris, Heroic, Wine, etc.
+  Install separately if user wants these (not auto-pulled by flavor).

@@ -6,11 +6,62 @@ import pytest
 
 from quickhatch.ai.install_primer import (
     list_supported_distros,
+    load_family_text,
     load_primer_text,
     primer_prompt_block,
     resolve_primer,
     supported_distros_summary,
 )
+
+
+class TestFamilyStitch:
+    """Primers for family-member distros should concatenate family + card."""
+
+    def test_debian_family_loaded_for_ubuntu(self):
+        text = load_primer_text("ubuntu")
+        assert text is not None
+        assert "Debian-family install procedure" in text
+        assert "Ubuntu LTS card" in text
+        # The mirror field should be the Ubuntu-specific one from the card
+        assert "archive.ubuntu.com" in text
+
+    def test_debian_family_loaded_for_kali(self):
+        text = load_primer_text("kali")
+        assert text is not None
+        assert "Debian-family install procedure" in text
+        assert "Kali Linux card" in text
+        assert "kali-linux-default" in text  # distinctive Kali metapackage
+        assert "http.kali.org" in text  # distinctive Kali mirror
+
+    def test_arch_family_loaded_for_cachyos(self):
+        text = load_primer_text("cachyos")
+        assert text is not None
+        assert "Arch-family install procedure" in text
+        assert "CachyOS card" in text
+        assert "linux-cachyos" in text  # distinctive kernel
+
+    def test_fedora_family_loaded_for_bazzite(self):
+        text = load_primer_text("bazzite")
+        assert text is not None
+        assert "Fedora-family install procedure" in text
+        assert "Bazzite card" in text
+        assert "ghcr.io/ublue-os/bazzite" in text  # distinctive ostree source
+
+    def test_standalone_distro_has_no_family(self):
+        """NixOS is standalone; primer should NOT include any family header."""
+        text = load_primer_text("nixos")
+        assert text is not None
+        assert "install procedure (shared)" not in text
+        assert "nixos-install" in text  # distinctive command
+
+    def test_load_family_text_direct(self):
+        assert "pacstrap" in (load_family_text("arch") or "")
+        assert "debootstrap" in (load_family_text("debian") or "")
+        assert "kickstart" in (load_family_text("fedora") or "").lower()
+
+    def test_load_family_text_missing(self):
+        assert load_family_text(None) is None
+        assert load_family_text("nonexistent") is None
 
 
 class TestListSupportedDistros:

@@ -1,21 +1,28 @@
-# Pop!_OS install primer
+# Pop!_OS card
 
-System76's Ubuntu LTS derivative. GNOME (Pop Shell tiling extensions) or
-COSMIC DE. Gamer/dev focus. Dual NVIDIA + AMD ISOs so the right driver ships
-with the install.
+Family: **debian** — uses `families/debian-family.md` as the base.
+Derived from Ubuntu LTS with System76's own installer (`distinst`) and
+repos. NVIDIA and AMD ISOs ship different drivers pre-bundled.
 
-## Live environment
+## Per-distro values
 
-- Boots to GNOME with Pop Shell as `pop` user.
-- Installer: Pop!_OS's own `distinst`-based installer (not Ubiquity). Less
-  automation-friendly than stock Ubuntu.
+| Key | Value |
+|---|---|
+| Live user | `pop` |
+| Release codename | Matches Ubuntu LTS: `noble` (24.04) / `jammy` (22.04) |
+| Mirror (Ubuntu base) | `http://archive.ubuntu.com/ubuntu` |
+| Extra repo | `http://apt.pop-os.org/ubuntu` (Pop's own) + `http://apt.pop-os.org/proprietary` (NVIDIA etc.) |
+| Extra key | `curl https://apt.pop-os.org/proprietary.key \| apt-key add -` |
+| Desktop metapackage | `pop-desktop` (generic), `pop-desktop-nvidia` (NVIDIA), `pop-desktop-cosmic` (COSMIC DE in newer Pop) |
+| Installer | `distinst` (Pop's own CLI installer) |
+| Bootloader | **systemd-boot** (not GRUB) by default |
+| sudo group | `sudo` |
 
-## Approach — distinst from CLI
+## Installer-specific path (distinst)
 
-Pop's installer exposes a CLI. Good for scripting but docs are thin.
+`distinst` is Pop's CLI installer, easier to script than Calamares:
 
 ```bash
-# Wipe disk + install Pop!_OS to it
 sudo distinst \
   --block /dev/<DISK_SHORT> \
   --hostname <HOSTNAME> \
@@ -27,23 +34,21 @@ sudo distinst \
   /cdrom/casper/filesystem.squashfs
 ```
 
-After distinst finishes, chroot into the target to add the SSH key:
+After distinst, chroot to add the SSH key:
 
 ```bash
-sudo mount /dev/<DISK_SHORT>3 /mnt   # root partition distinst created
+sudo mount /dev/<DISK_SHORT>3 /mnt
 sudo mount /dev/<DISK_SHORT>1 /mnt/boot/efi
 for f in dev dev/pts proc sys run; do sudo mount --bind /$f /mnt/$f; done
 
 sudo chroot /mnt /bin/bash <<'EOF'
 apt install -y openssh-server network-manager
 systemctl enable ssh NetworkManager
-
 mkdir -p /home/<USER>/.ssh
 echo '<PUBKEY>' > /home/<USER>/.ssh/authorized_keys
 chown -R <USER>:<USER> /home/<USER>/.ssh
 chmod 700 /home/<USER>/.ssh
 chmod 600 /home/<USER>/.ssh/authorized_keys
-
 usermod -aG sudo <USER>
 EOF
 
@@ -51,41 +56,25 @@ sudo umount -R /mnt
 sudo reboot
 ```
 
-## Alternative — debootstrap + Pop repos
+## If using Path B (debootstrap) from the family primer
 
-If `distinst` is too opaque:
+Add the Pop repo inside the chroot before installing `pop-desktop`:
 
 ```bash
-sudo debootstrap --arch=amd64 noble /mnt http://apt.pop-os.org/ubuntu
-sudo chroot /mnt /bin/bash <<'EOF'
-# Add Pop's repos
 curl https://apt.pop-os.org/proprietary.key | apt-key add -
 echo 'deb http://apt.pop-os.org/proprietary noble main' \
   > /etc/apt/sources.list.d/pop-os-apps.list
 apt update
-apt install -y pop-desktop   # or pop-desktop-nvidia / pop-desktop-raspi
-
-# ... rest matches Ubuntu primer (locale, user, grub, ssh key, etc.)
-EOF
+apt install -y pop-desktop     # or pop-desktop-nvidia
 ```
 
-## NVIDIA vs AMD ISO
+## Distro-specific pitfalls
 
-Pop ships two ISOs: one with NVIDIA proprietary drivers pre-bundled, one
-for AMD/Intel. The live env the agent boots into is already the right
-flavor — the wizard should tell the user which ISO to download based on
-their scanned GPU.
-
-## Common pitfalls
-
-- **`pop-desktop-nvidia` vs `pop-desktop`** — pick based on GPU. Agent reads
-  `lspci | grep -i vga` in the live env to confirm.
-- **systemd-boot vs GRUB** — Pop!_OS uses systemd-boot (gummiboot) by
-  default, not GRUB. `distinst` handles this. If chrooting manually,
-  `bootctl install` instead of `grub-install`.
-- **COSMIC vs GNOME** — newer Pop!_OS ships COSMIC DE. Package name is
-  `pop-desktop-cosmic`. Check Pop release notes for which version the user's
-  ISO has.
-- **Hybrid graphics (laptops)** — Pop's "Graphics Switching" tool toggles
-  Intel/NVIDIA. Agent shouldn't preemptively kill NVIDIA; let the user
-  decide via GUI post-install.
+- **systemd-boot, not GRUB** — distinst installs systemd-boot by default.
+  If chrooting manually, use `bootctl install` instead of `grub-install`.
+- **NVIDIA vs AMD ISO** — Pop ships two ISOs; pick the one matching the
+  user's GPU. The live env already has the matching driver loaded.
+- **COSMIC DE coming** — newer Pop ships Rust-based COSMIC DE. Pick
+  `pop-desktop-cosmic` on recent releases.
+- **Hybrid graphics tool** — "Graphics Switching" toggles Intel/NVIDIA.
+  Don't preemptively disable NVIDIA; let user decide post-install.

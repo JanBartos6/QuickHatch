@@ -1,17 +1,25 @@
-# Elementary OS install primer
+# elementary OS card
 
-Ubuntu LTS base + Pantheon desktop (elementary's custom DE). macOS-inspired
-aesthetic: dock, top bar, crisp typography, curated AppCenter.
+Family: **debian** — uses `families/debian-family.md` as the base.
+Ubuntu LTS derivative with the custom Pantheon desktop. macOS-inspired.
 
-## Live environment
+## Per-distro values
 
-- Boots to Pantheon as `elementary` user.
-- Installer: elementary OS Installer (forked Ubiquity, simpler UX).
+| Key | Value |
+|---|---|
+| Live user | `elementary` |
+| Release codename | Matches Ubuntu LTS: 8.x → `noble` (24.04), 7.x → `jammy` (22.04) |
+| Mirror (Ubuntu base) | `http://archive.ubuntu.com/ubuntu` |
+| Extra PPA | `ppa:elementary-os/stable` |
+| Desktop metapackages | `elementary-desktop pantheon-session pantheon-wallpapers appcenter lightdm lightdm-pantheon-greeter switchboard` |
+| Installer | elementary's forked Ubiquity (subset of Ubuntu autoinstall) |
+| sudo group | `sudo` |
 
-## Approach — autoinstall (Ubuntu-compatible, limited)
+## Installer-specific path
 
-elementary's installer accepts a subset of the Ubuntu autoinstall format.
-For best results, stick to the basics:
+Use a minimal Ubuntu-style `user-data` — elementary's installer rejects
+some advanced keys. If it fails, fall back to debootstrap (Path B) and
+install the Pantheon metapackages manually.
 
 ```yaml
 #cloud-config
@@ -32,51 +40,28 @@ autoinstall:
   shutdown: reboot
 ```
 
-If the installer rejects autoinstall, fall back to debootstrap.
-
-## Alternative — debootstrap + elementary PPA
+If Path B, inside the chroot:
 
 ```bash
-sudo debootstrap --arch=amd64 jammy /mnt \
-  http://archive.ubuntu.com/ubuntu
-# elementary 7.x = Ubuntu 22.04 jammy
-# elementary 8.x = Ubuntu 24.04 noble
-
-sudo chroot /mnt /bin/bash <<'EOF'
 add-apt-repository -y ppa:elementary-os/stable
 apt update
 apt install -y elementary-desktop pantheon-session pantheon-wallpapers \
-  appcenter lightdm lightdm-pantheon-greeter
-
-# ... standard Ubuntu-like post-install: user, ssh key, locale, grub
-EOF
+  appcenter lightdm lightdm-pantheon-greeter switchboard
 ```
 
-## Key packages
+## Distro-specific pitfalls
 
-- `elementary-desktop` — the full Pantheon stack.
-- `pantheon-session` — session manager.
-- `appcenter` — elementary's curated app store (flatpak-first).
-- `lightdm-pantheon-greeter` — the login screen.
-- `switchboard` — elementary's system settings (not GNOME Control Center).
-
-## What makes it elementary
-
-- **Flatpak-first** — AppCenter shows only flatpaks (from flathub +
-  elementary's own). The agent should prefer flatpak when installing user
-  apps on elementary.
-- **Pay-what-you-want apps** — AppCenter asks for donations; harmless but
+- **GTK theming locked** — elementary hard-codes some app styles; themes
+  from gnome-look.org often only half-apply. Agent should not try to force
+  a non-Pantheon theme.
+- **Dock is Plank** — customize via `plank --preferences`, not a GNOME
+  extension.
+- **No snap by default** — deliberate. Users wanting snap must
+  `apt install snapd` themselves.
+- **Flatpak-first AppCenter** — elementary's app store only shows flatpaks.
+  The agent should prefer flatpak when installing user apps here.
+- **Pay-what-you-want nag** — AppCenter asks for donations; harmless but
   users should know it's optional.
-- **Strict HIG** — icon + spacing consistency. Many apps reject patches that
-  break it.
-- **Multitasking view + Picture-in-Picture** — built-in, not extensions.
-
-## Common pitfalls
-
-- **GTK theming limited** — elementary hard-codes some app styles. Themes
-  from gnome-look.org often half-apply.
-- **`dock` is Plank** — customize via Plank preferences (`plank --preferences`).
-- **No snap by default** — deliberate. Users wanting snap must install
-  `snapd`.
-- **Some Ubuntu PPAs conflict** — elementary's modified GNOME packages can
-  break when PPAs install upstream GNOME versions. Use flatpak instead.
+- **PPAs can conflict** — Ubuntu PPAs installing upstream GNOME packages
+  can break elementary's modified GNOME stack. Prefer flatpak for user
+  apps.

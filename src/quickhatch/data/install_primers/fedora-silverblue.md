@@ -1,88 +1,78 @@
-# Fedora Silverblue / Kinoite install primer
+# Fedora Silverblue / Kinoite card
 
-Immutable Fedora (same base as Bazzite/uBlue, but vanilla). Silverblue ships
-GNOME; Kinoite ships KDE Plasma. Root is read-only, managed via `rpm-ostree`.
+Family: **fedora** — uses `families/fedora-family.md` as the base procedure.
+Immutable Fedora, managed via `rpm-ostree`. Silverblue ships GNOME, Kinoite
+ships KDE Plasma. Same ostree engine underneath both.
 
-## Live environment
+## Per-distro values
 
-- Fedora-derived live ISO; boots to chosen DE as `liveuser`.
-- Installer: Anaconda.
+| Key | Value |
+|---|---|
+| Live env | Live user `liveuser`, auto-logged to GNOME (SB) or Plasma (Kinoite) |
+| Variant | **Ostree (immutable)** — NOT package-based |
+| Installer | Anaconda with `ostreesetup` directive in kickstart |
+| sudo group | `wheel` |
 
-## Approach — Anaconda + kickstart (same as Fedora) with ostree twist
+## Kickstart: swap `%packages` for `ostreesetup`
 
-```bash
-cat > /tmp/qh.ks <<'KICKSTART'
-text
-lang en_US.UTF-8
-keyboard us
-timezone <ZONE> --utc
+Silverblue:
 
-rootpw --iscrypted <ROOT_PASSWORD_HASH>
-user --name=<USER> --groups=wheel --iscrypted --password=<PASSWORD_HASH>
-
-clearpart --all --drives=<DISK_SHORT>
-autopart --type=plain
-bootloader --location=mbr --boot-drive=<DISK_SHORT>
-
-network --bootproto=dhcp --device=link --activate --hostname=<HOSTNAME>
-
-services --enabled=sshd
-sshkey --username=<USER> "<PUBKEY>"
-
-# Ostree source — Silverblue
+```
 ostreesetup --osname="fedora" --remote="fedora" \
   --url="https://ostree.fedoraproject.org" \
   --ref="fedora/41/x86_64/silverblue" \
   --nogpg
-
-# For Kinoite: --ref="fedora/41/x86_64/kinoite"
-
-%post
-mkdir -p /home/<USER>/.ssh
-echo "<PUBKEY>" > /home/<USER>/.ssh/authorized_keys
-chown -R <USER>:<USER> /home/<USER>/.ssh
-chmod 700 /home/<USER>/.ssh
-chmod 600 /home/<USER>/.ssh/authorized_keys
-%end
-
-reboot
-KICKSTART
-
-sudo anaconda --kickstart=/tmp/qh.ks
 ```
 
-## Post-install — the immutable model
+Kinoite:
 
-Same as Bazzite: the root is read-only. Install apps via:
+```
+ostreesetup --osname="fedora" --remote="fedora" \
+  --url="https://ostree.fedoraproject.org" \
+  --ref="fedora/41/x86_64/kinoite" \
+  --nogpg
+```
 
-1. **Flatpak** (apps): `flatpak install flathub org.mozilla.firefox`
-2. **Toolbox** (CLI dev tools): `toolbox create -r 41` → `toolbox enter`
+No `%packages` block needed — the ostree ref already contains the full
+base image. App-level additions happen post-install via flatpak / rpm-
+ostree layering.
+
+## Post-install: the immutable app model
+
+Root filesystem is read-only. Install apps via (in preference order):
+
+1. **Flatpak** (user apps): `flatpak install -y flathub <app>`
+2. **Toolbox** (dev CLIs): `toolbox create -r 41 && toolbox enter`
 3. **Distrobox** (richer containers): `distrobox create -n dev -i fedora:41`
-4. **rpm-ostree layer** (system-level, reboot required):
-   `rpm-ostree install <pkg>` then `systemctl reboot`
-5. **Homebrew** (macOS-style userspace): available via the standard
-   curl installer.
+4. **Homebrew** (macOS-style userspace): standard curl installer.
+5. **rpm-ostree layer** (system, requires reboot): `rpm-ostree install <pkg>`.
 
-Agent preference order: **flatpak > toolbox/distrobox > homebrew > rpm-ostree**.
+Agent priority: **flatpak > toolbox/distrobox > homebrew > rpm-ostree**.
+rpm-ostree layering stages into the NEXT deployment and requires a reboot
+to take effect; expensive, use sparingly.
 
 ## Silverblue vs Kinoite
 
-| Feature | Silverblue  | Kinoite |
-|---------|-------------|---------|
-| DE      | GNOME       | KDE Plasma |
-| Theming | Adwaita     | Breeze |
-| Best for| GNOME lovers, GNOME OS feel | Plasma lovers, customizable immutable |
+| Feature | Silverblue | Kinoite |
+|---|---|---|
+| DE | GNOME | KDE Plasma |
+| Theming | Adwaita | Breeze |
+| Aliases (in primer index) | `silverblue`, `fedora-silverblue` | `kinoite`, `fedora-kinoite` |
 
-## Common pitfalls
+The primer file is shared; the `--ref` in the kickstart is the only
+difference.
 
-- **"Cannot install package"** — root is immutable; use flatpak/toolbox
-  instead. Tell the user this is normal.
-- **Kernel param changes** — use `rpm-ostree kargs --append=...`; direct
-  edits to `/etc/default/grub` don't stick.
-- **GPU drivers** — NVIDIA proprietary driver via rpm-ostree layering:
-  `rpm-ostree install akmod-nvidia xorg-x11-drv-nvidia`. Requires
-  RPMFusion repo enabled first.
-- **User-level theming** — works fine (gtk-4.0 configs, KDE themes in
-  `~/.config`); system theme changes don't.
+## Distro-specific pitfalls
+
+- **`dnf install` fails** — root is read-only. Tell the user it's normal;
+  use flatpak/toolbox. Don't hack around immutability.
+- **Kernel parameters** — use `rpm-ostree kargs --append=...`; direct edits
+  to `/etc/default/grub` don't persist.
+- **NVIDIA proprietary** — layer via `rpm-ostree install akmod-nvidia
+  xorg-x11-drv-nvidia`. Needs RPMFusion layered in first (another
+  rpm-ostree install). Reboot between steps.
+- **User-level theming works** — `~/.config/gtk-4.0`, KDE's Breeze settings
+  in `~/.config` are fine. System-wide theming (stylix-style) is limited
+  by the immutable model.
 - **Rollback is cheap** — `rpm-ostree rollback` reverts to the previous
-  deployment. Good safety net for experiments.
+  deployment. Good safety net when layering experiments fail.

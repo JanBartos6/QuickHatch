@@ -1,101 +1,61 @@
-# Bazzite install primer
+# Bazzite card
 
-Atomic Fedora derivative built for gaming + Steam Deck-like console mode.
-Immutable root filesystem (rpm-ostree), flatpak-first for apps. Based on
-Fedora Silverblue + Universal Blue.
+Family: **fedora** — uses `families/fedora-family.md` as the base procedure.
+Atomic Fedora derivative from Universal Blue, built for gaming. Immutable,
+flatpak-first, Steam/Proton/MangoHud/gamemode preinstalled.
 
-## Live environment
+## Per-distro values
 
-- Fedora-derived live ISO: boots to GNOME (desktop variant) or similar.
-- Installer: Anaconda, same as Fedora.
+| Key | Value |
+|---|---|
+| Live env | Fedora-derived live ISO, boots to GNOME (desktop variant) |
+| Variant | **Ostree (immutable), OCI-based** (via Universal Blue) |
+| Installer | Anaconda with `ostreesetup` pulling from ghcr.io |
+| sudo group | `wheel` |
 
-## Approach — Anaconda with kickstart (like Fedora)
+## Kickstart: ostreesetup pointing at the OCI registry
 
-Bazzite installs via Anaconda with the immutable-variant repos baked in.
-The kickstart is near-identical to Fedora's with one key swap:
-
-```bash
-cat > /tmp/qh.ks <<'KICKSTART'
-text
-lang en_US.UTF-8
-keyboard us
-timezone <ZONE> --utc
-
-rootpw --iscrypted <ROOT_PASSWORD_HASH>
-user --name=<USER> --groups=wheel --iscrypted --password=<PASSWORD_HASH>
-
-clearpart --all --drives=<DISK_SHORT>
-autopart --type=plain
-bootloader --location=mbr --boot-drive=<DISK_SHORT>
-
-network --bootproto=dhcp --device=link --activate --hostname=<HOSTNAME>
-
-services --enabled=sshd
-sshkey --username=<USER> "<PUBKEY>"
-
-# Key difference: ostreesetup pulls from Bazzite's OCI image
+```
 ostreesetup --osname="bazzite" --remote="bazzite" \
   --url="ostree-unverified-registry:ghcr.io/ublue-os/bazzite:latest" \
   --ref="bazzite:latest" \
   --nogpg
-
-%post
-# Pre-install SSH key into ostree home (layered above base image)
-mkdir -p /home/<USER>/.ssh
-echo "<PUBKEY>" > /home/<USER>/.ssh/authorized_keys
-chown -R <USER>:<USER> /home/<USER>/.ssh
-chmod 700 /home/<USER>/.ssh
-chmod 600 /home/<USER>/.ssh/authorized_keys
-
-# Enable sudo for wheel (should be default but verify)
-echo '%wheel ALL=(ALL) ALL' > /etc/sudoers.d/wheel
-%end
-
-reboot
-KICKSTART
-
-sudo anaconda --kickstart=/tmp/qh.ks
 ```
 
-## After reboot — the different layer model
+Other Universal Blue images work the same way, just different refs:
+- `ghcr.io/ublue-os/bazzite-deck:latest` — Steam-Deck-optimized
+- `ghcr.io/ublue-os/bazzite-gnome:latest` — GNOME instead of KDE
+- `ghcr.io/ublue-os/aurora:latest` — KDE daily-driver (not gaming)
+- `ghcr.io/ublue-os/bluefin:latest` — GNOME daily-driver (not gaming)
 
-Bazzite is **immutable**. The agent can't just `dnf install vim`. Options:
+## What's pre-installed (skip re-installing)
 
-1. **Flatpak (preferred for user apps):**
-   ```bash
-   flatpak install -y flathub org.mozilla.firefox
-   ```
+- Steam, Lutris, Heroic Games Launcher
+- Proton-GE, proton-tricks
+- MangoHud, gamemode, gamescope
+- Flatpak + Flathub configured
+- NVIDIA proprietary drivers (if NVIDIA variant of the image)
+- Decky Loader (Steam Deck plugin system, if Deck variant)
 
-2. **rpm-ostree (system-level, requires reboot to activate):**
-   ```bash
-   rpm-ostree install <package>
-   systemctl reboot
-   ```
+Agent should NOT try to install these.
 
-3. **Toolbox / distrobox (dev tools in a container):**
-   ```bash
-   distrobox create -n dev -i fedora:41
-   distrobox enter dev
-   # install anything normally inside
-   ```
+## Post-install app model (same as Silverblue/Kinoite)
 
-4. **Homebrew (macOS-style user-space):**
-   ```bash
-   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-   ```
+1. **Flatpak** (preferred for user apps).
+2. **Distrobox** (rich CLI dev envs).
+3. **Homebrew** (macOS-style userspace).
+4. **rpm-ostree layer** (system, reboot required — avoid for user apps).
 
-The agent should prefer flatpak > homebrew > distrobox > rpm-ostree, in that
-order, for user-facing apps. `rpm-ostree` reboots are expensive.
+## Distro-specific pitfalls
 
-## Common pitfalls
-
-- **`dnf install` fails** — the root is read-only. Tell the user this is
-  normal; use flatpak/distrobox instead.
-- **Gaming defaults are already present** — Steam, Lutris, Heroic, MangoHud,
-  gamemode, proton-ge are pre-installed. Agent doesn't need to add these.
-- **Kernel parameters** — change via `rpm-ostree kargs --append=...`.
-- **Desktop theming** — limited by the immutable model. Stylix-style whole-
-  system theming doesn't work. Use per-app Flatpak themes + KDE/GNOME
-  settings.
-- **HTPC / Steam Deck modes** — Bazzite has a "Gaming Mode" session that
-  boots into Steam Big Picture. Enable via greeter settings.
+- **`dnf install` fails** — same as Silverblue. Immutable root. Use
+  flatpak/distrobox.
+- **Gaming stack already there** — don't re-install Steam or MangoHud;
+  just configure what's already present.
+- **Kernel args** — `rpm-ostree kargs --append=...`.
+- **"Gaming Mode" session** — boots into Steam Big Picture for
+  Steam-Deck-like feel. Enable via greeter/SDDM session picker.
+- **Image variants matter** — the ostree ref determines NVIDIA driver
+  availability, Steam Deck tweaks, GNOME vs KDE. Pick based on user
+  hardware + preferences. The image channel (`latest` / `stable` /
+  `testing`) also matters; default to `stable` for daily-driver users.

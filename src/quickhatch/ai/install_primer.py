@@ -78,12 +78,8 @@ def resolve_primer(distro: str | None) -> dict[str, Any] | None:
     return None
 
 
-def load_primer_text(distro: str | None) -> str | None:
-    """Return the primer Markdown body for ``distro``, or None if no match."""
-    entry = resolve_primer(distro)
-    if entry is None:
-        return None
-    filename = entry.get("file")
+def _read_primer_file(filename: str) -> str | None:
+    """Read a primer markdown file from the package data directory."""
     if not filename:
         return None
     try:
@@ -95,6 +91,39 @@ def load_primer_text(distro: str | None) -> str | None:
             return handle.read()
     except (OSError, ModuleNotFoundError):
         return None
+
+
+def load_family_text(family: str | None) -> str | None:
+    """Read a family primer by key (e.g. ``debian`` -> families/debian-family.md)."""
+    if not family:
+        return None
+    families = _load_index().get("families") or {}
+    rel = families.get(family)
+    if not rel:
+        return None
+    return _read_primer_file(rel)
+
+
+def load_primer_text(distro: str | None) -> str | None:
+    """Return the full primer Markdown for ``distro``, or None if no match.
+
+    Stitches the family primer (shared install procedure) with the distro
+    card (distro-specific values + overrides) when the distro references a
+    family. Standalone distros (NixOS, Alpine, etc.) return their card
+    directly.
+    """
+    entry = resolve_primer(distro)
+    if entry is None:
+        return None
+    card = _read_primer_file(entry.get("file", ""))
+    if card is None:
+        return None
+    family_body = load_family_text(entry.get("family"))
+    if family_body is None:
+        return card
+    # Family primer first, then distro card. Separator makes the boundary
+    # visually obvious for the LLM reading the prompt.
+    return f"{family_body}\n\n---\n\n{card}"
 
 
 def supported_distros_summary() -> str:

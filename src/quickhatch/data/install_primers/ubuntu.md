@@ -1,28 +1,26 @@
-# Ubuntu LTS install primer
+# Ubuntu LTS card
 
-Canonical's LTS release, 5-year support, apt + snap ecosystem. GNOME default.
-Live ISO ships Subiquity (server) or Ubiquity (desktop); both support
-autoinstall (cloud-init).
+Family: **debian** — uses `families/debian-family.md` as the base install
+procedure.
 
-## Live environment
+## Per-distro values
 
-- Desktop ISO: boots to GNOME as `ubuntu` user.
-- Server ISO: boots to `installer@ubuntu-server` prompt.
-- Open terminal; `sudo` needs no password on live env.
+| Key | Value |
+|---|---|
+| Live user | `ubuntu` (desktop) / `installer` (server) |
+| Release codename | `noble` (24.04 LTS) / `jammy` (22.04 LTS) |
+| Mirror | `http://archive.ubuntu.com/ubuntu` |
+| Extra repos | None required. Snap is enabled by default. |
+| Desktop metapackage | `ubuntu-desktop` (GNOME) / `kubuntu-desktop` (KDE) / `xubuntu-desktop` / `ubuntu-server` (headless) |
+| Installer | `subiquity` (server, cloud-init autoinstall) / `ubiquity` (desktop) |
+| sudo group | `sudo` |
+| non-free firmware | Ubuntu ships it by default via the `restricted` component |
 
-## Network
+## Installer-specific path (subiquity/ubiquity with cloud-init)
 
-- Ethernet: auto via NetworkManager (desktop) or netplan (server).
-- WiFi: `nmcli device wifi connect <SSID> password <PSK>` on desktop. Server
-  ISO has no WiFi support — use ethernet.
-
-## Approach — autoinstall (cloud-init)
-
-Ubuntu supports unattended install via cloud-init. Write a `user-data` file,
-point the installer at it, it runs without user interaction.
+The preferred Path A config for Ubuntu is cloud-init `user-data`:
 
 ```yaml
-# /tmp/user-data
 #cloud-config
 autoinstall:
   version: 1
@@ -32,7 +30,7 @@ autoinstall:
   identity:
     realname: "<REAL_NAME>"
     username: <USER>
-    password: "<HASHED_PASSWORD>"   # mkpasswd -m sha-512 '<PASSWORD>'
+    password: "<HASHED_PASSWORD>"
     hostname: <HOSTNAME>
   ssh:
     install-server: true
@@ -45,9 +43,7 @@ autoinstall:
     - curl
   storage:
     layout:
-      name: direct   # wipes target disk, single root partition
-  user-data:
-    disable_root: false
+      name: direct
   late-commands:
     - curtin in-target --target=/target -- systemctl enable ssh NetworkManager
     - curtin in-target --target=/target -- usermod -aG sudo <USER>
@@ -55,87 +51,16 @@ autoinstall:
 ```
 
 ```bash
-# Pass it to the installer
-sudo subiquity --autoinstall-url=file:///tmp/user-data
-# or on desktop ISO:
-sudo ubiquity --automation-file=/tmp/user-data
+sudo subiquity --autoinstall-url=file:///tmp/user-data        # server
+sudo ubiquity --automation-file=/tmp/user-data                # desktop
 ```
 
-## Alternative — debootstrap from live
+## Distro-specific pitfalls
 
-If the installer misbehaves, install directly via debootstrap (works on any
-Debian-family live env):
-
-```bash
-DISK=/dev/nvme0n1
-parted -s "$DISK" mklabel gpt \
-  mkpart ESP fat32 1MiB 513MiB set 1 esp on \
-  mkpart primary ext4 513MiB 100%
-mkfs.fat -F32 "${DISK}p1"
-mkfs.ext4 -F "${DISK}p2"
-mount "${DISK}p2" /mnt
-mkdir /mnt/boot
-mount "${DISK}p1" /mnt/boot
-
-sudo debootstrap --arch=amd64 noble /mnt http://archive.ubuntu.com/ubuntu
-# noble = Ubuntu 24.04. Use jammy for 22.04.
-
-for f in dev dev/pts proc sys run; do sudo mount --bind /$f /mnt/$f; done
-```
-
-Then chroot and:
-
-```bash
-sudo chroot /mnt /bin/bash <<'EOF'
-apt update
-apt install -y linux-generic systemd-sysv sudo grub-efi-amd64 efibootmgr \
-  openssh-server network-manager locales
-
-# Locale
-locale-gen en_US.UTF-8
-echo 'LANG=en_US.UTF-8' > /etc/default/locale
-
-# Hostname
-echo <HOSTNAME> > /etc/hostname
-
-# Timezone
-ln -sf /usr/share/zoneinfo/<ZONE> /etc/localtime
-
-# User
-useradd -m -G sudo -s /bin/bash <USER>
-echo '<USER>:<PASSWORD>' | chpasswd
-echo 'root:<ROOT_PASSWORD>' | chpasswd
-
-# SSH key
-mkdir -p /home/<USER>/.ssh
-echo '<PUBKEY>' > /home/<USER>/.ssh/authorized_keys
-chown -R <USER>:<USER> /home/<USER>/.ssh
-chmod 700 /home/<USER>/.ssh
-chmod 600 /home/<USER>/.ssh/authorized_keys
-
-# Services
-systemctl enable ssh NetworkManager
-
-# fstab
-echo "UUID=$(blkid -s UUID -o value ${DISK}p2) / ext4 defaults 0 1" >> /etc/fstab
-echo "UUID=$(blkid -s UUID -o value ${DISK}p1) /boot vfat defaults 0 2" >> /etc/fstab
-
-# Bootloader
-grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=ubuntu
-update-grub
-EOF
-
-sudo umount -R /mnt
-sudo reboot
-```
-
-## Common pitfalls
-
-- **Snap vs apt confusion** — desktop ISO installs Firefox/Chromium/etc. as
-  snaps. Agent should note this if user wants pure apt.
-- **Ubuntu Pro prompt** — some releases nag about Pro. Harmless but noisy;
-  agent can disable via `pro config set apt_news=false`.
-- **GRUB to EFI mismatch** — on BIOS-only systems, use `grub-pc` instead of
-  `grub-efi-amd64`, install to the raw device not a partition.
-- **Kernel name** — `linux-generic` works everywhere; `linux-hwe-*` is for
-  newer hardware on LTS releases.
+- **Snap vs apt confusion** — default ISO installs Firefox/Chromium/Thunderbird
+  as snaps. If the user prefers apt packages, disable snap via
+  `apt remove snapd` and use the Mozilla PPA or flatpak.
+- **Ubuntu Pro nag** — harmless, disable with `pro config set apt_news=false`.
+- **HWE kernel** — newer hardware may need `linux-generic-hwe-24.04`.
+- **GRUB EFI-only on UEFI machines** — swap `grub-efi-amd64` for `grub-pc`
+  on BIOS-only targets.

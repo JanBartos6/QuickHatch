@@ -1,6 +1,11 @@
 {
-  "version": 1,
-  "description": "Distro install primers for the QuickHatch remote-setup agent. Each primer is a condensed install guide the harness injects into the agent's prompt when the distro is known. Aliases are lowercased matches against the user's distro_preference.",
+  "version": 2,
+  "description": "Distro install primers for the QuickHatch remote-setup agent. Distros that share an install procedure reference a family primer from families/ — the loader stitches the family body + the distro card at render time so the agent sees one coherent block. Aliases are lowercased matches against the user's distro_preference.",
+  "families": {
+    "debian": "families/debian-family.md",
+    "arch": "families/arch-family.md",
+    "fedora": "families/fedora-family.md"
+  },
   "distros": [
     {
       "file": "arch.md",
@@ -123,7 +128,7 @@
     {
       "file": "opensuse-tumbleweed.md",
       "canonical": "openSUSE Tumbleweed",
-      "family": "opensuse",
+      "family": null,
       "release_model": "rolling",
       "aliases": [
         "tumbleweed",
@@ -136,35 +141,35 @@
     {
       "file": "opensuse-leap.md",
       "canonical": "openSUSE Leap",
-      "family": "opensuse",
+      "family": null,
       "release_model": "point",
       "aliases": ["leap", "opensuse-leap"]
     },
     {
       "file": "nixos.md",
       "canonical": "NixOS",
-      "family": "nixos",
+      "family": null,
       "release_model": "point",
       "aliases": ["nixos", "nix-os", "nix"]
     },
     {
       "file": "alpine.md",
       "canonical": "Alpine Linux",
-      "family": "alpine",
+      "family": null,
       "release_model": "point",
       "aliases": ["alpine", "alpine-linux"]
     },
     {
       "file": "void.md",
       "canonical": "Void Linux",
-      "family": "void",
+      "family": null,
       "release_model": "rolling",
       "aliases": ["void", "void-linux", "voidlinux"]
     },
     {
       "file": "gentoo.md",
       "canonical": "Gentoo Linux",
-      "family": "gentoo",
+      "family": null,
       "release_model": "rolling",
       "aliases": ["gentoo", "gentoo-linux"]
     }
