@@ -184,6 +184,88 @@ def _gallery_entries_for_response() -> list[dict[str, Any]]:
     return entries
 
 
+def _format_recipe_digest(entry: dict[str, Any]) -> str:
+    """Render a single gallery recipe as a compact markdown block for prompts.
+
+    Aimed at LLM consumption — dense, structured, easy for the model to
+    grep for specific fields. Leaves out heavy fields (palette, packages,
+    install scripts) that would bloat the prompt.
+    """
+    from quickhatch.gallery.curate import build_digest
+
+    d = build_digest(entry)
+    lines = [f"### Recipe `{d.get('id', 'unknown')}`"]
+    # Core identity line
+    core_bits = []
+    for key in ("de", "theme", "icons", "cursor", "font_ui", "font_mono", "accent_color"):
+        val = d.get(key)
+        if val:
+            core_bits.append(f"**{key}**: {val}")
+    if core_bits:
+        lines.append("- " + " · ".join(core_bits))
+    # Layout components (panel/dock/launcher/terminal/shell/...)
+    comps = d.get("components") or {}
+    comp_bits = []
+    for key in (
+        "panel",
+        "dock",
+        "launcher",
+        "notifications",
+        "lockscreen",
+        "terminal",
+        "shell",
+        "prompt",
+    ):
+        val = comps.get(key)
+        if val:
+            comp_bits.append(f"{key}={val}")
+    if comp_bits:
+        lines.append("- **layout**: " + ", ".join(comp_bits))
+    # Decorations (blur/gaps/rounding/animations)
+    dec = d.get("decorations") or {}
+    dec_bits = []
+    for key in (
+        "blur",
+        "rounded_corners_px",
+        "shadows",
+        "gaps_in_px",
+        "gaps_out_px",
+        "border_size_px",
+        "animations",
+    ):
+        val = dec.get(key)
+        if val is not None:
+            dec_bits.append(f"{key}={val}")
+    if dec_bits:
+        lines.append("- **decorations**: " + ", ".join(dec_bits))
+    # Mood/density signals
+    vibe_bits = []
+    for key in ("mood", "density", "wallpaper_hint"):
+        val = d.get(key)
+        if val:
+            vibe_bits.append(f"{key}={val}")
+    if vibe_bits:
+        lines.append("- **vibe**: " + ", ".join(vibe_bits))
+    # Signature features
+    sig = d.get("signature_features") or []
+    if sig:
+        lines.append("- **signature**: " + ", ".join(sig))
+    # Human-written description + best_for intents
+    if d.get("description"):
+        lines.append(f"- **description**: {d['description']}")
+    if d.get("best_for"):
+        lines.append("- **best_for**: " + ", ".join(d["best_for"]))
+    # Source attribution
+    src_bits = []
+    if d.get("source_url"):
+        src_bits.append(d["source_url"])
+    if d.get("dotfiles_url"):
+        src_bits.append(f"dotfiles: {d['dotfiles_url']}")
+    if src_bits:
+        lines.append("- **source**: " + " · ".join(src_bits))
+    return "\n".join(lines)
+
+
 def _gallery_prompt_block(profile: UserProfile) -> str:
     """Format pinned gallery picks for prompt context."""
     picks = profile.preferences.gallery_picks
@@ -200,20 +282,24 @@ def _gallery_prompt_block(profile: UserProfile) -> str:
 
     lines = [
         "== PINNED GALLERY RECIPES ==",
-        "These pinned recipes are authoritative desktop references. Do not invent a conflicting setup.",
+        "",
+        "These recipes have been pinned by the user. They are authoritative design "
+        "references — do not invent a conflicting setup. The first recipe is the "
+        "PRIMARY; any others are alternates for inspiration only.",
+        "",
+        "Each recipe contains structured design data (theme, icons, fonts, components, "
+        "decorations) and a short human-written description. When generating desktop "
+        "steps, match the primary recipe exactly for DE/theme/icons/fonts, and only "
+        "personalize around it: wallpaper choice, accent within the palette, and "
+        "app-specific additions the user scanned from Windows.",
+        "",
     ]
     for index, entry in enumerate(entries, start=1):
-        prefix = "Primary" if index == 1 else f"Alternate {index}"
-        lines.append(
-            f"- {prefix} recipe `{entry.get('id', '')}`: "
-            f"{entry.get('de', 'unknown')} / {entry.get('theme') or 'theme unspecified'} / "
-            f"{entry.get('icons') or 'icons unspecified'} / source {entry.get('source_url', '')}"
-        )
-    lines.append(
-        "If you mention desktop steps, assume the primary recipe will be applied and only personalize "
-        "within it: wallpaper choice, accent color, and app-specific additions."
-    )
-    return "\n".join(lines) + "\n\n"
+        label = "PRIMARY" if index == 1 else f"ALTERNATE {index}"
+        lines.append(f"--- {label} ---")
+        lines.append(_format_recipe_digest(entry))
+        lines.append("")
+    return "\n".join(lines) + "\n"
 
 
 def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int]:
