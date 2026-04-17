@@ -26,6 +26,16 @@ class TestBuildSectionPrompt:
         prompt = _build_section_prompt(profile, "distro", "")
         assert "SECTION: DISTRO" in prompt.upper()
 
+    def test_distro_section_hard_respects_user_preference(self, profile):
+        """When the user says Arch, the LLM must not suggest EndeavourOS/Manjaro/etc."""
+        prompt = _build_section_prompt(profile, "distro", "")
+        lower = prompt.lower()
+        # The section instruction must explicitly forbid substitution.
+        assert "hard rule" in lower
+        assert "endeavouros" in lower  # example forbidden redirect is called out
+        assert "distro_preference" in lower
+        assert "explicit choice is final" in lower
+
     def test_apps_section_mentions_table_format(self, profile):
         prompt = _build_section_prompt(profile, "apps", "")
         assert "table" in prompt.lower()

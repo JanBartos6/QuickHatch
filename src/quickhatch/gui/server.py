@@ -1370,9 +1370,22 @@ def _build_section_prompt(
 
     section_instructions = {
         "distro": (
-            "Recommend a Linux distribution for this user.\n"
-            "Include: why it's the best fit, key advantages for their use cases, "
-            "alternatives, and a download link.\n"
+            "Recommend a Linux distribution for this user.\n\n"
+            "HARD RULE: if the user's profile has `preferences.distro_preference` set\n"
+            "to a non-empty value, that IS the distro. You MUST recommend exactly\n"
+            "that distribution — not a derivative, fork, or 'superior alternative'.\n"
+            "Do not suggest EndeavourOS when the user said Arch. Do not suggest\n"
+            "Manjaro when the user said Arch. Do not suggest Linux Mint when the\n"
+            "user said Ubuntu. The user's explicit choice is final. Your job in\n"
+            "that case is to justify the fit and call out anything they should\n"
+            "know, not to redirect them.\n\n"
+            "Only recommend a different distro when `distro_preference` is empty\n"
+            "or the stated value is not a real Linux distribution.\n\n"
+            "Include: why it's a good fit for their hardware + use cases, the key\n"
+            "advantages, any caveats (e.g. 'Arch has a rolling release so you need\n"
+            "to update carefully'), and a download link to the official ISO.\n"
+            "You MAY mention one or two alternatives as a short comparison table,\n"
+            "but the primary recommendation must match `distro_preference` when set.\n"
         ),
         "apps": (
             "Map their Windows applications to Linux equivalents.\n"
