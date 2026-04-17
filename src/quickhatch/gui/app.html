@@ -1555,6 +1555,23 @@ const stepRenderers={
   },
 
   export(){
+    const offline=(state.profile.preferences.another_machine||'').toLowerCase()==='no';
+    const vmPanel=offline?`
+      <div class="card" style="margin-top:var(--s5)">
+        <h2>Test <code>install.sh</code> in a VM <span class="badge">optional</span></h2>
+        <p class="subtitle">Before you wipe your real PC, boot the generated <code>install.sh</code> inside a throwaway VirtualBox or QEMU VM. Catches bad commands, broken package names, or wrong partition math without risk. Hardware-specific steps (GPU driver, Wi-Fi firmware) are auto-skipped inside the VM — the agent knows it's in one.</p>
+        <div id="vmBackends" class="muted" style="font-size:var(--t-sm);margin-bottom:var(--s3)">Detecting VM backends…</div>
+        <div class="field">
+          <label>Path to the live ISO you downloaded for USB</label>
+          <input type="text" id="vmIsoPath" placeholder="e.g. C:\\Users\\you\\Downloads\\archlinux-2026.04.01-x86_64.iso">
+          <div class="muted" style="font-size:var(--t-sm)">Leave blank to only run a bash syntax check (bash&nbsp;-n) — much faster, still catches typos.</div>
+        </div>
+        <div class="btn-row" style="margin-top:var(--s3)">
+          <button class="btn btn-ghost" id="vmVerifyBtn" onclick="runVmVerify()">Run VM verify</button>
+          <span id="vmVerifyStatus" class="muted" style="font-size:var(--t-sm)"></span>
+        </div>
+        <div id="vmVerifyResult" style="margin-top:var(--s3)"></div>
+      </div>`:'';
     content().innerHTML=`
       <div class="card">
         <h2>Export bundle</h2>
@@ -1564,7 +1581,9 @@ const stepRenderers={
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
           <button class="btn btn-primary" id="exportBtn" onclick="runExport()">Export</button>
         </div>
-      </div>`;
+      </div>
+      ${vmPanel}`;
+    if(offline){loadVmBackends();}
   },
 
   setup(){
@@ -2483,6 +2502,57 @@ async function generateSSH(){
     btn.disabled=false;btn.textContent='Retry';
     toast('Key generation failed','error');
   }
+}
+
+async function loadVmBackends(){
+  const box=el('vmBackends');if(!box)return;
+  try{
+    const d=await api('/wizard/vm-verify/backends','GET');
+    if(d.status==='ok'){
+      const parts=[];
+      parts.push(d.virtualbox?'✅ VirtualBox':'❌ VirtualBox (not found)');
+      parts.push(d.qemu?'✅ QEMU':'❌ QEMU (not found)');
+      const pick=d.preferred?` — will use <strong>${escHtml(d.preferred)}</strong>`:' — install one to run a full boot test';
+      box.innerHTML=parts.join(' · ')+pick;
+    }
+  }catch(e){box.textContent='Backend check failed: '+e;}
+}
+
+async function runVmVerify(){
+  const btn=el('vmVerifyBtn'),status=el('vmVerifyStatus'),out=el('vmVerifyResult');
+  const iso=(el('vmIsoPath').value||'').trim();
+  btn.disabled=true;btn.textContent='Running…';
+  status.textContent='Starting VM verify (this can take minutes)…';
+  out.innerHTML='';
+  // Tell the server to enable VM-aware prompt for future agent runs too.
+  await api('/wizard/vm-verify/enable','POST',{enabled:true});
+  const kick=await api('/wizard/vm-verify/run','POST',{iso_path:iso});
+  if(kick.status!=='ok'){
+    status.textContent='';
+    out.innerHTML=errorCard(kick.message||'VM verify could not start','onclick="runVmVerify()"');
+    btn.disabled=false;btn.textContent='Run VM verify';
+    return;
+  }
+  // Poll status
+  const poll=async()=>{
+    const d=await api('/wizard/vm-verify/status','GET');
+    if(d.running){status.textContent='Running — check the chat feed for live progress…';setTimeout(poll,3000);return;}
+    btn.disabled=false;btn.textContent='Run VM verify';
+    const r=d.result||{};
+    status.textContent='';
+    const cls=r.success?'info-success':'info-warn';
+    const stages=(r.stages||[]).map(s=>`<code>${escHtml(s)}</code>`).join(' → ')||'(no stages)';
+    const tail=r.tail?`<details><summary>Output tail</summary><pre style="white-space:pre-wrap;max-height:300px;overflow:auto">${escHtml(r.tail)}</pre></details>`:'';
+    out.innerHTML=`
+      <div class="info-box ${cls}">
+        <strong>${escHtml(r.summary||'No result')}</strong>
+        <p>Backend: ${escHtml(r.backend||'—')} · Stages: ${stages}</p>
+        ${r.error?`<p><strong>Error:</strong> ${escHtml(r.error)}</p>`:''}
+        ${tail}
+        ${r.success?'':'<p>Re-run the analysis with feedback like <em>"VM verify failed at &lt;stage&gt; with &lt;error&gt; — fix the install script"</em> to have the agent iterate.</p>'}
+      </div>`;
+  };
+  setTimeout(poll,2000);
 }
 
 async function runExport(){

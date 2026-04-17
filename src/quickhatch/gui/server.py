@@ -138,6 +138,16 @@ class GUIState:
         self.profile = profile
         self.bridge = bridge_state
         self.lock = threading.Lock()
+        # VM-verify (offline single-machine users can opt-in to have
+        # the analysis agent generate a VM-aware install.sh and then
+        # test-boot it in a disposable VirtualBox/QEMU VM before
+        # running it on real hardware).
+        self.vm_verify_enabled: bool = False
+        # Latest VM-verify result dict (populated by /wizard/vm-verify).
+        # Shape: {status, success, summary, stages, exit_code, tail, backend}
+        self.vm_verify_result: dict | None = None
+        # True while a VM verify run is in progress — used to lock the button.
+        self.vm_verify_running: bool = False
 
     def update_profile(self, updates: dict) -> None:
         """Apply partial updates to the profile from the web UI."""
@@ -646,6 +656,29 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                 )
                 self._send_bytes(asset_path.read_bytes(), content_type)
 
+            elif route == "/wizard/vm-verify/backends":
+                from quickhatch.wizard.vm_verify import detect_backends, pick_backend
+
+                backends = detect_backends()
+                self._send_json(
+                    {
+                        "status": "ok",
+                        "virtualbox": bool(backends.get("virtualbox")),
+                        "qemu": bool(backends.get("qemu")),
+                        "preferred": pick_backend(),
+                    }
+                )
+
+            elif route == "/wizard/vm-verify/status":
+                self._send_json(
+                    {
+                        "status": "ok",
+                        "enabled": gui_state.vm_verify_enabled,
+                        "running": gui_state.vm_verify_running,
+                        "result": gui_state.vm_verify_result,
+                    }
+                )
+
             elif route == "/wizard/lmstudio-models":
                 models = []
                 try:
@@ -743,6 +776,25 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
             elif self.path == "/wizard/export":
                 result = _run_export(gui_state)
                 self._send_json(result)
+
+            elif self.path == "/wizard/vm-verify/enable":
+                data = self._read_json()
+                gui_state.vm_verify_enabled = bool(data.get("enabled", True))
+                self._send_json({"status": "ok", "enabled": gui_state.vm_verify_enabled})
+
+            elif self.path == "/wizard/vm-verify/run":
+                data = self._read_json()
+                iso_path = (data.get("iso_path") or "").strip() or None
+                if gui_state.vm_verify_running:
+                    self._send_json({"status": "error", "message": "VM verify already running"})
+                else:
+                    t = threading.Thread(
+                        target=_run_vm_verify,
+                        args=(gui_state, iso_path),
+                        daemon=True,
+                    )
+                    t.start()
+                    self._send_json({"status": "ok", "message": "VM verify started"})
 
             elif self.path == "/wizard/answer":
                 data = self._read_json()
@@ -1214,6 +1266,7 @@ def _build_section_prompt(
     search_context: str,
     user_feedback: str = "",
     chosen_distro: str | None = None,
+    vm_verify: bool = False,
 ) -> str:
     """Build a prompt for a single section of the migration analysis.
 
@@ -1367,6 +1420,14 @@ def _build_section_prompt(
         ),
     }
 
+    # VM-aware block is only meaningful for the install_script section
+    # (the only output that actually gets executed in the VM).
+    vm_block = ""
+    if vm_verify and section == "install_script":
+        from quickhatch.wizard.vm_verify import vm_aware_prompt_block
+
+        vm_block = vm_aware_prompt_block(True)
+
     return (
         "You are a Linux migration expert. Write the migration analysis section described below.\n\n"
         "KEY PRINCIPLE: The plan must describe the full END-STATE the user wants to reach,\n"
@@ -1383,6 +1444,7 @@ def _build_section_prompt(
         + library_block
         + primer_block
         + gallery_block
+        + (vm_block + "\n" if vm_block else "")
         + (
             f"== USER FEEDBACK (the user changed their mind — follow this!) ==\n{user_feedback}\n\n"
             if user_feedback
@@ -1633,6 +1695,7 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
                 search_context,
                 user_feedback,
                 chosen_distro=chosen_distro,
+                vm_verify=bool(getattr(gui_state, "vm_verify_enabled", False)),
             )
             content = _call_model_simple(endpoint, model, prompt, api_key)
 
@@ -2459,6 +2522,83 @@ def _generate_ssh_key(gui_state: GUIState) -> dict:
         return {"status": "error", "message": f"ssh-keygen failed: {e.stderr or e.stdout}"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+
+def _run_vm_verify(gui_state: GUIState, iso_path: str | None) -> None:
+    """Background thread: run the VM-verify pipeline and record results on gui_state.
+
+    Reports progress via bridge.add_message so the UI can tail it in the
+    chat feed. On completion, writes a structured dict to
+    ``gui_state.vm_verify_result`` and flips ``vm_verify_running`` off.
+    """
+    from quickhatch.wizard.vm_verify import verify_install_script
+
+    bridge = gui_state.bridge
+    gui_state.vm_verify_running = True
+    gui_state.vm_verify_result = None
+    try:
+        # Find the install.sh from the last export (or from suggestions).
+        install_script: Path | None = None
+        # Prefer a freshly-exported install.sh if one exists under the
+        # default export dir.
+        export_dir = Path.home() / "quickhatch-export"
+        if (export_dir / "install.sh").exists():
+            install_script = export_dir / "install.sh"
+        if install_script is None:
+            # Fallback: write the suggestion body to a temp file.
+            for s in bridge.suggestions:
+                if getattr(s, "category", "") == "install_script" and (s.content or "").strip():
+                    import tempfile
+
+                    tmp = Path(tempfile.gettempdir()) / "quickhatch-install.sh"
+                    tmp.write_text(s.content.strip(), encoding="utf-8")
+                    install_script = tmp
+                    break
+
+        if install_script is None:
+            gui_state.vm_verify_result = {
+                "status": "error",
+                "success": False,
+                "summary": "No install.sh available — run the analysis agent first.",
+            }
+            bridge.add_message("agent", "VM verify: no install.sh found.")
+            return
+
+        def progress(msg: str) -> None:
+            bridge.add_message("agent", f"[vm] {msg}")
+
+        iso = Path(iso_path) if iso_path else None
+        if iso and not iso.exists():
+            gui_state.vm_verify_result = {
+                "status": "error",
+                "success": False,
+                "summary": f"ISO not found: {iso}",
+            }
+            bridge.add_message("agent", f"VM verify: ISO not found at {iso}.")
+            return
+
+        result = verify_install_script(install_script, iso, progress=progress)
+        gui_state.vm_verify_result = {
+            "status": "ok",
+            "success": result.success,
+            "summary": result.summary(),
+            "stages": result.stages,
+            "exit_code": result.exit_code,
+            "tail": (result.stderr_tail or result.stdout_tail)[-2000:],
+            "backend": result.backend,
+            "vm_name": result.vm_name,
+            "error": result.error,
+        }
+        bridge.add_message("agent", f"VM verify: {result.summary()}")
+    except Exception as exc:
+        gui_state.vm_verify_result = {
+            "status": "error",
+            "success": False,
+            "summary": f"VM verify crashed: {exc}",
+        }
+        bridge.add_message("agent", f"VM verify crashed: {exc}")
+    finally:
+        gui_state.vm_verify_running = False
 
 
 def _run_export(gui_state: GUIState) -> dict:
