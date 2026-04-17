@@ -50,6 +50,22 @@ class TestBackendDetection:
         monkeypatch.setattr(vm_verify.Path, "exists", lambda _s: False)
         assert vm_verify.pick_backend() == "qemu"
 
+    def test_virtualbox_env_var_nonstandard_install_dir(self, monkeypatch, tmp_path):
+        # Simulate a VirtualBox installed on G:\VirtualBox (not the default
+        # Program Files location) — the installer sets VBOX_MSI_INSTALL_PATH.
+        fake_install = tmp_path / "VBoxOnDriveG"
+        fake_install.mkdir()
+        (fake_install / "VBoxManage.exe").write_text("fake")
+
+        monkeypatch.setattr(vm_verify.shutil, "which", lambda _n: None)
+        monkeypatch.setenv("VBOX_MSI_INSTALL_PATH", str(fake_install))
+        # Make sure the other env var doesn't interfere.
+        monkeypatch.delenv("VBOX_INSTALL_PATH", raising=False)
+
+        found = vm_verify.detect_backends()
+        assert found["virtualbox"] is not None
+        assert "VBoxManage.exe" in found["virtualbox"]
+
     def test_prefer_qemu_when_both(self, monkeypatch):
         def _which(n):
             return {"VBoxManage": "/usr/bin/VBoxManage", "qemu-system-x86_64": "/usr/bin/qemu"}.get(

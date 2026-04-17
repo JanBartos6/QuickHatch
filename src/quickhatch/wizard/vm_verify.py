@@ -27,6 +27,7 @@ as "skipped in VM" rather than failing hard. What we DO verify:
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import tempfile
@@ -96,14 +97,42 @@ def _run(
 def detect_backends() -> dict[str, str | None]:
     """Return absolute paths to VBoxManage / qemu binaries, or None if missing."""
     vbox = shutil.which("VBoxManage") or shutil.which("VBoxManage.exe")
-    # On Windows, VirtualBox isn't always on PATH. Check default install dir.
+    # On Windows, VirtualBox isn't always on PATH. The installer sets
+    # VBOX_MSI_INSTALL_PATH (and sometimes VBOX_INSTALL_PATH) to the
+    # actual install directory — check those first, then fall back to
+    # the standard default locations. Users install VBox on arbitrary
+    # drives (e.g. G:\VirtualBox\), so env-var lookup beats guessing.
     if not vbox:
-        for guess in (
-            r"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe",
-            r"C:\Program Files (x86)\Oracle\VirtualBox\VBoxManage.exe",
-        ):
-            if Path(guess).exists():
-                vbox = guess
+        candidate_dirs: list[str] = []
+        for env_var in ("VBOX_MSI_INSTALL_PATH", "VBOX_INSTALL_PATH"):
+            v = os.environ.get(env_var, "").strip()
+            if v:
+                candidate_dirs.append(v)
+        candidate_dirs.extend(
+            [
+                r"C:\Program Files\Oracle\VirtualBox",
+                r"C:\Program Files (x86)\Oracle\VirtualBox",
+            ]
+        )
+        # Registry (Windows only) — authoritative source of the install dir.
+        try:  # pragma: no cover - Windows-only branch
+            import winreg  # type: ignore[import-not-found]
+
+            for root in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+                try:
+                    with winreg.OpenKey(root, r"SOFTWARE\Oracle\VirtualBox") as key:
+                        install_dir, _ = winreg.QueryValueEx(key, "InstallDir")
+                        if install_dir:
+                            candidate_dirs.append(install_dir)
+                except OSError:
+                    continue
+        except ImportError:
+            pass
+
+        for d in candidate_dirs:
+            guess = Path(d) / "VBoxManage.exe"
+            if guess.exists():
+                vbox = str(guess)
                 break
     qemu = (
         shutil.which("qemu-system-x86_64")
