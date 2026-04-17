@@ -1039,7 +1039,7 @@ def _call_openai_with_tools(
             body["tools"] = _TOOLS_OPENAI
 
         try:
-            resp = requests.post(url, json=body, headers=headers, timeout=300)
+            resp = requests.post(url, json=body, headers=headers, timeout=900)
             # If model doesn't support tools, retry without
             if resp.status_code in (400, 422) and tools_supported:
                 tools_supported = False
@@ -1047,13 +1047,13 @@ def _call_openai_with_tools(
                     "agent", "Model doesn't support tool use, proceeding without web search."
                 )
                 body.pop("tools", None)
-                resp = requests.post(url, json=body, headers=headers, timeout=300)
+                resp = requests.post(url, json=body, headers=headers, timeout=900)
             resp.raise_for_status()
         except requests.exceptions.HTTPError:
             if tools_supported:
                 tools_supported = False
                 body.pop("tools", None)
-                resp = requests.post(url, json=body, headers=headers, timeout=300)
+                resp = requests.post(url, json=body, headers=headers, timeout=900)
                 resp.raise_for_status()
             else:
                 raise
@@ -1098,7 +1098,7 @@ def _call_openai_with_tools(
 
     # Exceeded max rounds — force a final response without tools
     body = {"model": model, "messages": messages, "temperature": 0.7, "max_tokens": 4096}
-    resp = requests.post(url, json=body, headers=headers, timeout=300)
+    resp = requests.post(url, json=body, headers=headers, timeout=900)
     resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"]
 
@@ -1560,7 +1560,7 @@ def _call_openai_compatible(
         "max_tokens": 4096,
     }
 
-    resp = requests.post(url, json=body, headers=headers, timeout=300)
+    resp = requests.post(url, json=body, headers=headers, timeout=900)
     resp.raise_for_status()
     data = resp.json()
     return data["choices"][0]["message"]["content"]
@@ -1785,7 +1785,42 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
                 chosen_distro=chosen_distro,
                 vm_verify=bool(getattr(gui_state, "vm_verify_enabled", False)),
             )
-            content = _call_model_simple(endpoint, model, prompt, api_key)
+            # Retry once on any network/timeout error — a 15 min timeout plus
+            # a second attempt is usually enough for even the biggest local
+            # models. If the second try still fails, post an error suggestion
+            # for this section and continue with the next rather than
+            # crashing the whole analysis run.
+            try:
+                content = _call_model_simple(endpoint, model, prompt, api_key)
+            except Exception as first_exc:
+                bridge.add_message(
+                    "agent",
+                    f"⚠️  {title} timed out, retrying once…",
+                )
+                try:
+                    content = _call_model_simple(endpoint, model, prompt, api_key)
+                except Exception as second_exc:
+                    bridge.add_message(
+                        "agent",
+                        f"❌  {title} failed twice — skipping. Last error: "
+                        f"{str(second_exc)[:200]}",
+                    )
+                    req.post(
+                        f"{base}/api/suggest",
+                        json={
+                            "category": section_key,
+                            "title": f"{title} (failed)",
+                            "content": (
+                                f"This section couldn't be generated after two "
+                                f"attempts.\n\n**Errors:**\n- First: `{str(first_exc)[:150]}`\n"
+                                f"- Second: `{str(second_exc)[:150]}`\n\n"
+                                f"You can rerun the analysis with this message as "
+                                f"feedback to try again."
+                            ),
+                        },
+                        timeout=5,
+                    )
+                    continue
 
             # Strip any residual markdown fences the model might wrap around its response
             content = content.strip()
