@@ -502,7 +502,20 @@ def verify_install_script(
         # hardware-only step). Treat those as soft-pass.
         result.success = rc == 0 or (100 <= (rc or 0) < 110)
         if not result.success and not result.error:
-            result.error = (result.stderr_tail or result.stdout_tail or "").strip()[:300]
+            raw = (result.stderr_tail or result.stdout_tail or "").strip()
+            # Recognise the common "vanilla live ISO" failure — SSH
+            # answered but authentication failed because the live user
+            # wasn't pre-seeded with our key. Give an actionable hint
+            # instead of the raw scp stderr.
+            if "Permission denied" in raw and ("publickey" in raw or "password" in raw):
+                result.error = (
+                    f"SSH authentication failed for user '{ssh_user}'. VM verify "
+                    f"needs a customized ISO with that user pre-created and our SSH "
+                    f"public key seeded in its ~/.ssh/authorized_keys (plus "
+                    f"passwordless sudo). Vanilla distribution ISOs won't work as-is."
+                )
+            else:
+                result.error = raw[:300]
     except subprocess.TimeoutExpired:
         result.error = "VM operation timed out"
     except Exception as exc:  # pragma: no cover - defensive

@@ -278,6 +278,49 @@ class TestVerifyInstallScript:
         assert result.success  # 105 is in soft-pass range
         assert result.exit_code == 105
 
+    def test_vanilla_iso_auth_failure_gives_actionable_error(self, monkeypatch, tmp_path):
+        """SSH answered but scp failed on auth — user needs ISO-prep guidance."""
+        script = tmp_path / "install.sh"
+        script.write_text("echo ok")
+        iso = tmp_path / "live.iso"
+        iso.write_text("x")
+        monkeypatch.setattr(vm_verify, "bash_syntax_check", lambda _p: (True, "ok"))
+        monkeypatch.setattr(vm_verify, "pick_backend", lambda prefer=None: "virtualbox")
+        monkeypatch.setattr(
+            vm_verify,
+            "detect_backends",
+            lambda: {"virtualbox": "VBoxManage", "qemu": None},
+        )
+        monkeypatch.setattr(vm_verify, "_wait_for_vm_ssh", lambda *a, **k: True)
+        monkeypatch.setattr(
+            vm_verify,
+            "run_script_in_vm",
+            lambda *a, **k: (255, "", "Permission denied (publickey,password)."),
+        )
+
+        class _FakeVM:
+            vm_name = "fake"
+
+            def __init__(self, *a, **k):
+                pass
+
+            def create(self, *a, **k):
+                pass
+
+            def start(self):
+                pass
+
+            def teardown(self):
+                pass
+
+        monkeypatch.setattr(vm_verify, "VirtualBoxBackend", _FakeVM)
+        result = vm_verify.verify_install_script(script, iso_path=iso)
+        assert not result.success
+        # Error should mention the user's actionable options, not dump raw scp stderr
+        assert "customized ISO" in result.error
+        assert "authorized_keys" in result.error
+        assert "Permission denied" not in result.error  # raw stderr suppressed
+
     def test_ssh_never_comes_up(self, monkeypatch, tmp_path):
         script = tmp_path / "install.sh"
         script.write_text("echo ok")
