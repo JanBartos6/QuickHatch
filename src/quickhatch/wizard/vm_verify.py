@@ -191,6 +191,7 @@ class VirtualBoxBackend:
         self.progress = progress
         self.vm_name = f"quickhatch-verify-{uuid.uuid4().hex[:8]}"
         self.disk_path: Path | None = None
+        self.tmpdir: Path | None = None
 
     def _vb(self, *args: str, timeout: int = 120) -> subprocess.CompletedProcess:
         return _run([self.vbox, *args], timeout=timeout)
@@ -204,9 +205,9 @@ class VirtualBoxBackend:
         self._vb("modifyvm", self.vm_name, "--firmware", "efi")
 
         # Disk
-        tmpdir = Path(tempfile.gettempdir()) / self.vm_name
-        tmpdir.mkdir(parents=True, exist_ok=True)
-        self.disk_path = tmpdir / "disk.vdi"
+        self.tmpdir = Path(tempfile.gettempdir()) / self.vm_name
+        self.tmpdir.mkdir(parents=True, exist_ok=True)
+        self.disk_path = self.tmpdir / "disk.vdi"
         self._vb(
             "createmedium",
             "disk",
@@ -262,6 +263,13 @@ class VirtualBoxBackend:
             self._vb("unregistervm", self.vm_name, "--delete", timeout=60)
         except Exception:
             pass
+        # Remove the temp dir we created for the virtual disk. VBoxManage
+        # already deleted disk.vdi via --delete, but the parent dir lingers.
+        if self.tmpdir and self.tmpdir.exists():
+            try:
+                shutil.rmtree(self.tmpdir, ignore_errors=True)
+            except Exception:
+                pass
 
 
 # ---------------------------------------------------------------------------
