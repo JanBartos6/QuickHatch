@@ -40,6 +40,14 @@ class TestBuildSectionPrompt:
         prompt = _build_section_prompt(profile, "apps", "")
         assert "table" in prompt.lower()
 
+    def test_apps_section_scopes_to_apps_to_install(self, profile):
+        """When user picked a specific app list, prompt must not expand beyond it."""
+        prompt = _build_section_prompt(profile, "apps", "")
+        lower = prompt.lower()
+        assert "apps_to_install" in lower
+        assert "do not expand" in lower
+        assert "three apps" in lower or "three rows" in lower
+
     def test_desktop_section_mentions_activation(self, profile):
         """Desktop must tell the agent to ACTIVATE themes, not just install."""
         prompt = _build_section_prompt(profile, "desktop", "")
