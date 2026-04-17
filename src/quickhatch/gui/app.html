@@ -218,8 +218,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
   margin-bottom:var(--s6);line-height:var(--leading);
   max-width:58ch;
 }
-/* Nested cards inside the flattened wrapper (e.g. VM verify panel) keep their chrome */
-.card .card{
+/* Nested or sibling-panel cards keep their chrome.
+   - .card .card: nested (intentionally wrapped)
+   - .panel: auxiliary section that should read as a distinct box
+     (e.g. VM-verify on the Export step) */
+.card .card, .panel{
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--r-md);padding:var(--s5);
   box-shadow:var(--shadow-1);
@@ -256,6 +259,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 }
 .btn-row > *{pointer-events:auto}
 @media(max-width:720px){.btn-row{padding:var(--s4) var(--s5)}}
+/* In-flow action row (panels, nested actions) — stays in the content flow */
+.actions-inline{display:flex;gap:var(--s2);align-items:center;flex-wrap:wrap}
 
 /* ── Choices (big selectable tiles) ── */
 .choices{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s3)}
@@ -1567,15 +1572,15 @@ const stepRenderers={
   export(){
     const offline=(state.profile.preferences.another_machine||'').toLowerCase()==='no';
     const vmPanel=offline?`
-      <div class="card" style="margin-top:var(--s5)">
-        <h2>Test <code>install.sh</code> in a VM <span class="badge">optional</span></h2>
-        <p class="subtitle">Before you wipe your real PC, try the generated script inside a throwaway VirtualBox VM. The quickest path is a <code>bash&nbsp;-n</code> syntax check (takes a second). For a full boot-and-run test, you help QuickHatch over one speed bump: paste a single line into the VM's terminal to let it SSH in.</p>
+      <div class="panel" style="margin-top:var(--s5)">
+        <h2 style="font-size:var(--t-lg);margin-bottom:var(--s2)">Test <code>install.sh</code> in a VM <span class="badge">optional</span></h2>
+        <p class="subtitle" style="margin-bottom:var(--s4)">Try the script inside a throwaway VirtualBox VM first. Blank ISO path = quick <code>bash&nbsp;-n</code> syntax check. With an ISO, you paste a one-line snippet into the booted VM so QuickHatch can SSH in and run the script.</p>
         <div id="vmBackends" class="muted" style="font-size:var(--t-sm);margin-bottom:var(--s3)">Detecting VM backends…</div>
         <div class="field">
           <label>Path to the live ISO (optional)</label>
           <input type="text" id="vmIsoPath" placeholder="e.g. G:\\ISOs\\archlinux-2026.04.01-x86_64.iso — leave blank for syntax check only">
         </div>
-        <div class="btn-row" style="margin-top:var(--s3)">
+        <div class="actions-inline" style="margin-top:var(--s3)">
           <button class="btn btn-ghost" id="vmVerifyBtn" onclick="runVmVerify()">Run</button>
           <span id="vmVerifyStatus" class="muted" style="font-size:var(--t-sm)"></span>
         </div>
