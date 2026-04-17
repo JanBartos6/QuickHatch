@@ -2610,6 +2610,25 @@ def _load_public_key(gui_state: GUIState) -> str:
     return ""
 
 
+def _resolve_private_key_path(gui_state: GUIState) -> str | None:
+    """Return the private-key path that matches the public key we seed into the VM.
+
+    QuickHatch generates its key at ~/.ssh/quickhatch_ed25519{.pub} — a
+    non-default filename ssh won't discover on its own. We must pass it
+    explicitly via `-i` or scp/ssh will try only the standard names
+    (id_ed25519, id_rsa, …) and fail publickey auth.
+    """
+    pub_path = gui_state.profile.ssh_public_key_path
+    if pub_path and pub_path.endswith(".pub"):
+        priv = pub_path[:-4]
+        if Path(priv).exists():
+            return priv
+    default = Path.home() / ".ssh" / "id_ed25519"
+    if default.exists():
+        return str(default)
+    return None
+
+
 def _start_vm_assisted(gui_state: GUIState, iso_path: str) -> dict:
     """Kick off phase A of the user-in-loop VM verify flow (synchronous).
 
@@ -2641,6 +2660,7 @@ def _start_vm_assisted(gui_state: GUIState, iso_path: str) -> dict:
         script_path=script,
         iso_path=Path(iso_path),
         public_key=pubkey,
+        ssh_key=_resolve_private_key_path(gui_state),
         progress=progress,
     )
     if session is None:
@@ -2758,7 +2778,12 @@ def _run_vm_verify(gui_state: GUIState, iso_path: str | None) -> None:
             bridge.add_message("agent", f"VM verify: ISO not found at {iso}.")
             return
 
-        result = verify_install_script(install_script, iso, progress=progress)
+        result = verify_install_script(
+            install_script,
+            iso,
+            ssh_key=_resolve_private_key_path(gui_state),
+            progress=progress,
+        )
         gui_state.vm_verify_result = {
             "status": "ok",
             "success": result.success,
