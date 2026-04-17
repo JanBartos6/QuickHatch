@@ -149,7 +149,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-.app{max-width:1080px;margin:0 auto;padding:var(--s6) var(--s5) var(--s9)}
+.app{max-width:880px;margin:0 auto;padding:var(--s7) var(--s5) var(--s9)}
 
 /* ── Logo / header ── */
 .logo{text-align:center;padding:var(--s7) 0 var(--s6)}
@@ -157,61 +157,73 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 .logo p{color:var(--text-muted);font-size:var(--t-sm);margin-top:var(--s1);font-weight:500}
 
 /* ── Stepper ── */
-.progress{margin-bottom:var(--s5)}
-.stepper{
-  display:flex;align-items:flex-start;gap:var(--s1);
-  padding:var(--s3) var(--s4);background:var(--surface);
-  border-radius:var(--r-md);border:1px solid var(--border);
-  overflow-x:auto;scrollbar-width:none;
+/* ── App header + progress (simplified) ── */
+.app-header{
+  display:flex;flex-direction:column;gap:var(--s3);
+  padding-bottom:var(--s5);margin-bottom:var(--s5);
+  border-bottom:1px solid var(--border);
 }
-.stepper::-webkit-scrollbar{display:none}
-.step{
-  display:flex;flex-direction:column;align-items:center;gap:var(--s1);
-  padding:var(--s1) var(--s2);border-radius:var(--r-sm);
-  min-width:56px;flex:1;position:relative;
-  transition:background var(--dur) var(--ease);
+.brand{
+  font-weight:600;font-size:var(--t-lg);letter-spacing:-0.01em;
+  color:var(--text);
 }
-.step + .step::before{
-  content:'';position:absolute;left:-8px;top:10px;width:16px;height:1px;
-  background:var(--border-strong);
+.progress-bar{display:flex;flex-direction:column;gap:var(--s2)}
+.progress-label{
+  display:flex;align-items:baseline;gap:var(--s3);
+  font-size:var(--t-sm);
 }
-.step-marker{
-  width:20px;height:20px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;
-  background:var(--surface-alt);color:var(--text-dim);
-  border:1px solid var(--border-strong);
-  transition:all var(--dur) var(--ease);
+.progress-step-n{
+  color:var(--text-dim);font-variant-numeric:tabular-nums;
+  font-weight:500;
 }
-.step-label{
-  font-size:var(--t-xs);color:var(--text-dim);
-  font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  max-width:100%;text-align:center;
+.progress-step-name{
+  color:var(--text);font-weight:600;flex:1;
+  letter-spacing:-0.01em;
 }
-.step-done .step-marker{background:var(--success);color:#fff;border-color:var(--success)}
-.step-done .step-label{color:var(--text-muted)}
-.step-done + .step::before, .step-current + .step::before{background:var(--primary)}
-.step-current .step-marker{
-  background:var(--primary);color:#fff;border-color:var(--primary);
-  box-shadow:0 0 0 3px rgba(var(--ring),.2);
+.progress-back{
+  appearance:none;background:none;border:none;cursor:pointer;
+  color:var(--text-dim);font-size:var(--t-sm);padding:var(--s1) var(--s2);
+  border-radius:var(--r-sm);transition:color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
-.step-current .step-label{color:var(--text);font-weight:600}
-.step[role="button"]{cursor:pointer}
-.step[role="button"]:hover{background:var(--surface-alt)}
-.step[role="button"]:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.progress-back:hover{color:var(--text);background:var(--surface-alt)}
+.progress-track-bar{
+  width:100%;height:2px;background:var(--surface-alt);border-radius:1px;
+  overflow:hidden;
+}
+.progress-fill{
+  height:100%;background:var(--text);border-radius:1px;
+  transition:width var(--dur-slow) var(--ease);
+}
 
-/* Legacy aliases, still referenced by a few old paths */
+/* Legacy aliases kept so older paths don't throw */
+.progress{margin-bottom:var(--s5)}
 .progress-info{display:none}
 .progress-track{display:none}
+.stepper{display:none}
 
 /* ── Card ── */
+/* ── Card (flattened — no visible box unless data says otherwise) ── */
 .card{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--r-lg);padding:var(--s6);
-  box-shadow:var(--shadow-1);animation:fadeIn var(--dur-slow) var(--ease);
+  background:transparent;border:none;
+  border-radius:0;padding:0;
+  box-shadow:none;animation:fadeIn var(--dur-slow) var(--ease);
 }
-.card h2{font-size:var(--t-xl);font-weight:700;letter-spacing:-.015em;margin-bottom:var(--s1);color:var(--text);line-height:var(--leading-tight)}
-.card .subtitle{color:var(--text-muted);font-size:var(--t-sm);margin-bottom:var(--s5);line-height:var(--leading)}
+.card h2{
+  font-size:calc(var(--t-xl) * 1.1);font-weight:600;
+  letter-spacing:-.02em;margin-bottom:var(--s2);color:var(--text);
+  line-height:var(--leading-tight);
+}
+.card .subtitle{
+  color:var(--text-muted);font-size:var(--t-base);
+  margin-bottom:var(--s6);line-height:var(--leading);
+  max-width:58ch;
+}
+/* Nested cards inside the flattened wrapper (e.g. VM verify panel) keep their chrome */
+.card .card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-md);padding:var(--s5);
+  box-shadow:var(--shadow-1);
+}
 
 /* ── Buttons ── */
 .btn{
@@ -239,7 +251,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
   display:flex;gap:var(--s2);justify-content:flex-end;
   position:fixed;bottom:0;left:0;right:0;
   padding:var(--s4) calc(50% - 336px);
-  background:linear-gradient(to bottom, rgba(245,246,250,0) 0%, var(--bg) 55%);
+  background:linear-gradient(to bottom, transparent 0%, var(--bg) 55%);
   z-index:10;pointer-events:none;
 }
 .btn-row > *{pointer-events:auto}
@@ -258,8 +270,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 .choice .ico{margin-bottom:var(--s2);color:var(--primary);display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--r-sm);background:var(--primary-soft)}
 .choice.selected .ico{background:#fff}
 .choice .ico svg{width:18px;height:18px}
-.choice .title{font-weight:600;font-size:var(--t-sm);margin-bottom:2px;color:var(--text)}
-.choice .desc{font-size:var(--t-xs);color:var(--text-muted);line-height:var(--leading)}
+.choice .title{font-weight:600;font-size:var(--t-base);margin-bottom:var(--s1);color:var(--text);letter-spacing:-0.01em}
+.choice .desc{font-size:var(--t-sm);color:var(--text-muted);line-height:var(--leading)}
 
 /* ── Pills ── */
 .pill-grid{display:flex;flex-wrap:wrap;gap:var(--s2)}
@@ -790,11 +802,10 @@ hr{border:none;border-top:1px solid var(--border);margin:var(--s4) 0}
 </head>
 <body>
 <div class="app">
-  <div class="logo">
-    <h1>QuickHatch</h1>
-    <p>From Windows to a working Linux desktop</p>
-  </div>
-  <div class="progress" id="progressBar"></div>
+  <header class="app-header">
+    <div class="brand">QuickHatch</div>
+    <div class="progress-bar" id="progressBar"></div>
+  </header>
   <div id="stepContent"></div>
   <footer class="app-footer">
     <div>QuickHatch <span class="dim" id="versionBadge">·</span></div>
@@ -893,22 +904,19 @@ async function loadProfile(){
 
 function renderProgress(){
   const bar=document.getElementById('progressBar');
-  const current=state.currentStep;
-  const items=STEPS.map((s,i)=>{
-    const done=state.completedSteps.includes(s.id);
-    const isCurrent=i===current;
-    const clickable=done||i<current;
-    let cls='step';
-    if(isCurrent)cls+=' step-current';
-    else if(done)cls+=' step-done';
-    else cls+=' step-pending';
-    const attrs=clickable?`role="button" tabindex="0" onclick="jumpToStep(${i})" onkeydown="if(event.key==='Enter')jumpToStep(${i})"`:'';
-    return `<div class="${cls}" ${attrs}>
-      <div class="step-marker">${done?'<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>':s.n||(i+1)}</div>
-      <div class="step-label">${escHtml(s.title)}</div>
-    </div>`;
-  }).join('');
-  bar.innerHTML=`<div class="stepper" role="list" aria-label="Progress">${items}</div>`;
+  if(!bar)return;
+  const current=Math.max(0,Math.min(state.currentStep,STEPS.length-1));
+  const total=STEPS.length;
+  const pct=total<=1?100:Math.round(((current)/(total-1))*100);
+  const step=STEPS[current]||{title:''};
+  const canBack=current>0;
+  bar.innerHTML=`
+    <div class="progress-label">
+      <span class="progress-step-n">${current+1} / ${total}</span>
+      <span class="progress-step-name">${escHtml(step.title)}</span>
+      ${canBack?`<button class="progress-back" onclick="jumpToStep(${current-1})" aria-label="Previous step">&larr;</button>`:''}
+    </div>
+    <div class="progress-track-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
 }
 
 function jumpToStep(i){
@@ -1143,19 +1151,16 @@ const stepRenderers={
     const plat=detectPlatform();
     content().innerHTML=`
       <div class="card">
-        <h2>Let's get you on Linux</h2>
-        <p class="subtitle">QuickHatch scans what you have, asks a few preferences, and hands it all to an AI agent that does the setup.</p>
+        <h2>What are we doing?</h2>
         <div class="field">
           <div class="choices" id="migType">
             <div class="choice${plat==='windows'?' selected':''}" data-value="fresh_install" onclick="selectChoice('migType',this)">
-              <div class="ico">${icon('monitor')}</div>
               <div class="title">Move from Windows</div>
-              <div class="desc">Scan this PC, install Linux on a target, carry over what matters</div>
+              <div class="desc">Scan this PC, install Linux on a target, carry over what matters.</div>
             </div>
             <div class="choice${plat==='linux'?' selected':''}" data-value="customize_linux" onclick="selectChoice('migType',this)">
-              <div class="ico">${icon('sliders')}</div>
               <div class="title">Customize Linux</div>
-              <div class="desc">Tune an existing Linux install with an AI agent</div>
+              <div class="desc">Tune an existing Linux install with an AI agent.</div>
             </div>
           </div>
         </div>
@@ -1169,30 +1174,24 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>Pick an AI</h2>
-        <p class="subtitle">The model reads your system, generates a plan, and executes it on the target machine. Works with API providers or a model you run locally.</p>
         <div class="choices" id="aiChoice">
           <div class="choice" data-value="api" onclick="selectChoice('aiChoice',this)">
-            <div class="ico">${icon('zap')}</div>
             <div class="title">Claude API</div>
             <div class="desc">Anthropic &middot; recommended</div>
           </div>
           <div class="choice" data-value="codex" onclick="selectChoice('aiChoice',this)">
-            <div class="ico">${icon('terminal')}</div>
             <div class="title">Codex CLI</div>
             <div class="desc">OpenAI</div>
           </div>
           <div class="choice" data-value="api_openai" onclick="selectChoice('aiChoice',this)">
-            <div class="ico">${icon('key')}</div>
             <div class="title">OpenAI API</div>
             <div class="desc">Bring your own key</div>
           </div>
           <div class="choice" data-value="local_ollama" onclick="selectChoice('aiChoice',this)">
-            <div class="ico">${icon('server')}</div>
             <div class="title">Ollama</div>
             <div class="desc">Run locally</div>
           </div>
           <div class="choice" data-value="local_lmstudio" onclick="selectChoice('aiChoice',this)">
-            <div class="ico">${icon('flask')}</div>
             <div class="title">LM Studio</div>
             <div class="desc">Run locally</div>
           </div>
@@ -1211,7 +1210,7 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>Describe your ideal desktop</h2>
-        <p class="subtitle">Just tell us, in your own words, how you want your Linux desktop to look and feel. The AI is working with a curated library of 100+ beautiful community-verified designs — it'll match or adapt the closest one to what you describe.</p>
+        <p class="subtitle">Tell us how you want it to look and feel. The agent picks from 100+ community-verified designs and adapts the closest match.</p>
 
         <div class="field">
           <label>How should it look?</label>
@@ -1427,7 +1426,7 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>Bootable USB</h2>
-        <p class="subtitle">Flash the ISO, boot the target machine straight into the live environment, and run one command — the agent takes it from there. You don't have to click through the installer yourself.</p>
+        <p class="subtitle">Flash the ISO, boot into the live environment, run one command. The agent handles the install from there.</p>
         <div class="info-box">
           <strong>Create the USB drive</strong>
           <p>Download the ISO for ${escHtml(distro)} from the distro's website, then write it to an 8 GB+ USB drive with <a href="https://rufus.ie" target="_blank" rel="noopener">Rufus</a>, <a href="https://www.ventoy.net" target="_blank" rel="noopener">Ventoy</a>, or <a href="https://etcher.balena.io" target="_blank" rel="noopener">balenaEtcher</a>.</p>
@@ -1472,7 +1471,7 @@ const stepRenderers={
       content().innerHTML=`
         <div class="card">
           <h2>Offline install script</h2>
-          <p class="subtitle">You said you won't have a second machine during setup. The AI wrote a self-contained install script during analysis. No SSH key, no remote agent — you'll run the script directly on the live USB.</p>
+          <p class="subtitle">No second machine, no remote agent. The AI wrote a self-contained <code>install.sh</code> you'll run on the live USB.</p>
           <div class="info-box info-success">
             <strong>What's in your bundle</strong>
             <ol>
@@ -1508,7 +1507,7 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>SSH key</h2>
-        <p class="subtitle">The remote-setup agent connects to your new Linux machine over SSH with a key pair — no passwords, no fiddling. Click Generate and you're done here.</p>
+        <p class="subtitle">SSH key pair so the agent can reach your Linux machine without passwords. One click.</p>
 
         <div class="info-box">
           <strong>What happens when you click Generate</strong>
@@ -1575,7 +1574,7 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>Export bundle</h2>
-        <p class="subtitle">Packages the plan, profile, SSH key, and the <code>quickstart.sh</code> helper into one ZIP. Move it to the target Linux machine by USB or <code>scp</code>.</p>
+        <p class="subtitle">Bundles the plan, profile, SSH key, and <code>quickstart.sh</code> into one ZIP. Move it over by USB or <code>scp</code>.</p>
         <div id="exportResult"></div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
