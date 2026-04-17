@@ -432,5 +432,120 @@ class TestVerifyResultSummary:
         assert "exit=42" in r.summary()
 
 
+class TestPasteSnippet:
+    def test_snippet_includes_pubkey(self):
+        snippet = vm_verify.build_key_paste_snippet("ssh-ed25519 AAAA foo@bar")
+        assert "ssh-ed25519 AAAA foo@bar" in snippet
+        assert "/root/.ssh/authorized_keys" in snippet
+        assert "READY" in snippet
+
+    def test_snippet_strips_newlines(self):
+        snippet = vm_verify.build_key_paste_snippet("ssh-ed25519 AAAA\nfoo\r\n")
+        assert "\n" not in snippet.split("echo '")[1].split("'")[0]
+        assert "ssh-ed25519 AAAAfoo" in snippet
+
+    def test_snippet_covers_multiple_init_systems(self):
+        s = vm_verify.build_key_paste_snippet("k")
+        # At least systemctl + rc-service + service — covers systemd, OpenRC, sysvinit
+        assert "systemctl start sshd" in s
+        assert "rc-service sshd start" in s
+        assert "service ssh start" in s
+
+
+class TestAssistedFlow:
+    def _patch_for_success(self, monkeypatch, tmp_path):
+        script = tmp_path / "install.sh"
+        script.write_text("echo ok")
+        iso = tmp_path / "live.iso"
+        iso.write_text("x")
+        monkeypatch.setattr(vm_verify, "bash_syntax_check", lambda _p: (True, "ok"))
+        monkeypatch.setattr(vm_verify, "pick_backend", lambda prefer=None: "virtualbox")
+        monkeypatch.setattr(
+            vm_verify,
+            "detect_backends",
+            lambda: {"virtualbox": "VBoxManage", "qemu": None},
+        )
+
+        teardown_calls = []
+
+        class _FakeVM:
+            vm_name = "fake-assisted"
+
+            def __init__(self, *a, **k):
+                pass
+
+            def create(self, *a, **k):
+                pass
+
+            def start(self, headless=True):
+                pass
+
+            def teardown(self):
+                teardown_calls.append(1)
+
+        monkeypatch.setattr(vm_verify, "VirtualBoxBackend", _FakeVM)
+        return script, iso, teardown_calls
+
+    def test_start_and_finish_happy_path(self, monkeypatch, tmp_path):
+        script, iso, teardowns = self._patch_for_success(monkeypatch, tmp_path)
+        monkeypatch.setattr(vm_verify, "_wait_for_vm_ssh", lambda *a, **k: True)
+        monkeypatch.setattr(vm_verify, "run_script_in_vm", lambda *a, **k: (0, "done", ""))
+
+        sess, err = vm_verify.start_assisted_session(
+            script_path=script,
+            iso_path=iso,
+            public_key="ssh-ed25519 AAAA test",
+        )
+        assert err == ""
+        assert sess is not None
+        assert "ssh-ed25519 AAAA test" in sess.paste_snippet
+        assert sess.vm_name == "fake-assisted"
+        assert sess.ssh_user == "root"
+
+        result = vm_verify.finish_assisted_session(sess)
+        assert result.success
+        assert result.exit_code == 0
+        assert "vm-torn-down" in result.stages
+        assert len(teardowns) == 1  # teardown always runs
+
+    def test_start_fails_without_iso(self, monkeypatch, tmp_path):
+        script = tmp_path / "install.sh"
+        script.write_text("echo ok")
+        iso = tmp_path / "missing.iso"  # does not exist
+        sess, err = vm_verify.start_assisted_session(
+            script_path=script, iso_path=iso, public_key="k"
+        )
+        assert sess is None
+        assert "ISO not found" in err
+
+    def test_finish_reports_ssh_timeout(self, monkeypatch, tmp_path):
+        script, iso, teardowns = self._patch_for_success(monkeypatch, tmp_path)
+        monkeypatch.setattr(vm_verify, "_wait_for_vm_ssh", lambda *a, **k: False)
+
+        sess, err = vm_verify.start_assisted_session(
+            script_path=script,
+            iso_path=iso,
+            public_key="k",
+        )
+        assert sess is not None
+        result = vm_verify.finish_assisted_session(sess, ssh_timeout=1)
+        assert not result.success
+        assert "paste" in result.error.lower() or "ssh" in result.error.lower()
+        # Teardown still called even on timeout
+        assert len(teardowns) == 1
+
+    def test_start_rejects_bad_script_syntax(self, monkeypatch, tmp_path):
+        script = tmp_path / "install.sh"
+        script.write_text("broken")
+        iso = tmp_path / "live.iso"
+        iso.write_text("x")
+        monkeypatch.setattr(vm_verify, "bash_syntax_check", lambda _p: (False, "parse error"))
+        sess, err = vm_verify.start_assisted_session(
+            script_path=script, iso_path=iso, public_key="k"
+        )
+        assert sess is None
+        assert "bash -n failed" in err
+
+
 if __name__ == "__main__":  # pragma: no cover
     pytest.main([__file__, "-v"])

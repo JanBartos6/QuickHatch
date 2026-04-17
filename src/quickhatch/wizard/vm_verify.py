@@ -248,9 +248,10 @@ class VirtualBoxBackend:
             str(iso_path),
         )
 
-    def start(self) -> None:
-        self.progress(f"Starting VM {self.vm_name} (headless)")
-        self._vb("startvm", self.vm_name, "--type", "headless")
+    def start(self, headless: bool = True) -> None:
+        mode = "headless" if headless else "gui"
+        self.progress(f"Starting VM {self.vm_name} ({mode})")
+        self._vb("startvm", self.vm_name, "--type", mode)
 
     def teardown(self) -> None:
         self.progress(f"Tearing down {self.vm_name}")
@@ -567,3 +568,160 @@ the VM run can complete end-to-end and report exit 0.
 def vm_aware_prompt_block(enabled: bool) -> str:
     """Return the VM-aware prompt block only when verification is requested."""
     return VM_AWARE_PROMPT_BLOCK if enabled else ""
+
+
+# ---------------------------------------------------------------------------
+# User-in-the-loop assisted verify
+# ---------------------------------------------------------------------------
+
+
+def build_key_paste_snippet(public_key: str) -> str:
+    """Return a one-line snippet the user pastes into the live VM terminal.
+
+    Works on Arch / Debian / Ubuntu / Fedora / openSUSE / Alpine live ISOs
+    that boot into a root shell with sshd already running (all the
+    mainstream ones do). Installs the public key into /root/.ssh, makes
+    sure sshd is up, and prints READY when done so the user knows to
+    come back to QuickHatch.
+    """
+    # Strip newlines from the key — authorized_keys is one-line-per-key
+    pk = public_key.replace("\n", "").replace("\r", "").strip()
+    return (
+        f"mkdir -p /root/.ssh && "
+        f"echo '{pk}' >> /root/.ssh/authorized_keys && "
+        f"chmod 700 /root/.ssh && chmod 600 /root/.ssh/authorized_keys && "
+        f"(systemctl start sshd 2>/dev/null || rc-service sshd start 2>/dev/null || "
+        f"service ssh start 2>/dev/null || true) && "
+        f"echo READY"
+    )
+
+
+@dataclass
+class AssistedSession:
+    """Live state for a user-in-the-loop VM verify run.
+
+    Phase A: boot — VM is created, started in GUI mode with an ISO. The
+    user sees the VM window, runs `paste_snippet` in its terminal to
+    install our public key into /root/.ssh.
+    Phase B: finish — once the user clicks Ready, we SSH in as root,
+    scp the install script, run it, capture the result, tear down.
+    """
+
+    vm_name: str
+    backend: str
+    iso_path: Path
+    script_path: Path
+    public_key: str
+    paste_snippet: str
+    ssh_user: str = "root"
+    ssh_port: int = 22022
+    ssh_key: str | None = None
+    # The backend instance — kept alive so we can tear it down later.
+    _vm: VirtualBoxBackend | QemuBackend | None = None
+
+
+def start_assisted_session(
+    script_path: Path,
+    iso_path: Path,
+    public_key: str,
+    ssh_key: str | None = None,
+    backend: str | None = None,
+    progress: ProgressCallback = _noop_progress,
+) -> tuple[AssistedSession | None, str]:
+    """Phase A: create the VM, attach the ISO, boot it in GUI mode.
+
+    Returns ``(session, error)``. On success ``session`` is non-None and
+    ``error`` is empty. On failure ``session`` is None and ``error``
+    explains what went wrong.
+    """
+    if not iso_path.exists():
+        return None, f"ISO not found: {iso_path}"
+
+    ok, msg = bash_syntax_check(script_path)
+    progress(f"Syntax check: {msg}")
+    if not ok:
+        return None, f"bash -n failed: {msg}"
+
+    picked = backend or pick_backend()
+    if not picked:
+        return None, "No VM backend found (install VirtualBox or QEMU)"
+
+    paths = detect_backends()
+    if picked == "virtualbox":
+        vm: VirtualBoxBackend | QemuBackend = VirtualBoxBackend(
+            paths["virtualbox"] or "VBoxManage", progress=progress
+        )
+    else:
+        vm = QemuBackend(paths["qemu"] or "qemu-system-x86_64", progress=progress)
+
+    try:
+        vm.create(iso_path)
+        vm.start(headless=False)  # GUI mode so the user can interact
+    except Exception as exc:
+        try:
+            vm.teardown()
+        except Exception:
+            pass
+        return None, f"VM could not start: {exc}"
+
+    snippet = build_key_paste_snippet(public_key)
+    session = AssistedSession(
+        vm_name=vm.vm_name,
+        backend=picked,
+        iso_path=iso_path,
+        script_path=script_path,
+        public_key=public_key,
+        paste_snippet=snippet,
+        ssh_key=ssh_key,
+    )
+    session._vm = vm
+    return session, ""
+
+
+def finish_assisted_session(
+    session: AssistedSession,
+    progress: ProgressCallback = _noop_progress,
+    ssh_timeout: int = 60,
+) -> VerifyResult:
+    """Phase B: user has pasted the key. SSH in, run the script, tear down.
+
+    ``ssh_timeout`` is short by default — by this point the VM has been
+    up for however long the user took to paste the key, so SSH should
+    answer within a few seconds. If it doesn't, the user either hasn't
+    pasted yet or the key paste failed.
+    """
+    result = VerifyResult(success=False, backend=session.backend, vm_name=session.vm_name)
+    result.stages = ["assisted-boot", f"backend:{session.backend}"]
+    try:
+        if not _wait_for_vm_ssh(session.ssh_port, timeout=ssh_timeout, progress=progress):
+            result.error = (
+                "SSH didn't answer — did you paste the snippet into the VM's "
+                "root shell and press Enter? Try again."
+            )
+            return result
+        result.stages.append("ssh-up")
+
+        rc, out, err = run_script_in_vm(
+            session.script_path,
+            session.ssh_user,
+            session.ssh_port,
+            session.ssh_key,
+            progress=progress,
+        )
+        result.exit_code = rc
+        result.stdout_tail = (out or "")[-4000:]
+        result.stderr_tail = (err or "")[-4000:]
+        result.stages.append(f"script-exit:{rc}")
+        result.success = rc == 0 or (100 <= (rc or 0) < 110)
+        if not result.success and not result.error:
+            result.error = (result.stderr_tail or result.stdout_tail or "").strip()[:300]
+    except Exception as exc:  # pragma: no cover - defensive
+        result.error = f"VM verify exception: {exc}"
+    finally:
+        if session._vm is not None:
+            try:
+                session._vm.teardown()
+                result.stages.append("vm-torn-down")
+            except Exception:
+                pass
+    return result

@@ -148,6 +148,13 @@ class GUIState:
         self.vm_verify_result: dict | None = None
         # True while a VM verify run is in progress — used to lock the button.
         self.vm_verify_running: bool = False
+        # User-in-loop assisted session (boot VM in GUI, user pastes key,
+        # we SSH in). None when idle. While non-None, the VM is running
+        # and waiting for the user to click Ready.
+        self.vm_assisted_session = None  # type: AssistedSession | None
+        # Instructions shown to the user during the assisted flow —
+        # {"public_key": ..., "paste_snippet": ...}. Cleared after finish.
+        self.vm_assisted_prompt: dict | None = None
 
     def update_profile(self, updates: dict) -> None:
         """Apply partial updates to the profile from the web UI."""
@@ -676,6 +683,8 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                         "enabled": gui_state.vm_verify_enabled,
                         "running": gui_state.vm_verify_running,
                         "result": gui_state.vm_verify_result,
+                        "assisted_active": gui_state.vm_assisted_session is not None,
+                        "assisted_prompt": gui_state.vm_assisted_prompt,
                     }
                 )
 
@@ -795,6 +804,56 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                     )
                     t.start()
                     self._send_json({"status": "ok", "message": "VM verify started"})
+
+            elif self.path == "/wizard/vm-verify/prep":
+                # Phase A of user-in-loop flow: boot VM in GUI mode,
+                # return the paste snippet for the user.
+                data = self._read_json()
+                iso_path = (data.get("iso_path") or "").strip()
+                if not iso_path:
+                    self._send_json(
+                        {"status": "error", "message": "ISO path required for boot test"}
+                    )
+                elif gui_state.vm_assisted_session is not None:
+                    self._send_json(
+                        {
+                            "status": "error",
+                            "message": "A VM session is already active — cancel it first",
+                        }
+                    )
+                else:
+                    result = _start_vm_assisted(gui_state, iso_path)
+                    self._send_json(result)
+
+            elif self.path == "/wizard/vm-verify/finish":
+                # Phase B of user-in-loop flow: user pasted the key,
+                # SSH in, run the script, tear down.
+                self._read_json()
+                if gui_state.vm_assisted_session is None:
+                    self._send_json({"status": "error", "message": "No active assisted session"})
+                elif gui_state.vm_verify_running:
+                    self._send_json({"status": "error", "message": "Script already running"})
+                else:
+                    t = threading.Thread(
+                        target=_finish_vm_assisted,
+                        args=(gui_state,),
+                        daemon=True,
+                    )
+                    t.start()
+                    self._send_json({"status": "ok", "message": "Running script inside VM"})
+
+            elif self.path == "/wizard/vm-verify/cancel":
+                # Tear down an active assisted session without running the script.
+                self._read_json()
+                sess = gui_state.vm_assisted_session
+                if sess is not None and getattr(sess, "_vm", None) is not None:
+                    try:
+                        sess._vm.teardown()
+                    except Exception:
+                        pass
+                gui_state.vm_assisted_session = None
+                gui_state.vm_assisted_prompt = None
+                self._send_json({"status": "ok"})
 
             elif self.path == "/wizard/answer":
                 data = self._read_json()
@@ -2522,6 +2581,128 @@ def _generate_ssh_key(gui_state: GUIState) -> dict:
         return {"status": "error", "message": f"ssh-keygen failed: {e.stderr or e.stdout}"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+
+def _locate_install_script(gui_state: GUIState) -> Path | None:
+    """Find the install.sh to verify — exported bundle first, then suggestion."""
+    export_dir = Path.home() / "quickhatch-export"
+    if (export_dir / "install.sh").exists():
+        return export_dir / "install.sh"
+    for s in gui_state.bridge.suggestions:
+        if getattr(s, "category", "") == "install_script" and (s.content or "").strip():
+            import tempfile as _tmp
+
+            tmp = Path(_tmp.gettempdir()) / "quickhatch-install.sh"
+            tmp.write_text(s.content.strip(), encoding="utf-8")
+            return tmp
+    return None
+
+
+def _load_public_key(gui_state: GUIState) -> str:
+    """Return the user's SSH public key content, or '' if not generated yet."""
+    pub_path = gui_state.profile.ssh_public_key_path
+    if pub_path and Path(pub_path).exists():
+        return Path(pub_path).read_text(encoding="utf-8").strip()
+    # Fall back to the default key location
+    default = Path.home() / ".ssh" / "id_ed25519.pub"
+    if default.exists():
+        return default.read_text(encoding="utf-8").strip()
+    return ""
+
+
+def _start_vm_assisted(gui_state: GUIState, iso_path: str) -> dict:
+    """Kick off phase A of the user-in-loop VM verify flow (synchronous).
+
+    Creates + starts the VM in GUI mode. Returns the paste snippet the
+    user needs to run inside the VM's root shell. Keeps the session
+    alive on gui_state until /wizard/vm-verify/finish or /cancel.
+    """
+    from quickhatch.wizard.vm_verify import start_assisted_session
+
+    script = _locate_install_script(gui_state)
+    if script is None:
+        return {
+            "status": "error",
+            "message": "No install.sh yet — run the analysis agent first.",
+        }
+    pubkey = _load_public_key(gui_state)
+    if not pubkey:
+        return {
+            "status": "error",
+            "message": "No SSH key yet — generate one on the SSH step first.",
+        }
+
+    bridge = gui_state.bridge
+
+    def progress(msg: str) -> None:
+        bridge.add_message("agent", f"[vm] {msg}")
+
+    session, err = start_assisted_session(
+        script_path=script,
+        iso_path=Path(iso_path),
+        public_key=pubkey,
+        progress=progress,
+    )
+    if session is None:
+        bridge.add_message("agent", f"VM verify prep failed: {err}")
+        return {"status": "error", "message": err}
+
+    gui_state.vm_assisted_session = session
+    gui_state.vm_assisted_prompt = {
+        "public_key": session.public_key,
+        "paste_snippet": session.paste_snippet,
+        "vm_name": session.vm_name,
+    }
+    bridge.add_message(
+        "agent",
+        "VM is booting. Once you see its login prompt, paste the snippet into "
+        "the root shell, then click Ready.",
+    )
+    return {
+        "status": "ok",
+        "vm_name": session.vm_name,
+        "public_key": session.public_key,
+        "paste_snippet": session.paste_snippet,
+    }
+
+
+def _finish_vm_assisted(gui_state: GUIState) -> None:
+    """Phase B (background): SSH in, run install.sh, tear down."""
+    from quickhatch.wizard.vm_verify import finish_assisted_session
+
+    bridge = gui_state.bridge
+    gui_state.vm_verify_running = True
+    gui_state.vm_verify_result = None
+    try:
+        session = gui_state.vm_assisted_session
+        if session is None:
+            gui_state.vm_verify_result = {
+                "status": "error",
+                "success": False,
+                "summary": "No active assisted session",
+            }
+            return
+
+        def progress(msg: str) -> None:
+            bridge.add_message("agent", f"[vm] {msg}")
+
+        result = finish_assisted_session(session, progress=progress)
+        gui_state.vm_verify_result = {
+            "status": "ok",
+            "success": result.success,
+            "summary": result.summary(),
+            "stages": result.stages,
+            "exit_code": result.exit_code,
+            "tail": (result.stderr_tail or result.stdout_tail)[-2000:],
+            "backend": result.backend,
+            "vm_name": result.vm_name,
+            "error": result.error,
+        }
+        bridge.add_message("agent", f"VM verify: {result.summary()}")
+    finally:
+        gui_state.vm_assisted_session = None
+        gui_state.vm_assisted_prompt = None
+        gui_state.vm_verify_running = False
 
 
 def _run_vm_verify(gui_state: GUIState, iso_path: str | None) -> None:
