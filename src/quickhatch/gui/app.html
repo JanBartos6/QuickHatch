@@ -250,7 +250,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 .btn-row{
   display:flex;gap:var(--s2);justify-content:flex-end;
   position:fixed;bottom:0;left:0;right:0;
-  padding:var(--s4) calc(50% - 336px);
+  padding:var(--s4) max(var(--s5), calc(50vw - 440px + var(--s5)));
   background:linear-gradient(to bottom, transparent 0%, var(--bg) 55%);
   z-index:10;pointer-events:none;
 }
@@ -258,7 +258,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 @media(max-width:720px){.btn-row{padding:var(--s4) var(--s5)}}
 
 /* ── Choices (big selectable tiles) ── */
-.choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:var(--s3)}
+.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s3)}
+@media(max-width:720px){.choices{grid-template-columns:1fr}}
 .choice{
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--r-md);padding:var(--s4);cursor:pointer;
@@ -282,14 +283,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 /* ── Pills ── */
 .pill-grid{display:flex;flex-wrap:wrap;gap:var(--s2)}
 .pill{
-  height:28px;padding:0 var(--s3);background:var(--surface);
-  border:1px solid var(--border-strong);border-radius:99px;
+  height:30px;padding:0 var(--s3);background:transparent;
+  border:1px solid var(--border);border-radius:99px;
   cursor:pointer;transition:border-color var(--dur) var(--ease), background var(--dur) var(--ease), color var(--dur) var(--ease);
-  font-size:var(--t-xs);font-weight:500;user-select:none;color:var(--text-muted);
+  font-size:var(--t-sm);font-weight:500;user-select:none;color:var(--text-muted);
   display:inline-flex;align-items:center;
 }
-.pill:hover{border-color:var(--primary);color:var(--text)}
-.pill.selected{background:var(--primary-soft);border-color:var(--primary);color:var(--primary)}
+.pill:hover{border-color:var(--border-strong);color:var(--text);background:var(--surface-alt)}
+.pill.selected{background:var(--primary);border-color:var(--primary);color:var(--bg)}
 
 /* ── Gallery picker ── */
 .gallery-shell{
@@ -782,13 +783,13 @@ h4.md-h{font-size:var(--t-sm);margin:var(--s3) 0 var(--s1);text-transform:upperc
 .app-footer a:hover{color:var(--text);border-bottom-color:var(--text-dim)}
 .footer-links{display:flex;gap:var(--s4);align-items:center}
 .theme-toggle{
-  background:transparent;border:1px solid var(--border-strong);
-  color:var(--text-muted);cursor:pointer;
-  font-size:var(--t-xs);padding:var(--s1) var(--s2);border-radius:var(--r-sm);
-  font-family:var(--font);
-  transition:border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+  background:transparent;border:none;padding:0;
+  color:var(--text-dim);cursor:pointer;
+  font-size:var(--t-xs);font-family:var(--font);
+  transition:color var(--dur) var(--ease);
+  border-bottom:1px dashed transparent;line-height:1.2;
 }
-.theme-toggle:hover{border-color:var(--text-dim);color:var(--text)}
+.theme-toggle:hover{color:var(--text);border-bottom-color:var(--text-dim)}
 
 /* ── Utilities ── */
 .hidden{display:none !important}
