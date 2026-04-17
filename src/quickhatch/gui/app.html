@@ -1184,7 +1184,7 @@ const stepRenderers={
           <div class="choice" data-value="api_openai" onclick="selectChoice('aiChoice',this)">
             <div class="ico">${icon('key')}</div>
             <div class="title">OpenAI API</div>
-            <div class="desc">GPT-4o / o3</div>
+            <div class="desc">Bring your own key</div>
           </div>
           <div class="choice" data-value="local_ollama" onclick="selectChoice('aiChoice',this)">
             <div class="ico">${icon('server')}</div>
@@ -1937,38 +1937,51 @@ async function showAIExtra(provider){
   if(!box)return;
   const callout=aiAvailabilityCallout(provider);
   if(provider==='local_lmstudio'){
-    box.innerHTML='<p class="muted" style="font-size:var(--t-sm)">Checking LM Studio…</p>';
-    try{
-      const r=await fetch('/wizard/lmstudio-models');const d=await r.json();
-      if(d.models&&d.models.length){
-        box.innerHTML='<div class="field"><label>Model</label><select id="aiModel">'+
-          d.models.map(m=>`<option value="${m}">${m}</option>`).join('')+'</select></div>'+callout;
-      }else{
-        box.innerHTML='<div class="field"><label>Model name</label><input type="text" id="aiModel" value="local-model" placeholder="e.g. qwen3-8b"><p class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Could not reach LM Studio at localhost:1234. Start its server with a model loaded.</p></div>'+callout;
-      }
-    }catch(e){
-      box.innerHTML='<div class="field"><label>Model name</label><input type="text" id="aiModel" value="local-model"></div>'+callout;
-    }
+    window._aiExtraCallout=callout;
+    await renderLmStudio(box,callout);
   }else if(provider==='local_ollama'){
-    box.innerHTML='<div class="field"><label>Model name</label><input type="text" id="aiModel" value="llama3" placeholder="e.g. llama3, codellama, mistral"></div>'+callout;
+    box.innerHTML='<div class="field"><label>Model name</label><input type="text" id="aiModel" value="llama3" placeholder="e.g. llama3, qwen3, mistral"></div>'+callout;
   }else if(provider==='api'){
-    box.innerHTML='<div class="field"><label>Claude model</label><select id="aiModel">'+
-      '<option value="claude-opus-4-6">Claude Opus 4.6 (most capable)</option>'+
-      '<option value="claude-sonnet-4-6">Claude Sonnet 4.6 (balanced)</option>'+
-      '<option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (fastest)</option>'+
-      '</select></div>'+
-      '<div class="field"><label>Anthropic API key</label><input type="password" id="aiApiKey" placeholder="sk-ant-…"></div>'+callout;
+    // Text input instead of a stale-model <select> — model names change fast;
+    // placeholder hints at Anthropic's naming scheme.
+    box.innerHTML='<div class="field"><label>Anthropic API key</label><input type="password" id="aiApiKey" placeholder="sk-ant-…"></div>'+
+      '<div class="field"><label>Model</label><input type="text" id="aiModel" placeholder="claude-sonnet-4-5-20250929"><div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Use any current Claude model ID from <a href="https://docs.anthropic.com/en/docs/about-claude/models" target="_blank" rel="noopener">Anthropic&apos;s model list</a>. Sonnet is the usual balance of quality and speed.</div></div>'+callout;
   }else if(provider==='api_openai'){
-    box.innerHTML='<div class="field"><label>OpenAI model</label><select id="aiModel">'+
-      '<option value="gpt-4o">GPT-4o (most capable)</option>'+
-      '<option value="gpt-4o-mini">GPT-4o mini (faster/cheaper)</option>'+
-      '<option value="o3">o3 (reasoning)</option>'+
-      '</select></div>'+
-      '<div class="field"><label>OpenAI API key</label><input type="password" id="aiApiKey" placeholder="sk-…"></div>'+callout;
+    box.innerHTML='<div class="field"><label>OpenAI API key</label><input type="password" id="aiApiKey" placeholder="sk-…"></div>'+
+      '<div class="field"><label>Model</label><input type="text" id="aiModel" placeholder="gpt-5"><div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Use any current model ID from <a href="https://platform.openai.com/docs/models" target="_blank" rel="noopener">OpenAI&apos;s model list</a>.</div></div>'+callout;
   }else if(provider==='codex'){
     box.innerHTML=callout;
   }else{
     box.innerHTML='';
+  }
+}
+
+function retryLmStudio(){
+  const box=document.getElementById('aiExtra');
+  if(box)renderLmStudio(box,window._aiExtraCallout||'');
+}
+async function renderLmStudio(box,callout){
+  box.innerHTML='<p class="muted" style="font-size:var(--t-sm)">Checking LM Studio…</p>';
+  let models=[];
+  let reachable=false;
+  try{
+    const r=await fetch('/wizard/lmstudio-models');
+    const d=await r.json();
+    reachable=r.ok;
+    // Filter out embedding-only models — they can't do chat completions
+    models=(d.models||[]).filter(m=>!/embed|embedding/i.test(m));
+  }catch(e){/* reachable stays false */}
+  if(models.length){
+    box.innerHTML='<div class="field"><label>Model</label><select id="aiModel">'+
+      models.map(m=>`<option value="${escHtml(m)}">${escHtml(m)}</option>`).join('')+
+      '</select><div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Fetched from LM Studio on localhost:1234.</div></div>'+callout;
+  }else{
+    const why=reachable
+      ?'LM Studio is running but no chat-completion models are loaded. Open LM Studio, load a model, then click Retry.'
+      :'Could not reach LM Studio at localhost:1234. Start its server (with a model loaded), then click Retry.';
+    box.innerHTML='<div class="info-box info-warn"><strong>LM Studio not ready</strong><p>'+escHtml(why)+'</p>'+
+      '<button class="btn btn-ghost btn-sm" onclick="retryLmStudio()">Retry</button></div>'+
+      '<div class="field"><label>Or type a model name manually</label><input type="text" id="aiModel" placeholder="e.g. qwen3-8b-instruct"></div>'+callout;
   }
 }
 function toggleCheck(el){el.classList.toggle('selected')}

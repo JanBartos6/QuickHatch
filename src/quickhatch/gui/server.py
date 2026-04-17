@@ -695,7 +695,12 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
 
                     resp = requests.get("http://localhost:1234/v1/models", timeout=5)
                     if resp.status_code == 200:
-                        models = [m["id"] for m in resp.json().get("data", []) if m.get("id")]
+                        raw = [m["id"] for m in resp.json().get("data", []) if m.get("id")]
+                        # Drop embedding-only models — they can't answer chat
+                        # completions and confuse the picker.
+                        models = [
+                            m for m in raw if "embed" not in m.lower() and "embedding" not in m.lower()
+                        ]
                 except Exception:
                     pass
                 self._send_json({"status": "ok", "models": models})
