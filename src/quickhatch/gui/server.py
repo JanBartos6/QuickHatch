@@ -251,7 +251,7 @@ def _format_recipe_short(entry: dict[str, Any]) -> str:
     return line
 
 
-def _gallery_library_prompt_block() -> str:
+def _gallery_library_prompt_block(limit: int | None = None) -> str:
     """Inject the full curated gallery library as reference/inspiration data.
 
     The harness LLM gets this on every desktop-section prompt so it has a
@@ -267,6 +267,8 @@ def _gallery_library_prompt_block() -> str:
         return ""
     if not entries:
         return ""
+    if limit is not None and limit > 0:
+        entries = entries[:limit]
     lines = [
         "== CURATED DESIGN LIBRARY ==",
         "",
@@ -1132,7 +1134,7 @@ def _call_anthropic_with_tools(
             "https://api.anthropic.com/v1/messages",
             headers=headers,
             json=body,
-            timeout=300,
+            timeout=900,
         )
         resp.raise_for_status()
         data = resp.json()
@@ -1183,7 +1185,7 @@ def _call_anthropic_with_tools(
     # Force final response without tools
     body = {"model": model, "max_tokens": 4096, "system": system_prompt, "messages": messages}
     resp = requests.post(
-        "https://api.anthropic.com/v1/messages", headers=headers, json=body, timeout=300
+        "https://api.anthropic.com/v1/messages", headers=headers, json=body, timeout=900
     )
     resp.raise_for_status()
     data = resp.json()
@@ -1347,12 +1349,20 @@ def _build_section_prompt(
         profile_dict["ai_config"]["api_key"] = "***REDACTED***"
     profile_json = json.dumps(profile_dict, indent=2, default=str)
     gallery_block = _gallery_prompt_block(profile)
-    # Inject the full curated library only on design-relevant sections
-    # (desktop, summary). On other sections it would bloat the prompt
-    # without adding value.
+    # Inject the curated library only on design-relevant sections
+    # (desktop, summary). Also skip it entirely once the user has pinned
+    # their own gallery picks — those go in via _gallery_prompt_block and
+    # the 106-entry library just bloats the prompt from there on.
+    #
+    # With no picks, cap the library to the top N entries so a local
+    # 26B model doesn't sit on a 13k-token prompt for 10 minutes.
     library_block = ""
-    if section in ("desktop", "summary"):
-        library_block = _gallery_library_prompt_block()
+    if section in ("desktop", "summary") and not profile.preferences.gallery_picks:
+        library_block = _gallery_library_prompt_block(limit=20)
+    # The summary section never needs the full library either way — it's a
+    # recap, not a design source. Keep it stripped.
+    if section == "summary":
+        library_block = ""
 
     # Distro primer injection — only for sections where install knowledge
     # actually matters (plan = writes install steps; desktop = references
@@ -1582,7 +1592,7 @@ def _call_anthropic(api_key: str, model: str, prompt: str) -> str:
             "max_tokens": 4096,
             "messages": [{"role": "user", "content": prompt}],
         },
-        timeout=300,
+        timeout=900,
     )
     resp.raise_for_status()
     data = resp.json()
@@ -1692,7 +1702,7 @@ def _call_model_simple(endpoint: str, model: str, prompt: str, api_key: str | No
                 "max_tokens": 4096,
                 "messages": [{"role": "user", "content": prompt}],
             },
-            timeout=300,
+            timeout=900,
         )
         resp.raise_for_status()
         return resp.json()["content"][0]["text"]
@@ -1709,7 +1719,7 @@ def _call_model_simple(endpoint: str, model: str, prompt: str, api_key: str | No
                 "max_tokens": 4096,
             },
             headers=headers,
-            timeout=300,
+            timeout=900,
         )
         resp.raise_for_status()
         return resp.json()["choices"][0]["message"]["content"]
@@ -1795,8 +1805,13 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
             except Exception as first_exc:
                 bridge.add_message(
                     "agent",
-                    f"⚠️  {title} timed out, retrying once…",
+                    f"⚠️  {title} timed out, retrying once after a short pause…",
                 )
+                # 10s backoff so a struggling local model has breathing room
+                # (LM Studio sometimes hangs briefly while unloading context).
+                import time as _t
+
+                _t.sleep(10)
                 try:
                     content = _call_model_simple(endpoint, model, prompt, api_key)
                 except Exception as second_exc:
@@ -2402,7 +2417,7 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                         "max_tokens": 1024,
                     },
                     headers=headers,
-                    timeout=300,
+                    timeout=900,
                 )
                 resp.raise_for_status()
                 response_text = resp.json()["choices"][0]["message"]["content"]

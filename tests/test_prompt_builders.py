@@ -201,10 +201,19 @@ class TestCuratedLibraryInjection:
         # At least one concrete recipe id should appear in the block.
         assert "`github-" in prompt or "`unixporn-" in prompt or "`hyprland-" in prompt
 
-    def test_summary_section_also_gets_library(self, profile):
-        """Summary section may reference the recommended design — it gets the library too."""
+    def test_summary_section_skips_library(self, profile):
+        """Summary is a recap — no need for the 100-recipe library. Kept out to
+        save ~45k chars of prompt bloat that was starving local models."""
         prompt = _build_section_prompt(profile, "summary", "")
-        assert "CURATED DESIGN LIBRARY" in prompt
+        assert "CURATED DESIGN LIBRARY" not in prompt
+
+    def test_desktop_library_skipped_when_user_has_picks(self, profile):
+        """If user pinned a recipe, they've already told us what they want.
+        The full 100-recipe library stops being injected — the pinned recipe
+        block provides the exact design reference."""
+        profile.preferences.gallery_picks = ["some-recipe"]
+        prompt = _build_section_prompt(profile, "desktop", "")
+        assert "CURATED DESIGN LIBRARY" not in prompt
 
     def test_non_design_sections_skip_library(self, profile):
         """Apps/drivers/plan/distro don't need the library — it would bloat the prompt."""
