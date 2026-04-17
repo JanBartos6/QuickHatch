@@ -57,7 +57,8 @@ class VerifyResult:
     def summary(self) -> str:
         """One-line human-readable summary."""
         if self.success:
-            return f"VM verify passed ({self.backend}, {len(self.stages)} stages)"
+            n = len(self.stages)
+            return f"VM verify passed ({self.backend}, {n} stage{'s' if n != 1 else ''})"
         if self.error:
             return f"VM verify failed ({self.backend or 'no backend'}): {self.error}"
         return f"VM verify failed ({self.backend}, exit={self.exit_code})"

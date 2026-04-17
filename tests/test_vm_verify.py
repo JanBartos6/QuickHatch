@@ -359,6 +359,10 @@ class TestVerifyResultSummary:
         assert "passed" in r.summary()
         assert "3 stages" in r.summary()
 
+    def test_singular_stage_grammar(self):
+        r = vm_verify.VerifyResult(success=True, backend="syntax-only", stages=["x"])
+        assert "1 stage" in r.summary() and "1 stages" not in r.summary()
+
     def test_failure_with_error(self):
         r = vm_verify.VerifyResult(success=False, backend="qemu", error="boom")
         s = r.summary()
