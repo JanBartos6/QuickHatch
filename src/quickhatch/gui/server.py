@@ -1393,6 +1393,20 @@ def _build_section_prompt(
     profile_dict = asdict(profile)
     if profile_dict.get("ai_config", {}).get("api_key"):
         profile_dict["ai_config"]["api_key"] = "***REDACTED***"
+    # Massive profiles (317 scanned apps = 47KB) choke local models even
+    # on sections that don't care about apps. If the user picked a
+    # specific apps_to_install list, trim the `apps` dump to only those
+    # picks — the model doesn't need the full scan.
+    picks = profile.apps_to_install or []
+    if picks:
+        pick_names = {p.lower() for p in picks}
+        profile_dict["apps"] = [
+            a for a in profile_dict.get("apps", []) if (a.get("name") or "").lower() in pick_names
+        ]
+    # Sections that don't need any app data at all can drop the list
+    # entirely — it's pure prompt bloat for distro, drivers, desktop.
+    if section in ("distro", "drivers", "desktop", "summary"):
+        profile_dict["apps"] = []
     profile_json = json.dumps(profile_dict, indent=2, default=str)
     gallery_block = _gallery_prompt_block(profile)
     # Inject the curated library only on design-relevant sections
