@@ -72,13 +72,46 @@ class BridgeState:
         # don't lose a finished analysis run.
         self._load_persisted()
 
+    def _profile_fingerprint(self) -> str:
+        """Short hash of the profile fields that the persisted suggestions
+        depend on. If any of these change (distro, desktop, apps picked,
+        another-machine toggle), the on-disk suggestions are stale and
+        must not be restored — they'd contradict the new preferences."""
+        import hashlib
+
+        prefs = getattr(self.profile, "preferences", None)
+        parts = [
+            getattr(prefs, "distro_preference", "") or "",
+            getattr(prefs, "desktop_look", "") or "",
+            getattr(prefs, "another_machine", "") or "",
+            ",".join(sorted(getattr(prefs, "gallery_picks", []) or [])),
+            ",".join(sorted(getattr(self.profile, "apps_to_install", []) or [])),
+        ]
+        return hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()[:16]
+
     def _load_persisted(self) -> None:
-        """Load suggestions + messages + pending questions from disk."""
+        """Load suggestions + messages + pending questions from disk.
+
+        Skips the restore if the persisted profile fingerprint doesn't
+        match the current one (e.g. user changed distro preference
+        since the last run) — those suggestions would describe a
+        different migration."""
         if self._persist_path is None or not self._persist_path.exists():
             return
         try:
             data = json.loads(self._persist_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
+            return
+        saved_fp = data.get("profile_fingerprint")
+        current_fp = self._profile_fingerprint()
+        if saved_fp and saved_fp != current_fp:
+            import sys as _sys
+
+            print(
+                f"[quickhatch] persisted suggestions were for a different "
+                f"profile ({saved_fp} != {current_fp}). Starting fresh.",
+                file=_sys.stderr,
+            )
             return
         for s in data.get("suggestions", []):
             try:
@@ -116,6 +149,7 @@ class BridgeState:
             return
         try:
             payload = {
+                "profile_fingerprint": self._profile_fingerprint(),
                 "suggestions": [asdict(s) for s in self.suggestions],
                 "messages": list(self.messages),
                 # Serialize questions without the threading.Event field

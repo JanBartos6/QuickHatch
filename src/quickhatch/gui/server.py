@@ -993,6 +993,33 @@ def make_gui_server(
                 result = _launch_agent(gui_state, server.server_address[1], user_feedback=user_msg)
                 self._send_json(result)
 
+            elif self.path == "/wizard/rerun-section":
+                # Regenerate a single analysis section without wiping all
+                # the others. The section loop's skip-if-already-done logic
+                # then resumes from here.
+                data = self._read_json()
+                section = (data.get("section") or "").strip()
+                user_msg = data.get("message", "")
+                if not section:
+                    self._send_json({"status": "error", "message": "section is required"}, 400)
+                else:
+                    # Drop just this section's suggestion(s) + re-launch.
+                    kept = [
+                        s
+                        for s in bridge_state.snapshot_suggestions()
+                        if getattr(s, "category", "") != section
+                    ]
+                    bridge_state.replace_suggestions(kept)
+                    bridge_state.prepare_for_launch()
+                    if user_msg:
+                        bridge_state.add_message("user", user_msg)
+                    result = _launch_agent(
+                        gui_state,
+                        server.server_address[1],
+                        user_feedback=user_msg,
+                    )
+                    self._send_json(result)
+
             elif self.path.startswith("/api/"):
                 self._handle_bridge_post()
 
@@ -2103,11 +2130,17 @@ def _extract_json_objects(text: str) -> list[dict]:
 
     Handles cases where the model emits multiple JSON objects in one response
     (e.g. a status followed by an ssh_exec), possibly with text between them.
+
+    Safe against malformed input:
+    - cap the number of objects (prevents runaway memory on weird text)
+    - always advance `i` at least once per outer-loop iteration
+    - bail out if we've scanned the whole tail without finding a close
     """
     objects: list[dict] = []
     i = 0
     n = len(text)
-    while i < n:
+    MAX_OBJECTS = 50  # any sane agent response < this
+    while i < n and len(objects) < MAX_OBJECTS:
         if text[i] != "{":
             i += 1
             continue
@@ -2125,7 +2158,7 @@ def _extract_json_objects(text: str) -> list[dict]:
             if c == "\\":
                 escape_next = True
                 continue
-            if c == '"' and not escape_next:
+            if c == '"':
                 in_string = not in_string
                 continue
             if in_string:
@@ -2168,9 +2201,13 @@ def _extract_json_objects(text: str) -> list[dict]:
                         objects.append(obj)
                 except (json.JSONDecodeError, Exception):
                     pass
-            i = end
+            # Always advance past the `{` even on unparseable chunk —
+            # otherwise an unterminated string inside leaves us stuck.
+            i = max(end, start + 1)
         else:
-            i += 1
+            # No close brace found from this `{` all the way to EOF —
+            # nothing further to extract. Bail.
+            break
     return objects
 
 
@@ -2178,7 +2215,27 @@ def _ssh_exec(
     host: str, user: str, cmd: str, key_path: str | None = None, timeout: int = 120, port: int = 22
 ) -> tuple[int, str, str]:
     """Execute a command on a remote host via SSH. Returns (returncode, stdout, stderr)."""
+    import socket as _socket
     import subprocess
+
+    # Quick TCP probe before spawning ssh. Saves the 5–10s banner-wait
+    # when the target's sshd is clearly down (e.g. VM paused, port
+    # forward broken, machine still rebooting). Skipped on short cmds
+    # because ssh's own ConnectTimeout=10 is cheap enough.
+    try:
+        with _socket.create_connection((host, port), timeout=3) as probe:
+            banner = probe.recv(16)
+            if not banner.startswith(b"SSH-"):
+                return (
+                    -1,
+                    "",
+                    (
+                        f"port {port} is open but didn't speak SSH (got "
+                        f"{banner[:8]!r}); is the sshd running on the target?"
+                    ),
+                )
+    except OSError as exc:
+        return -1, "", f"cannot reach {host}:{port} ({exc.__class__.__name__})"
 
     ssh_args = [
         "ssh",

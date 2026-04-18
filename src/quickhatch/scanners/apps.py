@@ -57,16 +57,30 @@ def _scan_winget() -> list[AppInfo]:
                 data_start = i + 1
                 break
 
+        import re as _re
+
         for line in lines[data_start:]:
-            if not line.strip():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            # Skip winget progress/status lines (happen on non-EN locales
+            # more often: "Upgrade verfügbar...", "Aktualisierungen...",
+            # CJK characters, etc.) — they typically don't contain a
+            # version-looking token.
+            if stripped.startswith(("-", "=", "\\", "/", "|")):
                 continue
             if name_end_col is not None and len(line) >= name_end_col:
                 name = line[:name_end_col].strip()
             else:
-                import re as _re
-
-                chunks = _re.split(r"\s{2,}", line.strip(), maxsplit=1)
+                # Fallback: split on 2+ spaces. Works even if the header
+                # row got localized or the separator line was absent.
+                chunks = _re.split(r"\s{2,}", stripped, maxsplit=1)
                 name = chunks[0].strip() if chunks else ""
+            # Discard name-only rows that look like separator artifacts
+            # (e.g. all dashes from a localized header QuickHatch didn't
+            # recognise).
+            if set(name) <= {"-", " ", "=", "\t"}:
+                continue
             if name and len(name) > 1:
                 apps.append(AppInfo(name=name, source="winget"))
         return apps

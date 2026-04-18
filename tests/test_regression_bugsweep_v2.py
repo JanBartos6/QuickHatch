@@ -231,10 +231,31 @@ class TestLlmResponseExtractors:
 
 
 class TestSshExecErrorHandling:
+    @staticmethod
+    def _bypass_probe(monkeypatch):
+        """_ssh_exec runs a TCP probe before spawning ssh. For error-path
+        tests we don't want the probe to fail first — pretend it found
+        a valid SSH banner so control reaches the mocked subprocess.run."""
+        import socket
+
+        class _FakeSock:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def recv(self, n):
+                return b"SSH-2.0-Fake"
+
+        monkeypatch.setattr(socket, "create_connection", lambda *a, **k: _FakeSock())
+
     def test_file_not_found_returns_sentinel(self, monkeypatch):
         import subprocess
 
         from quickhatch.gui.server import _ssh_exec
+
+        self._bypass_probe(monkeypatch)
 
         def bad_run(*a, **k):
             raise FileNotFoundError("ssh binary missing")
@@ -252,6 +273,8 @@ class TestSshExecErrorHandling:
 
         from quickhatch.gui.server import _ssh_exec
 
+        self._bypass_probe(monkeypatch)
+
         def bad_run(*a, **k):
             raise OSError("[WinError 193] %1 is not a valid Win32 application")
 
@@ -265,6 +288,8 @@ class TestSshExecErrorHandling:
 
         from quickhatch.gui.server import _ssh_exec
 
+        self._bypass_probe(monkeypatch)
+
         def timeout_run(*a, **k):
             raise subprocess.TimeoutExpired(cmd="ssh", timeout=5)
 
@@ -272,6 +297,30 @@ class TestSshExecErrorHandling:
         rc, out, err = _ssh_exec("127.0.0.1", "root", "true", timeout=1)
         assert rc == -1
         assert "timed out" in err.lower()
+
+    def test_probe_detects_unreachable_host_before_spawning_ssh(self, monkeypatch):
+        """The TCP probe should short-circuit when the port is closed —
+        no ssh subprocess should even be launched."""
+        import socket
+        import subprocess
+
+        from quickhatch.gui.server import _ssh_exec
+
+        def refused(*a, **k):
+            raise ConnectionRefusedError("nope")
+
+        monkeypatch.setattr(socket, "create_connection", refused)
+        run_called = {"n": 0}
+
+        def count_run(*a, **k):
+            run_called["n"] += 1
+            raise AssertionError("subprocess.run should not be reached")
+
+        monkeypatch.setattr(subprocess, "run", count_run)
+        rc, out, err = _ssh_exec("127.0.0.1", "root", "true")
+        assert rc == -1
+        assert "cannot reach" in err.lower()
+        assert run_called["n"] == 0
 
 
 if __name__ == "__main__":  # pragma: no cover
