@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -22,7 +21,6 @@ from quickhatch.config import (
     Preferences,
     UserProfile,
 )
-
 
 # ---------------------------------------------------------------------------
 # wizard/usb.py — USB drive listing + ISO URL lookup
@@ -134,9 +132,7 @@ class TestDistroIsoLookup:
         from quickhatch.wizard.usb import _get_distro_iso_url
 
         # Pick a handful of common names; at least ONE must resolve.
-        results = [
-            _get_distro_iso_url(n) for n in ("Ubuntu", "Fedora", "Arch Linux", "Debian")
-        ]
+        results = [_get_distro_iso_url(n) for n in ("Ubuntu", "Fedora", "Arch Linux", "Debian")]
         assert any(r for r in results), f"no distros resolved in {results}"
 
     def test_unknown_distro_returns_none(self):
