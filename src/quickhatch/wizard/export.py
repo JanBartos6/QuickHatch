@@ -82,11 +82,7 @@ def run(profile: UserProfile) -> None:
     zip_path = output_dir / "quickhatch-migration-bundle.zip"
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
         for file in output_dir.iterdir():
-            if (
-                file.name != zip_path.name
-                and not file.name.startswith(".")
-                and file.is_file()
-            ):
+            if file.name != zip_path.name and not file.name.startswith(".") and file.is_file():
                 zf.write(file, file.name)
 
     print_success(f"\nMigration bundle created: {zip_path}")

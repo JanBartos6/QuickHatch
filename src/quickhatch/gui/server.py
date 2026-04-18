@@ -633,7 +633,9 @@ def make_gui_server(
                     content = Path(pub_path).read_text(encoding="utf-8").strip()
                 else:
                     default = Path.home() / ".ssh" / "id_ed25519.pub"
-                    content = default.read_text(encoding="utf-8").strip() if default.exists() else ""
+                    content = (
+                        default.read_text(encoding="utf-8").strip() if default.exists() else ""
+                    )
                 if not content:
                     self._send_bytes(
                         b"# No SSH key generated yet. Run /wizard/generate-ssh first.\n",
@@ -726,7 +728,9 @@ def make_gui_server(
                         # Drop embedding-only models — they can't answer chat
                         # completions and confuse the picker.
                         models = [
-                            m for m in raw if "embed" not in m.lower() and "embedding" not in m.lower()
+                            m
+                            for m in raw
+                            if "embed" not in m.lower() and "embedding" not in m.lower()
                         ]
                 except Exception:
                     pass
@@ -1270,9 +1274,7 @@ def _prefetch_search_context(
     prefs = getattr(profile, "preferences", None)
     use_cases = prefs.use_cases if prefs else []
     if use_cases:
-        queries.append(
-            ("Distro", f"best Linux distro for {' and '.join(use_cases[:3])} {year}")
-        )
+        queries.append(("Distro", f"best Linux distro for {' and '.join(use_cases[:3])} {year}"))
 
     # Desktop environment search based on look preference
     look = prefs.desktop_look if prefs else ""
@@ -1916,8 +1918,7 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
                 except Exception as second_exc:
                     bridge.add_message(
                         "agent",
-                        f"❌  {title} failed twice — skipping. Last error: "
-                        f"{str(second_exc)[:200]}",
+                        f"❌  {title} failed twice — skipping. Last error: {str(second_exc)[:200]}",
                     )
                     req.post(
                         f"{base}/api/suggest",
@@ -2123,9 +2124,14 @@ def _extract_json_objects(text: str) -> list[dict]:
 
                     repaired = _re.sub(
                         r'"((?:[^"\\]|\\.)*)"',
-                        lambda m: '"'
-                        + m.group(1).replace("\r", "\\r").replace("\n", "\\n").replace("\t", "\\t")
-                        + '"',
+                        lambda m: (
+                            '"'
+                            + m.group(1)
+                            .replace("\r", "\\r")
+                            .replace("\n", "\\n")
+                            .replace("\t", "\\t")
+                            + '"'
+                        ),
                         chunk,
                     )
                     obj = json.loads(repaired)
@@ -2585,9 +2591,7 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                     a_msgs.append({"role": "user", "content": "Begin the migration."})
                 # First message must be user per the API spec.
                 if a_msgs[0]["role"] != "user":
-                    a_msgs.insert(
-                        0, {"role": "user", "content": "Continue from the last action."}
-                    )
+                    a_msgs.insert(0, {"role": "user", "content": "Continue from the last action."})
                 resp = requests.post(
                     "https://api.anthropic.com/v1/messages",
                     headers={
@@ -3205,11 +3209,7 @@ def _run_export(gui_state: GUIState) -> dict:
         zip_path = output_dir / "quickhatch-migration-bundle.zip"
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
             for file in output_dir.iterdir():
-                if (
-                    file.name != zip_path.name
-                    and not file.name.startswith(".")
-                    and file.is_file()
-                ):
+                if file.name != zip_path.name and not file.name.startswith(".") and file.is_file():
                     zf.write(file, file.name)
         files.append(zip_path.name)
 
