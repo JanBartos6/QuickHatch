@@ -126,11 +126,20 @@ def _generate_quickstart(profile: UserProfile) -> str:
     In both cases, prints a machine-readable environment marker and the
     IP + username the user should paste back into QuickHatch.
     """
-    pub_name = Path(profile.ssh_public_key_path).name if profile.ssh_public_key_path else ""
+    import shlex as _shlex
+
+    _raw_pub_name = Path(profile.ssh_public_key_path).name if profile.ssh_public_key_path else ""
+    # Quote ONCE and assign to a shell var. Every downstream reference
+    # uses "$KEY_FILE" so there's no interaction between the Python
+    # f-string interpolation and the surrounding quoting in the shell
+    # script. Handles pub_name with apostrophes, whitespace, or other
+    # shell metacharacters safely.
+    pub_name_quoted = _shlex.quote(_raw_pub_name) if _raw_pub_name else ""
     key_block = ""
-    if pub_name:
+    if _raw_pub_name:
         key_block = f"""
 # --- Install SSH key into the current user's authorized_keys ---
+KEY_FILE={pub_name_quoted}
 USER_HOME="$HOME"
 if [ "$(id -u)" = "0" ] && [ -n "${{SUDO_USER:-}}" ] && [ "${{SUDO_USER}}" != "root" ]; then
     # Running under sudo — install into the invoking user, not root
@@ -138,32 +147,32 @@ if [ "$(id -u)" = "0" ] && [ -n "${{SUDO_USER:-}}" ] && [ "${{SUDO_USER}}" != "r
 fi
 mkdir -p "$USER_HOME/.ssh"
 chmod 700 "$USER_HOME/.ssh"
-if [ -f "{pub_name}" ]; then
-    grep -qxF "$(cat {pub_name})" "$USER_HOME/.ssh/authorized_keys" 2>/dev/null \\
-        || cat "{pub_name}" >> "$USER_HOME/.ssh/authorized_keys"
+if [ -f "$KEY_FILE" ]; then
+    grep -qxF "$(cat "$KEY_FILE")" "$USER_HOME/.ssh/authorized_keys" 2>/dev/null \\
+        || cat "$KEY_FILE" >> "$USER_HOME/.ssh/authorized_keys"
     chmod 600 "$USER_HOME/.ssh/authorized_keys"
     if [ "$(id -u)" = "0" ] && [ -n "${{SUDO_USER:-}}" ]; then
         chown -R "$SUDO_USER" "$USER_HOME/.ssh"
     fi
     echo "[+] SSH key added to $USER_HOME/.ssh/authorized_keys"
 else
-    echo "[!] Warning: {pub_name} not found in this directory."
+    echo "[!] Warning: $KEY_FILE not found in this directory."
     echo "    Make sure you ran this script from the extracted bundle."
 fi
 
 # Also install into root's authorized_keys on a live env (so the agent
 # can install the distro from scratch without needing a user account).
-if [ -f "{pub_name}" ]; then
+if [ -f "$KEY_FILE" ]; then
     if [ "$(id -u)" = "0" ]; then
         mkdir -p /root/.ssh
         chmod 700 /root/.ssh
-        grep -qxF "$(cat {pub_name})" /root/.ssh/authorized_keys 2>/dev/null \\
-            || cat "{pub_name}" >> /root/.ssh/authorized_keys
+        grep -qxF "$(cat "$KEY_FILE")" /root/.ssh/authorized_keys 2>/dev/null \\
+            || cat "$KEY_FILE" >> /root/.ssh/authorized_keys
         chmod 600 /root/.ssh/authorized_keys
     elif command -v sudo >/dev/null 2>&1; then
         sudo mkdir -p /root/.ssh
         sudo chmod 700 /root/.ssh
-        sudo bash -c "grep -qxF \\"$(cat {pub_name})\\" /root/.ssh/authorized_keys 2>/dev/null || cat '{pub_name}' >> /root/.ssh/authorized_keys"
+        sudo bash -c 'grep -qxF "$(cat "$1")" /root/.ssh/authorized_keys 2>/dev/null || cat "$1" >> /root/.ssh/authorized_keys' _ "$KEY_FILE"
         sudo chmod 600 /root/.ssh/authorized_keys
     fi
 fi

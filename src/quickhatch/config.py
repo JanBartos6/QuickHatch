@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
 
@@ -127,29 +127,78 @@ class UserProfile:
             return None
         try:
             data = json.loads(path.read_text())
-            return cls(
-                preferences=Preferences(**data.get("preferences", {})),
-                ai_config=AIConfig(**data.get("ai_config", {})),
-                hardware=HardwareInfo(
-                    **{
-                        k: v
-                        for k, v in data.get("hardware", {}).items()
-                        if k not in ("gpus", "disks")
-                    },
-                    gpus=[GPUInfo(**g) for g in data.get("hardware", {}).get("gpus", [])],
-                    disks=[DiskInfo(**d) for d in data.get("hardware", {}).get("disks", [])],
-                ),
-                apps=[AppInfo(**a) for a in data.get("apps", [])],
-                files_summary=data.get("files_summary", {}),
-                windows_settings=data.get("windows_settings", {}),
-                ssh_public_key_path=data.get("ssh_public_key_path"),
-                additional_info=data.get("additional_info", ""),
-                apps_to_install=data.get("apps_to_install", []),
-                data_description=data.get("data_description", ""),
-                data_transfer_method=data.get("data_transfer_method", ""),
-                linux_ip=data.get("linux_ip", ""),
-                linux_user=data.get("linux_user", ""),
-                completed_steps=data.get("completed_steps", []),
+        except (json.JSONDecodeError, OSError) as exc:
+            # Corrupted JSON — move it aside so the user still has a copy
+            # and we can start fresh next time. Surface a clear message.
+            import sys as _sys
+
+            backup = path.with_suffix(path.suffix + ".corrupt")
+            try:
+                path.rename(backup)
+            except OSError:
+                pass
+            print(
+                f"[quickhatch] checkpoint at {path} is unreadable ({exc}); "
+                f"moved to {backup}. Starting with a fresh profile.",
+                file=_sys.stderr,
             )
-        except (json.JSONDecodeError, TypeError, KeyError):
+            return None
+
+        # Schema-tolerant reconstruction. If a dataclass field was renamed
+        # or removed since the checkpoint was saved, skip UNKNOWN keys
+        # (`__init__` would TypeError) and warn rather than silently
+        # dropping the whole file. Each sub-dataclass restores what it
+        # can; missing fields fall back to their default.
+        import sys as _sys
+
+        def _safe_init(cls_, kwargs):
+            valid = {f.name for f in fields(cls_)}
+            clean = {k: v for k, v in (kwargs or {}).items() if k in valid}
+            dropped = set(kwargs or {}) - valid
+            if dropped:
+                print(
+                    f"[quickhatch] checkpoint {cls_.__name__} had unknown keys "
+                    f"{dropped} — ignoring those.",
+                    file=_sys.stderr,
+                )
+            try:
+                return cls_(**clean)
+            except TypeError as exc:
+                print(
+                    f"[quickhatch] could not restore {cls_.__name__}: {exc}. "
+                    f"Using defaults for this section.",
+                    file=_sys.stderr,
+                )
+                return cls_()
+
+        try:
+            hw_raw = data.get("hardware", {}) or {}
+            hw = _safe_init(
+                HardwareInfo,
+                {k: v for k, v in hw_raw.items() if k not in ("gpus", "disks")},
+            )
+            hw.gpus = [_safe_init(GPUInfo, g) for g in hw_raw.get("gpus", [])]
+            hw.disks = [_safe_init(DiskInfo, d) for d in hw_raw.get("disks", [])]
+
+            return cls(
+                preferences=_safe_init(Preferences, data.get("preferences", {})),
+                ai_config=_safe_init(AIConfig, data.get("ai_config", {})),
+                hardware=hw,
+                apps=[_safe_init(AppInfo, a) for a in data.get("apps", [])],
+                files_summary=data.get("files_summary", {}) or {},
+                windows_settings=data.get("windows_settings", {}) or {},
+                ssh_public_key_path=data.get("ssh_public_key_path"),
+                additional_info=data.get("additional_info", "") or "",
+                apps_to_install=list(data.get("apps_to_install", []) or []),
+                data_description=data.get("data_description", "") or "",
+                data_transfer_method=data.get("data_transfer_method", "") or "",
+                linux_ip=data.get("linux_ip", "") or "",
+                linux_user=data.get("linux_user", "") or "",
+                completed_steps=list(data.get("completed_steps", []) or []),
+            )
+        except Exception as exc:
+            print(
+                f"[quickhatch] checkpoint load failed ({exc}). Starting with a fresh profile.",
+                file=_sys.stderr,
+            )
             return None

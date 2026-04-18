@@ -73,7 +73,7 @@ class BridgeState:
         self._load_persisted()
 
     def _load_persisted(self) -> None:
-        """Load suggestions + messages from disk if a previous session saved them."""
+        """Load suggestions + messages + pending questions from disk."""
         if self._persist_path is None or not self._persist_path.exists():
             return
         try:
@@ -86,17 +86,51 @@ class BridgeState:
             except TypeError:
                 continue
         self.messages = list(data.get("messages", []))
+        # Restore unanswered questions so a mid-prompt server restart
+        # doesn't silently drop the question from the UI. The agent
+        # thread that was awaiting the answer is dead — but the user
+        # can still inspect what was asked, and a subsequent
+        # /wizard/answer fulfills the Event for any new agent that
+        # might be listening. Events aren't JSON-serialisable, so we
+        # reconstruct fresh ones.
+        for qdata in data.get("questions", []):
+            try:
+                q = PendingQuestion(
+                    id=qdata["id"],
+                    question=qdata["question"],
+                    choices=qdata.get("choices"),
+                    answer=qdata.get("answer"),
+                )
+                if qdata.get("answered"):
+                    q.answered.set()
+                    q.answer = qdata.get("answer")
+                self.questions[q.id] = q
+            except (KeyError, TypeError):
+                continue
         # agent_done stays False so the UI doesn't think a new run is
         # already complete — but the previous suggestions are visible.
 
     def _persist(self) -> None:
-        """Write suggestions + messages to disk. Call under lock when mutating."""
+        """Write suggestions + messages + questions to disk. Call under lock."""
         if self._persist_path is None:
             return
         try:
             payload = {
                 "suggestions": [asdict(s) for s in self.suggestions],
                 "messages": list(self.messages),
+                # Serialize questions without the threading.Event field
+                # (which isn't JSON-representable). Restore just the
+                # shape: id, question text, choices, answered flag.
+                "questions": [
+                    {
+                        "id": q.id,
+                        "question": q.question,
+                        "choices": q.choices,
+                        "answered": q.answered.is_set(),
+                        "answer": q.answer,
+                    }
+                    for q in self.questions.values()
+                ],
                 "saved_at": time.time(),
             }
             self._persist_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -155,6 +189,7 @@ class BridgeState:
         q = PendingQuestion(id=qid, question=question, choices=choices)
         with self.lock:
             self.questions[qid] = q
+            self._persist()
         for cb in self._on_question:
             cb(q)
         return q
@@ -166,6 +201,7 @@ class BridgeState:
                 return False
             q.answer = answer
             q.answered.set()
+            self._persist()
         return True
 
     def accept_suggestion(self, sid: str, accepted: bool) -> bool:

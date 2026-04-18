@@ -59,11 +59,23 @@ def resolve_primer(distro: str | None) -> dict[str, Any] | None:
             return entry
         if any(_normalize(alias) == needle for alias in entry.get("aliases", [])):
             return entry
-    # Fallback: word-boundary match on canonical + aliases. Useful for
-    # free-text inputs like "I'd like arch btw" → matches "arch" as a
-    # standalone token, but "templeos" does NOT match the "eos" alias.
+
+    # No exact match — try forgiving variants.
+    # 1. Strip "linux"/"os" suffixes the user may have appended.
+    #    ("archlinux" → "arch", "fedoralinux" → "fedora", "endeavouros" stays).
     import re
 
+    stripped = re.sub(r"(linux|-linux|os)$", "", needle)
+    if stripped and stripped != needle:
+        for entry in _load_index().get("distros", []):
+            if _normalize(entry.get("canonical", "")) == stripped:
+                return entry
+            if any(_normalize(alias) == stripped for alias in entry.get("aliases", [])):
+                return entry
+
+    # 2. Word-boundary search within a longer free-text hint
+    #    ("I'd like arch btw" → matches "arch"). Still rejects
+    #    accidental-substring cases like "templeos" matching "eos".
     for entry in _load_index().get("distros", []):
         haystack = [
             _normalize(entry.get("canonical", "")),

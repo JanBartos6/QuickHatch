@@ -2316,6 +2316,79 @@ _REBOOT_COMMAND_RE = re.compile(
 )
 
 
+# Match `useradd -m NAME` / `useradd ... NAME` to catch the user being
+# created inside chroot. We grab the last non-flag, non-option token on
+# the line — useradd's final positional arg is always the login name.
+# Works on both `useradd quickhatch` and `useradd -m -G wheel ... jan`.
+_USERADD_RE = re.compile(
+    # Allow quotes as the boundary before `useradd` so `sh -c "useradd jan"`
+    # style invocations inside arch-chroot are matched. Consume args
+    # until a command separator or EOL; caller strips trailing quotes
+    # and flag-value pairs.
+    r"""(?:^|[;\s"'`]|&&|\|\|)useradd\s+([^;&|\n\r]+)""",
+)
+
+
+def _extract_created_user(cmd: str) -> str | None:
+    """Return the username created by a `useradd ...` command, or None.
+
+    The agent creates the post-install user inside arch-chroot. Its
+    login name ends up as the last positional arg of `useradd`. We
+    parse it so `profile.linux_user` can be switched ahead of the
+    post-reboot reconnect — otherwise SSH keeps trying to log in as
+    the live-ISO's root, which doesn't exist on the installed system.
+    """
+    m = _USERADD_RE.search(cmd)
+    if not m:
+        return None
+    tail = m.group(1)
+    # Strip trailing closing quotes / backticks that belong to the outer
+    # shell wrapper (e.g. `sh -c "useradd -m foo"` → tail is `-m foo"`).
+    tail = tail.rstrip("\"'` \t")
+    tokens = tail.split()
+    # Walk right-to-left, skip flag values and the flags themselves.
+    skip_next = False
+    flags_with_values = {
+        "-c",
+        "--comment",
+        "-d",
+        "--home-dir",
+        "-e",
+        "--expiredate",
+        "-f",
+        "--inactive",
+        "-g",
+        "--gid",
+        "-G",
+        "--groups",
+        "-k",
+        "--skel",
+        "-p",
+        "--password",
+        "-s",
+        "--shell",
+        "-u",
+        "--uid",
+        "-Z",
+        "--selinux-user",
+        "-K",
+        "--key",
+    }
+    for tok in reversed(tokens):
+        if skip_next:
+            skip_next = False
+            continue
+        if tok.startswith("-"):
+            continue
+        idx = tokens.index(tok)
+        if idx > 0 and tokens[idx - 1] in flags_with_values:
+            continue
+        # Strip surrounding single/double quotes/backticks if the arg
+        # was quoted in the shell wrapper.
+        return tok.strip("\"'`")
+    return None
+
+
 def _is_reboot_command(cmd: str) -> bool:
     """True if ``cmd`` will reboot the target (triggering a reconnect loop).
 
@@ -2568,6 +2641,12 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
         # Cap size — a long install can otherwise produce an ever-growing list
         # that gets re-persisted to disk on every suggestion add.
         _RESULTS_LOG_MAX = 100
+        # Track the post-install user the agent creates in chroot. On the
+        # pre-reboot side we're logged in as root (live ISO); after reboot
+        # the target has no root SSH by default, and login must switch to
+        # the newly-created user. If we never see a useradd we keep the
+        # current linux_user unchanged.
+        created_user: str | None = None
 
         for _iteration in range(MAX_ITERATIONS):
             # Honor Stop requests from the UI
@@ -2742,11 +2821,28 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                     # Reboot commands tear down the live-env SSH session.
                     # Fire the command (short timeout — we expect it to
                     # disconnect us), then poll for SSH on the installed
-                    # system to come back up. If the user configured a
-                    # new login during install, they should have set
-                    # linux_user accordingly in the wizard; we reconnect
-                    # with whatever `user` is set to now.
+                    # system to come back up. If the agent created a user
+                    # during chroot (common: the live ISO has no root SSH
+                    # after the first real boot), we swap to that user
+                    # before reconnect — otherwise SSH keeps trying the
+                    # live-ISO's root, which doesn't exist on-disk.
                     if _is_reboot_command(cmd):
+                        reconnect_user = created_user or user
+                        if reconnect_user != user:
+                            bridge.add_message(
+                                "agent",
+                                f"Switching SSH user to '{reconnect_user}' for post-reboot "
+                                f"reconnect (agent created this account during chroot; root "
+                                f"has no SSH access on the installed system).",
+                            )
+                            # Persist to profile so /wizard/test-ssh + any
+                            # subsequent agent launch also uses the new user.
+                            profile.linux_user = reconnect_user
+                            try:
+                                profile.save_checkpoint()
+                            except Exception:
+                                pass
+                            user = reconnect_user
                         bridge.add_message(
                             "agent",
                             "Reboot issued — waiting for the target to come back online "
@@ -2843,6 +2939,20 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                     results_log.append(f"**`{cmd}`** — {status}")
                     if rc != 0 and err.strip():
                         results_log.append(f"  Error: {err.strip()[:150]}")
+
+                    # Snoop for `useradd ... NAME` so we know who to log
+                    # in as after the post-install reboot. See HIGH
+                    # finding: "setup agent creates user but profile
+                    # stays on root, reconnect fails."
+                    if rc == 0:
+                        maybe_user = _extract_created_user(cmd)
+                        if maybe_user:
+                            created_user = maybe_user
+                            bridge.add_message(
+                                "agent",
+                                f"Noted: user '{maybe_user}' created. Will switch SSH to "
+                                f"this account after reboot.",
+                            )
                     # Trim to avoid unbounded growth across a long install
                     if len(results_log) > _RESULTS_LOG_MAX:
                         results_log[:] = results_log[-_RESULTS_LOG_MAX:]
