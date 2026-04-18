@@ -99,16 +99,24 @@ def run(profile: UserProfile) -> None:
         profile.ai_config.endpoint = endpoint
 
     elif provider == "api_anthropic":
-        model = questionary.select(
-            "Which Claude model?",
-            choices=[
-                questionary.Choice("Claude Opus 4.6 (most capable)", value="claude-opus-4-6"),
-                questionary.Choice("Claude Sonnet 4.6 (balanced)", value="claude-sonnet-4-6"),
-                questionary.Choice("Claude Haiku 4.5 (fastest)", value="claude-haiku-4-5-20251001"),
-            ],
-        ).ask()
-        if model is None:
-            raise KeyboardInterrupt
+        # Don't hardcode a model list — Anthropic ships new ones and
+        # retires old ones faster than this file can be updated. Ask
+        # the user to paste a current id (they'll get it from the
+        # dashboard or the model-list link printed below).
+        print_info(
+            "Get a current Claude model id from "
+            "https://docs.anthropic.com/en/docs/about-claude/models"
+        )
+        while True:
+            model = questionary.text(
+                "Claude model id (e.g. claude-sonnet-4-5-20250929):",
+            ).ask()
+            if model is None:
+                raise KeyboardInterrupt
+            model = (model or "").strip()
+            if model:
+                break
+            print_info("Please enter a model id.")
         profile.ai_config.model_name = model
         profile.ai_config.endpoint = "https://api.anthropic.com"
 

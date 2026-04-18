@@ -106,9 +106,14 @@ def run(profile: UserProfile) -> None:
         if distro is None:
             raise KeyboardInterrupt
         if distro == "other":
-            distro = questionary.text("Enter the distro name:").ask()
-            if distro is None:
-                raise KeyboardInterrupt
+            while True:
+                distro = questionary.text("Enter the distro name:").ask()
+                if distro is None:
+                    raise KeyboardInterrupt
+                distro = (distro or "").strip()
+                if distro:
+                    break
+                print_info("Please type a distro name or press Ctrl+C to skip.")
         profile.preferences.distro_preference = distro
         print_success(f"Noted: you prefer {distro}")
     else:
