@@ -620,6 +620,29 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
 
                 self._send_json({"status": "ok", "version": __version__})
 
+            elif route == "/wizard/pubkey":
+                # Plain-text SSH public key so a live VM / target machine
+                # can curl it straight from the wizard (e.g. via the NAT
+                # gateway at 10.0.2.2 in VirtualBox) and append to
+                # /root/.ssh/authorized_keys. No auth — this is a public
+                # key, not a secret.
+                pub_path = gui_state.profile.ssh_public_key_path
+                if pub_path and Path(pub_path).exists():
+                    content = Path(pub_path).read_text(encoding="utf-8").strip()
+                else:
+                    default = Path.home() / ".ssh" / "id_ed25519.pub"
+                    content = default.read_text(encoding="utf-8").strip() if default.exists() else ""
+                if not content:
+                    self._send_bytes(
+                        b"# No SSH key generated yet. Run /wizard/generate-ssh first.\n",
+                        "text/plain",
+                        404,
+                    )
+                else:
+                    # Ensure trailing newline so >> append doesn't join lines
+                    body = (content + "\n").encode("utf-8")
+                    self._send_bytes(body, "text/plain; charset=utf-8")
+
             elif route == "/wizard/steps":
                 self._send_json(
                     {
