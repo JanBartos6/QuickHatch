@@ -12,7 +12,7 @@ from quickhatch.config import UserProfile
 
 @pytest.fixture
 def state():
-    return BridgeState(UserProfile())
+    return BridgeState(UserProfile(), persist_path=None)
 
 
 class TestSuggestions:

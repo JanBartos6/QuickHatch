@@ -15,9 +15,14 @@ import time
 import uuid
 from dataclasses import asdict, dataclass, field
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
 from typing import Any
 
 from quickhatch.config import UserProfile
+
+# On-disk persistence for suggestions and messages. Survives server restarts
+# so an accidentally-killed process doesn't nuke a 20-minute analysis run.
+_SUGGESTIONS_FILE = Path.home() / ".quickhatch-suggestions.json"
 
 
 @dataclass
@@ -46,7 +51,9 @@ class Suggestion:
 class BridgeState:
     """Shared state between the HTTP server and the wizard TUI."""
 
-    def __init__(self, profile: UserProfile) -> None:
+    def __init__(
+        self, profile: UserProfile, persist_path: Path | str | None = _SUGGESTIONS_FILE
+    ) -> None:
         self.profile = profile
         self.suggestions: list[Suggestion] = []
         self.questions: dict[str, PendingQuestion] = {}
@@ -58,13 +65,55 @@ class BridgeState:
         self.agent_connected = False
         self.agent_done = False
         self.stop_requested = False
+        # Where to persist suggestions/messages. Pass None to disable
+        # persistence (e.g. in unit tests).
+        self._persist_path: Path | None = Path(persist_path) if persist_path else None
+        # Restore previously persisted suggestions/messages so restarts
+        # don't lose a finished analysis run.
+        self._load_persisted()
+
+    def _load_persisted(self) -> None:
+        """Load suggestions + messages from disk if a previous session saved them."""
+        if self._persist_path is None or not self._persist_path.exists():
+            return
+        try:
+            data = json.loads(self._persist_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return
+        for s in data.get("suggestions", []):
+            try:
+                self.suggestions.append(Suggestion(**s))
+            except TypeError:
+                continue
+        self.messages = list(data.get("messages", []))
+        # agent_done stays False so the UI doesn't think a new run is
+        # already complete — but the previous suggestions are visible.
+
+    def _persist(self) -> None:
+        """Write suggestions + messages to disk. Call under lock when mutating."""
+        if self._persist_path is None:
+            return
+        try:
+            payload = {
+                "suggestions": [asdict(s) for s in self.suggestions],
+                "messages": list(self.messages),
+                "saved_at": time.time(),
+            }
+            self._persist_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        except OSError:
+            pass  # best-effort — never crash the agent over a write
 
     def reset_for_rerun(self) -> None:
-        """Clear suggestions and done state for a fresh agent run."""
+        """Clear suggestions and done state for a fresh agent run.
+
+        Keeps the chat history so user feedback remains visible when the
+        agent regenerates.
+        """
         with self.lock:
             self.suggestions.clear()
             self.agent_done = False
             self.stop_requested = False
+            self._persist()
 
     def request_stop(self) -> None:
         """Signal any running agent to stop at the next iteration."""
@@ -76,6 +125,7 @@ class BridgeState:
         suggestion = Suggestion(id=sid, category=category, title=title, content=content)
         with self.lock:
             self.suggestions.append(suggestion)
+            self._persist()
         for cb in self._on_suggestion:
             cb(suggestion)
         return sid
@@ -109,6 +159,7 @@ class BridgeState:
     def add_message(self, role: str, content: str) -> None:
         with self.lock:
             self.messages.append({"role": role, "content": content, "time": time.time()})
+            self._persist()
         for cb in self._on_message:
             cb(role, content)
 

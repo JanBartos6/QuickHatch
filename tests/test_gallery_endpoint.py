@@ -17,7 +17,7 @@ from quickhatch.gui.server import GUIState, make_gui_server
 @pytest.fixture
 def gallery_server():
     profile = UserProfile()
-    bridge = BridgeState(profile)
+    bridge = BridgeState(profile, persist_path=None)
     gui_state = GUIState(profile, bridge)
     srv, port = make_gui_server(gui_state, port=0)
     thread = threading.Thread(target=srv.serve_forever, daemon=True)

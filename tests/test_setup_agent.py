@@ -28,7 +28,7 @@ def ready_state():
     )
     p.linux_ip = "127.0.0.1:2222"
     p.linux_user = "root"
-    b = BridgeState(p)
+    b = BridgeState(p, persist_path=None)
     return GUIState(p, b)
 
 
