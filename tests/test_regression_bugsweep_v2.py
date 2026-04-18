@@ -4,10 +4,7 @@ c099393, 8daaa11). Each test cites the HIGH/MED number from the review.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
-
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # HIGH-2 / HIGH-3 — BridgeState concurrency helpers
@@ -162,12 +159,12 @@ class TestSafeUrlSanitizer:
         root = Path(__file__).resolve().parent.parent
         html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
         # All the known LLM-origin URL interpolations must go through safeUrl
-        assert 'safeUrl(url)' in html or 'safeUrl(' in html, (
+        assert "safeUrl(url)" in html or "safeUrl(" in html, (
             "safeUrl() helper is missing from app.html"
         )
         # No raw href="${escHtml(url)}"-style patterns for user-origin URLs
-        assert "href=\"${escHtml(url)}\"" not in html
-        assert "src=\"${escHtml(url)}\"" not in html
+        assert 'href="${escHtml(url)}"' not in html
+        assert 'src="${escHtml(url)}"' not in html
 
 
 # ---------------------------------------------------------------------------
@@ -186,9 +183,7 @@ class TestLlmResponseExtractors:
         from quickhatch.gui.server import _extract_openai_text
 
         payload = {
-            "choices": [
-                {"message": {"content": "", "reasoning_content": "I was thinking..."}}
-            ]
+            "choices": [{"message": {"content": "", "reasoning_content": "I was thinking..."}}]
         }
         assert _extract_openai_text(payload) == "I was thinking..."
 
