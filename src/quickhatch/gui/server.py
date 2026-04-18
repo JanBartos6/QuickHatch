@@ -2545,13 +2545,22 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                         "model": model,
                         "messages": messages,
                         "temperature": 0.3,
-                        "max_tokens": 1024,
+                        # Reasoning-style models (Gemma-4 thinking, R1-like) spend a
+                        # big chunk of the token budget on their internal chain of
+                        # thought before emitting any visible content. 1024 was
+                        # starving them — empty content, no action, infinite loop.
+                        "max_tokens": 4096,
                     },
                     headers=headers,
                     timeout=900,
                 )
                 resp.raise_for_status()
-                response_text = resp.json()["choices"][0]["message"]["content"]
+                msg_obj = resp.json()["choices"][0]["message"]
+                response_text = msg_obj.get("content") or ""
+                # Fallback for reasoning models that dump output in reasoning_content
+                # instead of content (LM Studio exposes both fields).
+                if not response_text.strip() and msg_obj.get("reasoning_content"):
+                    response_text = msg_obj["reasoning_content"]
 
             # Append assistant response to history
             messages.append({"role": "assistant", "content": response_text})
