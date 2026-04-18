@@ -2143,6 +2143,13 @@ def _ssh_exec(
         "ssh",
         "-o",
         "StrictHostKeyChecking=no",
+        # Don't touch the user's known_hosts. Otherwise, rebuilding the
+        # target (which produces a new host key) trips 'REMOTE HOST
+        # IDENTIFICATION HAS CHANGED' on every subsequent connection and
+        # the agent can't SSH back in until the user manually clears
+        # ~/.ssh/known_hosts.
+        "-o",
+        "UserKnownHostsFile=/dev/null",
         "-o",
         "ConnectTimeout=10",
         "-o",
