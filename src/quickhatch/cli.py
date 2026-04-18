@@ -137,6 +137,13 @@ def main() -> None:
     parser.add_argument("--demo", action="store_true", help="Load demo data (for testing on Linux)")
     parser.add_argument("--port", type=int, default=0, help="Port for GUI/bridge server (0 = auto)")
     parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Bind address for the GUI/bridge server. Default 127.0.0.1. Use 0.0.0.0 to "
+        "expose on all interfaces (needed when testing with a VirtualBox VM that has to "
+        "curl into the wizard via 10.0.2.2).",
+    )
+    parser.add_argument(
         "--no-browser", action="store_true", help="Don't auto-open browser (GUI mode)"
     )
     parser.add_argument(
@@ -258,7 +265,7 @@ def _run_gui(args) -> None:
     bridge_state = BridgeState(profile)
     gui_state = GUIState(profile, bridge_state)
 
-    server, port = make_gui_server(gui_state, port=args.port)
+    server, port = make_gui_server(gui_state, port=args.port, host=args.host)
     url = f"http://localhost:{port}"
 
     if getattr(args, "tauri", False):

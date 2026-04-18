@@ -422,7 +422,9 @@ def _gallery_prompt_block(profile: UserProfile) -> str:
     return "\n".join(lines) + "\n"
 
 
-def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int]:
+def make_gui_server(
+    gui_state: GUIState, port: int = 0, host: str = "127.0.0.1"
+) -> tuple[HTTPServer, int]:
     """Create and return the GUI HTTP server."""
 
     bridge_state = gui_state.bridge
@@ -955,7 +957,14 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
                         if default_key.exists():
                             key_path = str(default_key)
                     rc, out, err = _ssh_exec(
-                        host, user_in, "uname -sr && hostname", key_path, timeout=15, port=port_num
+                        host,
+                        user_in,
+                        # `hostname` isn't shipped on minimal live ISOs (e.g. Arch),
+                        # so `uname -n` which comes with coreutils is portable.
+                        "uname -srn",
+                        key_path,
+                        timeout=15,
+                        port=port_num,
                     )
                     if rc == 0:
                         self._send_json({"status": "ok", "info": out.strip().replace("\n", " · ")})
@@ -985,7 +994,7 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
             else:
                 self._send_json({"error": "Not found"}, 404)
 
-    server = HTTPServer(("127.0.0.1", port), GUIHandler)
+    server = HTTPServer((host, port), GUIHandler)
     actual_port = server.server_address[1]
     return server, actual_port
 
