@@ -915,11 +915,15 @@ def make_gui_server(
             elif self.path == "/wizard/launch-agent":
                 data = self._read_json()
                 phase = data.get("phase", "analysis")
-                # Reset bridge state before launching. A previous run may
-                # have set stop_requested=True (from a Stop click or a
-                # stale UI state after a server restart); without the
-                # reset the agent loop exits on its first iteration.
-                bridge_state.reset_for_rerun()
+                # Clear stop flag + reset done, but KEEP any successfully-
+                # generated suggestions. The analysis loop itself skips
+                # sections that already have a successful suggestion, so
+                # re-launching after a failure resumes from the failed
+                # section instead of redoing 3 minutes of distro work.
+                with bridge_state.lock:
+                    bridge_state.stop_requested = False
+                    bridge_state.agent_done = False
+                    bridge_state._persist()
                 result = _launch_agent(gui_state, server.server_address[1], phase=phase)
                 self._send_json(result)
 
@@ -1836,6 +1840,18 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
         if gui_state.profile.preferences.distro_preference:
             chosen_distro = gui_state.profile.preferences.distro_preference
 
+        # Build a map of sections that already have a SUCCESSFUL suggestion
+        # on disk from a previous run. If the user is re-running without
+        # having cleared state (e.g. after a server crash / restart), we
+        # skip those sections entirely and only redo the ones that failed
+        # or never ran. Placeholder '(failed)' suggestions don't count.
+        already_done: set[str] = set()
+        for s in bridge.suggestions:
+            cat = getattr(s, "category", "")
+            title_ok = not (getattr(s, "title", "") or "").endswith("(failed)")
+            if cat and title_ok:
+                already_done.add(cat)
+
         for section_key, title in section_titles.items():
             if bridge.stop_requested:
                 bridge.add_message("agent", "Stopped.")
@@ -1845,6 +1861,23 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
                     timeout=5,
                 )
                 return
+            if section_key in already_done:
+                bridge.add_message(
+                    "agent",
+                    f"✓ {title} already generated — skipping (you can edit it manually or "
+                    f"rerun the whole analysis to regenerate everything).",
+                )
+                continue
+            # If a FAILED placeholder exists for this section, drop it so
+            # the new attempt can replace it cleanly.
+            bridge.suggestions[:] = [
+                s
+                for s in bridge.suggestions
+                if not (
+                    getattr(s, "category", "") == section_key
+                    and (getattr(s, "title", "") or "").endswith("(failed)")
+                )
+            ]
             bridge.add_message("agent", f"Generating {title.lower()}…")
 
             prompt = _build_section_prompt(
