@@ -352,14 +352,42 @@ class QemuBackend:
 # ---------------------------------------------------------------------------
 
 
+def _vbox_vm_state(vm_name: str) -> str | None:
+    """Return VMState from VBoxManage (running/paused/etc.) or None if unknown."""
+    if not vm_name:
+        return None
+    paths = detect_backends()
+    vbox = paths.get("virtualbox")
+    if not vbox:
+        return None
+    try:
+        proc = _run([vbox, "showvminfo", vm_name, "--machinereadable"], timeout=15)
+    except Exception:
+        return None
+    for line in (proc.stdout or "").splitlines():
+        if line.startswith("VMState="):
+            return line.split("=", 1)[1].strip().strip('"')
+    return None
+
+
 def _wait_for_vm_ssh(
-    port: int, timeout: int = 300, progress: ProgressCallback = _noop_progress
+    port: int,
+    timeout: int = 300,
+    progress: ProgressCallback = _noop_progress,
+    vm_name: str = "",
 ) -> bool:
-    """Poll until SSH answers on 127.0.0.1:port (the forwarded VM port)."""
+    """Poll until SSH answers on 127.0.0.1:port (the forwarded VM port).
+
+    Every 60s, probe the VM's own state via VBoxManage — if it's paused
+    (e.g. host-disk-full auto-pause), surface that as a clear progress
+    message so the user isn't left guessing at a silent 'Connection
+    refused' loop.
+    """
     import socket
 
     deadline = time.monotonic() + timeout
     progress(f"Waiting for VM SSH on 127.0.0.1:{port}")
+    last_state_check = 0.0
     while time.monotonic() < deadline:
         try:
             with socket.create_connection(("127.0.0.1", port), timeout=3) as sock:
@@ -369,6 +397,19 @@ def _wait_for_vm_ssh(
                     return True
         except OSError:
             pass
+        now = time.monotonic()
+        if vm_name and now - last_state_check > 60:
+            last_state_check = now
+            state = _vbox_vm_state(vm_name)
+            if state == "paused":
+                progress(
+                    f"⚠️  VM '{vm_name}' is PAUSED — check host disk space "
+                    f"(VBox auto-pauses on host-side I/O errors). Free up space "
+                    f"and run: VBoxManage controlvm {vm_name} resume"
+                )
+            elif state in ("poweroff", "aborted"):
+                progress(f"⚠️  VM '{vm_name}' is {state} — cannot recover automatically.")
+                return False
         time.sleep(5)
     return False
 
@@ -487,7 +528,7 @@ def verify_install_script(
         vm.start()
         result.stages.append("vm-started")
 
-        if not _wait_for_vm_ssh(22022, timeout=600, progress=progress):
+        if not _wait_for_vm_ssh(22022, timeout=600, progress=progress, vm_name=vm.vm_name):
             result.error = "VM never answered on SSH (boot or network failed)"
             return result
         result.stages.append("ssh-up")
@@ -697,7 +738,12 @@ def finish_assisted_session(
     result = VerifyResult(success=False, backend=session.backend, vm_name=session.vm_name)
     result.stages = ["assisted-boot", f"backend:{session.backend}"]
     try:
-        if not _wait_for_vm_ssh(session.ssh_port, timeout=ssh_timeout, progress=progress):
+        if not _wait_for_vm_ssh(
+            session.ssh_port,
+            timeout=ssh_timeout,
+            progress=progress,
+            vm_name=session.vm_name,
+        ):
             result.error = (
                 "SSH didn't answer — did you paste the snippet into the VM's "
                 "root shell and press Enter? Try again."

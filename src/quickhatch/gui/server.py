@@ -2268,7 +2268,10 @@ def _wait_for_ssh_reconnect(
 # the word (e.g. config file contents mentioning reboot).
 _REBOOT_COMMAND_RE = re.compile(
     r"(^|;|&&|\|\||\s|\bsudo\s+)"
-    r"(reboot|shutdown\s+-r|systemctl\s+reboot|init\s+6|telinit\s+6)"
+    r"(reboot|shutdown\s+-r|systemctl\s+reboot|init\s+6|telinit\s+6|"
+    r"halt\s+--reboot|kexec(\s+-e|\s+--exec)|"
+    # writing 'b' (or 's'/'u') to sysrq-trigger forces a reboot
+    r"echo\s+['\"]?b['\"]?\s*>\s*/proc/sysrq-trigger)"
     r"(\s|;|&&|$)"
 )
 
@@ -2522,8 +2525,11 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
 
         MAX_ITERATIONS = 100
         results_log: list[str] = []  # track all commands and results for the final summary
+        # Cap size — a long install can otherwise produce an ever-growing list
+        # that gets re-persisted to disk on every suggestion add.
+        _RESULTS_LOG_MAX = 100
 
-        for iteration in range(MAX_ITERATIONS):
+        for _iteration in range(MAX_ITERATIONS):
             # Honor Stop requests from the UI
             if bridge.stop_requested:
                 bridge.add_message("agent", "Stopped.")
@@ -2554,10 +2560,56 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
 
             # Call the LLM
             if "anthropic" in endpoint:
-                response_text = _call_anthropic(
-                    api_key, model, system_prompt if iteration == 0 else "continue"
+                # Convert our unified OpenAI-style `messages` list into
+                # Anthropic's `/v1/messages` shape:
+                #   - `system`: the very first 'user' message is actually
+                #     our system prompt, so pull it out
+                #   - `messages`: the rest, role-normalized
+                import requests
+
+                a_system = ""
+                a_msgs: list[dict[str, str]] = []
+                for idx, m in enumerate(messages):
+                    if idx == 0 and m.get("role") == "user":
+                        a_system = m.get("content", "")
+                        continue
+                    a_msgs.append(
+                        {
+                            "role": "assistant" if m.get("role") == "assistant" else "user",
+                            "content": m.get("content", ""),
+                        }
+                    )
+                # Anthropic requires at least one user message. If we just pulled
+                # the system prompt out on iteration 0, seed with a bootstrap prompt.
+                if not a_msgs:
+                    a_msgs.append({"role": "user", "content": "Begin the migration."})
+                # First message must be user per the API spec.
+                if a_msgs[0]["role"] != "user":
+                    a_msgs.insert(
+                        0, {"role": "user", "content": "Continue from the last action."}
+                    )
+                resp = requests.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": api_key or "",
+                        "anthropic-version": "2023-06-01",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": model,
+                        "max_tokens": 4096,
+                        "system": a_system,
+                        "messages": a_msgs,
+                    },
+                    timeout=900,
                 )
-                # For anthropic, we'd need to manage messages differently — simplified here
+                resp.raise_for_status()
+                # Anthropic returns content as a list of blocks. Concatenate
+                # the text ones.
+                blocks = resp.json().get("content", [])
+                response_text = "".join(
+                    b.get("text", "") for b in blocks if b.get("type") == "text"
+                )
             else:
                 import requests
 
@@ -2757,6 +2809,9 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                     results_log.append(f"**`{cmd}`** — {status}")
                     if rc != 0 and err.strip():
                         results_log.append(f"  Error: {err.strip()[:150]}")
+                    # Trim to avoid unbounded growth across a long install
+                    if len(results_log) > _RESULTS_LOG_MAX:
+                        results_log[:] = results_log[-_RESULTS_LOG_MAX:]
 
                     if len(results_log) % 5 == 0:
                         req.post(
