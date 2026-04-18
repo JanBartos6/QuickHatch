@@ -11,7 +11,7 @@ import mimetypes
 import re
 import threading
 from dataclasses import asdict
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
@@ -424,7 +424,7 @@ def _gallery_prompt_block(profile: UserProfile) -> str:
 
 def make_gui_server(
     gui_state: GUIState, port: int = 0, host: str = "127.0.0.1"
-) -> tuple[HTTPServer, int]:
+) -> tuple[ThreadingHTTPServer, int]:
     """Create and return the GUI HTTP server."""
 
     bridge_state = gui_state.bridge
@@ -924,10 +924,7 @@ def make_gui_server(
                 # sections that already have a successful suggestion, so
                 # re-launching after a failure resumes from the failed
                 # section instead of redoing 3 minutes of distro work.
-                with bridge_state.lock:
-                    bridge_state.stop_requested = False
-                    bridge_state.agent_done = False
-                    bridge_state._persist()
+                bridge_state.prepare_for_launch()
                 result = _launch_agent(gui_state, server.server_address[1], phase=phase)
                 self._send_json(result)
 
@@ -1002,7 +999,7 @@ def make_gui_server(
             else:
                 self._send_json({"error": "Not found"}, 404)
 
-    server = HTTPServer((host, port), GUIHandler)
+    server = ThreadingHTTPServer((host, port), GUIHandler)
     actual_port = server.server_address[1]
     return server, actual_port
 
@@ -1854,7 +1851,7 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
         # skip those sections entirely and only redo the ones that failed
         # or never ran. Placeholder '(failed)' suggestions don't count.
         already_done: set[str] = set()
-        for s in bridge.suggestions:
+        for s in bridge.snapshot_suggestions():
             cat = getattr(s, "category", "")
             title_ok = not (getattr(s, "title", "") or "").endswith("(failed)")
             if cat and title_ok:
@@ -1877,15 +1874,18 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
                 )
                 continue
             # If a FAILED placeholder exists for this section, drop it so
-            # the new attempt can replace it cleanly.
-            bridge.suggestions[:] = [
+            # the new attempt can replace it cleanly. Go through the
+            # locked replace_suggestions API so a concurrent GET
+            # /api/suggestions can't see a half-mutated list.
+            kept = [
                 s
-                for s in bridge.suggestions
+                for s in bridge.snapshot_suggestions()
                 if not (
                     getattr(s, "category", "") == section_key
                     and (getattr(s, "title", "") or "").endswith("(failed)")
                 )
             ]
+            bridge.replace_suggestions(kept)
             bridge.add_message("agent", f"Generating {title.lower()}…")
 
             prompt = _build_section_prompt(
@@ -2412,7 +2412,7 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
         if not distro_hint and bridge.suggestions:
             # Look for the distro-category suggestion first, then any
             # suggestion whose title hints at a distro recommendation.
-            for s in bridge.suggestions:
+            for s in bridge.snapshot_suggestions():
                 if getattr(s, "category", "") == "distro" or "distribut" in (s.title or "").lower():
                     match = resolve_primer(s.content or "")
                     if match is not None:
@@ -2431,7 +2431,7 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                 "The migration plan has already been generated during the analysis phase.\n"
                 "Use this as your blueprint — do not re-plan from scratch.\n"
             ]
-            for s in bridge.suggestions:
+            for s in bridge.snapshot_suggestions():
                 plan_parts.append(f"\n### {s.title}\n{s.content}")
             migration_plan_md = "\n".join(plan_parts)
 
@@ -2912,7 +2912,7 @@ def _locate_install_script(gui_state: GUIState) -> Path | None:
     export_dir = Path.home() / "quickhatch-export"
     if (export_dir / "install.sh").exists():
         return export_dir / "install.sh"
-    for s in gui_state.bridge.suggestions:
+    for s in gui_state.bridge.snapshot_suggestions():
         if getattr(s, "category", "") == "install_script" and (s.content or "").strip():
             import tempfile as _tmp
 
@@ -3071,7 +3071,7 @@ def _run_vm_verify(gui_state: GUIState, iso_path: str | None) -> None:
             install_script = export_dir / "install.sh"
         if install_script is None:
             # Fallback: write the suggestion body to a temp file.
-            for s in bridge.suggestions:
+            for s in bridge.snapshot_suggestions():
                 if getattr(s, "category", "") == "install_script" and (s.content or "").strip():
                     import tempfile
 
@@ -3181,7 +3181,7 @@ def _run_export(gui_state: GUIState) -> dict:
         # don't have a second machine — analysis phase generated it as
         # the install_script section).
         install_script_content = ""
-        for s in gui_state.bridge.suggestions:
+        for s in gui_state.bridge.snapshot_suggestions():
             if getattr(s, "category", "") == "install_script" and (s.content or "").strip():
                 install_script_content = s.content.strip()
                 break

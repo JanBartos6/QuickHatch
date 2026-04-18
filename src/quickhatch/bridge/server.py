@@ -14,7 +14,7 @@ import threading
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
@@ -119,6 +119,26 @@ class BridgeState:
         """Signal any running agent to stop at the next iteration."""
         with self.lock:
             self.stop_requested = True
+
+    def prepare_for_launch(self) -> None:
+        """Clear stop_requested + agent_done under the lock so the loop
+        doesn't exit on its first iteration when an earlier Stop click
+        or a stale post-restart state left the flag set."""
+        with self.lock:
+            self.stop_requested = False
+            self.agent_done = False
+            self._persist()
+
+    def snapshot_suggestions(self) -> list[Suggestion]:
+        """SHALLOW copy of the suggestions list, atomically, under the lock."""
+        with self.lock:
+            return list(self.suggestions)
+
+    def replace_suggestions(self, new_list: list[Suggestion]) -> None:
+        """Atomically replace the suggestions list under the lock + persist."""
+        with self.lock:
+            self.suggestions[:] = new_list
+            self._persist()
 
     def add_suggestion(self, category: str, title: str, content: Any) -> str:
         sid = str(uuid.uuid4())[:8]
@@ -316,13 +336,13 @@ class BridgeServer:
     def __init__(self, state: BridgeState, port: int = 0) -> None:
         self.state = state
         self.port = port
-        self._server: HTTPServer | None = None
+        self._server: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
 
     def start(self) -> int:
         """Start the server and return the actual port."""
         handler = _make_handler(self.state)
-        self._server = HTTPServer(("127.0.0.1", self.port), handler)
+        self._server = ThreadingHTTPServer(("127.0.0.1", self.port), handler)
         actual_port = self._server.server_address[1]
         self.port = actual_port
 
