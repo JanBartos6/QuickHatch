@@ -2446,6 +2446,88 @@ def _extract_created_user(cmd: str) -> str | None:
     return None
 
 
+# Hints surfaced to a stuck agent. Ordered: more-specific patterns first.
+_FAILURE_HINTS: list[tuple[str, str]] = [
+    (
+        r"already running|is running|is in use|acquired by another",
+        "This looks like a mutex/lock failure. The process reports it's "
+        "already running. Common fix: find and remove the stale lockfile "
+        "(e.g. `sudo find /tmp /var/lock /var/run -maxdepth 3 -name '*.lock' "
+        "-o -name '*.lock*' 2>/dev/null`), then retry. For AUR makepkg "
+        "failures, the culprit is often a /tmp/*.lock directory left over "
+        "from a prior killed run.",
+    ),
+    (
+        r"database lock|database is locked|could not lock database|"
+        r"cannot obtain lock",
+        "pacman-style database lock. Run `sudo rm -f /var/lib/pacman/db.lck` "
+        "if no other pacman/yay is currently running, then retry.",
+    ),
+    (
+        r"No space left on device|disk full|out of space",
+        "Target disk is full. Check `df -h` and free space before retrying. "
+        "For /var/cache/pacman, `sudo pacman -Sc --noconfirm` reclaims "
+        "older package cache.",
+    ),
+    (
+        r"Permission denied|permission denied|not permitted|"
+        r"Operation not permitted",
+        "Permission issue. You may need `sudo` (check `whoami` and group "
+        "membership) or the target file may have read-only perms. For "
+        "AUR builds inside fakeroot, sudo inside the script won't work — "
+        "check the PKGBUILD for steps that need root outside fakeroot.",
+    ),
+    (
+        r"Failed to retrieve|Could not resolve|Connection timed out|"
+        r"Network is unreachable|host lookup failed",
+        "Network failure. Run `ping -c 1 archlinux.org` (or similar) to "
+        "check connectivity. If in chroot, remember to mount /etc/resolv.conf "
+        "or use `genfstab -U /mnt` before `arch-chroot`.",
+    ),
+    (
+        r"No such file or directory",
+        "A referenced file doesn't exist. Run `ls` on the expected path to "
+        "confirm, or the script may be assuming a dependency/binary is "
+        "installed. Verify with `command -v <tool>`.",
+    ),
+]
+
+
+def _advise_on_repeated_failure(
+    cmd: str,
+    combined_output: str,
+    recent: list[tuple[str, int]],
+) -> str | None:
+    """Return an advisory message if the agent seems stuck, else None.
+
+    Triggered when either:
+    - The same command has failed back-to-back (2+ times)
+    - Combined stdout+stderr matches a known failure pattern
+    """
+    import re as _re
+
+    same_cmd_fails = sum(1 for c, rc in recent[-3:] if c == cmd and rc != 0)
+    if same_cmd_fails < 2:
+        # Not repeating yet — but still surface a pattern match on first fail
+        # so we can short-circuit what would otherwise be a repeat loop.
+        pass
+    lower = (combined_output or "").lower()
+    for pattern, hint in _FAILURE_HINTS:
+        if _re.search(pattern, lower, _re.IGNORECASE):
+            return hint
+    if same_cmd_fails >= 2:
+        return (
+            f"This exact command has failed {same_cmd_fails + 1} times in a "
+            f"row with no change. Consider: (a) reading the FULL stderr "
+            f"(some tools redirect it to a log file — check /tmp, /var/log, "
+            f"or the program's own lock/cache dir), (b) cleaning up stale "
+            f"state (lockfiles, partial downloads, half-built packages), "
+            f"(c) trying a different approach entirely if the error isn't "
+            f"actionable."
+        )
+    return None
+
+
 def _is_reboot_command(cmd: str) -> bool:
     """True if ``cmd`` will reboot the target (triggering a reconnect loop).
 
@@ -2704,6 +2786,13 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
         # the newly-created user. If we never see a useradd we keep the
         # current linux_user unchanged.
         created_user: str | None = None
+        # Short history of (command, exit_code) so we can detect when the
+        # agent gets stuck hammering the same failing command. When we
+        # see the same command fail N times in a row we inject a
+        # recovery hint into the chat feed (lock files, stale state,
+        # permissions) — covers the whole 'WhiteSur /tmp/*.lock' class
+        # where the real error is hidden and the model loops.
+        recent_exits: list[tuple[str, int]] = []
 
         for _iteration in range(MAX_ITERATIONS):
             # Honor Stop requests from the UI
@@ -2996,6 +3085,24 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                     results_log.append(f"**`{cmd}`** — {status}")
                     if rc != 0 and err.strip():
                         results_log.append(f"  Error: {err.strip()[:150]}")
+
+                    # Track the exit history so we can catch the agent
+                    # looping on a failing command and inject a hint.
+                    recent_exits.append((cmd, rc))
+                    if len(recent_exits) > 10:
+                        recent_exits[:] = recent_exits[-10:]
+                    if rc != 0:
+                        hint = _advise_on_repeated_failure(
+                            cmd, (out or "") + "\n" + (err or ""), recent_exits
+                        )
+                        if hint:
+                            # Append to pending_feedback so it goes to the
+                            # model in the next turn — not just UI chat.
+                            pending_feedback.append(
+                                f"[quickhatch hint — the framework noticed this "
+                                f"looks familiar]\n{hint}"
+                            )
+                            bridge.add_message("agent", f"💡 Hint: {hint[:240]}")
 
                     # Snoop for `useradd ... NAME` so we know who to log
                     # in as after the post-install reboot. See HIGH
