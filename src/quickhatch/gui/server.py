@@ -890,6 +890,11 @@ def make_gui_server(gui_state: GUIState, port: int = 0) -> tuple[HTTPServer, int
             elif self.path == "/wizard/launch-agent":
                 data = self._read_json()
                 phase = data.get("phase", "analysis")
+                # Reset bridge state before launching. A previous run may
+                # have set stop_requested=True (from a Stop click or a
+                # stale UI state after a server restart); without the
+                # reset the agent loop exits on its first iteration.
+                bridge_state.reset_for_rerun()
                 result = _launch_agent(gui_state, server.server_address[1], phase=phase)
                 self._send_json(result)
 
