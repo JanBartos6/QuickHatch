@@ -31,20 +31,42 @@ def _scan_winget() -> list[AppInfo]:
             return []
 
         apps = []
-        lines = result.stdout.strip().split("\n")
-        # Skip header lines (find the separator line with dashes)
+        # Strip CR that winget emits, then split.
+        lines = result.stdout.replace("\r", "").strip().split("\n")
+        # winget's header line starts with 'Name' and lists the remaining
+        # columns with runs of whitespace between them. We locate the start
+        # position of the SECOND column (Id) — everything before that in a
+        # data row is the Name. A blind parts[:40] was grabbing the first
+        # char of the Id column on rows with short names, which is why
+        # 'Brave' showed up as 'Brave B', 'Vivaldi' as 'Vivaldi A', etc.
         data_start = 0
+        name_end_col: int | None = None
         for i, line in enumerate(lines):
+            # Separator line: one long run of dashes (possibly with spaces).
             if set(line.strip()) <= {"-", " "} and len(line.strip()) > 10:
+                # Header is the line above — find the 2nd column's start.
+                if i > 0:
+                    header = lines[i - 1]
+                    import re as _re
+
+                    # Match each column header (first non-space run after
+                    # whitespace). Second match's start = where Name ends.
+                    matches = list(_re.finditer(r"\S+", header))
+                    if len(matches) >= 2:
+                        name_end_col = matches[1].start()
                 data_start = i + 1
                 break
 
         for line in lines[data_start:]:
-            parts = line.strip()
-            if not parts:
+            if not line.strip():
                 continue
-            # winget list output is column-aligned; extract name from first column
-            name = parts[:40].strip()
+            if name_end_col is not None and len(line) >= name_end_col:
+                name = line[:name_end_col].strip()
+            else:
+                import re as _re
+
+                chunks = _re.split(r"\s{2,}", line.strip(), maxsplit=1)
+                name = chunks[0].strip() if chunks else ""
             if name and len(name) > 1:
                 apps.append(AppInfo(name=name, source="winget"))
         return apps
