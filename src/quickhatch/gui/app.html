@@ -1122,7 +1122,7 @@ function renderGalleryPicker(){
               const palette=(entry.palette||[]).slice(0,3);
               return `<div class="gallery-item${selected?' selected':''}" role="button" tabindex="0" onclick="toggleGalleryPin('${entry.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleGalleryPin('${entry.id}')}" aria-pressed="${selected?'true':'false'}">
                 <div class="gallery-thumb">
-                  ${entry.preview_image_url?`<img loading="lazy" src="${entry.preview_image_url}" alt="${escHtml(entry.title)}">`:''}
+                  ${entry.preview_image_url?`<img loading="lazy" src="${escHtml(safeUrl(entry.preview_image_url))}" alt="${escHtml(entry.title)}">`:''}
                   <span class="gallery-pin">${selected?`Pin ${pinIndex+1}`:'Pin'}</span>
                 </div>
                 <div class="gallery-body">
@@ -1725,7 +1725,17 @@ function renderDone(){
 }
 
 // ── Helpers ──
-function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+// URL-sanitizer for attributes rendered from LLM / user input. Rejects
+// anything not starting with a safe scheme so `javascript:`, `data:`,
+// `vbscript:` etc. can't ride in via a markdown link rendered in a
+// suggestion card. Returns '#' for unsafe URLs so the <a> is harmless.
+function safeUrl(u){
+  const s=String(u||'').trim();
+  if(!s)return '#';
+  if(/^(https?:|mailto:|\/|\.\/|#)/i.test(s))return s;
+  return '#';
+}
 
 // ── Theme ──
 function getTheme(){
@@ -1892,13 +1902,13 @@ function renderMd(s){
 
   // 3) Extract images before escaping (URLs contain special chars)
   text=text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,(_,alt,url)=>{
-    blocks.push(`<figure class="md-figure"><img src="${escHtml(url)}" alt="${escHtml(alt)}" onerror="this.parentElement.style.display='none'"><figcaption>${escHtml(alt)}</figcaption></figure>`);
+    blocks.push(`<figure class="md-figure"><img src="${escHtml(safeUrl(url))}" alt="${escHtml(alt)}" onerror="this.parentElement.style.display='none'"><figcaption>${escHtml(alt)}</figcaption></figure>`);
     return PH(blocks.length-1);
   });
 
   // 4) Extract links before escaping
   text=text.replace(/\[([^\]]+)\]\(([^)]+)\)/g,(_,label,url)=>{
-    blocks.push(`<a href="${escHtml(url)}" target="_blank" rel="noopener">${escHtml(label)}</a>`);
+    blocks.push(`<a href="${escHtml(safeUrl(url))}" target="_blank" rel="noopener">${escHtml(label)}</a>`);
     return PH(blocks.length-1);
   });
 

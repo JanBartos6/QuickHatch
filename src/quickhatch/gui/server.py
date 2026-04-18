@@ -1144,7 +1144,7 @@ def _call_openai_with_tools(
     body = {"model": model, "messages": messages, "temperature": 0.7, "max_tokens": 4096}
     resp = requests.post(url, json=body, headers=headers, timeout=900)
     resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"]
+    return _extract_openai_text(resp.json())
 
 
 def _call_anthropic_with_tools(
@@ -1615,6 +1615,39 @@ def _build_section_prompt(
     )
 
 
+def _extract_openai_text(payload: Any) -> str:
+    """Pull the visible text out of an OpenAI-compatible chat/completions
+    response, defensively. Handles missing fields, empty choices, and
+    reasoning-style models that put output in `reasoning_content`.
+    Returns '' rather than raising so callers don't tear down the
+    agent loop on a malformed 200 response.
+    """
+    if not isinstance(payload, dict):
+        return ""
+    choices = payload.get("choices") or []
+    if not choices or not isinstance(choices, list):
+        return ""
+    msg = (choices[0] or {}).get("message") or {}
+    text = msg.get("content") or msg.get("reasoning_content") or ""
+    return text if isinstance(text, str) else ""
+
+
+def _extract_anthropic_text(payload: Any) -> str:
+    """Same idea for Anthropic's /v1/messages shape."""
+    if not isinstance(payload, dict):
+        return ""
+    blocks = payload.get("content") or []
+    if not isinstance(blocks, list):
+        return ""
+    out: list[str] = []
+    for b in blocks:
+        if isinstance(b, dict) and b.get("type") == "text":
+            t = b.get("text")
+            if isinstance(t, str):
+                out.append(t)
+    return "".join(out)
+
+
 def _call_openai_compatible(
     endpoint: str, model: str, prompt: str, api_key: str | None = None
 ) -> str:
@@ -1768,7 +1801,7 @@ def _call_model_simple(endpoint: str, model: str, prompt: str, api_key: str | No
             timeout=900,
         )
         resp.raise_for_status()
-        return resp.json()["content"][0]["text"]
+        return _extract_anthropic_text(resp.json())
     else:
         headers = {"Content-Type": "application/json"}
         if api_key:
@@ -1785,13 +1818,9 @@ def _call_model_simple(endpoint: str, model: str, prompt: str, api_key: str | No
             timeout=900,
         )
         resp.raise_for_status()
-        msg = resp.json()["choices"][0]["message"]
-        # Reasoning-style models (Gemma-4-thinking, R1-like) split their
-        # output into `reasoning_content` (internal chain of thought) and
-        # `content` (visible answer). On tight token budgets the budget
-        # gets consumed on reasoning and `content` is empty — fall back
-        # to reasoning so analysis sections don't come back blank.
-        return msg.get("content") or msg.get("reasoning_content", "") or ""
+        # _extract_openai_text handles missing choices/message/content and
+        # falls back to reasoning_content when content is empty.
+        return _extract_openai_text(resp.json())
 
 
 def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "") -> None:
@@ -2187,6 +2216,11 @@ def _ssh_exec(
         return -1, "", "Command timed out"
     except FileNotFoundError:
         return -1, "", "ssh not found — install OpenSSH"
+    except OSError as exc:
+        # Catches e.g. WinError 193 (corrupt ssh.exe), permission errors,
+        # broken pipes mid-handshake. Previously propagated and killed the
+        # agent thread with no UI feedback.
+        return -1, "", f"ssh invocation failed: {exc}"
 
 
 # Shell script shipped to the target to detect whether we're booted from a
@@ -2608,12 +2642,10 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                     timeout=900,
                 )
                 resp.raise_for_status()
-                # Anthropic returns content as a list of blocks. Concatenate
-                # the text ones.
-                blocks = resp.json().get("content", [])
-                response_text = "".join(
-                    b.get("text", "") for b in blocks if b.get("type") == "text"
-                )
+                # Defensive extraction — if Anthropic returns an error
+                # body with the shape changed, this returns '' instead of
+                # raising.
+                response_text = _extract_anthropic_text(resp.json())
             else:
                 import requests
 
@@ -2636,12 +2668,10 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                     timeout=900,
                 )
                 resp.raise_for_status()
-                msg_obj = resp.json()["choices"][0]["message"]
-                response_text = msg_obj.get("content") or ""
-                # Fallback for reasoning models that dump output in reasoning_content
-                # instead of content (LM Studio exposes both fields).
-                if not response_text.strip() and msg_obj.get("reasoning_content"):
-                    response_text = msg_obj["reasoning_content"]
+                # Defensive: on a malformed 200 response (missing choices,
+                # empty list, unexpected shape) this returns '' instead of
+                # raising KeyError and tearing down the agent thread.
+                response_text = _extract_openai_text(resp.json())
 
             # Append assistant response to history
             messages.append({"role": "assistant", "content": response_text})
