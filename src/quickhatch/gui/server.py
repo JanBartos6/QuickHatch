@@ -2489,6 +2489,25 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                     timeout=5,
                 )
                 return
+            # Cap conversation history to keep prompts under the model's
+            # context window. Local models like Gemma-4-26b crash with
+            # HTTP 400 once the cumulative history exceeds ~32K tokens.
+            # Keep the system prompt (first message) + the last N turns.
+            _HISTORY_KEEP = 24  # system + last 23 turns
+            if len(messages) > _HISTORY_KEEP:
+                system_msg = messages[0]
+                tail = messages[-(_HISTORY_KEEP - 1) :]
+                summary_msg = {
+                    "role": "user",
+                    "content": (
+                        f"[History pruned — earlier {len(messages) - _HISTORY_KEEP} "
+                        f"messages trimmed to stay within context. You have successfully "
+                        f"completed several steps already; continue with the next step "
+                        f"based on the recent history below and the current system state.]"
+                    ),
+                }
+                messages = [system_msg, summary_msg, *tail]
+
             # Call the LLM
             if "anthropic" in endpoint:
                 response_text = _call_anthropic(
