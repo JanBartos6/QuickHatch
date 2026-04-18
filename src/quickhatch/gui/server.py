@@ -2102,12 +2102,31 @@ def _extract_json_objects(text: str) -> list[dict]:
                     end = j + 1
                     break
         if end > start:
+            chunk = text[start:end]
             try:
-                obj = json.loads(text[start:end])
+                obj = json.loads(chunk)
                 if isinstance(obj, dict):
                     objects.append(obj)
             except json.JSONDecodeError:
-                pass
+                # Models frequently emit JSON with LITERAL newlines inside
+                # string values (e.g. heredoc shell commands). Strict
+                # json.loads rejects those. Retry after escaping newlines
+                # and carriage returns that sit inside string runs.
+                try:
+                    import re as _re
+
+                    repaired = _re.sub(
+                        r'"((?:[^"\\]|\\.)*)"',
+                        lambda m: '"'
+                        + m.group(1).replace("\r", "\\r").replace("\n", "\\n").replace("\t", "\\t")
+                        + '"',
+                        chunk,
+                    )
+                    obj = json.loads(repaired)
+                    if isinstance(obj, dict):
+                        objects.append(obj)
+                except (json.JSONDecodeError, Exception):
+                    pass
             i = end
         else:
             i += 1
