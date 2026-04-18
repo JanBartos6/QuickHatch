@@ -584,8 +584,12 @@ def build_key_paste_snippet(public_key: str) -> str:
     sure sshd is up, and prints READY when done so the user knows to
     come back to QuickHatch.
     """
-    # Strip newlines from the key — authorized_keys is one-line-per-key
+    # Strip newlines — authorized_keys is one-line-per-key. Escape any
+    # single quotes so a key with a comment like
+    #   ssh-ed25519 AAAA... user's laptop
+    # doesn't break the surrounding shell echo.
     pk = public_key.replace("\n", "").replace("\r", "").strip()
+    pk = pk.replace("'", "'\\''")  # close-quote, escape, reopen-quote
     return (
         f"mkdir -p /root/.ssh && "
         f"echo '{pk}' >> /root/.ssh/authorized_keys && "

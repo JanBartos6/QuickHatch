@@ -1786,7 +1786,13 @@ def _call_model_simple(endpoint: str, model: str, prompt: str, api_key: str | No
             timeout=900,
         )
         resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
+        msg = resp.json()["choices"][0]["message"]
+        # Reasoning-style models (Gemma-4-thinking, R1-like) split their
+        # output into `reasoning_content` (internal chain of thought) and
+        # `content` (visible answer). On tight token budgets the budget
+        # gets consumed on reasoning and `content` is empty — fall back
+        # to reasoning so analysis sections don't come back blank.
+        return msg.get("content") or msg.get("reasoning_content", "") or ""
 
 
 def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "") -> None:
@@ -2365,6 +2371,18 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
         profile_dict = asdict(profile)
         if profile_dict.get("ai_config", {}).get("api_key"):
             profile_dict["ai_config"]["api_key"] = "***REDACTED***"
+        # Trim the scanned apps list the same way analysis-phase prompts do:
+        # if the user picked a specific apps_to_install subset, include only
+        # those; a 317-app dump × every setup iteration would blow past the
+        # context window of any local model on long runs.
+        picks = gui_state.profile.apps_to_install or []
+        if picks:
+            pick_names = {p.lower() for p in picks}
+            profile_dict["apps"] = [
+                a
+                for a in profile_dict.get("apps", [])
+                if (a.get("name") or "").lower() in pick_names
+            ]
         profile_json = json.dumps(profile_dict, indent=2, default=str)
 
         endpoint = config.endpoint or ""
@@ -2694,7 +2712,28 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                         results_log.append(f"**`{cmd}`** — OK (reconnected)")
                         continue
 
-                    rc, out, err = _ssh_exec(host, user, cmd, key_path, timeout=300, port=ssh_port)
+                    # Pick a timeout based on the command. pacstrap / debootstrap
+                    # / dnf --installroot / compile commands routinely take
+                    # 10–30 min on slow mirrors; 300s would SIGTERM them
+                    # mid-install and corrupt the target.
+                    long_cmds = (
+                        "pacstrap",
+                        "debootstrap",
+                        "dnf --installroot",
+                        "dnf install",
+                        "pacman -S",
+                        "apt install",
+                        "apt-get install",
+                        "zypper install",
+                        "emerge",
+                        "mkinitcpio",
+                        "grub-mkconfig",
+                        "dracut",
+                    )
+                    cmd_timeout = 1800 if any(m in cmd for m in long_cmds) else 300
+                    rc, out, err = _ssh_exec(
+                        host, user, cmd, key_path, timeout=cmd_timeout, port=ssh_port
+                    )
 
                     result_parts = [f"[result for: {cmd}]", f"Exit code: {rc}"]
                     if out.strip():
@@ -3106,11 +3145,16 @@ def _run_export(gui_state: GUIState) -> dict:
                 pass  # Windows
             files.append(install_path.name)
 
-        # ZIP bundle
+        # ZIP bundle — skip dotfiles (notably .api_key, which is saved
+        # to the export dir for local use but must not ship in the zip).
         zip_path = output_dir / "quickhatch-migration-bundle.zip"
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
             for file in output_dir.iterdir():
-                if file.name != zip_path.name and file.is_file():
+                if (
+                    file.name != zip_path.name
+                    and not file.name.startswith(".")
+                    and file.is_file()
+                ):
                     zf.write(file, file.name)
         files.append(zip_path.name)
 

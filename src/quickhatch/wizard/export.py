@@ -76,11 +76,17 @@ def run(profile: UserProfile) -> None:
     quickstart_path.write_text(_generate_quickstart(profile))
     print_info(f"Quick-start script saved: {quickstart_path}")
 
-    # Create ZIP bundle
+    # Create ZIP bundle. Explicitly skip dotfiles — the API key is saved
+    # as .api_key for local use only; shipping it inside a sharable zip
+    # would leak the user's secret.
     zip_path = output_dir / "quickhatch-migration-bundle.zip"
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
         for file in output_dir.iterdir():
-            if file.name != zip_path.name and file.is_file():
+            if (
+                file.name != zip_path.name
+                and not file.name.startswith(".")
+                and file.is_file()
+            ):
                 zf.write(file, file.name)
 
     print_success(f"\nMigration bundle created: {zip_path}")
