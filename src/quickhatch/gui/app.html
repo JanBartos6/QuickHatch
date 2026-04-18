@@ -149,7 +149,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-.app{max-width:880px;margin:0 auto;padding:var(--s7) var(--s5) var(--s9);min-height:100vh;display:flex;flex-direction:column}
+.app{max-width:880px;margin:0 auto;padding:var(--s7) var(--s5) calc(var(--s7) + var(--footer-h, 44px));min-height:100vh;display:flex;flex-direction:column;--footer-h:44px}
 
 /* ── Logo / header ── */
 .logo{text-align:center;padding:var(--s7) 0 var(--s6)}
@@ -252,7 +252,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 
 .btn-row{
   display:flex;gap:var(--s2);justify-content:flex-end;
-  position:fixed;bottom:0;left:0;right:0;
+  position:fixed;bottom:var(--footer-h, 44px);left:0;right:0;
   padding:var(--s4) max(var(--s5), calc(50vw - 440px + var(--s5)));
   background:linear-gradient(to bottom, transparent 0%, var(--bg) 55%);
   z-index:10;pointer-events:none;
@@ -780,9 +780,14 @@ h4.md-h{font-size:var(--t-sm);margin:var(--s3) 0 var(--s1);text-transform:upperc
 
 /* ── Footer ── */
 .app-footer{
+  /* Fixed below the Continue button row. btn-row's bottom offset
+     (var(--footer-h)) keeps the two stacked without overlap. */
+  position:fixed;bottom:0;left:0;right:0;
   display:flex;align-items:center;justify-content:space-between;gap:var(--s3);
-  padding:var(--s3) 0 var(--s8);font-size:var(--t-xs);color:var(--text-dim);
-  flex-wrap:wrap;margin-top:auto;
+  padding:var(--s2) max(var(--s5), calc(50vw - 440px + var(--s5)));
+  font-size:var(--t-xs);color:var(--text-dim);
+  background:var(--bg);border-top:1px solid var(--border);
+  z-index:11;
 }
 .app-footer a{color:var(--text-muted);text-decoration:none;border-bottom:1px dashed transparent;transition:color var(--dur) var(--ease), border-color var(--dur) var(--ease)}
 .app-footer a:hover{color:var(--text);border-bottom-color:var(--text-dim)}
