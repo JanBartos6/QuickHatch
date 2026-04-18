@@ -1206,11 +1206,18 @@ def _prefetch_search_context(
     # Build search queries from profile data
     queries: list[tuple[str, str]] = []  # (label, query)
 
+    # Use the current year so searches don't drift stale. Using the
+    # literal year ensures DuckDuckGo returns recent results for rapidly
+    # evolving topics like GPU driver support.
+    from datetime import date as _date
+
+    year = _date.today().year
+
     # GPU driver search
     gpus = getattr(profile, "hardware", None) and profile.hardware.gpus or []
     for gpu in gpus:
         if gpu.name:
-            queries.append(("GPU driver", f"Linux driver support {gpu.name} 2025"))
+            queries.append(("GPU driver", f"Linux driver support {gpu.name} {year}"))
 
     # WiFi search
     hw = getattr(profile, "hardware", None)
@@ -1222,7 +1229,9 @@ def _prefetch_search_context(
     prefs = getattr(profile, "preferences", None)
     use_cases = prefs.use_cases if prefs else []
     if use_cases:
-        queries.append(("Distro", f"best Linux distro for {' and '.join(use_cases[:3])} 2025"))
+        queries.append(
+            ("Distro", f"best Linux distro for {' and '.join(use_cases[:3])} {year}")
+        )
 
     # Desktop environment search based on look preference
     look = prefs.desktop_look if prefs else ""
