@@ -496,9 +496,11 @@ def save_instructions(profile: UserProfile, output_dir: Path) -> Path:
     """Generate and save instruction files."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Main instruction file
+    # Main instruction file — write as UTF-8 explicitly. Windows' default
+    # cp1252 encoding crashes on the em-dashes and arrows we use
+    # throughout the instructions.
     instructions = generate_instructions(profile)
     inst_path = output_dir / "MIGRATION_INSTRUCTIONS.md"
-    inst_path.write_text(instructions)
+    inst_path.write_text(instructions, encoding="utf-8")
 
     return inst_path
