@@ -254,7 +254,12 @@ class GUIState:
                     self._coerce_str(updates["data_transfer_method"]) or ""
                 )
             if "linux_ip" in updates:
-                self.profile.linux_ip = self._coerce_str(updates["linux_ip"]) or ""
+                # Strip CIDR suffix (`/24`) and surrounding whitespace —
+                # users naturally paste from `ip addr show` output which
+                # includes the prefix length, but SSH will treat that as
+                # part of the hostname and fail to resolve.
+                ip = self._coerce_str(updates["linux_ip"]) or ""
+                self.profile.linux_ip = ip.strip().split("/", 1)[0]
             if "linux_user" in updates:
                 self.profile.linux_user = self._coerce_str(updates["linux_user"]) or ""
 
