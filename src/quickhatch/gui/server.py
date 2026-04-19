@@ -2965,6 +2965,10 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
         # Count of consecutive blank model responses — three in a row
         # ends the run instead of looping forever.
         blank_turns = 0
+        # Same budget for consecutive non-JSON (unparseable) responses.
+        # Without this cap, a model stuck emitting malformed JSON (e.g.
+        # invalid `\[...\]` escapes) loops until MAX_ITERATIONS.
+        nonjson_turns = 0
 
         for _iteration in range(MAX_ITERATIONS):
             # Honor Stop requests from the UI
@@ -3140,7 +3144,24 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
             actions = _extract_json_objects(response_text)
 
             if not actions:
-                bridge.add_message("agent", f"Model response (non-JSON): {response_text[:200]}")
+                nonjson_turns += 1
+                bridge.add_message(
+                    "agent",
+                    f"Model response (non-JSON {nonjson_turns}/5): {response_text[:200]}",
+                )
+                if nonjson_turns >= 5:
+                    bridge.add_message(
+                        "agent",
+                        "Model produced 5 unparseable responses in a row — stopping. "
+                        "Common cause: shell regex escapes (\\[, \\], \\$) inside a JSON "
+                        "string value. Try a different model or restart the bridge.",
+                    )
+                    req.post(
+                        f"{base}/api/done",
+                        json={"summary": "Agent stopped: repeated non-JSON output."},
+                        timeout=5,
+                    )
+                    return
                 messages.append(
                     {
                         "role": "user",
@@ -3148,6 +3169,9 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                     }
                 )
                 continue
+
+            # Successful parse — reset the non-JSON strike counter.
+            nonjson_turns = 0
 
             # Process each action in order. Feed a consolidated user message
             # back to the model at the end so history stays aligned.
