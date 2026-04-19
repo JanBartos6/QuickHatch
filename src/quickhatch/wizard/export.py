@@ -274,9 +274,38 @@ echo "  Ready for remote setup!"
 echo "========================================"
 echo ""
 USERNAME=$(whoami)
-IP=$(hostname -I 2>/dev/null | awk '{print $1}' || \
-     ip route get 1 2>/dev/null | awk '{print $7; exit}' || \
-     echo "unknown")
+
+# Pull the first non-loopback IPv4 address. Multiple tools tried in
+# order — none of them are guaranteed to exist or behave identically
+# across distros. Prior versions only used `hostname -I` and
+# `ip route get 1`, both of which:
+#   - exit 0 on success even when their output is empty (so the
+#     `||` chain never falls through to the next strategy)
+#   - depend on packages that aren't always present on minimal live
+#     ISOs (`hostname` is part of inetutils; missing on stock Arch)
+# This version reads the address directly from `ip -4 addr` which is
+# always available on any Linux that boots, then falls back to the
+# original tools, then to "unknown".
+_ip_pick() {
+    # ip(8) — most portable. Prints first non-loopback IPv4 sans CIDR.
+    if command -v ip >/dev/null 2>&1; then
+        local ip
+        ip=$(ip -4 -o addr show scope global 2>/dev/null \
+             | awk '{print $4}' | sed 's|/.*||' | head -n1)
+        [ -n "$ip" ] && { echo "$ip"; return 0; }
+        # Fallback: route to a public address.
+        ip=$(ip route get 1.1.1.1 2>/dev/null \
+             | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}')
+        [ -n "$ip" ] && { echo "$ip"; return 0; }
+    fi
+    if command -v hostname >/dev/null 2>&1; then
+        local ip
+        ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+        [ -n "$ip" ] && { echo "$ip"; return 0; }
+    fi
+    echo "unknown"
+}
+IP=$(_ip_pick)
 
 echo "[QuickHatch] Environment: $(echo $IS_LIVE | tr a-z A-Z)"
 echo "[QuickHatch] Username:    $USERNAME"
