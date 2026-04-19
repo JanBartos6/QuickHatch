@@ -2801,6 +2801,25 @@ def _is_reboot_command(cmd: str) -> bool:
     return bool(_REBOOT_COMMAND_RE.search(cmd))
 
 
+def _recipe_apply_for_setup(profile: UserProfile) -> str:
+    """Return the gallery recipe apply block for injection into the
+    setup agent's system prompt. Empty string when no recipe pinned or
+    the pin isn't in the gallery. Prefixed with a blank line + newline
+    so it slots cleanly between adjacent prompt sections.
+    """
+    try:
+        from quickhatch.ai.recipe_apply import recipe_apply_block
+
+        picks = getattr(profile.preferences, "gallery_picks", []) or []
+        block = recipe_apply_block(picks)
+        if not block:
+            return ""
+        return block + "\n\n"
+    except Exception:
+        # Never let a recipe-metadata hiccup kill the setup agent.
+        return ""
+
+
 def _run_setup_agent(gui_state: GUIState, port: int) -> None:
     """Run the setup phase as an agentic loop: SSH into the Linux machine,
     let the LLM decide what to run, execute it, feed results back, repeat.
@@ -3027,6 +3046,7 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                 if migration_plan_md
                 else ""
             )
+            + _recipe_apply_for_setup(profile)
             + f"== USER MIGRATION PROFILE ==\n{profile_json}"
         )
 

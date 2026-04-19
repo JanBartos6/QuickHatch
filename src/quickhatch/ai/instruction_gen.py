@@ -446,9 +446,13 @@ def generate_instructions(profile: UserProfile) -> str:
             "   hardware, determine what needs to be installed and provide exact commands.\n\n"
             "4. **Plan desktop configuration** — based on their style preferences.\n\n"
             + (
-                "   If `preferences.gallery_picks` is non-empty, assume the first pinned recipe will be "
-                "applied. Your job is to personalize within that recipe (wallpaper, accent color, app "
-                "integration) without conflicting with its DE/theme/icon choices.\n\n"
+                (
+                    "   The user pinned a gallery recipe — see the 'APPLY THIS GALLERY RECIPE' "
+                    "block below for the concrete theme/icon/font/wallpaper values you MUST "
+                    "apply during Phase 2. Do not skip them; the block lists DE-appropriate "
+                    "commands. Personalize around those values (accent color, app integration) "
+                    "rather than replacing them.\n\n"
+                )
                 if prefs.gallery_picks
                 else ""
             )
@@ -488,6 +492,16 @@ def generate_instructions(profile: UserProfile) -> str:
             "Send status updates via `/api/message` as you work so the user can\n"
             "see progress in real time.\n"
         )
+
+    # Inject the concrete "apply this recipe" block when a gallery
+    # recipe is pinned — wired to the desktop-configuration phase
+    # above, which references it by name.
+    if prefs.gallery_picks:
+        from quickhatch.ai.recipe_apply import recipe_apply_block
+
+        block = recipe_apply_block(prefs.gallery_picks)
+        if block:
+            sections.append(block)
 
     return "\n".join(sections)
 
