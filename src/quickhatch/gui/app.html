@@ -257,6 +257,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
   background:linear-gradient(to bottom, transparent 0%, var(--bg) 55%);
   z-index:10;pointer-events:none;
 }
+/* Defensive solid extension below the action bar — covers any
+   sub-pixel gap between btn-row's bottom edge and the footer's top
+   edge so scrolling content doesn't bleed through a hairline. */
+.btn-row::after{
+  content:"";position:absolute;left:0;right:0;top:100%;height:8px;
+  background:var(--bg);pointer-events:none;
+}
 .btn-row > *{pointer-events:auto}
 @media(max-width:720px){.btn-row{padding:var(--s4) var(--s5)}}
 /* In-flow action row (panels, nested actions) — stays in the content flow */
@@ -3016,6 +3023,21 @@ async function pollSetup(){
 
 // ── Init ──
 applyTheme(getTheme());
+
+// Measure the actual footer height once on load and again on resize.
+// The btn-row's `bottom: var(--footer-h)` and the page padding both
+// rely on this. The CSS default (44px) was a hand-picked guess that
+// drifted past the real footer height, leaving a transparent sliver
+// between the action bar and the footer where scrollable content
+// underneath bled through.
+function syncFooterHeight(){
+  const f=document.querySelector('.app-footer');
+  if(!f)return;
+  const h=Math.ceil(f.getBoundingClientRect().height);
+  if(h>0)document.documentElement.style.setProperty('--footer-h', h+'px');
+}
+window.addEventListener('load', syncFooterHeight);
+window.addEventListener('resize', syncFooterHeight);
 // Delegated click handler for question-choice pills. Using data-attrs
 // + addEventListener avoids building JS string literals via HTML
 // interpolation, which otherwise round-trips `'` through entity decode
