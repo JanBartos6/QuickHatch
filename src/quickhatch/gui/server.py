@@ -4168,6 +4168,17 @@ def _run_vm_verify(gui_state: GUIState, iso_path: str | None) -> None:
         gui_state.vm_verify_running = False
 
 
+def _write_unix_text(path: Path, text: str) -> None:
+    """Write a text file with LF-only newlines + UTF-8.
+
+    Use for any shell script we ship in the bundle: Path.write_text on
+    Windows defaults to platform line endings (CRLF), which makes the
+    Linux kernel parse the shebang as `#!/usr/bin/env bash\\r` and
+    fail with `bash\\r: no such file or directory`.
+    """
+    path.write_bytes(text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8"))
+
+
 def _export_output_dir() -> Path:
     """Where to write the migration bundle.
 
@@ -4222,11 +4233,14 @@ def _run_export(gui_state: GUIState) -> dict:
                 dest.write_text(ssh_pub.read_text())
                 files.append(dest.name)
 
-        # Quickstart script
+        # Quickstart script — write with explicit LF line endings so
+        # the Linux kernel can parse the shebang on Windows-exported
+        # bundles. Default Path.write_text() on Windows writes \r\n,
+        # which makes /usr/bin/env look for a binary named "bash\r".
         from quickhatch.wizard.export import _generate_quickstart
 
         qs_path = output_dir / "quickstart.sh"
-        qs_path.write_text(_generate_quickstart(gui_state.profile))
+        _write_unix_text(qs_path, _generate_quickstart(gui_state.profile))
         files.append(qs_path.name)
 
         # Offline install script (present only when the user said they
@@ -4249,7 +4263,9 @@ def _run_export(gui_state: GUIState) -> dict:
             if not install_script_content.startswith("#!"):
                 install_script_content = "#!/usr/bin/env bash\n" + install_script_content
             install_path = output_dir / "install.sh"
-            install_path.write_text(install_script_content, encoding="utf-8")
+            # Same LF rule as quickstart.sh — the live ISO's kernel
+            # rejects shebangs with CR.
+            _write_unix_text(install_path, install_script_content)
             try:
                 install_path.chmod(0o755)
             except OSError:
