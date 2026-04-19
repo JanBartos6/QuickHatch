@@ -29,8 +29,10 @@ def run(profile: UserProfile) -> None:
         "Which AI assistant do you want to use on your new Linux system?",
         choices=[
             questionary.Choice("Claude API (recommended)", value="api_anthropic"),
-            questionary.Choice("OpenAI Codex CLI", value="codex"),
             questionary.Choice("OpenAI API", value="api_openai"),
+            questionary.Choice("Google Gemini API", value="api_gemini"),
+            questionary.Choice("xAI Grok API", value="api_grok"),
+            questionary.Choice("OpenAI Codex CLI", value="codex"),
             questionary.Choice("Local model - Ollama", value="local_ollama"),
             questionary.Choice("Local model - LM Studio", value="local_lmstudio"),
         ],
@@ -39,8 +41,9 @@ def run(profile: UserProfile) -> None:
     if provider is None:
         raise KeyboardInterrupt
 
-    # Normalize api_anthropic/api_openai to "api" for downstream code
-    if provider in ("api_anthropic", "api_openai"):
+    # All HTTP-API providers normalize to "api" for the downstream agent
+    # code — it reads ai_config.endpoint + model_name + api_key.
+    if provider in ("api_anthropic", "api_openai", "api_gemini", "api_grok"):
         profile.ai_config.provider = "api"
     else:
         profile.ai_config.provider = provider
@@ -146,10 +149,78 @@ def run(profile: UserProfile) -> None:
                 break
             print_info("Please enter a model id.")
         profile.ai_config.model_name = model
-        profile.ai_config.endpoint = "https://api.openai.com"
+        # Must include /v1 — the setup agent appends /chat/completions to
+        # the endpoint. Previously stored as the bare host, which broke
+        # OpenAI calls silently.
+        profile.ai_config.endpoint = "https://api.openai.com/v1"
 
         while True:
             api_key = questionary.password("Enter your OpenAI API key:").ask()
+            if api_key is None:
+                raise KeyboardInterrupt
+            api_key = (api_key or "").strip()
+            if api_key:
+                break
+            print_info("API key can't be empty.")
+        profile.ai_config.api_key = api_key
+
+    elif provider == "api_gemini":
+        # Gemini ships an OpenAI-compatible endpoint under
+        # /v1beta/openai, which lets us reuse the OpenAI chat-completions
+        # code path in the setup agent. Model names don't need the
+        # "models/" prefix on that endpoint.
+        print_info(
+            "Get a current Gemini model id from https://ai.google.dev/gemini-api/docs/models "
+            "(e.g. gemini-2.5-pro, gemini-2.0-flash). Free-tier keys work."
+        )
+        while True:
+            model = questionary.text(
+                "Gemini model id (e.g. gemini-2.5-pro):",
+                default="gemini-2.5-pro",
+            ).ask()
+            if model is None:
+                raise KeyboardInterrupt
+            model = (model or "").strip()
+            if model:
+                break
+            print_info("Please enter a model id.")
+        profile.ai_config.model_name = model
+        profile.ai_config.endpoint = "https://generativelanguage.googleapis.com/v1beta/openai"
+
+        while True:
+            api_key = questionary.password(
+                "Enter your Gemini API key (from aistudio.google.com):"
+            ).ask()
+            if api_key is None:
+                raise KeyboardInterrupt
+            api_key = (api_key or "").strip()
+            if api_key:
+                break
+            print_info("API key can't be empty.")
+        profile.ai_config.api_key = api_key
+
+    elif provider == "api_grok":
+        # xAI's Grok ships an OpenAI-compatible endpoint at api.x.ai/v1.
+        print_info(
+            "Get a current Grok model id from https://docs.x.ai/docs/models "
+            "(e.g. grok-4, grok-code-fast-1, grok-3-mini)."
+        )
+        while True:
+            model = questionary.text(
+                "Grok model id (e.g. grok-4):",
+                default="grok-4",
+            ).ask()
+            if model is None:
+                raise KeyboardInterrupt
+            model = (model or "").strip()
+            if model:
+                break
+            print_info("Please enter a model id.")
+        profile.ai_config.model_name = model
+        profile.ai_config.endpoint = "https://api.x.ai/v1"
+
+        while True:
+            api_key = questionary.password("Enter your xAI API key (from console.x.ai):").ask()
             if api_key is None:
                 raise KeyboardInterrupt
             api_key = (api_key or "").strip()

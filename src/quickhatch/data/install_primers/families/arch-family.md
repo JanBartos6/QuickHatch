@@ -153,3 +153,142 @@ reboot
 - **AUR** — Arch itself doesn't ship an AUR helper. EndeavourOS has `yay`
   pre-installed. CachyOS has `paru`. Garuda has `paru`. Agent installs
   `yay` from AUR (build from source) if needed.
+
+## Post-install gotchas seen in real runs
+
+These aren't theoretical — each one bit a previous run until we documented it.
+
+### Pacman DB signatures (`core: missing required signature`)
+
+Arch deprecated DB signing years ago; modern mirrors often don't serve
+`core.db.sig` / `extra.db.sig`. A fresh install whose `pacman.conf` has
+`SigLevel = Required DatabaseRequired` will then fail every sync with
+"missing required signature" and 404s on `*.db.sig`. Fix:
+
+```
+sudo sed -i 's/^SigLevel.*DatabaseRequired.*/SigLevel = Required DatabaseOptional/' /etc/pacman.conf
+# OR, if no global SigLevel is set, explicitly add DatabaseNever in [options]:
+sudo sed -i '/^\[options\]/a SigLevel = Required DatabaseNever' /etc/pacman.conf
+# Then clear stale cached sync DBs and resync:
+sudo rm -f /var/lib/pacman/sync/*.db*
+sudo pacman -Syy --noconfirm
+```
+
+After this works, you can refresh the archlinux-keyring cleanly:
+`sudo pacman -S --noconfirm archlinux-keyring`.
+
+### Locally-built AUR packages failing to install (`missing required signature`)
+
+When global `SigLevel = Required`, pacman rejects unsigned locally-built
+AUR packages even though they just compiled successfully. This is the
+same bit but in the opposite direction. Quick workaround for one-off
+AUR installs:
+
+```
+sudo sed -i 's/^SigLevel = Required.*/SigLevel = Optional TrustAll/' /etc/pacman.conf
+yay -S --noconfirm <pkgs>    # or pacman -U on the built .pkg.tar.zst
+sudo sed -i 's/^SigLevel = Optional TrustAll/SigLevel = Required DatabaseNever/' /etc/pacman.conf
+```
+
+A better long-term choice is to sign the local repo, but that's overkill
+for a one-shot migration.
+
+### `$arch not defined` after editing `pacman.conf`
+
+Symptom: `error: '$arch' is used in the mirrorlist but no 'Architecture'
+is defined`. Fix: ensure `[options]` contains `Architecture = auto` (or
+an explicit arch like `x86_64`). The Arch default `pacman.conf` has
+`#Architecture = auto` commented out; a stray `sed` that removes the
+line entirely causes this.
+
+```
+sudo sed -i '/^\[options\]/a Architecture = x86_64' /etc/pacman.conf
+```
+
+### Stuck pacman / yay / makepkg lock (`already running`, `file exists`)
+
+Typical culprits:
+- `/var/lib/pacman/db.lck` — left behind by a killed pacman. Remove if
+  no pacman is actually running.
+- `/tmp/*.lock` or `/tmp/<name>.lock/` — AUR packages (WhiteSur, some
+  proton builds) use per-script lockfiles.
+- `~/.cache/yay/<pkg>/` — partial build. `rm -rf` and retry.
+
+### Non-fatal pacman warnings
+
+`warning: directive 'Server' in section 'options' not recognized` /
+`warning: config file ... Server not recognized` usually mean a mirror
+list line ended up inside `[options]` instead of `[core]`. Annoying but
+pacman proceeds successfully. **Don't chase this during install; the
+migration still completes. Fix it at the end if you care.**
+
+## Desktop gotchas
+
+### Plasma 6 ships Wayland-only by default on Arch
+
+`plasma-workspace` no longer provides `/usr/share/xsessions/plasma*.desktop`
+in Plasma 6. If the user's hardware doesn't play nice with Wayland (common
+on NVIDIA proprietary + older kernels, and on VirtualBox with `vboxvideo`)
+the Wayland session black-screens on login. Fix:
+
+```
+sudo pacman -S --noconfirm plasma-x11-session
+```
+
+Restart SDDM; the Session dropdown will now include "Plasma (X11)".
+
+### X11 session black screen — no video driver loaded
+
+Xorg log (`/var/log/Xorg.0.log`) shows:
+
+```
+(EE) Failed to load module "vboxvideo"
+(EE) Failed to load module "fbdev"
+(EE) Failed to load module "vesa"
+(EE) modeset(0): failed to set mode: Invalid argument
+```
+
+All three fallback drivers are missing AND Xorg couldn't settle on the
+generic `modesetting` driver either. Fix:
+
+```
+sudo pacman -S --noconfirm xf86-video-vesa xf86-video-fbdev
+```
+
+For VirtualBox specifically, also install `virtualbox-guest-utils` and
+enable `vboxservice`. To force the modesetting driver (works with any
+KMS-capable GPU including the `vboxvideo` kernel module):
+
+```
+sudo mkdir -p /etc/X11/xorg.conf.d
+sudo tee /etc/X11/xorg.conf.d/20-modesetting.conf >/dev/null <<EOF_X
+Section "Device"
+    Identifier "Default Modesetting"
+    Driver     "modesetting"
+EndSection
+EOF_X
+```
+
+### Applying a Plasma theme from an SSH agent session
+
+Writing to `~/.config/kdeglobals` with `kwriteconfig6` while the user is
+NOT logged in works for some settings (Icons theme, cursor) but NOT for
+the global Plasma look-and-feel, color scheme, or wallpaper — those
+require a running plasmashell and DBUS. To apply live:
+
+```
+# As the logged-in user:
+export DISPLAY=:0
+export XDG_RUNTIME_DIR=/run/user/$(id -u)
+export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+export XAUTHORITY=$(find /tmp -name 'xauth*' 2>/dev/null | head -1)
+plasma-apply-lookandfeel -a <theme-id>
+plasma-apply-colorscheme <scheme-name>
+plasma-apply-desktoptheme <theme-name>
+plasma-apply-wallpaperimage /path/to/image.jpg
+qdbus6 org.kde.KWin /KWin reconfigure
+```
+
+If the user isn't logged in yet, write the config files and they'll be
+picked up on next login. Icons + cursor + window decorations apply via
+`kwriteconfig6` cleanly.

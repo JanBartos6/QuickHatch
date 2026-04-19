@@ -2802,6 +2802,52 @@ def _is_reboot_command(cmd: str) -> bool:
     return bool(_REBOOT_COMMAND_RE.search(cmd))
 
 
+_STALL_TOPIC_WORDS = re.compile(
+    # Nouns + tools that typically headline a topic. Pulled from the
+    # failure modes observed in live runs — extend as we see more.
+    r"\b("
+    r"pacman\.conf|mirrorlist|sig(?:level|nature)|keyring|archlinux-keyring|"
+    r"multilib|reflector|architecture|gpg|clock|ntp|timedatectl|date|"
+    r"xorg|x11|wayland|sddm|kwin|modeset|drm|vboxvideo|"
+    r"useradd|chpasswd|wheel|sudoers|"
+    r"brave|steam|github-desktop|yay|aur|makepkg|base-devel|"
+    r"disk|partition|mount|fstab|grub|systemd-boot|efi|luks|"
+    r"nvidia|mesa|driver|kernel-fsync|"
+    r"network|resolv|dhcp|nmcli|systemd-networkd"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def _detect_stall_topic(recent_reasons: list[str]) -> str | None:
+    """If the agent's recent reasons repeatedly mention the same topic
+    keyword, return that keyword. Otherwise None.
+
+    A stall is defined as: 4+ of the last 5 reasons referencing the same
+    topic word (case-insensitive). The topic word is defined narrowly in
+    _STALL_TOPIC_WORDS so unrelated filler words don't trigger false
+    positives. Example: 10 turns about 'pacman.conf' / 'mirrorlist' /
+    'SigLevel' should fire once those words accumulate.
+
+    We check the RAW keyword rather than a topic-cluster so the nudge
+    message can cite the specific thing the model keeps circling.
+    """
+    if len(recent_reasons) < 4:
+        return None
+    from collections import Counter
+
+    counts: Counter[str] = Counter()
+    for reason in recent_reasons:
+        found = {m.group(1).lower() for m in _STALL_TOPIC_WORDS.finditer(reason or "")}
+        for topic in found:
+            counts[topic] += 1
+    # At least 4 occurrences of the same topic in 5 reasons.
+    for topic, n in counts.most_common():
+        if n >= 4:
+            return topic
+    return None
+
+
 def _recipe_apply_for_setup(profile: UserProfile) -> str:
     """Return the gallery recipe apply block for injection into the
     setup agent's system prompt. Empty string when no recipe pinned or
@@ -3004,8 +3050,34 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                 "via the bridge chat once, early; do not invent credentials silently.\n\n"
             )
 
+        # === TEMPORAL GROUNDING ===
+        # Pinned at the very top of the system prompt so the model reads it
+        # before any other context. Motivated by a live run where Gemma-4
+        # insisted the VM clock showing 2026 was wrong (its training data
+        # said <=2024) and rolled the clock back mid-install, invalidating
+        # every TLS cert on the Arch CDN.
+        import datetime as _dt
+
+        _today = _dt.datetime.now().strftime("%Y-%m-%d (%A)")
+        _temporal_block = (
+            "== TEMPORAL GROUNDING (READ THIS FIRST) ==\n"
+            f"Today's real-world date is: **{_today}**.\n"
+            "This fact is verified by the orchestration harness, not by your\n"
+            "training data. If the remote system's clock agrees with this\n"
+            "date, the clock is CORRECT — do not 'fix' it by setting it\n"
+            "backwards, even if pacman/apt/curl reports signature or TLS\n"
+            "errors that look like future-date problems. Those errors have\n"
+            "other causes (stale keyrings, deprecated DB signing, broken\n"
+            "mirrors). Rolling the clock back will only add broken TLS on\n"
+            "top of the original issue.\n\n"
+            "If you are EVER tempted to run `date -s`, `hwclock --set`, or\n"
+            "to disable NTP to 'correct' a date that already matches the\n"
+            "one above — STOP and diagnose the actual root cause instead.\n\n"
+        )
+
         system_prompt = (
-            "You are a Linux system administrator. You are connected to a remote machine via SSH "
+            _temporal_block
+            + "You are a Linux system administrator. You are connected to a remote machine via SSH "
             "and your job is to execute the migration plan (provided below) on the remote machine.\n\n"
             "You have ONE tool: ssh_exec — it runs a shell command on the remote machine and returns the output.\n"
             "To use it, respond with a JSON object:\n"
@@ -3019,9 +3091,19 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             "Installing a theme is NOT the same as activating it. Installing a package is NOT the\n"
             "same as configuring it. Think about what the user will actually SEE and USE at the end,\n"
             "and work backwards to make that happen.\n\n"
+            "WARNINGS vs ERRORS:\n"
+            "Non-fatal warnings are NOT your problem unless they block a later command.\n"
+            "Pacman 'directive X not recognized', GTK accessibility warnings, deprecation\n"
+            "notices, 'already enabled', 'nothing to do' — skip them. You are on a goal,\n"
+            "not a cleanup crew. Only investigate a message when a SUBSEQUENT command\n"
+            "depends on that message being resolved. A command that prints warnings but\n"
+            "exits 0 IS A SUCCESS. Move on.\n\n"
             "RULES:\n"
             "- Run ONE command at a time, then analyze the output before deciding the next step\n"
             "- If a command fails, diagnose WHY from the error output and fix it — don't just retry\n"
+            "- Before running a command, ask yourself: 'Have I already run something equivalent?'\n"
+            "  If yes, READ THE PREVIOUS OUTPUT instead of re-probing. Re-probing the same\n"
+            "  state (`grep X file`, `pacman -Q Y`, `systemctl is-enabled Z`) wastes context.\n"
             "- Use non-interactive flags always (--noconfirm, -y, DEBIAN_FRONTEND=noninteractive, etc.)\n"
             "- You are logged in as the user shown in the system info — use sudo only if needed\n"
             "- Follow the migration plan above, but ADAPT to actual conditions (e.g. disk space, missing packages)\n"
@@ -3086,8 +3168,39 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
         # Without this cap, a model stuck emitting malformed JSON (e.g.
         # invalid `\[...\]` escapes) loops until MAX_ITERATIONS.
         nonjson_turns = 0
+        # Sliding window of recent command "reason" fields, used by the
+        # stall detector to notice when the model has burned N turns on
+        # the same topic (e.g. 10 turns investigating pacman.conf
+        # warnings that don't actually block anything).
+        recent_reasons: list[str] = []
+        # Track iterations since last plan re-anchor so we can re-inject
+        # the remaining-goal checklist periodically. Without this, on
+        # long runs the early plan falls out of the attention window
+        # and the model drifts into tangents.
+        last_anchor_iter = 0
 
         for _iteration in range(MAX_ITERATIONS):
+            # Plan re-anchor: on long runs the original MIGRATION PLAN
+            # falls out of the attention window. Every ~15 turns we
+            # reinject a compact "remaining goal" nudge so the model
+            # doesn't drift off into tangents. Only active when we
+            # actually have a migration_plan_md to anchor against.
+            if _iteration > 0 and _iteration - last_anchor_iter >= 15 and migration_plan_md:
+                last_anchor_iter = _iteration
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            "ANCHOR CHECK: review the MIGRATION PLAN in your "
+                            "system prompt. What concrete items from it are "
+                            "NOT yet done on the remote system? Your next "
+                            "command should advance one of those items. If "
+                            "you've been investigating something tangential "
+                            "(stale warnings, non-blocking probes), drop it "
+                            "and return to the plan."
+                        ),
+                    }
+                )
             # Honor Stop requests from the UI
             if bridge.stop_requested:
                 bridge.add_message("agent", "Stopped.")
@@ -3328,6 +3441,32 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                             "Error: empty command. Provide a valid shell command."
                         )
                         continue
+
+                    # Stall detector: if 4 out of the last 5 commands
+                    # share a topic keyword, we inject a pause-and-
+                    # reconsider nudge. Motivated by the live run where
+                    # the model spent 10 turns rebuilding pacman.conf
+                    # around warnings that weren't blocking anything.
+                    recent_reasons.append(reason or cmd)
+                    if len(recent_reasons) > 5:
+                        recent_reasons.pop(0)
+                    _topic = _detect_stall_topic(recent_reasons)
+                    if _topic is not None:
+                        nudge = (
+                            f"STALL DETECTED — you've spent the last 4+ turns "
+                            f"investigating '{_topic}'. Stop and check: (a) is this "
+                            f"actually blocking the migration goal, or is it a "
+                            f"non-fatal warning you can ignore? (b) if it IS "
+                            f"blocking, what is the CONCRETE fix, not another "
+                            f"probe? If you cannot name the fix in one command, "
+                            f"skip this topic and continue with the original "
+                            f"plan. Re-read the MIGRATION PLAN section above."
+                        )
+                        bridge.add_message("agent", f"[harness] {nudge}")
+                        pending_feedback.append(nudge)
+                        # Reset the window so the nudge isn't re-fired on
+                        # every subsequent turn of the same topic.
+                        recent_reasons.clear()
 
                     bridge.add_message("agent", f"`{cmd}`" + (f" — {reason}" if reason else ""))
 
