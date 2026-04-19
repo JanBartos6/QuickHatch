@@ -87,6 +87,40 @@ def resolve_primer(distro: str | None) -> dict[str, Any] | None:
     # 2. Word-boundary search within a longer free-text hint
     #    ("I'd like arch btw" → matches "arch"). Still rejects
     #    accidental-substring cases like "templeos" matching "eos".
+    #
+    # When multiple distros appear in the text (common when the model
+    # compares options before settling), we want the one the model
+    # ACTUALLY picks — usually the last occurrence after "recommend",
+    # "recommended", "choose", or "go with". First try a targeted
+    # recommendation-phrase scan; fall back to last-occurrence.
+    _RECOMMEND_RE = re.compile(
+        r"(?:recommend(?:ation|ed|ing)?|i\s+suggest|i\s+pick|i\s+choose|"
+        r"go\s+with|final\s+choice[: ]|best\s+fit[: ])"
+        r"[^a-z0-9]{0,40}?([a-z0-9][-a-z0-9_ ]{1,30}[a-z0-9])",
+        re.IGNORECASE,
+    )
+    rec_matches = list(_RECOMMEND_RE.finditer(needle))
+    if rec_matches:
+        # Iterate recommendation phrases from LAST to first — the
+        # concluding recommendation wins over intermediate comparisons.
+        for rm in reversed(rec_matches):
+            candidate_text = _normalize(rm.group(1))
+            for entry in _load_index().get("distros", []):
+                for candidate in (
+                    _normalize(entry.get("canonical", "")),
+                    *(_normalize(alias) for alias in entry.get("aliases", [])),
+                ):
+                    if not candidate:
+                        continue
+                    pattern = rf"(?:^|[^a-z0-9]){re.escape(candidate)}(?:$|[^a-z0-9])"
+                    if re.search(pattern, candidate_text):
+                        return entry
+
+    # No recommendation phrase matched a known distro — fall back to
+    # scanning the WHOLE text but return the LAST distro mentioned,
+    # not the first (the model's concluding sentence is more likely
+    # the recommendation than the comparison earlier).
+    last_match: tuple[int, dict[str, Any]] | None = None
     for entry in _load_index().get("distros", []):
         haystack = [
             _normalize(entry.get("canonical", "")),
@@ -96,8 +130,11 @@ def resolve_primer(distro: str | None) -> dict[str, Any] | None:
             if not candidate:
                 continue
             pattern = rf"(?:^|[^a-z0-9]){re.escape(candidate)}(?:$|[^a-z0-9])"
-            if re.search(pattern, needle):
-                return entry
+            for mobj in re.finditer(pattern, needle):
+                if last_match is None or mobj.start() > last_match[0]:
+                    last_match = (mobj.start(), entry)
+    if last_match is not None:
+        return last_match[1]
     return None
 
 

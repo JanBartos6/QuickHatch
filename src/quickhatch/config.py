@@ -169,7 +169,13 @@ class UserProfile:
                     f"Using defaults for this section.",
                     file=_sys.stderr,
                 )
-                return cls_()
+                # Some dataclasses (AppInfo, GPUInfo, DiskInfo) have
+                # required positional fields — `cls_()` would re-raise
+                # TypeError. Return None in that case; callers filter.
+                try:
+                    return cls_()
+                except TypeError:
+                    return None
 
         try:
             hw_raw = data.get("hardware", {}) or {}
@@ -177,14 +183,14 @@ class UserProfile:
                 HardwareInfo,
                 {k: v for k, v in hw_raw.items() if k not in ("gpus", "disks")},
             )
-            hw.gpus = [_safe_init(GPUInfo, g) for g in hw_raw.get("gpus", [])]
-            hw.disks = [_safe_init(DiskInfo, d) for d in hw_raw.get("disks", [])]
+            hw.gpus = [g for g in (_safe_init(GPUInfo, g) for g in hw_raw.get("gpus", [])) if g]
+            hw.disks = [d for d in (_safe_init(DiskInfo, d) for d in hw_raw.get("disks", [])) if d]
 
             return cls(
-                preferences=_safe_init(Preferences, data.get("preferences", {})),
-                ai_config=_safe_init(AIConfig, data.get("ai_config", {})),
+                preferences=_safe_init(Preferences, data.get("preferences", {})) or Preferences(),
+                ai_config=_safe_init(AIConfig, data.get("ai_config", {})) or AIConfig(),
                 hardware=hw,
-                apps=[_safe_init(AppInfo, a) for a in data.get("apps", [])],
+                apps=[a for a in (_safe_init(AppInfo, a) for a in data.get("apps", [])) if a],
                 files_summary=data.get("files_summary", {}) or {},
                 windows_settings=data.get("windows_settings", {}) or {},
                 ssh_public_key_path=data.get("ssh_public_key_path"),

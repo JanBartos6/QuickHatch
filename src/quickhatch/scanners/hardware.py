@@ -29,9 +29,15 @@ def _parse_adapter_ram(raw: str | None) -> int | None:
         ram = int(raw)
     except (ValueError, TypeError):
         return None
-    if ram <= 0:
-        # Signed overflow or unknown. Better to surface None than lie.
+    if ram == 0:
+        # Genuinely unknown.
         return None
+    if ram < 0:
+        # Signed-32-bit overflow of a real unsigned value (common on
+        # cards with >= 2 GiB VRAM). Reinterpret as uint32.
+        ram = ram + (1 << 32)
+        if ram <= 0:
+            return None
     mb = ram // (1024 * 1024)
     return mb or None
 

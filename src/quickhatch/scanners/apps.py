@@ -59,6 +59,20 @@ def _scan_winget() -> list[AppInfo]:
 
         import re as _re
 
+        # If we never found a separator row, `data_start` is still 0
+        # and we'd parse EVERYTHING including the localized header and
+        # status text as app rows. Require at least an ID/version-
+        # shaped token somewhere on the line before accepting it — a
+        # real winget entry has a `Publisher.App` id or a dotted
+        # version like `1.2.3`.
+        import re as _re2
+
+        _ID_OR_VERSION_RE = _re2.compile(
+            r"(?:\b[A-Za-z][A-Za-z0-9]*\.[A-Za-z][A-Za-z0-9.]*\b)"  # Pub.App
+            r"|(?:\b\d+\.\d+(?:\.\d+)*\b)"  # 1.2 / 1.2.3 / 1.2.3.4
+        )
+        header_tokens = {"name", "id", "version", "available", "source", "nom", "nombre"}
+
         for line in lines[data_start:]:
             stripped = line.strip()
             if not stripped:
@@ -68,6 +82,17 @@ def _scan_winget() -> list[AppInfo]:
             # CJK characters, etc.) — they typically don't contain a
             # version-looking token.
             if stripped.startswith(("-", "=", "\\", "/", "|")):
+                continue
+            # Header-tolerance: if we couldn't find a separator row and
+            # fell through with data_start=0, the first few lines are
+            # usually the localized header itself. Drop any line whose
+            # tokens look like column names.
+            lower_tokens = set(stripped.lower().split())
+            if header_tokens & lower_tokens and not _ID_OR_VERSION_RE.search(stripped):
+                continue
+            # When we didn't find a separator, require an id/version
+            # token on the line — real app rows always have one.
+            if data_start == 0 and not _ID_OR_VERSION_RE.search(stripped):
                 continue
             if name_end_col is not None and len(line) >= name_end_col:
                 name = line[:name_end_col].strip()

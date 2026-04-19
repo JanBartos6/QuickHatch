@@ -2378,9 +2378,22 @@ async function answerQuestion(qid){
   const inp=el('answer-'+qid);if(!inp)return;
   const answer=inp.value.trim();if(!answer)return;
   inp.disabled=true;
-  await api('/wizard/answer','POST',{question_id:qid,answer});
+  const resp=await api('/wizard/answer','POST',{question_id:qid,answer});
   const card=el('qcard-'+qid);
-  if(card)card.innerHTML=`<div style="color:var(--fg-dim);font-size:.82rem">Answered: ${escHtml(answer)}</div>`;
+  // Only mark the card as answered if the backend actually accepted
+  // the answer. A stale qid (server already dropped the question)
+  // should NOT show a fake 'Answered' confirmation to the user.
+  if(resp&&resp.status==='ok'){
+    if(card)card.innerHTML=`<div style="color:var(--fg-dim);font-size:.82rem">Answered: ${escHtml(answer)}</div>`;
+  }else{
+    inp.disabled=false;
+    if(card){
+      const err=document.createElement('div');
+      err.style='color:var(--err);font-size:.82rem;margin-top:var(--s1)';
+      err.textContent='Answer not accepted: '+((resp&&resp.message)||'unknown question id — it may have timed out.');
+      card.appendChild(err);
+    }
+  }
 }
 
 let bridgePollTimer=null;
@@ -2810,6 +2823,12 @@ async function pollSetup(){
               </div>
             </div>`).join('');
         }
+      }else{
+        // Clear stale question cards once the backend has no pending
+        // Qs left. Otherwise a previously-answered card stays
+        // interactive and the user could fake an answer for a qid the
+        // server already dropped.
+        const qa=el('setupQuestions');if(qa&&qa.innerHTML)qa.innerHTML='';
       }
 
       if(data.agent_done){

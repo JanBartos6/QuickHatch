@@ -68,6 +68,15 @@ class BridgeState:
         # Where to persist suggestions/messages. Pass None to disable
         # persistence (e.g. in unit tests).
         self._persist_path: Path | None = Path(persist_path) if persist_path else None
+        # Monotonic version counter incremented under the lock on every
+        # state mutation. Split-pattern writers snapshot this value
+        # alongside their payload, then a per-write lock + version
+        # check ensures an older snapshot can never overwrite a newer
+        # one. Prevents reordering when two mutators snapshot-then-
+        # write interleave.
+        self._persist_version: int = 0
+        self._persist_last_written: int = 0
+        self._persist_write_lock = threading.Lock()
         # Restore previously persisted suggestions/messages so restarts
         # don't lose a finished analysis run.
         self._load_persisted()
@@ -117,6 +126,20 @@ class BridgeState:
             return
         saved_fp = data.get("profile_fingerprint")
         current_fp = self._profile_fingerprint()
+        # Legacy files written before the fingerprint scheme have no
+        # profile_fingerprint. Those are guaranteed stale relative to
+        # the current profile — accept them only when the current
+        # profile itself is also empty (fresh-wizard state).
+        EMPTY_PROFILE_FP = "45ca31c3315a5978"
+        if saved_fp is None and current_fp != EMPTY_PROFILE_FP:
+            import sys as _sys
+
+            print(
+                "[quickhatch] persisted suggestions have no profile "
+                "fingerprint (pre-versioning format). Starting fresh.",
+                file=_sys.stderr,
+            )
+            return
         if saved_fp and saved_fp != current_fp:
             import sys as _sys
 
@@ -132,14 +155,15 @@ class BridgeState:
             except TypeError:
                 continue
         self.messages = list(data.get("messages", []))
-        # Restore unanswered questions so a mid-prompt server restart
-        # doesn't silently drop the question from the UI. The agent
-        # thread that was awaiting the answer is dead — but the user
-        # can still inspect what was asked, and a subsequent
-        # /wizard/answer fulfills the Event for any new agent that
-        # might be listening. Events aren't JSON-serialisable, so we
-        # reconstruct fresh ones.
+        # Restore only ANSWERED questions (history) — unanswered
+        # questions from a prior run belong to a dead agent thread.
+        # Reviving them would block the next run on a question nobody
+        # wants an answer to, and in local-bridge mode the wizard
+        # immediately re-prompts for every pending Q which creates UI
+        # noise. The agent can always re-ask if it still needs input.
         for qdata in data.get("questions", []):
+            if not qdata.get("answered"):
+                continue
             try:
                 q = PendingQuestion(
                     id=qdata["id"],
@@ -156,12 +180,15 @@ class BridgeState:
         # agent_done stays False so the UI doesn't think a new run is
         # already complete — but the previous suggestions are visible.
 
-    def _serialize_payload_locked(self) -> str | None:
-        """Build the JSON payload string. MUST be called with ``self.lock``
-        held. Returns None when persistence is disabled.
+    def _serialize_payload_locked(self) -> tuple[str, int] | None:
+        """Build the JSON payload string + its version. MUST be called
+        with ``self.lock`` held. Returns None when persistence is
+        disabled.
         """
         if self._persist_path is None:
             return None
+        self._persist_version += 1
+        version = self._persist_version
         payload = {
             "profile_fingerprint": self._profile_fingerprint(),
             "suggestions": [asdict(s) for s in self.suggestions],
@@ -179,23 +206,34 @@ class BridgeState:
             "saved_at": time.time(),
         }
         try:
-            return json.dumps(payload, indent=2)
+            return (json.dumps(payload, indent=2), version)
         except (TypeError, ValueError):
             return None
 
-    def _write_payload_unlocked(self, data: str | None) -> None:
-        """Write a pre-serialized payload to disk. MUST NOT hold the lock.
-        Atomic via tmp-file + os.replace."""
-        if self._persist_path is None or data is None:
+    def _write_payload_unlocked(self, snapshot: tuple[str, int] | None) -> None:
+        """Write a pre-serialized payload to disk. MUST NOT hold the main
+        state lock. Atomic via tmp-file + os.replace.
+
+        A separate write-lock + monotonic version check ensures that if
+        two threads interleave (A serializes v1, B serializes v2, B
+        writes v2, A tries to write v1), the older snapshot is dropped
+        rather than overwriting the newer state on disk.
+        """
+        if self._persist_path is None or snapshot is None:
             return
+        data, version = snapshot
         import os as _os
 
-        try:
-            tmp = self._persist_path.with_suffix(self._persist_path.suffix + ".tmp")
-            tmp.write_text(data, encoding="utf-8")
-            _os.replace(tmp, self._persist_path)
-        except OSError:
-            pass  # best-effort
+        with self._persist_write_lock:
+            if version <= self._persist_last_written:
+                return  # a newer snapshot already landed; our write is stale
+            try:
+                tmp = self._persist_path.with_suffix(self._persist_path.suffix + ".tmp")
+                tmp.write_text(data, encoding="utf-8")
+                _os.replace(tmp, self._persist_path)
+                self._persist_last_written = version
+            except OSError:
+                pass  # best-effort
 
     def _persist(self) -> None:
         """Serialize + flush to disk. Callers either:

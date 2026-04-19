@@ -939,13 +939,23 @@ def make_gui_server(
                 data = self._read_json()
                 qid = data.get("question_id", "")
                 answer = data.get("answer", "")
-                if qid and answer:
-                    bridge_state.answer_question(qid, answer)
-                    self._send_json({"status": "ok"})
-                else:
+                if not qid or not answer:
                     self._send_json(
                         {"status": "error", "message": "Missing question_id or answer"}, 400
                     )
+                elif not bridge_state.answer_question(qid, answer):
+                    # answer_question returns False when the qid is
+                    # unknown. Surface that so the UI can show an
+                    # error instead of pretending we saved it.
+                    self._send_json(
+                        {
+                            "status": "error",
+                            "message": "unknown question_id (already answered or expired)",
+                        },
+                        404,
+                    )
+                else:
+                    self._send_json({"status": "ok"})
 
             elif self.path == "/wizard/chat":
                 data = self._read_json()
@@ -1028,14 +1038,33 @@ def make_gui_server(
             elif self.path == "/wizard/rerun-agent":
                 data = self._read_json()
                 user_msg = data.get("message", "")
-                # Clear old suggestions, reset done state
-                bridge_state.reset_for_rerun()
-                # Add user message to bridge messages
-                if user_msg:
-                    bridge_state.add_message("user", user_msg)
-                # Re-launch agent with user feedback context
-                result = _launch_agent(gui_state, server.server_address[1], user_feedback=user_msg)
-                self._send_json(result)
+                # Preflight concurrent-launch check BEFORE mutating any
+                # bridge state. Otherwise sendChat during an active run
+                # would reset_for_rerun (wiping suggestions + done flag)
+                # only to be rejected, leaving the original agent thread
+                # alive against an empty state.
+                with gui_state.lock:
+                    active = (
+                        gui_state._agent_thread is not None and gui_state._agent_thread.is_alive()
+                    )
+                if active:
+                    self._send_json(
+                        {
+                            "status": "error",
+                            "message": "An agent is already running. Click Stop first (or wait for it).",
+                        }
+                    )
+                else:
+                    # Clear old suggestions, reset done state
+                    bridge_state.reset_for_rerun()
+                    # Add user message to bridge messages
+                    if user_msg:
+                        bridge_state.add_message("user", user_msg)
+                    # Re-launch agent with user feedback context
+                    result = _launch_agent(
+                        gui_state, server.server_address[1], user_feedback=user_msg
+                    )
+                    self._send_json(result)
 
             elif self.path == "/wizard/rerun-section":
                 # Regenerate a single analysis section without wiping all
@@ -1064,22 +1093,56 @@ def make_gui_server(
                         {"status": "error", "message": f"unknown section: {section}"}, 400
                     )
                 else:
-                    # Drop just this section's suggestion(s) + re-launch.
-                    kept = [
-                        s
-                        for s in bridge_state.snapshot_suggestions()
-                        if getattr(s, "category", "") != section
-                    ]
-                    bridge_state.replace_suggestions(kept)
-                    bridge_state.prepare_for_launch()
-                    if user_msg:
-                        bridge_state.add_message("user", user_msg)
-                    result = _launch_agent(
-                        gui_state,
-                        server.server_address[1],
-                        user_feedback=user_msg,
-                    )
-                    self._send_json(result)
+                    # Same preflight: don't wipe a running agent's state.
+                    with gui_state.lock:
+                        active = (
+                            gui_state._agent_thread is not None
+                            and gui_state._agent_thread.is_alive()
+                        )
+                    if active:
+                        self._send_json(
+                            {
+                                "status": "error",
+                                "message": "An agent is already running. Click Stop first (or wait for it).",
+                            }
+                        )
+                    else:
+                        # Drop the named section's suggestions AND every
+                        # downstream section — desktop/plan/summary all
+                        # depend on the upstream section's output, so
+                        # leaving them in place gives the UI stale info.
+                        _DOWNSTREAM = {
+                            "distro": {
+                                "apps",
+                                "drivers",
+                                "desktop",
+                                "plan",
+                                "summary",
+                                "install_script",
+                            },
+                            "apps": {"plan", "summary", "install_script"},
+                            "drivers": {"plan", "summary", "install_script"},
+                            "desktop": {"plan", "summary", "install_script"},
+                            "plan": {"summary", "install_script"},
+                            "summary": set(),
+                            "install_script": set(),
+                        }
+                        invalidated = {section} | _DOWNSTREAM.get(section, set())
+                        kept = [
+                            s
+                            for s in bridge_state.snapshot_suggestions()
+                            if getattr(s, "category", "") not in invalidated
+                        ]
+                        bridge_state.replace_suggestions(kept)
+                        bridge_state.prepare_for_launch()
+                        if user_msg:
+                            bridge_state.add_message("user", user_msg)
+                        result = _launch_agent(
+                            gui_state,
+                            server.server_address[1],
+                            user_feedback=user_msg,
+                        )
+                        self._send_json(result)
 
             elif self.path.startswith("/api/"):
                 self._handle_bridge_post()
@@ -2503,12 +2566,32 @@ def _extract_created_user(cmd: str) -> str | None:
     """
     # Reject comment lines outright — a `# useradd ...` trail in a
     # shell comment must never flip the real profile username.
-    # Also skip heredoc BODIES: a line like `useradd bob` inside a
-    # `cat <<EOF ... EOF` block is string data being piped into a
-    # file, not an executed command.
+    # Heredoc handling is context-dependent:
+    #   `cat <<EOF ... useradd bob ... EOF` → heredoc is DATA piped
+    #     to cat's stdin; useradd inside is string content, not an
+    #     executed command. Skip.
+    #   `bash <<EOF ... useradd bob ... EOF` → heredoc is a SHELL
+    #     SCRIPT executed by bash. useradd inside IS executed and
+    #     creates a real user. Don't skip.
+    #   `arch-chroot /mnt <<'EOF' ... useradd bob ... EOF` → same:
+    #     commands inside the chroot.
     heredoc_delim: str | None = None
+    heredoc_executes = False  # whether this heredoc's body is run as shell
     _heredoc_re = re.compile(
         r"<<-?\s*([\"'])?([A-Za-z_][A-Za-z0-9_]*)\1?",
+    )
+    # Shell-interpreter commands: when THESE precede `<<EOF`, the
+    # heredoc body is executed. Extend if we add more exotic wrappers.
+    _shell_exec_prefix_re = re.compile(
+        r"(?:^|[;&|]\s*|&&\s*|\|\|\s*)"
+        r"(?:sudo\s+|env\s+(?:\w+=\S+\s+)*)?"
+        r"(?:bash|sh|zsh|dash|ash|fish|busybox\s+sh|"
+        r"arch-chroot(?:\s+\S+)?|chroot(?:\s+\S+)?|"
+        r"systemd-nspawn(?:\s+-D\s+\S+)?|unshare(?:\s+-\S+)*|"
+        r"ssh\s+\S+|"  # ssh host <<EOF runs remote shell
+        r"sudo\s+-[iu]\b|su\s+(?:-\s+)?\S+)"
+        r"\s*(?:<<|$)",
+        re.IGNORECASE,
     )
     m = None
     for line in cmd.splitlines():
@@ -2517,17 +2600,25 @@ def _extract_created_user(cmd: str) -> str | None:
             # alone (or with leading tabs when `<<-` was used).
             if line.strip() == heredoc_delim:
                 heredoc_delim = None
-            continue
+                heredoc_executes = False
+                continue
+            if not heredoc_executes:
+                continue  # data-heredoc body → skip entirely
+            # Executing heredoc: fall through to the regex match below
+            # so useradd inside `bash <<EOF` is still detected.
         stripped = line.lstrip()
         if stripped.startswith("#"):
             continue  # this line is a comment, skip it
-        # Detect start of a heredoc on THIS line. We still run the
-        # regex on the line itself (the command before `<<EOF` is
-        # legitimately executing), but subsequent lines until the
-        # delimiter are skipped.
+        # Detect start of a heredoc on THIS line, and decide whether
+        # its body is executed or consumed as data.
         hd = _heredoc_re.search(line)
         if hd:
             heredoc_delim = hd.group(2)
+            # Slice from line start up to the `<<` to see what command
+            # is doing the redirect. Multi-heredoc in one line (rare)
+            # just picks the first match, which is good enough.
+            before_heredoc = line[: hd.start()]
+            heredoc_executes = bool(_shell_exec_prefix_re.search(before_heredoc))
         m = _USERADD_RE.search(line)
         if m:
             break
@@ -3224,6 +3315,20 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                     # live-ISO's root, which doesn't exist on-disk.
                     if _is_reboot_command(cmd):
                         reconnect_user = created_user or user
+                        # IMPORTANT: fire the reboot command itself as the
+                        # CURRENT live-ISO user — the new user only exists
+                        # inside the installed chroot and has no shell on
+                        # the running live session. Switching before the
+                        # reboot would hang the install. We persist the
+                        # user switch only AFTER the reboot is fired.
+                        bridge.add_message(
+                            "agent",
+                            "Reboot issued — waiting for the target to come back online "
+                            "(up to 5 min)…",
+                        )
+                        _ssh_exec(
+                            host, user, cmd, key_path, timeout=15, port=ssh_port
+                        )  # fire + disconnect (as live-ISO user)
                         if reconnect_user != user:
                             bridge.add_message(
                                 "agent",
@@ -3239,14 +3344,6 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                             except Exception:
                                 pass
                             user = reconnect_user
-                        bridge.add_message(
-                            "agent",
-                            "Reboot issued — waiting for the target to come back online "
-                            "(up to 5 min)…",
-                        )
-                        _ssh_exec(
-                            host, user, cmd, key_path, timeout=15, port=ssh_port
-                        )  # fire + disconnect
                         reconnected = _wait_for_ssh_reconnect(
                             host,
                             user,

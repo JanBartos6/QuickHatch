@@ -61,15 +61,21 @@ def _get_launch_commands(profile: UserProfile, port: int) -> dict[str, str]:
     prompt_file = _write_prompt_file(profile, port)
     provider = profile.ai_config.provider
 
+    # Quote the path for each shell — $HOME on Windows (`C:\Users\my name`)
+    # often contains spaces. PowerShell wants single quotes with `''`
+    # escaping, POSIX shell wants single quotes with `'\''` escaping.
+    pf_str = str(prompt_file)
+    ps_quoted = "'" + pf_str.replace("'", "''") + "'"
+    sh_quoted = "'" + pf_str.replace("'", "'\\''") + "'"
     if provider == "codex":
         return {
-            "powershell": f"codex (Get-Content {prompt_file} -Raw)",
-            "bash": f'codex "$(cat {prompt_file})"',
+            "powershell": f"codex (Get-Content {ps_quoted} -Raw)",
+            "bash": f'codex "$(cat {sh_quoted})"',
         }
     else:
         return {
-            "powershell": f"Get-Content {prompt_file}",
-            "bash": f"cat {prompt_file}",
+            "powershell": f"Get-Content {ps_quoted}",
+            "bash": f"cat {sh_quoted}",
         }
 
 
@@ -124,10 +130,13 @@ def run(profile: UserProfile) -> None:
     # Save commands for both shells
     cmds = _get_launch_commands(profile, port)
 
-    cmd_file_sh = Path(".quickhatch-agent-cmd.sh")
+    # Write wrapper scripts under $HOME alongside the prompt file.
+    # Writing to CWD fails when quickhatch is launched from a read-only
+    # directory (Program Files, a bundle install).
+    cmd_file_sh = Path.home() / ".quickhatch-agent-cmd.sh"
     cmd_file_sh.write_text(cmds["bash"] + "\n")
 
-    cmd_file_ps1 = Path(".quickhatch-agent-cmd.ps1")
+    cmd_file_ps1 = Path.home() / ".quickhatch-agent-cmd.ps1"
     cmd_file_ps1.write_text(cmds["powershell"] + "\n")
 
     console.print()
