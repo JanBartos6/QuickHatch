@@ -2256,16 +2256,43 @@ def _extract_json_objects(text: str) -> list[dict]:
                 try:
                     import re as _re
 
-                    repaired = _re.sub(
-                        r'"((?:[^"\\]|\\.)*)"',
-                        lambda m: (
-                            '"'
-                            + m.group(1)
+                    # Also fix INVALID backslash escapes inside string
+                    # values. Models frequently paste shell regex like
+                    # `\[multilib\]` into a JSON string — those are not
+                    # legal JSON escapes and json.loads rejects them.
+                    # Replace any `\X` where X isn't a recognised JSON
+                    # escape char with `\\X` so the backslash is
+                    # interpreted literally.
+                    _VALID_ESC = set('"\\/bfnrtu')
+
+                    def _fix_body(body: str) -> str:
+                        out: list[str] = []
+                        k = 0
+                        while k < len(body):
+                            ch = body[k]
+                            if ch == "\\" and k + 1 < len(body):
+                                nxt = body[k + 1]
+                                if nxt in _VALID_ESC:
+                                    out.append(ch)
+                                    out.append(nxt)
+                                    k += 2
+                                    continue
+                                # Invalid escape — double the backslash.
+                                out.append("\\\\")
+                                k += 1
+                                continue
+                            out.append(ch)
+                            k += 1
+                        return (
+                            "".join(out)
                             .replace("\r", "\\r")
                             .replace("\n", "\\n")
                             .replace("\t", "\\t")
-                            + '"'
-                        ),
+                        )
+
+                    repaired = _re.sub(
+                        r'"((?:[^"\\]|\\.)*)"',
+                        lambda m: '"' + _fix_body(m.group(1)) + '"',
                         chunk,
                     )
                     obj = json.loads(repaired)
