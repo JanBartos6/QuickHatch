@@ -878,6 +878,10 @@ const STEPS_CUSTOMIZE = [
 ];
 let STEPS = STEPS_MIGRATION;
 function refreshSteps(){
+  // Preserve the user's current step ID so we can re-find it after the
+  // STEPS list is rebuilt (it might shrink if 'setup' was removed, and
+  // we don't want currentStep to index-shift off the end of the array).
+  const prevCurrentId = (STEPS && STEPS[state?.currentStep])?.id;
   const mode=state.profile?.preferences?.migration_type;
   STEPS = mode==='customize_linux' ? [...STEPS_CUSTOMIZE] : [...STEPS_MIGRATION];
   // Offline single-machine mode: user has no second device, so the
@@ -887,6 +891,16 @@ function refreshSteps(){
     STEPS = STEPS.filter(s=>s.id!=='setup');
   }
   STEPS.forEach((s,i)=>s.n=String(i+1));
+  // Re-anchor currentStep to the same step ID if it still exists.
+  if(state && prevCurrentId){
+    const newIdx = STEPS.findIndex(s => s.id === prevCurrentId);
+    if(newIdx >= 0){
+      state.currentStep = newIdx;
+    } else {
+      // The step we were on was removed — clamp to last step.
+      state.currentStep = Math.min(state.currentStep, STEPS.length - 1);
+    }
+  }
 }
 function isCustomizeMode(){return state.profile?.preferences?.migration_type==='customize_linux'}
 

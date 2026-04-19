@@ -120,28 +120,42 @@ def run(profile: UserProfile) -> None:
         profile.ai_config.model_name = model
         profile.ai_config.endpoint = "https://api.anthropic.com"
 
-        api_key = questionary.password("Enter your Anthropic API key:").ask()
-        if api_key is None:
-            raise KeyboardInterrupt
+        while True:
+            api_key = questionary.password("Enter your Anthropic API key:").ask()
+            if api_key is None:
+                raise KeyboardInterrupt
+            api_key = (api_key or "").strip()
+            if api_key:
+                break
+            print_info("API key can't be empty.")
         profile.ai_config.api_key = api_key
 
     elif provider == "api_openai":
-        model = questionary.select(
-            "Which OpenAI model?",
-            choices=[
-                questionary.Choice("GPT-4o (most capable)", value="gpt-4o"),
-                questionary.Choice("GPT-4o mini (faster/cheaper)", value="gpt-4o-mini"),
-                questionary.Choice("o3 (reasoning)", value="o3"),
-            ],
-        ).ask()
-        if model is None:
-            raise KeyboardInterrupt
+        # Don't hardcode a model list — OpenAI ships new ones and retires
+        # old ones faster than this file can be updated. See the Claude
+        # branch above for the same pattern.
+        print_info("Get a current OpenAI model id from https://platform.openai.com/docs/models")
+        while True:
+            model = questionary.text(
+                "OpenAI model id (e.g. gpt-4o-2024-11-20):",
+            ).ask()
+            if model is None:
+                raise KeyboardInterrupt
+            model = (model or "").strip()
+            if model:
+                break
+            print_info("Please enter a model id.")
         profile.ai_config.model_name = model
         profile.ai_config.endpoint = "https://api.openai.com"
 
-        api_key = questionary.password("Enter your OpenAI API key:").ask()
-        if api_key is None:
-            raise KeyboardInterrupt
+        while True:
+            api_key = questionary.password("Enter your OpenAI API key:").ask()
+            if api_key is None:
+                raise KeyboardInterrupt
+            api_key = (api_key or "").strip()
+            if api_key:
+                break
+            print_info("API key can't be empty.")
         profile.ai_config.api_key = api_key
 
     print_success(f"AI assistant configured: {provider}")

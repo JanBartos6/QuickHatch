@@ -35,7 +35,18 @@ def dedupe_entries(
         if not image_path.exists():
             kept.append(entry)
             continue
-        hash_value = imagehash.phash(Image.open(image_path))
+        # `with Image.open(...)` — PIL holds file handles for lazy load.
+        # Without this context manager, Windows can't delete/rename the
+        # PNG until GC runs, and a corrupt PNG crashes the whole dedupe
+        # pass with no useful error.
+        try:
+            with Image.open(image_path) as _img:
+                hash_value = imagehash.phash(_img)
+        except Exception:
+            # Corrupt / unsupported image — keep the entry as unique rather
+            # than dropping it entirely.
+            kept.append(entry)
+            continue
         duplicate = False
         for existing_hash, existing_entry in list(hashes):
             if abs(hash_value - existing_hash) <= distance_threshold:

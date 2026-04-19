@@ -73,6 +73,50 @@ class TestJsonParserHeredocs:
 # ---------------------------------------------------------------------------
 
 
+class TestUseraddExtraction:
+    """Round-3 bug sweep finding H5: the original _USERADD_RE matched
+    on any whitespace boundary, so `echo useradd bob` and `# useradd
+    bob` comments would flip profile.linux_user. These tests lock in
+    the fixed semantics."""
+
+    def test_real_useradd_matches(self):
+        from quickhatch.gui.server import _extract_created_user
+
+        assert _extract_created_user("useradd -m archuser") == "archuser"
+        assert _extract_created_user("sudo useradd jan") == "jan"
+        assert (
+            _extract_created_user('arch-chroot /mnt /bin/bash -c "useradd -m quickhatch"')
+            == "quickhatch"
+        )
+        assert _extract_created_user("ls && useradd -m alice") == "alice"
+
+    def test_comment_line_rejected(self):
+        from quickhatch.gui.server import _extract_created_user
+
+        assert _extract_created_user("# useradd bob") is None
+        assert _extract_created_user("    # useradd bob") is None
+        assert _extract_created_user("#useradd bob") is None
+
+    def test_echo_quoted_mention_rejected(self):
+        from quickhatch.gui.server import _extract_created_user
+
+        assert _extract_created_user("echo useradd bob") is None
+        assert _extract_created_user('echo "please run useradd bob"') is None
+
+    def test_defaults_flag_rejected(self):
+        """`useradd -D` / `--defaults` shows defaults but creates nothing.
+        Parsing the positional arg would mis-identify a value as the user."""
+        from quickhatch.gui.server import _extract_created_user
+
+        assert _extract_created_user("useradd -D") is None
+        assert _extract_created_user("useradd --defaults") is None
+
+    def test_looking_at_useradd_conf_rejected(self):
+        from quickhatch.gui.server import _extract_created_user
+
+        assert _extract_created_user("cat /etc/useradd.conf") is None
+
+
 class TestRebootCommandDetection:
     @pytest.mark.parametrize(
         "cmd",

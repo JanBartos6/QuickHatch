@@ -47,7 +47,11 @@ def _write_prompt_file(profile: UserProfile, port: int) -> Path:
         f"app compatibility breakdown, driver plan, and desktop config.\n"
     )
 
-    prompt_file = Path(".quickhatch-prompt.txt")
+    # Write under $HOME, not CWD — if quickhatch was launched from a
+    # read-only dir (Program Files etc.) the write would otherwise raise,
+    # and leaving prompt files scattered in random directories pollutes
+    # the filesystem + leaks the profile contents.
+    prompt_file = Path.home() / ".quickhatch-prompt.txt"
     prompt_file.write_text(prompt, encoding="utf-8")
     return prompt_file
 

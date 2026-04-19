@@ -100,7 +100,20 @@ class BridgeState:
             return
         try:
             data = json.loads(self._persist_path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
+        except (json.JSONDecodeError, OSError) as exc:
+            # Move the corrupt file aside so the next run starts clean —
+            # mirrors what load_checkpoint does for the profile.
+            import sys as _sys
+
+            backup = self._persist_path.with_suffix(self._persist_path.suffix + ".corrupt")
+            try:
+                self._persist_path.rename(backup)
+            except OSError:
+                pass
+            print(
+                f"[quickhatch] persisted suggestions corrupt ({exc}); moved to {backup}.",
+                file=_sys.stderr,
+            )
             return
         saved_fp = data.get("profile_fingerprint")
         current_fp = self._profile_fingerprint()
@@ -144,9 +157,17 @@ class BridgeState:
         # already complete — but the previous suggestions are visible.
 
     def _persist(self) -> None:
-        """Write suggestions + messages + questions to disk. Call under lock."""
+        """Atomically write suggestions + messages + questions to disk.
+
+        Writes to a `.tmp` sibling and `os.replace`s into place so a
+        crash / SIGKILL / disk-full mid-write can't leave the main
+        persistence file truncated. Silent discard on OSError — never
+        crash the agent over a checkpoint write.
+        """
         if self._persist_path is None:
             return
+        import os as _os
+
         try:
             payload = {
                 "profile_fingerprint": self._profile_fingerprint(),
@@ -167,9 +188,12 @@ class BridgeState:
                 ],
                 "saved_at": time.time(),
             }
-            self._persist_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+            data = json.dumps(payload, indent=2)
+            tmp = self._persist_path.with_suffix(self._persist_path.suffix + ".tmp")
+            tmp.write_text(data, encoding="utf-8")
+            _os.replace(tmp, self._persist_path)
         except OSError:
-            pass  # best-effort — never crash the agent over a write
+            pass  # best-effort
 
     def reset_for_rerun(self) -> None:
         """Clear suggestions and done state for a fresh agent run.
@@ -243,6 +267,7 @@ class BridgeState:
             for s in self.suggestions:
                 if s.id == sid:
                     s.accepted = accepted
+                    self._persist()
                     return True
         return False
 
@@ -286,9 +311,22 @@ def _make_handler(state: BridgeState):
             self.wfile.write(json.dumps(data).encode())
 
         def _read_json(self) -> Any:
-            length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(length)
-            return json.loads(body) if body else {}
+            # Cap body size — prevents a malicious Content-Length of 2 GB
+            # from forcing us to read / allocate that much.
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+            except (TypeError, ValueError):
+                length = 0
+            _MAX_BODY = 8 * 1024 * 1024  # 8 MiB
+            if length > _MAX_BODY:
+                return {}
+            body = self.rfile.read(max(length, 0))
+            if not body:
+                return {}
+            try:
+                return json.loads(body)
+            except (json.JSONDecodeError, ValueError, UnicodeDecodeError):
+                return {}
 
         def do_OPTIONS(self):
             self.send_response(200)

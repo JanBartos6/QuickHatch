@@ -96,6 +96,16 @@ class TestRepeatedCommandHint:
         hint = _advise_on_repeated_failure(cmd, "unhelpful output", recent=recent)
         assert hint is not None
         assert "failed" in hint.lower() or "cleanup" in hint.lower()
+        # Count matches the actual failures, not +1 (recent includes current)
+        assert "3 times" in hint
+        assert "4 times" not in hint
+
+    def test_two_fails_same_command_triggers_generic_hint(self):
+        """Generic hint should fire on the 2nd failure, not wait for 3rd."""
+        cmd = "weird-tool"
+        hint = _advise_on_repeated_failure(cmd, "unhelpful output", recent=[(cmd, 1), (cmd, 1)])
+        assert hint is not None
+        assert "2 times" in hint
 
     def test_single_failure_no_match_returns_none(self):
         """First failure with no pattern match — don't spam hints."""

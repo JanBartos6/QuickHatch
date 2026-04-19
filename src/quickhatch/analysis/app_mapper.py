@@ -12,15 +12,32 @@ from quickhatch.console import print_info
 def _load_db() -> dict:
     db_path = Path(__file__).parent.parent / "data" / "app_alternatives.json"
     if db_path.exists():
-        return json.loads(db_path.read_text())
+        # Explicit utf-8 — Windows default cp1252 crashes on the non-ASCII
+        # characters in some app names.
+        return json.loads(db_path.read_text(encoding="utf-8"))
     return {}
 
 
 def _fuzzy_match(app_name: str, db: dict) -> str | None:
-    """Try to match an app name against the database keys."""
+    """Try to match an app name against the database keys.
+
+    Bidirectional substring match for keys ≥ 3 chars. Skips 1-2 char
+    keys entirely — those (e.g. "c", "go", "r") would poison the
+    mapping by matching nearly every app name.
+    """
     app_lower = app_name.lower().strip()
+    if not app_lower:
+        return None
+    # Exact first
     for key in db:
-        if key.lower() in app_lower or app_lower in key.lower():
+        if key.lower() == app_lower:
+            return key
+    # Then bidirectional substring, min-length-gated
+    for key in db:
+        key_lower = key.lower()
+        if len(key_lower) < 3:
+            continue
+        if key_lower in app_lower or app_lower in key_lower:
             return key
     return None
 

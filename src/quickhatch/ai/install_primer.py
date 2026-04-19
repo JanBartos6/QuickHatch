@@ -65,7 +65,11 @@ def resolve_primer(distro: str | None) -> dict[str, Any] | None:
     #    ("archlinux" → "arch", "fedoralinux" → "fedora", "endeavouros" stays).
     import re
 
-    stripped = re.sub(r"(linux|-linux|os)$", "", needle)
+    # Only strip "linux" / "-linux" suffixes, NOT bare "os" — the latter
+    # over-strips ("chromeos" → "chrome", "archos" → "arch" which would
+    # spuriously match Arch's primer). Distro-"os" variants (endeavouros,
+    # centos) stay reachable through their explicit aliases.
+    stripped = re.sub(r"-?linux$", "", needle)
     if stripped and stripped != needle:
         for entry in _load_index().get("distros", []):
             if _normalize(entry.get("canonical", "")) == stripped:

@@ -14,6 +14,28 @@ from quickhatch.config import DiskInfo, GPUInfo, HardwareInfo
 from quickhatch.console import print_info
 
 
+def _parse_adapter_ram(raw: str | None) -> int | None:
+    """Parse wmic's AdapterRAM field to MB.
+
+    Three gotchas:
+    - wmic reports AdapterRAM as a signed 32-bit int. A GPU with >= 2 GiB
+      VRAM overflows to a negative number; >=4 GiB wraps to ~0.
+    - Empty string / "0" → None (genuinely unknown, don't claim 0).
+    - Non-numeric → None rather than crash.
+    """
+    if not raw:
+        return None
+    try:
+        ram = int(raw)
+    except (ValueError, TypeError):
+        return None
+    if ram <= 0:
+        # Signed overflow or unknown. Better to surface None than lie.
+        return None
+    mb = ram // (1024 * 1024)
+    return mb or None
+
+
 def _get_cpu() -> tuple[str, int]:
     """Get CPU name and core count."""
     cpu_name = platform.processor() or "Unknown CPU"
@@ -109,24 +131,27 @@ def _get_gpus() -> list[GPUInfo]:
                 elif not line and current:
                     name = current.get("Name", "")
                     if name:
-                        vram = None
-                        try:
-                            vram = int(current.get("AdapterRAM", "0")) // (1024 * 1024)
-                        except (ValueError, TypeError):
-                            pass
                         gpus.append(
                             GPUInfo(
                                 name=name,
                                 vendor=_vendor_from_name(name),
-                                vram_mb=vram if vram else None,
+                                vram_mb=_parse_adapter_ram(current.get("AdapterRAM")),
                                 driver_version=current.get("DriverVersion"),
                             )
                         )
                     current = {}
-            # Handle last entry
+            # Handle last entry — include vram + driver_version like
+            # the in-loop case does.
             if current and current.get("Name"):
                 name = current["Name"]
-                gpus.append(GPUInfo(name=name, vendor=_vendor_from_name(name)))
+                gpus.append(
+                    GPUInfo(
+                        name=name,
+                        vendor=_vendor_from_name(name),
+                        vram_mb=_parse_adapter_ram(current.get("AdapterRAM")),
+                        driver_version=current.get("DriverVersion"),
+                    )
+                )
 
         except (FileNotFoundError, subprocess.TimeoutExpired):
             pass

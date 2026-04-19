@@ -155,6 +155,10 @@ class GUIState:
         # Instructions shown to the user during the assisted flow —
         # {"public_key": ..., "paste_snippet": ...}. Cleared after finish.
         self.vm_assisted_prompt: dict | None = None
+        # The currently-running agent thread (analysis or setup). Used to
+        # reject concurrent /wizard/launch-agent calls — two overlapping
+        # agents share bridge state and race on suggestions/messages.
+        self._agent_thread: threading.Thread | None = None
 
     def update_profile(self, updates: dict) -> None:
         """Apply partial updates to the profile from the web UI."""
@@ -830,9 +834,17 @@ def make_gui_server(
             elif self.path == "/wizard/vm-verify/run":
                 data = self._read_json()
                 iso_path = (data.get("iso_path") or "").strip() or None
-                if gui_state.vm_verify_running:
-                    self._send_json({"status": "error", "message": "VM verify already running"})
-                else:
+                # TOCTOU-safe: flip the flag under the lock BEFORE
+                # spawning. Two near-simultaneous POSTs used to both
+                # pass the check and both start threads.
+                spawn = False
+                with gui_state.lock:
+                    if gui_state.vm_verify_running:
+                        self._send_json({"status": "error", "message": "VM verify already running"})
+                    else:
+                        gui_state.vm_verify_running = True
+                        spawn = True
+                if spawn:
                     t = threading.Thread(
                         target=_run_vm_verify,
                         args=(gui_state, iso_path),
@@ -2105,23 +2117,34 @@ def _launch_agent(
     if not config.endpoint:
         return {"status": "error", "message": "No API endpoint configured. Go back to AI setup."}
 
-    # Check if this is a setup-phase launch (SSH into Linux machine)
-    if phase == "setup":
-        thread = threading.Thread(
-            target=_run_setup_agent,
-            args=(gui_state, port),
-            daemon=True,
-        )
-        thread.start()
-        return {"status": "ok", "message": "Setup agent started! Connecting via SSH..."}
+    # Refuse concurrent launches — a second agent thread would race with
+    # the first on bridge.suggestions, messages, and agent_done. The UI
+    # can show a "stop first" hint on the 409.
+    with gui_state.lock:
+        if gui_state._agent_thread is not None and gui_state._agent_thread.is_alive():
+            return {
+                "status": "error",
+                "message": "An agent is already running. Click Stop first (or wait for it).",
+            }
 
-    thread = threading.Thread(
-        target=_run_agent_background,
-        args=(gui_state, port),
-        kwargs={"user_feedback": user_feedback},
-        daemon=True,
-    )
-    thread.start()
+        if phase == "setup":
+            thread = threading.Thread(
+                target=_run_setup_agent,
+                args=(gui_state, port),
+                daemon=True,
+            )
+        else:
+            thread = threading.Thread(
+                target=_run_agent_background,
+                args=(gui_state, port),
+                kwargs={"user_feedback": user_feedback},
+                daemon=True,
+            )
+        gui_state._agent_thread = thread
+        thread.start()
+
+    if phase == "setup":
+        return {"status": "ok", "message": "Setup agent started! Connecting via SSH..."}
     return {"status": "ok", "message": "Agent started! Analyzing your system..."}
 
 
@@ -2378,11 +2401,18 @@ _REBOOT_COMMAND_RE = re.compile(
 # the line — useradd's final positional arg is always the login name.
 # Works on both `useradd quickhatch` and `useradd -m -G wheel ... jan`.
 _USERADD_RE = re.compile(
-    # Allow quotes as the boundary before `useradd` so `sh -c "useradd jan"`
-    # style invocations inside arch-chroot are matched. Consume args
-    # until a command separator or EOL; caller strips trailing quotes
-    # and flag-value pairs.
-    r"""(?:^|[;\s"'`]|&&|\|\|)useradd\s+([^;&|\n\r]+)""",
+    # `useradd` must be at a genuine command position:
+    #   - start of string / line / after a command separator (; && || |)
+    #   - after a shell-wrapper quote that opens a command (sh -c "useradd...)
+    # An optional `sudo ` / `eval ` / `env VAR=VAL ` prefix is tolerated.
+    # NOT matched: `echo useradd bob`, `cat /etc/useradd.conf` — those have
+    # a bare identifier (e.g. `echo`) right before `useradd`, which isn't
+    # a command-boundary.
+    r"""(?:^|[;&|]\s*|&&\s*|\|\|\s*|["'`])"""
+    # optional command prefixes that wrap a real command
+    r"""(?:sudo\s+|eval\s+|env\s+(?:\w+=\S+\s+)*)?"""
+    r"""useradd\s+([^;&|\n\r]+)""",
+    re.IGNORECASE,
 )
 
 
@@ -2395,16 +2425,28 @@ def _extract_created_user(cmd: str) -> str | None:
     post-reboot reconnect — otherwise SSH keeps trying to log in as
     the live-ISO's root, which doesn't exist on the installed system.
     """
-    m = _USERADD_RE.search(cmd)
-    if not m:
+    # Reject comment lines outright — a `# useradd ...` trail in a
+    # shell comment must never flip the real profile username.
+    for line in cmd.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith("#"):
+            continue  # this line is a comment, skip it
+        # Non-comment line — run the regex against this line only.
+        m = _USERADD_RE.search(line)
+        if m:
+            break
+    else:
+        return None
+    # Reject `useradd -D` / `--defaults` — that flag SHOWS defaults, it
+    # doesn't create anyone. Parsing the positional arg would mis-
+    # identify a value like the group name as the "created user".
+    if re.search(r"(?:^|\s)(-D|--defaults)(?:\s|$)", m.group(0)):
         return None
     tail = m.group(1)
     # Strip trailing closing quotes / backticks that belong to the outer
     # shell wrapper (e.g. `sh -c "useradd -m foo"` → tail is `-m foo"`).
     tail = tail.rstrip("\"'` \t")
     tokens = tail.split()
-    # Walk right-to-left, skip flag values and the flags themselves.
-    skip_next = False
     flags_with_values = {
         "-c",
         "--comment",
@@ -2431,13 +2473,13 @@ def _extract_created_user(cmd: str) -> str | None:
         "-K",
         "--key",
     }
-    for tok in reversed(tokens):
-        if skip_next:
-            skip_next = False
-            continue
+    # Walk right-to-left with real indices (not tokens.index(tok), which
+    # returns the FIRST match — if a username happens to equal an
+    # earlier flag value, the boundary check misfires).
+    for idx in range(len(tokens) - 1, -1, -1):
+        tok = tokens[idx]
         if tok.startswith("-"):
             continue
-        idx = tokens.index(tok)
         if idx > 0 and tokens[idx - 1] in flags_with_values:
             continue
         # Strip surrounding single/double quotes/backticks if the arg
@@ -2506,18 +2548,25 @@ def _advise_on_repeated_failure(
     """
     import re as _re
 
+    # `recent` INCLUDES the just-appended current event, so the count is
+    # already accurate — don't add 1.
     same_cmd_fails = sum(1 for c, rc in recent[-3:] if c == cmd and rc != 0)
-    if same_cmd_fails < 2:
-        # Not repeating yet — but still surface a pattern match on first fail
-        # so we can short-circuit what would otherwise be a repeat loop.
-        pass
+
+    # Pattern-match: surface a specific hint as soon as the output shape is
+    # recognisable (even on the very first fail). Keeps us from waiting
+    # for repetition on known-shape errors like lockfiles / disk full.
     lower = (combined_output or "").lower()
     for pattern, hint in _FAILURE_HINTS:
         if _re.search(pattern, lower, _re.IGNORECASE):
             return hint
+
+    # No pattern match → only surface the generic "you're looping" hint
+    # when the same command has failed at least TWICE. Avoids spamming
+    # the chat on one-off probe failures the agent already expects
+    # (e.g. `which yay` returning rc=1 when yay isn't installed yet).
     if same_cmd_fails >= 2:
         return (
-            f"This exact command has failed {same_cmd_fails + 1} times in a "
+            f"This exact command has failed {same_cmd_fails} times in a "
             f"row with no change. Consider: (a) reading the FULL stderr "
             f"(some tools redirect it to a log file — check /tmp, /var/log, "
             f"or the program's own lock/cache dir), (b) cleaning up stale "
@@ -2793,6 +2842,9 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
         # permissions) — covers the whole 'WhiteSur /tmp/*.lock' class
         # where the real error is hidden and the model loops.
         recent_exits: list[tuple[str, int]] = []
+        # Count of consecutive blank model responses — three in a row
+        # ends the run instead of looping forever.
+        blank_turns = 0
 
         for _iteration in range(MAX_ITERATIONS):
             # Honor Stop requests from the UI
@@ -2851,6 +2903,17 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                 # First message must be user per the API spec.
                 if a_msgs[0]["role"] != "user":
                     a_msgs.insert(0, {"role": "user", "content": "Continue from the last action."})
+                # Anthropic rejects two consecutive same-role messages with a
+                # 400. After our history-prune injects a `summary_msg` with
+                # role=user, the next tail message may also be `user` (e.g.
+                # pending_feedback). Merge any consecutive same-role runs.
+                merged: list[dict[str, str]] = []
+                for m in a_msgs:
+                    if merged and merged[-1]["role"] == m["role"]:
+                        merged[-1]["content"] = merged[-1]["content"] + "\n\n" + m["content"]
+                    else:
+                        merged.append(dict(m))
+                a_msgs = merged
                 resp = requests.post(
                     "https://api.anthropic.com/v1/messages",
                     headers={
@@ -2897,6 +2960,32 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                 # empty list, unexpected shape) this returns '' instead of
                 # raising KeyError and tearing down the agent thread.
                 response_text = _extract_openai_text(resp.json())
+
+            # If the model produced nothing (empty content AND empty
+            # reasoning), don't append a blank assistant turn — some
+            # providers reject the next request's empty-content turn,
+            # and _extract_json_objects on '' sends us into the
+            # "non-JSON" branch forever. Retry up to 3 times, then bail.
+            if not response_text or not response_text.strip():
+                blank_turns += 1
+                if blank_turns >= 3:
+                    bridge.add_message(
+                        "agent",
+                        "Model returned blank responses 3 times in a row — "
+                        "stopping. Try a different model or temperature.",
+                    )
+                    req.post(
+                        f"{base}/api/done",
+                        json={"summary": "Agent stopped: blank model output."},
+                        timeout=5,
+                    )
+                    return
+                bridge.add_message(
+                    "agent",
+                    f"Model returned empty content ({blank_turns}/3) — retrying.",
+                )
+                continue
+            blank_turns = 0  # reset on any real response
 
             # Append assistant response to history
             messages.append({"role": "assistant", "content": response_text})
