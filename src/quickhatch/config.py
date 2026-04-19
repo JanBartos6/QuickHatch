@@ -7,6 +7,39 @@ from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
 
+def _checkpoint_path() -> Path:
+    """Absolute default checkpoint path under the user's home directory.
+
+    Placed alongside ``~/.quickhatch-suggestions.json`` so both pieces of
+    persistent wizard state follow the same convention.
+    """
+    return Path.home() / ".quickhatch-checkpoint.json"
+
+
+def _migrate_legacy_checkpoint(new_path: Path) -> None:
+    """One-shot migration from the old CWD-relative checkpoint location.
+
+    Previously the checkpoint lived at ``./.quickhatch-checkpoint.json``
+    relative to whatever directory QuickHatch was launched from. That
+    meant users who relaunched from a different cwd silently lost their
+    wizard progress. Detect the legacy file on first load and move it
+    into ``~/.quickhatch-checkpoint.json``.
+
+    Only runs when the NEW path doesn't exist — never overwrites a
+    newer home-directory checkpoint with an older local one.
+    """
+    if new_path.exists():
+        return
+    legacy = Path(".quickhatch-checkpoint.json")
+    if not legacy.exists():
+        return
+    try:
+        new_path.parent.mkdir(parents=True, exist_ok=True)
+        legacy.replace(new_path)
+    except OSError:
+        pass  # best-effort — caller will treat as "no checkpoint"
+
+
 @dataclass
 class AppInfo:
     """Information about an installed Windows application."""
@@ -108,25 +141,50 @@ class UserProfile:
     completed_steps: list[str] = field(default_factory=list)
 
     def save_checkpoint(self, path: Path | None = None) -> Path:
-        """Save current state to a checkpoint file."""
+        """Save current state to a checkpoint file.
+
+        Default path is ``~/.quickhatch-checkpoint.json`` — anchored to
+        $HOME so the checkpoint survives a CWD change between runs
+        (previously this was a bare relative path, so launching
+        QuickHatch from a different directory silently lost state).
+        Writes are atomic (tmp + os.replace) so a crash mid-write can't
+        truncate the file.
+        """
         if path is None:
-            path = Path(".quickhatch-checkpoint.json")
+            path = _checkpoint_path()
         data = asdict(self)
         # Redact sensitive data from checkpoint
         if data.get("ai_config", {}).get("api_key"):
             data["ai_config"]["api_key"] = "***REDACTED***"
-        path.write_text(json.dumps(data, indent=2))
+        serialized = json.dumps(data, indent=2)
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            tmp.write_text(serialized, encoding="utf-8")
+            import os as _os
+
+            _os.replace(tmp, path)
+        except OSError:
+            # Best-effort — don't crash the wizard over a checkpoint write.
+            pass
         return path
 
     @classmethod
     def load_checkpoint(cls, path: Path | None = None) -> UserProfile | None:
-        """Load state from a checkpoint file, or return None if not found."""
+        """Load state from a checkpoint file, or return None if not found.
+
+        Transparently migrates from the legacy CWD-relative path
+        (``./.quickhatch-checkpoint.json``) to ``~/.quickhatch-checkpoint.json``
+        on first read: if the HOME path is missing but a file exists in
+        the current directory, move it there.
+        """
         if path is None:
-            path = Path(".quickhatch-checkpoint.json")
+            path = _checkpoint_path()
+            _migrate_legacy_checkpoint(path)
         if not path.exists():
             return None
         try:
-            data = json.loads(path.read_text())
+            data = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError) as exc:
             # Corrupted JSON — move it aside so the user still has a copy
             # and we can start fresh next time. Surface a clear message.
