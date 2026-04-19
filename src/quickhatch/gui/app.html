@@ -1242,6 +1242,8 @@ const stepRenderers={
   questionnaire(){
     const prefs=currentPrefs();
     const useCasesText=Array.isArray(prefs.use_cases)?prefs.use_cases.join(', '):(prefs.use_cases||'');
+    const anotherMachine=(prefs.another_machine||'');
+    const customize=isCustomizeMode();
     content().innerHTML=`
       <div class="card">
         <h2>Describe your ideal desktop</h2>
@@ -1259,9 +1261,22 @@ const stepRenderers={
           <div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Comma-separated. Affects app suggestions and which designs get prioritized.</div>
         </div>
 
-        ${isCustomizeMode()?'':`<div class="field">
+        ${customize?'':`<div class="field">
           <label>Preferred Linux distribution <span class="muted" style="font-weight:400">(optional)</span></label>
           <input type="text" id="distroPref" value="${escHtml(prefs.distro_preference||'')}" placeholder="Leave blank and the AI will recommend one based on your hardware">
+        </div>`}
+
+        ${customize?'':`
+        <div class="field">
+          <label>Will you have a second machine (or device) available during the Linux install?</label>
+          <div class="pill-grid" id="anotherMachineGrid">
+            <span class="pill${anotherMachine==='yes'?' selected':''}" data-value="yes" onclick="pickAnotherMachine(this)">Yes — I'll keep this PC on, or have another device</span>
+            <span class="pill${anotherMachine==='no'?' selected':''}" data-value="no" onclick="pickAnotherMachine(this)">No — this is my only machine, I'll be installing from a live USB</span>
+          </div>
+          <div class="muted" style="font-size:var(--t-xs);margin-top:var(--s2);line-height:1.5">
+            <strong>If yes</strong>, the AI agent runs live during install — it SSHes in, watches each command's output, and recovers from errors on its own. Higher quality, needs the other device online the whole time. You'll also get an option to transfer data from Windows.<br>
+            <strong>If no</strong>, the wizard generates a self-contained install script you run from the live USB. Data transfer is manual in that case, so we skip that question.
+          </div>
         </div>`}
 
         <div class="btn-row">
@@ -1329,6 +1344,7 @@ const stepRenderers={
 
         <hr>
 
+        ${(state.profile.preferences?.another_machine==='yes')?`
         <div class="field">
           <label>How will you move your files to Linux?</label>
           <p class="muted" style="font-size:var(--t-xs);margin-bottom:var(--s2)">QuickHatch doesn't copy Windows files directly. Pick how you'll do it so the plan can include the right steps.</p>
@@ -1350,7 +1366,11 @@ const stepRenderers={
           <label>What's important?</label>
           <p class="muted" style="font-size:var(--t-xs);margin-bottom:var(--s2)">Tell the agent what to watch for — it'll include the specific steps in the plan.</p>
           <textarea id="dataDesc" placeholder="e.g. browser bookmarks and passwords, Documents and Pictures folders, game saves in %APPDATA%, SSH keys, Git repos, IDE settings…">${escHtml(state.profile.data_description||'')}</textarea>
-        </div>
+        </div>`:`
+        <div class="info-box">
+          <strong>Offline install — data transfer is manual.</strong>
+          <p class="muted" style="font-size:var(--t-xs);margin:var(--s1) 0 0">Since you're doing a single-machine install from a live USB, there's no live agent to run transfer commands. Back up anything you care about to external media or cloud before you start; after Linux boots, plug it back in and copy it over.</p>
+        </div>`}
 
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
@@ -1364,8 +1384,6 @@ const stepRenderers={
   },
 
   additional(){
-    const anotherMachine=(state.profile.preferences?.another_machine||'');
-    const customize=isCustomizeMode();
     content().innerHTML=`
       <div class="card">
         <h2>Anything else?</h2>
@@ -1373,19 +1391,6 @@ const stepRenderers={
         <div class="field">
           <textarea id="additionalInfo" placeholder="e.g. dual-boot with Windows on the second drive, Btrfs with snapshots, enable full-disk encryption, HiDPI scaling at 200%, liquid-cooling pump on a custom fan curve…">${escHtml(state.profile.additional_info||'')}</textarea>
         </div>
-        ${customize?'':`
-        <div class="field" style="margin-top:var(--s4)">
-          <label>Will you have a second machine (or device) available during the Linux install?</label>
-          <div class="pill-grid" id="anotherMachineGrid">
-            <span class="pill${anotherMachine==='yes'?' selected':''}" data-value="yes" onclick="pickAnotherMachine(this)">Yes — I'll keep this PC on, or have another device</span>
-            <span class="pill${anotherMachine==='no'?' selected':''}" data-value="no" onclick="pickAnotherMachine(this)">No — this is my only machine, I'll be installing from a live USB</span>
-          </div>
-          <div class="muted" style="font-size:var(--t-xs);margin-top:var(--s2);line-height:1.5">
-            <strong>If yes</strong>, the AI agent runs live during install — it SSHes in, watches each command's output, and recovers from errors on its own. Higher quality, needs the other device online the whole time.<br>
-            <strong>If no</strong>, the AI writes a single offline install script up front. You run it on the live USB with no internet-to-the-agent needed during install. Quality depends on the plan being right the first time since there's no feedback loop — best for straightforward setups.
-          </div>
-        </div>
-        `}
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
           <button class="btn btn-primary" onclick="submitAdditional()">Continue</button>
@@ -2079,10 +2084,24 @@ async function submitPrefs(){
   const useCases=useCasesRaw
     ?useCasesRaw.split(',').map(s=>s.trim()).filter(Boolean)
     :[];
+  // Read the another_machine pill if present (migration mode only).
+  // Validate: user must pick a value before proceeding, because the
+  // next step's UI branches on it (data-transfer shown vs hidden).
+  const grid=el('anotherMachineGrid');
+  let anotherMachine=state.profile.preferences?.another_machine||'';
+  if(grid){
+    const sel=grid.querySelector('.pill.selected');
+    anotherMachine=sel?sel.dataset.value:'';
+    if(!anotherMachine){
+      toast('Pick whether you have a second machine available during install.','error');
+      return;
+    }
+  }
   const prefs={
     desktop_look:designDesc,
     use_cases:useCases,
     distro_preference:(el('distroPref')||{}).value||null,
+    another_machine:anotherMachine,
     // Legacy fields kept in the schema but no longer user-facing. The
     // curated library + the free-text description above give the harness
     // everything it needs; dedicated icon/wallpaper/picks inputs were
@@ -2091,7 +2110,11 @@ async function submitPrefs(){
     wallpaper_style:'',
     gallery_picks:[],
   };
-  await saveProfile({preferences:prefs});await completeStep('questionnaire');
+  await saveProfile({preferences:prefs});
+  // Step list depends on another_machine: refresh now so the next
+  // render shows the correct subsequent steps.
+  refreshSteps();
+  await completeStep('questionnaire');
 }
 async function runScan(){
   const btn=el('scanBtn');
@@ -2294,7 +2317,20 @@ function updateAppsStats(){
 async function submitAppsData(){
   const checked=state._appsSelected?[...state._appsSelected]:[...document.querySelectorAll('.app-check:checked')].map(c=>c.value);
   const dataDesc=(el('dataDesc')||{}).value||'';
-  const transfer=getSelected('dataTransfer')||'';
+  // The data-transfer block is only rendered when another_machine === 'yes'
+  // (see apps_data()). When it's present, the user MUST pick one of the
+  // four options — otherwise the migration plan can't include the right
+  // transfer steps. When it's not rendered (offline install), skip the
+  // check and leave data_transfer_method unset.
+  const hasTransferGrid=!!el('dataTransfer');
+  let transfer='';
+  if(hasTransferGrid){
+    transfer=getSelected('dataTransfer')||'';
+    if(!transfer){
+      toast('Pick how you\'ll move your files to Linux before continuing.','error');
+      return;
+    }
+  }
   await saveProfile({
     apps_to_install:checked,
     data_description:dataDesc,
@@ -2304,19 +2340,10 @@ async function submitAppsData(){
 }
 
 async function submitAdditional(){
+  // another_machine moved upstream to the questionnaire step, so this
+  // handler is now just the free-text notes field.
   const payload={additional_info:el('additionalInfo').value};
-  // Capture the "another machine" choice if the grid is present
-  const grid=el('anotherMachineGrid');
-  if(grid){
-    const selected=grid.querySelector('.pill.selected');
-    const choice=selected?selected.dataset.value:'';
-    // Merge into preferences (don't clobber other fields)
-    const prefs=state.profile.preferences||{};
-    payload.preferences={...prefs,another_machine:choice};
-  }
   await saveProfile(payload);
-  // Re-compute the step list: answer changes whether Remote Setup is needed
-  refreshSteps();
   await completeStep('additional');
 }
 
