@@ -83,47 +83,42 @@ def _prompt_model_choice(
     provider_kind: str,
     endpoint: str,
     api_key: str,
-    fallback_example: str,
+    fallback_example: str,  # retained for signature compat; unused now
     default: str | None = None,
 ) -> str | None:
-    """Fetch models; on success offer a picker with an 'Other…' fallback.
-    On fetch failure, fall back to free-text entry. Returns the chosen
-    model id, or None if the user aborts (Ctrl+C).
+    """Fetch the live model list and force the user to pick from it.
+
+    No free-text fallback: if the fetch fails, we retry (network blip,
+    wrong key) rather than let the user type a model id that may not
+    actually exist. This makes bad configs surface at setup-time, not
+    at the first /chat/completions call 10 minutes into a run.
+
+    Returns the chosen model id, or None if the user aborts.
     """
-    models = _fetch_api_models(provider_kind, endpoint, api_key)
-    OTHER = "Other… (type model id manually)"
-    if models:
-        # Try to preselect a sensible default if present in the list.
-        preselect = None
-        if default and default in models:
-            preselect = default
-        choice = questionary.select(
-            f"Pick a {provider_label} model ({len(models)} available):",
-            choices=models + [OTHER],
-            default=preselect,
-        ).ask()
-        if choice is None:
-            return None
-        if choice != OTHER:
-            return choice
-        # fall through to free-text
-    else:
-        print_warning(
-            f"Could not list {provider_label} models automatically "
-            f"(network down, bad API key, or endpoint unreachable). "
-            f"Enter the model id manually."
-        )
+    del fallback_example  # legacy parameter, ignored
     while True:
-        model = questionary.text(
-            f"{provider_label} model id (e.g. {fallback_example}):",
-            default=default or "",
+        models = _fetch_api_models(provider_kind, endpoint, api_key)
+        if models:
+            preselect = default if (default and default in models) else None
+            return questionary.select(
+                f"Pick a {provider_label} model ({len(models)} available):",
+                choices=models,
+                default=preselect,
+            ).ask()
+        print_warning(
+            f"Could not list {provider_label} models. Most common causes: "
+            f"bad API key, no network, wrong base URL, or the account has "
+            f"no models enabled. Endpoint tried: {endpoint}"
+        )
+        retry = questionary.select(
+            "What now?",
+            choices=[
+                questionary.Choice("Retry fetch", value="retry"),
+                questionary.Choice("Abort (I'll fix and restart the wizard)", value="abort"),
+            ],
         ).ask()
-        if model is None:
+        if retry != "retry":
             return None
-        model = (model or "").strip()
-        if model:
-            return model
-        print_info("Please enter a model id.")
 
 
 def run(profile: UserProfile) -> None:
@@ -165,48 +160,44 @@ def run(profile: UserProfile) -> None:
 
     elif provider == "local_ollama":
         endpoint = "http://localhost:11434"
-        print_info("Checking local Ollama at " + endpoint + " …")
-        ollama_models = _fetch_ollama_models(endpoint)
-        OTHER = "Other… (type model name manually)"
-        if ollama_models:
-            print_success(f"Ollama detected with {len(ollama_models)} model(s) pulled.")
-            choice = questionary.select(
-                "Which model do you want to use?",
-                choices=ollama_models + [OTHER],
-            ).ask()
-            if choice is None:
-                raise KeyboardInterrupt
-            if choice != OTHER:
-                model = choice
-            else:
-                model = None
-        else:
-            print_warning(
-                "Could not reach Ollama at localhost:11434, or no models are "
-                "pulled. Make sure Ollama is running (`ollama serve`) and you "
-                "have pulled at least one model (`ollama pull llama3`)."
-            )
-            model = None
-        if model is None:
-            while True:
-                model = questionary.text(
-                    "Ollama model name (e.g. llama3, qwen3:32b, deepseek-coder):",
-                    default="llama3",
+        # Loop until a real fetched model is picked or the user aborts.
+        # No free-text fallback — typing a model name that isn't pulled
+        # would only surface as a 404 on the first agent turn.
+        while True:
+            print_info(f"Checking local Ollama at {endpoint} …")
+            ollama_models = _fetch_ollama_models(endpoint)
+            if ollama_models:
+                print_success(f"Ollama detected with {len(ollama_models)} model(s) pulled.")
+                model = questionary.select(
+                    "Which model do you want to use?",
+                    choices=ollama_models,
                 ).ask()
                 if model is None:
                     raise KeyboardInterrupt
-                model = (model or "").strip()
-                if model:
-                    break
-                print_info("Please enter a model name.")
+                break
+            print_warning(
+                "Could not reach Ollama, or no models are pulled. Make sure "
+                "`ollama serve` is running and you have run "
+                "`ollama pull <model>` at least once."
+            )
+            choice = questionary.select(
+                "What now?",
+                choices=[
+                    questionary.Choice("Retry", value="retry"),
+                    questionary.Choice("Abort", value="abort"),
+                ],
+            ).ask()
+            if choice != "retry":
+                raise KeyboardInterrupt
         profile.ai_config.model_name = model
         profile.ai_config.endpoint = endpoint
 
     elif provider == "local_lmstudio":
-        print_info("LM Studio will be set up on your new Linux system.")
         endpoint = "http://localhost:1234/v1"
-        models: list[str] = []
-        if _check_local_endpoint(endpoint):
+        # Loop until a real loaded model is picked or the user aborts.
+        while True:
+            print_info(f"Checking LM Studio at {endpoint} …")
+            models: list[str] = []
             try:
                 import requests
 
@@ -216,36 +207,28 @@ def run(profile: UserProfile) -> None:
                     models = [m["id"] for m in data.get("data", []) if m.get("id")]
             except Exception:
                 pass
-
-        model = None
-        OTHER = "Other… (type model name manually)"
-        if models:
-            print_success(f"LM Studio detected with {len(models)} model(s) loaded.")
-            choice = questionary.select(
-                "Which model do you want to use?",
-                choices=models + [OTHER],
-            ).ask()
-            if choice is None:
-                raise KeyboardInterrupt
-            if choice != OTHER:
-                model = choice
-        else:
-            print_warning(
-                "Could not reach LM Studio at localhost:1234, or no models are loaded. "
-                "Make sure LM Studio is running with a model loaded."
-            )
-        if model is None:
-            while True:
-                model = questionary.text(
-                    "LM Studio model name:",
-                    default="local-model",
+            if models:
+                print_success(f"LM Studio detected with {len(models)} model(s) loaded.")
+                model = questionary.select(
+                    "Which model do you want to use?",
+                    choices=models,
                 ).ask()
                 if model is None:
                     raise KeyboardInterrupt
-                model = (model or "").strip()
-                if model:
-                    break
-                print_info("Please enter a model name.")
+                break
+            print_warning(
+                "Could not reach LM Studio at localhost:1234, or no models "
+                "are loaded. Open LM Studio and load a model first."
+            )
+            choice = questionary.select(
+                "What now?",
+                choices=[
+                    questionary.Choice("Retry", value="retry"),
+                    questionary.Choice("Abort", value="abort"),
+                ],
+            ).ask()
+            if choice != "retry":
+                raise KeyboardInterrupt
         profile.ai_config.model_name = model
         profile.ai_config.endpoint = endpoint
 
