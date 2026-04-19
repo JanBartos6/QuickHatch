@@ -2108,7 +2108,7 @@ def _call_model_simple(
     )
 
 
-def _http_post_with_retry(url: str, headers: dict, body: dict, timeout: int) -> "object":
+def _http_post_with_retry(url: str, headers: dict, body: dict, timeout: int) -> object:
     """POST with 2-attempt retry on 429/5xx, honoring Retry-After.
 
     Single attempt for non-retryable failures (4xx other than 429).
@@ -2527,9 +2527,11 @@ def _extract_json_objects(text: str) -> list[dict]:
                     # Replace any `\X` where X isn't a recognised JSON
                     # escape char with `\\X` so the backslash is
                     # interpreted literally.
-                    _VALID_ESC = set('"\\/bfnrtu')
-
-                    def _fix_body(body: str) -> str:
+                    # Bind via default arg so ruff's B023 doesn't flag
+                    # the closure for capturing a "loop variable" — and
+                    # also because it's marginally faster than a free
+                    # variable lookup.
+                    def _fix_body(body: str, _VALID_ESC=frozenset('"\\/bfnrtu')) -> str:
                         out: list[str] = []
                         k = 0
                         while k < len(body):
