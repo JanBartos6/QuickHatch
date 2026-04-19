@@ -86,6 +86,13 @@
       "aliases": ["bazzite", "ublue", "universal-blue"]
     },
     {
+      "file": "nobara.md",
+      "canonical": "Nobara",
+      "family": "fedora",
+      "release_model": "point",
+      "aliases": ["nobara", "nobara-linux", "nobara-project", "nobara-os"]
+    },
+    {
       "file": "rhel-clones.md",
       "canonical": "Rocky Linux",
       "family": "fedora",

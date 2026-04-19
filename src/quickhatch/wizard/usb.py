@@ -137,7 +137,10 @@ def _get_distro_iso_url(distro: str) -> str | None:
     """Get the ISO download URL for a distro."""
     db_path = Path(__file__).parent.parent / "data" / "distros.json"
     if db_path.exists():
-        distros = json.loads(db_path.read_text())
+        # Explicit utf-8 — distros.json contains non-ASCII names
+        # (elementary OS, Pop!_OS, Nobara) that crash under Windows'
+        # cp1252 default on some locales.
+        distros = json.loads(db_path.read_text(encoding="utf-8"))
         for name, info in distros.items():
             if name.lower() == distro.lower():
                 return info.get("iso_url")

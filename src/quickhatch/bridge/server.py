@@ -156,44 +156,58 @@ class BridgeState:
         # agent_done stays False so the UI doesn't think a new run is
         # already complete — but the previous suggestions are visible.
 
-    def _persist(self) -> None:
-        """Atomically write suggestions + messages + questions to disk.
-
-        Writes to a `.tmp` sibling and `os.replace`s into place so a
-        crash / SIGKILL / disk-full mid-write can't leave the main
-        persistence file truncated. Silent discard on OSError — never
-        crash the agent over a checkpoint write.
+    def _serialize_payload_locked(self) -> str | None:
+        """Build the JSON payload string. MUST be called with ``self.lock``
+        held. Returns None when persistence is disabled.
         """
         if self._persist_path is None:
+            return None
+        payload = {
+            "profile_fingerprint": self._profile_fingerprint(),
+            "suggestions": [asdict(s) for s in self.suggestions],
+            "messages": list(self.messages),
+            "questions": [
+                {
+                    "id": q.id,
+                    "question": q.question,
+                    "choices": q.choices,
+                    "answered": q.answered.is_set(),
+                    "answer": q.answer,
+                }
+                for q in self.questions.values()
+            ],
+            "saved_at": time.time(),
+        }
+        try:
+            return json.dumps(payload, indent=2)
+        except (TypeError, ValueError):
+            return None
+
+    def _write_payload_unlocked(self, data: str | None) -> None:
+        """Write a pre-serialized payload to disk. MUST NOT hold the lock.
+        Atomic via tmp-file + os.replace."""
+        if self._persist_path is None or data is None:
             return
         import os as _os
 
         try:
-            payload = {
-                "profile_fingerprint": self._profile_fingerprint(),
-                "suggestions": [asdict(s) for s in self.suggestions],
-                "messages": list(self.messages),
-                # Serialize questions without the threading.Event field
-                # (which isn't JSON-representable). Restore just the
-                # shape: id, question text, choices, answered flag.
-                "questions": [
-                    {
-                        "id": q.id,
-                        "question": q.question,
-                        "choices": q.choices,
-                        "answered": q.answered.is_set(),
-                        "answer": q.answer,
-                    }
-                    for q in self.questions.values()
-                ],
-                "saved_at": time.time(),
-            }
-            data = json.dumps(payload, indent=2)
             tmp = self._persist_path.with_suffix(self._persist_path.suffix + ".tmp")
             tmp.write_text(data, encoding="utf-8")
             _os.replace(tmp, self._persist_path)
         except OSError:
             pass  # best-effort
+
+    def _persist(self) -> None:
+        """Serialize + flush to disk. Callers either:
+         - Hold the lock and call this (LEGACY — holds lock during I/O).
+         - Prefer the split pattern: grab ``_serialize_payload_locked``
+           under lock, release, then call ``_write_payload_unlocked``.
+        Kept for back-compat with call sites we haven't migrated; new
+        mutators should use the split pattern to avoid blocking other
+        threads on disk I/O.
+        """
+        data = self._serialize_payload_locked()
+        self._write_payload_unlocked(data)
 
     def reset_for_rerun(self) -> None:
         """Clear suggestions and done state for a fresh agent run.
@@ -237,7 +251,8 @@ class BridgeState:
         suggestion = Suggestion(id=sid, category=category, title=title, content=content)
         with self.lock:
             self.suggestions.append(suggestion)
-            self._persist()
+            data = self._serialize_payload_locked()
+        self._write_payload_unlocked(data)
         for cb in self._on_suggestion:
             cb(suggestion)
         return sid
@@ -247,7 +262,8 @@ class BridgeState:
         q = PendingQuestion(id=qid, question=question, choices=choices)
         with self.lock:
             self.questions[qid] = q
-            self._persist()
+            data = self._serialize_payload_locked()
+        self._write_payload_unlocked(data)
         for cb in self._on_question:
             cb(q)
         return q
@@ -259,22 +275,29 @@ class BridgeState:
                 return False
             q.answer = answer
             q.answered.set()
-            self._persist()
+            data = self._serialize_payload_locked()
+        self._write_payload_unlocked(data)
         return True
 
     def accept_suggestion(self, sid: str, accepted: bool) -> bool:
+        found = False
+        data: str | None = None
         with self.lock:
             for s in self.suggestions:
                 if s.id == sid:
                     s.accepted = accepted
-                    self._persist()
-                    return True
-        return False
+                    data = self._serialize_payload_locked()
+                    found = True
+                    break
+        if found:
+            self._write_payload_unlocked(data)
+        return found
 
     def add_message(self, role: str, content: str) -> None:
         with self.lock:
             self.messages.append({"role": role, "content": content, "time": time.time()})
-            self._persist()
+            data = self._serialize_payload_locked()
+        self._write_payload_unlocked(data)
         for cb in self._on_message:
             cb(role, content)
 

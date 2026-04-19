@@ -50,6 +50,13 @@ def resolve_primer(distro: str | None) -> dict[str, Any] | None:
     """
     if not distro:
         return None
+    # Defensive: callers occasionally pass non-string values (dicts from
+    # partially-parsed LLM output, Path objects, etc.). Coerce or bail.
+    if not isinstance(distro, str):
+        try:
+            distro = str(distro)
+        except Exception:
+            return None
     needle = _normalize(distro)
     if not needle:
         return None
@@ -165,8 +172,11 @@ def primer_prompt_block(distro: str | None) -> str:
     """
     primer = load_primer_text(distro)
     if primer is None:
+        # Don't print the literal string "None" when no distro was
+        # selected — say so explicitly instead.
+        distro_label = distro if distro else "(not selected)"
         fallback = (
-            f"The requested distro ``{distro}`` is not in QuickHatch's "
+            f"The requested distro ``{distro_label}`` is not in QuickHatch's "
             "curated primer library. "
             "Proceed using your training-data knowledge of that distro's "
             "standard install procedure (live ISO → partition → install → "

@@ -57,13 +57,27 @@ class TestDiskFullHint:
 
 class TestPermissionHint:
     def test_perm_denied(self):
+        # "Permission denied" is a weak pattern (over-matches on probes),
+        # so it only fires after same-command repetition. Simulate that.
+        cmd = "echo foo > /etc/sudoers.d/test"
         hint = _advise_on_repeated_failure(
-            "echo foo > /etc/sudoers.d/test",
+            cmd,
             "bash: /etc/sudoers.d/test: Permission denied",
-            recent=[],
+            recent=[(cmd, 1), (cmd, 1)],
         )
         assert hint is not None
         assert "sudo" in hint.lower() or "permission" in hint.lower()
+
+    def test_perm_denied_single_probe_no_spam(self):
+        """One-off permission-denied on a probe command should NOT fire."""
+        hint = _advise_on_repeated_failure(
+            "test -e /some/path",
+            "test: /some/path: Permission denied",
+            recent=[("test -e /some/path", 1)],
+        )
+        # Weak pattern + single fail → no hint (generic loop hint also
+        # needs 2+ same-cmd fails to fire).
+        assert hint is None
 
 
 class TestNetworkHint:
@@ -78,13 +92,25 @@ class TestNetworkHint:
 
 
 class TestMissingFileHint:
-    def test_file_not_found(self):
+    def test_file_not_found_after_repetition(self):
+        # "No such file" is a weak pattern — it only fires after the
+        # same command has failed twice, otherwise it drowns probe
+        # commands (`ls /maybe`, `cat /etc/maybe.conf`) in noise.
+        cmd = "cat /etc/vconsole.conf"
         hint = _advise_on_repeated_failure(
-            "cat /etc/vconsole.conf",
+            cmd,
             "cat: /etc/vconsole.conf: No such file or directory",
-            recent=[],
+            recent=[(cmd, 1), (cmd, 1)],
         )
         assert hint is not None
+
+    def test_file_not_found_single_probe_no_spam(self):
+        hint = _advise_on_repeated_failure(
+            "ls /maybe-exists",
+            "ls: cannot access '/maybe-exists': No such file or directory",
+            recent=[("ls /maybe-exists", 1)],
+        )
+        assert hint is None
 
 
 class TestRepeatedCommandHint:

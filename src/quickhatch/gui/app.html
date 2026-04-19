@@ -2530,7 +2530,7 @@ async function pollBridge(){
           qa.innerHTML=qd.questions.map(q=>`
             <div class="info-box info-primary" id="qcard-${escHtml(q.id)}">
               <strong>${escHtml(q.question)}</strong>
-              ${q.choices?`<div class="pill-grid" style="margin:var(--s2) 0">${q.choices.map(c=>`<span class="pill" onclick="el('answer-${escHtml(q.id)}').value='${escHtml(c)}'">${escHtml(c)}</span>`).join('')}</div>`:''}
+              ${q.choices?`<div class="pill-grid" style="margin:var(--s2) 0">${q.choices.map(c=>`<span class="pill" data-qid="${escHtml(q.id)}" data-val="${escHtml(c)}">${escHtml(c)}</span>`).join('')}</div>`:''}
               <div class="stack-h" style="margin-top:var(--s2)">
                 <input type="text" id="answer-${escHtml(q.id)}" placeholder="Type your answer…" onkeydown="if(event.key==='Enter')answerQuestion('${escHtml(q.id)}')" style="flex:1">
                 <button class="btn btn-primary" onclick="answerQuestion('${escHtml(q.id)}')">Answer</button>
@@ -2803,7 +2803,7 @@ async function pollSetup(){
           qa.innerHTML=qd.questions.map(q=>`
             <div class="info-box info-primary" id="qcard-${escHtml(q.id)}">
               <strong>${escHtml(q.question)}</strong>
-              ${q.choices?`<div class="pill-grid" style="margin:var(--s2) 0">${q.choices.map(c=>`<span class="pill" onclick="el('answer-${escHtml(q.id)}').value='${escHtml(c)}'">${escHtml(c)}</span>`).join('')}</div>`:''}
+              ${q.choices?`<div class="pill-grid" style="margin:var(--s2) 0">${q.choices.map(c=>`<span class="pill" data-qid="${escHtml(q.id)}" data-val="${escHtml(c)}">${escHtml(c)}</span>`).join('')}</div>`:''}
               <div class="stack-h" style="margin-top:var(--s2)">
                 <input type="text" id="answer-${escHtml(q.id)}" placeholder="Type your answer…" onkeydown="if(event.key==='Enter')answerQuestion('${escHtml(q.id)}')" style="flex:1">
                 <button class="btn btn-primary" onclick="answerQuestion('${escHtml(q.id)}')">Answer</button>
@@ -2824,6 +2824,18 @@ async function pollSetup(){
 
 // ── Init ──
 applyTheme(getTheme());
+// Delegated click handler for question-choice pills. Using data-attrs
+// + addEventListener avoids building JS string literals via HTML
+// interpolation, which otherwise round-trips `'` through entity decode
+// and breaks out of the onclick quote context (XSS).
+document.addEventListener('click',(ev)=>{
+  const pill=ev.target&&ev.target.closest&&ev.target.closest('.pill[data-qid]');
+  if(!pill)return;
+  const qid=pill.getAttribute('data-qid');
+  const val=pill.getAttribute('data-val');
+  const inp=qid?el('answer-'+qid):null;
+  if(inp)inp.value=val==null?'':val;
+});
 (async()=>{
   await loadProfile();
   render();

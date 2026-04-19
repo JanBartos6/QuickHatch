@@ -862,26 +862,58 @@ def make_gui_server(
                     self._send_json(
                         {"status": "error", "message": "ISO path required for boot test"}
                     )
-                elif gui_state.vm_assisted_session is not None:
-                    self._send_json(
-                        {
-                            "status": "error",
-                            "message": "A VM session is already active — cancel it first",
-                        }
-                    )
                 else:
-                    result = _start_vm_assisted(gui_state, iso_path)
-                    self._send_json(result)
+                    # TOCTOU: reserve the slot under the lock before
+                    # doing any work that ends up assigning back into
+                    # vm_assisted_session. Use a sentinel to claim it.
+                    claim = False
+                    with gui_state.lock:
+                        if gui_state.vm_assisted_session is None:
+                            gui_state.vm_assisted_session = "__starting__"  # type: ignore[assignment]
+                            claim = True
+                    if not claim:
+                        self._send_json(
+                            {
+                                "status": "error",
+                                "message": "A VM session is already active — cancel it first",
+                            }
+                        )
+                    else:
+                        try:
+                            result = _start_vm_assisted(gui_state, iso_path)
+                        except Exception:
+                            with gui_state.lock:
+                                if gui_state.vm_assisted_session == "__starting__":
+                                    gui_state.vm_assisted_session = None
+                            raise
+                        # _start_vm_assisted sets the real session on
+                        # success; clear sentinel if it didn't.
+                        with gui_state.lock:
+                            if gui_state.vm_assisted_session == "__starting__":
+                                gui_state.vm_assisted_session = None
+                        self._send_json(result)
 
             elif self.path == "/wizard/vm-verify/finish":
                 # Phase B of user-in-loop flow: user pasted the key,
                 # SSH in, run the script, tear down.
                 self._read_json()
-                if gui_state.vm_assisted_session is None:
-                    self._send_json({"status": "error", "message": "No active assisted session"})
-                elif gui_state.vm_verify_running:
-                    self._send_json({"status": "error", "message": "Script already running"})
-                else:
+                # TOCTOU: atomically check-and-claim running flag.
+                spawn = False
+                err: str | None = None
+                with gui_state.lock:
+                    if (
+                        gui_state.vm_assisted_session is None
+                        or gui_state.vm_assisted_session == "__starting__"
+                    ):
+                        err = "No active assisted session"
+                    elif gui_state.vm_verify_running:
+                        err = "Script already running"
+                    else:
+                        gui_state.vm_verify_running = True
+                        spawn = True
+                if err:
+                    self._send_json({"status": "error", "message": err})
+                elif spawn:
                     t = threading.Thread(
                         target=_finish_vm_assisted,
                         args=(gui_state,),
@@ -1012,8 +1044,25 @@ def make_gui_server(
                 data = self._read_json()
                 section = (data.get("section") or "").strip()
                 user_msg = data.get("message", "")
+                # Whitelist against the analysis section keys. Unknown
+                # strings would silently wipe nothing and then re-run the
+                # agent with an invalid target, or worse be echoed back
+                # into prompts verbatim.
+                _valid_sections = {
+                    "distro",
+                    "apps",
+                    "drivers",
+                    "desktop",
+                    "plan",
+                    "summary",
+                    "install_script",
+                }
                 if not section:
                     self._send_json({"status": "error", "message": "section is required"}, 400)
+                elif section not in _valid_sections:
+                    self._send_json(
+                        {"status": "error", "message": f"unknown section: {section}"}, 400
+                    )
                 else:
                     # Drop just this section's suggestion(s) + re-launch.
                     kept = [
@@ -2427,15 +2476,35 @@ def _extract_created_user(cmd: str) -> str | None:
     """
     # Reject comment lines outright — a `# useradd ...` trail in a
     # shell comment must never flip the real profile username.
+    # Also skip heredoc BODIES: a line like `useradd bob` inside a
+    # `cat <<EOF ... EOF` block is string data being piped into a
+    # file, not an executed command.
+    heredoc_delim: str | None = None
+    _heredoc_re = re.compile(
+        r"<<-?\s*([\"'])?([A-Za-z_][A-Za-z0-9_]*)\1?",
+    )
+    m = None
     for line in cmd.splitlines():
+        if heredoc_delim is not None:
+            # Inside a heredoc body — closing delimiter is the line
+            # alone (or with leading tabs when `<<-` was used).
+            if line.strip() == heredoc_delim:
+                heredoc_delim = None
+            continue
         stripped = line.lstrip()
         if stripped.startswith("#"):
             continue  # this line is a comment, skip it
-        # Non-comment line — run the regex against this line only.
+        # Detect start of a heredoc on THIS line. We still run the
+        # regex on the line itself (the command before `<<EOF` is
+        # legitimately executing), but subsequent lines until the
+        # delimiter are skipped.
+        hd = _heredoc_re.search(line)
+        if hd:
+            heredoc_delim = hd.group(2)
         m = _USERADD_RE.search(line)
         if m:
             break
-    else:
+    if m is None:
         return None
     # Reject `useradd -D` / `--defaults` — that flag SHOWS defaults, it
     # doesn't create anyone. Parsing the positional arg would mis-
@@ -2489,27 +2558,43 @@ def _extract_created_user(cmd: str) -> str | None:
 
 
 # Hints surfaced to a stuck agent. Ordered: more-specific patterns first.
-_FAILURE_HINTS: list[tuple[str, str]] = [
+# Each hint has a "weak" flag: weak hints only fire when the same command
+# has repeatedly failed — otherwise generic patterns like "No such file"
+# or "Permission denied" trigger on every `ls /does-not-exist` probe the
+# agent runs for reconnaissance, drowning real signal in noise.
+_FAILURE_HINTS: list[tuple[str, str, bool]] = [
     (
-        r"already running|is running|is in use|acquired by another",
+        r"already running|acquired by another|locked by another process",
         "This looks like a mutex/lock failure. The process reports it's "
         "already running. Common fix: find and remove the stale lockfile "
         "(e.g. `sudo find /tmp /var/lock /var/run -maxdepth 3 -name '*.lock' "
         "-o -name '*.lock*' 2>/dev/null`), then retry. For AUR makepkg "
         "failures, the culprit is often a /tmp/*.lock directory left over "
         "from a prior killed run.",
+        False,
+    ),
+    (
+        # "is in use" alone over-matches ("device is in use", "this feature
+        # is in use"), so keep it near resource/lock/mutex wording.
+        r"resource .*(in use|busy)|is in use by another",
+        "This looks like a mutex/lock failure. The process reports the "
+        "resource is held by another process. Find and remove the stale "
+        "lockfile (check /tmp, /var/lock, /var/run), then retry.",
+        False,
     ),
     (
         r"database lock|database is locked|could not lock database|"
         r"cannot obtain lock",
         "pacman-style database lock. Run `sudo rm -f /var/lib/pacman/db.lck` "
         "if no other pacman/yay is currently running, then retry.",
+        False,
     ),
     (
         r"No space left on device|disk full|out of space",
         "Target disk is full. Check `df -h` and free space before retrying. "
         "For /var/cache/pacman, `sudo pacman -Sc --noconfirm` reclaims "
         "older package cache.",
+        False,
     ),
     (
         r"Permission denied|permission denied|not permitted|"
@@ -2518,6 +2603,7 @@ _FAILURE_HINTS: list[tuple[str, str]] = [
         "membership) or the target file may have read-only perms. For "
         "AUR builds inside fakeroot, sudo inside the script won't work — "
         "check the PKGBUILD for steps that need root outside fakeroot.",
+        True,  # over-matches on probes; wait for repetition
     ),
     (
         r"Failed to retrieve|Could not resolve|Connection timed out|"
@@ -2525,12 +2611,14 @@ _FAILURE_HINTS: list[tuple[str, str]] = [
         "Network failure. Run `ping -c 1 archlinux.org` (or similar) to "
         "check connectivity. If in chroot, remember to mount /etc/resolv.conf "
         "or use `genfstab -U /mnt` before `arch-chroot`.",
+        False,
     ),
     (
         r"No such file or directory",
         "A referenced file doesn't exist. Run `ls` on the expected path to "
         "confirm, or the script may be assuming a dependency/binary is "
         "installed. Verify with `command -v <tool>`.",
+        True,  # hugely over-matches reconnaissance probes
     ),
 ]
 
@@ -2556,8 +2644,13 @@ def _advise_on_repeated_failure(
     # recognisable (even on the very first fail). Keeps us from waiting
     # for repetition on known-shape errors like lockfiles / disk full.
     lower = (combined_output or "").lower()
-    for pattern, hint in _FAILURE_HINTS:
+    for pattern, hint, weak in _FAILURE_HINTS:
         if _re.search(pattern, lower, _re.IGNORECASE):
+            # Weak patterns over-match on recon probes (`ls /nope`,
+            # `test -e /path`). Require at least one prior same-cmd
+            # failure before firing these.
+            if weak and same_cmd_fails < 2:
+                continue
             return hint
 
     # No pattern match → only surface the generic "you're looping" hint
@@ -2984,6 +3077,23 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                     "agent",
                     f"Model returned empty content ({blank_turns}/3) — retrying.",
                 )
+                # Add a nudge so the retry isn't an identical request —
+                # identical input → identical blank output → we burn all
+                # 3 strikes with nothing to show for it. Vary the
+                # context by asking the model to acknowledge + produce
+                # one small action.
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            "Your previous response was empty. Please respond with a "
+                            "single JSON object now, e.g. "
+                            '{"action":"ssh_exec","command":"echo alive"} to confirm '
+                            "you are still running, or "
+                            '{"action":"done","summary":"..."} if you are stuck.'
+                        ),
+                    }
+                )
                 continue
             blank_turns = 0  # reset on any real response
 
@@ -3260,12 +3370,30 @@ def _generate_ssh_key(gui_state: GUIState) -> dict:
     pub_path = key_path.with_suffix(".pub")
 
     if pub_path.exists():
+        # MED-8: if the private key exists, verify it's 0600 — a world-
+        # readable key means ssh will refuse to use it and the whole
+        # remote-setup flow silently fails with "bad permissions".
+        try:
+            if key_path.exists():
+                import stat as _stat
+
+                mode = key_path.stat().st_mode & 0o777
+                if mode & 0o077:
+                    try:
+                        key_path.chmod(0o600)
+                    except OSError:
+                        pass
+                del _stat
+        except OSError:
+            pass
         gui_state.profile.ssh_public_key_path = str(pub_path)
         gui_state.profile.save_checkpoint()
         return {
             "status": "ok",
             "message": "SSH key already exists",
-            "public_key": pub_path.read_text().strip(),
+            # Explicit utf-8 — Windows default cp1252 chokes on any
+            # non-ASCII content that ended up in the comment field.
+            "public_key": pub_path.read_text(encoding="utf-8").strip(),
             "path": str(pub_path),
         }
 
@@ -3289,7 +3417,7 @@ def _generate_ssh_key(gui_state: GUIState) -> dict:
         return {
             "status": "ok",
             "message": "SSH key generated",
-            "public_key": pub_path.read_text().strip(),
+            "public_key": pub_path.read_text(encoding="utf-8").strip(),
             "path": str(pub_path),
         }
     except FileNotFoundError:
