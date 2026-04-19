@@ -301,6 +301,9 @@ class TestReasoningContentFallback:
         from quickhatch.gui import server as server_mod
 
         fake_response = MagicMock()
+        # status_code must be an int — the retry helper compares it with
+        # integer thresholds (429, 500, 600).
+        fake_response.status_code = 200
         fake_response.json.return_value = {
             "choices": [
                 {
@@ -338,6 +341,9 @@ class TestReasoningContentFallback:
         from quickhatch.gui import server as server_mod
 
         fake_response = MagicMock()
+        # status_code must be an int — the retry helper compares it with
+        # integer thresholds (429, 500, 600).
+        fake_response.status_code = 200
         fake_response.json.return_value = {
             "choices": [
                 {

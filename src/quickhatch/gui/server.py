@@ -160,31 +160,109 @@ class GUIState:
         # agents share bridge state and race on suggestions/messages.
         self._agent_thread: threading.Thread | None = None
 
+    # Fields whose declared type is list[...] — null and non-iterable
+    # values get coerced to [] instead of crashing every downstream
+    # .sort() / len() / iteration.
+    _LIST_PREF_FIELDS = frozenset({"gallery_picks", "use_cases"})
+    _LIST_TOP_FIELDS = frozenset({"apps_to_install"})
+    # Fields whose declared type is str.
+    _STR_AI_FIELDS = frozenset({"provider", "model_name", "api_key", "endpoint"})
+    _STR_PREF_FIELDS = frozenset(
+        {
+            "migration_type",
+            "desktop_look",
+            "icon_style",
+            "wallpaper_style",
+            "distro_preference",
+            "additional_notes",
+            "another_machine",
+        }
+    )
+
+    @staticmethod
+    def _coerce_str(val: Any) -> str | None:
+        """Accept str or None; silently drop anything else."""
+        if val is None:
+            return None
+        return val if isinstance(val, str) else None
+
+    @staticmethod
+    def _coerce_str_list(val: Any) -> list[str]:
+        """Normalize list-shaped fields: None/not-a-list → [], stringify
+        items, drop non-str entries."""
+        if not isinstance(val, list):
+            return []
+        return [x for x in val if isinstance(x, str)]
+
     def update_profile(self, updates: dict) -> None:
-        """Apply partial updates to the profile from the web UI."""
+        """Apply partial updates to the profile from the web UI.
+
+        Type-coerces every field to its declared shape. Unknown keys
+        get logged (not silent data loss). No field ever ends up with a
+        Python None when the dataclass says list[str].
+        """
+        import sys as _sys
+
+        dropped: list[str] = []
         with self.lock:
             prefs = updates.get("preferences", {})
-            for k, v in prefs.items():
-                if hasattr(self.profile.preferences, k):
-                    setattr(self.profile.preferences, k, v)
+            if isinstance(prefs, dict):
+                for k, v in prefs.items():
+                    if not hasattr(self.profile.preferences, k):
+                        dropped.append(f"preferences.{k}")
+                        continue
+                    if k == "gallery_picks":
+                        # Validate against the actual library so a
+                        # direct /wizard/update can't smuggle bogus
+                        # IDs past the gallery-picks endpoint's guard.
+                        picks = self._coerce_str_list(v)
+                        try:
+                            valid_ids = {e.get("id") for e in load_gallery_entries()}
+                            picks = [p for p in picks if p in valid_ids]
+                        except Exception:
+                            pass
+                        setattr(self.profile.preferences, k, picks[:10])
+                    elif k in self._LIST_PREF_FIELDS:
+                        setattr(self.profile.preferences, k, self._coerce_str_list(v))
+                    elif k in self._STR_PREF_FIELDS:
+                        coerced = self._coerce_str(v)
+                        if coerced is not None or v is None:
+                            setattr(self.profile.preferences, k, coerced)
+                    else:
+                        # Unknown-but-declared field type — pass through.
+                        setattr(self.profile.preferences, k, v)
 
             ai = updates.get("ai_config", {})
-            for k, v in ai.items():
-                if hasattr(self.profile.ai_config, k):
-                    setattr(self.profile.ai_config, k, v)
+            if isinstance(ai, dict):
+                for k, v in ai.items():
+                    if not hasattr(self.profile.ai_config, k):
+                        dropped.append(f"ai_config.{k}")
+                        continue
+                    if k in self._STR_AI_FIELDS:
+                        setattr(self.profile.ai_config, k, self._coerce_str(v))
+                    else:
+                        setattr(self.profile.ai_config, k, v)
 
             if "additional_info" in updates:
-                self.profile.additional_info = updates["additional_info"]
+                self.profile.additional_info = self._coerce_str(updates["additional_info"]) or ""
             if "apps_to_install" in updates:
-                self.profile.apps_to_install = updates["apps_to_install"]
+                self.profile.apps_to_install = self._coerce_str_list(updates["apps_to_install"])
             if "data_description" in updates:
-                self.profile.data_description = updates["data_description"]
+                self.profile.data_description = self._coerce_str(updates["data_description"]) or ""
             if "data_transfer_method" in updates:
-                self.profile.data_transfer_method = updates["data_transfer_method"]
+                self.profile.data_transfer_method = (
+                    self._coerce_str(updates["data_transfer_method"]) or ""
+                )
             if "linux_ip" in updates:
-                self.profile.linux_ip = updates["linux_ip"]
+                self.profile.linux_ip = self._coerce_str(updates["linux_ip"]) or ""
             if "linux_user" in updates:
-                self.profile.linux_user = updates["linux_user"]
+                self.profile.linux_user = self._coerce_str(updates["linux_user"]) or ""
+
+        if dropped:
+            print(
+                f"[quickhatch] /wizard/update dropped unknown keys: {dropped}",
+                file=_sys.stderr,
+            )
 
 
 def _load_html() -> bytes:
@@ -434,6 +512,13 @@ def make_gui_server(
     bridge_state = gui_state.bridge
 
     class GUIHandler(BaseHTTPRequestHandler):
+        # HTTP/1.1 keeps keep-alive working — HTTP/1.0 + implicit close
+        # races Windows TCP stack with Python's urllib3, which throws
+        # ConnectionResetError(10054) on every subsequent request. Every
+        # Python client we'd hand the server to (tests, SDK, curl-via-
+        # requests) is affected.
+        protocol_version = "HTTP/1.1"
+
         def log_message(self, format, *args):
             pass
 
@@ -446,8 +531,23 @@ def make_gui_server(
             self.end_headers()
             self.wfile.write(payload)
 
+        # Max JSON body we'll accept. 16 MiB is generous for any legit
+        # wizard update (largest field is gallery JSON or install_script
+        # content). Larger reads are rejected rather than allowed to pin
+        # a worker thread on a slow-loris body stream.
+        _MAX_BODY_BYTES = 16 * 1024 * 1024
+
         def _read_json(self) -> Any:
-            length = int(self.headers.get("Content-Length", 0))
+            try:
+                length = int(self.headers.get("Content-Length", 0))
+            except (TypeError, ValueError):
+                length = 0
+            if length < 0 or length > self._MAX_BODY_BYTES:
+                # Reject obviously-malformed or oversized bodies. Reading
+                # them would hang (negative length → read(-1) reads until
+                # EOF) or waste memory (huge length → OOM).
+                self._send_json({"status": "error", "message": "invalid Content-Length"}, 413)
+                return {}
             body = self.rfile.read(length)
             if not body:
                 return {}
@@ -651,25 +751,6 @@ def make_gui_server(
                     body = (content + "\n").encode("utf-8")
                     self._send_bytes(body, "text/plain; charset=utf-8")
 
-            elif route == "/wizard/steps":
-                self._send_json(
-                    {
-                        "status": "ok",
-                        "completed": gui_state.profile.completed_steps,
-                        "steps": [
-                            {"id": "welcome", "title": "Welcome"},
-                            {"id": "ai_setup", "title": "AI Assistant"},
-                            {"id": "questionnaire", "title": "Preferences"},
-                            {"id": "scan", "title": "System Scan"},
-                            {"id": "additional", "title": "Additional Info"},
-                            {"id": "bridge", "title": "AI Analysis"},
-                            {"id": "usb", "title": "Bootable USB"},
-                            {"id": "ssh", "title": "SSH Setup"},
-                            {"id": "export", "title": "Export"},
-                        ],
-                    }
-                )
-
             elif route == "/wizard/gallery":
                 self._send_json(
                     {
@@ -721,25 +802,6 @@ def make_gui_server(
                     }
                 )
 
-            elif route == "/wizard/lmstudio-models":
-                models = []
-                try:
-                    import requests
-
-                    resp = requests.get("http://localhost:1234/v1/models", timeout=5)
-                    if resp.status_code == 200:
-                        raw = [m["id"] for m in resp.json().get("data", []) if m.get("id")]
-                        # Drop embedding-only models — they can't answer chat
-                        # completions and confuse the picker.
-                        models = [
-                            m
-                            for m in raw
-                            if "embed" not in m.lower() and "embedding" not in m.lower()
-                        ]
-                except Exception:
-                    pass
-                self._send_json({"status": "ok", "models": models})
-
             elif route.startswith("/api/"):
                 self._handle_bridge_get()
 
@@ -757,6 +819,9 @@ def make_gui_server(
                 # Provider-agnostic model-list fetch. Body:
                 # {"kind": "anthropic"|"openai-compat"|"ollama",
                 #  "endpoint": "...", "api_key": "..."}
+                from quickhatch.ai.model_list import VALID_KINDS
+                from quickhatch.ai.model_list import fetch as _fetch_models
+
                 data = self._read_json()
                 kind = (data.get("kind") or "").strip()
                 endpoint = (data.get("endpoint") or "").strip()
@@ -765,9 +830,15 @@ def make_gui_server(
                     self._send_json(
                         {"status": "error", "message": "kind and endpoint required"}, 400
                     )
+                elif kind not in VALID_KINDS:
+                    self._send_json(
+                        {"status": "error", "message": f"unknown provider kind: {kind}"}, 400
+                    )
+                elif not endpoint.startswith(("http://", "https://")):
+                    self._send_json(
+                        {"status": "error", "message": "endpoint must be http(s)://"}, 400
+                    )
                 else:
-                    from quickhatch.ai.model_list import fetch as _fetch_models
-
                     try:
                         models = _fetch_models(kind, endpoint, api_key or None)
                     except Exception as exc:
@@ -1954,46 +2025,120 @@ def _parse_agent_response(text: str) -> dict[str, dict]:
     return {"plan": {"title": "Migration Analysis", "content": text}}
 
 
-def _call_model_simple(endpoint: str, model: str, prompt: str, api_key: str | None) -> str:
-    """Simple single-turn LLM call (no tools). Works for any provider."""
+_REASONING_MODEL_PREFIXES = ("gpt-5", "o1", "o3", "o4")
+
+
+def _is_reasoning_model(model: str | None) -> bool:
+    """True for OpenAI's reasoning series (gpt-5, o1, o3, o4-mini, …).
+
+    These models reject the standard `temperature` parameter and require
+    `max_completion_tokens` instead of `max_tokens`. Detecting by prefix
+    is cheap and matches OpenAI's naming convention; other providers
+    may adopt similar schemes later.
+    """
+    if not model:
+        return False
+    m = model.lower()
+    return any(m.startswith(p) or m.startswith(f"openai/{p}") for p in _REASONING_MODEL_PREFIXES)
+
+
+def _call_model_simple(
+    endpoint: str,
+    model: str,
+    prompt: str,
+    api_key: str | None,
+    provider: str | None = None,
+) -> str:
+    """Simple single-turn LLM call (no tools). Works for any provider.
+
+    Uses the explicit ``provider`` label to choose Anthropic vs
+    OpenAI-compat shape — the legacy substring check on `endpoint`
+    misrouted custom endpoints whose hostname contained 'anthropic'.
+    """
+    from quickhatch.ai.model_list import chat_completions_url, is_anthropic
+
+    if is_anthropic(provider):
+        return _post_anthropic(
+            url=chat_completions_url(provider, endpoint),
+            api_key=api_key or "",
+            body={
+                "model": model,
+                "max_tokens": 4096,
+                "messages": [{"role": "user", "content": prompt}],
+            },
+        )
+    return _post_openai_compat(
+        url=chat_completions_url(provider, endpoint),
+        api_key=api_key,
+        body={
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.7,
+            "max_tokens": 4096,
+        },
+    )
+
+
+def _http_post_with_retry(url: str, headers: dict, body: dict, timeout: int) -> "object":
+    """POST with 2-attempt retry on 429/5xx, honoring Retry-After.
+
+    Single attempt for non-retryable failures (4xx other than 429).
+    Returns the requests.Response object on success; raises
+    requests.HTTPError with the response body bytes attached as the
+    last argument so the caller can surface a useful message.
+    """
+    import time as _time
+
     import requests
 
-    if "anthropic" in (endpoint or ""):
-        resp = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key": api_key or "",
-                "anthropic-version": "2023-06-01",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": model,
-                "max_tokens": 4096,
-                "messages": [{"role": "user", "content": prompt}],
-            },
-            timeout=900,
-        )
-        resp.raise_for_status()
-        return _extract_anthropic_text(resp.json())
-    else:
-        headers = {"Content-Type": "application/json"}
-        if api_key:
-            headers["Authorization"] = f"Bearer {api_key}"
-        resp = requests.post(
-            f"{endpoint.rstrip('/')}/chat/completions",
-            json={
-                "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.7,
-                "max_tokens": 4096,
-            },
-            headers=headers,
-            timeout=900,
-        )
-        resp.raise_for_status()
-        # _extract_openai_text handles missing choices/message/content and
-        # falls back to reasoning_content when content is empty.
-        return _extract_openai_text(resp.json())
+    for attempt in range(3):
+        resp = requests.post(url, headers=headers, json=body, timeout=timeout)
+        if resp.status_code < 400:
+            return resp
+        # Retry only on 429 / 5xx.
+        if resp.status_code != 429 and resp.status_code < 500:
+            break
+        if attempt == 2:
+            break
+        ra = resp.headers.get("Retry-After")
+        try:
+            wait = float(ra) if ra else (2**attempt)
+        except ValueError:
+            wait = 2**attempt
+        _time.sleep(min(wait, 30))
+    # Build a useful HTTPError that includes a snippet of the response
+    # body — without it the caller sees only "400 Client Error".
+    body_snip = ""
+    try:
+        body_snip = resp.text[:500]
+    except Exception:
+        pass
+    err = requests.HTTPError(f"HTTP {resp.status_code} from {url}: {body_snip}", response=resp)
+    raise err
+
+
+def _post_anthropic(url: str, api_key: str, body: dict) -> str:
+    resp = _http_post_with_retry(
+        url=url,
+        headers={
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+        },
+        body=body,
+        timeout=900,
+    )
+    return _extract_anthropic_text(resp.json())
+
+
+def _post_openai_compat(url: str, api_key: str | None, body: dict) -> str:
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    resp = _http_post_with_retry(url=url, headers=headers, body=body, timeout=900)
+    # _extract_openai_text handles missing choices/message/content and
+    # falls back to reasoning_content when content is empty.
+    return _extract_openai_text(resp.json())
 
 
 def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "") -> None:
@@ -2104,7 +2249,9 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
             # for this section and continue with the next rather than
             # crashing the whole analysis run.
             try:
-                content = _call_model_simple(endpoint, model, prompt, api_key)
+                content = _call_model_simple(
+                    endpoint, model, prompt, api_key, provider=config.provider
+                )
             except Exception as first_exc:
                 bridge.add_message(
                     "agent",
@@ -2116,7 +2263,9 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
 
                 _t.sleep(10)
                 try:
-                    content = _call_model_simple(endpoint, model, prompt, api_key)
+                    content = _call_model_simple(
+                        endpoint, model, prompt, api_key, provider=config.provider
+                    )
                 except Exception as second_exc:
                     bridge.add_message(
                         "agent",
@@ -3251,91 +3400,83 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                 }
                 messages = [system_msg, summary_msg, *tail]
 
-            # Call the LLM
-            if "anthropic" in endpoint:
-                # Convert our unified OpenAI-style `messages` list into
-                # Anthropic's `/v1/messages` shape:
-                #   - `system`: the very first 'user' message is actually
-                #     our system prompt, so pull it out
-                #   - `messages`: the rest, role-normalized
-                import requests
+            # Call the LLM. Use the EXPLICIT provider label, not an
+            # endpoint substring hack — a custom endpoint with
+            # 'anthropic' in its hostname (proxies, dotcom variants)
+            # would otherwise hijack the call to api.anthropic.com and
+            # leak the user's key.
+            from quickhatch.ai.model_list import chat_completions_url, is_anthropic
 
-                a_system = ""
-                a_msgs: list[dict[str, str]] = []
-                for idx, m in enumerate(messages):
-                    if idx == 0 and m.get("role") == "user":
-                        a_system = m.get("content", "")
-                        continue
-                    a_msgs.append(
-                        {
-                            "role": "assistant" if m.get("role") == "assistant" else "user",
-                            "content": m.get("content", ""),
-                        }
+            try:
+                if is_anthropic(config.provider):
+                    # Convert our unified OpenAI-style `messages` list into
+                    # Anthropic's `/v1/messages` shape:
+                    #   - `system`: the very first 'user' message is actually
+                    #     our system prompt, so pull it out
+                    #   - `messages`: the rest, role-normalized
+                    a_system = ""
+                    a_msgs: list[dict[str, str]] = []
+                    for idx, m in enumerate(messages):
+                        if idx == 0 and m.get("role") == "user":
+                            a_system = m.get("content", "")
+                            continue
+                        a_msgs.append(
+                            {
+                                "role": "assistant" if m.get("role") == "assistant" else "user",
+                                "content": m.get("content", ""),
+                            }
+                        )
+                    if not a_msgs:
+                        a_msgs.append({"role": "user", "content": "Begin the migration."})
+                    if a_msgs[0]["role"] != "user":
+                        a_msgs.insert(
+                            0, {"role": "user", "content": "Continue from the last action."}
+                        )
+                    # Anthropic rejects two consecutive same-role messages with a
+                    # 400. Merge any consecutive same-role runs.
+                    merged: list[dict[str, str]] = []
+                    for m in a_msgs:
+                        if merged and merged[-1]["role"] == m["role"]:
+                            merged[-1]["content"] = merged[-1]["content"] + "\n\n" + m["content"]
+                        else:
+                            merged.append(dict(m))
+                    a_msgs = merged
+                    response_text = _post_anthropic(
+                        url=chat_completions_url(config.provider, endpoint),
+                        api_key=api_key or "",
+                        body={
+                            "model": model,
+                            "max_tokens": 4096,
+                            "system": a_system,
+                            "messages": a_msgs,
+                        },
                     )
-                # Anthropic requires at least one user message. If we just pulled
-                # the system prompt out on iteration 0, seed with a bootstrap prompt.
-                if not a_msgs:
-                    a_msgs.append({"role": "user", "content": "Begin the migration."})
-                # First message must be user per the API spec.
-                if a_msgs[0]["role"] != "user":
-                    a_msgs.insert(0, {"role": "user", "content": "Continue from the last action."})
-                # Anthropic rejects two consecutive same-role messages with a
-                # 400. After our history-prune injects a `summary_msg` with
-                # role=user, the next tail message may also be `user` (e.g.
-                # pending_feedback). Merge any consecutive same-role runs.
-                merged: list[dict[str, str]] = []
-                for m in a_msgs:
-                    if merged and merged[-1]["role"] == m["role"]:
-                        merged[-1]["content"] = merged[-1]["content"] + "\n\n" + m["content"]
+                else:
+                    # OpenAI-compat path. Newer reasoning models (gpt-5/o1/o3
+                    # series) reject `temperature` and require
+                    # `max_completion_tokens` instead of `max_tokens`.
+                    body: dict = {"model": model, "messages": messages}
+                    if _is_reasoning_model(model):
+                        body["max_completion_tokens"] = 4096
                     else:
-                        merged.append(dict(m))
-                a_msgs = merged
-                resp = requests.post(
-                    "https://api.anthropic.com/v1/messages",
-                    headers={
-                        "x-api-key": api_key or "",
-                        "anthropic-version": "2023-06-01",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "model": model,
-                        "max_tokens": 4096,
-                        "system": a_system,
-                        "messages": a_msgs,
-                    },
-                    timeout=900,
+                        body["temperature"] = 0.3
+                        # Reasoning-style models (Gemma thinking, R1-like) need
+                        # generous budget — 1024 starved them.
+                        body["max_tokens"] = 4096
+                    response_text = _post_openai_compat(
+                        url=chat_completions_url(config.provider, endpoint),
+                        api_key=api_key,
+                        body=body,
+                    )
+            except Exception as call_exc:
+                # Surface the actual error to the user instead of letting
+                # it kill the thread silently. _http_post_with_retry
+                # already includes the response body snippet.
+                bridge.add_message(
+                    "agent",
+                    f"⚠️  LLM call failed: {str(call_exc)[:500]}. Retrying next iteration.",
                 )
-                resp.raise_for_status()
-                # Defensive extraction — if Anthropic returns an error
-                # body with the shape changed, this returns '' instead of
-                # raising.
-                response_text = _extract_anthropic_text(resp.json())
-            else:
-                import requests
-
-                headers = {"Content-Type": "application/json"}
-                if api_key:
-                    headers["Authorization"] = f"Bearer {api_key}"
-                resp = requests.post(
-                    f"{endpoint.rstrip('/')}/chat/completions",
-                    json={
-                        "model": model,
-                        "messages": messages,
-                        "temperature": 0.3,
-                        # Reasoning-style models (Gemma-4 thinking, R1-like) spend a
-                        # big chunk of the token budget on their internal chain of
-                        # thought before emitting any visible content. 1024 was
-                        # starving them — empty content, no action, infinite loop.
-                        "max_tokens": 4096,
-                    },
-                    headers=headers,
-                    timeout=900,
-                )
-                resp.raise_for_status()
-                # Defensive: on a malformed 200 response (missing choices,
-                # empty list, unexpected shape) this returns '' instead of
-                # raising KeyError and tearing down the agent thread.
-                response_text = _extract_openai_text(resp.json())
+                response_text = ""
 
             # If the model produced nothing (empty content AND empty
             # reasoning), don't append a blank assistant turn — some

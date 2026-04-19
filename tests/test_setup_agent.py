@@ -50,6 +50,10 @@ def _make_model_mock(*responses):
     it = iter(responses)
 
     class FakeResponse:
+        # status_code now consulted by _http_post_with_retry — int, not
+        # method, so the comparator works.
+        status_code = 200
+
         def __init__(self, text):
             self._text = text
 
@@ -58,6 +62,14 @@ def _make_model_mock(*responses):
 
         def json(self):
             return {"choices": [{"message": {"content": self._text}}]}
+
+        @property
+        def headers(self):
+            return {}
+
+        @property
+        def text(self):
+            return ""
 
     def mock_post(url, json=None, headers=None, timeout=300, **kwargs):
         try:
@@ -203,6 +215,10 @@ class TestFeedbackLoop:
             return (1, "", "error: not enough free disk space")
 
         class FakeResp:
+            status_code = 200
+            headers = {}
+            text = ""
+
             def __init__(self, text):
                 self._text = text
 

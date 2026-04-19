@@ -8,6 +8,49 @@ strings or [] on any failure — callers should treat an empty list as
 
 from __future__ import annotations
 
+# Whitelist of valid provider kinds. Any other value submitted to
+# /wizard/fetch-models or `fetch()` is rejected by the dispatcher.
+VALID_KINDS = frozenset({"anthropic", "openai-compat", "ollama"})
+
+# Whitelist of valid provider labels (the value of ai_config.provider).
+# Used by the agent code to decide which API shape to call. Keep in
+# sync with the wizard tile lists in ai_setup.py and gui/app.html.
+HOSTED_API_PROVIDERS = frozenset(
+    {"api_anthropic", "api_openai", "api_gemini", "api_grok", "api_custom"}
+)
+LOCAL_PROVIDERS = frozenset({"local_ollama", "local_lmstudio", "codex"})
+VALID_PROVIDERS = HOSTED_API_PROVIDERS | LOCAL_PROVIDERS
+
+
+def is_anthropic(provider: str | None) -> bool:
+    """True iff the provider is the Anthropic API specifically.
+
+    Replaces the historical `"anthropic" in endpoint` substring hack,
+    which mis-routed any custom endpoint with 'anthropic' in its
+    hostname through api.anthropic.com (a credential leak).
+    """
+    return provider == "api_anthropic"
+
+
+def chat_completions_url(provider: str | None, endpoint: str | None) -> str:
+    """Build the OpenAI-compatible /chat/completions URL for ``provider``.
+
+    Handles the Ollama special case: the wizard stores
+    ``http://localhost:11434`` (no /v1), but Ollama's OpenAI-compat
+    endpoint is at ``/v1/chat/completions``. Append /v1 when missing
+    so the historical Ollama 404 doesn't bite.
+
+    For Anthropic this returns the messages URL — callers should
+    almost always check is_anthropic() first and use the messages
+    body shape, but having the getter centralized prevents drift.
+    """
+    if is_anthropic(provider):
+        return f"{(endpoint or 'https://api.anthropic.com').rstrip('/')}/v1/messages"
+    base = (endpoint or "").rstrip("/")
+    if provider == "local_ollama" and not base.endswith("/v1"):
+        base = base + "/v1"
+    return f"{base}/chat/completions"
+
 
 def fetch_openai_compat(endpoint: str, api_key: str | None) -> list[str]:
     """OpenAI-compatible /models endpoint with Bearer auth.

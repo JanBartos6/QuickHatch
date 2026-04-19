@@ -107,10 +107,12 @@ def run(profile: UserProfile) -> None:
 
     # All HTTP-API providers normalize to "api" for the downstream agent
     # code — it reads ai_config.endpoint + model_name + api_key.
-    if provider in ("api_anthropic", "api_openai", "api_gemini", "api_grok", "api_custom"):
-        profile.ai_config.provider = "api"
-    else:
-        profile.ai_config.provider = provider
+    # Keep the SPECIFIC provider label end-to-end. Earlier code collapsed
+    # every hosted-API provider to 'api', forcing downstream call sites
+    # to detect Anthropic by substring-matching the endpoint URL —
+    # which made a custom OpenRouter endpoint with "anthropic" in its
+    # hostname accidentally hijack the call (and leak the user's key).
+    profile.ai_config.provider = provider
 
     if provider == "codex":
         if _check_cli("codex"):

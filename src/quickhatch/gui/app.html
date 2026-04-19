@@ -1210,7 +1210,7 @@ const stepRenderers={
       <div class="card">
         <h2>Pick an AI</h2>
         <div class="choices" id="aiChoice">
-          <div class="choice" data-value="api" onclick="selectChoice('aiChoice',this)">
+          <div class="choice" data-value="api_anthropic" onclick="selectChoice('aiChoice',this)">
             <div class="title">Claude API</div>
             <div class="desc">Anthropic &middot; recommended</div>
           </div>
@@ -1356,7 +1356,7 @@ const stepRenderers={
 
         <hr>
 
-        ${(state.profile.preferences?.another_machine==='yes')?`
+        ${(!isCustomizeMode()&&state.profile.preferences?.another_machine==='yes')?`
         <div class="field">
           <label>How will you move your files to Linux?</label>
           <p class="muted" style="font-size:var(--t-xs);margin-bottom:var(--s2)">QuickHatch doesn't copy Windows files directly. Pick how you'll do it so the plan can include the right steps.</p>
@@ -1378,11 +1378,11 @@ const stepRenderers={
           <label>What's important?</label>
           <p class="muted" style="font-size:var(--t-xs);margin-bottom:var(--s2)">Tell the agent what to watch for — it'll include the specific steps in the plan.</p>
           <textarea id="dataDesc" placeholder="e.g. browser bookmarks and passwords, Documents and Pictures folders, game saves in %APPDATA%, SSH keys, Git repos, IDE settings…">${escHtml(state.profile.data_description||'')}</textarea>
-        </div>`:`
+        </div>`:(isCustomizeMode()?'':`
         <div class="info-box">
           <strong>Offline install — data transfer is manual.</strong>
           <p class="muted" style="font-size:var(--t-xs);margin:var(--s1) 0 0">Since you're doing a single-machine install from a live USB, there's no live agent to run transfer commands. Back up anything you care about to external media or cloud before you start; after Linux boots, plug it back in and copy it over.</p>
-        </div>`}
+        </div>`)}
 
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
@@ -1527,9 +1527,10 @@ const stepRenderers={
     const hasKey=!!state.profile.ssh_public_key_path;
     const provider=state.profile.ai_config?.provider||'';
     const isLocal=['local_ollama','local_lmstudio','codex'].includes(provider);
-    // Everything else (Anthropic, OpenAI, Gemini, Grok, OpenRouter, …) is
-    // normalized to 'api' in submitAI; just check the single label.
-    const isAPI=provider==='api';
+    // Hosted-API providers keep their specific label so downstream code
+    // can distinguish Anthropic from OpenAI-compat without string-
+    // matching the endpoint URL.
+    const isAPI=['api_anthropic','api_openai','api_gemini','api_grok','api_custom'].includes(provider);
     const anotherMachine=state.profile.preferences?.another_machine||'';
     const offlineMode=anotherMachine==='no';
 
@@ -2014,7 +2015,7 @@ function aiAvailabilityCallout(provider){
 // the default endpoint, and what the key input looks like. Custom
 // providers fill endpoint from the user.
 const AI_PROVIDER_SPEC = {
-  api:           {kind:'anthropic',     endpoint:'https://api.anthropic.com', keyLabel:'Anthropic API key', keyPlaceholder:'sk-ant-…', docs:'https://docs.anthropic.com/en/docs/about-claude/models', docsLabel:'Anthropic models'},
+  api_anthropic: {kind:'anthropic',     endpoint:'https://api.anthropic.com', keyLabel:'Anthropic API key', keyPlaceholder:'sk-ant-…', docs:'https://docs.anthropic.com/en/docs/about-claude/models', docsLabel:'Anthropic models'},
   api_openai:    {kind:'openai-compat', endpoint:'https://api.openai.com/v1', keyLabel:'OpenAI API key',    keyPlaceholder:'sk-…',     docs:'https://platform.openai.com/docs/models',         docsLabel:'OpenAI models'},
   api_gemini:    {kind:'openai-compat', endpoint:'https://generativelanguage.googleapis.com/v1beta/openai', keyLabel:'Gemini API key', keyPlaceholder:'AIza…', docs:'https://ai.google.dev/gemini-api/docs/models', docsLabel:'Gemini models'},
   api_grok:      {kind:'openai-compat', endpoint:'https://api.x.ai/v1',       keyLabel:'xAI API key',       keyPlaceholder:'xai-…',    docs:'https://docs.x.ai/docs/models',                   docsLabel:'Grok models'},
@@ -2137,9 +2138,11 @@ async function submitWelcome(){
 async function submitAI(){
   const p=getSelected('aiChoice');
   if(!p){toast('Pick a provider first.','error');return;}
-  // Codex is a separate CLI, no key/model picker needed.
+  // Codex is a separate CLI, no key/model picker needed. Still
+  // explicitly clear sibling fields so a previous API picker's
+  // key/endpoint/model don't survive the switch.
   if(p==='codex'){
-    await saveProfile({ai_config:{provider:'codex'}});
+    await saveProfile({ai_config:{provider:'codex',model_name:null,endpoint:null,api_key:null}});
     await completeStep('ai_setup');
     return;
   }
@@ -2163,13 +2166,19 @@ async function submitAI(){
     endpoint=e.trim();
     if(!endpoint){toast('Enter the base URL.','error');return;}
   }
-  // Normalize every API provider to the same 'api' label downstream —
-  // the setup agent reads endpoint + key + model, not the specific
-  // brand. Local providers keep their own label so the agent code
-  // can still branch on provider === 'local_*' for start/health hooks.
-  const normalized=(p==='codex'||p==='local_ollama'||p==='local_lmstudio')?p:'api';
-  const cfg={provider:normalized,model_name:model,endpoint:endpoint};
-  if(api_key)cfg.api_key=api_key;
+  // Keep the specific provider label end-to-end. Collapsing every
+  // hosted-API provider to 'api' forced downstream code to identify
+  // Anthropic by substring-matching the endpoint URL — fragile and
+  // a credential-leak risk for custom endpoints with 'anthropic' in
+  // the hostname. Always send what the user actually picked. Also
+  // explicitly OVERWRITE every ai_config field so switching from one
+  // provider to another can't leave stale key/endpoint/model behind.
+  const cfg={
+    provider:p,
+    model_name:model,
+    endpoint:endpoint,
+    api_key:api_key||null,
+  };
   await saveProfile({ai_config:cfg});
   await completeStep('ai_setup');
 }
@@ -2206,7 +2215,15 @@ async function submitPrefs(){
     wallpaper_style:'',
     gallery_picks:[],
   };
-  await saveProfile({preferences:prefs});
+  // If the user just flipped to 'no' (offline single-machine), the
+  // previously-picked data_transfer_method becomes nonsensical (no
+  // live agent to run scp/cloud CLI). Clear it so the migration plan
+  // doesn't carry a stale contradictory value.
+  const extra={};
+  if(anotherMachine==='no'&&state.profile.data_transfer_method){
+    extra.data_transfer_method='';
+  }
+  await saveProfile({preferences:prefs,...extra});
   // Step list depends on another_machine: refresh now so the next
   // render shows the correct subsequent steps.
   refreshSteps();
@@ -2412,26 +2429,26 @@ function updateAppsStats(){
 
 async function submitAppsData(){
   const checked=state._appsSelected?[...state._appsSelected]:[...document.querySelectorAll('.app-check:checked')].map(c=>c.value);
-  const dataDesc=(el('dataDesc')||{}).value||'';
-  // The data-transfer block is only rendered when another_machine === 'yes'
-  // (see apps_data()). When it's present, the user MUST pick one of the
-  // four options — otherwise the migration plan can't include the right
-  // transfer steps. When it's not rendered (offline install), skip the
-  // check and leave data_transfer_method unset.
+  // The data-transfer + data-description fields are only rendered when
+  // another_machine === 'yes' AND not customize mode. When they're not
+  // rendered, do NOT send empty strings — that would clobber whatever
+  // the user typed earlier. Only include the fields when we actually
+  // have values from the live DOM.
+  const payload={apps_to_install:checked};
   const hasTransferGrid=!!el('dataTransfer');
-  let transfer='';
   if(hasTransferGrid){
-    transfer=getSelected('dataTransfer')||'';
+    const transfer=getSelected('dataTransfer')||'';
     if(!transfer){
       toast('Pick how you\'ll move your files to Linux before continuing.','error');
       return;
     }
+    payload.data_transfer_method=transfer;
   }
-  await saveProfile({
-    apps_to_install:checked,
-    data_description:dataDesc,
-    data_transfer_method:transfer,
-  });
+  const descEl=el('dataDesc');
+  if(descEl){
+    payload.data_description=descEl.value||'';
+  }
+  await saveProfile(payload);
   await completeStep('apps_data');
 }
 
@@ -2640,6 +2657,10 @@ function renderAgentFeed(prefix, messages, done){
 }
 
 async function pollBridge(){
+  // Cancel any pending reschedule — every step re-entry would
+  // otherwise stack another timer on top of the previous one, causing
+  // parallel loops that race on innerHTML and double-render the feed.
+  if(bridgePollTimer){clearTimeout(bridgePollTimer);bridgePollTimer=null;}
   try{
     const data=await api('/api/status');
     if(data.status==='ok'){
@@ -2654,7 +2675,12 @@ async function pollBridge(){
         const section=el('suggestionsSection');
         if(feed&&sd.suggestions.length!==state._lastSugCount){
           state._lastSugCount=sd.suggestions.length;
-          if(section&&sd.suggestions.length)section.classList.remove('hidden');
+          if(section){
+            // Toggle both ways — a rerun that empties the list should
+            // hide the header too, not leave a stranded 'Recommendations'.
+            if(sd.suggestions.length)section.classList.remove('hidden');
+            else section.classList.add('hidden');
+          }
           feed.innerHTML=sd.suggestions.map(renderSuggestion).join('');
         }
       }
@@ -2913,6 +2939,9 @@ async function sendSetupChat(){
 
 let setupPollTimer=null;
 async function pollSetup(){
+  // Same rule as pollBridge: drop any pending reschedule up front
+  // so re-entering the step doesn't stack parallel timers.
+  if(setupPollTimer){clearTimeout(setupPollTimer);setupPollTimer=null;}
   try{
     const data=await api('/api/status');
     if(data.status==='ok'){
@@ -2927,7 +2956,10 @@ async function pollSetup(){
         const section=el('setupSuggestionsSection');
         if(feed&&sd.suggestions.length!==(state._lastSetupSugCount||0)){
           state._lastSetupSugCount=sd.suggestions.length;
-          if(section&&sd.suggestions.length)section.classList.remove('hidden');
+          if(section){
+            if(sd.suggestions.length)section.classList.remove('hidden');
+            else section.classList.add('hidden');
+          }
           feed.innerHTML=sd.suggestions.map(renderSuggestion).join('');
         }
       }
@@ -2961,7 +2993,8 @@ async function pollSetup(){
       }
     }
   }catch(e){}
-  if(STEPS[state.currentStep]?.id==='setup')setupPollTimer=setTimeout(pollSetup,2000);
+  // Stop polling once the agent is done — matches pollBridge behavior.
+  if(STEPS[state.currentStep]?.id==='setup'&&!state._setupDone)setupPollTimer=setTimeout(pollSetup,2000);
 }
 
 // ── Init ──

@@ -235,6 +235,16 @@ class UserProfile:
                 except TypeError:
                     return None
 
+        # save_checkpoint redacts api_key to the literal "***REDACTED***"
+        # string. On reload that string would get used as the real API
+        # key on the next agent call, producing a 401. Treat the
+        # sentinel as "no key" so the UI re-prompts rather than silently
+        # failing.
+        _ai = data.get("ai_config") or {}
+        if isinstance(_ai, dict) and _ai.get("api_key") == "***REDACTED***":
+            _ai["api_key"] = None
+            data["ai_config"] = _ai
+
         try:
             hw_raw = data.get("hardware", {}) or {}
             hw = _safe_init(

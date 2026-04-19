@@ -88,37 +88,29 @@ class TestProfileEndpoint:
         assert data["profile"]["linux_user"] == "bob"
 
 
-class TestStepsEndpoint:
-    def test_returns_step_list(self, server):
-        status, body = _get(server["port"], "/wizard/steps")
-        assert status == 200
+class TestCompleteStepEndpoint:
+    """/wizard/steps was removed (dead endpoint — the SPA drives step
+    navigation from STEPS_MIGRATION/STEPS_CUSTOMIZE in app.html).
+    Completed-step tracking now lives on the profile itself, reachable
+    via /wizard/profile.
+    """
+
+    def _completed(self, port):
+        status, body = _get(port, "/wizard/profile")
         data = json.loads(body)
-        assert "steps" in data
-        assert len(data["steps"]) > 0
-        ids = [s["id"] for s in data["steps"]]
-        assert "welcome" in ids
-        assert "bridge" in ids
+        return data["profile"]["completed_steps"]
 
     def test_completed_list_starts_empty(self, server):
-        status, body = _get(server["port"], "/wizard/steps")
-        data = json.loads(body)
-        assert data["completed"] == []
+        assert self._completed(server["port"]) == []
 
-
-class TestCompleteStepEndpoint:
     def test_marks_step_complete(self, server):
         _post(server["port"], "/wizard/complete_step", {"step": "welcome"})
-        status, body = _get(server["port"], "/wizard/steps")
-        data = json.loads(body)
-        assert "welcome" in data["completed"]
+        assert "welcome" in self._completed(server["port"])
 
     def test_idempotent(self, server):
         _post(server["port"], "/wizard/complete_step", {"step": "welcome"})
         _post(server["port"], "/wizard/complete_step", {"step": "welcome"})
-        status, body = _get(server["port"], "/wizard/steps")
-        data = json.loads(body)
-        # No duplicates
-        assert data["completed"].count("welcome") == 1
+        assert self._completed(server["port"]).count("welcome") == 1
 
 
 class TestBridgeEndpoints:
