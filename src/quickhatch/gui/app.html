@@ -451,7 +451,18 @@ select{cursor:pointer;appearance:none;padding-right:var(--s7);background-image:u
   display:block;margin-top:var(--s2);padding:var(--s2) var(--s3);
   background:var(--surface-alt);border:1px solid var(--border);
   border-radius:var(--r-sm);font-family:var(--font-mono);font-size:var(--t-xs);
-  color:var(--text);white-space:pre-wrap;word-break:break-all;
+  color:var(--text);
+  /* Multi-line commands (chroot heredocs, multi-step pipelines) used to
+     blow up the header — `white-space:pre-wrap` preserved every newline
+     and there was no height cap, so a 20-line script ate the whole panel
+     and pushed the timeline + technical log offscreen. Cap visible
+     height; the full text stays accessible via the inner scrollbar and
+     in the Technical log section below. */
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;       /* wrap long paths at any boundary */
+  word-break:normal;            /* but don't break mid-word arbitrarily */
+  max-height:9.5em;             /* ~6 lines at the current line-height */
+  overflow:auto;
 }
 .agent-panel.done .spinner{display:none}
 .agent-panel.done .agent-head{background:var(--success-soft)}
