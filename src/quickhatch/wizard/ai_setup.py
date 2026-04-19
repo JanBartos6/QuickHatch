@@ -45,8 +45,6 @@ def _prompt_model_choice(
     provider_kind: str,
     endpoint: str,
     api_key: str,
-    fallback_example: str,  # retained for signature compat; unused now
-    default: str | None = None,
 ) -> str | None:
     """Fetch the live model list and force the user to pick from it.
 
@@ -55,17 +53,18 @@ def _prompt_model_choice(
     actually exist. This makes bad configs surface at setup-time, not
     at the first /chat/completions call 10 minutes into a run.
 
+    No hardcoded default either — providers rotate model names fast
+    enough that any hardcoded preselect goes stale between releases.
+    The user picks from the live list.
+
     Returns the chosen model id, or None if the user aborts.
     """
-    del fallback_example  # legacy parameter, ignored
     while True:
         models = _fetch_api_models(provider_kind, endpoint, api_key)
         if models:
-            preselect = default if (default and default in models) else None
             return questionary.select(
                 f"Pick a {provider_label} model ({len(models)} available):",
                 choices=models,
-                default=preselect,
             ).ask()
         print_warning(
             f"Could not list {provider_label} models. Most common causes: "
@@ -219,14 +218,16 @@ def run(profile: UserProfile) -> None:
                 print_info("Must start with http:// or https://")
         else:
             custom_endpoint = ""  # unused for the named providers
+        # Hardcoded model names go stale within weeks — providers ship
+        # new generations faster than we can release. Only the endpoint,
+        # auth shape, and docs URL are stable. The live /models fetch
+        # gives the picker its choices.
         _provider_spec = {
             "api_anthropic": {
                 "label": "Claude",
                 "docs": "https://docs.anthropic.com/en/docs/about-claude/models",
                 "endpoint": "https://api.anthropic.com",
                 "kind": "anthropic",
-                "example": "claude-sonnet-4-5-20250929",
-                "default": None,
                 "key_prompt": "Enter your Anthropic API key:",
             },
             "api_openai": {
@@ -236,8 +237,6 @@ def run(profile: UserProfile) -> None:
                 # completions. Bare host misses the versioned path.
                 "endpoint": "https://api.openai.com/v1",
                 "kind": "openai-compat",
-                "example": "gpt-4o-2024-11-20",
-                "default": None,
                 "key_prompt": "Enter your OpenAI API key:",
             },
             "api_gemini": {
@@ -245,8 +244,6 @@ def run(profile: UserProfile) -> None:
                 "docs": "https://ai.google.dev/gemini-api/docs/models",
                 "endpoint": "https://generativelanguage.googleapis.com/v1beta/openai",
                 "kind": "openai-compat",
-                "example": "gemini-2.5-pro",
-                "default": "gemini-2.5-pro",
                 "key_prompt": "Enter your Gemini API key (from aistudio.google.com):",
             },
             "api_grok": {
@@ -254,8 +251,6 @@ def run(profile: UserProfile) -> None:
                 "docs": "https://docs.x.ai/docs/models",
                 "endpoint": "https://api.x.ai/v1",
                 "kind": "openai-compat",
-                "example": "grok-4",
-                "default": "grok-4",
                 "key_prompt": "Enter your xAI API key (from console.x.ai):",
             },
             "api_custom": {
@@ -263,8 +258,6 @@ def run(profile: UserProfile) -> None:
                 "docs": "(endpoint-specific)",
                 "endpoint": custom_endpoint,
                 "kind": "openai-compat",
-                "example": "provider/model-name",
-                "default": None,
                 "key_prompt": "Enter API key for this endpoint:",
             },
         }[provider]
@@ -288,8 +281,6 @@ def run(profile: UserProfile) -> None:
             provider_kind=_provider_spec["kind"],
             endpoint=_provider_spec["endpoint"],
             api_key=api_key,
-            fallback_example=_provider_spec["example"],
-            default=_provider_spec["default"],
         )
         if model is None:
             raise KeyboardInterrupt
