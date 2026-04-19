@@ -2855,11 +2855,18 @@ async function runExport(){
   const data=await api('/wizard/export','POST');
   if(data.status==='ok'){
     const fileList=(data.files||[]).map(f=>`<li>${escHtml(f)}</li>`).join('');
+    const outDir=data.output_dir||'';
     el('exportResult').innerHTML=`
       <div class="info-box info-success">
-        <strong>Bundle exported</strong>
-        <p>Location: <code>${escHtml(data.output_dir||'')}</code></p>
-        <ul>${fileList}</ul>
+        <strong style="font-size:1.05rem">Bundle exported</strong>
+        <p style="margin:var(--s2) 0;font-size:.9rem">Saved to:</p>
+        <code style="display:block;padding:var(--s2);background:var(--bg-2);border-radius:var(--r1);word-break:break-all;font-size:.85rem;margin-bottom:var(--s2)">${escHtml(outDir)}</code>
+        <div class="stack-h" style="gap:var(--s2);margin-bottom:var(--s2)">
+          <button class="btn btn-primary btn-sm" onclick="openExportFolder()">Open folder</button>
+          <button class="btn btn-ghost btn-sm" onclick="copyExportPath('${escHtml(outDir)}')">Copy path</button>
+        </div>
+        <details><summary style="cursor:pointer;font-size:.82rem">Files (${(data.files||[]).length})</summary>
+        <ul style="margin-top:var(--s1)">${fileList}</ul></details>
       </div>`;
     el('exportBtn').textContent='Done';
     toast('Bundle exported','success');
@@ -2869,6 +2876,19 @@ async function runExport(){
     el('exportBtn').disabled=false;el('exportBtn').textContent='Retry';
     toast('Export failed','error');
   }
+}
+
+async function openExportFolder(){
+  const r=await api('/wizard/open-export-folder','POST');
+  if(r.status==='ok'){toast('Folder opened','success');}
+  else{toast(r.message||'Could not open folder','error');}
+}
+
+function copyExportPath(path){
+  navigator.clipboard.writeText(path).then(
+    ()=>toast('Path copied','success'),
+    ()=>toast('Copy failed — select the path and copy manually','error')
+  );
 }
 
 // ── Setup step functions ──

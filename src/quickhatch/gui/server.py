@@ -815,6 +815,30 @@ def make_gui_server(
                 gui_state.profile.save_checkpoint()
                 self._send_json({"status": "ok"})
 
+            elif self.path == "/wizard/open-export-folder":
+                # Open the export bundle directory in the host file manager.
+                # Per-OS: explorer.exe on Windows, open on macOS, xdg-open
+                # on Linux. Fails silently — UI shows the path either way.
+                import subprocess as _sp
+                import sys as _sys
+
+                target = _export_output_dir()
+                try:
+                    if not target.exists():
+                        self._send_json(
+                            {"status": "error", "message": "No bundle exported yet"}, 404
+                        )
+                    else:
+                        if _sys.platform == "win32":
+                            _sp.Popen(["explorer", str(target)])
+                        elif _sys.platform == "darwin":
+                            _sp.Popen(["open", str(target)])
+                        else:
+                            _sp.Popen(["xdg-open", str(target)])
+                        self._send_json({"status": "ok", "path": str(target)})
+                except Exception as exc:
+                    self._send_json({"status": "error", "message": str(exc)}, 500)
+
             elif self.path == "/wizard/fetch-models":
                 # Provider-agnostic model-list fetch. Body:
                 # {"kind": "anthropic"|"openai-compat"|"ollama",
@@ -3905,10 +3929,22 @@ def _generate_ssh_key(gui_state: GUIState) -> dict:
 
 
 def _locate_install_script(gui_state: GUIState) -> Path | None:
-    """Find the install.sh to verify — exported bundle first, then suggestion."""
-    export_dir = Path.home() / "quickhatch-export"
+    """Find the install.sh to verify — exported bundle first, then suggestion.
+
+    Checks the canonical export dir (`_export_output_dir()`) — same
+    location the export step actually writes to. Previously this looked
+    in `~/quickhatch-export/`, which the export code never wrote to —
+    so the VM-verify path always fell through to the temp-file
+    fallback even when a real bundle existed.
+    """
+    export_dir = _export_output_dir()
     if (export_dir / "install.sh").exists():
         return export_dir / "install.sh"
+    # Legacy location, kept as a fallback for users who exported with
+    # an older QuickHatch and still have the bundle in the old path.
+    legacy = Path.home() / "quickhatch-export"
+    if (legacy / "install.sh").exists():
+        return legacy / "install.sh"
     for s in gui_state.bridge.snapshot_suggestions():
         if getattr(s, "category", "") == "install_script" and (s.content or "").strip():
             import tempfile as _tmp
@@ -4062,10 +4098,14 @@ def _run_vm_verify(gui_state: GUIState, iso_path: str | None) -> None:
         # Find the install.sh from the last export (or from suggestions).
         install_script: Path | None = None
         # Prefer a freshly-exported install.sh if one exists under the
-        # default export dir.
-        export_dir = Path.home() / "quickhatch-export"
+        # canonical export dir (same path _run_export writes to).
+        export_dir = _export_output_dir()
         if (export_dir / "install.sh").exists():
             install_script = export_dir / "install.sh"
+        else:
+            legacy = Path.home() / "quickhatch-export"
+            if (legacy / "install.sh").exists():
+                install_script = legacy / "install.sh"
         if install_script is None:
             # Fallback: write the suggestion body to a temp file.
             for s in bridge.snapshot_suggestions():
@@ -4128,6 +4168,21 @@ def _run_vm_verify(gui_state: GUIState, iso_path: str | None) -> None:
         gui_state.vm_verify_running = False
 
 
+def _export_output_dir() -> Path:
+    """Where to write the migration bundle.
+
+    Prefer ~/Downloads/QuickHatch-Migration so the bundle lands where
+    users already look for downloaded files (and where most file
+    explorers default when copying to a USB stick). Fall back to
+    ~/QuickHatch-Migration if Downloads doesn't exist (uncommon Linux
+    setups, customized $HOME).
+    """
+    downloads = Path.home() / "Downloads"
+    if downloads.exists() and downloads.is_dir():
+        return downloads / "QuickHatch-Migration"
+    return Path.home() / "QuickHatch-Migration"
+
+
 def _run_export(gui_state: GUIState) -> dict:
     """Run the full export: instructions, profile, SSH key, quickstart, zip."""
     import zipfile
@@ -4137,7 +4192,7 @@ def _run_export(gui_state: GUIState) -> dict:
 
     from quickhatch.ai.instruction_gen import save_instructions
 
-    output_dir = Path.home() / "QuickHatch-Migration"
+    output_dir = _export_output_dir()
     output_dir.mkdir(parents=True, exist_ok=True)
     files = []
 
