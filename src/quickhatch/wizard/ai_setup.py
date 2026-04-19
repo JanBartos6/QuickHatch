@@ -23,59 +23,21 @@ def _check_local_endpoint(endpoint: str) -> bool:
 
 
 def _fetch_ollama_models(endpoint: str) -> list[str]:
-    """Return local Ollama models via GET /api/tags. Empty on failure."""
-    try:
-        import requests
+    """Thin wrapper preserved for backward compat; real impl is shared."""
+    from quickhatch.ai.model_list import fetch_ollama
 
-        resp = requests.get(f"{endpoint.rstrip('/')}/api/tags", timeout=5)
-        if resp.status_code != 200:
-            return []
-        payload = resp.json() or {}
-        models = payload.get("models", [])
-        ids = [m.get("name") for m in models if isinstance(m, dict) and m.get("name")]
-        return sorted(set(ids))
-    except Exception:
-        return []
+    return fetch_ollama(endpoint)
 
 
 def _fetch_api_models(provider_kind: str, endpoint: str, api_key: str) -> list[str]:
-    """Hit the provider's /models endpoint and return the available model ids.
+    """Thin wrapper preserved for backward compat; real impl is shared.
 
-    Returns [] on any failure (network, auth, unexpected shape) so the
-    caller can transparently fall back to free-text entry. Provider-kind
-    dispatches on the auth-header shape:
-      - "anthropic": x-api-key + anthropic-version headers
-      - "openai-compat": Bearer auth, used by OpenAI / Gemini / Grok
+    The shared helpers live in quickhatch.ai.model_list so the GUI
+    server can reuse them from its /wizard/fetch-models endpoint.
     """
-    try:
-        import requests
-    except ImportError:
-        return []
+    from quickhatch.ai.model_list import fetch
 
-    try:
-        base = endpoint.rstrip("/")
-        if provider_kind == "anthropic":
-            url = f"{base}/v1/models"
-            headers = {
-                "x-api-key": api_key,
-                "anthropic-version": "2023-06-01",
-            }
-        else:  # openai-compat
-            url = f"{base}/models"
-            headers = {"Authorization": f"Bearer {api_key}"}
-        resp = requests.get(url, headers=headers, timeout=10)
-        if resp.status_code != 200:
-            return []
-        payload = resp.json()
-        # Both shapes put models under "data" with an "id" per entry.
-        data = payload.get("data", []) if isinstance(payload, dict) else []
-        ids = [m.get("id") for m in data if isinstance(m, dict) and m.get("id")]
-        # Gemini prefixes with "models/" — strip for the OpenAI-compat
-        # chat-completions path that expects the bare name.
-        ids = [i[7:] if i.startswith("models/") else i for i in ids]
-        return sorted(set(ids))
-    except Exception:
-        return []
+    return fetch(provider_kind, endpoint, api_key)
 
 
 def _prompt_model_choice(

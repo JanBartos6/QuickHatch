@@ -1214,21 +1214,33 @@ const stepRenderers={
             <div class="title">Claude API</div>
             <div class="desc">Anthropic &middot; recommended</div>
           </div>
-          <div class="choice" data-value="codex" onclick="selectChoice('aiChoice',this)">
-            <div class="title">Codex CLI</div>
-            <div class="desc">OpenAI</div>
-          </div>
           <div class="choice" data-value="api_openai" onclick="selectChoice('aiChoice',this)">
             <div class="title">OpenAI API</div>
-            <div class="desc">Bring your own key</div>
+            <div class="desc">GPT-5, GPT-4o, o-series</div>
+          </div>
+          <div class="choice" data-value="api_gemini" onclick="selectChoice('aiChoice',this)">
+            <div class="title">Google Gemini API</div>
+            <div class="desc">Free tier available</div>
+          </div>
+          <div class="choice" data-value="api_grok" onclick="selectChoice('aiChoice',this)">
+            <div class="title">xAI Grok API</div>
+            <div class="desc">grok-4, grok-code-fast-1</div>
+          </div>
+          <div class="choice" data-value="api_custom" onclick="selectChoice('aiChoice',this)">
+            <div class="title">Custom OpenAI-compatible</div>
+            <div class="desc">OpenRouter, Together, DeepInfra, self-hosted…</div>
+          </div>
+          <div class="choice" data-value="codex" onclick="selectChoice('aiChoice',this)">
+            <div class="title">Codex CLI</div>
+            <div class="desc">OpenAI &middot; runs as a separate CLI</div>
           </div>
           <div class="choice" data-value="local_ollama" onclick="selectChoice('aiChoice',this)">
             <div class="title">Ollama</div>
-            <div class="desc">Run locally</div>
+            <div class="desc">Run locally on this machine</div>
           </div>
           <div class="choice" data-value="local_lmstudio" onclick="selectChoice('aiChoice',this)">
             <div class="title">LM Studio</div>
-            <div class="desc">Run locally</div>
+            <div class="desc">Run locally on this machine</div>
           </div>
         </div>
         <div id="aiExtra"></div>
@@ -1515,7 +1527,9 @@ const stepRenderers={
     const hasKey=!!state.profile.ssh_public_key_path;
     const provider=state.profile.ai_config?.provider||'';
     const isLocal=['local_ollama','local_lmstudio','codex'].includes(provider);
-    const isAPI=['api','openai_api','claude_api'].includes(provider);
+    // Everything else (Anthropic, OpenAI, Gemini, Grok, OpenRouter, …) is
+    // normalized to 'api' in submitAI; just check the single label.
+    const isAPI=provider==='api';
     const anotherMachine=state.profile.preferences?.another_machine||'';
     const offlineMode=anotherMachine==='no';
 
@@ -1986,8 +2000,8 @@ function aiAvailabilityCallout(provider){
       <p>The model lives on this machine. The agent runs for ~10–60 minutes during Remote setup — close the wizard or shut this PC off and the agent stops.</p>
     </div>`;
   }
-  // API providers
-  if(provider==='api'||provider==='api_openai'){
+  // API providers (any hosted model)
+  if(provider==='api'||provider==='api_openai'||provider==='api_gemini'||provider==='api_grok'||provider==='api_custom'){
     return `<div class="info-box info-primary" style="margin-top:var(--s3)">
       <strong>This PC needs internet during setup</strong>
       <p>The model runs in the cloud. Make sure this machine stays online while the agent is working — the wizard talks to the API for every command the agent decides on.</p>
@@ -1996,56 +2010,112 @@ function aiAvailabilityCallout(provider){
   return '';
 }
 
+// Per-provider config: the "kind" the backend uses for fetch dispatch,
+// the default endpoint, and what the key input looks like. Custom
+// providers fill endpoint from the user.
+const AI_PROVIDER_SPEC = {
+  api:           {kind:'anthropic',     endpoint:'https://api.anthropic.com', keyLabel:'Anthropic API key', keyPlaceholder:'sk-ant-…', docs:'https://docs.anthropic.com/en/docs/about-claude/models', docsLabel:'Anthropic models'},
+  api_openai:    {kind:'openai-compat', endpoint:'https://api.openai.com/v1', keyLabel:'OpenAI API key',    keyPlaceholder:'sk-…',     docs:'https://platform.openai.com/docs/models',         docsLabel:'OpenAI models'},
+  api_gemini:    {kind:'openai-compat', endpoint:'https://generativelanguage.googleapis.com/v1beta/openai', keyLabel:'Gemini API key', keyPlaceholder:'AIza…', docs:'https://ai.google.dev/gemini-api/docs/models', docsLabel:'Gemini models'},
+  api_grok:      {kind:'openai-compat', endpoint:'https://api.x.ai/v1',       keyLabel:'xAI API key',       keyPlaceholder:'xai-…',    docs:'https://docs.x.ai/docs/models',                   docsLabel:'Grok models'},
+  api_custom:    {kind:'openai-compat', endpoint:'',                          keyLabel:'API key',           keyPlaceholder:'',          docs:'',                                                docsLabel:'',               custom:true},
+  local_ollama:  {kind:'ollama',        endpoint:'http://localhost:11434',    keyLabel:null},
+  local_lmstudio:{kind:'openai-compat', endpoint:'http://localhost:1234/v1',  keyLabel:null},
+};
+
 async function showAIExtra(provider){
   const box=document.getElementById('aiExtra');
   if(!box)return;
   const callout=aiAvailabilityCallout(provider);
-  if(provider==='local_lmstudio'){
-    window._aiExtraCallout=callout;
-    await renderLmStudio(box,callout);
-  }else if(provider==='local_ollama'){
-    box.innerHTML='<div class="field"><label>Model name</label><input type="text" id="aiModel" value="llama3" placeholder="e.g. llama3, qwen3, mistral"></div>'+callout;
-  }else if(provider==='api'){
-    // Text input instead of a stale-model <select> — model names change fast;
-    // placeholder hints at Anthropic's naming scheme.
-    box.innerHTML='<div class="field"><label>Anthropic API key</label><input type="password" id="aiApiKey" placeholder="sk-ant-…"></div>'+
-      '<div class="field"><label>Model</label><input type="text" id="aiModel" placeholder="claude-sonnet-4-5-20250929"><div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Use any current Claude model ID from <a href="https://docs.anthropic.com/en/docs/about-claude/models" target="_blank" rel="noopener">Anthropic&apos;s model list</a>. Sonnet is the usual balance of quality and speed.</div></div>'+callout;
-  }else if(provider==='api_openai'){
-    box.innerHTML='<div class="field"><label>OpenAI API key</label><input type="password" id="aiApiKey" placeholder="sk-…"></div>'+
-      '<div class="field"><label>Model</label><input type="text" id="aiModel" placeholder="gpt-5"><div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Use any current model ID from <a href="https://platform.openai.com/docs/models" target="_blank" rel="noopener">OpenAI&apos;s model list</a>.</div></div>'+callout;
-  }else if(provider==='codex'){
+  if(provider==='codex'){
     box.innerHTML=callout;
-  }else{
-    box.innerHTML='';
+    return;
+  }
+  const spec=AI_PROVIDER_SPEC[provider];
+  if(!spec){box.innerHTML='';return;}
+  window._aiExtraCallout=callout;
+  window._aiProvider=provider;
+  // Render inputs: custom-endpoint field if needed, key field if needed,
+  // then a model-fetch area that starts empty and populates on Fetch.
+  let html='';
+  if(spec.custom){
+    html+='<div class="field"><label>Base URL</label><input type="text" id="aiCustomEndpoint" placeholder="https://openrouter.ai/api/v1" value="https://openrouter.ai/api/v1"><div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Must expose /models and /chat/completions. Works with OpenRouter, Together, DeepInfra, self-hosted vLLM, etc.</div></div>';
+  }
+  if(spec.keyLabel){
+    html+='<div class="field"><label>'+escHtml(spec.keyLabel)+'</label><input type="password" id="aiApiKey" placeholder="'+escHtml(spec.keyPlaceholder||'')+'" oninput="invalidateAIModels()"></div>';
+  }
+  html+='<div class="field"><label>Model</label><div id="aiModelArea"><button class="btn btn-ghost btn-sm" onclick="fetchAIModels()">Fetch available models</button></div></div>';
+  if(spec.docs){
+    html+='<div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Model list from <a href="'+escHtml(spec.docs)+'" target="_blank" rel="noopener">'+escHtml(spec.docsLabel)+'</a>.</div>';
+  }
+  html+=callout;
+  box.innerHTML=html;
+  // For local providers (Ollama, LM Studio) we can fetch immediately
+  // without a key. Same for reachability checks on first load.
+  if(!spec.keyLabel){
+    fetchAIModels();
   }
 }
 
-function retryLmStudio(){
-  const box=document.getElementById('aiExtra');
-  if(box)renderLmStudio(box,window._aiExtraCallout||'');
+function invalidateAIModels(){
+  // When the user changes the API key, clear any previously-fetched list.
+  const area=document.getElementById('aiModelArea');
+  if(area)area.innerHTML='<button class="btn btn-ghost btn-sm" onclick="fetchAIModels()">Fetch available models</button>';
 }
-async function renderLmStudio(box,callout){
-  box.innerHTML='<p class="muted" style="font-size:var(--t-sm)">Checking LM Studio…</p>';
+
+async function fetchAIModels(){
+  const provider=window._aiProvider;
+  const spec=AI_PROVIDER_SPEC[provider];
+  if(!spec)return;
+  const area=document.getElementById('aiModelArea');
+  if(!area)return;
+  area.innerHTML='<p class="muted" style="font-size:var(--t-sm)">Fetching…</p>';
+  let endpoint=spec.endpoint;
+  if(spec.custom){
+    const e=(document.getElementById('aiCustomEndpoint')||{}).value||'';
+    endpoint=e.trim();
+    if(!endpoint.match(/^https?:\/\//)){
+      area.innerHTML='<div class="info-box info-warn">Enter a valid base URL first (must start with http:// or https://).</div>'+
+        '<button class="btn btn-ghost btn-sm" onclick="fetchAIModels()" style="margin-top:var(--s2)">Retry</button>';
+      return;
+    }
+  }
+  const keyEl=document.getElementById('aiApiKey');
+  const api_key=keyEl?keyEl.value:'';
+  if(spec.keyLabel&&!api_key){
+    area.innerHTML='<div class="info-box info-warn">Enter your API key first, then click Fetch.</div>'+
+      '<button class="btn btn-ghost btn-sm" onclick="fetchAIModels()" style="margin-top:var(--s2)">Retry</button>';
+    return;
+  }
   let models=[];
-  let reachable=false;
+  let errMsg='';
   try{
-    const r=await fetch('/wizard/lmstudio-models');
+    const r=await fetch('/wizard/fetch-models',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:spec.kind,endpoint:endpoint,api_key:api_key})});
     const d=await r.json();
-    reachable=r.ok;
-    // Filter out embedding-only models — they can't do chat completions
-    models=(d.models||[]).filter(m=>!/embed|embedding/i.test(m));
-  }catch(e){/* reachable stays false */}
+    if(d.status==='ok'){
+      // For OpenAI-compat endpoints, drop embedding-only models from the
+      // picker — they can't do chat completions and just confuse the user.
+      models=(d.models||[]).filter(m=>!/embed|embedding/i.test(m));
+    }else{
+      errMsg=d.message||'unknown error';
+    }
+  }catch(e){
+    errMsg=e.message||'network error';
+  }
   if(models.length){
-    box.innerHTML='<div class="field"><label>Model</label><select id="aiModel">'+
+    area.innerHTML='<select id="aiModel">'+
       models.map(m=>`<option value="${escHtml(m)}">${escHtml(m)}</option>`).join('')+
-      '</select><div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Fetched from LM Studio on localhost:1234.</div></div>'+callout;
+      '</select><div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">'+models.length+' models available.</div>';
   }else{
-    const why=reachable
-      ?'LM Studio is running but no chat-completion models are loaded. Open LM Studio, load a model, then click Retry.'
-      :'Could not reach LM Studio at localhost:1234. Start its server (with a model loaded), then click Retry.';
-    box.innerHTML='<div class="info-box info-warn"><strong>LM Studio not ready</strong><p>'+escHtml(why)+'</p>'+
-      '<button class="btn btn-ghost btn-sm" onclick="retryLmStudio()">Retry</button></div>'+
-      '<div class="field"><label>Or type a model name manually</label><input type="text" id="aiModel" placeholder="e.g. qwen3-8b-instruct"></div>'+callout;
+    const why=errMsg
+      ?('Could not fetch models: '+escHtml(errMsg))
+      :(spec.kind==='ollama'
+        ?'No models pulled. Run `ollama pull <model>` in a terminal, then Retry.'
+        :(provider==='local_lmstudio'
+          ?'Could not reach LM Studio at localhost:1234. Open the app and load a model, then Retry.'
+          :'No models returned. Check your API key or base URL, then Retry.'));
+    area.innerHTML='<div class="info-box info-warn">'+why+'</div>'+
+      '<button class="btn btn-ghost btn-sm" onclick="fetchAIModels()" style="margin-top:var(--s2)">Retry</button>';
   }
 }
 function toggleCheck(el){el.classList.toggle('selected')}
@@ -2065,17 +2135,43 @@ async function submitWelcome(){
   await completeStep('welcome');
 }
 async function submitAI(){
-  const p=getSelected('aiChoice');if(!p)return;
+  const p=getSelected('aiChoice');
+  if(!p){toast('Pick a provider first.','error');return;}
+  // Codex is a separate CLI, no key/model picker needed.
+  if(p==='codex'){
+    await saveProfile({ai_config:{provider:'codex'}});
+    await completeStep('ai_setup');
+    return;
+  }
+  const spec=AI_PROVIDER_SPEC[p];
+  if(!spec){toast('Unknown provider.','error');return;}
   const modelEl=document.getElementById('aiModel');
+  const model=modelEl?modelEl.value:'';
+  if(!model){
+    toast('Click Fetch available models and pick one before continuing.','error');
+    return;
+  }
   const keyEl=document.getElementById('aiApiKey');
-  const cfg={provider:p==='api_openai'?'api':p==='api'?'api':p};
-  if(modelEl)cfg.model_name=modelEl.value;
-  if(keyEl&&keyEl.value)cfg.api_key=keyEl.value;
-  if(p==='local_lmstudio')cfg.endpoint='http://localhost:1234/v1';
-  else if(p==='local_ollama')cfg.endpoint='http://localhost:11434';
-  else if(p==='api')cfg.endpoint='https://api.anthropic.com';
-  else if(p==='api_openai')cfg.endpoint='https://api.openai.com';
-  await saveProfile({ai_config:cfg});await completeStep('ai_setup');
+  const api_key=keyEl?keyEl.value:'';
+  if(spec.keyLabel&&!api_key){
+    toast('Enter your API key.','error');
+    return;
+  }
+  let endpoint=spec.endpoint;
+  if(spec.custom){
+    const e=(document.getElementById('aiCustomEndpoint')||{}).value||'';
+    endpoint=e.trim();
+    if(!endpoint){toast('Enter the base URL.','error');return;}
+  }
+  // Normalize every API provider to the same 'api' label downstream —
+  // the setup agent reads endpoint + key + model, not the specific
+  // brand. Local providers keep their own label so the agent code
+  // can still branch on provider === 'local_*' for start/health hooks.
+  const normalized=(p==='codex'||p==='local_ollama'||p==='local_lmstudio')?p:'api';
+  const cfg={provider:normalized,model_name:model,endpoint:endpoint};
+  if(api_key)cfg.api_key=api_key;
+  await saveProfile({ai_config:cfg});
+  await completeStep('ai_setup');
 }
 async function submitPrefs(){
   const designDesc=(el('designDescription')||{}).value.trim();

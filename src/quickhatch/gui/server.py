@@ -753,6 +753,28 @@ def make_gui_server(
                 gui_state.profile.save_checkpoint()
                 self._send_json({"status": "ok"})
 
+            elif self.path == "/wizard/fetch-models":
+                # Provider-agnostic model-list fetch. Body:
+                # {"kind": "anthropic"|"openai-compat"|"ollama",
+                #  "endpoint": "...", "api_key": "..."}
+                data = self._read_json()
+                kind = (data.get("kind") or "").strip()
+                endpoint = (data.get("endpoint") or "").strip()
+                api_key = (data.get("api_key") or "").strip()
+                if not kind or not endpoint:
+                    self._send_json(
+                        {"status": "error", "message": "kind and endpoint required"}, 400
+                    )
+                else:
+                    from quickhatch.ai.model_list import fetch as _fetch_models
+
+                    try:
+                        models = _fetch_models(kind, endpoint, api_key or None)
+                    except Exception as exc:
+                        self._send_json({"status": "error", "message": str(exc)}, 500)
+                        return
+                    self._send_json({"status": "ok", "models": models})
+
             elif self.path == "/wizard/gallery-picks":
                 data = self._read_json()
                 picks = data if isinstance(data, list) else data.get("picks", [])
