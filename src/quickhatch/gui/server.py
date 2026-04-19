@@ -2243,6 +2243,7 @@ def _launch_agent(
             thread = threading.Thread(
                 target=_run_setup_agent,
                 args=(gui_state, port),
+                kwargs={"user_feedback": user_feedback},
                 daemon=True,
             )
         else:
@@ -2820,7 +2821,7 @@ def _recipe_apply_for_setup(profile: UserProfile) -> str:
         return ""
 
 
-def _run_setup_agent(gui_state: GUIState, port: int) -> None:
+def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") -> None:
     """Run the setup phase as an agentic loop: SSH into the Linux machine,
     let the LLM decide what to run, execute it, feed results back, repeat.
 
@@ -3047,6 +3048,11 @@ def _run_setup_agent(gui_state: GUIState, port: int) -> None:
                 else ""
             )
             + _recipe_apply_for_setup(profile)
+            + (
+                f"== USER FEEDBACK (the user interjected — follow this!) ==\n{user_feedback}\n\n"
+                if user_feedback
+                else ""
+            )
             + f"== USER MIGRATION PROFILE ==\n{profile_json}"
         )
 
