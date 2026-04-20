@@ -3659,6 +3659,18 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             "Installing a theme is NOT the same as activating it. Installing a package is NOT the\n"
             "same as configuring it. Think about what the user will actually SEE and USE at the end,\n"
             "and work backwards to make that happen.\n\n"
+            "DEFAULT ACCOUNT PASSWORD:\n"
+            f"Set BOTH the root account AND the primary user account's password to the literal\n"
+            f"string `{profile.default_account_password}` during install. This is a KNOWN CONSTANT —\n"
+            "it lets the harness pipe it to `sudo -S` during first post-reboot connect to grant\n"
+            "NOPASSWD sudo, so subsequent commands don't hang on an invisible sudo prompt (SSH\n"
+            "has no pty). Use one of these patterns inside chroot:\n"
+            f"  echo 'root:{profile.default_account_password}' | chpasswd\n"
+            f"  echo '<username>:{profile.default_account_password}' | chpasswd\n"
+            "After the first successful post-reboot connect, the harness auto-grants NOPASSWD\n"
+            "sudo via a sudoers.d drop-in. Your migration summary at the END must include a\n"
+            "VERY PROMINENT 'CHANGE YOUR PASSWORD IMMEDIATELY' block telling the user to run\n"
+            "`passwd` and `sudo passwd` on first login — the default MUST NOT persist.\n\n"
             "WARNINGS vs ERRORS:\n"
             "Non-fatal warnings are NOT your problem unless they block a later command.\n"
             "Pacman 'directive X not recognized', GTK accessibility warnings, deprecation\n"
@@ -4269,6 +4281,41 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                         # longer in a live env — flip the flag so downstream
                         # prompt/logic treats the session as installed.
                         is_live = False
+                        # Auto-grant NOPASSWD sudo to the reconnect user
+                        # using the known default password. Without
+                        # this, every subsequent `sudo` command hangs on
+                        # an invisible password prompt (SSH has no pty).
+                        # The agent is instructed in the system prompt
+                        # to set both root and user passwords to the
+                        # literal profile.default_account_password
+                        # during install, so this pipe-and-tee is safe.
+                        default_pw = profile.default_account_password or "password"
+                        nopasswd_cmd = (
+                            f"echo '{default_pw}' | sudo -S -p '' bash -c "
+                            f"\"echo '{user} ALL=(ALL:ALL) NOPASSWD: ALL' > "
+                            f"/etc/sudoers.d/99-quickhatch-nopasswd && "
+                            f'chmod 440 /etc/sudoers.d/99-quickhatch-nopasswd"'
+                        )
+                        _nrc, _nout, _nerr = _ssh_exec(
+                            host, user, nopasswd_cmd, key_path, port=ssh_port, timeout=30
+                        )
+                        if _nrc == 0:
+                            bridge.add_message(
+                                "agent",
+                                "✓ Granted NOPASSWD sudo to "
+                                f"'{user}' via /etc/sudoers.d/99-quickhatch-nopasswd "
+                                "using the default account password. Subsequent sudo "
+                                "commands will not prompt.",
+                            )
+                        else:
+                            bridge.add_message(
+                                "agent",
+                                "⚠️ Could not auto-grant NOPASSWD sudo (default password "
+                                "may not have been set during install). `sudo` commands "
+                                "will hang on invisible prompts until the agent grants "
+                                "passwordless sudo manually. Remember to pipe the correct "
+                                "password if prompting.",
+                            )
                         # Gather fresh system info so the next turn sees
                         # the installed-system reality.
                         fresh_rc, fresh_info, _ = _ssh_exec(
@@ -4280,7 +4327,12 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                         )
                         if fresh_rc == 0:
                             pending_feedback.append(
-                                f"[post-reboot system info]\n{fresh_info.strip()}"
+                                f"[post-reboot system info]\n{fresh_info.strip()}\n\n"
+                                f"[harness] Passwordless sudo has been granted for '{user}'. "
+                                f"Run any sudo command freely — no prompt will appear. "
+                                f"REMINDER: include a 'CHANGE YOUR PASSWORD IMMEDIATELY' "
+                                f"block in your final summary so the user rotates the "
+                                f"default password ('{default_pw}') on first login."
                             )
                         results_log.append(f"**`{cmd}`** — OK (reconnected)")
                         continue

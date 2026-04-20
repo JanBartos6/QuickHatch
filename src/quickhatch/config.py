@@ -138,6 +138,15 @@ class UserProfile:
     data_transfer_method: str = ""
     linux_ip: str = ""
     linux_user: str = ""
+    # Default password for the root account AND the primary user
+    # account created during install. Known constant so the agent can
+    # pipe it to `sudo -S` during first post-reboot connect (no tty
+    # over SSH — see common-pre-reboot-rules.md). MUST be changed by
+    # the user on first login. The setup flow shows a loud "CHANGE
+    # YOUR PASSWORD NOW" banner in the summary to drive that home.
+    # Stored on the profile (not a constant) so a future UI can let
+    # the user pick a different default if they want.
+    default_account_password: str = "password"
     completed_steps: list[str] = field(default_factory=list)
 
     def save_checkpoint(self, path: Path | None = None) -> Path:
