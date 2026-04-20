@@ -5,48 +5,53 @@ from __future__ import annotations
 from quickhatch.config import HardwareInfo
 
 
+def _gpu_vendors(hw: HardwareInfo) -> set[str]:
+    """Return normalized GPU vendors present in the hardware snapshot."""
+    return {gpu.vendor for gpu in hw.gpus if gpu.vendor in {"nvidia", "amd", "intel"}}
+
+
 def check_drivers(hw: HardwareInfo) -> list[dict]:
     """Check driver compatibility and return recommendations."""
     recommendations = []
+    gpu_vendors = _gpu_vendors(hw)
 
-    for gpu in hw.gpus:
-        if gpu.vendor == "nvidia":
-            recommendations.append(
-                {
-                    "component": f"GPU: {gpu.name}",
-                    "status": "action_needed",
-                    "recommendation": (
-                        "Install proprietary NVIDIA drivers. "
-                        "Use distros with easy NVIDIA setup (Pop!_OS, Ubuntu, Manjaro). "
-                        "Avoid Nouveau open-source driver for best performance."
-                    ),
-                    "install_cmd": "sudo ubuntu-drivers autoinstall  # or equivalent for your distro",
-                }
-            )
-        elif gpu.vendor == "amd":
-            recommendations.append(
-                {
-                    "component": f"GPU: {gpu.name}",
-                    "status": "good",
-                    "recommendation": (
-                        "AMD GPUs have excellent open-source driver support (AMDGPU). "
-                        "Drivers are included in the Linux kernel. No additional setup needed."
-                    ),
-                    "install_cmd": None,
-                }
-            )
-        elif gpu.vendor == "intel":
-            recommendations.append(
-                {
-                    "component": f"GPU: {gpu.name}",
-                    "status": "good",
-                    "recommendation": (
-                        "Intel integrated graphics have built-in kernel support. "
-                        "No additional drivers needed."
-                    ),
-                    "install_cmd": None,
-                }
-            )
+    if "nvidia" in gpu_vendors:
+        recommendations.append(
+            {
+                "component": "GPU: NVIDIA",
+                "status": "action_needed",
+                "recommendation": (
+                    "Install proprietary NVIDIA drivers. "
+                    "Use distros with easy NVIDIA setup (Pop!_OS, Ubuntu, Manjaro). "
+                    "Avoid Nouveau open-source driver for best performance."
+                ),
+                "install_cmd": "sudo ubuntu-drivers autoinstall  # or equivalent for your distro",
+            }
+        )
+    if "amd" in gpu_vendors:
+        recommendations.append(
+            {
+                "component": "GPU: AMD",
+                "status": "good",
+                "recommendation": (
+                    "AMD GPUs have excellent open-source driver support (AMDGPU). "
+                    "Drivers are included in the Linux kernel. No additional setup needed."
+                ),
+                "install_cmd": None,
+            }
+        )
+    if "intel" in gpu_vendors:
+        recommendations.append(
+            {
+                "component": "GPU: Intel",
+                "status": "good",
+                "recommendation": (
+                    "Intel integrated graphics have built-in kernel support. "
+                    "No additional drivers needed."
+                ),
+                "install_cmd": None,
+            }
+        )
 
     if hw.wifi_adapters:
         recommendations.append(

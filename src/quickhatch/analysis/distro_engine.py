@@ -24,6 +24,7 @@ def recommend(profile: UserProfile) -> list[tuple[str, float, str]]:
     prefs = profile.preferences
     hw = profile.hardware
     scores: list[tuple[str, float, str]] = []
+    gpu_vendors = {gpu.vendor for gpu in hw.gpus if gpu.vendor}
 
     for name, info in distros.items():
         score = 0.0
@@ -56,15 +57,13 @@ def recommend(profile: UserProfile) -> list[tuple[str, float, str]]:
             reasons.append("beginner-friendly")
 
         # Hardware considerations
-        if hw.gpus:
-            for gpu in hw.gpus:
-                if gpu.vendor == "nvidia":
-                    nvidia_support = info.get("nvidia_support", "moderate")
-                    if nvidia_support == "excellent":
-                        score += 15
-                        reasons.append("excellent NVIDIA support")
-                    elif nvidia_support == "good":
-                        score += 8
+        if "nvidia" in gpu_vendors:
+            nvidia_support = info.get("nvidia_support", "moderate")
+            if nvidia_support == "excellent":
+                score += 15
+                reasons.append("excellent NVIDIA support")
+            elif nvidia_support == "good":
+                score += 8
 
         # Low RAM -> prefer lightweight
         if hw.ram_gb and hw.ram_gb < 4 and "lightweight" in tags:

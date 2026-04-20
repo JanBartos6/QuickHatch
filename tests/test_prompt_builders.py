@@ -131,6 +131,13 @@ class TestBuildSectionPrompt:
         assert "DECISIONS ALREADY MADE" in prompt
         assert "Fedora Workstation" in prompt
 
+    def test_target_hardware_override_is_included_in_analysis_prompt(self, profile):
+        profile.target_hardware_override = "Target machine: Ryzen 7, RTX 3080, Intel AX210 Wi-Fi."
+        prompt = _build_section_prompt(profile, "drivers", "")
+        assert "TARGET HARDWARE OVERRIDE" in prompt
+        assert "authoritative" in prompt.lower()
+        assert "RTX 3080" in prompt
+
 
 class TestOfflineInstallScript:
     """When another_machine=='no', the install_script section prompt should be
