@@ -102,6 +102,35 @@ class TestBuildSectionPrompt:
         prompt = _build_section_prompt(profile, "notreal", "")
         assert isinstance(prompt, str) and len(prompt) > 100
 
+    def test_analysis_sections_now_require_json_contract(self, profile):
+        prompt = _build_section_prompt(profile, "distro", "")
+        assert "OUTPUT CONTRACT" in prompt
+        assert "exactly ONE JSON object" in prompt
+        assert '"markdown"' in prompt
+        assert "no JSON, no wrapping, just Markdown" not in prompt
+
+    def test_install_script_keeps_raw_bash_contract(self, profile):
+        prompt = _build_section_prompt(profile, "install_script", "")
+        assert "ONLY a bash script" in prompt
+        assert "exactly ONE JSON object" not in prompt
+
+    def test_previous_outputs_are_threaded_forward(self, profile):
+        prompt = _build_section_prompt(
+            profile,
+            "desktop",
+            "",
+            chosen_distro="Fedora Workstation",
+            previous_outputs={
+                "distro": {
+                    "title": "Recommended Distribution",
+                    "markdown": "**Fedora Workstation** is the best fit.",
+                    "metadata": {"recommended_distro": "Fedora Workstation"},
+                }
+            },
+        )
+        assert "DECISIONS ALREADY MADE" in prompt
+        assert "Fedora Workstation" in prompt
+
 
 class TestOfflineInstallScript:
     """When another_machine=='no', the install_script section prompt should be

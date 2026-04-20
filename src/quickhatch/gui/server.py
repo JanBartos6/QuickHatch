@@ -1657,6 +1657,184 @@ def _prefetch_search_context(
     return "\n".join(context_parts), desktop_images
 
 
+def _trim_text(value: Any, *, limit: int = 600) -> str:
+    text = str(value or "").strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rstrip() + "…"
+
+
+def _analysis_context_profile(
+    profile: UserProfile,
+    section: str,
+    *,
+    chosen_distro: str | None = None,
+) -> dict[str, Any]:
+    """Build a section-specific profile payload for the analysis agent.
+
+    The old prompt dumped nearly the full profile into every section. That
+    made local models miss high-value user preferences under irrelevant scan
+    noise. Keep the context explicit and section-shaped instead.
+    """
+    prefs = profile.preferences
+    base: dict[str, Any] = {
+        "mode": prefs.migration_type,
+        "preferences": {
+            "use_cases": prefs.use_cases,
+            "distro_preference": prefs.distro_preference,
+            "desktop_look": prefs.desktop_look,
+            "gallery_picks": prefs.gallery_picks,
+            "icon_style": prefs.icon_style,
+            "wallpaper_style": prefs.wallpaper_style,
+            "another_machine": prefs.another_machine,
+            "additional_notes": prefs.additional_notes,
+        },
+        "apps_to_install": profile.apps_to_install,
+        "data_transfer_method": profile.data_transfer_method,
+        "data_description": profile.data_description,
+        "additional_info": profile.additional_info,
+        "target_hardware_override": profile.target_hardware_override,
+        "chosen_distro_so_far": chosen_distro or prefs.distro_preference or "",
+        "ai_config": {
+            "provider": profile.ai_config.provider,
+            "endpoint": profile.ai_config.endpoint,
+            "model_name": profile.ai_config.model_name,
+            "api_key": "***REDACTED***" if profile.ai_config.api_key else None,
+        },
+    }
+
+    app_rows = [
+        {
+            "name": app.name,
+            "version": app.version,
+            "source": app.source,
+        }
+        for app in profile.apps
+    ]
+    if profile.apps_to_install:
+        picks = {name.lower() for name in profile.apps_to_install}
+        app_rows = [row for row in app_rows if (row.get("name") or "").lower() in picks]
+
+    if section == "distro":
+        base["hardware"] = asdict(profile.hardware)
+        base["installed_apps"] = []
+        base["windows_settings"] = profile.windows_settings
+    elif section == "apps":
+        base["installed_apps"] = app_rows[:80]
+    elif section == "drivers":
+        base["hardware"] = asdict(profile.hardware)
+        base["installed_apps"] = []
+        base["windows_settings"] = profile.windows_settings
+    elif section == "desktop":
+        base["installed_apps"] = []
+        base["windows_settings"] = profile.windows_settings
+        base["files_summary"] = {
+            "browser_profiles": (profile.files_summary or {}).get("browser_profiles", {}),
+            "top_types": (profile.files_summary or {}).get("top_types", {}),
+        }
+    elif section == "plan":
+        base["hardware"] = asdict(profile.hardware)
+        base["windows_settings"] = profile.windows_settings
+        base["files_summary"] = profile.files_summary
+        base["linux_connection"] = {
+            "linux_ip": profile.linux_ip,
+            "linux_user": profile.linux_user,
+        }
+        base["ssh_public_key_path"] = profile.ssh_public_key_path
+    elif section == "summary":
+        base["installed_apps"] = []
+        base["linux_connection"] = {
+            "linux_ip": profile.linux_ip,
+            "linux_user": profile.linux_user,
+        }
+    elif section == "install_script":
+        base["hardware"] = asdict(profile.hardware)
+        base["files_summary"] = profile.files_summary
+        base["linux_connection"] = {
+            "linux_ip": profile.linux_ip,
+            "linux_user": profile.linux_user,
+        }
+        base["ssh_public_key_path"] = profile.ssh_public_key_path
+
+    if base.get("target_hardware_override"):
+        base["hardware"] = {
+            "_note": (
+                "Ignore scanned hardware when target_hardware_override is set. "
+                "Use the override text as authoritative."
+            )
+        }
+
+    profile_dict = json.loads(json.dumps(base, default=str))
+    if profile_dict.get("preferences", {}).get("gallery_picks") == []:
+        profile_dict["preferences"].pop("gallery_picks", None)
+    return profile_dict
+
+
+def _analysis_previous_outputs_block(previous_outputs: dict[str, dict[str, Any]] | None) -> str:
+    if not previous_outputs:
+        return ""
+    ordered = ("distro", "apps", "drivers", "desktop", "plan", "summary")
+    summaries: list[dict[str, Any]] = []
+    for key in ordered:
+        payload = previous_outputs.get(key)
+        if not payload:
+            continue
+        item: dict[str, Any] = {"section": key, "title": payload.get("title", "")}
+        metadata = payload.get("metadata")
+        if isinstance(metadata, dict) and metadata:
+            item["metadata"] = metadata
+        markdown = _trim_text(payload.get("markdown") or payload.get("content") or "", limit=400)
+        if markdown:
+            item["markdown_excerpt"] = markdown
+        summaries.append(item)
+    if not summaries:
+        return ""
+    return (
+        "== DECISIONS ALREADY MADE (authoritative unless user feedback overrides) ==\n"
+        + json.dumps(summaries, indent=2, default=str)
+        + "\n\n"
+    )
+
+
+def _analysis_response_contract(section: str, title_hint: str) -> str:
+    metadata_hint = ""
+    if section == "distro":
+        metadata_hint = (
+            '    "recommended_distro": "Exact distro name",\n'
+            '    "download_url": "https://official.example/iso"\n'
+        )
+    elif section == "desktop":
+        metadata_hint = (
+            '    "desktop_environment": "KDE Plasma / GNOME / ...",\n'
+            '    "recipe_id": "gallery id if used",\n'
+            '    "theme": "theme name",\n'
+            '    "icons": "icon theme"\n'
+        )
+    elif section == "apps":
+        metadata_hint = '    "apps_covered": ["Firefox", "Steam"]\n'
+    elif section == "plan":
+        metadata_hint = '    "requires_reboot": true\n'
+    elif section == "summary":
+        metadata_hint = '    "next_steps_count": 4\n'
+    else:
+        metadata_hint = '    "notes": "optional machine-readable facts"\n'
+
+    return (
+        "OUTPUT CONTRACT:\n"
+        "Respond with exactly ONE JSON object. No prose outside JSON. No Markdown fences.\n"
+        "The object shape is:\n"
+        "{\n"
+        f'  "title": "{title_hint}",\n'
+        '  "markdown": "Human-readable Markdown for the wizard UI",\n'
+        '  "metadata": {\n'
+        f"{metadata_hint}"
+        "  }\n"
+        "}\n"
+        "`markdown` must contain the real user-facing content for this section.\n"
+        "Use `metadata` only for key facts the harness should carry into later sections.\n\n"
+    )
+
+
 def _build_section_prompt(
     profile: UserProfile,
     section: str,
@@ -1664,6 +1842,7 @@ def _build_section_prompt(
     user_feedback: str = "",
     chosen_distro: str | None = None,
     vm_verify: bool = False,
+    previous_outputs: dict[str, dict[str, Any]] | None = None,
 ) -> str:
     """Build a prompt for a single section of the migration analysis.
 
@@ -1675,39 +1854,9 @@ def _build_section_prompt(
     """
     from quickhatch.ai.install_primer import primer_prompt_block, resolve_primer
 
-    profile_dict = asdict(profile)
-    if profile_dict.get("ai_config", {}).get("api_key"):
-        profile_dict["ai_config"]["api_key"] = "***REDACTED***"
-    # When target-hardware override is set, the SCANNED hardware belongs
-    # to the wrong machine. Stripping it here prevents the model from
-    # anchoring on concrete RAM/GPU/CPU values and ignoring the prose
-    # override. The override block below is the single source of truth
-    # for driver/GPU/WiFi decisions in that case.
-    override_text = (profile.target_hardware_override or "").strip()
-    if override_text:
-        profile_dict["hardware"] = {
-            "_note": (
-                "IGNORE this field — the scanned hardware is from a DIFFERENT "
-                "machine than the install target. Use the TARGET HARDWARE "
-                "OVERRIDE section at the end of this prompt for all "
-                "driver / GPU / CPU / WiFi / disk-size decisions."
-            )
-        }
-    # Massive profiles (317 scanned apps = 47KB) choke local models even
-    # on sections that don't care about apps. If the user picked a
-    # specific apps_to_install list, trim the `apps` dump to only those
-    # picks — the model doesn't need the full scan.
-    picks = profile.apps_to_install or []
-    if picks:
-        pick_names = {p.lower() for p in picks}
-        profile_dict["apps"] = [
-            a for a in profile_dict.get("apps", []) if (a.get("name") or "").lower() in pick_names
-        ]
-    # Sections that don't need any app data at all can drop the list
-    # entirely — it's pure prompt bloat for distro, drivers, desktop.
-    if section in ("distro", "drivers", "desktop", "summary"):
-        profile_dict["apps"] = []
+    profile_dict = _analysis_context_profile(profile, section, chosen_distro=chosen_distro)
     profile_json = json.dumps(profile_dict, indent=2, default=str)
+    override_text = (profile.target_hardware_override or "").strip()
     gallery_block = _gallery_prompt_block(profile)
     # Inject the curated library only on design-relevant sections
     # (desktop, summary). Also skip it entirely once the user has pinned
@@ -1737,6 +1886,15 @@ def _build_section_prompt(
     primary_recipe = (
         profile.preferences.gallery_picks[0] if profile.preferences.gallery_picks else ""
     )
+    title_hint = {
+        "distro": "Recommended Distribution",
+        "apps": "Application Mapping",
+        "drivers": "Driver Notes",
+        "desktop": "Desktop Environment",
+        "plan": "Migration Plan",
+        "summary": "Your Migration at a Glance",
+        "install_script": "Offline Install Script",
+    }.get(section, "Analysis")
 
     section_instructions = {
         "distro": (
@@ -1886,42 +2044,45 @@ def _build_section_prompt(
 
         vm_block = vm_aware_prompt_block(True)
 
+    if section == "install_script":
+        response_contract = (
+            "Respond with ONLY a bash script. No JSON, no prose, no Markdown fences.\n\n"
+        )
+    else:
+        response_contract = _analysis_response_contract(section, title_hint)
+
     return (
         "You are a Linux migration expert. Write the migration analysis section described below.\n\n"
-        "KEY PRINCIPLE: The plan must describe the full END-STATE the user wants to reach,\n"
-        "not just a list of packages to install. Installing a theme is not the same as activating it.\n"
-        "Installing a package is not the same as configuring it. An automated agent will execute\n"
-        "this plan — so it must be prescriptive about every config file, systemctl service,\n"
-        "environment variable, and user account needed to reach the working desktop.\n\n"
-        "Use rich Markdown formatting: **bold**, `code`, ### headings, bullet points, numbered lists, "
-        "[links](url), and ![images](url) where appropriate.\n"
-        "Respond with ONLY the section content — no JSON, no wrapping, just Markdown.\n\n"
+        "KEY PRINCIPLE: prefer authoritative user input over your own stylistic guesses.\n"
+        "Respect explicit user choices. Carry forward decisions already made in earlier sections.\n"
+        "Describe the full working END-STATE, not just package installation.\n\n"
         f"== SECTION: {section.upper()} ==\n"
-        f"{section_instructions.get(section, '')}\n"
-        f"== LIVE SEARCH RESULTS (use these for up-to-date info) ==\n{search_context}\n\n"
-        + library_block
-        + primer_block
-        + gallery_block
-        + (vm_block + "\n" if vm_block else "")
+        f"{section_instructions.get(section, '')}\n\n"
+        + response_contract
         + (
-            f"== USER FEEDBACK (the user changed their mind — follow this!) ==\n{user_feedback}\n\n"
+            "== USER FEEDBACK (authoritative latest input — the user changed their mind, follow this) ==\n"
+            f"{user_feedback}\n\n"
             if user_feedback
             else ""
         )
-        + f"== USER SYSTEM PROFILE ==\n{profile_json}\n\n"
+        + _analysis_previous_outputs_block(previous_outputs)
+        + f"== RELEVANT USER SYSTEM PROFILE ==\n{profile_json}\n\n"
         + (
             "== TARGET HARDWARE OVERRIDE (AUTHORITATIVE) ==\n"
-            "⚠ CRITICAL: The `hardware` field in the USER SYSTEM PROFILE above "
-            "does NOT describe the install target. The user is installing on "
-            "DIFFERENT hardware. Base every driver / GPU / CPU / WiFi / disk-size "
-            "recommendation on the description below — not on the scanned "
-            "hardware. Do NOT mention the scanned CPU/GPU/RAM anywhere in your "
-            "output. Do NOT recommend drivers for a GPU the user did not list. "
-            "If a detail is missing from the description, say 'unknown — ask the "
-            "user' rather than falling back to the scan.\n\n"
-            "TARGET HARDWARE DESCRIPTION (verbatim from the user):\n"
-            f"{override_text}\n"
+            "The scanned hardware above is NOT the install target. Use the text below for all "
+            "driver / GPU / CPU / WiFi / disk-size decisions. If something is missing, say "
+            "'unknown — ask the user' instead of inventing values.\n\n"
+            f"{override_text}\n\n"
             if override_text
+            else ""
+        )
+        + primer_block
+        + gallery_block
+        + library_block
+        + (vm_block + "\n" if vm_block else "")
+        + (
+            f"== LIVE SEARCH RESULTS (supplemental, lower priority than user data) ==\n{search_context}\n\n"
+            if search_context
             else ""
         )
     )
@@ -2093,6 +2254,147 @@ def _parse_agent_response(text: str) -> dict[str, dict]:
     return {"plan": {"title": "Migration Analysis", "content": text}}
 
 
+def _strip_markdown_fences(text: str) -> str:
+    text = (text or "").strip()
+    if not text.startswith("```"):
+        return text
+    lines = text.split("\n")
+    lines = lines[1:]
+    if lines and lines[-1].strip().startswith("```"):
+        lines = lines[:-1]
+    return "\n".join(lines).strip()
+
+
+def _extract_first_json_dict(text: str) -> dict[str, Any] | None:
+    text = (text or "").strip()
+    if not text:
+        return None
+    try:
+        obj = json.loads(text)
+        if isinstance(obj, dict):
+            return obj
+    except json.JSONDecodeError:
+        pass
+    objects = _extract_json_objects(text)
+    return objects[0] if objects else None
+
+
+def _render_analysis_section_markdown(section: str, payload: dict[str, Any]) -> str:
+    markdown = str(payload.get("markdown") or "").strip()
+    if markdown:
+        return markdown
+
+    metadata = payload.get("metadata")
+    metadata = metadata if isinstance(metadata, dict) else {}
+
+    if section == "distro":
+        distro = (
+            metadata.get("recommended_distro")
+            or payload.get("recommended_distro")
+            or payload.get("top_pick")
+            or "Unknown"
+        )
+        reasoning = payload.get("reasoning") or payload.get("content") or ""
+        lines = [f"### Recommended Distribution\n\n**{distro}**"]
+        if reasoning:
+            lines.append(f"\n\n{reasoning}")
+        return "".join(lines).strip()
+
+    if section == "apps":
+        apps = payload.get("apps")
+        if isinstance(apps, list) and apps:
+            lines = [
+                "| App | Install Command | Notes |",
+                "| --- | --- | --- |",
+            ]
+            for app in apps:
+                if not isinstance(app, dict):
+                    continue
+                lines.append(
+                    "| {name} | `{cmd}` | {notes} |".format(
+                        name=app.get("name", ""),
+                        cmd=app.get("install_command", "") or app.get("command", ""),
+                        notes=app.get("notes", ""),
+                    )
+                )
+            return "\n".join(lines)
+
+    if section == "desktop":
+        lines = ["### Desktop Environment"]
+        de = (
+            metadata.get("desktop_environment")
+            or payload.get("desktop_environment")
+            or payload.get("de")
+        )
+        if de:
+            lines.append(f"\n\n- **Desktop:** {de}")
+        for label, key in (
+            ("Recipe", "recipe_id"),
+            ("Theme", "theme"),
+            ("Icons", "icons"),
+            ("Wallpaper", "wallpaper"),
+        ):
+            value = metadata.get(key) or payload.get(key)
+            if value:
+                lines.append(f"\n- **{label}:** {value}")
+        notes = payload.get("notes") or payload.get("content") or ""
+        if notes:
+            lines.append(f"\n\n{notes}")
+        return "".join(lines).strip()
+
+    if section == "plan":
+        steps = payload.get("steps")
+        if isinstance(steps, list) and steps:
+            lines = ["### Migration Plan\n"]
+            for idx, step in enumerate(steps, start=1):
+                lines.append(f"{idx}. {step}")
+            return "\n".join(lines)
+
+    if section == "summary":
+        checklist = payload.get("next_steps")
+        summary = payload.get("summary") or payload.get("content") or ""
+        lines = []
+        if summary:
+            lines.append(summary)
+        if isinstance(checklist, list) and checklist:
+            lines.append("\n### What to do next")
+            for item in checklist:
+                lines.append(f"- {item}")
+        return "\n".join(lines).strip()
+
+    fallback = str(payload.get("content") or payload.get("summary") or "").strip()
+    return fallback
+
+
+def _parse_analysis_section_response(section: str, text: str) -> dict[str, Any]:
+    cleaned = _strip_markdown_fences(text)
+    parsed = _extract_first_json_dict(cleaned)
+    if parsed is None:
+        return {
+            "title": "",
+            "markdown": cleaned,
+            "metadata": {},
+            "structured": False,
+        }
+
+    if section in parsed and isinstance(parsed[section], dict):
+        parsed = parsed[section]
+
+    metadata = parsed.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+
+    markdown = _render_analysis_section_markdown(section, parsed).strip()
+    title = str(parsed.get("title") or "").strip()
+    return {
+        "title": title,
+        "markdown": markdown or cleaned,
+        "metadata": metadata,
+        "structured": True,
+        "raw": parsed,
+    }
+
+
 _REASONING_MODEL_PREFIXES = ("gpt-5", "o1", "o3", "o4")
 
 
@@ -2262,6 +2564,7 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
         # output may confirm or override this.
         if gui_state.profile.preferences.distro_preference:
             chosen_distro = gui_state.profile.preferences.distro_preference
+        analysis_outputs: dict[str, dict[str, Any]] = {}
 
         # Build a map of sections that already have a SUCCESSFUL suggestion
         # on disk from a previous run. If the user is re-running without
@@ -2313,6 +2616,7 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
                 user_feedback,
                 chosen_distro=chosen_distro,
                 vm_verify=bool(getattr(gui_state, "vm_verify_enabled", False)),
+                previous_outputs=analysis_outputs,
             )
             # Retry once on any network/timeout error — a 15 min timeout plus
             # a second attempt is usually enough for even the biggest local
@@ -2364,14 +2668,24 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
                 )
                 continue
 
-            # Strip any residual markdown fences the model might wrap around its response
             content = content.strip()
-            if content.startswith("```"):
-                lines = content.split("\n")
-                lines = lines[1:]
-                if lines and lines[-1].strip().startswith("```"):
-                    lines = lines[:-1]
-                content = "\n".join(lines)
+
+            parsed_section: dict[str, Any] | None = None
+            if section_key != "install_script":
+                parsed_section = _parse_analysis_section_response(section_key, content)
+                content = parsed_section["markdown"].strip()
+                analysis_outputs[section_key] = {
+                    "title": parsed_section.get("title") or title,
+                    "markdown": content,
+                    "metadata": parsed_section.get("metadata") or {},
+                }
+                if parsed_section.get("structured"):
+                    bridge.add_message(
+                        "agent",
+                        f"{title} returned structured JSON — rendering for the wizard.",
+                    )
+            else:
+                content = _strip_markdown_fences(content)
 
             # After the distro section runs, scan its output for a known
             # distro identifier. Whichever our primer library recognizes
@@ -2383,10 +2697,20 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
             if section_key == "distro":
                 from quickhatch.ai.install_primer import resolve_primer
 
-                match = resolve_primer(
-                    content,
-                    preferred=gui_state.profile.preferences.distro_preference or None,
-                )
+                match = None
+                if parsed_section is not None:
+                    metadata = parsed_section.get("metadata") or {}
+                    metadata_distro = metadata.get("recommended_distro")
+                    if metadata_distro:
+                        match = resolve_primer(
+                            str(metadata_distro),
+                            preferred=gui_state.profile.preferences.distro_preference or None,
+                        )
+                if match is None:
+                    match = resolve_primer(
+                        content,
+                        preferred=gui_state.profile.preferences.distro_preference or None,
+                    )
                 if match is not None:
                     chosen_distro = match["canonical"]
                     bridge.add_message(

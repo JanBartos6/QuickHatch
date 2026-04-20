@@ -9,7 +9,11 @@ from __future__ import annotations
 
 import pytest
 
-from quickhatch.gui.server import _extract_json_objects, _parse_agent_response
+from quickhatch.gui.server import (
+    _extract_json_objects,
+    _parse_agent_response,
+    _parse_analysis_section_response,
+)
 
 
 class TestExtractJsonObjects:
@@ -136,6 +140,35 @@ class TestParseAgentResponse:
     def test_empty_string(self):
         result = _parse_agent_response("")
         assert "plan" in result
+
+
+class TestParseAnalysisSectionResponse:
+    def test_structured_section_response_parses(self):
+        raw = (
+            '{"title":"Recommended Distribution",'
+            '"markdown":"### Recommended Distribution\\n\\n**Fedora Workstation**",'
+            '"metadata":{"recommended_distro":"Fedora Workstation"}}'
+        )
+        result = _parse_analysis_section_response("distro", raw)
+        assert result["structured"] is True
+        assert "Fedora Workstation" in result["markdown"]
+        assert result["metadata"]["recommended_distro"] == "Fedora Workstation"
+
+    def test_nested_legacy_section_object_still_parses(self):
+        raw = (
+            '{"distro":{"title":"Recommended Distribution",'
+            '"markdown":"**Arch Linux**",'
+            '"metadata":{"recommended_distro":"Arch Linux"}}}'
+        )
+        result = _parse_analysis_section_response("distro", raw)
+        assert result["structured"] is True
+        assert "Arch Linux" in result["markdown"]
+
+    def test_plain_markdown_falls_back_cleanly(self):
+        raw = "### Driver Notes\n\nInstall `akmod-nvidia` and reboot."
+        result = _parse_analysis_section_response("drivers", raw)
+        assert result["structured"] is False
+        assert "akmod-nvidia" in result["markdown"]
 
 
 if __name__ == "__main__":
