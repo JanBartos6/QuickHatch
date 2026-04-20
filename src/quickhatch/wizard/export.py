@@ -14,6 +14,113 @@ from quickhatch.ai.instruction_gen import save_instructions
 from quickhatch.config import UserProfile
 from quickhatch.console import console, print_info, print_step, print_success
 
+GENERATED_EXPORT_FILES = {
+    "MIGRATION_INSTRUCTIONS.md",
+    "START_HERE.md",
+    "quickhatch-profile.json",
+    "quickhatch-profile.yaml",
+    "quickstart.sh",
+    "install.sh",
+    "quickhatch-migration-bundle.zip",
+    ".api_key",
+}
+
+
+def _write_unix_text(path: Path, text: str) -> None:
+    """Write a Linux shell-friendly text file with LF line endings."""
+    path.write_text(text, encoding="utf-8", newline="\n")
+
+
+def _boot_menu_hint(distro: str) -> str:
+    distro_lower = (distro or "").lower()
+    if "arch" in distro_lower:
+        return "At the boot menu, use the default Arch boot entry to land in the live shell."
+    if "ubuntu" in distro_lower or "debian" in distro_lower or "fedora" in distro_lower:
+        return "If the ISO offers it, choose the Try/Live option instead of Install."
+    return "Boot into the live environment instead of starting the graphical installer immediately."
+
+
+def generate_start_here(profile: UserProfile, *, include_install_script: bool) -> str:
+    """Generate the practical operator guide shipped in the export bundle."""
+    distro = profile.preferences.distro_preference or "your chosen distro"
+    offline_mode = (profile.preferences.another_machine or "").strip().lower() == "no"
+
+    lines = [
+        "# QuickHatch Start Here",
+        "",
+        "This file is the practical handoff for the exported bundle.",
+        "Use it together with `MIGRATION_INSTRUCTIONS.md` and the shipped scripts.",
+        "",
+        "## Before You Boot",
+        "",
+        f"- Download the official ISO for {distro}.",
+        "- Write it to a USB drive with Rufus, Ventoy, or balenaEtcher.",
+        "- Copy this export bundle somewhere you can access from the target machine.",
+        "  A second USB drive is the simplest option.",
+        "",
+        "## Boot The Target Machine",
+        "",
+        "- Boot from the USB drive.",
+        f"- {_boot_menu_hint(distro)}",
+        "- Get networking online before you continue.",
+        "  On Arch-based live environments, `iwctl` or `nmcli` are the usual tools.",
+        "",
+        "## Transfer The Bundle",
+        "",
+        "- If you brought a second USB drive, plug it in and copy/extract the bundle locally.",
+        "- Network copy is also fine, but do not rely on `scp` until `quickstart.sh` has enabled SSH.",
+        "",
+    ]
+
+    if offline_mode:
+        lines.extend(
+            [
+                "## Single-Machine Path",
+                "",
+                "You told QuickHatch you do not have a second machine available during install.",
+                "That means there is no live AI agent during the installation itself.",
+                "",
+            ]
+        )
+        if include_install_script:
+            lines.extend(
+                [
+                    "1. Extract the bundle in the live environment.",
+                    "2. Review `install.sh` if you want to audit it first.",
+                    "3. Run `sudo bash install.sh`.",
+                    "4. Re-type the target disk when the script asks for destructive confirmation.",
+                    "5. Let the machine reboot. First-boot configuration continues automatically.",
+                    "6. If something fails, inspect `/var/log/quickhatch-firstboot.log` on the installed system.",
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    "This bundle does not contain `install.sh`.",
+                    "Generate the bundle from the web GUI after analysis if you want the offline single-machine script path.",
+                ]
+            )
+    else:
+        lines.extend(
+            [
+                "## Live Agent Path",
+                "",
+                "1. Extract the bundle in the live environment.",
+                "2. Run `bash quickstart.sh`.",
+                "3. Note the IP address and username it prints.",
+                "4. Return to QuickHatch on Windows, enter those values in Remote Setup, test the connection, then start the agent.",
+                "5. Leave the target machine alone unless the agent explicitly asks you to intervene.",
+                "",
+                "If you prefer the distro installer, that also works:",
+                "- Install Linux manually first.",
+                "- Boot into the installed system.",
+                "- Run `bash quickstart.sh` there.",
+                "- Start Remote Setup from Windows; the agent will skip the fresh-install phase.",
+            ]
+        )
+
+    return "\n".join(lines) + "\n"
+
 
 def run(profile: UserProfile) -> None:
     print_step(8, "Export Migration Bundle")
@@ -34,6 +141,12 @@ def run(profile: UserProfile) -> None:
 
     output_dir = Path(output_dir_str)
     output_dir.mkdir(parents=True, exist_ok=True)
+    for stale in GENERATED_EXPORT_FILES:
+        path = output_dir / stale
+        if path.exists():
+            path.unlink()
+    for stale_pub in output_dir.glob("*.pub"):
+        stale_pub.unlink()
 
     # Generate instruction file
     print_info("Generating AI instruction file...")
@@ -52,6 +165,12 @@ def run(profile: UserProfile) -> None:
     # Save as YAML for human readability
     yaml_path = output_dir / "quickhatch-profile.yaml"
     yaml_path.write_text(yaml.dump(profile_dict, default_flow_style=False, sort_keys=False))
+
+    start_here_path = output_dir / "START_HERE.md"
+    start_here_path.write_text(
+        generate_start_here(profile, include_install_script=False),
+        encoding="utf-8",
+    )
 
     # Store API key separately if present (with restricted permissions)
     if profile.ai_config.api_key:
@@ -73,7 +192,7 @@ def run(profile: UserProfile) -> None:
 
     # Generate a quick-start script
     quickstart_path = output_dir / "quickstart.sh"
-    quickstart_path.write_text(_generate_quickstart(profile))
+    _write_unix_text(quickstart_path, _generate_quickstart(profile))
     print_info(f"Quick-start script saved: {quickstart_path}")
 
     # Create ZIP bundle. Explicitly skip dotfiles — the API key is saved
@@ -92,17 +211,16 @@ def run(profile: UserProfile) -> None:
         f"Location: [cyan]{output_dir}[/cyan]\n\n"
         f"Files:\n"
         f"  - MIGRATION_INSTRUCTIONS.md  (AI agent instructions)\n"
+        f"  - START_HERE.md             (practical boot/install checklist)\n"
         f"  - quickhatch-profile.json    (machine-readable profile)\n"
         f"  - quickhatch-profile.yaml    (human-readable profile)\n"
         f"  - quickstart.sh              (quick-start script for Linux)\n"
         f"  - quickhatch-migration-bundle.zip (all-in-one archive)\n\n"
         f"[bold]Next steps:[/bold]\n"
-        f"  1. Install Linux using your bootable USB\n"
-        f"  2. Copy the bundle to your new Linux machine (USB or network)\n"
-        f"  3. On Linux, run: [cyan]bash quickstart.sh[/cyan]\n"
-        f"     This sets up SSH so the agent can connect remotely.\n"
-        f"  4. Note the IP address and username it prints\n"
-        f"  5. Back on Windows, the AI agent will SSH into Linux and set it up!\n"
+        f"  1. Read [cyan]START_HERE.md[/cyan] in the bundle\n"
+        f"  2. Boot the target machine from the USB installer\n"
+        f"  3. Extract/copy the bundle onto the target machine\n"
+        f"  4. Follow the mode-specific steps from START_HERE.md\n"
     )
 
     profile.completed_steps.append("export")

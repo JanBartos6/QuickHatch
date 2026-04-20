@@ -1971,12 +1971,13 @@ def _build_section_prompt(
         library_block = ""
 
     # Distro primer injection — only for sections where install knowledge
-    # actually matters (plan = writes install steps; desktop = references
-    # package manager + init system; summary = may cite the chosen stack).
+    # actually matters (plan/install_script = writes install steps;
+    # desktop = references package manager + init system; summary may
+    # cite the chosen stack).
     # Priority: explicit chosen_distro arg > user's stated preference.
     primer_block = ""
     resolved_distro = chosen_distro or profile.preferences.distro_preference or ""
-    if section in ("plan", "desktop", "summary") and resolved_distro:
+    if section in ("plan", "desktop", "summary", "install_script") and resolved_distro:
         if resolve_primer(resolved_distro) is not None:
             primer_block = primer_prompt_block(resolved_distro)
 
@@ -5008,6 +5009,8 @@ def _generate_ssh_key(gui_state: GUIState) -> dict:
     """Generate an ed25519 SSH key pair for the migration."""
     import subprocess
 
+    from quickhatch.wizard.ssh import _find_ssh_keygen
+
     key_path = Path.home() / ".ssh" / "quickhatch_ed25519"
     pub_path = key_path.with_suffix(".pub")
 
@@ -5040,9 +5043,12 @@ def _generate_ssh_key(gui_state: GUIState) -> dict:
         }
 
     try:
+        ssh_keygen = _find_ssh_keygen()
+        if not ssh_keygen:
+            raise FileNotFoundError("ssh-keygen not found")
         key_path.parent.mkdir(parents=True, exist_ok=True)
         subprocess.run(
-            ["ssh-keygen", "-t", "ed25519", "-C", "quickhatch", "-f", str(key_path), "-N", ""],
+            [ssh_keygen, "-t", "ed25519", "-C", "quickhatch", "-f", str(key_path), "-N", ""],
             capture_output=True,
             text=True,
             timeout=15,
@@ -5344,12 +5350,25 @@ def _run_export(gui_state: GUIState) -> dict:
     import yaml
 
     from quickhatch.ai.instruction_gen import save_instructions
+    from quickhatch.wizard.export import (
+        GENERATED_EXPORT_FILES,
+        _generate_quickstart,
+        generate_start_here,
+    )
 
     output_dir = _export_output_dir()
     output_dir.mkdir(parents=True, exist_ok=True)
     files = []
 
     try:
+        for name in GENERATED_EXPORT_FILES:
+            generated = output_dir / name
+            if generated.exists():
+                generated.unlink()
+        for stale_pub in output_dir.glob("*.pub"):
+            if stale_pub.is_file():
+                stale_pub.unlink()
+
         # Instructions
         inst_path = save_instructions(gui_state.profile, output_dir)
         files.append(inst_path.name)
@@ -5367,6 +5386,25 @@ def _run_export(gui_state: GUIState) -> dict:
         yaml_path.write_text(yaml.dump(profile_dict, default_flow_style=False, sort_keys=False))
         files.append(yaml_path.name)
 
+        # Offline install script (present only when the user said they
+        # don't have a second machine — analysis phase generated it as
+        # the install_script section).
+        install_script_content = ""
+        for s in gui_state.bridge.snapshot_suggestions():
+            if getattr(s, "category", "") == "install_script" and (s.content or "").strip():
+                install_script_content = s.content.strip()
+                break
+
+        start_here_path = output_dir / "START_HERE.md"
+        start_here_path.write_text(
+            generate_start_here(
+                gui_state.profile,
+                include_install_script=bool(install_script_content),
+            ),
+            encoding="utf-8",
+        )
+        files.append(start_here_path.name)
+
         # SSH public key
         if gui_state.profile.ssh_public_key_path:
             ssh_pub = Path(gui_state.profile.ssh_public_key_path)
@@ -5379,20 +5417,9 @@ def _run_export(gui_state: GUIState) -> dict:
         # the Linux kernel can parse the shebang on Windows-exported
         # bundles. Default Path.write_text() on Windows writes \r\n,
         # which makes /usr/bin/env look for a binary named "bash\r".
-        from quickhatch.wizard.export import _generate_quickstart
-
         qs_path = output_dir / "quickstart.sh"
         _write_unix_text(qs_path, _generate_quickstart(gui_state.profile))
         files.append(qs_path.name)
-
-        # Offline install script (present only when the user said they
-        # don't have a second machine — analysis phase generated it as
-        # the install_script section).
-        install_script_content = ""
-        for s in gui_state.bridge.snapshot_suggestions():
-            if getattr(s, "category", "") == "install_script" and (s.content or "").strip():
-                install_script_content = s.content.strip()
-                break
         if install_script_content:
             # Normalize: strip any accidental ``` fences the model added
             if install_script_content.startswith("```"):

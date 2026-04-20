@@ -179,6 +179,12 @@ class TestInstallPrimerInjection:
         prompt = _build_section_prompt(profile, "summary", "")
         assert "DISTRO INSTALL PRIMER: Ubuntu LTS" in prompt
 
+    def test_install_script_section_injects_primer(self, profile):
+        profile.preferences.distro_preference = "Arch Linux"
+        prompt = _build_section_prompt(profile, "install_script", "")
+        assert "DISTRO INSTALL PRIMER: Arch Linux" in prompt
+        assert "pacstrap" in prompt
+
     def test_non_install_sections_skip_primer(self, profile):
         """Distro, apps, and drivers sections don't need install primers."""
         profile.preferences.distro_preference = "Arch Linux"

@@ -946,6 +946,12 @@ let state={
   completedSteps:[],
   agentConnected:false,
   _agentDone:false,
+  _setupStarted:false,
+  _setupDone:false,
+  _sshSkipped:false,
+  _sshTestOk:false,
+  _showOwnKeyInput:false,
+  _exportResult:null,
   _lastMsgCount:-1,
   _lastSugCount:undefined,
   galleryEntries:null,
@@ -1051,6 +1057,23 @@ function currentPrefs(){return state.profile?.preferences||{}}
 function galleryEntries(){return state.galleryEntries||[]}
 function galleryPinIndex(recipeId){return(state.galleryPinned||[]).indexOf(recipeId)}
 function galleryHasVerified(){return galleryEntries().some(entry=>entry.verified)}
+function exportResultCard(data){
+  if(!data||data.status!=='ok')return'';
+  const fileList=(data.files||[]).map(f=>`<li>${escHtml(f)}</li>`).join('');
+  const outDir=data.output_dir||'';
+  return `
+    <div class="info-box info-success">
+      <strong style="font-size:1.05rem">Bundle exported</strong>
+      <p style="margin:var(--s2) 0;font-size:.9rem">Saved to:</p>
+      <code style="display:block;padding:var(--s2);background:var(--bg-2);border-radius:var(--r1);word-break:break-all;font-size:.85rem;margin-bottom:var(--s2)">${escHtml(outDir)}</code>
+      <div class="stack-h" style="gap:var(--s2);margin-bottom:var(--s2)">
+        <button class="btn btn-primary btn-sm" onclick="openExportFolder()">Open folder</button>
+        <button class="btn btn-ghost btn-sm" onclick="copyExportPath('${escHtml(outDir)}')">Copy path</button>
+      </div>
+      <details><summary style="cursor:pointer;font-size:.82rem">Files (${(data.files||[]).length})</summary>
+      <ul style="margin-top:var(--s1)">${fileList}</ul></details>
+    </div>`;
+}
 async function loadGallery(force){
   if(state.galleryLoading)return;
   if(state.galleryEntries&&!force)return;
@@ -1556,7 +1579,14 @@ const stepRenderers={
 
   usb(){
     const distro=state.profile.preferences?.distro_preference||'your chosen distro';
+    const distroLower=String(distro).toLowerCase();
     const offlineMode=(state.profile.preferences?.another_machine||'')==='no';
+    const liveBootLabel=distroLower.includes('arch')
+      ? 'Use the default boot entry'
+      : 'Pick "Try / Live" if the ISO offers it';
+    const liveBootHint=distroLower.includes('arch')
+      ? 'Arch boots straight into its live shell. Do not start archinstall if QuickHatch will perform the install.'
+      : 'Do NOT click Install in the live menu — boot into the live environment, and the script will do the install.';
     // Step 5/6 depend on whether the agent is live over SSH (agentic) or
     // the user runs the AI-written script locally (offline single-machine).
     const step6 = offlineMode
@@ -1587,9 +1617,9 @@ const stepRenderers={
           <div class="guide-steps">
             <div class="guide-step"><div class="guide-num">1</div><div class="guide-text">Plug the USB into the target PC<span>If you're going to copy the export bundle over, a second USB is handy.</span></div></div>
             <div class="guide-step"><div class="guide-num">2</div><div class="guide-text">Boot from USB<span>Enter BIOS/UEFI (F2, F12, Del, or Esc during boot) and move the USB to the top of the boot order.</span></div></div>
-            <div class="guide-step"><div class="guide-num">3</div><div class="guide-text">Pick "Try / Live" at the boot menu<span>Do NOT click Install in the live menu — boot into the live environment, and the script will do the install.</span></div></div>
+            <div class="guide-step"><div class="guide-num">3</div><div class="guide-text">${liveBootLabel}<span>${liveBootHint}</span></div></div>
             <div class="guide-step"><div class="guide-num">4</div><div class="guide-text">Get online<span>Ethernet works out of the box. Wi-Fi: <code>nmcli device wifi connect SSID password …</code> or <code>iwctl</code> on Arch-based live envs.</span></div></div>
-            <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">Copy the QuickHatch bundle onto the live env<span>Plug in the bundle USB and mount it, or <code>scp</code> it from this PC.</span></div></div>
+            <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">Copy the QuickHatch bundle onto the live env<span>Use a second USB or another removable drive. Do not rely on <code>scp</code> yet — SSH only comes online after <code>quickstart.sh</code> runs.</span></div></div>
             ${step6}
           </div>
         </div>
@@ -1611,6 +1641,12 @@ const stepRenderers={
     const isAPI=['api_anthropic','api_openai','api_gemini','api_grok','api_custom'].includes(provider);
     const anotherMachine=state.profile.preferences?.another_machine||'';
     const offlineMode=anotherMachine==='no';
+    const distroLower=String(state.profile.preferences?.distro_preference||'').toLowerCase();
+    const liveBootLabel=distroLower.includes('arch')
+      ? 'Boot the default live shell on the target'
+      : 'Boot the live environment on the target';
+    const sshContinueEnabled=hasKey||state._sshSkipped;
+    const sshContinueLabel=hasKey||state._sshSkipped?'Continue':'Generate a key, save your own .pub path, or pick manual mode';
 
     // Offline single-machine mode: the user has no second device, so the
     // analysis phase generated install.sh instead. Skip SSH key generation
@@ -1631,7 +1667,7 @@ const stepRenderers={
           <div class="info-box" style="margin-top:var(--s3)">
             <strong>How to run it</strong>
             <ol>
-              <li>Flash your distro ISO with Rufus. Boot "Try / Live", not Install.</li>
+              <li>Flash your distro ISO with Rufus. ${liveBootLabel}. If the ISO offers "Try / Live", pick that instead of Install.</li>
               <li>Plug in the QuickHatch bundle USB and extract it in the live env.</li>
               <li>Read <code>install.sh</code> if you want to double-check (it's plain bash, no magic).</li>
               <li>Run <code>sudo bash install.sh</code>. Follow its prompts — it asks you to type the target disk path to confirm before any partitioning.</li>
@@ -1670,8 +1706,8 @@ const stepRenderers={
           <strong>The whole Linux-side flow</strong>
           <ol>
             <li><strong>Flash</strong> your distro ISO to a USB with Rufus.</li>
-            <li><strong>Boot the live environment</strong> on the target — pick "Try / Live" at the boot menu, don't click Install.</li>
-            <li><strong>Plug in</strong> the QuickHatch bundle (second USB or <code>scp</code> from this PC).</li>
+            <li><strong>Boot the live environment</strong> on the target — if the ISO offers "Try / Live", pick it. On Arch, use the default live shell and skip <code>archinstall</code>.</li>
+            <li><strong>Plug in</strong> the QuickHatch bundle (second USB or another removable drive).</li>
             <li><strong>Run one command</strong>: <code>bash quickstart.sh</code>. That installs SSH, adds this PC's key, prints your IP + the fact that it's a live env.</li>
             <li><strong>Come back here</strong>, paste the IP into Remote Setup, click Start. The agent detects the live env, installs the distro from scratch, reboots, reconnects, and configures desktop + drivers + apps. <strong>No installer clicks needed.</strong></li>
           </ol>
@@ -1691,22 +1727,38 @@ const stepRenderers={
         <div id="sshResult">${hasKey?'<div class="info-box info-success" style="margin-top:var(--s3)"><strong>Existing key found — ready to go.</strong></div>':''}</div>
         <div class="stack-h" style="flex-wrap:wrap;margin-top:var(--s3)">
           <button class="btn btn-primary" id="sshGenBtn" onclick="generateSSH()">${hasKey?'Regenerate key':'Generate key'}</button>
-          <button class="btn btn-ghost" onclick="state._sshSkipped=true;el('sshContinue').disabled=false" id="sshSkipBtn"${hasKey?' class="hidden"':''}>I already have my own key</button>
-          <button class="btn btn-ghost" onclick="state._sshSkipped=true;el('sshContinue').disabled=false" id="sshManualBtn"${hasKey?' class="hidden"':''}>Skip — I'll follow the Markdown plan manually</button>
+          <button class="btn btn-ghost" onclick="toggleOwnKeyInput()" id="sshSkipBtn"${hasKey?' class="hidden"':''}>I already have my own key</button>
+          <button class="btn btn-ghost" onclick="enableManualSshMode()" id="sshManualBtn"${hasKey?' class="hidden"':''}>Skip — I'll follow the Markdown plan manually</button>
         </div>
+        ${!hasKey?`
+        <div class="field" style="margin-top:var(--s3);display:${state._showOwnKeyInput?'block':'none'}" id="sshOwnKeyField">
+          <label>Path to your existing <code>.pub</code> key on this PC</label>
+          <input type="text" id="sshExistingKeyPath" placeholder="e.g. C:\\Users\\you\\.ssh\\id_ed25519.pub" value="${escHtml(state.profile.ssh_public_key_path||'')}">
+          <div class="stack-h" style="gap:var(--s2);margin-top:var(--s2)">
+            <button class="btn btn-ghost btn-sm" onclick="useExistingSshKey()">Save key path</button>
+            <span class="muted" style="font-size:var(--t-xs)">QuickHatch will copy this public key into the export bundle.</span>
+          </div>
+        </div>`:''}
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
-          <button class="btn btn-primary" id="sshContinue" onclick="completeStep('ssh')" ${hasKey||state._sshSkipped?'':'disabled'}>${hasKey||state._sshSkipped?'Continue':'Generate a key or pick manual mode'}</button>
+          <button class="btn btn-primary" id="sshContinue" onclick="completeStep('ssh')" ${sshContinueEnabled?'':'disabled'}>${sshContinueLabel}</button>
         </div>
       </div>`;
   },
 
   export(){
     const offline=(state.profile.preferences.another_machine||'').toLowerCase()==='no';
+    const exported=!!state._exportResult;
+    const vmKeyWarning=offline&&!state.profile.ssh_public_key_path?`
+      <div class="info-box info-warn" style="margin-top:var(--s3)">
+        <strong>Full VM run needs an SSH key</strong>
+        <p style="margin:var(--s2) 0 0 0">Blank ISO path still works for a quick <code>bash -n</code> syntax check. If you want QuickHatch to boot a VM and SSH into it, go back to the SSH step and generate or save a public key first.</p>
+      </div>`:'';
     const vmPanel=offline?`
       <div class="panel" style="margin-top:var(--s5)">
         <h2 style="font-size:var(--t-lg);margin-bottom:var(--s2)">Test <code>install.sh</code> in a VM <span class="badge">optional</span></h2>
         <p class="subtitle" style="margin-bottom:var(--s4)">Try the script inside a throwaway VirtualBox VM first. Blank ISO path = quick <code>bash&nbsp;-n</code> syntax check. With an ISO, you paste a one-line snippet into the booted VM so QuickHatch can SSH in and run the script.</p>
+        ${vmKeyWarning}
         <div id="vmBackends" class="muted" style="font-size:var(--t-sm);margin-bottom:var(--s3)">Detecting VM backends…</div>
         <div class="field">
           <label>Path to the live ISO (optional)</label>
@@ -1722,11 +1774,12 @@ const stepRenderers={
     content().innerHTML=`
       <div class="card">
         <h2>Export bundle</h2>
-        <p class="subtitle">Bundles the plan, profile, SSH key, and <code>quickstart.sh</code> into one ZIP. Move it over by USB or <code>scp</code>.</p>
-        <div id="exportResult"></div>
+        <p class="subtitle">Bundles the plan, profile, SSH key, and <code>quickstart.sh</code> into one ZIP. Move it over by USB or another removable drive.</p>
+        <div id="exportResult">${exportResultCard(state._exportResult)}</div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
-          <button class="btn btn-primary" id="exportBtn" onclick="runExport()">Export</button>
+          <button class="btn btn-primary" id="exportBtn" onclick="runExport()">${exported?'Re-export':'Export'}</button>
+          ${exported?'<button class="btn btn-success" onclick="completeStep(\'export\')">Continue</button>':''}
         </div>
       </div>
       ${vmPanel}`;
@@ -1738,6 +1791,8 @@ const stepRenderers={
     const user=state.profile.linux_user||'';
     const port=location.port;
     const hasConn=ip&&user;
+    const canLaunch=!!(hasConn&&state._sshTestOk);
+    const setupActive=!!(state._setupStarted&&!state._setupDone);
     content().innerHTML=`
       <div class="card">
         <h2>Remote setup</h2>
@@ -1758,8 +1813,8 @@ const stepRenderers={
           <span id="connStatus" class="muted" style="font-size:var(--t-sm)"></span>
         </div>
 
-        <div class="agent-launch" id="setupLaunch">
-          <button class="btn btn-success btn-lg" id="setupLaunchBtn" onclick="launchSetupAgent()"${hasConn?'':' disabled'}>Start remote setup</button>
+        <div class="agent-launch${setupActive?' hidden':''}" id="setupLaunch">
+          <button class="btn btn-success btn-lg" id="setupLaunchBtn" onclick="launchSetupAgent()"${canLaunch?'':' disabled'}>Start remote setup</button>
           <div id="setupLaunchMsg"></div>
           <details>
             <summary>Or connect an external AI tool manually</summary>
@@ -1768,7 +1823,7 @@ const stepRenderers={
           </details>
         </div>
 
-        <div class="agent-panel hidden" id="setupPanel">
+        <div class="agent-panel${setupActive?'':' hidden'}" id="setupPanel">
           <div class="agent-head">
             <div class="agent-current">
               <div class="stack-h" style="gap:var(--s2)">
@@ -1811,6 +1866,7 @@ const stepRenderers={
 
 function renderDone(){
   const customize=isCustomizeMode();
+  const offline=(state.profile?.preferences?.another_machine||'').toLowerCase()==='no';
   content().innerHTML=customize?`
     <div class="card">
       <div class="done-screen">
@@ -1825,14 +1881,14 @@ function renderDone(){
     </div>`:`
     <div class="card">
       <div class="done-screen">
-        <h2>Welcome to Linux</h2>
-        <p class="subtitle" style="margin-top:var(--s1)">The agent finished on the target. Go log in and try it out.</p>
+        <h2>${offline?'Bundle ready':'Welcome to Linux'}</h2>
+        <p class="subtitle" style="margin-top:var(--s1)">${offline?'Your migration bundle is ready. Boot the target machine, run the exported scripts, and use the Markdown plan as your checklist.':'The agent finished on the target. Go log in and try it out.'}</p>
         <div class="done-steps">
           <div class="ds"><div class="dn">${icon('check')}</div>System analyzed, apps mapped</div>
-          <div class="ds"><div class="dn">${icon('check')}</div>Linux configured remotely</div>
-          <div class="ds"><div class="dn">${icon('check')}</div>Apps installed, plan delivered</div>
+          <div class="ds"><div class="dn">${icon('check')}</div>${offline?'Bundle exported with quickstart + plan':'Linux configured remotely'}</div>
+          <div class="ds"><div class="dn">${icon('check')}</div>${offline?'Install guidance ready for the live environment':'Apps installed, plan delivered'}</div>
         </div>
-        <p class="muted" style="font-size:var(--t-sm);text-align:center;margin-top:var(--s4)">Something off? Head back to Remote setup and chat with the agent.</p>
+        <p class="muted" style="font-size:var(--t-sm);text-align:center;margin-top:var(--s4)">${offline?'Need to adjust something before booting? Head back to Export or Preferences and regenerate the bundle.':'Something off? Head back to Remote setup and chat with the agent.'}</p>
       </div>
     </div>`;
 }
@@ -2922,6 +2978,8 @@ async function generateSSH(){
         <p>This key is included in the export bundle. The quickstart script adds it to <code>authorized_keys</code> automatically.</p>
       </div>`;
     btn.textContent='Done';
+    state._sshSkipped=false;
+    state._showOwnKeyInput=false;
     const cont=el('sshContinue');
     if(cont){cont.disabled=false;cont.textContent='Continue'}
     if(data.path)state.profile.ssh_public_key_path=data.path;
@@ -2931,6 +2989,32 @@ async function generateSSH(){
     btn.disabled=false;btn.textContent='Retry';
     toast('Key generation failed','error');
   }
+}
+
+function toggleOwnKeyInput(){
+  state._showOwnKeyInput=!state._showOwnKeyInput;
+  state._sshSkipped=false;
+  render();
+}
+
+function enableManualSshMode(){
+  state._sshSkipped=true;
+  state._showOwnKeyInput=false;
+  render();
+}
+
+async function useExistingSshKey(){
+  const input=el('sshExistingKeyPath');
+  const keyPath=(input&&input.value||'').trim();
+  if(!keyPath){
+    toast('Enter the path to your .pub key first','error');
+    return;
+  }
+  await saveProfile({ssh_public_key_path:keyPath});
+  state._sshSkipped=false;
+  state._showOwnKeyInput=false;
+  toast('SSH public key path saved','success');
+  render();
 }
 
 async function loadVmBackends(){
@@ -3052,24 +3136,11 @@ async function runExport(){
   el('exportBtn').disabled=true;el('exportBtn').textContent='Exporting…';
   const data=await api('/wizard/export','POST');
   if(data.status==='ok'){
-    const fileList=(data.files||[]).map(f=>`<li>${escHtml(f)}</li>`).join('');
-    const outDir=data.output_dir||'';
-    el('exportResult').innerHTML=`
-      <div class="info-box info-success">
-        <strong style="font-size:1.05rem">Bundle exported</strong>
-        <p style="margin:var(--s2) 0;font-size:.9rem">Saved to:</p>
-        <code style="display:block;padding:var(--s2);background:var(--bg-2);border-radius:var(--r1);word-break:break-all;font-size:.85rem;margin-bottom:var(--s2)">${escHtml(outDir)}</code>
-        <div class="stack-h" style="gap:var(--s2);margin-bottom:var(--s2)">
-          <button class="btn btn-primary btn-sm" onclick="openExportFolder()">Open folder</button>
-          <button class="btn btn-ghost btn-sm" onclick="copyExportPath('${escHtml(outDir)}')">Copy path</button>
-        </div>
-        <details><summary style="cursor:pointer;font-size:.82rem">Files (${(data.files||[]).length})</summary>
-        <ul style="margin-top:var(--s1)">${fileList}</ul></details>
-      </div>`;
-    el('exportBtn').textContent='Done';
+    state._exportResult=data;
+    render();
     toast('Bundle exported','success');
-    await completeStep('export');
   }else{
+    state._exportResult=null;
     el('exportResult').innerHTML=errorCard(data.message||'Export failed', 'onclick="runExport()"');
     el('exportBtn').disabled=false;el('exportBtn').textContent='Retry';
     toast('Export failed','error');
@@ -3095,9 +3166,11 @@ async function saveLinuxConn(){
   const user=el('linuxUser').value.trim();
   if(!ip||!user){toast('Enter IP and username first','error');return;}
   await saveProfile({linux_ip:ip,linux_user:user});
+  state._sshTestOk=false;
+  state._setupStarted=false;
+  state._setupDone=false;
   toast('Connection saved','success');
   const btn=el('saveConnBtn');btn.textContent='Saved';
-  const lb=el('setupLaunchBtn');if(lb)lb.disabled=false;
   const tb=el('testConnBtn');if(tb)tb.disabled=false;
   stepRenderers.setup();
 }
@@ -3108,6 +3181,8 @@ async function launchSetupAgent(){
   try{
     const data=await api('/wizard/launch-agent','POST',{phase:'setup'});
     if(data.status==='ok'){
+      state._setupStarted=true;
+      state._setupDone=false;
       const launch=el('setupLaunch');
       const panel=el('setupPanel');
       const stop=el('setupStopBtn');
@@ -3116,10 +3191,12 @@ async function launchSetupAgent(){
       if(stop)stop.classList.remove('hidden');
       state._lastSetupMsgCount=-1;state._lastSetupSugCount=0;
     }else{
+      state._setupStarted=false;
       msg.innerHTML=`<span class="muted" style="color:var(--danger);font-size:var(--t-sm)">${escHtml(data.message||'Failed')}</span>`;
       btn.textContent='Start remote setup';btn.disabled=false;
     }
   }catch(e){
+    state._setupStarted=false;
     msg.innerHTML=`<span class="muted" style="color:var(--danger);font-size:var(--t-sm)">${escHtml(e.message)}</span>`;
     btn.textContent='Start remote setup';btn.disabled=false;
   }
@@ -3135,12 +3212,18 @@ async function testLinuxConn(){
   try{
     const r=await api('/wizard/test-ssh','POST',{ip,user});
     if(r.status==='ok'){
+      state._sshTestOk=true;
       status.innerHTML=`<span style="color:var(--success)">✓ Connected — ${escHtml(r.info||'')}</span>`;
+      const lb=el('setupLaunchBtn');if(lb)lb.disabled=false;
     }else{
+      state._sshTestOk=false;
       status.innerHTML=`<span style="color:var(--danger)">✗ ${escHtml(r.message||'Failed')}</span>`;
+      const lb=el('setupLaunchBtn');if(lb)lb.disabled=true;
     }
   }catch(e){
+    state._sshTestOk=false;
     status.innerHTML=`<span style="color:var(--danger)">✗ ${escHtml(e.message)}</span>`;
+    const lb=el('setupLaunchBtn');if(lb)lb.disabled=true;
   }
   btn.disabled=false;btn.textContent='Test connection';
 }
@@ -3214,7 +3297,7 @@ async function pollSetup(){
         if(qa2&&qa2.innerHTML)qa2.innerHTML='';
       }
 
-      if(data.agent_done){
+      if(state._setupStarted&&data.agent_done){
         state._setupDone=true;
         const btn=el('setupDone');
         if(btn&&btn.disabled){btn.disabled=false;btn.textContent='Finish'}

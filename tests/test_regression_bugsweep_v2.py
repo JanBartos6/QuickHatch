@@ -232,6 +232,54 @@ class TestFrontendProfileSync:
         assert "gallery_picks:[...(state.galleryPinned||[])]" in html
         assert "gallery_picks:[]" not in html
 
+    def test_export_step_keeps_success_visible_until_user_continues(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "state._exportResult=data;" in html
+        assert "await completeStep('export');" not in html
+        assert "exportResultCard(state._exportResult)" in html
+
+    def test_setup_launch_requires_successful_connection_test(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "const canLaunch=!!(hasConn&&state._sshTestOk);" in html
+        assert "state._sshTestOk=true;" in html
+        assert "state._sshTestOk=false;" in html
+        assert "if(state._setupStarted&&data.agent_done){" in html
+
+    def test_live_usb_copy_guidance_no_longer_promises_pre_ssh_scp(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "Do not rely on <code>scp</code> yet" in html
+        assert (
+            "Plug in</strong> the QuickHatch bundle (second USB or another removable drive)."
+            in html
+        )
+
+    def test_bring_your_own_key_path_is_saved_instead_of_only_skipped(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "async function useExistingSshKey()" in html
+        assert "await saveProfile({ssh_public_key_path:keyPath});" in html
+        assert "state._showOwnKeyInput" in html
+
+    def test_offline_done_screen_no_longer_claims_remote_setup_finished(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "Bundle ready" in html
+        assert "Bundle exported with quickstart + plan" in html
+        assert "Install guidance ready for the live environment" in html
+
 
 class TestGalleryLicensePolicy:
     """Regression: unlicensed entries may be browsed, but the UI must not
