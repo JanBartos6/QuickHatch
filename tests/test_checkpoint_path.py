@@ -69,6 +69,44 @@ class TestCheckpointPath:
         assert loaded is not None
         assert loaded.additional_info == profile.additional_info
 
+    def test_roundtrip_preserves_newer_top_level_fields(self, fake_home):
+        profile = UserProfile()
+        profile.target_hardware_override = "Install for a Ryzen 7 box with RTX 4070."
+        profile.default_account_password = "hunter2"
+        profile.save_checkpoint()
+        loaded = UserProfile.load_checkpoint()
+        assert loaded is not None
+        assert loaded.target_hardware_override == profile.target_hardware_override
+        assert loaded.default_account_password == "hunter2"
+
+    def test_malformed_nested_app_row_does_not_drop_whole_profile(self, fake_home):
+        path = fake_home / ".quickhatch-checkpoint.json"
+        payload = {
+            "preferences": {"distro_preference": "Arch Linux"},
+            "ai_config": {},
+            "hardware": {},
+            "apps": [
+                {"name": "Firefox", "source": "winget"},
+                {"version": "broken-only"},
+            ],
+            "files_summary": {},
+            "windows_settings": {},
+            "ssh_public_key_path": None,
+            "additional_info": "keep me",
+            "apps_to_install": [],
+            "data_description": "",
+            "data_transfer_method": "",
+            "linux_ip": "",
+            "linux_user": "",
+            "completed_steps": ["welcome"],
+        }
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        loaded = UserProfile.load_checkpoint()
+        assert loaded is not None
+        assert loaded.preferences.distro_preference == "Arch Linux"
+        assert loaded.additional_info == "keep me"
+        assert [app.name for app in loaded.apps] == ["Firefox"]
+
 
 class TestLegacyMigration:
     def test_legacy_cwd_file_migrates_on_load(self, fake_home, tmp_path, monkeypatch):

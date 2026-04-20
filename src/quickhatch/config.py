@@ -299,6 +299,9 @@ class UserProfile:
                 data_transfer_method=data.get("data_transfer_method", "") or "",
                 linux_ip=data.get("linux_ip", "") or "",
                 linux_user=data.get("linux_user", "") or "",
+                target_hardware_override=data.get("target_hardware_override", "") or "",
+                default_account_password=data.get("default_account_password", "password")
+                or "password",
                 completed_steps=list(data.get("completed_steps", []) or []),
             )
         except Exception as exc:

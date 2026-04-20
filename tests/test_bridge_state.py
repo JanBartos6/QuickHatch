@@ -299,6 +299,29 @@ class TestPersistedRestore:
         assert [m["content"] for m in restored.messages] == ["resume"]
         assert list(restored.questions) == [q.id]
 
+    def test_empty_profile_restore_does_not_depend_on_magic_fingerprint_literal(self, tmp_path):
+        profile = UserProfile()
+        path = tmp_path / "bridge.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "suggestions": [
+                        {
+                            "id": "s1",
+                            "category": "distro",
+                            "title": "Recovered",
+                            "content": "arch",
+                        }
+                    ],
+                    "messages": [],
+                    "questions": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        restored = BridgeState(profile, persist_path=path)
+        assert [s.title for s in restored.suggestions] == ["Recovered"]
+
     def test_restore_keeps_answered_questions_only(self, tmp_path):
         profile = UserProfile()
         path = tmp_path / "bridge.json"

@@ -86,15 +86,20 @@ class BridgeState:
         depend on. If any of these change (distro, desktop, apps picked,
         another-machine toggle), the on-disk suggestions are stale and
         must not be restored — they'd contradict the new preferences."""
+        return self._fingerprint_for_profile(self.profile)
+
+    @staticmethod
+    def _fingerprint_for_profile(profile: UserProfile) -> str:
+        """Compute the persistence fingerprint for an arbitrary profile."""
         import hashlib
 
-        prefs = getattr(self.profile, "preferences", None)
+        prefs = getattr(profile, "preferences", None)
         parts = [
             getattr(prefs, "distro_preference", "") or "",
             getattr(prefs, "desktop_look", "") or "",
             getattr(prefs, "another_machine", "") or "",
             ",".join(sorted(getattr(prefs, "gallery_picks", []) or [])),
-            ",".join(sorted(getattr(self.profile, "apps_to_install", []) or [])),
+            ",".join(sorted(getattr(profile, "apps_to_install", []) or [])),
         ]
         return hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()[:16]
 
@@ -130,7 +135,7 @@ class BridgeState:
         # profile_fingerprint. Those are guaranteed stale relative to
         # the current profile — accept them only when the current
         # profile itself is also empty (fresh-wizard state).
-        EMPTY_PROFILE_FP = "45ca31c3315a5978"
+        EMPTY_PROFILE_FP = self._fingerprint_for_profile(UserProfile())
         if saved_fp is None and current_fp != EMPTY_PROFILE_FP:
             import sys as _sys
 
