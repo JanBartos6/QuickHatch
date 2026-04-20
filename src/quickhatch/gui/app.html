@@ -1008,18 +1008,31 @@ function jumpToStep(i){
 }
 
 async function completeStep(stepId){
-  await api('/wizard/complete_step','POST',{step:stepId});
+  const resp=await api('/wizard/complete_step','POST',{step:stepId});
+  if(!resp||resp.status!=='ok'){
+    const message=(resp&&resp.message)||'Could not save your progress.';
+    toast(message,'error');
+    throw new Error(message);
+  }
+  state.completedSteps=resp.completed||state.completedSteps;
   if(!state.completedSteps.includes(stepId))state.completedSteps.push(stepId);
   state.currentStep++;render();
+  return resp;
 }
 
 async function saveProfile(updates, opts){
   const seq=++state._profileRequestSeq;
   const resp=await api('/wizard/update','POST',updates);
+  if(!resp||resp.status!=='ok'){
+    const message=(resp&&resp.message)||'Could not save your changes.';
+    toast(message,'error');
+    throw new Error(message);
+  }
   if(resp&&resp.profile){
     applyServerProfile(resp.profile,seq);
   }
   if(opts&&opts.toast!==false&&opts&&opts.toast)toast(opts.toast,'success');
+  return resp;
 }
 
 function render(){
@@ -2279,7 +2292,7 @@ async function submitPrefs(){
     // redundant once we had 100+ grounded recipes to match against.
     icon_style:'',
     wallpaper_style:'',
-    gallery_picks:[],
+    gallery_picks:[...(state.galleryPinned||[])],
   };
   // If the user just flipped to 'no' (offline single-machine), the
   // previously-picked data_transfer_method becomes nonsensical (no

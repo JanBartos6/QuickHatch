@@ -213,6 +213,25 @@ class TestFrontendProfileSync:
         assert "applyServerProfile(resp.profile,seq);" in html
         assert "state.profile.preferences=Object.assign" not in html
 
+    def test_save_and_complete_helpers_gate_on_backend_success(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "function completeStep(stepId)" in html
+        assert "const resp=await api('/wizard/complete_step','POST',{step:stepId});" in html
+        assert "if(!resp||resp.status!=='ok'){" in html
+        assert "throw new Error(message);" in html
+        assert "const resp=await api('/wizard/update','POST',updates);" in html
+
+    def test_submit_prefs_preserves_gallery_picks(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "gallery_picks:[...(state.galleryPinned||[])]" in html
+        assert "gallery_picks:[]" not in html
+
 
 class TestCodexLaunchPrelaunch:
     """Regression: the external Codex launch path must honor the same
