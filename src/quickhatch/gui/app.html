@@ -269,6 +269,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
   content:"";position:absolute;left:0;right:0;top:100%;height:8px;
   background:var(--bg);pointer-events:none;
 }
+
+/* Attention flash: triggered when the agent needs user input
+   (pending question, LUKS prompt incoming, pre-reboot block, etc).
+   Short pulse of border color + subtle box-shadow; repeats every 2s
+   until dismissed. Restrained enough not to be annoying but visible
+   from across the room. */
+@keyframes attention-pulse {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(239, 68, 68, 0); }
+  50%      { box-shadow: inset 0 0 0 8px rgba(239, 68, 68, 0.6); }
+}
+body.attention-flash {
+  animation: attention-pulse 1.6s ease-in-out infinite;
+}
 .btn-row > *{pointer-events:auto}
 @media(max-width:720px){.btn-row{padding:var(--s4) var(--s5)}}
 /* In-flow action row (panels, nested actions) — stays in the content flow */
@@ -2589,6 +2602,21 @@ function renderAgentFeed(prefix, messages, done){
   // Unhide once we have any messages
   if(panel.classList.contains('hidden')&&messages.length)panel.classList.remove('hidden');
 
+  // Attention marker: any backend message starting with "[ATTENTION]"
+  // triggers the flash + beep + tab-title alert. Tracked per prefix so
+  // the bridge step's alerts don't fire on the setup step's markers
+  // and vice versa. Poll tick runs every 2s, so seen-set dedupes.
+  const seen=state['_attnSeen_'+prefix]||(state['_attnSeen_'+prefix]=new Set());
+  for(const m of messages){
+    const c=m.content||'';
+    if(!c.startsWith('[ATTENTION]'))continue;
+    const key=(m.time||0)+':'+c.slice(0,80);
+    if(seen.has(key))continue;
+    seen.add(key);
+    // Strip the marker for the reason string.
+    notifyAttention(c.slice(11).trim().split('\n')[0].slice(0,120));
+  }
+
   // Classify all messages
   const classified=messages.map(m=>({...classifyAgentMessage(m),role:m.role}));
 
@@ -2706,9 +2734,17 @@ async function pollBridge(){
       }
 
       const qd=await api('/api/pending-questions');
+      const qa=el('questionArea');
       if(qd.questions&&qd.questions.length>0){
-        const qa=el('questionArea');
         if(qa){
+          // Only flash + beep when a NEW question appears (qids we
+          // haven't seen this session), not on every poll tick.
+          const knownIds = state._knownQIds||(state._knownQIds=new Set());
+          const newQs = qd.questions.filter(q=>!knownIds.has(q.id));
+          if(newQs.length){
+            newQs.forEach(q=>knownIds.add(q.id));
+            notifyAttention('Agent is asking a question');
+          }
           qa.innerHTML=qd.questions.map(q=>`
             <div class="info-box info-primary" id="qcard-${escHtml(q.id)}">
               <strong>${escHtml(q.question)}</strong>
@@ -2720,7 +2756,7 @@ async function pollBridge(){
             </div>`).join('');
         }
       }else{
-        const qa=el('questionArea');if(qa&&qa.innerHTML)qa.innerHTML='';
+        if(qa&&qa.innerHTML)qa.innerHTML='';
       }
 
       if(data.agent_done){
@@ -3005,10 +3041,16 @@ async function pollSetup(){
       }
 
       const qd=await api('/api/pending-questions');
+      const qa2=el('setupQuestions');
       if(qd.questions&&qd.questions.length>0){
-        const qa=el('setupQuestions');
-        if(qa){
-          qa.innerHTML=qd.questions.map(q=>`
+        if(qa2){
+          const knownIds=state._knownSetupQIds||(state._knownSetupQIds=new Set());
+          const newQs=qd.questions.filter(q=>!knownIds.has(q.id));
+          if(newQs.length){
+            newQs.forEach(q=>knownIds.add(q.id));
+            notifyAttention('Agent is asking a question (setup)');
+          }
+          qa2.innerHTML=qd.questions.map(q=>`
             <div class="info-box info-primary" id="qcard-${escHtml(q.id)}">
               <strong>${escHtml(q.question)}</strong>
               ${q.choices?`<div class="pill-grid" style="margin:var(--s2) 0">${q.choices.map(c=>`<span class="pill" data-qid="${escHtml(q.id)}" data-val="${escHtml(c)}">${escHtml(c)}</span>`).join('')}</div>`:''}
@@ -3023,7 +3065,7 @@ async function pollSetup(){
         // Qs left. Otherwise a previously-answered card stays
         // interactive and the user could fake an answer for a qid the
         // server already dropped.
-        const qa=el('setupQuestions');if(qa&&qa.innerHTML)qa.innerHTML='';
+        if(qa2&&qa2.innerHTML)qa2.innerHTML='';
       }
 
       if(data.agent_done){
@@ -3039,6 +3081,90 @@ async function pollSetup(){
 
 // ── Init ──
 applyTheme(getTheme());
+
+// =============================================================
+// Attention alert — fires when the agent needs user input.
+// Combines:
+//   1. Audio beep (WebAudio oscillator — no asset to ship)
+//   2. Body background flash animation
+//   3. Tab title flash "(!) needs input" alternating with original
+//   4. Native browser notification if granted + tab not focused
+//   5. Favicon tint to red (via data-URL replacement)
+// Idempotent: calling notifyAttention() while alert already active
+// just resets the timeout. Auto-clears when the user focuses the tab
+// or calls clearAttention() explicitly.
+// =============================================================
+let _attentionTimer = null;
+const _origTitle = document.title;
+let _audioCtx = null;
+
+function _beep(){
+  try{
+    _audioCtx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const ctx=_audioCtx;
+    // Soft two-note chirp: C6 → E6 over 200ms. Non-alarming but audible.
+    for(const [freq,delay] of [[1046.5,0],[1318.5,120]]){
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value=freq;
+      const t=ctx.currentTime+(delay/1000);
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.15, t+0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t+0.18);
+      osc.start(t); osc.stop(t+0.2);
+    }
+  }catch(_){ /* autoplay blocked until user gesture — fine, flash still runs */ }
+}
+
+function _setFavicon(red){
+  const svg = red
+    ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="%23ef4444"/><text x="16" y="22" font-size="20" font-weight="900" fill="white" text-anchor="middle">!</text></svg>'
+    : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="%234a90e2"/><text x="16" y="22" font-size="18" font-weight="700" fill="white" text-anchor="middle">QH</text></svg>';
+  let link=document.querySelector('link[rel="icon"]');
+  if(!link){link=document.createElement('link');link.rel='icon';document.head.appendChild(link);}
+  link.href='data:image/svg+xml,'+svg;
+}
+
+function notifyAttention(reason){
+  // reason is a short string shown in notifications + title
+  document.body.classList.add('attention-flash');
+  _beep();
+  _setFavicon(true);
+  let alt=false;
+  if(_attentionTimer){clearInterval(_attentionTimer);}
+  _attentionTimer=setInterval(()=>{
+    alt=!alt;
+    document.title = alt ? `(!) ${reason||'needs input'} — QuickHatch` : _origTitle;
+  }, 1000);
+  // Native notification — only useful when tab isn't focused.
+  if(!document.hasFocus() && 'Notification' in window){
+    if(Notification.permission==='granted'){
+      try{ new Notification('QuickHatch needs input', {body: reason||'Open the tab to respond.'}); }catch(_){}
+    } else if(Notification.permission!=='denied'){
+      Notification.requestPermission().then(p=>{
+        if(p==='granted'){
+          try{ new Notification('QuickHatch needs input', {body: reason||'Open the tab to respond.'}); }catch(_){}
+        }
+      });
+    }
+  }
+}
+
+function clearAttention(){
+  if(!_attentionTimer)return;
+  clearInterval(_attentionTimer);
+  _attentionTimer=null;
+  document.title=_origTitle;
+  document.body.classList.remove('attention-flash');
+  _setFavicon(false);
+}
+
+// Auto-clear when the user actually looks at the tab.
+window.addEventListener('focus', clearAttention);
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden) clearAttention();
+});
 
 // Measure the actual footer height and write it into the --footer-h
 // var on <html>. The btn-row's `bottom: var(--footer-h)` and the page

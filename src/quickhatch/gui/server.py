@@ -2702,27 +2702,36 @@ def _wait_for_ssh_reconnect(
     key_path: str | None,
     port: int = 22,
     *,
-    timeout: int = 300,
+    timeout: int | None = None,
     interval: int = 5,
     stop_flag_getter=None,
 ) -> bool:
-    """Poll SSH until the target accepts a connection again, or ``timeout``
-    seconds elapse. Returns ``True`` on reconnect.
+    """Poll SSH until the target accepts a connection again.
 
-    ``stop_flag_getter`` is an optional zero-arg callable that returns True
-    when the user has pressed Stop; allows abandoning the wait loop.
+    By default (``timeout=None``) this polls FOREVER and only abandons
+    on Stop. That's intentional: the user may need to walk to the
+    target and type a LUKS passphrase — any timeout short enough to
+    catch genuine boot failures will also kick users who stepped away
+    for coffee. The Stop button is the correct escape hatch.
+
+    When ``timeout`` is an int, retain the old deadline behavior — kept
+    for tests that want a bounded wait.
+
+    ``stop_flag_getter`` is a zero-arg callable returning True when the
+    user has pressed Stop; polled every ``interval`` seconds.
     """
     import time as _time
 
-    deadline = _time.time() + timeout
-    while _time.time() < deadline:
+    deadline = None if timeout is None else (_time.time() + timeout)
+    while True:
         if stop_flag_getter is not None and stop_flag_getter():
+            return False
+        if deadline is not None and _time.time() >= deadline:
             return False
         rc, out, _ = _ssh_exec(host, user, "echo __reconnected__", key_path, timeout=10, port=port)
         if rc == 0 and "__reconnected__" in out:
             return True
         _time.sleep(interval)
-    return False
 
 
 # Commands that trigger the reconnect-after-reboot dance. Matched
@@ -4163,6 +4172,26 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                             sticky_block_failures = []
                             sticky_block_topics = set()
                             pivot_counter = 0
+                            # === LUKS-at-reboot user prompt ===
+                            # If LUKS is in play, the initramfs will prompt
+                            # for the passphrase on the TARGET machine's
+                            # local console. The agent cannot answer over
+                            # SSH (no network in initramfs). Tell the
+                            # user loudly — the frontend looks for the
+                            # [ATTENTION] marker and fires sound + flash
+                            # + native notification so the user gets
+                            # pulled out of whatever they're doing.
+                            luks_detected = any("luks-present" in line for line in oks)
+                            if luks_detected:
+                                bridge.add_message(
+                                    "agent",
+                                    "[ATTENTION] LUKS passphrase needed — go to the target "
+                                    "machine's screen NOW and type the passphrase you set "
+                                    "during install. The initramfs prompt is on the local "
+                                    "console (no network yet, agent can't answer it). "
+                                    "QuickHatch will auto-reconnect as soon as the "
+                                    "installed system boots.",
+                                )
                         # IMPORTANT: fire the reboot command itself as the
                         # CURRENT live-ISO user — the new user only exists
                         # inside the installed chroot and has no shell on
@@ -4171,8 +4200,8 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                         # user switch only AFTER the reboot is fired.
                         bridge.add_message(
                             "agent",
-                            "Reboot issued — waiting for the target to come back online "
-                            "(up to 5 min)…",
+                            "Reboot issued — polling for the target to come back "
+                            "(no timeout, press Stop to abort)…",
                         )
                         _ssh_exec(
                             host, user, cmd, key_path, timeout=15, port=ssh_port
@@ -4192,12 +4221,18 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                             except Exception:
                                 pass
                             user = reconnect_user
+                        # Poll forever until SSH comes back OR the user
+                        # presses Stop. Earlier 5-minute deadline was
+                        # shorter than the time needed to walk to the
+                        # target, type a LUKS passphrase, and walk back.
+                        # The UI now flashes/beeps when input is needed;
+                        # the Stop button is the explicit escape hatch.
                         reconnected = _wait_for_ssh_reconnect(
                             host,
                             user,
                             key_path,
                             port=ssh_port,
-                            timeout=300,
+                            timeout=None,
                             interval=5,
                             stop_flag_getter=lambda: bridge.stop_requested,
                         )
