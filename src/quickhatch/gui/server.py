@@ -3052,21 +3052,10 @@ def _detect_stall_topic(recent_reasons: list[str]) -> str | None:
 
 # Bash that runs an exhaustive "is this freshly-installed system
 # actually bootable?" check inside /mnt before the agent reboots.
-# Designed to catch the standard install footguns:
-#   - LUKS in use but `encrypt` missing from HOOKS → initramfs can't
-#     unlock, system drops to emergency mode (the failure that motivated
-#     this whole guard)
-#   - Kernel cmdline doesn't reference the LUKS container → no prompt
-#   - mkinitcpio config edited but not regenerated (mtime check)
-#   - GRUB cmdline edited but grub.cfg not re-rendered (mtime check)
-#   - No /etc/fstab → systemd-fstab-generator dies in initramfs
-#   - Bootloader binary not present in /boot/EFI or /boot/grub
-#   - Root account locked AND no sudoer in `wheel` → emergency mode
-#     becomes unrecoverable (literally what bit our test install)
-#
-# Output is a series of `STATUS|<level>|<key>|<message>` lines on
-# stdout. <level> is OK, WARN, or FAIL. The harness parses these and
-# blocks the reboot when any FAIL is present.
+# Cross-distro: detects mkinitcpio (Arch family), initramfs-tools
+# (Debian/Ubuntu family), or dracut (Fedora/SUSE/Void) and adapts.
+# Output: `STATUS|<level>|<key>|<message>` lines. Levels: OK / WARN /
+# FAIL / SKIP. Harness blocks reboot on any FAIL.
 _PRE_REBOOT_CHECK_SCRIPT = r"""set +e
 _root=/mnt
 [ -d "$_root/etc" ] || _root=
@@ -3077,6 +3066,22 @@ fi
 
 emit(){ echo "STATUS|$1|$2|$3"; }
 
+# Detect distro family from /etc/os-release on the target.
+DFAMILY=unknown
+if [ -f "$_root/etc/os-release" ]; then
+  . "$_root/etc/os-release" 2>/dev/null
+  case "$ID $ID_LIKE" in
+    *arch*|*manjaro*|*endeavouros*|*cachyos*|*garuda*|*artix*) DFAMILY=arch ;;
+    *debian*|*ubuntu*|*pop*|*mint*|*kali*|*parrot*|*zorin*|*elementary*) DFAMILY=debian ;;
+    *fedora*|*rhel*|*centos*|*rocky*|*alma*|*nobara*|*bazzite*) DFAMILY=fedora ;;
+    *suse*|*opensuse*) DFAMILY=suse ;;
+    *void*) DFAMILY=void ;;
+    *alpine*) DFAMILY=alpine ;;
+    *nixos*) DFAMILY=nixos ;;
+  esac
+  emit OK distro "Detected distro family: $DFAMILY ($PRETTY_NAME)"
+fi
+
 # 1. fstab present + non-empty
 if [ -s "$_root/etc/fstab" ]; then
   emit OK fstab "/etc/fstab present ($(wc -l < "$_root/etc/fstab") lines)"
@@ -3084,45 +3089,96 @@ else
   emit FAIL fstab "/etc/fstab missing or empty — initramfs will fail to mount root"
 fi
 
-# 2. Kernel + initramfs in /boot
+# 2. Kernel + initramfs in /boot. Naming differs per family:
+#    Arch/Fedora/SUSE/Void: initramfs-*.img
+#    Debian/Ubuntu:         initrd.img-*
 KERN_CT=$(ls "$_root"/boot/vmlinuz-* 2>/dev/null | wc -l)
-INIT_CT=$(ls "$_root"/boot/initramfs-*.img 2>/dev/null | wc -l)
+INIT_CT=$(ls "$_root"/boot/initramfs-*.img "$_root"/boot/initrd.img-* 2>/dev/null | wc -l)
 if [ "$KERN_CT" -gt 0 ] && [ "$INIT_CT" -gt 0 ]; then
   emit OK kernel "/boot has $KERN_CT kernel(s) and $INIT_CT initramfs image(s)"
 else
-  emit FAIL kernel "/boot missing kernel or initramfs (vmlinuz-* / initramfs-*.img count: $KERN_CT/$INIT_CT)"
+  emit FAIL kernel "/boot missing kernel or initramfs (vmlinuz / initramfs / initrd count: $KERN_CT / $INIT_CT). Run the distro's initramfs generator inside chroot — Arch: \`mkinitcpio -P\`. Debian/Ubuntu: \`update-initramfs -u -k all\`. Fedora/SUSE/Void: \`dracut --regenerate-all -f\`."
 fi
 
-# 3. mkinitcpio.conf vs initramfs mtime — initramfs must be NEWER
+# 3. Initramfs config-vs-image mtime: regen must have run AFTER last
+#    config edit. Detect which generator's config is in use.
+INIT_NEWEST=$(ls -t "$_root"/boot/initramfs-*.img "$_root"/boot/initrd.img-* 2>/dev/null | head -n1)
+INIT_T=""
+[ -n "$INIT_NEWEST" ] && INIT_T=$(stat -c %Y "$INIT_NEWEST" 2>/dev/null)
+CONF_PATH=""
+CONF_GEN=""
 if [ -f "$_root/etc/mkinitcpio.conf" ]; then
-  CONF_T=$(stat -c %Y "$_root/etc/mkinitcpio.conf" 2>/dev/null)
-  INIT_T=$(ls -t "$_root"/boot/initramfs-*.img 2>/dev/null | head -n1 | xargs -I{} stat -c %Y {} 2>/dev/null)
-  if [ -n "$CONF_T" ] && [ -n "$INIT_T" ]; then
+  CONF_PATH="$_root/etc/mkinitcpio.conf"; CONF_GEN="mkinitcpio -P"
+elif [ -d "$_root/etc/initramfs-tools" ]; then
+  CONF_PATH=$(find "$_root/etc/initramfs-tools" -type f -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n1 | awk '{print $2}')
+  CONF_GEN="update-initramfs -u -k all"
+elif [ -f "$_root/etc/dracut.conf" ] || [ -d "$_root/etc/dracut.conf.d" ]; then
+  CONF_PATH=$(find "$_root/etc/dracut.conf" "$_root/etc/dracut.conf.d" -type f -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -n1 | awk '{print $2}')
+  CONF_GEN="dracut --regenerate-all -f"
+fi
+if [ -n "$CONF_PATH" ] && [ -n "$INIT_T" ]; then
+  CONF_T=$(stat -c %Y "$CONF_PATH" 2>/dev/null)
+  if [ -n "$CONF_T" ]; then
     if [ "$INIT_T" -ge "$CONF_T" ]; then
-      emit OK initramfs "initramfs newer than mkinitcpio.conf — regen ran after last edit"
+      emit OK initramfs "initramfs newer than $(basename "$CONF_PATH") — regen ran after last edit"
     else
-      emit FAIL initramfs "mkinitcpio.conf was edited AFTER initramfs was built — run \`mkinitcpio -P\` inside chroot"
+      emit FAIL initramfs "initramfs config ($(basename "$CONF_PATH")) was edited AFTER initramfs was built — run \`$CONF_GEN\` inside chroot"
     fi
   fi
 fi
 
-# 4. LUKS detection. Are any block devices LUKS?
+# 4. LUKS plumbing. If any block device is LUKS, the initramfs must
+#    have the unlock module AND the kernel cmdline must reference it.
 LUKS_DEVS=$(lsblk -o NAME,FSTYPE -nr 2>/dev/null | awk '$2=="crypto_LUKS"{print $1}')
 if [ -n "$LUKS_DEVS" ]; then
   emit OK luks-present "LUKS containers detected: $(echo $LUKS_DEVS | tr '\n' ' ')"
-  # 4a. HOOKS in mkinitcpio.conf must contain encrypt or sd-encrypt
-  HOOKS=$(grep -E '^HOOKS=' "$_root/etc/mkinitcpio.conf" 2>/dev/null | head -n1)
-  if echo "$HOOKS" | grep -qE '\b(encrypt|sd-encrypt)\b'; then
-    emit OK hooks "HOOKS includes encrypt: $HOOKS"
-  else
-    emit FAIL hooks "LUKS in use but HOOKS lacks 'encrypt' — initramfs cannot unlock root. Add 'encrypt' between 'block' and 'filesystems' in /etc/mkinitcpio.conf, then re-run mkinitcpio -P. Current: $HOOKS"
-  fi
-  # 4b. Kernel cmdline must reference the LUKS container
-  CMDLINE=$(grep -E '^GRUB_CMDLINE_LINUX(_DEFAULT)?=' "$_root/etc/default/grub" 2>/dev/null | tr '\n' ' ')
+  # 4a. Initramfs must include LUKS unlock plumbing.
+  case "$DFAMILY" in
+    arch|alpine)
+      HOOKS=$(grep -E '^HOOKS=' "$_root/etc/mkinitcpio.conf" 2>/dev/null | head -n1)
+      if echo "$HOOKS" | grep -qE '\b(encrypt|sd-encrypt)\b'; then
+        emit OK luks-init "HOOKS includes encrypt: $HOOKS"
+      else
+        emit FAIL luks-init "LUKS in use but mkinitcpio HOOKS lacks 'encrypt' — initramfs cannot unlock root. Add 'encrypt' between 'block' and 'filesystems' in /etc/mkinitcpio.conf, then re-run mkinitcpio -P. Current: $HOOKS"
+      fi
+      ;;
+    debian)
+      if chroot "$_root" dpkg -s cryptsetup-initramfs >/dev/null 2>&1; then
+        emit OK luks-init "cryptsetup-initramfs installed"
+      else
+        emit FAIL luks-init "LUKS in use but 'cryptsetup-initramfs' package is not installed — initramfs cannot unlock root. Run \`apt install -y cryptsetup-initramfs\` then \`update-initramfs -u -k all\` inside chroot."
+      fi
+      if [ -s "$_root/etc/crypttab" ]; then
+        emit OK luks-crypttab "/etc/crypttab populated ($(wc -l < "$_root/etc/crypttab") lines)"
+      else
+        emit FAIL luks-crypttab "LUKS in use but /etc/crypttab is empty — Debian's initramfs needs a crypttab entry like 'cryptroot UUID=<luks-uuid> none luks'"
+      fi
+      ;;
+    fedora|suse|void)
+      if [ -n "$INIT_NEWEST" ] && chroot "$_root" lsinitrd "$INIT_NEWEST" 2>/dev/null | grep -qi crypt; then
+        emit OK luks-init "dracut initramfs includes crypt module"
+      elif [ -s "$_root/etc/crypttab" ]; then
+        emit OK luks-init "/etc/crypttab populated (dracut should pick up crypt module automatically on regen)"
+      else
+        emit FAIL luks-init "LUKS in use but no crypt module evidence in initramfs and /etc/crypttab is empty. Add a crypttab entry then run \`dracut --regenerate-all -f\`."
+      fi
+      ;;
+    *)
+      emit WARN luks-init "LUKS in use but distro family '$DFAMILY' unknown — cannot auto-verify initramfs unlock plumbing. Manually verify the initramfs has cryptsetup support."
+      ;;
+  esac
+  # 4b. Kernel cmdline must reference the LUKS container. Check GRUB,
+  # systemd-boot loader entries, and a kernel/cmdline file (UKI setups).
+  CMDLINE=""
+  [ -f "$_root/etc/default/grub" ] && CMDLINE="$CMDLINE $(grep -E '^GRUB_CMDLINE_LINUX(_DEFAULT)?=' "$_root/etc/default/grub" 2>/dev/null | tr '\n' ' ')"
+  [ -f "$_root/etc/kernel/cmdline" ] && CMDLINE="$CMDLINE $(cat "$_root/etc/kernel/cmdline" 2>/dev/null)"
+  for f in "$_root"/boot/loader/entries/*.conf; do
+    [ -f "$f" ] && CMDLINE="$CMDLINE $(grep -E '^options' "$f" 2>/dev/null)"
+  done
   if echo "$CMDLINE" | grep -qE '\b(cryptdevice|rd\.luks\.uuid|rd\.luks\.name)='; then
-    emit OK cmdline "Kernel cmdline references LUKS: $CMDLINE"
+    emit OK luks-cmdline "Kernel cmdline references LUKS"
   else
-    emit FAIL cmdline "LUKS in use but GRUB_CMDLINE_LINUX has no cryptdevice= / rd.luks.uuid= — initramfs has nothing to unlock. Edit /etc/default/grub then run grub-mkconfig -o /boot/grub/grub.cfg. Current: $CMDLINE"
+    emit FAIL luks-cmdline "LUKS in use but kernel cmdline has no cryptdevice= / rd.luks.uuid= — initramfs has nothing to unlock. Edit /etc/default/grub or /boot/loader/entries/*.conf and regenerate the bootloader config."
   fi
 fi
 
@@ -3130,22 +3186,26 @@ fi
 GRUB_CT=0
 SDB_CT=0
 [ -d "$_root/boot/grub" ] && GRUB_CT=$(ls "$_root/boot/grub" 2>/dev/null | wc -l)
+[ -d "$_root/boot/grub2" ] && GRUB_CT=$(ls "$_root/boot/grub2" 2>/dev/null | wc -l)
 [ -d "$_root/boot/EFI/systemd" ] && SDB_CT=1
 [ -d "$_root/boot/loader" ] && SDB_CT=1
 if [ "$GRUB_CT" -gt 1 ] || [ "$SDB_CT" -ge 1 ]; then
   emit OK bootloader "Bootloader files found (grub=$GRUB_CT, sd-boot=$SDB_CT)"
 else
-  emit FAIL bootloader "No bootloader installed in /boot — system will not boot. Run grub-install or bootctl install inside chroot"
+  emit FAIL bootloader "No bootloader installed in /boot — system will not boot. Run grub-install / grub2-install / bootctl install inside chroot."
 fi
 
-# 6. grub.cfg vs /etc/default/grub mtime — cfg must be NEWER
-if [ -f "$_root/boot/grub/grub.cfg" ] && [ -f "$_root/etc/default/grub" ]; then
-  CFG_T=$(stat -c %Y "$_root/boot/grub/grub.cfg" 2>/dev/null)
+# 6. grub.cfg mtime vs /etc/default/grub
+GRUB_CFG=""
+[ -f "$_root/boot/grub/grub.cfg" ] && GRUB_CFG="$_root/boot/grub/grub.cfg"
+[ -f "$_root/boot/grub2/grub.cfg" ] && GRUB_CFG="$_root/boot/grub2/grub.cfg"
+if [ -n "$GRUB_CFG" ] && [ -f "$_root/etc/default/grub" ]; then
+  CFG_T=$(stat -c %Y "$GRUB_CFG" 2>/dev/null)
   DEF_T=$(stat -c %Y "$_root/etc/default/grub" 2>/dev/null)
   if [ "$CFG_T" -ge "$DEF_T" ]; then
     emit OK grub-cfg "grub.cfg newer than /etc/default/grub"
   else
-    emit FAIL grub-cfg "/etc/default/grub edited AFTER grub.cfg was generated — run \`grub-mkconfig -o /boot/grub/grub.cfg\` inside chroot"
+    emit FAIL grub-cfg "/etc/default/grub edited AFTER grub.cfg — run \`grub-mkconfig -o $GRUB_CFG\` (Arch/Debian) or \`grub2-mkconfig -o $GRUB_CFG\` (Fedora/SUSE) inside chroot"
   fi
 fi
 
@@ -3159,21 +3219,20 @@ if [ -f "$_root/etc/shadow" ]; then
     *) ROOT_HAS_PW=1 ;;
   esac
 fi
-# Find any user in the wheel group
+# Privileged group: wheel (Arch/Fedora/SUSE) or sudo (Debian/Ubuntu).
 if [ -f "$_root/etc/group" ]; then
-  WHEEL_USERS=$(awk -F: '$1=="wheel"{print $4}' "$_root/etc/group" 2>/dev/null | tr -d ' ')
-  if [ -n "$WHEEL_USERS" ]; then
-    # And check sudoers actually grants wheel
-    if grep -qE '^\s*%wheel\s+ALL=\(ALL(:ALL)?\)\s+(NOPASSWD:)?ALL' "$_root/etc/sudoers" 2>/dev/null \
-       || ls "$_root/etc/sudoers.d/" 2>/dev/null | xargs -I{} grep -qlE '^\s*%wheel\s+ALL' "$_root/etc/sudoers.d/{}" 2>/dev/null; then
+  ADMIN_USERS=$(awk -F: '$1=="wheel" || $1=="sudo"{print $4}' "$_root/etc/group" 2>/dev/null | tr -d ' ')
+  if [ -n "$ADMIN_USERS" ]; then
+    if grep -qE '^\s*%(wheel|sudo)\s+ALL=\(ALL(:ALL)?\)\s+(NOPASSWD:)?ALL' "$_root/etc/sudoers" 2>/dev/null \
+       || (ls "$_root/etc/sudoers.d/" 2>/dev/null | xargs -I{} grep -qlE '^\s*%(wheel|sudo)\s+ALL' "$_root/etc/sudoers.d/{}" 2>/dev/null); then
       SUDOER_OK=1
     fi
   fi
 fi
 if [ "$ROOT_HAS_PW" = "1" ] || [ "$SUDOER_OK" = "1" ]; then
-  emit OK recovery "Root recovery available (root_pw=$ROOT_HAS_PW, wheel+sudoers=$SUDOER_OK)"
+  emit OK recovery "Root recovery available (root_pw=$ROOT_HAS_PW, admin-grp+sudoers=$SUDOER_OK)"
 else
-  emit FAIL recovery "Root account is locked AND no sudo-capable user in 'wheel' — if anything goes wrong on first boot, emergency mode is locked out (sulogin refuses). Either run \`passwd\` to set root, or create a user, add to wheel, and ensure /etc/sudoers grants wheel. THIS IS THE SINGLE MOST COMMON UNRECOVERABLE FAILURE."
+  emit FAIL recovery "Root account is locked AND no sudo-capable user in 'wheel' or 'sudo' group — emergency mode will be unrecoverable (sulogin refuses). Either run \`passwd\` to set root, OR create a user + add to wheel/sudo + ensure /etc/sudoers grants the group. THIS IS THE SINGLE MOST COMMON UNRECOVERABLE FAILURE."
 fi
 """
 
@@ -3354,6 +3413,24 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                         break
         distro_primer_md = primer_prompt_block(distro_hint)
 
+        # Cross-distro pre-reboot rules. Always inject this — applies to
+        # every install regardless of distro family. Documents the seven
+        # invariants the harness's pre-reboot guard enforces, so the
+        # agent knows what it MUST satisfy before issuing reboot.
+        try:
+            from importlib import resources as _res
+
+            common_rules = (
+                _res.files("quickhatch.data.install_primers")
+                .joinpath("common-pre-reboot-rules.md")
+                .read_text(encoding="utf-8")
+            )
+            common_rules_block = (
+                "== PRE-REBOOT RULES (cross-distro, mandatory) ==\n\n" + common_rules + "\n\n"
+            )
+        except Exception:
+            common_rules_block = ""
+
         # Step 4b: Gather any existing migration plan from the analysis phase
         migration_plan_md = ""
         if bridge.suggestions:
@@ -3481,6 +3558,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             "7. Run final verification: theme is active, services enabled, user can log in\n\n"
             f"== REMOTE SYSTEM INFO ==\n{system_info}\n\n"
             + live_env_block
+            + common_rules_block
             + distro_primer_md
             + (
                 f"== MIGRATION PLAN (pre-generated) ==\n{migration_plan_md}\n\n"
