@@ -1524,7 +1524,12 @@ const stepRenderers={
           <button class="btn btn-primary" id="bridgeNext" onclick="completeStep('bridge')" ${state._agentDone||state.completedSteps.includes('bridge')?'':'disabled'}>${state._agentDone||state.completedSteps.includes('bridge')?'Continue':'Agent working…'}</button>
         </div>
       </div>`;
-    if(!state._agentDone)pollBridge();
+    // Always poll once on step entry so the feed reflects current
+    // bridge state. pollBridge's own reschedule condition handles
+    // whether to keep polling after. Skipping the first call when
+    // `_agentDone` was true left the panel frozen on the initial
+    // 'Connecting...' text even after the agent had finished.
+    pollBridge();
   },
 
   usb(){
@@ -1777,7 +1782,8 @@ const stepRenderers={
           <button class="btn btn-primary" id="setupDone" onclick="completeStep('setup')"${state._setupDone?'':' disabled'}>${state._setupDone?'Finish':'Agent working…'}</button>
         </div>
       </div>`;
-    if(!state._setupDone)pollSetup();
+    // Always poll once on step entry (same bug-fix as pollBridge).
+    pollSetup();
   },
 };
 
