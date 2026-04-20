@@ -233,6 +233,22 @@ class TestFrontendProfileSync:
         assert "gallery_picks:[]" not in html
 
 
+class TestGalleryLicensePolicy:
+    """Regression: unlicensed entries may be browsed, but the UI must not
+    imply they are reproducible/applyable."""
+
+    def test_gallery_ui_calls_out_browse_only_unlicensed_entries(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "Every entry links back to its source." in html
+        assert "browse-only inspiration and will not be auto-applied" in html
+        assert (
+            "Community entries include attribution and a reproducible dotfile source." not in html
+        )
+
+
 class TestCodexLaunchPrelaunch:
     """Regression: the external Codex launch path must honor the same
     admitted-launch prelaunch hook as the API-backed agent path."""

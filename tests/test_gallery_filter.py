@@ -132,6 +132,7 @@ def test_reddit_accepts_unlicensed_repo_as_unknown():
     assert accepted is not None
     assert accepted["dotfiles_license"] is None
     assert accepted["license_status"] == "unknown"
+    assert accepted["kind"] == "reddit"
 
 
 def test_github_rejects_unlicensed_or_stale_repos():
@@ -172,6 +173,32 @@ def test_github_rejects_unlicensed_or_stale_repos():
         filter_candidate(dict(base), reddit_thresholds={}, repo_metadata_fetcher=unlicensed) is None
     )
     assert filter_candidate(dict(base), reddit_thresholds={}, repo_metadata_fetcher=stale) is None
+
+
+def test_non_reddit_sources_stay_on_licensed_only_path():
+    candidate = {
+        "kind": "github",
+        "id": "github-unlicensed",
+        "source": "github",
+        "source_id": "example/dotfiles",
+        "source_url": "https://github.com/example/dotfiles",
+        "author": "example",
+        "upvotes": 120,
+        "post_date": "2026-01-05",
+        "title": "example/dotfiles",
+        "body": "Hyprland rice",
+        "dotfiles_url": "https://github.com/example/dotfiles",
+        "de": "hyprland",
+        "signals": {"theme": "catppuccin"},
+        "year": 2026,
+        "subreddit": "",
+    }
+    accepted = filter_candidate(
+        candidate,
+        reddit_thresholds={},
+        repo_metadata_fetcher=_repo_meta_no_license,
+    )
+    assert accepted is None
 
 
 def test_rejects_de_sub_post_without_showcase_hint():

@@ -1,4 +1,12 @@
-"""Normalize and filter raw gallery candidates into recipe-worthy entries."""
+"""Normalize and filter raw gallery candidates into recipe-worthy entries.
+
+Gallery policy:
+- licensed entries are eligible for later automated apply flows
+- Reddit entries with no detected license may still ship for browsing
+  inspiration, but they must be marked ``license_status == "unknown"``
+  so later apply stages can skip them
+- non-Reddit entries stay on the stricter licensed-only path
+"""
 
 from __future__ import annotations
 
@@ -373,11 +381,10 @@ def filter_candidate(
     if not last_commit or not is_recent(last_commit):
         return None
 
-    # GitHub-sourced entries keep the strict license gate (we're redistributing
-    # their configs in Phase 2 apply). Reddit-sourced entries are softer — a
-    # community-tier inspiration entry with no license is still useful for
-    # browsing; the Phase 2 apply step will skip entries whose license_status
-    # is "unknown" so we never copy un-licensed work.
+    # Contract: Reddit showcase posts may remain in the gallery without a
+    # detected license, but only as browse-only inspiration. The later apply
+    # path must key off ``license_status`` and skip ``unknown`` entries.
+    # Non-Reddit sources stay on the stricter licensed-only path.
     if candidate.get("kind") != "reddit":
         if not license_spdx:
             return None
