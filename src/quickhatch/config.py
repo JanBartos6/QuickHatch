@@ -170,9 +170,16 @@ class UserProfile:
         if path is None:
             path = _checkpoint_path()
         data = asdict(self)
-        # Redact sensitive data from checkpoint
-        if data.get("ai_config", {}).get("api_key"):
-            data["ai_config"]["api_key"] = "***REDACTED***"
+        # Previous versions redacted api_key to "***REDACTED***" in the
+        # checkpoint. Sounded responsible, but it broke every
+        # bridge-restart scenario: on reload, the redacted literal got
+        # sent to the provider as a bogus API key, which then returned
+        # HTTP 400 Missing or invalid Authorization header and the
+        # whole analysis failed. Threat model: the checkpoint lives in
+        # $HOME alongside ~/.ssh/ private keys — anyone who can read
+        # one can read the other. Redacting here is security theatre.
+        # Instead: write plaintext and chmod 600 so only the user can
+        # read. Matches how ssh-keygen stores ed25519 private keys.
         serialized = json.dumps(data, indent=2)
         tmp = path.with_suffix(path.suffix + ".tmp")
         try:
@@ -181,6 +188,13 @@ class UserProfile:
             import os as _os
 
             _os.replace(tmp, path)
+            # Restrict to owner-only (0600). On Windows chmod is a
+            # best-effort no-op; there the NTFS ACLs inherited from
+            # the user's home dir already scope visibility.
+            try:
+                _os.chmod(path, 0o600)
+            except OSError:
+                pass
         except OSError:
             # Best-effort — don't crash the wizard over a checkpoint write.
             pass
