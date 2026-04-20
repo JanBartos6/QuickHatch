@@ -345,6 +345,23 @@ class TestInstructionGeneration:
         assert "sk-ant-super-secret" not in text
         assert "dont-leak" not in text
 
+    def test_export_instructions_are_reference_brief_not_runtime_prompt(self):
+        from quickhatch.ai.instruction_gen import generate_instructions
+
+        text = generate_instructions(self._profile())
+        assert "Reference Brief" in text
+        assert "not the authoritative live analysis prompt" in text
+        assert "sectioned prompts with structured outputs" in text
+
+    def test_gallery_picks_are_called_authoritative_in_export_brief(self):
+        from quickhatch.ai.instruction_gen import generate_instructions
+
+        p = self._profile()
+        p.preferences.gallery_picks = ["unixporn-zyx123"]
+        text = generate_instructions(p)
+        assert "unixporn-zyx123" in text
+        assert "authoritative desktop references" in text
+
 
 if __name__ == "__main__":  # pragma: no cover
     pytest.main([__file__, "-v"])
