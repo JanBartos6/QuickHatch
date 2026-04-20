@@ -41,12 +41,18 @@ def _normalize(value: str) -> str:
     return value.strip().lower().replace(" ", "-").replace("_", "-").replace("!", "")
 
 
-def resolve_primer(distro: str | None) -> dict[str, Any] | None:
+def resolve_primer(distro: str | None, preferred: str | None = None) -> dict[str, Any] | None:
     """Given any user-typed distro hint, find the matching primer entry.
 
     Matches against canonical names and aliases with light normalization
     (lowercase, hyphenate whitespace). Returns the index entry dict
     (with file path, family, release model) or ``None`` if no match.
+
+    ``preferred`` is the user's stated distro preference — used as a
+    strong tiebreaker when the free-text hint mentions multiple distros
+    (e.g. the analysis output names Arch as the recommendation and then
+    mentions Fedora in a negative comparison). If the preferred distro
+    appears anywhere in the hint, it wins.
     """
     if not distro:
         return None
@@ -84,7 +90,77 @@ def resolve_primer(distro: str | None) -> dict[str, Any] | None:
             if any(_normalize(alias) == stripped for alias in entry.get("aliases", [])):
                 return entry
 
-    # 2. Word-boundary search within a longer free-text hint
+    # Helper: is a distro token mentioned in a NEGATIVE context? The model
+    # often contrasts the pick with alternatives ("unlike Ubuntu", "not
+    # Fedora", "the bloat of distributions like Ubuntu or Fedora") — those
+    # mentions must not win the resolver.
+    def _is_negative_context(text: str, match_start: int, match_end: int) -> bool:
+        # Look back only within the current local clause. A negative cue
+        # from an earlier clause ("not fedora. go with arch") must not
+        # poison the later positive recommendation.
+        raw_window = text[max(0, match_start - 60) : match_start + 1]
+        clause_window = re.split(r"[.;:!?]", raw_window)[-1]
+        window = clause_window or raw_window
+        # Word-boundary cues so "likely" doesn't trip "like" and
+        # "Linux-Mint" doesn't trip "not". Each cue is wrapped so it
+        # matches only at word boundaries inside the hyphenated needle.
+        negative_cue_words = (
+            "unlike",
+            "not",
+            "rather",
+            "instead",
+            "avoid",
+            "such",
+            "compared",
+            "versus",
+            "vs",
+            "over",  # "chose X over Y"
+            "than",  # "better than Y"
+            "bloat",
+            "constraints",
+        )
+        for cue in negative_cue_words:
+            pattern = rf"(?:^|[^a-z0-9]){re.escape(cue)}(?:$|[^a-z0-9])"
+            if re.search(pattern, window):
+                return True
+        # "like" is ambiguous — "I'd like arch" (positive) vs
+        # "distributions like X" (negative). Only treat as negative when
+        # preceded by a list-noun within ~20 chars.
+        list_noun_like = re.compile(
+            r"(?:distributions?|distros?|systems?|options?|oses|choices?|"
+            r"alternatives?)[^a-z0-9]{1,5}like(?:$|[^a-z0-9])",
+            re.IGNORECASE,
+        )
+        if list_noun_like.search(window):
+            return True
+        return False
+
+    # 2a. STRONGEST SIGNAL: if the caller passed a preferred distro AND it
+    # appears in the text as a non-negative mention, return it. This
+    # prevents the comparison-trailing-mention bug where "Arch is better
+    # than Fedora" resolves to Fedora.
+    if preferred:
+        pref_entry: dict[str, Any] | None = None
+        pref_needle = _normalize(preferred)
+        for entry in _load_index().get("distros", []):
+            canonical = _normalize(entry.get("canonical", ""))
+            aliases = [_normalize(a) for a in entry.get("aliases", [])]
+            if pref_needle == canonical or pref_needle in aliases:
+                pref_entry = entry
+                break
+        if pref_entry is not None:
+            for candidate in [
+                _normalize(pref_entry.get("canonical", "")),
+                *(_normalize(a) for a in pref_entry.get("aliases", [])),
+            ]:
+                if not candidate:
+                    continue
+                pattern = rf"(?:^|[^a-z0-9]){re.escape(candidate)}(?:$|[^a-z0-9])"
+                for mobj in re.finditer(pattern, needle):
+                    if not _is_negative_context(needle, mobj.start(), mobj.end()):
+                        return pref_entry
+
+    # 2b. Word-boundary search within a longer free-text hint
     #    ("I'd like arch btw" → matches "arch"). Still rejects
     #    accidental-substring cases like "templeos" matching "eos".
     #
@@ -93,18 +169,26 @@ def resolve_primer(distro: str | None) -> dict[str, Any] | None:
     # ACTUALLY picks — usually the last occurrence after "recommend",
     # "recommended", "choose", or "go with". First try a targeted
     # recommendation-phrase scan; fall back to last-occurrence.
+    #
+    # The recommend scan now looks for ANY distro token within 80 chars
+    # after a recommendation verb — not just the immediately-next word.
+    # Previously "recommended distribution: arch linux" captured the
+    # word "distribution" (junk), failed to match, and fell through to
+    # the last-mention heuristic (which picked up "Fedora" from a
+    # negative comparison at the end of the paragraph).
     _RECOMMEND_RE = re.compile(
         r"(?:recommend(?:ation|ed|ing)?|i\s+suggest|i\s+pick|i\s+choose|"
         r"go\s+with|final\s+choice[: ]|best\s+fit[: ])"
-        r"[^a-z0-9]{0,40}?([a-z0-9][-a-z0-9_ ]{1,30}[a-z0-9])",
+        r"([\s\S]{0,80})",
         re.IGNORECASE,
     )
     rec_matches = list(_RECOMMEND_RE.finditer(needle))
     if rec_matches:
-        # Iterate recommendation phrases from LAST to first — the
-        # concluding recommendation wins over intermediate comparisons.
         for rm in reversed(rec_matches):
-            candidate_text = _normalize(rm.group(1))
+            window = rm.group(1)
+            # Recompute absolute offsets so negative-context detection
+            # works against the full needle.
+            window_start = rm.start(1)
             for entry in _load_index().get("distros", []):
                 for candidate in (
                     _normalize(entry.get("canonical", "")),
@@ -113,13 +197,15 @@ def resolve_primer(distro: str | None) -> dict[str, Any] | None:
                     if not candidate:
                         continue
                     pattern = rf"(?:^|[^a-z0-9]){re.escape(candidate)}(?:$|[^a-z0-9])"
-                    if re.search(pattern, candidate_text):
+                    m = re.search(pattern, window)
+                    if m and not _is_negative_context(
+                        needle, window_start + m.start(), window_start + m.end()
+                    ):
                         return entry
 
     # No recommendation phrase matched a known distro — fall back to
-    # scanning the WHOLE text but return the LAST distro mentioned,
-    # not the first (the model's concluding sentence is more likely
-    # the recommendation than the comparison earlier).
+    # scanning the WHOLE text but return the LAST distro mentioned that
+    # isn't in a negative context.
     last_match: tuple[int, dict[str, Any]] | None = None
     for entry in _load_index().get("distros", []):
         haystack = [
@@ -131,6 +217,8 @@ def resolve_primer(distro: str | None) -> dict[str, Any] | None:
                 continue
             pattern = rf"(?:^|[^a-z0-9]){re.escape(candidate)}(?:$|[^a-z0-9])"
             for mobj in re.finditer(pattern, needle):
+                if _is_negative_context(needle, mobj.start(), mobj.end()):
+                    continue
                 if last_match is None or mobj.start() > last_match[0]:
                     last_match = (mobj.start(), entry)
     if last_match is not None:

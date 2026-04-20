@@ -223,6 +223,26 @@ class TestResolvePrimer:
         assert resolve_primer(None) is None
         assert resolve_primer("   ") is None
 
+    def test_negative_comparison_does_not_pick_trailing_distro(self):
+        entry = resolve_primer("Arch is the better fit than Fedora for this machine.")
+        assert entry is not None
+        assert entry["canonical"] == "Arch Linux"
+
+    def test_recommend_phrase_beats_later_comparison_noise(self):
+        entry = resolve_primer(
+            "I recommend Ubuntu LTS for stability, unlike Fedora's faster cadence."
+        )
+        assert entry is not None
+        assert entry["canonical"] == "Ubuntu LTS"
+
+    def test_preferred_distro_does_not_win_from_negative_context(self):
+        entry = resolve_primer(
+            "Not Fedora. Go with Arch for this build.",
+            preferred="fedora",
+        )
+        assert entry is not None
+        assert entry["canonical"] == "Arch Linux"
+
 
 class TestLoadPrimerText:
     def test_loads_arch_primer(self):

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import threading
 
 import pytest
@@ -226,3 +227,109 @@ class TestThreadSafety:
             t.join()
 
         assert len(state.suggestions) == 50
+
+
+class TestPersistedRestore:
+    def test_legacy_state_without_fingerprint_is_ignored_for_nonempty_profile(self, tmp_path):
+        path = tmp_path / "bridge.json"
+        path.write_text(
+            json.dumps(
+                {
+                    "suggestions": [
+                        {
+                            "id": "s1",
+                            "category": "distro",
+                            "title": "Old",
+                            "content": "stale",
+                        }
+                    ],
+                    "messages": [{"role": "agent", "content": "stale"}],
+                    "questions": [
+                        {
+                            "id": "q1",
+                            "question": "Old question?",
+                            "answered": True,
+                            "answer": "yes",
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        profile = UserProfile()
+        profile.preferences.distro_preference = "arch"
+        restored = BridgeState(profile, persist_path=path)
+        assert restored.suggestions == []
+        assert restored.messages == []
+        assert restored.questions == {}
+
+    def test_legacy_state_without_fingerprint_still_restores_for_empty_profile(self, tmp_path):
+        profile = UserProfile()
+        path = tmp_path / "bridge.json"
+        baseline = BridgeState(profile, persist_path=None)
+        q = baseline.add_question("Answered before restart?")
+        baseline.answer_question(q.id, "yes")
+        path.write_text(
+            json.dumps(
+                {
+                    "suggestions": [
+                        {
+                            "id": "s1",
+                            "category": "distro",
+                            "title": "Recovered",
+                            "content": "arch",
+                        }
+                    ],
+                    "messages": [{"role": "agent", "content": "resume"}],
+                    "questions": [
+                        {
+                            "id": q.id,
+                            "question": q.question,
+                            "choices": None,
+                            "answered": True,
+                            "answer": "yes",
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        restored = BridgeState(profile, persist_path=path)
+        assert [s.title for s in restored.suggestions] == ["Recovered"]
+        assert [m["content"] for m in restored.messages] == ["resume"]
+        assert list(restored.questions) == [q.id]
+
+    def test_restore_keeps_answered_questions_only(self, tmp_path):
+        profile = UserProfile()
+        path = tmp_path / "bridge.json"
+        fingerprint = BridgeState(profile, persist_path=None)._profile_fingerprint()
+        path.write_text(
+            json.dumps(
+                {
+                    "profile_fingerprint": fingerprint,
+                    "suggestions": [],
+                    "messages": [],
+                    "questions": [
+                        {
+                            "id": "answered",
+                            "question": "Done?",
+                            "choices": None,
+                            "answered": True,
+                            "answer": "yes",
+                        },
+                        {
+                            "id": "pending",
+                            "question": "Still waiting?",
+                            "choices": None,
+                            "answered": False,
+                            "answer": None,
+                        },
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        restored = BridgeState(profile, persist_path=path)
+        assert "answered" in restored.questions
+        assert restored.questions["answered"].answered.is_set()
+        assert "pending" not in restored.questions
