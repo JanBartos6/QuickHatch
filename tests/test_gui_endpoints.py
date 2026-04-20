@@ -93,6 +93,24 @@ class TestProfileEndpoint:
         assert data["profile"]["linux_ip"] == "1.2.3.4"
         assert data["profile"]["linux_user"] == "bob"
 
+    def test_update_reports_changed_false_for_noop(self, server, monkeypatch):
+        calls = []
+        monkeypatch.setattr(server["gui_state"].profile, "save_checkpoint", lambda: calls.append(1))
+        status, body = _post(server["port"], "/wizard/update", {"linux_user": ""})
+        data = json.loads(body)
+        assert status == 200
+        assert data["changed"] is False
+        assert calls == []
+
+    def test_update_reports_changed_true_for_real_mutation(self, server, monkeypatch):
+        calls = []
+        monkeypatch.setattr(server["gui_state"].profile, "save_checkpoint", lambda: calls.append(1))
+        status, body = _post(server["port"], "/wizard/update", {"linux_user": "alice"})
+        data = json.loads(body)
+        assert status == 200
+        assert data["changed"] is True
+        assert calls == [1]
+
 
 class TestCompleteStepEndpoint:
     """/wizard/steps was removed (dead endpoint — the SPA drives step

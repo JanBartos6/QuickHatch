@@ -184,6 +184,11 @@ class UserProfile:
         tmp = path.with_suffix(path.suffix + ".tmp")
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                if path.exists() and path.read_text(encoding="utf-8") == serialized:
+                    return path
+            except OSError:
+                pass
             tmp.write_text(serialized, encoding="utf-8")
             import os as _os
 

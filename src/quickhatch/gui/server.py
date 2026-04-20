@@ -179,6 +179,18 @@ class GUIState:
             "another_machine",
         }
     )
+    _STR_TOP_FIELDS = frozenset(
+        {
+            "additional_info",
+            "data_description",
+            "data_transfer_method",
+            "linux_ip",
+            "linux_user",
+            "target_hardware_override",
+            "default_account_password",
+            "ssh_public_key_path",
+        }
+    )
 
     @staticmethod
     def _coerce_str(val: Any) -> str | None:
@@ -195,16 +207,25 @@ class GUIState:
             return []
         return [x for x in val if isinstance(x, str)]
 
-    def update_profile(self, updates: dict) -> None:
+    @staticmethod
+    def _set_if_changed(obj: Any, attr: str, value: Any) -> bool:
+        if getattr(obj, attr) == value:
+            return False
+        setattr(obj, attr, value)
+        return True
+
+    def update_profile(self, updates: dict) -> bool:
         """Apply partial updates to the profile from the web UI.
 
         Type-coerces every field to its declared shape. Unknown keys
         get logged (not silent data loss). No field ever ends up with a
-        Python None when the dataclass says list[str].
+        Python None when the dataclass says list[str]. Returns True when
+        at least one persisted field changed.
         """
         import sys as _sys
 
         dropped: list[str] = []
+        changed = False
         with self.lock:
             prefs = updates.get("preferences", {})
             if isinstance(prefs, dict):
@@ -222,16 +243,18 @@ class GUIState:
                             picks = [p for p in picks if p in valid_ids]
                         except Exception:
                             pass
-                        setattr(self.profile.preferences, k, picks[:10])
+                        changed |= self._set_if_changed(self.profile.preferences, k, picks[:10])
                     elif k in self._LIST_PREF_FIELDS:
-                        setattr(self.profile.preferences, k, self._coerce_str_list(v))
+                        changed |= self._set_if_changed(
+                            self.profile.preferences, k, self._coerce_str_list(v)
+                        )
                     elif k in self._STR_PREF_FIELDS:
                         coerced = self._coerce_str(v)
                         if coerced is not None or v is None:
-                            setattr(self.profile.preferences, k, coerced)
+                            changed |= self._set_if_changed(self.profile.preferences, k, coerced)
                     else:
                         # Unknown-but-declared field type — pass through.
-                        setattr(self.profile.preferences, k, v)
+                        changed |= self._set_if_changed(self.profile.preferences, k, v)
 
             ai = updates.get("ai_config", {})
             if isinstance(ai, dict):
@@ -240,19 +263,35 @@ class GUIState:
                         dropped.append(f"ai_config.{k}")
                         continue
                     if k in self._STR_AI_FIELDS:
-                        setattr(self.profile.ai_config, k, self._coerce_str(v))
+                        changed |= self._set_if_changed(
+                            self.profile.ai_config, k, self._coerce_str(v)
+                        )
                     else:
-                        setattr(self.profile.ai_config, k, v)
+                        changed |= self._set_if_changed(self.profile.ai_config, k, v)
 
             if "additional_info" in updates:
-                self.profile.additional_info = self._coerce_str(updates["additional_info"]) or ""
+                changed |= self._set_if_changed(
+                    self.profile,
+                    "additional_info",
+                    self._coerce_str(updates["additional_info"]) or "",
+                )
             if "apps_to_install" in updates:
-                self.profile.apps_to_install = self._coerce_str_list(updates["apps_to_install"])
+                changed |= self._set_if_changed(
+                    self.profile,
+                    "apps_to_install",
+                    self._coerce_str_list(updates["apps_to_install"]),
+                )
             if "data_description" in updates:
-                self.profile.data_description = self._coerce_str(updates["data_description"]) or ""
+                changed |= self._set_if_changed(
+                    self.profile,
+                    "data_description",
+                    self._coerce_str(updates["data_description"]) or "",
+                )
             if "data_transfer_method" in updates:
-                self.profile.data_transfer_method = (
-                    self._coerce_str(updates["data_transfer_method"]) or ""
+                changed |= self._set_if_changed(
+                    self.profile,
+                    "data_transfer_method",
+                    self._coerce_str(updates["data_transfer_method"]) or "",
                 )
             if "linux_ip" in updates:
                 # Strip CIDR suffix (`/24`) and surrounding whitespace —
@@ -260,19 +299,52 @@ class GUIState:
                 # includes the prefix length, but SSH will treat that as
                 # part of the hostname and fail to resolve.
                 ip = self._coerce_str(updates["linux_ip"]) or ""
-                self.profile.linux_ip = ip.strip().split("/", 1)[0]
-            if "linux_user" in updates:
-                self.profile.linux_user = self._coerce_str(updates["linux_user"]) or ""
-            if "target_hardware_override" in updates:
-                self.profile.target_hardware_override = (
-                    self._coerce_str(updates["target_hardware_override"]) or ""
+                changed |= self._set_if_changed(
+                    self.profile,
+                    "linux_ip",
+                    ip.strip().split("/", 1)[0],
                 )
+            if "linux_user" in updates:
+                changed |= self._set_if_changed(
+                    self.profile,
+                    "linux_user",
+                    self._coerce_str(updates["linux_user"]) or "",
+                )
+            if "target_hardware_override" in updates:
+                changed |= self._set_if_changed(
+                    self.profile,
+                    "target_hardware_override",
+                    self._coerce_str(updates["target_hardware_override"]) or "",
+                )
+            if "default_account_password" in updates:
+                changed |= self._set_if_changed(
+                    self.profile,
+                    "default_account_password",
+                    self._coerce_str(updates["default_account_password"]) or "password",
+                )
+            if "ssh_public_key_path" in updates:
+                changed |= self._set_if_changed(
+                    self.profile,
+                    "ssh_public_key_path",
+                    self._coerce_str(updates["ssh_public_key_path"]),
+                )
+
+            known_top = {
+                "preferences",
+                "ai_config",
+                *self._LIST_TOP_FIELDS,
+                *self._STR_TOP_FIELDS,
+            }
+            dropped.extend(
+                sorted(k for k in updates if k not in known_top and not k.startswith("_"))
+            )
 
         if dropped:
             print(
                 f"[quickhatch] /wizard/update dropped unknown keys: {dropped}",
                 file=_sys.stderr,
             )
+        return changed
 
 
 def _load_html() -> bytes:
@@ -821,9 +893,10 @@ def make_gui_server(
         def do_POST(self):
             if self.path == "/wizard/update":
                 data = self._read_json()
-                gui_state.update_profile(data)
-                gui_state.profile.save_checkpoint()
-                self._send_json({"status": "ok"})
+                changed = gui_state.update_profile(data)
+                if changed:
+                    gui_state.profile.save_checkpoint()
+                self._send_json({"status": "ok", "changed": changed})
 
             elif self.path == "/wizard/open-export-folder":
                 # Open the export bundle directory in the host file manager.
@@ -906,9 +979,11 @@ def make_gui_server(
                         400,
                     )
                     return
+                changed = gui_state.profile.preferences.gallery_picks != deduped_picks
                 gui_state.profile.preferences.gallery_picks = deduped_picks
-                gui_state.profile.save_checkpoint()
-                self._send_json({"status": "ok", "picks": deduped_picks})
+                if changed:
+                    gui_state.profile.save_checkpoint()
+                self._send_json({"status": "ok", "picks": deduped_picks, "changed": changed})
 
             elif self.path == "/wizard/complete_step":
                 data = self._read_json()
@@ -916,7 +991,16 @@ def make_gui_server(
                 if step and step not in gui_state.profile.completed_steps:
                     gui_state.profile.completed_steps.append(step)
                     gui_state.profile.save_checkpoint()
-                self._send_json({"status": "ok", "completed": gui_state.profile.completed_steps})
+                    changed = True
+                else:
+                    changed = False
+                self._send_json(
+                    {
+                        "status": "ok",
+                        "completed": gui_state.profile.completed_steps,
+                        "changed": changed,
+                    }
+                )
 
             elif self.path == "/wizard/scan":
                 results = _run_scan()

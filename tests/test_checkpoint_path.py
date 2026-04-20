@@ -11,6 +11,7 @@ Anchors two behaviours:
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -68,6 +69,22 @@ class TestCheckpointPath:
         loaded = UserProfile.load_checkpoint()
         assert loaded is not None
         assert loaded.additional_info == profile.additional_info
+
+    def test_save_checkpoint_skips_identical_rewrite(self, fake_home, monkeypatch):
+        profile = UserProfile()
+        profile.preferences.distro_preference = "Arch Linux"
+        profile.save_checkpoint()
+
+        calls = []
+        real_replace = os.replace
+
+        def tracking_replace(src, dst):
+            calls.append((src, dst))
+            return real_replace(src, dst)
+
+        monkeypatch.setattr(os, "replace", tracking_replace)
+        profile.save_checkpoint()
+        assert calls == []
 
     def test_roundtrip_preserves_newer_top_level_fields(self, fake_home):
         profile = UserProfile()
