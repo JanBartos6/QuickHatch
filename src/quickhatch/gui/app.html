@@ -149,7 +149,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:va
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-.app{max-width:880px;margin:0 auto;padding:var(--s7) var(--s5) calc(var(--s7) + var(--footer-h, 44px));min-height:100vh;display:flex;flex-direction:column;--footer-h:44px}
+/* `--footer-h` is declared at :root in the base var block and kept
+   dynamic by syncFooterHeight() in JS. Don't re-declare it at .app
+   scope — that would shadow the :root value and JS updates wouldn't
+   propagate to the .btn-row `bottom:` inside. Let var(--footer-h,44px)
+   provide the fallback if the var isn't set anywhere. */
+.app{max-width:880px;margin:0 auto;padding:var(--s7) var(--s5) calc(var(--s7) + var(--footer-h, 44px));min-height:100vh;display:flex;flex-direction:column}
 
 /* ── Logo / header ── */
 .logo{text-align:center;padding:var(--s7) 0 var(--s6)}
@@ -3035,20 +3040,31 @@ async function pollSetup(){
 // ── Init ──
 applyTheme(getTheme());
 
-// Measure the actual footer height once on load and again on resize.
-// The btn-row's `bottom: var(--footer-h)` and the page padding both
-// rely on this. The CSS default (44px) was a hand-picked guess that
-// drifted past the real footer height, leaving a transparent sliver
-// between the action bar and the footer where scrollable content
-// underneath bled through.
+// Measure the actual footer height and write it into the --footer-h
+// var on <html>. The btn-row's `bottom: var(--footer-h)` and the page
+// padding both rely on this. A hardcoded 44px default drifted past
+// the real footer height, leaving a transparent sliver between the
+// action bar and the footer where scrollable content bled through.
 function syncFooterHeight(){
   const f=document.querySelector('.app-footer');
   if(!f)return;
   const h=Math.ceil(f.getBoundingClientRect().height);
   if(h>0)document.documentElement.style.setProperty('--footer-h', h+'px');
 }
+// Fire on everything that could affect footer height:
+//  - DOMContentLoaded: initial structural measure (fonts may shift it)
+//  - load: stylesheets + subresources all in
+//  - fonts.ready: web fonts resolved, line metrics final
+//  - resize: responsive media-query changes
+document.addEventListener('DOMContentLoaded', syncFooterHeight);
 window.addEventListener('load', syncFooterHeight);
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(syncFooterHeight).catch(()=>{});
+}
 window.addEventListener('resize', syncFooterHeight);
+// Also fire once synchronously on script eval — inlining the script at
+// end-of-body means the footer is already in the DOM here.
+syncFooterHeight();
 // Delegated click handler for question-choice pills. Using data-attrs
 // + addEventListener avoids building JS string literals via HTML
 // interpolation, which otherwise round-trips `'` through entity decode
