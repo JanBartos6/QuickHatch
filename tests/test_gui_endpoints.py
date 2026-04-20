@@ -111,6 +111,12 @@ class TestProfileEndpoint:
         assert data["changed"] is True
         assert calls == [1]
 
+    def test_update_returns_authoritative_normalized_profile(self, server):
+        status, body = _post(server["port"], "/wizard/update", {"linux_ip": "10.0.0.5/24"})
+        data = json.loads(body)
+        assert status == 200
+        assert data["profile"]["linux_ip"] == "10.0.0.5"
+
 
 class TestCompleteStepEndpoint:
     """/wizard/steps was removed (dead endpoint — the SPA drives step

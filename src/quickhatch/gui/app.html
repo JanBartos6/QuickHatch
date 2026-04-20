@@ -953,6 +953,8 @@ let state={
   galleryLoading:false,
   galleryPinned:[],
   galleryFilters:{de:'all',mood:'all',busyness:'all',verifiedOnly:false},
+  _profileRequestSeq:0,
+  _profileAppliedSeq:0,
 };
 
 async function api(path,method='GET',body=null){
@@ -961,12 +963,21 @@ async function api(path,method='GET',body=null){
   const r=await fetch(path,opts);return r.json();
 }
 
-async function loadProfile(){
-  const data=await api('/wizard/profile');
-  state.profile=data.profile;
+function applyServerProfile(profile, seq){
+  if(!profile)return false;
+  if((seq||0) < (state._profileAppliedSeq||0))return false;
+  state._profileAppliedSeq=seq||0;
+  state.profile=profile;
   state.completedSteps=state.profile.completed_steps||[];
-   state.galleryPinned=[...(state.profile?.preferences?.gallery_picks||[])];
+  state.galleryPinned=[...(state.profile?.preferences?.gallery_picks||[])];
   refreshSteps();
+  return true;
+}
+
+async function loadProfile(){
+  const seq=++state._profileRequestSeq;
+  const data=await api('/wizard/profile');
+  if(!applyServerProfile(data.profile,seq))return;
   state.currentStep=STEPS.length;
   for(let i=0;i<STEPS.length;i++){
     if(!state.completedSteps.includes(STEPS[i].id)){state.currentStep=i;break}
@@ -1003,16 +1014,11 @@ async function completeStep(stepId){
 }
 
 async function saveProfile(updates, opts){
-  await api('/wizard/update','POST',updates);
-  if(updates.preferences){
-    state.profile.preferences=Object.assign({},state.profile.preferences||{},updates.preferences);
+  const seq=++state._profileRequestSeq;
+  const resp=await api('/wizard/update','POST',updates);
+  if(resp&&resp.profile){
+    applyServerProfile(resp.profile,seq);
   }
-  if(updates.ai_config){
-    state.profile.ai_config=Object.assign({},state.profile.ai_config||{},updates.ai_config);
-  }
-  Object.keys(updates).forEach(key=>{
-    if(key!=='preferences'&&key!=='ai_config')state.profile[key]=updates[key];
-  });
   if(opts&&opts.toast!==false&&opts&&opts.toast)toast(opts.toast,'success');
 }
 
@@ -2363,8 +2369,9 @@ async function runScan(){
   }
   el('scanBtn').classList.add('hidden');el('scanNext').classList.remove('hidden');
   // Refresh client profile so subsequent steps see the scan results
+  const seq=++state._profileRequestSeq;
   const fresh=await api('/wizard/profile');
-  if(fresh.profile)state.profile=fresh.profile;
+  if(fresh.profile)applyServerProfile(fresh.profile,seq);
 }
 function hwCard(label,value,sub){return`<div class="hw-card"><div class="hw-label">${label}</div><div class="hw-value">${value}</div>${sub?`<div class="hw-sub">${sub}</div>`:''}</div>`}
 

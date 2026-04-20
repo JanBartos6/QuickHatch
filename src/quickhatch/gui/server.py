@@ -366,6 +366,14 @@ def _gallery_entries_for_response() -> list[dict[str, Any]]:
     return entries
 
 
+def _profile_response_dict(profile: UserProfile) -> dict[str, Any]:
+    """Redacted profile payload for SPA responses."""
+    profile_dict = asdict(profile)
+    if profile_dict.get("ai_config", {}).get("api_key"):
+        profile_dict["ai_config"]["api_key"] = "***SET***"
+    return profile_dict
+
+
 def _format_recipe_short(entry: dict[str, Any]) -> str:
     """Render a single recipe as a compact one-paragraph line for library injection.
 
@@ -798,10 +806,9 @@ def make_gui_server(
                 self._send_html(_load_html())
 
             elif route == "/wizard/profile":
-                profile_dict = asdict(gui_state.profile)
-                if profile_dict.get("ai_config", {}).get("api_key"):
-                    profile_dict["ai_config"]["api_key"] = "***SET***"
-                self._send_json({"status": "ok", "profile": profile_dict})
+                self._send_json(
+                    {"status": "ok", "profile": _profile_response_dict(gui_state.profile)}
+                )
 
             elif route == "/wizard/version":
                 from quickhatch import __version__
@@ -896,7 +903,13 @@ def make_gui_server(
                 changed = gui_state.update_profile(data)
                 if changed:
                     gui_state.profile.save_checkpoint()
-                self._send_json({"status": "ok", "changed": changed})
+                self._send_json(
+                    {
+                        "status": "ok",
+                        "changed": changed,
+                        "profile": _profile_response_dict(gui_state.profile),
+                    }
+                )
 
             elif self.path == "/wizard/open-export-folder":
                 # Open the export bundle directory in the host file manager.

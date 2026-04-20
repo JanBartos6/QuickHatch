@@ -197,6 +197,23 @@ class TestBridgeWrapperPaths:
         assert "bash {sh_cmd_file}" in text
 
 
+class TestFrontendProfileSync:
+    """Regression: the SPA should apply only the newest authoritative
+    profile snapshot instead of re-merging raw request payloads."""
+
+    def test_app_html_uses_authoritative_profile_sync_helper(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "function applyServerProfile(profile, seq)" in html
+        assert "if((seq||0) < (state._profileAppliedSeq||0))return false;" in html
+        assert "const seq=++state._profileRequestSeq;" in html
+        assert "if(resp&&resp.profile){" in html
+        assert "applyServerProfile(resp.profile,seq);" in html
+        assert "state.profile.preferences=Object.assign" not in html
+
+
 class TestCodexLaunchPrelaunch:
     """Regression: the external Codex launch path must honor the same
     admitted-launch prelaunch hook as the API-backed agent path."""
