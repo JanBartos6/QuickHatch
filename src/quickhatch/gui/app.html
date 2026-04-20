@@ -1498,7 +1498,10 @@ const stepRenderers={
               <div class="agent-action" id="agentAction"></div>
               <code class="agent-command hidden" id="agentCommand"></code>
             </div>
-            <button class="btn btn-danger btn-sm hidden" id="stopBtn" onclick="stopAgent()">Stop</button>
+            <div class="stack-h" style="gap:var(--s2)">
+              <button class="btn btn-ghost btn-sm hidden" id="rerunBtn" onclick="rerunAnalysis()" title="Clear everything and regenerate from the current preferences">Rerun analysis</button>
+              <button class="btn btn-danger btn-sm hidden" id="stopBtn" onclick="stopAgent()">Stop</button>
+            </div>
           </div>
           <div class="agent-timeline" id="agentTimeline"></div>
           <details class="agent-log hidden" id="agentLogDetails">
@@ -2555,7 +2558,20 @@ async function launchAgent(){
   const btn=el('launchBtn'),msg=el('launchMsg');
   btn.disabled=true;btn.textContent='Starting…';
   try{
-    const data=await api('/wizard/launch-agent','POST',{});
+    // If the bridge already has suggestions from a prior analysis,
+    // use the rerun endpoint so it clears + regenerates. Otherwise
+    // the section loop would skip each one with 'already generated —
+    // skipping' and the user's updated preferences would never land.
+    let endpoint = '/wizard/launch-agent';
+    let body = {};
+    try{
+      const sug = await api('/api/suggestions');
+      if ((sug.suggestions||[]).length > 0){
+        endpoint = '/wizard/rerun-agent';
+        body = {message: ''};
+      }
+    }catch(_){}
+    const data=await api(endpoint,'POST',body);
     if(data.status==='ok'){
       // Swap launch UI for the live panel
       const launch=el('agentLaunch');
@@ -2564,7 +2580,12 @@ async function launchAgent(){
       if(launch)launch.classList.add('hidden');
       if(panel)panel.classList.remove('hidden');
       if(stop)stop.classList.remove('hidden');
+      // Clear local view of suggestions too so the feed reflects the
+      // regen immediately (server already reset them).
+      const feed=el('agentFeed');
+      if(feed)feed.innerHTML='';
       state._lastMsgCount=-1;state._lastSugCount=0;
+      state._agentDone=false;
     }else{
       msg.innerHTML=`<span class="muted" style="color:var(--danger);font-size:var(--t-sm)">${escHtml(data.message||'Failed')}</span>`;
       btn.textContent='Start analysis';btn.disabled=false;
@@ -2572,6 +2593,34 @@ async function launchAgent(){
   }catch(e){
     msg.innerHTML=`<span class="muted" style="color:var(--danger);font-size:var(--t-sm)">${escHtml(e.message)}</span>`;
     btn.textContent='Start analysis';btn.disabled=false;
+  }
+}
+
+async function rerunAnalysis(){
+  if(!confirm('Regenerate the entire analysis? Your current recommendations will be replaced.')) return;
+  const panel=el('agentPanel');
+  const feed=el('agentFeed');
+  const phase=el('agentPhase');
+  const spinner=el('agentSpinner');
+  const stop=el('stopBtn');
+  const rerun=el('rerunBtn');
+  // Reset visual state
+  if(feed)feed.innerHTML='';
+  if(panel)panel.classList.remove('done');
+  if(phase){phase.textContent='Starting rerun…';phase.classList.remove('done','error');}
+  if(spinner)spinner.classList.remove('hidden');
+  if(stop)stop.classList.remove('hidden');
+  if(rerun)rerun.classList.add('hidden');
+  state._agentDone=false;state._lastSugCount=0;state._lastMsgCount=-1;
+  const bridgeNext=el('bridgeNext');
+  if(bridgeNext){bridgeNext.disabled=true;bridgeNext.textContent='Agent working…';}
+  try{
+    await api('/wizard/rerun-agent','POST',{message:''});
+    pollBridge();
+    toast('Rerunning analysis from scratch.','success');
+  }catch(e){
+    toast('Rerun failed: '+(e.message||'unknown'),'error');
+    if(rerun)rerun.classList.remove('hidden');
   }
 }
 
@@ -2695,6 +2744,14 @@ function renderAgentFeed(prefix, messages, done){
     panel.classList.add('done');
     const stopBtn=el(prefix==='setup'?'setupStopBtn':'stopBtn');
     if(stopBtn)stopBtn.classList.add('hidden');
+    // Analysis step only: show the Rerun button so the user can
+    // regenerate with updated preferences without hunting for the
+    // chat box. Setup step doesn't get one — post-install rerun
+    // is a different flow (would need to tear down the target).
+    if(prefix==='agent'){
+      const rerunBtn=el('rerunBtn');
+      if(rerunBtn)rerunBtn.classList.remove('hidden');
+    }
   }else if(currentError){
     phaseEl.textContent=currentError.label;
     phaseEl.classList.add('error');
