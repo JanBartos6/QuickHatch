@@ -3244,7 +3244,14 @@ def _run_pre_reboot_checks(
     /mnt. Returns (failures, ok_lines) — failures should BLOCK the
     reboot until addressed; ok_lines are informational.
     """
-    rc, out, err = _ssh_exec(host, user, _PRE_REBOOT_CHECK_SCRIPT, key_path, port=port, timeout=60)
+    # Force execution through bash — archiso's default user often has
+    # zsh as the login shell (Arch installer + pacstrap-base convention),
+    # and the script uses bash-isms the POSIX shell syntax of zsh parses
+    # differently. We wrap the script in a bash heredoc so zsh just
+    # launches bash and pipes the script body as stdin; bash then parses
+    # it with its own semantics regardless of the login shell.
+    wrapped = "bash -s <<'QH_PREBOOT_EOF'\n" + _PRE_REBOOT_CHECK_SCRIPT + "\nQH_PREBOOT_EOF\n"
+    rc, out, err = _ssh_exec(host, user, wrapped, key_path, port=port, timeout=60)
     failures: list[str] = []
     oks: list[str] = []
     if rc != 0 and not out:
