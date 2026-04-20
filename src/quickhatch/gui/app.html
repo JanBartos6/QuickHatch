@@ -2824,7 +2824,15 @@ async function pollBridge(){
       const md=await api('/api/messages');
       const messages=md.messages||[];
 
-      renderAgentFeed('agent', messages, !!data.agent_done);
+      // Filter to analysis-phase messages (plus unphased system/legacy
+      // messages). Setup-phase messages from prior runs are tagged
+      // with phase='setup' at bridge.add_message time and won't clutter
+      // the Analysis view anymore.
+      const analysisMsgs = messages.filter(m => {
+        const p = m.phase || '';
+        return p === '' || p === 'analysis';
+      });
+      renderAgentFeed('agent', analysisMsgs, !!data.agent_done);
 
       const sd=await api('/api/suggestions');
       if(sd.suggestions){
@@ -3133,7 +3141,14 @@ async function pollSetup(){
       const md=await api('/api/messages');
       const messages=md.messages||[];
 
-      renderAgentFeed('setup', messages, !!data.agent_done);
+      // Mirror of the analysis-feed filter but in the opposite
+      // direction — show setup-phase messages + legacy/unphased ones,
+      // drop analysis-phase chatter so the Remote Setup feed is clean.
+      const setupMsgs = messages.filter(m => {
+        const p = m.phase || '';
+        return p === '' || p === 'setup';
+      });
+      renderAgentFeed('setup', setupMsgs, !!data.agent_done);
 
       const sd=await api('/api/suggestions');
       if(sd.suggestions){

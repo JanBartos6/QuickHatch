@@ -331,9 +331,30 @@ class BridgeState:
             self._write_payload_unlocked(data)
         return found
 
-    def add_message(self, role: str, content: str) -> None:
+    # Current phase — used to tag subsequent add_message calls so the
+    # UI can filter the feed by which agent posted what. One of:
+    # ""          — neutral / system-level (shown on both steps)
+    # "analysis"  — set by _run_agent_background
+    # "setup"     — set by _run_setup_agent
+    # Without this, setup-agent shell commands from a prior install
+    # bled into the Analysis step's feed + technical log because both
+    # views read from the same bridge.messages list.
+    current_phase: str = ""
+
+    def set_current_phase(self, phase: str) -> None:
+        """Tag all subsequent add_message() calls with this phase.
+
+        Safe because QuickHatch refuses concurrent agent launches, so
+        at most one phase is active at a time.
+        """
+        self.current_phase = phase or ""
+
+    def add_message(self, role: str, content: str, *, phase: str | None = None) -> None:
+        eff_phase = phase if phase is not None else self.current_phase
         with self.lock:
-            self.messages.append({"role": role, "content": content, "time": time.time()})
+            self.messages.append(
+                {"role": role, "content": content, "time": time.time(), "phase": eff_phase}
+            )
             data = self._serialize_payload_locked()
         self._write_payload_unlocked(data)
         for cb in self._on_message:

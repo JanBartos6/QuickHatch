@@ -2195,6 +2195,9 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
 
     base = f"http://localhost:{port}"
     bridge = gui_state.bridge
+    # Tag every add_message() in this thread as analysis-phase so the
+    # UI can filter out setup-phase noise from prior runs.
+    bridge.set_current_phase("analysis")
     config = gui_state.profile.ai_config
 
     try:
@@ -2292,45 +2295,50 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
             # models. If the second try still fails, post an error suggestion
             # for this section and continue with the next rather than
             # crashing the whole analysis run.
-            try:
-                content = _call_model_simple(
-                    endpoint, model, prompt, api_key, provider=config.provider
-                )
-            except Exception as first_exc:
-                bridge.add_message(
-                    "agent",
-                    f"⚠️  {title} timed out, retrying once after a short pause…",
-                )
-                # 10s backoff so a struggling local model has breathing room
-                # (LM Studio sometimes hangs briefly while unloading context).
-                import time as _t
+            # Retry up to 3 times with exponential backoff (3s, 9s, 27s).
+            # Cloud providers under load often 503 or stall for 30+
+            # seconds; a single retry at 10s wasn't enough for Gemini's
+            # busy moments and the user saw spurious failures.
+            import time as _t
 
-                _t.sleep(10)
+            last_exc = None
+            content = None
+            for attempt in range(1, 4):
                 try:
                     content = _call_model_simple(
                         endpoint, model, prompt, api_key, provider=config.provider
                     )
-                except Exception as second_exc:
-                    bridge.add_message(
-                        "agent",
-                        f"❌  {title} failed twice — skipping. Last error: {str(second_exc)[:200]}",
-                    )
-                    req.post(
-                        f"{base}/api/suggest",
-                        json={
-                            "category": section_key,
-                            "title": f"{title} (failed)",
-                            "content": (
-                                f"This section couldn't be generated after two "
-                                f"attempts.\n\n**Errors:**\n- First: `{str(first_exc)[:150]}`\n"
-                                f"- Second: `{str(second_exc)[:150]}`\n\n"
-                                f"You can rerun the analysis with this message as "
-                                f"feedback to try again."
-                            ),
-                        },
-                        timeout=5,
-                    )
-                    continue
+                    break
+                except Exception as exc:
+                    last_exc = exc
+                    if attempt < 3:
+                        wait = 3 * (3 ** (attempt - 1))  # 3, 9, 27
+                        bridge.add_message(
+                            "agent",
+                            f"{title} API call slow ({attempt}/3), waiting {wait}s…",
+                        )
+                        _t.sleep(wait)
+            if content is None:
+                bridge.add_message(
+                    "agent",
+                    f"❌  {title} failed after 3 attempts — skipping. "
+                    f"Last error: {str(last_exc)[:200]}",
+                )
+                req.post(
+                    f"{base}/api/suggest",
+                    json={
+                        "category": section_key,
+                        "title": f"{title} (failed)",
+                        "content": (
+                            "This section couldn't be generated after three "
+                            f"attempts.\n\n**Last error:** `{str(last_exc)[:200]}`\n\n"
+                            "Click 'Rerun analysis' to try again — the model "
+                            "was probably just under load."
+                        ),
+                    },
+                    timeout=5,
+                )
+                continue
 
             # Strip any residual markdown fences the model might wrap around its response
             content = content.strip()
@@ -3422,6 +3430,9 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
 
     base = f"http://localhost:{port}"
     bridge = gui_state.bridge
+    # Tag every add_message() in this thread as setup-phase so the UI
+    # filter doesn't show these shell commands on the Analysis step.
+    bridge.set_current_phase("setup")
     config = gui_state.profile.ai_config
     profile = gui_state.profile
 
