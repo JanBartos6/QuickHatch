@@ -3237,6 +3237,30 @@ fi
 """
 
 
+def _smoke_test_preboot_script(
+    host: str, user: str, key_path: str | None, port: int = 22
+) -> str | None:
+    """Run the check script against a target with no /mnt to verify the
+    bash+script syntax parses on this target's shell. If the script
+    crashes on first SSH (shell compatibility bug, missing `bash`,
+    etc.), return an error string; otherwise None.
+
+    Fast + side-effect-free: the script's first branch emits a single
+    SKIP line when /mnt has no /etc, so a successful self-test costs
+    us one brief SSH round-trip.
+    """
+    try:
+        wrapped = "bash -s <<'QH_PREBOOT_EOF'\n" + _PRE_REBOOT_CHECK_SCRIPT + "\nQH_PREBOOT_EOF\n"
+        rc, out, err = _ssh_exec(host, user, wrapped, key_path, port=port, timeout=30)
+    except Exception as exc:
+        return f"SSH error during self-test: {exc}"
+    if "STATUS|" not in (out or ""):
+        # Script emitted nothing recognisable — likely a parse error or
+        # `bash` missing on the target.
+        return f"self-test output has no STATUS lines (rc={rc}). stderr: {(err or '')[:300]}"
+    return None
+
+
 def _run_pre_reboot_checks(
     host: str, user: str, key_path: str | None, port: int = 22
 ) -> tuple[list[str], list[str]]:
@@ -3270,6 +3294,78 @@ def _run_pre_reboot_checks(
         elif level == "OK":
             oks.append(entry)
     return failures, oks
+
+
+# Topic keywords we look for inside pre-reboot-guard failure lines.
+# When the guard blocks a reboot, we extract these out of the failure
+# text and then use them to detect whether subsequent agent commands
+# are ACTUALLY addressing the failures or pivoting to unrelated work.
+# Keep aligned with the keys emitted by the check script.
+_BLOCK_TOPIC_VOCAB = frozenset(
+    {
+        # initramfs generators + config paths
+        "mkinitcpio",
+        "initramfs",
+        "initramfs-tools",
+        "dracut",
+        "hooks",
+        "encrypt",
+        "sd-encrypt",
+        "crypttab",
+        "cryptsetup",
+        "cryptsetup-initramfs",
+        "luks",
+        # bootloader
+        "grub",
+        "grub-install",
+        "grub-mkconfig",
+        "grub2-mkconfig",
+        "bootctl",
+        "systemd-boot",
+        "cmdline",
+        "cryptdevice",
+        "rd.luks.uuid",
+        "rd.luks.name",
+        # filesystem + mounts
+        "fstab",
+        "genfstab",
+        # recovery
+        "passwd",
+        "sudoers",
+        "wheel",
+        "sudo",
+        "root",
+        "shadow",
+        "useradd",
+        # kernel images
+        "vmlinuz",
+        "initrd",
+        "linux",
+    }
+)
+
+
+def _extract_topic_words(failures: list[str]) -> set[str]:
+    """Return the set of block-topic keywords that appear in any
+    failure line. Used by the pivot detector to score subsequent
+    commands as 'addressing a block' vs 'pivoting away'.
+    """
+    import re as _re
+
+    joined = " ".join(failures).lower()
+    return {w for w in _BLOCK_TOPIC_VOCAB if _re.search(rf"\b{_re.escape(w)}\b", joined)}
+
+
+def _command_addresses_topics(cmd: str, topics: set[str]) -> bool:
+    """True iff ``cmd`` mentions at least one of the block's topic
+    keywords — meaning the agent is at least TRYING to address the
+    failures instead of running off on a tangent."""
+    if not topics:
+        return True  # no active block → every command is fine
+    import re as _re
+
+    low = (cmd or "").lower()
+    return any(_re.search(rf"\b{_re.escape(t)}\b", low) for t in topics)
 
 
 def _recipe_apply_for_setup(profile: UserProfile) -> str:
@@ -3340,6 +3436,27 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             bridge.add_message("agent", f"SSH connection failed: {err.strip()}")
             return
         bridge.add_message("agent", f"Connected — {out.strip()}")
+
+        # Step 1a: Self-test the pre-reboot check script against this
+        # target's shell environment. If it parses and produces STATUS
+        # output, great — the guard will work when needed. If it
+        # doesn't (e.g. bash missing, heredoc wrapper misread),
+        # surface a loud warning now rather than at reboot time.
+        _preboot_err = _smoke_test_preboot_script(host, user, key_path, port=ssh_port)
+        if _preboot_err:
+            bridge.add_message(
+                "agent",
+                "⚠️ Pre-reboot guard self-test failed: "
+                + _preboot_err
+                + ". The guard will still run at reboot time but its output may be "
+                + "unreliable — watch for 'pre-reboot check script failed to run' "
+                + "and diagnose manually if it fires.",
+            )
+        else:
+            bridge.add_message(
+                "agent",
+                "✓ Pre-reboot guard self-test passed — checks will run correctly at reboot time.",
+            )
 
         # Step 2: Gather initial system info
         bridge.add_message("agent", "Gathering remote system info…")
@@ -3547,6 +3664,11 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             "  If yes, READ THE PREVIOUS OUTPUT instead of re-probing. Re-probing the same\n"
             "  state (`grep X file`, `pacman -Q Y`, `systemctl is-enabled Z`) wastes context.\n"
             "- Use non-interactive flags always (--noconfirm, -y, DEBIAN_FRONTEND=noninteractive, etc.)\n"
+            "- NEVER run a command that prompts for input (sudo password, `read`, `makepkg -i`,\n"
+            '  `ssh-keygen` without -N "", `passwd` without piped input). SSH has no pty — the\n'
+            "  prompt is invisible and the command hangs silently. See PRE-REBOOT RULES for the\n"
+            "  AUR/makepkg/sudo pattern: split `makepkg -si` into `makepkg -s` + `pacman -U`\n"
+            "  and grant NOPASSWD sudo for the install window via /etc/sudoers.d/.\n"
             "- You are logged in as the user shown in the system info — use sudo only if needed\n"
             "- Follow the migration plan above, but ADAPT to actual conditions (e.g. disk space, missing packages)\n"
             "- If disk space is low, address that FIRST before installing packages\n"
@@ -3621,6 +3743,21 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
         # long runs the early plan falls out of the attention window
         # and the model drifts into tangents.
         last_anchor_iter = 0
+        # Sticky pre-reboot-guard state. When the guard blocks a reboot,
+        # we latch the failures here and keep re-injecting them on every
+        # turn until the next reboot attempt's check passes (or the
+        # agent explicitly clears it via an action we recognise). Keeps
+        # the agent focused on the specific failures instead of
+        # drifting to unrelated work as soon as the first block scrolls
+        # out of context.
+        sticky_block_failures: list[str] = []
+        # Topic keywords pulled from the failure text; used to detect
+        # when the agent issues an ssh_exec whose command is clearly
+        # NOT addressing any of the blocked invariants ("pivot").
+        sticky_block_topics: set[str] = set()
+        # Consecutive pivot count since the last block — if >= 3, we
+        # stop and /api/ask the user so they can steer.
+        pivot_counter = 0
 
         for _iteration in range(MAX_ITERATIONS):
             # Plan re-anchor: on long runs the original MIGRATION PLAN
@@ -3903,6 +4040,57 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                         # every subsequent turn of the same topic.
                         recent_reasons.clear()
 
+                    # === Sticky-block + pivot detector ===
+                    # When a pre-reboot block is active, the agent MUST
+                    # address the specific failures. Score each command
+                    # against the failure topic words; commands that
+                    # mention none of them count as "pivots". Three
+                    # pivots in a row and we escalate to /api/ask so the
+                    # user can steer (e.g. "skip encryption", "set root
+                    # password manually, here's what it is").
+                    if sticky_block_failures and not _is_reboot_command(cmd):
+                        if _command_addresses_topics(cmd, sticky_block_topics):
+                            pivot_counter = 0  # agent is on topic — reset
+                        else:
+                            pivot_counter += 1
+                            bridge.add_message(
+                                "agent",
+                                f"[harness] ⚠️ Pivot detected ({pivot_counter}/3). "
+                                f"Current reboot block is still active on: "
+                                f"{', '.join(sorted(sticky_block_topics)) or '(unknown)'}. "
+                                f"Addressing one of those is higher priority than this command.",
+                            )
+                            pending_feedback.append(
+                                "REMINDER: a pre-reboot block is still in effect. Your last "
+                                "command did not touch any of the blocked topics "
+                                f"({', '.join(sorted(sticky_block_topics)) or '?'}). Keep drilling "
+                                "into the failures listed above — do NOT pivot to unrelated "
+                                "work (apps, AUR, theming, etc.) until the reboot is unblocked."
+                            )
+                            if pivot_counter >= 3:
+                                # Hand control to the user.
+                                import requests as _requests
+
+                                try:
+                                    _requests.post(
+                                        f"{base}/api/ask",
+                                        json={
+                                            "question": (
+                                                "The pre-reboot safety guard has blocked the reboot "
+                                                + f"on: {', '.join(sorted(sticky_block_topics))}. "
+                                                + "The agent has tried 3+ commands that don't address "
+                                                + "the blockers. How should it proceed? "
+                                                + "(e.g. 'set root password NOPASSWD', "
+                                                + "'skip encryption check', 'I'll fix it manually, continue')"
+                                            ),
+                                            "timeout": 600,
+                                        },
+                                        timeout=5,
+                                    )
+                                except Exception:
+                                    pass
+                                pivot_counter = 0  # reset so we don't re-ask every turn
+
                     bridge.add_message("agent", f"`{cmd}`" + (f" — {reason}" if reason else ""))
 
                     # Reboot commands tear down the live-env SSH session.
@@ -3936,21 +4124,31 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                             for line in oks:
                                 bridge.add_message("agent", f"  ✓ {line}")
                             if failures:
-                                # Feed the failures back as a user message
-                                # so the agent sees them on the next turn.
+                                # Latch onto sticky state so we re-inject
+                                # the failure list on EVERY subsequent
+                                # turn until cleared. Without this, the
+                                # failures scroll out of the model's
+                                # attention and it pivots to unrelated
+                                # work (apps, AUR, etc.) instead of
+                                # drilling in on the actual blockers.
+                                sticky_block_failures = list(failures)
+                                sticky_block_topics = _extract_topic_words(failures)
+                                pivot_counter = 0
                                 msg = (
                                     "REBOOT BLOCKED — pre-reboot checks failed. Fix these "
                                     "BEFORE attempting another reboot:\n\n"
                                     + "\n".join(f"  ✗ {f}" for f in failures)
                                     + "\n\nDo NOT issue another reboot command until every check above passes. "
                                     "These checks specifically prevent the 'system boots into emergency mode "
-                                    "with locked root account' class of failure."
+                                    "with locked root account' class of failure. If you cannot make progress "
+                                    "on a specific failure after 2 tries, use /api/ask to ask the user — "
+                                    "DO NOT pivot to unrelated work (apps, AUR, theming) while these remain."
                                 )
                                 for f in failures:
                                     bridge.add_message("agent", f"  ✗ {f}")
                                 bridge.add_message(
                                     "agent",
-                                    "🛑 Reboot blocked — agent will fix the failures and retry.",
+                                    "🛑 Reboot blocked — agent must fix the failures above before retrying.",
                                 )
                                 pending_feedback.append(msg)
                                 results_log.append(
@@ -3961,6 +4159,10 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                                 "agent",
                                 "✓ All pre-reboot checks passed — proceeding with reboot.",
                             )
+                            # Clear sticky state on success.
+                            sticky_block_failures = []
+                            sticky_block_topics = set()
+                            pivot_counter = 0
                         # IMPORTANT: fire the reboot command itself as the
                         # CURRENT live-ISO user — the new user only exists
                         # inside the installed chroot and has no shell on
@@ -4150,9 +4352,24 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             if finished:
                 return
 
-            # Send consolidated feedback back to the model
-            if pending_feedback:
-                messages.append({"role": "user", "content": "\n\n".join(pending_feedback)})
+            # Send consolidated feedback back to the model. If a
+            # pre-reboot block is still active, ALWAYS prepend the
+            # sticky failure list — this keeps the blockers in the
+            # model's immediate attention instead of letting them
+            # scroll out of the context window behind command output.
+            feedback_parts: list[str] = []
+            if sticky_block_failures:
+                feedback_parts.append(
+                    "[STICKY — PRE-REBOOT BLOCK ACTIVE]\n"
+                    "These invariants are still failing and must be fixed before reboot:\n"
+                    + "\n".join(f"  ✗ {f}" for f in sticky_block_failures)
+                    + "\n"
+                    "Focus ONLY on resolving these. Any command that doesn't touch one of "
+                    "the blocked topics is a pivot and will be flagged."
+                )
+            feedback_parts.extend(pending_feedback)
+            if feedback_parts:
+                messages.append({"role": "user", "content": "\n\n".join(feedback_parts)})
             else:
                 # Only status messages — prompt the model to continue
                 messages.append({"role": "user", "content": "OK, continue with the next step."})

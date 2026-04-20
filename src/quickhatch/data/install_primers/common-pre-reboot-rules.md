@@ -104,6 +104,79 @@ commands BEFORE attempting reboot again — not just probe more.
 If the agent can't reason about a specific failure, it should ask
 the user via `/api/ask` rather than reboot anyway.
 
+## Running install helpers over SSH without a tty
+
+The setup agent talks to the target over SSH with **no pseudo-terminal**.
+Any command that prompts for input — sudo password, `makepkg` confirm,
+`pacstrap` selection menu — silently hangs because the prompt is
+invisible and stdin is closed. Three rules:
+
+### sudo prompts are invisible
+
+A user running under `sudo` without a pty will see the command block
+until it times out. `--noconfirm` helps for pacman/apt/dnf's own
+confirmation but **does not** suppress sudo's password prompt.
+
+**Before running any AUR/makepkg/sudo-as-non-root command, grant the
+user passwordless sudo for the install window:**
+
+```bash
+arch-chroot /mnt /bin/bash -c \
+  'echo "%wheel ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/99-install-nopasswd && \
+   chmod 440 /etc/sudoers.d/99-install-nopasswd'
+```
+
+Remove it when done:
+
+```bash
+arch-chroot /mnt rm -f /etc/sudoers.d/99-install-nopasswd
+```
+
+### Split `makepkg -si` into two steps
+
+`makepkg -si` auto-runs `sudo pacman -U` which hits the sudo prompt.
+Build and install separately:
+
+```bash
+# Build only (no -i flag)
+arch-chroot /mnt /bin/bash -c \
+  'cd /home/jan/yay-bin && sudo -u jan makepkg -s --noconfirm'
+
+# Then install the built pkg.tar.zst as root — no sudo prompt
+arch-chroot /mnt /bin/bash -c \
+  'pacman -U --noconfirm /home/jan/yay-bin/yay-bin-*.pkg.tar.zst'
+```
+
+### yay / paru with `--sudoloop` / `--sudo`
+
+Once an AUR helper IS installed, its own flags handle the pty issue:
+
+```bash
+# yay:  --sudoloop keeps sudo credentials alive in the background
+arch-chroot /mnt sudo -u jan yay -S --noconfirm --sudoloop <pkg>
+
+# paru: similar
+arch-chroot /mnt sudo -u jan paru -S --noconfirm --skipreview <pkg>
+```
+
+Still requires NOPASSWD sudoers OR a pre-populated sudo timestamp,
+so pair with the `/etc/sudoers.d/99-install-nopasswd` trick above.
+
+### Never use `read`, `prompt`, or `-i` interactive flags
+
+Anything that calls `read`, or tools like `git clone` with HTTPS auth
+prompts, `ssh-keygen` without `-N ""`, `passwd` without a piped
+password, or `dpkg-reconfigure` — will hang silently. Every
+interactive input must be either:
+- Piped in: `echo -e "yes\nyes" | command`
+- Fed via flag: `useradd --password $(openssl passwd -6 "$pw") jan`
+- Pre-set in config: `DEBIAN_FRONTEND=noninteractive apt install ...`
+- Or skipped entirely
+
+If the agent finds itself reaching for a command with an interactive
+prompt, stop and ask the user via `/api/ask` FIRST to collect the
+needed value, then feed it through a non-interactive path.
+
 ## What the guard CAN'T catch
 
 - Wrong UUID in cmdline that happens to be syntactically valid
