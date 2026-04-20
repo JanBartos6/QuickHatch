@@ -10,6 +10,7 @@ import json
 import mimetypes
 import re
 import threading
+from collections.abc import Callable
 from dataclasses import asdict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -1099,13 +1100,15 @@ def make_gui_server(
             elif self.path == "/wizard/launch-agent":
                 data = self._read_json()
                 phase = data.get("phase", "analysis")
-                # Clear stop flag + reset done, but KEEP any successfully-
-                # generated suggestions. The analysis loop itself skips
-                # sections that already have a successful suggestion, so
-                # re-launching after a failure resumes from the failed
-                # section instead of redoing 3 minutes of distro work.
-                bridge_state.prepare_for_launch()
-                result = _launch_agent(gui_state, server.server_address[1], phase=phase)
+                # Prepare launch state only after the new launch has been
+                # admitted. Otherwise a concurrent start rejection could
+                # clear stop_requested/agent_done under a still-running agent.
+                result = _launch_agent(
+                    gui_state,
+                    server.server_address[1],
+                    phase=phase,
+                    prelaunch=bridge_state.prepare_for_launch,
+                )
                 self._send_json(result)
 
             elif self.path == "/wizard/stop-agent":
@@ -1181,14 +1184,11 @@ def make_gui_server(
                         }
                     )
                 else:
-                    # Clear old suggestions, reset done state
-                    bridge_state.reset_for_rerun()
-                    # Add user message to bridge messages
-                    if user_msg:
-                        bridge_state.add_message("user", user_msg)
-                    # Re-launch agent with user feedback context
                     result = _launch_agent(
-                        gui_state, server.server_address[1], user_feedback=user_msg
+                        gui_state,
+                        server.server_address[1],
+                        user_feedback=user_msg,
+                        prelaunch=lambda: _prepare_full_rerun(bridge_state, user_msg),
                     )
                     self._send_json(result)
 
@@ -1237,6 +1237,11 @@ def make_gui_server(
                         # downstream section — desktop/plan/summary all
                         # depend on the upstream section's output, so
                         # leaving them in place gives the UI stale info.
+                        # Keep the section graph explicit instead of
+                        # inferring dependencies from whatever the agent
+                        # happened to finish last run. If an upstream
+                        # section changes, every later section in the
+                        # analysis chain must be recomputed.
                         _DOWNSTREAM = {
                             "distro": {
                                 "apps",
@@ -1246,27 +1251,27 @@ def make_gui_server(
                                 "summary",
                                 "install_script",
                             },
-                            "apps": {"plan", "summary", "install_script"},
-                            "drivers": {"plan", "summary", "install_script"},
+                            "apps": {
+                                "drivers",
+                                "desktop",
+                                "plan",
+                                "summary",
+                                "install_script",
+                            },
+                            "drivers": {"desktop", "plan", "summary", "install_script"},
                             "desktop": {"plan", "summary", "install_script"},
                             "plan": {"summary", "install_script"},
                             "summary": set(),
                             "install_script": set(),
                         }
                         invalidated = {section} | _DOWNSTREAM.get(section, set())
-                        kept = [
-                            s
-                            for s in bridge_state.snapshot_suggestions()
-                            if getattr(s, "category", "") not in invalidated
-                        ]
-                        bridge_state.replace_suggestions(kept)
-                        bridge_state.prepare_for_launch()
-                        if user_msg:
-                            bridge_state.add_message("user", user_msg)
                         result = _launch_agent(
                             gui_state,
                             server.server_address[1],
                             user_feedback=user_msg,
+                            prelaunch=lambda: _prepare_section_rerun(
+                                bridge_state, invalidated, user_msg
+                            ),
                         )
                         self._send_json(result)
 
@@ -1673,6 +1678,21 @@ def _build_section_prompt(
     profile_dict = asdict(profile)
     if profile_dict.get("ai_config", {}).get("api_key"):
         profile_dict["ai_config"]["api_key"] = "***REDACTED***"
+    # When target-hardware override is set, the SCANNED hardware belongs
+    # to the wrong machine. Stripping it here prevents the model from
+    # anchoring on concrete RAM/GPU/CPU values and ignoring the prose
+    # override. The override block below is the single source of truth
+    # for driver/GPU/WiFi decisions in that case.
+    override_text = (profile.target_hardware_override or "").strip()
+    if override_text:
+        profile_dict["hardware"] = {
+            "_note": (
+                "IGNORE this field — the scanned hardware is from a DIFFERENT "
+                "machine than the install target. Use the TARGET HARDWARE "
+                "OVERRIDE section at the end of this prompt for all "
+                "driver / GPU / CPU / WiFi / disk-size decisions."
+            )
+        }
     # Massive profiles (317 scanned apps = 47KB) choke local models even
     # on sections that don't care about apps. If the user picked a
     # specific apps_to_install list, trim the `apps` dump to only those
@@ -1888,18 +1908,22 @@ def _build_section_prompt(
             if user_feedback
             else ""
         )
+        + f"== USER SYSTEM PROFILE ==\n{profile_json}\n\n"
         + (
-            "== TARGET HARDWARE OVERRIDE ==\n"
-            "The hardware scan below is from the machine QuickHatch is RUNNING on, NOT "
-            "where Linux will be installed. Trust THIS description for any driver / GPU / "
-            "CPU / WiFi / disk-size decision. Anything not explicitly listed here should "
-            "be assumed to match the scanned hardware.\n\n"
-            + (profile.target_hardware_override or "").strip()
-            + "\n\n"
-            if (profile.target_hardware_override or "").strip()
+            "== TARGET HARDWARE OVERRIDE (AUTHORITATIVE) ==\n"
+            "⚠ CRITICAL: The `hardware` field in the USER SYSTEM PROFILE above "
+            "does NOT describe the install target. The user is installing on "
+            "DIFFERENT hardware. Base every driver / GPU / CPU / WiFi / disk-size "
+            "recommendation on the description below — not on the scanned "
+            "hardware. Do NOT mention the scanned CPU/GPU/RAM anywhere in your "
+            "output. Do NOT recommend drivers for a GPU the user did not list. "
+            "If a detail is missing from the description, say 'unknown — ask the "
+            "user' rather than falling back to the scan.\n\n"
+            "TARGET HARDWARE DESCRIPTION (verbatim from the user):\n"
+            f"{override_text}\n"
+            if override_text
             else ""
         )
-        + f"== USER SYSTEM PROFILE ==\n{profile_json}"
     )
 
 
@@ -2359,7 +2383,10 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
             if section_key == "distro":
                 from quickhatch.ai.install_primer import resolve_primer
 
-                match = resolve_primer(content)
+                match = resolve_primer(
+                    content,
+                    preferred=gui_state.profile.preferences.distro_preference or None,
+                )
                 if match is not None:
                     chosen_distro = match["canonical"]
                     bridge.add_message(
@@ -2395,72 +2422,109 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
         bridge.add_message("agent", f"Error: {e}")
 
 
+def _prepare_full_rerun(bridge_state: BridgeState, user_msg: str) -> None:
+    """Reset analysis state only after a replacement launch is admitted."""
+    bridge_state.reset_for_rerun()
+    if user_msg:
+        bridge_state.add_message("user", user_msg)
+
+
+def _prepare_section_rerun(
+    bridge_state: BridgeState,
+    invalidated_sections: set[str],
+    user_msg: str,
+) -> None:
+    """Invalidate one section and its dependents only after launch admission."""
+    kept = [
+        s
+        for s in bridge_state.snapshot_suggestions()
+        if getattr(s, "category", "") not in invalidated_sections
+    ]
+    bridge_state.replace_suggestions(kept)
+    bridge_state.prepare_for_launch()
+    if user_msg:
+        bridge_state.add_message("user", user_msg)
+
+
 def _launch_agent(
-    gui_state: GUIState, port: int, user_feedback: str = "", phase: str = "analysis"
+    gui_state: GUIState,
+    port: int,
+    user_feedback: str = "",
+    phase: str = "analysis",
+    prelaunch: Callable[[], None] | None = None,
 ) -> dict:
     """Launch the AI agent — calls the configured API in a background thread."""
     config = gui_state.profile.ai_config
     provider = config.provider or "api"
 
-    if provider == "codex":
-        import subprocess
-        import sys
-
-        prompt = _build_section_prompt(gui_state.profile, "plan", "")
-        prompt_file = Path.home() / ".quickhatch-agent-prompt.txt"
-        prompt_file.write_text(prompt, encoding="utf-8")
-
-        try:
-            if sys.platform == "win32":
-                ps_file = Path.home() / ".quickhatch-launch-agent.ps1"
-                ps_content = (
-                    f'$p = Get-Content "{prompt_file}" -Raw\n'
-                    f"codex $p\n"
-                    f'Read-Host "Press Enter to close"\n'
-                )
-                ps_file.write_text(ps_content, encoding="utf-8")
-                subprocess.Popen(
-                    [
-                        "powershell",
-                        "-NoProfile",
-                        "-ExecutionPolicy",
-                        "Bypass",
-                        "-Command",
-                        f'Start-Process powershell -ArgumentList "-NoProfile","-ExecutionPolicy","Bypass","-File","{ps_file}"',
-                    ]
-                )
-            else:
-                shell_cmd = f'codex "$(cat {prompt_file})"'
-                for term_cmd in [
-                    ["x-terminal-emulator", "-e", "bash", "-c", shell_cmd],
-                    ["gnome-terminal", "--", "bash", "-c", shell_cmd],
-                    ["konsole", "-e", "bash", "-c", shell_cmd],
-                    ["xterm", "-e", "bash", "-c", shell_cmd],
-                ]:
-                    try:
-                        subprocess.Popen(term_cmd)
-                        break
-                    except FileNotFoundError:
-                        continue
-                else:
-                    subprocess.Popen(["bash", "-c", shell_cmd])
-            return {"status": "ok", "message": "Codex launched in a new terminal."}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
-
-    # For API-based providers (LM Studio, Anthropic, OpenAI), run in background
-    if not config.endpoint:
-        return {"status": "error", "message": "No API endpoint configured. Go back to AI setup."}
-
     # Refuse concurrent launches — a second agent thread would race with
-    # the first on bridge.suggestions, messages, and agent_done. The UI
-    # can show a "stop first" hint on the 409.
+    # the first on bridge.suggestions, messages, and agent_done. Any
+    # state reset associated with a rerun must happen only AFTER the new
+    # slot is admitted.
     with gui_state.lock:
         if gui_state._agent_thread is not None and gui_state._agent_thread.is_alive():
             return {
                 "status": "error",
                 "message": "An agent is already running. Click Stop first (or wait for it).",
             }
+
+        if provider == "codex":
+            import subprocess
+            import sys
+
+            prompt = _build_section_prompt(gui_state.profile, "plan", "")
+            prompt_file = Path.home() / ".quickhatch-agent-prompt.txt"
+            prompt_file.write_text(prompt, encoding="utf-8")
+
+            try:
+                if sys.platform == "win32":
+                    ps_file = Path.home() / ".quickhatch-launch-agent.ps1"
+                    ps_content = (
+                        f'$p = Get-Content "{prompt_file}" -Raw\n'
+                        f"codex $p\n"
+                        f'Read-Host "Press Enter to close"\n'
+                    )
+                    ps_file.write_text(ps_content, encoding="utf-8")
+                    subprocess.Popen(
+                        [
+                            "powershell",
+                            "-NoProfile",
+                            "-ExecutionPolicy",
+                            "Bypass",
+                            "-Command",
+                            f'Start-Process powershell -ArgumentList "-NoProfile","-ExecutionPolicy","Bypass","-File","{ps_file}"',
+                        ]
+                    )
+                else:
+                    sh_prompt_file = "'" + str(prompt_file).replace("'", "'\\''") + "'"
+                    shell_cmd = f'codex "$(cat {sh_prompt_file})"'
+                    for term_cmd in [
+                        ["x-terminal-emulator", "-e", "bash", "-c", shell_cmd],
+                        ["gnome-terminal", "--", "bash", "-c", shell_cmd],
+                        ["konsole", "-e", "bash", "-c", shell_cmd],
+                        ["xterm", "-e", "bash", "-c", shell_cmd],
+                    ]:
+                        try:
+                            subprocess.Popen(term_cmd)
+                            break
+                        except FileNotFoundError:
+                            continue
+                    else:
+                        subprocess.Popen(["bash", "-c", shell_cmd])
+                if prelaunch is not None:
+                    prelaunch()
+                return {"status": "ok", "message": "Codex launched in a new terminal."}
+            except Exception as e:
+                return {"status": "error", "message": str(e)}
+
+        # For API-based providers (LM Studio, Anthropic, OpenAI), run in background
+        if not config.endpoint:
+            return {
+                "status": "error",
+                "message": "No API endpoint configured. Go back to AI setup.",
+            }
+        if prelaunch is not None:
+            prelaunch()
 
         if phase == "setup":
             thread = threading.Thread(

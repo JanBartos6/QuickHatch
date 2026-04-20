@@ -53,6 +53,12 @@ def _post(port, path, payload=None, timeout=5):
         return r.status, body
 
 
+def _post_error(port, path, payload=None, timeout=5):
+    with pytest.raises(urllib.error.HTTPError) as exc_info:
+        _post(port, path, payload=payload, timeout=timeout)
+    return exc_info.value.code, exc_info.value.read().decode("utf-8")
+
+
 class TestStaticRoutes:
     def test_serves_html_at_root(self, server):
         status, body = _get(server["port"], "/")
@@ -191,3 +197,99 @@ class TestDoneEndpoint:
         _post(server["port"], "/api/done", {"summary": "All set"})
         msgs = [m["content"] for m in server["bridge"].messages]
         assert any("Finished" in m and "All set" in m for m in msgs)
+
+
+class TestAnswerEndpoint:
+    def test_unknown_question_returns_404(self, server):
+        status, body = _post_error(
+            server["port"],
+            "/wizard/answer",
+            {"question_id": "missing", "answer": "hello"},
+        )
+        data = json.loads(body)
+        assert status == 404
+        assert data["status"] == "error"
+        assert "unknown question_id" in data["message"]
+
+
+class TestAgentLaunchAdmission:
+    def test_launch_rejection_does_not_mutate_bridge_state(self, server):
+        bridge = server["bridge"]
+        gui_state = server["gui_state"]
+        server["gui_state"].profile.ai_config.endpoint = "http://127.0.0.1:9"
+        bridge.add_suggestion("distro", "Keep", "existing analysis")
+        q = bridge.add_question("Keep pending?")
+        bridge.agent_done = True
+        bridge.stop_requested = True
+        blocker = threading.Event()
+        worker = threading.Thread(target=blocker.wait, daemon=True)
+        worker.start()
+        gui_state._agent_thread = worker
+        try:
+            status, body = _post(server["port"], "/wizard/launch-agent", {"phase": "analysis"})
+        finally:
+            blocker.set()
+            worker.join(timeout=1)
+            gui_state._agent_thread = None
+        data = json.loads(body)
+        assert status == 200
+        assert data["status"] == "error"
+        assert bridge.agent_done is True
+        assert bridge.stop_requested is True
+        assert [s.category for s in bridge.suggestions] == ["distro"]
+        assert q.id in bridge.questions
+
+    def test_rerun_rejection_keeps_existing_analysis_and_feedback(self, server):
+        bridge = server["bridge"]
+        gui_state = server["gui_state"]
+        server["gui_state"].profile.ai_config.endpoint = "http://127.0.0.1:9"
+        bridge.add_suggestion("plan", "Keep", "existing plan")
+        bridge.add_message("user", "existing feedback")
+        bridge.agent_done = True
+        bridge.stop_requested = True
+        blocker = threading.Event()
+        worker = threading.Thread(target=blocker.wait, daemon=True)
+        worker.start()
+        gui_state._agent_thread = worker
+        try:
+            status, body = _post(
+                server["port"],
+                "/wizard/rerun-agent",
+                {"message": "new feedback"},
+            )
+        finally:
+            blocker.set()
+            worker.join(timeout=1)
+            gui_state._agent_thread = None
+        data = json.loads(body)
+        assert status == 200
+        assert data["status"] == "error"
+        assert bridge.agent_done is True
+        assert bridge.stop_requested is True
+        assert [s.category for s in bridge.suggestions] == ["plan"]
+        assert [m["content"] for m in bridge.messages] == ["existing feedback"]
+
+    def test_rerun_section_invalidates_downstream_sections(self, server, monkeypatch):
+        import quickhatch.gui.server as gui_server_mod
+
+        bridge = server["bridge"]
+        for category in ["distro", "apps", "drivers", "desktop", "plan", "summary"]:
+            bridge.add_suggestion(category, category.title(), "content")
+
+        def fake_launch(gui_state, port, user_feedback="", phase="analysis", prelaunch=None):
+            if prelaunch is not None:
+                prelaunch()
+            return {"status": "ok", "message": "stubbed"}
+
+        monkeypatch.setattr(gui_server_mod, "_launch_agent", fake_launch)
+        status, body = _post(
+            server["port"],
+            "/wizard/rerun-section",
+            {"section": "apps", "message": "redo apps"},
+        )
+        data = json.loads(body)
+        assert status == 200
+        assert data["status"] == "ok"
+        assert [s.category for s in bridge.suggestions] == ["distro"]
+        assert bridge.messages[-1]["role"] == "user"
+        assert bridge.messages[-1]["content"] == "redo apps"

@@ -247,6 +247,18 @@ class BridgeState:
         data = self._serialize_payload_locked()
         self._write_payload_unlocked(data)
 
+    def _clear_unanswered_questions_locked(self) -> None:
+        """Drop only questions that are still awaiting an answer.
+
+        Pending questions belong to a live agent session. If we are
+        launching or rerunning an agent, any previously-pending question
+        is stale because the thread that asked it is gone or about to be
+        replaced. Answered questions can remain as history.
+        """
+        stale = [qid for qid, q in self.questions.items() if not q.answered.is_set()]
+        for qid in stale:
+            self.questions.pop(qid, None)
+
     def reset_for_rerun(self) -> None:
         """Clear suggestions and done state for a fresh agent run.
 
@@ -255,6 +267,7 @@ class BridgeState:
         """
         with self.lock:
             self.suggestions.clear()
+            self._clear_unanswered_questions_locked()
             self.agent_done = False
             self.stop_requested = False
             self._persist()
@@ -269,6 +282,7 @@ class BridgeState:
         doesn't exit on its first iteration when an earlier Stop click
         or a stale post-restart state left the flag set."""
         with self.lock:
+            self._clear_unanswered_questions_locked()
             self.stop_requested = False
             self.agent_done = False
             self._persist()

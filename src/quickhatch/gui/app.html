@@ -2598,29 +2598,13 @@ async function launchAgent(){
 
 async function rerunAnalysis(){
   if(!confirm('Regenerate the entire analysis? Your current recommendations will be replaced.')) return;
-  const panel=el('agentPanel');
-  const feed=el('agentFeed');
-  const phase=el('agentPhase');
-  const spinner=el('agentSpinner');
-  const stop=el('stopBtn');
-  const rerun=el('rerunBtn');
-  // Reset visual state
-  if(feed)feed.innerHTML='';
-  if(panel)panel.classList.remove('done');
-  if(phase){phase.textContent='Starting rerun…';phase.classList.remove('done','error');}
-  if(spinner)spinner.classList.remove('hidden');
-  if(stop)stop.classList.remove('hidden');
-  if(rerun)rerun.classList.add('hidden');
-  state._agentDone=false;state._lastSugCount=0;state._lastMsgCount=-1;
-  const bridgeNext=el('bridgeNext');
-  if(bridgeNext){bridgeNext.disabled=true;bridgeNext.textContent='Agent working…';}
-  try{
-    await api('/wizard/rerun-agent','POST',{message:''});
+  const resp=await api('/wizard/rerun-agent','POST',{message:''});
+  if(resp&&resp.status==='ok'){
+    beginAnalysisRunUi('Starting rerun…');
     pollBridge();
     toast('Rerunning analysis from scratch.','success');
-  }catch(e){
-    toast('Rerun failed: '+(e.message||'unknown'),'error');
-    if(rerun)rerun.classList.remove('hidden');
+  }else{
+    toast('Rerun failed: '+((resp&&resp.message)||'unknown'),'error');
   }
 }
 
@@ -2632,20 +2616,38 @@ async function stopAgent(which){
 
 async function sendChat(){
   const inp=el('chatMsg');const msg=inp.value.trim();if(!msg)return;
-  inp.value='';
-  // Clear old suggestions from UI and reset agent state
+  const resp=await api('/wizard/rerun-agent','POST',{message:msg});
+  if(resp&&resp.status==='ok'){
+    inp.value='';
+    beginAnalysisRunUi('Regenerating based on your feedback...');
+    pollBridge();
+  }else{
+    toast('Could not send feedback: '+((resp&&resp.message)||'unknown'),'error');
+  }
+}
+
+function beginAnalysisRunUi(statusText){
+  const panel=el('agentPanel');
   const feed=el('agentFeed');
-  if(feed)feed.innerHTML='';
-  state._lastSugCount=0;
-  state._agentDone=false;
+  const phase=el('agentPhase');
+  const spinner=el('agentSpinner');
+  const stop=el('stopBtn');
+  const rerun=el('rerunBtn');
+  const bridgeNext=el('bridgeNext');
   const st=el('agentStatus');
-  if(st)st.textContent='Regenerating based on your feedback...';
   const dot=el('agentDot');
+  if(feed)feed.innerHTML='';
+  if(panel)panel.classList.remove('done');
+  if(phase){phase.textContent=statusText;phase.classList.remove('done','error');}
+  if(spinner)spinner.classList.remove('hidden');
+  if(stop){stop.disabled=false;stop.textContent='Stop';stop.classList.remove('hidden');}
+  if(rerun)rerun.classList.add('hidden');
+  if(bridgeNext){bridgeNext.disabled=true;bridgeNext.textContent='Agent working…';}
+  if(st)st.textContent=statusText;
   if(dot)dot.className='dot connected';
-  // Trigger re-run with user feedback
-  await api('/wizard/rerun-agent','POST',{message:msg});
+  state._agentDone=false;
+  state._lastSugCount=0;
   state._lastMsgCount=-1;
-  pollBridge();
 }
 
 async function answerQuestion(qid){

@@ -181,6 +181,35 @@ class TestResetForRerun:
         state.reset_for_rerun()
         assert state.profile.additional_info == "Something important"
 
+    def test_clears_unanswered_questions(self, state):
+        q = state.add_question("Still there?")
+        state.reset_for_rerun()
+        assert q.id not in state.questions
+
+    def test_keeps_answered_questions_as_history(self, state):
+        q = state.add_question("Keep me?")
+        state.answer_question(q.id, "yes")
+        state.reset_for_rerun()
+        assert q.id in state.questions
+        assert state.questions[q.id].answer == "yes"
+
+
+class TestPrepareForLaunch:
+    def test_clears_transient_flags(self, state):
+        state.stop_requested = True
+        state.agent_done = True
+        state.prepare_for_launch()
+        assert state.stop_requested is False
+        assert state.agent_done is False
+
+    def test_clears_only_unanswered_questions(self, state):
+        stale = state.add_question("Stale?")
+        kept = state.add_question("Answered?")
+        state.answer_question(kept.id, "done")
+        state.prepare_for_launch()
+        assert stale.id not in state.questions
+        assert kept.id in state.questions
+
 
 class TestThreadSafety:
     def test_concurrent_add_suggestion(self, state):

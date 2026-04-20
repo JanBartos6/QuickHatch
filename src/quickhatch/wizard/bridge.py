@@ -129,32 +129,33 @@ def run(profile: UserProfile) -> None:
 
     # Save commands for both shells
     cmds = _get_launch_commands(profile, port)
+    cmd_file_ps1 = Path.home() / ".quickhatch-agent-cmd.ps1"
+    cmd_file_sh = Path.home() / ".quickhatch-agent-cmd.sh"
+    ps_cmd_file = "'" + str(cmd_file_ps1).replace("'", "''") + "'"
+    sh_cmd_file = "'" + str(cmd_file_sh).replace("'", "'\\''") + "'"
 
     # Write wrapper scripts under $HOME alongside the prompt file.
     # Writing to CWD fails when quickhatch is launched from a read-only
     # directory (Program Files, a bundle install).
-    cmd_file_sh = Path.home() / ".quickhatch-agent-cmd.sh"
-    cmd_file_sh.write_text(cmds["bash"] + "\n")
-
-    cmd_file_ps1 = Path.home() / ".quickhatch-agent-cmd.ps1"
-    cmd_file_ps1.write_text(cmds["powershell"] + "\n")
+    cmd_file_sh.write_text(cmds["bash"] + "\n", encoding="utf-8")
+    cmd_file_ps1.write_text(cmds["powershell"] + "\n", encoding="utf-8")
 
     console.print()
 
     if sys.platform == "win32":
-        print_success("Command saved to .quickhatch-agent-cmd.ps1")
+        print_success(f"Command saved to {cmd_file_ps1}")
         console.print(
             "\n[bold]Open a new PowerShell terminal and run:[/bold]\n\n"
-            "  [cyan].\\\\.quickhatch-agent-cmd.ps1[/cyan]\n\n"
+            f"  [cyan]& {ps_cmd_file}[/cyan]\n\n"
             "Or copy this:\n"
         )
         console.print(cmds["powershell"], highlight=False, soft_wrap=True)
-        console.print("\n[dim]On bash/WSL instead: bash .quickhatch-agent-cmd.sh[/dim]")
+        console.print(f"\n[dim]On bash/WSL instead: bash {sh_cmd_file}[/dim]")
     else:
-        print_success("Command saved to .quickhatch-agent-cmd.sh")
+        print_success(f"Command saved to {cmd_file_sh}")
         console.print(
             "\n[bold]Open a new terminal and run:[/bold]\n\n"
-            "  [cyan]bash .quickhatch-agent-cmd.sh[/cyan]\n\n"
+            f"  [cyan]bash {sh_cmd_file}[/cyan]\n\n"
             "Or copy this:\n"
         )
         console.print(cmds["bash"], highlight=False, soft_wrap=True)

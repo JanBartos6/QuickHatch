@@ -167,6 +167,63 @@ class TestSafeUrlSanitizer:
         assert 'src="${escHtml(url)}"' not in html
 
 
+class TestAnalysisRerunUiGating:
+    """Regression: the SPA must not clear live analysis until the rerun
+    endpoint has actually accepted the new run."""
+
+    def test_app_html_waits_for_ok_before_resetting_analysis_ui(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "function beginAnalysisRunUi(statusText)" in html
+        assert "const resp=await api('/wizard/rerun-agent','POST',{message:''});" in html
+        assert "const resp=await api('/wizard/rerun-agent','POST',{message:msg});" in html
+        assert "if(resp&&resp.status==='ok'){" in html
+
+
+class TestBridgeWrapperPaths:
+    """Regression: helper scripts must live in a writable home
+    directory and the printed commands must target those files."""
+
+    def test_bridge_cli_uses_home_directory_wrapper_files(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        text = (root / "src/quickhatch/wizard/bridge.py").read_text(encoding="utf-8")
+        assert 'Path.home() / ".quickhatch-agent-cmd.ps1"' in text
+        assert 'Path.home() / ".quickhatch-agent-cmd.sh"' in text
+        assert "& {ps_cmd_file}" in text
+        assert "bash {sh_cmd_file}" in text
+
+
+class TestCodexLaunchPrelaunch:
+    """Regression: the external Codex launch path must honor the same
+    admitted-launch prelaunch hook as the API-backed agent path."""
+
+    def test_codex_launch_runs_prelaunch_after_spawn(self, monkeypatch, tmp_path):
+        import subprocess
+
+        import quickhatch.gui.server as gui_server_mod
+        from quickhatch.bridge.server import BridgeState
+        from quickhatch.config import UserProfile
+        from quickhatch.gui.server import GUIState, _launch_agent
+
+        profile = UserProfile()
+        profile.ai_config.provider = "codex"
+        gui = GUIState(profile, BridgeState(profile, persist_path=None))
+        spawned = []
+        called = []
+
+        monkeypatch.setattr(gui_server_mod.Path, "home", lambda: tmp_path)
+        monkeypatch.setattr(subprocess, "Popen", lambda args: spawned.append(args))
+
+        result = _launch_agent(gui, 9999, prelaunch=lambda: called.append(True))
+        assert result["status"] == "ok"
+        assert spawned
+        assert called == [True]
+
+
 # ---------------------------------------------------------------------------
 # HIGH-5 — defensive LLM response extraction
 # ---------------------------------------------------------------------------
