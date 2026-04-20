@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from quickhatch.analysis.app_mapper import _fuzzy_match, map_apps
+from quickhatch.analysis.app_mapper import _contains_native_app, _fuzzy_match, map_apps
 from quickhatch.config import AppInfo
 
 
@@ -51,6 +51,39 @@ class TestNativeLinuxDetection:
         apps = [AppInfo(name="DISCORD", source="winget")]
         mapped = map_apps(apps)
         assert mapped[0].compatibility == "native"
+
+    def test_whole_word_matching_allows_embedded_phrases(self):
+        apps = [AppInfo(name="Telegram Desktop", source="winget")]
+        mapped = map_apps(apps)
+        assert mapped[0].compatibility == "native"
+
+    def test_short_native_tokens_do_not_poison_longer_words(self):
+        apps = [
+            AppInfo(name="GitHub Desktop", source="winget"),
+            AppInfo(name="SignalRGB", source="registry"),
+            AppInfo(name="Codec Pack", source="registry"),
+            AppInfo(name="Nodepad", source="registry"),
+        ]
+        mapped = map_apps(apps)
+        assert [app.compatibility for app in mapped] == [
+            "unknown",
+            "unknown",
+            "unknown",
+            "unknown",
+        ]
+
+
+class TestContainsNativeApp:
+    def test_matches_whole_phrases(self):
+        assert _contains_native_app("Visual Studio Code", {"visual studio code"})
+        assert _contains_native_app("Telegram Desktop", {"telegram"})
+
+    def test_rejects_partial_word_collisions(self):
+        native_linux = {"git", "signal", "code", "node"}
+        assert not _contains_native_app("GitHub Desktop", native_linux)
+        assert not _contains_native_app("SignalRGB", native_linux)
+        assert not _contains_native_app("Codec Pack", native_linux)
+        assert not _contains_native_app("Nodepad", native_linux)
 
 
 class TestUnknownApps:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from quickhatch.config import AppInfo
@@ -40,6 +41,20 @@ def _fuzzy_match(app_name: str, db: dict) -> str | None:
         if key_lower in app_lower or app_lower in key_lower:
             return key
     return None
+
+
+def _contains_native_app(app_name: str, native_linux: set[str]) -> bool:
+    """Match known native apps as whole phrases, not loose substrings."""
+    app_lower = app_name.lower().strip()
+    if not app_lower:
+        return False
+    for name in native_linux:
+        if app_lower == name:
+            return True
+        pattern = rf"(?<![a-z0-9]){re.escape(name)}(?![a-z0-9])"
+        if re.search(pattern, app_lower):
+            return True
+    return False
 
 
 def map_apps(apps: list[AppInfo]) -> list[AppInfo]:
@@ -103,8 +118,7 @@ def map_apps(apps: list[AppInfo]) -> list[AppInfo]:
             continue
 
         # Check if it's a known native Linux app
-        app_lower = app.name.lower()
-        if any(name in app_lower for name in native_linux):
+        if _contains_native_app(app.name, native_linux):
             app.linux_alternative = f"{app.name} (runs natively on Linux)"
             app.compatibility = "native"
             mapped_count += 1
