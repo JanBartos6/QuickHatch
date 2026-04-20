@@ -3050,6 +3050,162 @@ def _detect_stall_topic(recent_reasons: list[str]) -> str | None:
     return None
 
 
+# Bash that runs an exhaustive "is this freshly-installed system
+# actually bootable?" check inside /mnt before the agent reboots.
+# Designed to catch the standard install footguns:
+#   - LUKS in use but `encrypt` missing from HOOKS → initramfs can't
+#     unlock, system drops to emergency mode (the failure that motivated
+#     this whole guard)
+#   - Kernel cmdline doesn't reference the LUKS container → no prompt
+#   - mkinitcpio config edited but not regenerated (mtime check)
+#   - GRUB cmdline edited but grub.cfg not re-rendered (mtime check)
+#   - No /etc/fstab → systemd-fstab-generator dies in initramfs
+#   - Bootloader binary not present in /boot/EFI or /boot/grub
+#   - Root account locked AND no sudoer in `wheel` → emergency mode
+#     becomes unrecoverable (literally what bit our test install)
+#
+# Output is a series of `STATUS|<level>|<key>|<message>` lines on
+# stdout. <level> is OK, WARN, or FAIL. The harness parses these and
+# blocks the reboot when any FAIL is present.
+_PRE_REBOOT_CHECK_SCRIPT = r"""set +e
+_root=/mnt
+[ -d "$_root/etc" ] || _root=
+if [ -z "$_root" ]; then
+  echo "STATUS|SKIP|chroot|/mnt has no /etc — likely already on the installed system; skipping checks"
+  exit 0
+fi
+
+emit(){ echo "STATUS|$1|$2|$3"; }
+
+# 1. fstab present + non-empty
+if [ -s "$_root/etc/fstab" ]; then
+  emit OK fstab "/etc/fstab present ($(wc -l < "$_root/etc/fstab") lines)"
+else
+  emit FAIL fstab "/etc/fstab missing or empty — initramfs will fail to mount root"
+fi
+
+# 2. Kernel + initramfs in /boot
+KERN_CT=$(ls "$_root"/boot/vmlinuz-* 2>/dev/null | wc -l)
+INIT_CT=$(ls "$_root"/boot/initramfs-*.img 2>/dev/null | wc -l)
+if [ "$KERN_CT" -gt 0 ] && [ "$INIT_CT" -gt 0 ]; then
+  emit OK kernel "/boot has $KERN_CT kernel(s) and $INIT_CT initramfs image(s)"
+else
+  emit FAIL kernel "/boot missing kernel or initramfs (vmlinuz-* / initramfs-*.img count: $KERN_CT/$INIT_CT)"
+fi
+
+# 3. mkinitcpio.conf vs initramfs mtime — initramfs must be NEWER
+if [ -f "$_root/etc/mkinitcpio.conf" ]; then
+  CONF_T=$(stat -c %Y "$_root/etc/mkinitcpio.conf" 2>/dev/null)
+  INIT_T=$(ls -t "$_root"/boot/initramfs-*.img 2>/dev/null | head -n1 | xargs -I{} stat -c %Y {} 2>/dev/null)
+  if [ -n "$CONF_T" ] && [ -n "$INIT_T" ]; then
+    if [ "$INIT_T" -ge "$CONF_T" ]; then
+      emit OK initramfs "initramfs newer than mkinitcpio.conf — regen ran after last edit"
+    else
+      emit FAIL initramfs "mkinitcpio.conf was edited AFTER initramfs was built — run \`mkinitcpio -P\` inside chroot"
+    fi
+  fi
+fi
+
+# 4. LUKS detection. Are any block devices LUKS?
+LUKS_DEVS=$(lsblk -o NAME,FSTYPE -nr 2>/dev/null | awk '$2=="crypto_LUKS"{print $1}')
+if [ -n "$LUKS_DEVS" ]; then
+  emit OK luks-present "LUKS containers detected: $(echo $LUKS_DEVS | tr '\n' ' ')"
+  # 4a. HOOKS in mkinitcpio.conf must contain encrypt or sd-encrypt
+  HOOKS=$(grep -E '^HOOKS=' "$_root/etc/mkinitcpio.conf" 2>/dev/null | head -n1)
+  if echo "$HOOKS" | grep -qE '\b(encrypt|sd-encrypt)\b'; then
+    emit OK hooks "HOOKS includes encrypt: $HOOKS"
+  else
+    emit FAIL hooks "LUKS in use but HOOKS lacks 'encrypt' — initramfs cannot unlock root. Add 'encrypt' between 'block' and 'filesystems' in /etc/mkinitcpio.conf, then re-run mkinitcpio -P. Current: $HOOKS"
+  fi
+  # 4b. Kernel cmdline must reference the LUKS container
+  CMDLINE=$(grep -E '^GRUB_CMDLINE_LINUX(_DEFAULT)?=' "$_root/etc/default/grub" 2>/dev/null | tr '\n' ' ')
+  if echo "$CMDLINE" | grep -qE '\b(cryptdevice|rd\.luks\.uuid|rd\.luks\.name)='; then
+    emit OK cmdline "Kernel cmdline references LUKS: $CMDLINE"
+  else
+    emit FAIL cmdline "LUKS in use but GRUB_CMDLINE_LINUX has no cryptdevice= / rd.luks.uuid= — initramfs has nothing to unlock. Edit /etc/default/grub then run grub-mkconfig -o /boot/grub/grub.cfg. Current: $CMDLINE"
+  fi
+fi
+
+# 5. Bootloader installed on disk
+GRUB_CT=0
+SDB_CT=0
+[ -d "$_root/boot/grub" ] && GRUB_CT=$(ls "$_root/boot/grub" 2>/dev/null | wc -l)
+[ -d "$_root/boot/EFI/systemd" ] && SDB_CT=1
+[ -d "$_root/boot/loader" ] && SDB_CT=1
+if [ "$GRUB_CT" -gt 1 ] || [ "$SDB_CT" -ge 1 ]; then
+  emit OK bootloader "Bootloader files found (grub=$GRUB_CT, sd-boot=$SDB_CT)"
+else
+  emit FAIL bootloader "No bootloader installed in /boot — system will not boot. Run grub-install or bootctl install inside chroot"
+fi
+
+# 6. grub.cfg vs /etc/default/grub mtime — cfg must be NEWER
+if [ -f "$_root/boot/grub/grub.cfg" ] && [ -f "$_root/etc/default/grub" ]; then
+  CFG_T=$(stat -c %Y "$_root/boot/grub/grub.cfg" 2>/dev/null)
+  DEF_T=$(stat -c %Y "$_root/etc/default/grub" 2>/dev/null)
+  if [ "$CFG_T" -ge "$DEF_T" ]; then
+    emit OK grub-cfg "grub.cfg newer than /etc/default/grub"
+  else
+    emit FAIL grub-cfg "/etc/default/grub edited AFTER grub.cfg was generated — run \`grub-mkconfig -o /boot/grub/grub.cfg\` inside chroot"
+  fi
+fi
+
+# 7. Root recovery: at least one of these must be true
+ROOT_HAS_PW=0
+SUDOER_OK=0
+if [ -f "$_root/etc/shadow" ]; then
+  RHASH=$(awk -F: '$1=="root"{print $2}' "$_root/etc/shadow" 2>/dev/null)
+  case "$RHASH" in
+    ''|'!'|'!!'|'!*'|'*'|'x') ROOT_HAS_PW=0 ;;
+    *) ROOT_HAS_PW=1 ;;
+  esac
+fi
+# Find any user in the wheel group
+if [ -f "$_root/etc/group" ]; then
+  WHEEL_USERS=$(awk -F: '$1=="wheel"{print $4}' "$_root/etc/group" 2>/dev/null | tr -d ' ')
+  if [ -n "$WHEEL_USERS" ]; then
+    # And check sudoers actually grants wheel
+    if grep -qE '^\s*%wheel\s+ALL=\(ALL(:ALL)?\)\s+(NOPASSWD:)?ALL' "$_root/etc/sudoers" 2>/dev/null \
+       || ls "$_root/etc/sudoers.d/" 2>/dev/null | xargs -I{} grep -qlE '^\s*%wheel\s+ALL' "$_root/etc/sudoers.d/{}" 2>/dev/null; then
+      SUDOER_OK=1
+    fi
+  fi
+fi
+if [ "$ROOT_HAS_PW" = "1" ] || [ "$SUDOER_OK" = "1" ]; then
+  emit OK recovery "Root recovery available (root_pw=$ROOT_HAS_PW, wheel+sudoers=$SUDOER_OK)"
+else
+  emit FAIL recovery "Root account is locked AND no sudo-capable user in 'wheel' — if anything goes wrong on first boot, emergency mode is locked out (sulogin refuses). Either run \`passwd\` to set root, or create a user, add to wheel, and ensure /etc/sudoers grants wheel. THIS IS THE SINGLE MOST COMMON UNRECOVERABLE FAILURE."
+fi
+"""
+
+
+def _run_pre_reboot_checks(
+    host: str, user: str, key_path: str | None, port: int = 22
+) -> tuple[list[str], list[str]]:
+    """SSH into the live ISO and run pre-reboot safety checks against
+    /mnt. Returns (failures, ok_lines) — failures should BLOCK the
+    reboot until addressed; ok_lines are informational.
+    """
+    rc, out, err = _ssh_exec(host, user, _PRE_REBOOT_CHECK_SCRIPT, key_path, port=port, timeout=60)
+    failures: list[str] = []
+    oks: list[str] = []
+    if rc != 0 and not out:
+        # Couldn't run the checks at all — don't block, but log it.
+        return ([f"pre-reboot check script failed to run (rc={rc}): {err[:200]}"], [])
+    for line in (out or "").splitlines():
+        if not line.startswith("STATUS|"):
+            continue
+        parts = line.split("|", 3)
+        if len(parts) < 4:
+            continue
+        _, level, key, msg = parts
+        entry = f"[{key}] {msg}"
+        if level == "FAIL":
+            failures.append(entry)
+        elif level == "OK":
+            oks.append(entry)
+    return failures, oks
+
+
 def _recipe_apply_for_setup(profile: UserProfile) -> str:
     """Return the gallery recipe apply block for injection into the
     setup agent's system prompt. Empty string when no recipe pinned or
@@ -3674,6 +3830,52 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                     # live-ISO's root, which doesn't exist on-disk.
                     if _is_reboot_command(cmd):
                         reconnect_user = created_user or user
+                        # GUARD: before we let the agent reboot, run a
+                        # battery of "is the freshly-installed system
+                        # actually bootable?" checks against /mnt. If
+                        # any FAIL, refuse to reboot and feed the
+                        # specific failures back so the agent fixes
+                        # them on the next iteration. This catches the
+                        # whole class of "agent thinks done, system
+                        # boots into emergency mode" failures (missing
+                        # encrypt hook, locked root, stale grub.cfg,
+                        # etc.).
+                        if is_live:
+                            bridge.add_message(
+                                "agent",
+                                "Pre-reboot safety checks running…",
+                            )
+                            failures, oks = _run_pre_reboot_checks(
+                                host, user, key_path, port=ssh_port
+                            )
+                            for line in oks:
+                                bridge.add_message("agent", f"  ✓ {line}")
+                            if failures:
+                                # Feed the failures back as a user message
+                                # so the agent sees them on the next turn.
+                                msg = (
+                                    "REBOOT BLOCKED — pre-reboot checks failed. Fix these "
+                                    "BEFORE attempting another reboot:\n\n"
+                                    + "\n".join(f"  ✗ {f}" for f in failures)
+                                    + "\n\nDo NOT issue another reboot command until every check above passes. "
+                                    "These checks specifically prevent the 'system boots into emergency mode "
+                                    "with locked root account' class of failure."
+                                )
+                                for f in failures:
+                                    bridge.add_message("agent", f"  ✗ {f}")
+                                bridge.add_message(
+                                    "agent",
+                                    "🛑 Reboot blocked — agent will fix the failures and retry.",
+                                )
+                                pending_feedback.append(msg)
+                                results_log.append(
+                                    f"**`{cmd}`** — BLOCKED ({len(failures)} pre-reboot fail)"
+                                )
+                                continue  # skip the reboot, agent gets the feedback
+                            bridge.add_message(
+                                "agent",
+                                "✓ All pre-reboot checks passed — proceeding with reboot.",
+                            )
                         # IMPORTANT: fire the reboot command itself as the
                         # CURRENT live-ISO user — the new user only exists
                         # inside the installed chroot and has no shell on
@@ -3713,11 +3915,26 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                             stop_flag_getter=lambda: bridge.stop_requested,
                         )
                         if not reconnected:
+                            # Be specific about the most likely causes so
+                            # the user knows where to look on their console.
                             bridge.add_message(
                                 "agent",
-                                "Timed out waiting for reconnect. The install may have "
-                                "failed, network may be down, or the installed system's "
-                                "sshd was not enabled. Stopping.",
+                                "❌ Timed out waiting for the installed system's SSH to come back.\n\n"
+                                "Most likely causes (check the target machine's screen):\n"
+                                "  1. **Initramfs dropped to emergency mode** — usually means the "
+                                "encrypt hook is missing from /etc/mkinitcpio.conf, or the kernel "
+                                "cmdline doesn't reference the LUKS container. The pre-reboot "
+                                "guard should have caught this — please report if it didn't.\n"
+                                "  2. **No sshd on first boot** — `systemctl enable sshd` was "
+                                "never run inside chroot, or NetworkManager isn't enabled so "
+                                "the system boots without an IP.\n"
+                                "  3. **Bootloader didn't install** — system stops at the BIOS/"
+                                "UEFI 'no bootable device' screen.\n"
+                                "  4. **Wrong reconnect user** — the agent created a user but "
+                                "we still SSH as the live-ISO root user.\n\n"
+                                "To recover: boot from the Arch USB again, mount the install, "
+                                "chroot, and fix whatever the screen shows. The QuickHatch "
+                                "primer has the recovery procedure under 'Post-install gotchas'.",
                             )
                             results_log.append(f"**`{cmd}`** — TIMEOUT (no reconnect)")
                             break
