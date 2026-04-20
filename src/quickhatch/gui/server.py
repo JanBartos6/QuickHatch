@@ -262,6 +262,10 @@ class GUIState:
                 self.profile.linux_ip = ip.strip().split("/", 1)[0]
             if "linux_user" in updates:
                 self.profile.linux_user = self._coerce_str(updates["linux_user"]) or ""
+            if "target_hardware_override" in updates:
+                self.profile.target_hardware_override = (
+                    self._coerce_str(updates["target_hardware_override"]) or ""
+                )
 
         if dropped:
             print(
@@ -1882,6 +1886,17 @@ def _build_section_prompt(
         + (
             f"== USER FEEDBACK (the user changed their mind — follow this!) ==\n{user_feedback}\n\n"
             if user_feedback
+            else ""
+        )
+        + (
+            "== TARGET HARDWARE OVERRIDE ==\n"
+            "The hardware scan below is from the machine QuickHatch is RUNNING on, NOT "
+            "where Linux will be installed. Trust THIS description for any driver / GPU / "
+            "CPU / WiFi / disk-size decision. Anything not explicitly listed here should "
+            "be assumed to match the scanned hardware.\n\n"
+            + (profile.target_hardware_override or "").strip()
+            + "\n\n"
+            if (profile.target_hardware_override or "").strip()
             else ""
         )
         + f"== USER SYSTEM PROFILE ==\n{profile_json}"
@@ -3709,6 +3724,21 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             f"== REMOTE SYSTEM INFO ==\n{system_info}\n\n"
             + live_env_block
             + common_rules_block
+            + (
+                "== TARGET HARDWARE OVERRIDE ==\n"
+                "The user indicated their install TARGET differs from the machine that "
+                "ran QuickHatch's scan. Treat the description below as ground truth for "
+                "driver / GPU / CPU / WiFi / disk decisions. The REMOTE SYSTEM INFO above "
+                "reflects the live-ISO kernel's view of the TARGET hardware (what's "
+                "actually there); the description below clarifies anything the scan "
+                "might have misread or that's relevant beyond what `uname` / `lspci` "
+                "show. If the live-ISO view contradicts the description, prefer the "
+                "live-ISO view (it's running ON the target) but flag the mismatch.\n\n"
+                + (profile.target_hardware_override or "").strip()
+                + "\n\n"
+                if (profile.target_hardware_override or "").strip()
+                else ""
+            )
             + distro_primer_md
             + (
                 f"== MIGRATION PLAN (pre-generated) ==\n{migration_plan_md}\n\n"

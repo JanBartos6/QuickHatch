@@ -138,6 +138,14 @@ class UserProfile:
     data_transfer_method: str = ""
     linux_ip: str = ""
     linux_user: str = ""
+    # Free-text description of the TARGET hardware when it differs from
+    # the machine QuickHatch is running on. Empty string means "install
+    # for this machine" (hardware scan is authoritative). Non-empty
+    # means "install for a different machine; here's what's different"
+    # — fed into the analysis + setup agent prompts so driver/CPU/GPU
+    # decisions track the target, not the host. Users set this via a
+    # button on the Scan step.
+    target_hardware_override: str = ""
     # Default password for the root account AND the primary user
     # account created during install. Known constant so the agent can
     # pipe it to `sudo -S` during first post-reboot connect (no tty

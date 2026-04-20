@@ -1338,11 +1338,29 @@ const stepRenderers={
     const scanDesc=isCustomizeMode()
       ?'Reads your hardware, installed packages, and desktop settings. No network calls, nothing leaves this machine.'
       :'Reads your hardware, installed apps, and settings. Runs locally — nothing leaves this machine.';
+    const existingOverride=state.profile.target_hardware_override||'';
     content().innerHTML=`
       <div class="card">
         <h2>Scan this machine</h2>
         <p class="subtitle">${scanDesc}</p>
         <div id="scanResults"></div>
+        <div id="targetOverride" style="margin-top:var(--s4)">
+          <div class="stack-h" style="justify-content:space-between;align-items:center">
+            <div class="muted" style="font-size:var(--t-xs)">Planning to install on a different machine than this one?</div>
+            <button class="btn btn-ghost btn-sm" id="overrideToggle" onclick="toggleTargetOverride()">${existingOverride?'Edit target hardware':'Install for different hardware'}</button>
+          </div>
+          <div id="overridePanel" class="${existingOverride?'':'hidden'}" style="margin-top:var(--s3)">
+            <label style="font-size:var(--t-sm);color:var(--fg)">Describe what's different about the target machine</label>
+            <div class="muted" style="font-size:var(--t-xs);margin-bottom:var(--s2);line-height:1.5">
+              Example: "Target is a ThinkPad X1 Carbon Gen 11 — Intel i7-1365U, 32GB RAM, Intel Iris Xe GPU (no NVIDIA), Intel AX211 WiFi + Bluetooth 5.3, 1TB NVMe, UEFI with Secure Boot off." Anything you don't mention, the agent will assume matches this machine's scan above.
+            </div>
+            <textarea id="targetOverrideText" rows="5" placeholder="CPU / GPU / RAM / storage / WiFi chipset / anything unusual…">${escHtml(existingOverride)}</textarea>
+            <div class="stack-h" style="gap:var(--s2);margin-top:var(--s2)">
+              <button class="btn btn-primary btn-sm" onclick="saveTargetOverride()">Save description</button>
+              ${existingOverride?'<button class="btn btn-ghost btn-sm" onclick="clearTargetOverride()">Remove — install for this machine</button>':''}
+            </div>
+          </div>
+        </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
           <button class="btn btn-primary" id="scanBtn" onclick="runScan()">Scan</button>
@@ -2262,6 +2280,34 @@ async function submitPrefs(){
   refreshSteps();
   await completeStep('questionnaire');
 }
+function toggleTargetOverride(){
+  const panel=el('overridePanel');
+  if(!panel)return;
+  panel.classList.toggle('hidden');
+  if(!panel.classList.contains('hidden')){
+    const ta=el('targetOverrideText'); if(ta) ta.focus();
+  }
+}
+
+async function saveTargetOverride(){
+  const ta=el('targetOverrideText'); if(!ta)return;
+  const text=(ta.value||'').trim();
+  if(!text){toast('Enter a description first — or click Remove to clear.','error');return;}
+  await saveProfile({target_hardware_override:text});
+  state.profile.target_hardware_override=text;
+  toast('Target hardware description saved — agent will plan for it.','success');
+  const btn=el('overrideToggle'); if(btn) btn.textContent='Edit target hardware';
+}
+
+async function clearTargetOverride(){
+  await saveProfile({target_hardware_override:''});
+  state.profile.target_hardware_override='';
+  const ta=el('targetOverrideText'); if(ta) ta.value='';
+  const panel=el('overridePanel'); if(panel) panel.classList.add('hidden');
+  const btn=el('overrideToggle'); if(btn) btn.textContent='Install for different hardware';
+  toast('Cleared — agent will plan for this machine.','success');
+}
+
 async function runScan(){
   const btn=el('scanBtn');
   btn.disabled=true;btn.textContent='Scanning…';
