@@ -2839,26 +2839,27 @@ _REBOOT_COMMAND_RE = re.compile(
 # the line — useradd's final positional arg is always the login name.
 # Works on both `useradd quickhatch` and `useradd -m -G wheel ... jan`.
 _USERADD_RE = re.compile(
-    # `useradd` must be at a genuine command position:
+    # User-creation command must be at a genuine command position:
     #   - start of string / line / after a command separator (; && || |)
     #   - after a shell-wrapper quote that opens a command (sh -c "useradd...)
     # An optional `sudo ` / `eval ` / `env VAR=VAL ` prefix is tolerated.
-    # NOT matched: `echo useradd bob`, `cat /etc/useradd.conf` — those have
-    # a bare identifier (e.g. `echo`) right before `useradd`, which isn't
-    # a command-boundary.
+    # NOT matched: `echo useradd bob`, `echo adduser bob`, `cat /etc/useradd.conf`
+    # — those have a bare identifier (e.g. `echo`) right before the create-user
+    # command, which isn't a command-boundary.
     r"""(?:^|[;&|]\s*|&&\s*|\|\|\s*|["'`])"""
     # optional command prefixes that wrap a real command
     r"""(?:sudo\s+|eval\s+|env\s+(?:\w+=\S+\s+)*)?"""
-    r"""useradd\s+([^;&|\n\r]+)""",
+    r"""(useradd|adduser)\s+([^;&|\n\r]+)""",
     re.IGNORECASE,
 )
 
 
 def _extract_created_user(cmd: str) -> str | None:
-    """Return the username created by a `useradd ...` command, or None.
+    """Return the username created by a create-user command, or None.
 
     The agent creates the post-install user inside arch-chroot. Its
-    login name ends up as the last positional arg of `useradd`. We
+    login name typically ends up as the last positional arg of
+    `useradd`/`adduser`. We
     parse it so `profile.linux_user` can be switched ahead of the
     post-reboot reconnect — otherwise SSH keeps trying to log in as
     the live-ISO's root, which doesn't exist on the installed system.
@@ -2885,7 +2886,7 @@ def _extract_created_user(cmd: str) -> str | None:
         r"(?:^|[;&|]\s*|&&\s*|\|\|\s*)"
         r"(?:sudo\s+|env\s+(?:\w+=\S+\s+)*)?"
         r"(?:bash|sh|zsh|dash|ash|fish|busybox\s+sh|"
-        r"arch-chroot(?:\s+\S+)?|chroot(?:\s+\S+)?|"
+        r"arch-chroot(?:\s+\S+){1,3}|chroot(?:\s+\S+){1,4}|"
         r"systemd-nspawn(?:\s+-D\s+\S+)?|unshare(?:\s+-\S+)*|"
         r"ssh\s+\S+|"  # ssh host <<EOF runs remote shell
         r"sudo\s+-[iu]\b|su\s+(?:-\s+)?\S+)"
@@ -2926,9 +2927,10 @@ def _extract_created_user(cmd: str) -> str | None:
     # Reject `useradd -D` / `--defaults` — that flag SHOWS defaults, it
     # doesn't create anyone. Parsing the positional arg would mis-
     # identify a value like the group name as the "created user".
-    if re.search(r"(?:^|\s)(-D|--defaults)(?:\s|$)", m.group(0)):
+    command_name = (m.group(1) or "").lower()
+    if command_name == "useradd" and re.search(r"(?:^|\s)(-D|--defaults)(?:\s|$)", m.group(0)):
         return None
-    tail = m.group(1)
+    tail = m.group(2)
     # Strip trailing closing quotes / backticks that belong to the outer
     # shell wrapper (e.g. `sh -c "useradd -m foo"` → tail is `-m foo"`).
     tail = tail.rstrip("\"'` \t")
@@ -2944,6 +2946,7 @@ def _extract_created_user(cmd: str) -> str | None:
         "--inactive",
         "-g",
         "--gid",
+        "--ingroup",
         "-G",
         "--groups",
         "-k",

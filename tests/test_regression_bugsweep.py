@@ -84,6 +84,7 @@ class TestUseraddExtraction:
 
         assert _extract_created_user("useradd -m archuser") == "archuser"
         assert _extract_created_user("sudo useradd jan") == "jan"
+        assert _extract_created_user("adduser -D -G wheel alpine") == "alpine"
         assert (
             _extract_created_user('arch-chroot /mnt /bin/bash -c "useradd -m quickhatch"')
             == "quickhatch"
@@ -101,6 +102,7 @@ class TestUseraddExtraction:
         from quickhatch.gui.server import _extract_created_user
 
         assert _extract_created_user("echo useradd bob") is None
+        assert _extract_created_user("echo adduser bob") is None
         assert _extract_created_user('echo "please run useradd bob"') is None
 
     def test_defaults_flag_rejected(self):

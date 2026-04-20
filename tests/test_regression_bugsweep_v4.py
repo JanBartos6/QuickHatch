@@ -52,6 +52,13 @@ class TestHeredocUseraddDistinction:
         # No heredoc involved — the baseline case.
         assert _extract_created_user("useradd -m -G wheel eve") == "eve"
 
+    def test_plain_adduser_detected(self):
+        assert _extract_created_user("adduser -D -G wheel alpine") == "alpine"
+
+    def test_chroot_heredoc_adduser_detected(self):
+        cmd = "chroot /mnt /bin/sh <<'EOF'\nadduser -D -G wheel alpine\nEOF"
+        assert _extract_created_user(cmd) == "alpine"
+
 
 class TestResolvePrimerMultiDistro:
     """P1 #2: resolve_primer must prefer the recommended distro, not

@@ -255,3 +255,63 @@ class TestFeedbackLoop:
             for m in second_call_messages
         )
         assert "Exit code: 1" in concat or "not enough free disk space" in concat
+
+
+class TestRebootHandoff:
+    def test_reboot_uses_live_user_then_reconnects_as_created_user(self, ready_state):
+        ssh_calls = []
+        reconnect_users = []
+
+        def tracking_ssh(host, user, cmd, key_path=None, timeout=120, port=22):
+            ssh_calls.append((user, cmd))
+            if "echo 'QuickHatch connected!'" in cmd:
+                return (0, "QuickHatch connected!", "")
+            if "/etc/os-release" in cmd and "===USER===" in cmd:
+                return (0, "Arch Linux", "")
+            if "reboot" in cmd:
+                return (255, "", "Connection closed")
+            if "/etc/sudoers.d/99-quickhatch-nopasswd" in cmd:
+                return (0, "", "")
+            if "cat /etc/os-release 2>/dev/null; echo '===USER==='; whoami; id" in cmd:
+                return (0, "NAME=Alpine\n===USER===\nalpine\nuid=1000(alpine)", "")
+            return (0, "", "")
+
+        def fake_wait(
+            host, user, key_path, port=22, timeout=None, interval=5, stop_flag_getter=None
+        ):
+            reconnect_users.append(user)
+            return True
+
+        responses = [
+            '{"action":"ssh_exec","command":"chroot /mnt /bin/sh <<\'EOF\'\\nadduser -D -G wheel alpine\\nEOF","reason":"create login user"}',
+            '{"action":"ssh_exec","command":"reboot","reason":"boot installed system"}',
+            '{"action":"done","summary":"post reboot complete"}',
+        ]
+
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=tracking_ssh):
+            with patch("quickhatch.gui.server._smoke_test_preboot_script", return_value=None):
+                with patch(
+                    "quickhatch.gui.server._detect_live_env", return_value=(True, "LIVE:test")
+                ):
+                    with patch(
+                        "quickhatch.gui.server._run_pre_reboot_checks",
+                        return_value=([], ["[ok] pass"]),
+                    ):
+                        with patch(
+                            "quickhatch.gui.server._wait_for_ssh_reconnect", side_effect=fake_wait
+                        ):
+                            with patch("requests.post", _make_model_mock(*responses)):
+                                _run_setup_agent(ready_state, 0)
+
+        reboot_users = [u for u, cmd in ssh_calls if cmd == "reboot"]
+        sudo_users = [u for u, cmd in ssh_calls if "/etc/sudoers.d/99-quickhatch-nopasswd" in cmd]
+        fresh_info_users = [
+            u
+            for u, cmd in ssh_calls
+            if "cat /etc/os-release 2>/dev/null; echo '===USER==='; whoami; id" in cmd
+        ]
+        assert reboot_users == ["root"]
+        assert reconnect_users == ["alpine"]
+        assert sudo_users == ["alpine"]
+        assert fresh_info_users[-1] == "alpine"
+        assert ready_state.profile.linux_user == "alpine"
