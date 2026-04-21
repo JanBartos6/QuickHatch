@@ -3117,6 +3117,286 @@ def _resolve_setup_cmd_timeout(cmd: str, action: dict[str, Any]) -> int:
     )
 
 
+_SETUP_FACT_PREFIX = "QH_"
+_ARCH_AUR_ONLY_PACKAGES = frozenset(
+    {
+        "brave-bin",
+        "github-desktop-bin",
+        "cursor-bin",
+        "lm-studio-bin",
+        "mullvad-vpn-bin",
+        "claude-desktop-bin",
+        "chatgpt-desktop-bin",
+        "codex-bin",
+        "localsend-bin",
+        "stirling-pdf-bin",
+        "docker-desktop",
+        "catppuccin-kde-theme-git",
+        "catppuccin-gtk-theme-mocha",
+        "sweet-rainbow-icon-theme-git",
+        "bibata-cursor-theme",
+    }
+)
+_AURISH_SUFFIXES = ("-bin", "-git")
+
+
+def _probe_setup_facts(
+    host: str, user: str, key_path: str | None, port: int = 22
+) -> dict[str, str]:
+    """Collect compact runtime facts for the setup agent prompt/guards."""
+    probe_cmd = r"""
+echo 'QH_PM='$(if command -v pacman >/dev/null 2>&1; then echo pacman; elif command -v apt-get >/dev/null 2>&1 || command -v apt >/dev/null 2>&1; then echo apt; elif command -v dnf >/dev/null 2>&1; then echo dnf; elif command -v zypper >/dev/null 2>&1; then echo zypper; elif command -v apk >/dev/null 2>&1; then echo apk; elif command -v xbps-install >/dev/null 2>&1; then echo xbps; elif command -v emerge >/dev/null 2>&1; then echo emerge; else echo unknown; fi)
+echo 'QH_AUR='$(if command -v yay >/dev/null 2>&1; then echo yay; elif command -v paru >/dev/null 2>&1; then echo paru; else echo none; fi)
+echo 'QH_USER='$(whoami 2>/dev/null || echo unknown)
+echo 'QH_IS_ROOT='$(if [ "$(id -u 2>/dev/null)" = "0" ]; then echo yes; else echo no; fi)
+echo 'QH_SUDO_NOPASSWD='$(if [ "$(id -u 2>/dev/null)" = "0" ]; then echo yes; elif command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then echo yes; else echo no; fi)
+"""
+    rc, out, _ = _ssh_exec(host, user, probe_cmd, key_path, timeout=30, port=port)
+    facts = {
+        "package_manager": "unknown",
+        "aur_helper": "none",
+        "current_user": user,
+        "is_root": "no",
+        "sudo_nopasswd": "no",
+    }
+    if rc != 0:
+        return facts
+    mapping = {
+        f"{_SETUP_FACT_PREFIX}PM": "package_manager",
+        f"{_SETUP_FACT_PREFIX}AUR": "aur_helper",
+        f"{_SETUP_FACT_PREFIX}USER": "current_user",
+        f"{_SETUP_FACT_PREFIX}IS_ROOT": "is_root",
+        f"{_SETUP_FACT_PREFIX}SUDO_NOPASSWD": "sudo_nopasswd",
+    }
+    for line in out.splitlines():
+        if "=" not in line or not line.startswith(_SETUP_FACT_PREFIX):
+            continue
+        key, value = line.split("=", 1)
+        mapped = mapping.get(key.strip())
+        if mapped:
+            facts[mapped] = value.strip() or facts[mapped]
+    return facts
+
+
+def _setup_runtime_prompt_block(facts: dict[str, str], is_live: bool) -> str:
+    """Render execution facts and distro-aware package rules for the setup LLM."""
+    package_manager = facts.get("package_manager", "unknown")
+    aur_helper = facts.get("aur_helper", "none")
+    current_user = facts.get("current_user", "unknown")
+    is_root = facts.get("is_root", "no") == "yes"
+    sudo_nopasswd = facts.get("sudo_nopasswd", "no") == "yes"
+
+    lines = [
+        "== SETUP RUNTIME FACTS ==",
+        f"- Mode: {'live installer' if is_live else 'installed system (in-place config)'}",
+        f"- Current SSH login: {current_user}",
+        f"- Current login is root: {'yes' if is_root else 'no'}",
+        f"- Passwordless sudo already works: {'yes' if sudo_nopasswd else 'no'}",
+        f"- Detected package manager: {package_manager}",
+    ]
+    if package_manager == "pacman":
+        lines.append(f"- Detected AUR helper: {aur_helper}")
+    lines.extend(
+        [
+            "",
+            "PACKAGE-MANAGER DISCIPLINE:",
+        ]
+    )
+    if package_manager == "pacman":
+        lines.extend(
+            [
+                "- Official Arch packages, drivers, and core desktop packages must go through `pacman`.",
+                "- AUR-only packages must NOT be passed to `pacman`. Use the detected AUR helper or a manual `makepkg -s` + `pacman -U` flow.",
+                "- Treat names ending in `-bin` or `-git` as AUR candidates unless you have a concrete search result proving otherwise.",
+                "- If `pacman -S` says a target was not found, stop guessing. Search once with `pacman -Ss '^name$'` or `yay -Ss '^name$'`, then install the exact discovered package name.",
+                "- Do not fire a chain of alternative package names for the same app without a search result between them.",
+            ]
+        )
+        if aur_helper == "none":
+            lines.append(
+                "- No AUR helper is currently installed. If you need AUR packages, first install `yay`/`paru` or build manually with `makepkg`."
+            )
+    elif package_manager == "apt":
+        lines.extend(
+            [
+                "- Use `apt`/`apt-get` for package installation on this machine.",
+                "- Do not emit `pacman`, `yay`, or `paru` commands here.",
+            ]
+        )
+    elif package_manager == "dnf":
+        lines.extend(
+            [
+                "- Use `dnf` for package installation on this machine.",
+                "- Do not emit `pacman`, `yay`, `paru`, or `apt` commands here.",
+            ]
+        )
+    elif package_manager == "zypper":
+        lines.extend(
+            [
+                "- Use `zypper` for package installation on this machine.",
+                "- Do not emit `pacman`, `yay`, `paru`, or `apt` commands here.",
+            ]
+        )
+    if not is_live:
+        lines.extend(
+            [
+                "",
+                "INSTALLED-SYSTEM GUARDRAIL:",
+                "- This machine is already installed. Work in-place on the current OS and user account.",
+                "- Do NOT repartition disks, mkfs, mount `/mnt`, run `pacstrap`, `debootstrap`, `dnf --installroot`, or reinstall the bootloader unless the user explicitly asked for a reinstall.",
+                "- If the migration plan contains live-installer steps, ignore those and execute only the post-install configuration parts.",
+            ]
+        )
+    return "\n".join(lines) + "\n\n"
+
+
+def _maybe_bootstrap_nopasswd_sudo(
+    host: str,
+    user: str,
+    key_path: str | None,
+    profile: UserProfile,
+    bridge: BridgeState,
+    *,
+    facts: dict[str, str],
+    port: int = 22,
+) -> dict[str, str]:
+    """Try to grant passwordless sudo early on installed-system runs.
+
+    This prevents invisible sudo prompts from consuming the whole setup run
+    before the model has a chance to make progress.
+    """
+    if facts.get("is_root") == "yes" or facts.get("sudo_nopasswd") == "yes":
+        return facts
+    default_pw = profile.default_account_password or "password"
+    grant_cmd = (
+        f"echo '{default_pw}' | sudo -S -p '' bash -c "
+        f"\"echo '{user} ALL=(ALL:ALL) NOPASSWD: ALL' > "
+        f"/etc/sudoers.d/99-quickhatch-nopasswd && "
+        f'chmod 440 /etc/sudoers.d/99-quickhatch-nopasswd"'
+    )
+    rc, _, err = _ssh_exec(host, user, grant_cmd, key_path, timeout=30, port=port)
+    if rc == 0:
+        bridge.add_message(
+            "agent",
+            "✓ Granted NOPASSWD sudo before setup began, so package installs will not hang on a hidden password prompt.",
+        )
+        facts = dict(facts)
+        facts["sudo_nopasswd"] = "yes"
+        return facts
+    bridge.add_message(
+        "agent",
+        "⚠️ Could not grant NOPASSWD sudo at startup. If the current account still requires a password, any plain `sudo` command may time out unless the model uses the known default password explicitly.",
+    )
+    if err.strip():
+        bridge.add_message("agent", f"Startup sudo bootstrap stderr: {err.strip()[:240]}")
+    return facts
+
+
+def _split_command_segments_for_lint(cmd: str) -> list[str]:
+    return [part.strip() for part in re.split(r"\s*(?:&&|\|\||;|\n)\s*", cmd) if part.strip()]
+
+
+def _strip_command_wrappers(tokens: list[str]) -> list[str]:
+    """Drop leading env/sudo wrappers so command lint sees the real tool."""
+    idx = 0
+    while idx < len(tokens):
+        tok = tokens[idx]
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tok):
+            idx += 1
+            continue
+        if tok == "env":
+            idx += 1
+            continue
+        if tok == "sudo":
+            idx += 1
+            while idx < len(tokens):
+                opt = tokens[idx]
+                if opt in {"-u", "-g", "-h", "-D", "-p", "-r", "-t", "-T", "-C", "-R"}:
+                    idx += 2
+                    continue
+                if opt.startswith("-"):
+                    idx += 1
+                    continue
+                break
+            continue
+        break
+    return tokens[idx:]
+
+
+def _extract_pacman_install_packages(tokens: list[str]) -> list[str]:
+    """Extract package names from a pacman/yay/paru install command."""
+    if not tokens or tokens[0] not in {"pacman", "yay", "paru"}:
+        return []
+    args = tokens[1:]
+    if not any(arg.startswith("-S") and arg not in {"-Ss", "-Si"} for arg in args):
+        return []
+    return [arg for arg in args if arg and not arg.startswith("-")]
+
+
+def _preflight_setup_command(cmd: str, facts: dict[str, str]) -> str | None:
+    """Reject obviously impossible package-manager actions before they hit the target."""
+    import shlex
+
+    package_manager = facts.get("package_manager", "unknown")
+    aur_helper = facts.get("aur_helper", "none")
+    for segment in _split_command_segments_for_lint(cmd):
+        try:
+            tokens = shlex.split(segment, posix=True)
+        except ValueError:
+            continue
+        tokens = _strip_command_wrappers(tokens)
+        if not tokens:
+            continue
+        tool = tokens[0]
+        if package_manager == "pacman":
+            if tool in {"apt", "apt-get", "dnf", "zypper"}:
+                return (
+                    f"This target is Arch-family (`pacman`), so `{tool}` is the wrong package manager. "
+                    "Use `pacman` for repo packages, and use the AUR helper only for AUR packages."
+                )
+            if tool in {"yay", "paru"} and aur_helper == "none":
+                return (
+                    f"The command uses `{tool}` but no AUR helper is installed yet. "
+                    "Install `yay`/`paru` first, or build the package manually with `makepkg -s` + `pacman -U`."
+                )
+            if tool == "pacman":
+                packages = _extract_pacman_install_packages(tokens)
+                aur_only = [
+                    pkg
+                    for pkg in packages
+                    if pkg in _ARCH_AUR_ONLY_PACKAGES or pkg.endswith(_AURISH_SUFFIXES)
+                ]
+                if aur_only:
+                    helper = aur_helper if aur_helper != "none" else "an AUR helper"
+                    joined = ", ".join(aur_only)
+                    return (
+                        "Do not pass AUR-only packages to `pacman` on Arch. "
+                        f"`{joined}` should be installed with {helper} or via manual `makepkg`, "
+                        "while repo packages stay on `pacman`."
+                    )
+        elif package_manager == "apt" and tool in {"pacman", "yay", "paru", "dnf", "zypper"}:
+            return f"This target uses apt, so `{tool}` is the wrong package manager."
+        elif package_manager == "dnf" and tool in {
+            "pacman",
+            "yay",
+            "paru",
+            "apt",
+            "apt-get",
+            "zypper",
+        }:
+            return f"This target uses dnf, so `{tool}` is the wrong package manager."
+        elif package_manager == "zypper" and tool in {
+            "pacman",
+            "yay",
+            "paru",
+            "apt",
+            "apt-get",
+            "dnf",
+        }:
+            return f"This target uses zypper, so `{tool}` is the wrong package manager."
+    return None
+
+
 # Shell script shipped to the target to detect whether we're booted from a
 # live ISO or an installed system. Prints the first positive signal or
 # "INSTALLED" if no live markers matched.
@@ -3975,6 +4255,18 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             )
         else:
             bridge.add_message("agent", "Installed system — skipping install phase.")
+        setup_facts = _probe_setup_facts(host, user, key_path, port=ssh_port)
+        if not is_live:
+            setup_facts = _maybe_bootstrap_nopasswd_sudo(
+                host,
+                user,
+                key_path,
+                profile,
+                bridge,
+                facts=setup_facts,
+                port=ssh_port,
+            )
+        runtime_block = _setup_runtime_prompt_block(setup_facts, is_live)
 
         # Step 3: Build profile context
         profile_dict = asdict(profile)
@@ -4186,6 +4478,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             "6. Apply system configuration (shell, fonts, display manager, services)\n"
             "7. Run final verification: theme is active, services enabled, user can log in\n\n"
             f"== REMOTE SYSTEM INFO ==\n{system_info}\n\n"
+            + runtime_block
             + live_env_block
             + common_rules_block
             + (
@@ -4605,6 +4898,17 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                                 except Exception:
                                     pass
                                 pivot_counter = 0  # reset so we don't re-ask every turn
+
+                    lint_error = _preflight_setup_command(cmd, setup_facts)
+                    if lint_error:
+                        bridge.add_message("agent", f"[harness] 🛑 Command blocked: {lint_error}")
+                        pending_feedback.append(
+                            "[quickhatch preflight]\n"
+                            + lint_error
+                            + "\nSearch for the exact package name first, then issue a corrected command."
+                        )
+                        results_log.append(f"**`{cmd}`** — BLOCKED (preflight)")
+                        continue
 
                     bridge.add_message("agent", f"`{cmd}`" + (f" — {reason}" if reason else ""))
 

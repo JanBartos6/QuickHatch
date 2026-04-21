@@ -14,7 +14,12 @@ import pytest
 
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, UserProfile
-from quickhatch.gui.server import GUIState, _resolve_setup_cmd_timeout, _run_setup_agent
+from quickhatch.gui.server import (
+    GUIState,
+    _preflight_setup_command,
+    _resolve_setup_cmd_timeout,
+    _run_setup_agent,
+)
 
 
 @pytest.fixture
@@ -319,6 +324,55 @@ class TestSetupTimeoutResolution:
         assert _resolve_setup_cmd_timeout("echo hi", {"timeout_seconds": 999999}) == 21600
 
 
+class TestSetupCommandPreflight:
+    def test_arch_preflight_blocks_pacman_install_of_aur_packages(self):
+        facts = {
+            "package_manager": "pacman",
+            "aur_helper": "yay",
+            "current_user": "jan",
+            "is_root": "no",
+            "sudo_nopasswd": "yes",
+        }
+        msg = _preflight_setup_command(
+            "sudo pacman -S --noconfirm brave-bin github-desktop-bin discord",
+            facts,
+        )
+        assert msg is not None
+        assert "AUR-only" in msg
+        assert "brave-bin" in msg
+
+    def test_arch_preflight_blocks_yay_when_helper_missing(self):
+        facts = {
+            "package_manager": "pacman",
+            "aur_helper": "none",
+            "current_user": "jan",
+            "is_root": "no",
+            "sudo_nopasswd": "yes",
+        }
+        msg = _preflight_setup_command(
+            "sudo -u jan yay -S --noconfirm catppuccin-kde-theme-git",
+            facts,
+        )
+        assert msg is not None
+        assert "no aur helper is installed" in msg.lower()
+
+    def test_arch_preflight_allows_repo_pacman_installs(self):
+        facts = {
+            "package_manager": "pacman",
+            "aur_helper": "yay",
+            "current_user": "jan",
+            "is_root": "no",
+            "sudo_nopasswd": "yes",
+        }
+        assert (
+            _preflight_setup_command(
+                "sudo pacman -S --noconfirm plasma-desktop sddm dolphin",
+                facts,
+            )
+            is None
+        )
+
+
 class TestRebootHandoff:
     def test_reboot_uses_live_user_then_reconnects_as_created_user(self, ready_state):
         ssh_calls = []
@@ -377,3 +431,55 @@ class TestRebootHandoff:
         assert sudo_users == ["alpine"]
         assert fresh_info_users[-1] == "alpine"
         assert ready_state.profile.linux_user == "alpine"
+
+
+class TestInstalledSystemBootstrap:
+    def test_installed_system_bootstraps_nopasswd_sudo_before_model_commands(self, ready_state):
+        ready_state.profile.linux_user = "jan"
+        ssh_calls = []
+
+        def tracking_ssh(host, user, cmd, key_path=None, timeout=120, port=22):
+            ssh_calls.append((user, cmd))
+            if "echo 'QuickHatch connected!'" in cmd:
+                return (0, "QuickHatch connected!", "")
+            if "=== PACKAGE MANAGER ===" in cmd:
+                return (0, "Arch Linux\npacman (Arch)\n=== USER ===\njan", "")
+            if "QH_PM=" in cmd:
+                return (
+                    0,
+                    "\n".join(
+                        [
+                            "QH_PM=pacman",
+                            "QH_AUR=yay",
+                            "QH_USER=jan",
+                            "QH_IS_ROOT=no",
+                            "QH_SUDO_NOPASSWD=no",
+                        ]
+                    ),
+                    "",
+                )
+            if "/etc/sudoers.d/99-quickhatch-nopasswd" in cmd:
+                return (0, "", "")
+            if cmd == "ls /tmp":
+                return (0, "ok", "")
+            return (0, "", "")
+
+        responses = [
+            '{"action": "ssh_exec", "command": "ls /tmp", "reason": "sanity check"}',
+            '{"action": "done", "summary": "done"}',
+        ]
+
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=tracking_ssh):
+            with patch("quickhatch.gui.server._smoke_test_preboot_script", return_value=None):
+                with patch(
+                    "quickhatch.gui.server._detect_live_env", return_value=(False, "INSTALLED")
+                ):
+                    with patch("requests.post", _make_model_mock(*responses)):
+                        _run_setup_agent(ready_state, 0)
+
+        sudo_bootstrap_calls = [
+            cmd for user, cmd in ssh_calls if "/etc/sudoers.d/99-quickhatch-nopasswd" in cmd
+        ]
+        model_commands = [cmd for _, cmd in ssh_calls if cmd == "ls /tmp"]
+        assert sudo_bootstrap_calls
+        assert model_commands == ["ls /tmp"]
