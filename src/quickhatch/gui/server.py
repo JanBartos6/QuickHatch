@@ -439,6 +439,86 @@ def _profile_response_dict(profile: UserProfile) -> dict[str, Any]:
     return profile_dict
 
 
+def _reset_all_data(gui_state: GUIState) -> dict[str, Any]:
+    """Delete all QuickHatch-owned local wizard state for this user.
+
+    Clears:
+    - the in-memory + persisted profile checkpoint
+    - the bridge transcript / suggestions persistence
+    - the generated QuickHatch SSH keypair (but never a user-provided key)
+    - the exported QuickHatch bundle directory
+    """
+    import shutil
+
+    from quickhatch.config import _checkpoint_path
+
+    with gui_state.lock:
+        if gui_state._agent_thread is not None and gui_state._agent_thread.is_alive():
+            return {
+                "status": "error",
+                "message": "Stop the running agent before wiping QuickHatch data.",
+            }
+
+        sess = gui_state.vm_assisted_session
+        if sess is not None and getattr(sess, "_vm", None) is not None:
+            try:
+                sess._vm.teardown()
+            except Exception:
+                pass
+
+        fresh = UserProfile()
+        for field_def in fields(UserProfile):
+            setattr(gui_state.profile, field_def.name, getattr(fresh, field_def.name))
+        gui_state.bridge.hard_reset(profile=gui_state.profile)
+        gui_state.vm_verify_enabled = False
+        gui_state.vm_verify_result = None
+        gui_state.vm_verify_running = False
+        gui_state.vm_assisted_session = None
+        gui_state.vm_assisted_prompt = None
+        gui_state._agent_thread = None
+
+    removed: list[str] = []
+
+    checkpoint = _checkpoint_path()
+    try:
+        checkpoint.unlink(missing_ok=True)
+        removed.append(str(checkpoint))
+    except OSError:
+        pass
+
+    # QuickHatch-generated SSH key only. Never touch user-provided keys.
+    quickhatch_key = Path.home() / ".ssh" / "quickhatch_ed25519"
+    for key_file in (quickhatch_key, quickhatch_key.with_suffix(".pub")):
+        try:
+            key_file.unlink(missing_ok=True)
+            removed.append(str(key_file))
+        except OSError:
+            pass
+
+    export_dirs = []
+    current_export = _export_output_dir()
+    export_dirs.append(current_export)
+    legacy_export = Path.home() / "QuickHatch-Migration"
+    if legacy_export not in export_dirs:
+        export_dirs.append(legacy_export)
+
+    for export_dir in export_dirs:
+        if not export_dir.exists():
+            continue
+        try:
+            shutil.rmtree(export_dir)
+            removed.append(str(export_dir))
+        except OSError:
+            pass
+
+    return {
+        "status": "ok",
+        "message": "QuickHatch data cleared.",
+        "removed": removed,
+        "profile": _profile_response_dict(gui_state.profile),
+    }
+
+
 def _format_recipe_short(entry: dict[str, Any]) -> str:
     """Render a single recipe as a compact one-paragraph line for library injection.
 
@@ -995,6 +1075,12 @@ def make_gui_server(
                         "profile": _profile_response_dict(gui_state.profile),
                     }
                 )
+
+            elif self.path == "/wizard/reset-all":
+                self._read_json()  # drain request body
+                result = _reset_all_data(gui_state)
+                status = 200 if result.get("status") == "ok" else 409
+                self._send_json(result, status)
 
             elif self.path == "/wizard/open-export-folder":
                 # Open the export bundle directory in the host file manager.

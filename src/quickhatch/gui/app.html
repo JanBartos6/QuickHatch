@@ -836,6 +836,15 @@ h4.md-h{font-size:var(--t-sm);margin:var(--s3) 0 var(--s1);text-transform:upperc
 .app-footer a{color:var(--text-muted);text-decoration:none;border-bottom:1px dashed transparent;transition:color var(--dur) var(--ease), border-color var(--dur) var(--ease)}
 .app-footer a:hover{color:var(--text);border-bottom-color:var(--text-dim)}
 .footer-links{display:flex;gap:var(--s4);align-items:center}
+.footer-action{
+  appearance:none;background:transparent;border:none;padding:0;
+  color:var(--text-muted);cursor:pointer;font:inherit;
+  border-bottom:1px dashed transparent;line-height:1.2;
+  transition:color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.footer-action:hover{color:var(--text);border-bottom-color:var(--text-dim)}
+.footer-action.danger{color:var(--danger)}
+.footer-action.danger:hover{color:var(--danger);border-bottom-color:var(--danger)}
 .theme-toggle{
   background:transparent;border:none;padding:0;
   color:var(--text-dim);cursor:pointer;
@@ -877,6 +886,7 @@ hr{border:none;border-top:1px solid var(--border);margin:var(--s4) 0}
     <div class="footer-links">
       <a href="https://github.com/JanBartos6/QuickHatch" target="_blank" rel="noopener">GitHub</a>
       <a href="https://github.com/JanBartos6/QuickHatch/tree/main/docs" target="_blank" rel="noopener">Docs</a>
+      <button class="footer-action danger" onclick="resetAllData()" aria-label="Clear all QuickHatch data on this PC">Reset all data</button>
       <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle color theme"></button>
     </div>
   </footer>
@@ -1014,6 +1024,17 @@ function saveProfileShadow(profile){
     if(!profile)localStorage.removeItem(PROFILE_SHADOW_KEY);
     else localStorage.setItem(PROFILE_SHADOW_KEY, JSON.stringify(profile));
   }catch(_){}
+}
+
+function clearClientWizardPersistence(){
+  try{localStorage.removeItem(WIZARD_DRAFT_KEY);}catch(_){}
+  try{localStorage.removeItem(PROFILE_SHADOW_KEY);}catch(_){}
+  state._draft={};
+  state._profileShadow=null;
+  state._needsShadowRestore=false;
+  state._shadowRestoreInFlight=false;
+  state.galleryPinned=[];
+  state._exportResult=null;
 }
 
 function sanitizeProfileShadow(profile){
@@ -1341,6 +1362,24 @@ async function saveProfile(updates, opts){
   }
   if(opts&&opts.toast!==false&&opts&&opts.toast)toast(opts.toast,'success');
   return resp;
+}
+
+async function resetAllData(){
+  const confirmed=window.confirm(
+    'Clear all QuickHatch data on this PC?\n\n'
+    + 'This wipes the saved wizard profile, generated analysis/setup logs, browser draft state, '
+    + 'the exported QuickHatch bundle, and the QuickHatch-generated SSH keypair.\n\n'
+    + 'Your own manually-provided SSH keys are not deleted.'
+  );
+  if(!confirmed)return;
+  const resp=await api('/wizard/reset-all','POST',{});
+  if(!resp||resp.status!=='ok'){
+    toast((resp&&resp.message)||'Could not clear QuickHatch data.','error');
+    return;
+  }
+  clearClientWizardPersistence();
+  toast('QuickHatch data cleared. Reloading…','success');
+  setTimeout(()=>window.location.reload(), 180);
 }
 
 function render(){

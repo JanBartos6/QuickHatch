@@ -11,6 +11,7 @@ import json
 import threading
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 import pytest
 
@@ -221,6 +222,64 @@ class TestProfileEndpoint:
             status, body = _get(port, "/api/messages")
             messages = json.loads(body)["messages"]
             assert [m["content"] for m in messages] == ["persisted message"]
+        finally:
+            srv.shutdown()
+            srv.server_close()
+
+    def test_reset_all_clears_quickhatch_owned_data_but_preserves_user_keys(self):
+        home = Path.home()
+        checkpoint = home / ".quickhatch-checkpoint.json"
+        persist_path = home / ".quickhatch-suggestions.json"
+        export_dir = home / "Downloads" / "QuickHatch-Migration"
+        export_dir.mkdir(parents=True, exist_ok=True)
+        (export_dir / "quickhatch-profile.json").write_text("{}", encoding="utf-8")
+
+        ssh_dir = home / ".ssh"
+        ssh_dir.mkdir(parents=True, exist_ok=True)
+        generated_key = ssh_dir / "quickhatch_ed25519"
+        generated_pub = ssh_dir / "quickhatch_ed25519.pub"
+        generated_key.write_text("generated-private", encoding="utf-8")
+        generated_pub.write_text("generated-public", encoding="utf-8")
+        own_key = ssh_dir / "id_ed25519"
+        own_pub = ssh_dir / "id_ed25519.pub"
+        own_key.write_text("user-private", encoding="utf-8")
+        own_pub.write_text("user-public", encoding="utf-8")
+
+        profile = UserProfile()
+        profile.linux_ip = "192.168.50.162"
+        profile.linux_user = "jan"
+        profile.ssh_public_key_path = str(own_pub)
+        profile.completed_steps = ["welcome", "ssh", "export"]
+        profile.save_checkpoint(checkpoint)
+
+        bridge = BridgeState(profile, persist_path=persist_path)
+        bridge.add_suggestion("plan", "Migration Plan", "persisted plan")
+        bridge.add_message("agent", "persisted transcript")
+
+        gui_state = GUIState(profile, bridge)
+        srv, port = make_gui_server(gui_state, port=0)
+        thread = threading.Thread(target=srv.serve_forever, daemon=True)
+        thread.start()
+        try:
+            status, body = _post(port, "/wizard/reset-all", {})
+            data = json.loads(body)
+            assert status == 200
+            assert data["status"] == "ok"
+            assert gui_state.profile.linux_ip == ""
+            assert gui_state.profile.linux_user == ""
+            assert gui_state.profile.completed_steps == []
+            assert bridge.suggestions == []
+            assert bridge.messages == []
+            assert bridge.questions == {}
+            assert bridge.agent_done is False
+            assert bridge.stop_requested is False
+            assert not checkpoint.exists()
+            assert not persist_path.exists()
+            assert not export_dir.exists()
+            assert not generated_key.exists()
+            assert not generated_pub.exists()
+            assert own_key.exists()
+            assert own_pub.exists()
         finally:
             srv.shutdown()
             srv.server_close()

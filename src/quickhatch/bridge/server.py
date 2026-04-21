@@ -219,6 +219,36 @@ class BridgeState:
         """
         self._load_persisted(replace=True)
 
+    def hard_reset(self, *, profile: UserProfile | None = None) -> None:
+        """Wipe all in-memory bridge runtime state and delete the persisted file.
+
+        Used by the GUI's "reset all data" action. Keeps callback lists intact
+        but drops suggestions, messages, answered/pending questions, and all
+        transient agent flags.
+        """
+        with self.lock:
+            if profile is not None:
+                self.profile = profile
+            self._clear_persisted_runtime_locked()
+            self.agent_connected = False
+            self.agent_done = False
+            self.stop_requested = False
+            self.current_phase = ""
+            self._persist_version = 0
+        if self._persist_path is None:
+            return
+        with self._persist_write_lock:
+            try:
+                self._persist_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            try:
+                tmp = self._persist_path.with_suffix(self._persist_path.suffix + ".tmp")
+                tmp.unlink(missing_ok=True)
+            except OSError:
+                pass
+            self._persist_last_written = 0
+
     def _serialize_payload_locked(self) -> tuple[str, int] | None:
         """Build the JSON payload string + its version. MUST be called
         with ``self.lock`` held. Returns None when persistence is
