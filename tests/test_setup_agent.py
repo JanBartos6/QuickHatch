@@ -14,7 +14,7 @@ import pytest
 
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, UserProfile
-from quickhatch.gui.server import GUIState, _run_setup_agent
+from quickhatch.gui.server import GUIState, _resolve_setup_cmd_timeout, _run_setup_agent
 
 
 @pytest.fixture
@@ -138,6 +138,54 @@ class TestAgenticLoop:
         # One of the SSH calls was the pacman command
         assert any("pacman -Sy --noconfirm" in c for c in ssh_calls)
 
+    def test_ssh_exec_uses_30_minute_default_timeout(self, ready_state):
+        seen = []
+
+        def tracking_ssh(host, user, cmd, key_path=None, timeout=120, port=22):
+            seen.append((cmd, timeout))
+            if "echo 'QuickHatch" in cmd:
+                return (0, "QuickHatch connected!", "")
+            if "/etc/os-release" in cmd:
+                return (0, "Arch Linux", "")
+            if cmd == "ls /tmp":
+                return (0, "ok", "")
+            return (0, "", "")
+
+        responses = [
+            '{"action": "ssh_exec", "command": "ls /tmp", "reason": "check temp dir"}',
+            '{"action": "done", "summary": "done"}',
+        ]
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=tracking_ssh):
+            with patch("requests.post", _make_model_mock(*responses)):
+                _run_setup_agent(ready_state, 0)
+
+        timeout_for_ls = next(timeout for cmd, timeout in seen if cmd == "ls /tmp")
+        assert timeout_for_ls == 1800
+
+    def test_ssh_exec_honors_timeout_override(self, ready_state):
+        seen = []
+
+        def tracking_ssh(host, user, cmd, key_path=None, timeout=120, port=22):
+            seen.append((cmd, timeout))
+            if "echo 'QuickHatch" in cmd:
+                return (0, "QuickHatch connected!", "")
+            if "/etc/os-release" in cmd:
+                return (0, "Arch Linux", "")
+            if "yay -S" in cmd:
+                return (0, "ok", "")
+            return (0, "", "")
+
+        responses = [
+            '{"action": "ssh_exec", "command": "yay -S --noconfirm catppuccin-gtk-theme-mocha", "reason": "install theme", "timeout_seconds": 7200}',
+            '{"action": "done", "summary": "done"}',
+        ]
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=tracking_ssh):
+            with patch("requests.post", _make_model_mock(*responses)):
+                _run_setup_agent(ready_state, 0)
+
+        timeout_for_yay = next(timeout for cmd, timeout in seen if "yay -S" in cmd)
+        assert timeout_for_yay == 7200
+
     def test_multiple_json_objects_in_one_response(self, ready_state):
         """Gemma-style: status + ssh_exec emitted together — both should be processed."""
         ssh_calls = []
@@ -255,6 +303,20 @@ class TestFeedbackLoop:
             for m in second_call_messages
         )
         assert "Exit code: 1" in concat or "not enough free disk space" in concat
+
+
+class TestSetupTimeoutResolution:
+    def test_long_install_commands_default_to_one_hour(self):
+        assert (
+            _resolve_setup_cmd_timeout(
+                "yay -S --noconfirm catppuccin-gtk-theme-mocha", {"action": "ssh_exec"}
+            )
+            == 3600
+        )
+
+    def test_timeout_override_is_clamped(self):
+        assert _resolve_setup_cmd_timeout("echo hi", {"timeout_seconds": 5}) == 30
+        assert _resolve_setup_cmd_timeout("echo hi", {"timeout_seconds": 999999}) == 21600
 
 
 class TestRebootHandoff:

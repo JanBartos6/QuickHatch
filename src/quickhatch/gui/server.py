@@ -3061,6 +3061,62 @@ def _ssh_exec(
         return -1, "", f"ssh invocation failed: {exc}"
 
 
+_SETUP_CMD_DEFAULT_TIMEOUT = 1800
+_SETUP_CMD_LONG_TIMEOUT = 3600
+_SETUP_CMD_MIN_TIMEOUT = 30
+_SETUP_CMD_MAX_TIMEOUT = 21600
+_SETUP_LONG_COMMAND_MARKERS = (
+    "pacstrap",
+    "debootstrap",
+    "dnf --installroot",
+    "dnf install",
+    "pacman -S",
+    "apt install",
+    "apt-get install",
+    "zypper install",
+    "emerge",
+    "yay ",
+    "yay -S",
+    "paru ",
+    "paru -S",
+    "xbps-install",
+    "flatpak install",
+    "snap install",
+    "makepkg",
+    "cmake --build",
+    "cargo build",
+    "cargo install",
+    "npm install",
+    "pip install",
+    "mkinitcpio",
+    "grub-mkconfig",
+    "dracut",
+)
+
+
+def _resolve_setup_cmd_timeout(cmd: str, action: dict[str, Any]) -> int:
+    """Pick the SSH timeout for one setup-agent command.
+
+    Default every setup command to 30 minutes. Commands that routinely build,
+    install, or compile large payloads get 60 minutes automatically.
+
+    The model may request a specific timeout with ``timeout_seconds`` on the
+    ``ssh_exec`` action. Clamp it to a sane range so one bad response can't
+    wedge the harness for an entire day.
+    """
+    override = action.get("timeout_seconds")
+    if override is not None:
+        try:
+            return max(_SETUP_CMD_MIN_TIMEOUT, min(int(override), _SETUP_CMD_MAX_TIMEOUT))
+        except (TypeError, ValueError):
+            pass
+    return (
+        _SETUP_CMD_LONG_TIMEOUT
+        if any(marker in cmd for marker in _SETUP_LONG_COMMAND_MARKERS)
+        else _SETUP_CMD_DEFAULT_TIMEOUT
+    )
+
+
 # Shell script shipped to the target to detect whether we're booted from a
 # live ISO or an installed system. Prints the first positive signal or
 # "INSTALLED" if no live markers matched.
@@ -4071,7 +4127,8 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             "and your job is to execute the migration plan (provided below) on the remote machine.\n\n"
             "You have ONE tool: ssh_exec — it runs a shell command on the remote machine and returns the output.\n"
             "To use it, respond with a JSON object:\n"
-            '  {"action": "ssh_exec", "command": "your shell command here", "reason": "why you are running this"}\n\n'
+            '  {"action": "ssh_exec", "command": "your shell command here", "reason": "why you are running this"}\n'
+            '  Optional: add "timeout_seconds": 7200 for commands you KNOW may run longer than 30 minutes (big package installs, AUR builds, compiles).\n\n'
             "When you are completely done with the entire setup, respond with:\n"
             '  {"action": "done", "summary": "brief summary of what was accomplished"}\n\n'
             "To post a progress update to the user (shown in the UI), respond with:\n"
@@ -4774,25 +4831,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                         results_log.append(f"**`{cmd}`** — OK (reconnected)")
                         continue
 
-                    # Pick a timeout based on the command. pacstrap / debootstrap
-                    # / dnf --installroot / compile commands routinely take
-                    # 10–30 min on slow mirrors; 300s would SIGTERM them
-                    # mid-install and corrupt the target.
-                    long_cmds = (
-                        "pacstrap",
-                        "debootstrap",
-                        "dnf --installroot",
-                        "dnf install",
-                        "pacman -S",
-                        "apt install",
-                        "apt-get install",
-                        "zypper install",
-                        "emerge",
-                        "mkinitcpio",
-                        "grub-mkconfig",
-                        "dracut",
-                    )
-                    cmd_timeout = 1800 if any(m in cmd for m in long_cmds) else 300
+                    cmd_timeout = _resolve_setup_cmd_timeout(cmd, action)
                     rc, out, err = _ssh_exec(
                         host, user, cmd, key_path, timeout=cmd_timeout, port=ssh_port
                     )
