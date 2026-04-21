@@ -1108,6 +1108,106 @@ function mergeProfileMissing(serverValue, shadowValue){
   return serverValue??shadowValue;
 }
 
+function buildProfileFromDraft(baseProfile){
+  const profile=cloneJson(baseProfile)||{};
+  const draft=state._draft||{};
+  if(!profile.preferences||typeof profile.preferences!=='object')profile.preferences={};
+  if(!profile.ai_config||typeof profile.ai_config!=='object')profile.ai_config={};
+  const prefs=(draft.preferences&&typeof draft.preferences==='object')?draft.preferences:{};
+  if(prefs.migration_type!==undefined)profile.preferences.migration_type=prefs.migration_type||'';
+  if(prefs.desktop_look!==undefined)profile.preferences.desktop_look=prefs.desktop_look||'';
+  if(prefs.distro_preference!==undefined)profile.preferences.distro_preference=prefs.distro_preference||null;
+  if(prefs.another_machine!==undefined)profile.preferences.another_machine=prefs.another_machine||'';
+  if(Array.isArray(prefs.gallery_picks))profile.preferences.gallery_picks=[...prefs.gallery_picks];
+  if(prefs.use_cases_text!==undefined){
+    const text=String(prefs.use_cases_text||'').trim();
+    profile.preferences.use_cases=text?text.split(',').map(s=>s.trim()).filter(Boolean):[];
+  }
+  if(draft.target_hardware_override!==undefined)profile.target_hardware_override=draft.target_hardware_override||'';
+  if(Array.isArray(draft.apps_to_install))profile.apps_to_install=[...draft.apps_to_install];
+  if(draft.data_transfer_method!==undefined)profile.data_transfer_method=draft.data_transfer_method||'';
+  if(draft.data_description!==undefined)profile.data_description=draft.data_description||'';
+  if(draft.additional_info!==undefined)profile.additional_info=draft.additional_info||'';
+  if(draft.linux_ip!==undefined)profile.linux_ip=draft.linux_ip||'';
+  if(draft.linux_user!==undefined)profile.linux_user=draft.linux_user||'';
+  if(draft.ssh_public_key_path!==undefined)profile.ssh_public_key_path=draft.ssh_public_key_path||null;
+  if(draft.ai_config&&typeof draft.ai_config==='object'){
+    const ai=draft.ai_config;
+    if(ai.provider!==undefined)profile.ai_config.provider=ai.provider||'';
+    if(ai.model_name!==undefined)profile.ai_config.model_name=ai.model_name||null;
+    if(ai.endpoint!==undefined)profile.ai_config.endpoint=ai.endpoint||null;
+    if(ai.api_key!==undefined)profile.ai_config.api_key=ai.api_key||null;
+  }
+  const wizard=(draft._wizard&&typeof draft._wizard==='object')?draft._wizard:{};
+  if(Array.isArray(wizard.completed_steps)&&wizard.completed_steps.length){
+    profile.completed_steps=[...wizard.completed_steps];
+  }
+  return profile;
+}
+
+function persistWizardProgressDraft(){
+  if(!state._draft||typeof state._draft!=='object')state._draft={};
+  if(!state._draft._wizard||typeof state._draft._wizard!=='object')state._draft._wizard={};
+  state._draft._wizard.completed_steps=[...(state.completedSteps||[])];
+  state._draft._wizard.current_step_id=(STEPS[state.currentStep]||{}).id||'';
+  saveWizardDraft();
+}
+
+function persistAIDraft(){
+  const provider=getSelected('aiChoice')||(state.profile?.ai_config?.provider)||'';
+  if(!provider)return;
+  setDraftValue('ai_config.provider', provider);
+  const modelEl=document.getElementById('aiModel');
+  if(modelEl)setDraftValue('ai_config.model_name', modelEl.value||'');
+  const endpointEl=document.getElementById('aiCustomEndpoint');
+  if(endpointEl)setDraftValue('ai_config.endpoint', (endpointEl.value||'').trim());
+  const keyEl=document.getElementById('aiApiKey');
+  if(keyEl)setDraftValue('ai_config.api_key', keyEl.value||'');
+}
+
+function captureInFlightDraftForCurrentStep(){
+  const stepId=(STEPS[state.currentStep]||{}).id||'';
+  if(stepId==='welcome'){
+    const t=getSelected('migType');
+    if(t)setDraftValue('preferences.migration_type', t);
+  }else if(stepId==='ai_setup'){
+    persistAIDraft();
+  }else if(stepId==='questionnaire'){
+    persistQuestionnaireDraft();
+  }else if(stepId==='scan'){
+    persistTargetOverrideDraft();
+  }else if(stepId==='apps_data'){
+    persistAppsDataDraft();
+  }else if(stepId==='additional'){
+    persistAdditionalDraft();
+  }else if(stepId==='ssh'){
+    const ownKeyPath=((el('ownKeyPath')||{}).value||'').trim();
+    if(ownKeyPath)setDraftValue('ssh_public_key_path', ownKeyPath);
+  }else if(stepId==='setup'){
+    const ip=((el('linuxIp')||{}).value||'').trim();
+    const user=((el('linuxUser')||{}).value||'').trim();
+    setDraftValue('linux_ip', ip);
+    setDraftValue('linux_user', user);
+  }
+  persistWizardProgressDraft();
+}
+
+function snapshotClientProfile(){
+  captureInFlightDraftForCurrentStep();
+  const profile=buildProfileFromDraft(state.profile||{});
+  writeProfileShadow(profile);
+  return profile;
+}
+
+let _profileSnapshotTimer=null;
+function scheduleProfileSnapshot(){
+  if(_profileSnapshotTimer)clearTimeout(_profileSnapshotTimer);
+  _profileSnapshotTimer=setTimeout(()=>{
+    _profileSnapshotTimer=null;
+    try{ snapshotClientProfile(); }catch(_){}
+  }, 150);
+}
+
 async function restoreShadowProfileToServer(profile){
   if(state._shadowRestoreInFlight||!profile)return null;
   state._shadowRestoreInFlight=true;
@@ -1142,9 +1242,13 @@ function applyServerProfile(profile, seq){
   state._profileAppliedSeq=seq||0;
   const serverProfile=cloneJson(profile);
   const shadowProfile=state._profileShadow;
-  const mergedProfile=mergeProfileMissing(serverProfile, shadowProfile);
+  const draftProfile=buildProfileFromDraft(serverProfile);
+  const mergedProfile=mergeProfileMissing(
+    mergeProfileMissing(serverProfile, shadowProfile),
+    draftProfile
+  );
   const shouldRestore=!!(
-    shadowProfile
+    (shadowProfile||state._draft)
     && profileProgressScore(mergedProfile) > profileProgressScore(serverProfile)
     && JSON.stringify(mergedProfile)!==JSON.stringify(serverProfile)
   );
@@ -1169,6 +1273,12 @@ async function loadProfile(){
   for(let i=0;i<STEPS.length;i++){
     if(!state.completedSteps.includes(STEPS[i].id)){state.currentStep=i;break}
   }
+  const draftStepId=state._draft?._wizard?.current_step_id;
+  if(draftStepId){
+    const idx=STEPS.findIndex(s=>s.id===draftStepId);
+    if(idx>=0&&idx>state.currentStep)state.currentStep=idx;
+  }
+  persistWizardProgressDraft();
 }
 
 function renderProgress(){
@@ -1191,6 +1301,7 @@ function renderProgress(){
 function jumpToStep(i){
   if(i<0||i>=STEPS.length)return;
   state.currentStep=i;
+  persistWizardProgressDraft();
   render();
 }
 
@@ -1205,6 +1316,7 @@ async function completeStep(stepId){
   if(!state.completedSteps.includes(stepId))state.completedSteps.push(stepId);
   if(state.profile)state.profile.completed_steps=[...state.completedSteps];
   writeProfileShadow(state.profile);
+  persistWizardProgressDraft();
   state.currentStep++;render();
   return resp;
 }
@@ -3868,8 +3980,16 @@ function clearAttention(){
 // Auto-clear when the user actually looks at the tab.
 window.addEventListener('focus', clearAttention);
 document.addEventListener('visibilitychange', ()=>{
-  if(!document.hidden) clearAttention();
+  if(document.hidden){
+    try{ snapshotClientProfile(); }catch(_){}
+    return;
+  }
+  clearAttention();
 });
+document.addEventListener('input', scheduleProfileSnapshot, true);
+document.addEventListener('change', scheduleProfileSnapshot, true);
+window.addEventListener('beforeunload', ()=>{ try{ snapshotClientProfile(); }catch(_){}; });
+window.addEventListener('pagehide', ()=>{ try{ snapshotClientProfile(); }catch(_){}; });
 
 // Measure the actual footer height and write it into the --footer-h
 // var on <html>. The btn-row's `bottom: var(--footer-h)` and the page

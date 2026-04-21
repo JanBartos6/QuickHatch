@@ -257,6 +257,16 @@ class TestFrontendProfileSync:
         assert "await restoreShadowProfileToServer(state.profile);" in html
         assert "writeProfileShadow(state.profile);" in html
         assert "state._draft=loadWizardDraft();" in html
+        assert "function buildProfileFromDraft(baseProfile)" in html
+        assert "function snapshotClientProfile()" in html
+        assert "function scheduleProfileSnapshot()" in html
+        assert "document.addEventListener('input', scheduleProfileSnapshot, true);" in html
+        assert "document.addEventListener('change', scheduleProfileSnapshot, true);" in html
+        assert "window.addEventListener('beforeunload'" in html
+        assert "window.addEventListener('pagehide'" in html
+        assert "if(document.hidden){" in html
+        assert "const draftProfile=buildProfileFromDraft(serverProfile);" in html
+        assert "const draftStepId=state._draft?._wizard?.current_step_id;" in html
         assert 'oninput="persistQuestionnaireDraft()"' in html
         assert 'oninput="persistAppsDataDraft()"' in html
         assert 'oninput="persistAdditionalDraft()"' in html
