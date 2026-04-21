@@ -356,3 +356,38 @@ class TestPersistedRestore:
         assert "answered" in restored.questions
         assert restored.questions["answered"].answered.is_set()
         assert "pending" not in restored.questions
+
+    def test_reload_persisted_state_recovers_after_profile_fingerprint_changes(self, tmp_path):
+        wanted = UserProfile()
+        wanted.preferences.distro_preference = "arch"
+        path = tmp_path / "bridge.json"
+        fingerprint = BridgeState(wanted, persist_path=None)._profile_fingerprint()
+        path.write_text(
+            json.dumps(
+                {
+                    "profile_fingerprint": fingerprint,
+                    "suggestions": [
+                        {
+                            "id": "s1",
+                            "category": "plan",
+                            "title": "Migration Plan",
+                            "content": "persisted analysis",
+                        }
+                    ],
+                    "messages": [{"role": "agent", "content": "persisted message"}],
+                    "questions": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        wrong = UserProfile()
+        wrong.preferences.distro_preference = "fedora"
+        restored = BridgeState(wrong, persist_path=path)
+        assert restored.suggestions == []
+        assert restored.messages == []
+
+        restored.profile.preferences.distro_preference = "arch"
+        restored.reload_persisted_state()
+
+        assert [s.title for s in restored.suggestions] == ["Migration Plan"]
+        assert [m["content"] for m in restored.messages] == ["persisted message"]

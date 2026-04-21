@@ -103,7 +103,13 @@ class BridgeState:
         ]
         return hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()[:16]
 
-    def _load_persisted(self) -> None:
+    def _clear_persisted_runtime_locked(self) -> None:
+        """Clear the persisted bridge payload fields under the lock."""
+        self.suggestions.clear()
+        self.messages.clear()
+        self.questions.clear()
+
+    def _load_persisted(self, *, replace: bool = False) -> None:
         """Load suggestions + messages + pending questions from disk.
 
         Skips the restore if the persisted profile fingerprint doesn't
@@ -111,6 +117,9 @@ class BridgeState:
         since the last run) — those suggestions would describe a
         different migration."""
         if self._persist_path is None or not self._persist_path.exists():
+            if replace:
+                with self.lock:
+                    self._clear_persisted_runtime_locked()
             return
         try:
             data = json.loads(self._persist_path.read_text(encoding="utf-8"))
@@ -128,6 +137,9 @@ class BridgeState:
                 f"[quickhatch] persisted suggestions corrupt ({exc}); moved to {backup}.",
                 file=_sys.stderr,
             )
+            if replace:
+                with self.lock:
+                    self._clear_persisted_runtime_locked()
             return
         saved_fp = data.get("profile_fingerprint")
         current_fp = self._profile_fingerprint()
@@ -144,6 +156,9 @@ class BridgeState:
                 "fingerprint (pre-versioning format). Starting fresh.",
                 file=_sys.stderr,
             )
+            if replace:
+                with self.lock:
+                    self._clear_persisted_runtime_locked()
             return
         if saved_fp and saved_fp != current_fp:
             import sys as _sys
@@ -153,19 +168,24 @@ class BridgeState:
                 f"profile ({saved_fp} != {current_fp}). Starting fresh.",
                 file=_sys.stderr,
             )
+            if replace:
+                with self.lock:
+                    self._clear_persisted_runtime_locked()
             return
+        loaded_suggestions: list[Suggestion] = []
         for s in data.get("suggestions", []):
             try:
-                self.suggestions.append(Suggestion(**s))
+                loaded_suggestions.append(Suggestion(**s))
             except TypeError:
                 continue
-        self.messages = list(data.get("messages", []))
+        loaded_messages = list(data.get("messages", []))
         # Restore only ANSWERED questions (history) — unanswered
         # questions from a prior run belong to a dead agent thread.
         # Reviving them would block the next run on a question nobody
         # wants an answer to, and in local-bridge mode the wizard
         # immediately re-prompts for every pending Q which creates UI
         # noise. The agent can always re-ask if it still needs input.
+        loaded_questions: dict[str, PendingQuestion] = {}
         for qdata in data.get("questions", []):
             if not qdata.get("answered"):
                 continue
@@ -176,14 +196,28 @@ class BridgeState:
                     choices=qdata.get("choices"),
                     answer=qdata.get("answer"),
                 )
-                if qdata.get("answered"):
-                    q.answered.set()
-                    q.answer = qdata.get("answer")
-                self.questions[q.id] = q
-            except (KeyError, TypeError):
+            except TypeError:
                 continue
-        # agent_done stays False so the UI doesn't think a new run is
-        # already complete — but the previous suggestions are visible.
+            q.answered.set()
+            q.answer = qdata.get("answer")
+            loaded_questions[q.id] = q
+        with self.lock:
+            if replace:
+                self._clear_persisted_runtime_locked()
+            self.suggestions.extend(loaded_suggestions)
+            self.messages.extend(loaded_messages)
+            self.questions.update(loaded_questions)
+
+    def reload_persisted_state(self) -> None:
+        """Re-evaluate the persisted bridge payload for the CURRENT profile.
+
+        Useful after the GUI restores a different profile into the running
+        process. Startup loads persisted suggestions only once, using the
+        profile that existed at that time; if the user later restores the real
+        profile, we must re-run the fingerprint check and recover the matching
+        analysis/messages from disk.
+        """
+        self._load_persisted(replace=True)
 
     def _serialize_payload_locked(self) -> tuple[str, int] | None:
         """Build the JSON payload string + its version. MUST be called

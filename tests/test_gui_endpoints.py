@@ -153,6 +153,78 @@ class TestProfileEndpoint:
         assert server["bridge"].profile.linux_user == "jan"
         assert server["gui_state"].profile.ai_config.api_key == "sk-secret-xyz"
 
+    def test_restore_profile_reloads_persisted_bridge_state_for_restored_profile(self, tmp_path):
+        wanted = UserProfile()
+        wanted.preferences.distro_preference = "arch"
+        persist_path = tmp_path / "bridge.json"
+        fingerprint = BridgeState(wanted, persist_path=None)._profile_fingerprint()
+        persist_path.write_text(
+            json.dumps(
+                {
+                    "profile_fingerprint": fingerprint,
+                    "suggestions": [
+                        {
+                            "id": "s1",
+                            "category": "plan",
+                            "title": "Migration Plan",
+                            "content": "persisted blueprint",
+                        }
+                    ],
+                    "messages": [{"role": "agent", "content": "persisted message"}],
+                    "questions": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        wrong = UserProfile()
+        wrong.preferences.distro_preference = "fedora"
+        bridge = BridgeState(wrong, persist_path=persist_path)
+        gui_state = GUIState(wrong, bridge)
+        srv, port = make_gui_server(gui_state, port=0)
+        thread = threading.Thread(target=srv.serve_forever, daemon=True)
+        thread.start()
+        try:
+            assert bridge.suggestions == []
+            status, body = _post(
+                port,
+                "/wizard/restore-profile",
+                {
+                    "profile": {
+                        "preferences": {"distro_preference": "arch"},
+                        "ai_config": {},
+                        "hardware": {},
+                        "apps": [],
+                        "files_summary": {},
+                        "windows_settings": {},
+                        "ssh_public_key_path": None,
+                        "additional_info": "",
+                        "apps_to_install": [],
+                        "data_description": "",
+                        "data_transfer_method": "",
+                        "linux_ip": "",
+                        "linux_user": "",
+                        "target_hardware_override": "",
+                        "default_account_password": "password",
+                        "completed_steps": [],
+                    }
+                },
+            )
+            data = json.loads(body)
+            assert status == 200
+            assert data["status"] == "ok"
+
+            status, body = _get(port, "/api/suggestions")
+            suggestions = json.loads(body)["suggestions"]
+            assert [s["title"] for s in suggestions] == ["Migration Plan"]
+
+            status, body = _get(port, "/api/messages")
+            messages = json.loads(body)["messages"]
+            assert [m["content"] for m in messages] == ["persisted message"]
+        finally:
+            srv.shutdown()
+            srv.server_close()
+
 
 class TestSSHKeyResolution:
     def test_prefers_quickhatch_key_when_profile_path_is_missing(self, tmp_path, monkeypatch):

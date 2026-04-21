@@ -400,7 +400,16 @@ class GUIState:
             for field_def in fields(UserProfile):
                 setattr(self.profile, field_def.name, getattr(restored, field_def.name))
             self.bridge.profile = self.profile
-            return asdict(self.profile) != before
+            changed = asdict(self.profile) != before
+        # Re-run persisted-bridge recovery under the NEW profile
+        # fingerprint. This is the crash-recovery path: the server may
+        # have started under a stale/mismatched checkpoint profile and
+        # therefore skipped restoring the real analysis suggestions on
+        # startup. Once the user restores the real profile, re-check the
+        # persisted bridge file so setup can still recover the generated
+        # migration plan after a restart.
+        self.bridge.reload_persisted_state()
+        return changed
 
 
 def _load_html() -> bytes:
