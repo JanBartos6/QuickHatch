@@ -3177,7 +3177,12 @@ _AURISH_SUFFIXES = ("-bin", "-git")
 
 
 def _probe_setup_facts(
-    host: str, user: str, key_path: str | None, port: int = 22
+    host: str,
+    user: str,
+    key_path: str | None,
+    port: int = 22,
+    *,
+    fallback: dict[str, str] | None = None,
 ) -> dict[str, str]:
     """Collect compact runtime facts for the setup agent prompt/guards."""
     probe_cmd = r"""
@@ -3188,13 +3193,21 @@ echo 'QH_IS_ROOT='$(if [ "$(id -u 2>/dev/null)" = "0" ]; then echo yes; else ech
 echo 'QH_SUDO_NOPASSWD='$(if [ "$(id -u 2>/dev/null)" = "0" ]; then echo yes; elif command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then echo yes; else echo no; fi)
 """
     rc, out, _ = _ssh_exec(host, user, probe_cmd, key_path, timeout=30, port=port)
-    facts = {
-        "package_manager": "unknown",
-        "aur_helper": "none",
-        "current_user": user,
-        "is_root": "no",
-        "sudo_nopasswd": "no",
-    }
+    facts = dict(
+        fallback
+        or {
+            "package_manager": "unknown",
+            "aur_helper": "none",
+            "current_user": user,
+            "is_root": "no",
+            "sudo_nopasswd": "no",
+        }
+    )
+    facts.setdefault("package_manager", "unknown")
+    facts.setdefault("aur_helper", "none")
+    facts.setdefault("current_user", user)
+    facts.setdefault("is_root", "no")
+    facts.setdefault("sudo_nopasswd", "no")
     if rc != 0:
         return facts
     mapping = {
@@ -3332,6 +3345,11 @@ def _split_command_segments_for_lint(cmd: str) -> list[str]:
     return [part.strip() for part in re.split(r"\s*(?:&&|\|\||;|\n)\s*", cmd) if part.strip()]
 
 
+def _normalize_command_tool(token: str) -> str:
+    """Collapse absolute paths like /usr/bin/yay down to the executable name."""
+    return token.rsplit("/", 1)[-1] if "/" in token else token
+
+
 def _strip_command_wrappers(tokens: list[str]) -> list[str]:
     """Drop leading env/sudo wrappers so command lint sees the real tool."""
     idx = 0
@@ -3361,7 +3379,7 @@ def _strip_command_wrappers(tokens: list[str]) -> list[str]:
 
 def _extract_pacman_install_packages(tokens: list[str]) -> list[str]:
     """Extract package names from a pacman/yay/paru install command."""
-    if not tokens or tokens[0] not in {"pacman", "yay", "paru"}:
+    if not tokens or _normalize_command_tool(tokens[0]) not in {"pacman", "yay", "paru"}:
         return []
     args = tokens[1:]
     if not any(arg.startswith("-S") and arg not in {"-Ss", "-Si"} for arg in args):
@@ -3383,7 +3401,7 @@ def _preflight_setup_command(cmd: str, facts: dict[str, str]) -> str | None:
         tokens = _strip_command_wrappers(tokens)
         if not tokens:
             continue
-        tool = tokens[0]
+        tool = _normalize_command_tool(tokens[0])
         if package_manager == "pacman":
             if tool in {"apt", "apt-get", "dnf", "zypper"}:
                 return (
@@ -3431,6 +3449,28 @@ def _preflight_setup_command(cmd: str, facts: dict[str, str]) -> str | None:
         }:
             return f"This target uses zypper, so `{tool}` is the wrong package manager."
     return None
+
+
+def _describe_setup_fact_changes(
+    before: dict[str, str], after: dict[str, str], *, is_live: bool
+) -> str | None:
+    labels = {
+        "package_manager": "package manager",
+        "aur_helper": "AUR helper",
+        "current_user": "current SSH user",
+        "is_root": "root login",
+        "sudo_nopasswd": "passwordless sudo",
+    }
+    changed = []
+    for key, label in labels.items():
+        old = before.get(key, "")
+        new = after.get(key, "")
+        if old != new:
+            changed.append(f"- {label}: {old or '(unknown)'} -> {new or '(unknown)'}")
+    if not changed:
+        return None
+    mode = "live installer" if is_live else "installed system"
+    return "[quickhatch runtime facts updated]\n" + f"Mode: {mode}\n" + "\n".join(changed)
 
 
 # Shell script shipped to the target to detect whether we're booted from a
@@ -5152,6 +5192,17 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                             )
                         # Gather fresh system info so the next turn sees
                         # the installed-system reality.
+                        refreshed_setup_facts = _probe_setup_facts(
+                            host,
+                            user,
+                            key_path,
+                            port=ssh_port,
+                            fallback=setup_facts,
+                        )
+                        fact_update = _describe_setup_fact_changes(
+                            setup_facts, refreshed_setup_facts, is_live=is_live
+                        )
+                        setup_facts = refreshed_setup_facts
                         fresh_rc, fresh_info, _ = _ssh_exec(
                             host,
                             user,
@@ -5160,14 +5211,17 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                             port=ssh_port,
                         )
                         if fresh_rc == 0:
-                            pending_feedback.append(
-                                f"[post-reboot system info]\n{fresh_info.strip()}\n\n"
+                            refresh_bits = [f"[post-reboot system info]\n{fresh_info.strip()}"]
+                            if fact_update:
+                                refresh_bits.append(fact_update)
+                            refresh_bits.append(
                                 f"[harness] Passwordless sudo has been granted for '{user}'. "
                                 f"Run any sudo command freely — no prompt will appear. "
                                 f"REMINDER: include a 'CHANGE YOUR PASSWORD IMMEDIATELY' "
                                 f"block in your final summary so the user rotates the "
                                 f"default password ('{default_pw}') on first login."
                             )
+                            pending_feedback.append("\n\n".join(refresh_bits))
                         results_log.append(f"**`{cmd}`** — OK (reconnected)")
                         continue
 
@@ -5230,6 +5284,19 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                                 f"Noted: user '{maybe_user}' created. Will switch SSH to "
                                 f"this account after reboot.",
                             )
+                        refreshed_setup_facts = _probe_setup_facts(
+                            host,
+                            user,
+                            key_path,
+                            port=ssh_port,
+                            fallback=setup_facts,
+                        )
+                        fact_update = _describe_setup_fact_changes(
+                            setup_facts, refreshed_setup_facts, is_live=is_live
+                        )
+                        setup_facts = refreshed_setup_facts
+                        if fact_update:
+                            pending_feedback.append(fact_update)
                     # Trim to avoid unbounded growth across a long install
                     if len(results_log) > _RESULTS_LOG_MAX:
                         results_log[:] = results_log[-_RESULTS_LOG_MAX:]

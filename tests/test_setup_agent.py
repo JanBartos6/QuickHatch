@@ -372,6 +372,100 @@ class TestSetupCommandPreflight:
             is None
         )
 
+    def test_arch_preflight_normalizes_absolute_tool_paths(self):
+        facts = {
+            "package_manager": "pacman",
+            "aur_helper": "yay",
+            "current_user": "jan",
+            "is_root": "no",
+            "sudo_nopasswd": "yes",
+        }
+        msg = _preflight_setup_command(
+            "sudo /usr/bin/pacman -S --noconfirm brave-bin discord",
+            facts,
+        )
+        assert msg is not None
+        assert "AUR-only" in msg
+        assert "brave-bin" in msg
+
+    def test_arch_preflight_allows_absolute_yay_path_when_helper_present(self):
+        facts = {
+            "package_manager": "pacman",
+            "aur_helper": "yay",
+            "current_user": "jan",
+            "is_root": "no",
+            "sudo_nopasswd": "yes",
+        }
+        assert (
+            _preflight_setup_command(
+                "sudo -u jan /usr/bin/yay -S --noconfirm brave-bin",
+                facts,
+            )
+            is None
+        )
+
+
+class TestSetupFactsRefresh:
+    def test_successful_yay_install_refreshes_preflight_facts(self, ready_state):
+        ssh_calls = []
+
+        def tracking_ssh(host, user, cmd, key_path=None, timeout=120, port=22):
+            ssh_calls.append(cmd)
+            if "echo 'QuickHatch connected!'" in cmd:
+                return (0, "QuickHatch connected!", "")
+            if "/etc/os-release" in cmd:
+                return (0, "NAME=Arch Linux", "")
+            if "git clone https://aur.archlinux.org/yay-bin.git" in cmd:
+                return (0, "yay installed", "")
+            if "sudo -u jan yay -S --noconfirm brave-bin" in cmd:
+                return (0, "brave installed", "")
+            return (0, "", "")
+
+        fact_snapshots = [
+            {
+                "package_manager": "pacman",
+                "aur_helper": "none",
+                "current_user": "root",
+                "is_root": "yes",
+                "sudo_nopasswd": "yes",
+            },
+            {
+                "package_manager": "pacman",
+                "aur_helper": "yay",
+                "current_user": "root",
+                "is_root": "yes",
+                "sudo_nopasswd": "yes",
+            },
+            {
+                "package_manager": "pacman",
+                "aur_helper": "yay",
+                "current_user": "root",
+                "is_root": "yes",
+                "sudo_nopasswd": "yes",
+            },
+        ]
+
+        responses = [
+            '{"action":"ssh_exec","command":"git clone https://aur.archlinux.org/yay-bin.git && cd yay-bin && makepkg -s --noconfirm && sudo pacman -U --noconfirm yay-bin-*.pkg.tar.zst","reason":"install yay"}',
+            '{"action":"ssh_exec","command":"sudo -u jan yay -S --noconfirm brave-bin","reason":"install brave"}',
+            '{"action":"done","summary":"done"}',
+        ]
+
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=tracking_ssh):
+            with patch("quickhatch.gui.server._detect_live_env", return_value=(False, "INSTALLED")):
+                with patch("quickhatch.gui.server._probe_setup_facts", side_effect=fact_snapshots):
+                    with patch(
+                        "quickhatch.gui.server._maybe_bootstrap_nopasswd_sudo",
+                        side_effect=lambda *args, facts, **kwargs: facts,
+                    ):
+                        with patch("requests.post", _make_model_mock(*responses)):
+                            _run_setup_agent(ready_state, 0)
+
+        msgs = [m["content"] for m in ready_state.bridge.messages]
+        assert any("git clone https://aur.archlinux.org/yay-bin.git" in c for c in ssh_calls)
+        assert any("sudo -u jan yay -S --noconfirm brave-bin" in c for c in ssh_calls)
+        assert not any("Command blocked" in m for m in msgs)
+
 
 class TestRebootHandoff:
     def test_reboot_uses_live_user_then_reconnects_as_created_user(self, ready_state):
