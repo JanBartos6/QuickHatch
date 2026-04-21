@@ -1120,6 +1120,215 @@ function currentPrefs(){return state.profile?.preferences||{}}
 function galleryEntries(){return state.galleryEntries||[]}
 function galleryPinIndex(recipeId){return(state.galleryPinned||[]).indexOf(recipeId)}
 function galleryHasVerified(){return galleryEntries().some(entry=>entry.verified)}
+const DISTRO_USB_GUIDES={
+  generic:{
+    family:'generic',
+    liveBootLabel:'Boot the live environment on the target',
+    liveBootHint:'If the ISO offers a "Try / Live" session, use that instead of starting the installer.',
+    onlineHint:'Ethernet is easiest. If Wi-Fi is needed, use the live environment tools or NetworkManager applet first.',
+    mountTitle:'Locate the USB that holds the QuickHatch bundle',
+    mountHint:'If the bundle USB auto-mounted, open it normally. If not, use lsblk -f to find it and mount it manually.',
+    mountCommands:`mkdir -p /mnt/usb
+lsblk -f
+mount /dev/sdX1 /mnt/usb
+ls /mnt/usb`,
+    copyTitle:'Copy the bundle to a writable location and run quickstart',
+    copyHint:'You should see quickstart.sh, your public key, and the QuickHatch bundle files on the mounted USB.',
+    runCommands:`cp -r /mnt/usb /root/quickhatch
+cd /root/quickhatch
+bash quickstart.sh`,
+    successHint:'Leave that terminal open. quickstart.sh enables SSH, authorizes this PC, and prints the IP + username for the next step.',
+    alternativeTitle:'Prefer to install Linux yourself first?',
+    alternativeBody:'Also supported. Run the distro installer manually, reboot into the fresh install, then run <code>bash quickstart.sh</code> there. QuickHatch detects "installed" vs "live" automatically and skips straight to desktop + drivers + apps configuration.',
+  },
+  arch:{
+    family:'arch',
+    liveBootLabel:'Use the default live shell',
+    liveBootHint:'Arch boots straight into a root shell. On EndeavourOS, CachyOS, Garuda, or Artix, skip Calamares / archinstall and open a terminal or TTY instead.',
+    onlineHint:'Ethernet usually works immediately. For Wi-Fi, use <code>iwctl</code> or <code>nmcli</code> depending on the live image.',
+    mountTitle:'Mount the USB that holds the QuickHatch bundle',
+    mountHint:'On Arch-family ISOs the bundle drive often is not auto-mounted. Use <code>lsblk -f</code>, then mount the right partition manually.',
+    mountCommands:`mkdir -p /mnt/usb
+lsblk -f
+mount /dev/sdX1 /mnt/usb
+ls /mnt/usb`,
+    copyTitle:'Copy the bundle to a writable location and run quickstart',
+    copyHint:'You should see <code>quickstart.sh</code>, your <code>.pub</code> key, and the rest of the QuickHatch bundle files.',
+    runCommands:`cp -r /mnt/usb /root/quickhatch
+cd /root/quickhatch
+chmod +x quickstart.sh
+./quickstart.sh`,
+    successHint:'Leave that terminal open afterwards. quickstart.sh enables SSH, adds this PC&apos;s key, prints the IP + username, and the agent will later reboot + reconnect on its own.',
+    alternativeTitle:'Prefer to install Linux yourself first?',
+    alternativeBody:'Also supported. If you want to use <code>archinstall</code>, Calamares, or the distro installer yourself, do that first, reboot into the installed system, then run <code>bash quickstart.sh</code> there. QuickHatch will skip the base install and jump straight to post-install setup.',
+  },
+  debian:{
+    family:'debian',
+    liveBootLabel:'Boot the live desktop / "Try" session',
+    liveBootHint:'Ubuntu, Mint, Pop!_OS, Zorin, KDE Neon, and similar ISOs usually have a "Try" or live desktop option. Use that, not the installer.',
+    onlineHint:'Ethernet usually auto-connects. For Wi-Fi, use the desktop network menu or <code>nmcli device wifi connect SSID password ...</code>.',
+    mountTitle:'Find the USB that holds the QuickHatch bundle',
+    mountHint:'Most Debian-family live desktops auto-mount removable drives. If yours did not, mount it manually and verify the files are there.',
+    mountCommands:`mkdir -p /mnt/usb
+lsblk -f
+sudo mount /dev/sdX1 /mnt/usb
+ls /mnt/usb`,
+    copyTitle:'Copy the bundle to a writable location and run quickstart',
+    copyHint:'A temporary folder under <code>/tmp</code> or your live user&apos;s home is fine.',
+    runCommands:`cp -r /mnt/usb /tmp/quickhatch
+cd /tmp/quickhatch
+bash quickstart.sh`,
+    successHint:'Leave that terminal open. quickstart.sh brings up SSH, authorizes this PC, and prints the IP + username for the Remote setup step.',
+    alternativeTitle:'Prefer to install Linux yourself first?',
+    alternativeBody:'Also supported. Use the distro installer normally, reboot into the fresh install, then run <code>bash quickstart.sh</code> on the installed system. QuickHatch will detect that Linux is already installed and skip the install phase.',
+  },
+  fedora:{
+    family:'fedora',
+    liveBootLabel:'Boot the live desktop',
+    liveBootHint:'Fedora Workstation, Silverblue, Kinoite, Bazzite, Nobara, Rocky, and Alma usually boot into a live desktop. Stay there instead of launching the installer.',
+    onlineHint:'NetworkManager is available in the live session. Ethernet usually auto-connects; Wi-Fi works through the desktop menu or <code>nmcli</code>.',
+    mountTitle:'Find the USB that holds the QuickHatch bundle',
+    mountHint:'Fedora-family live desktops usually auto-mount removable drives under <code>/run/media</code>. If not, mount it manually and verify the files.',
+    mountCommands:`mkdir -p /mnt/usb
+lsblk -f
+sudo mount /dev/sdX1 /mnt/usb
+ls /mnt/usb`,
+    copyTitle:'Copy the bundle to a writable location and run quickstart',
+    copyHint:'Use a writable folder like <code>/var/tmp/quickhatch</code> or your live user&apos;s home.',
+    runCommands:`cp -r /mnt/usb /var/tmp/quickhatch
+cd /var/tmp/quickhatch
+bash quickstart.sh`,
+    successHint:'Leave that terminal open. quickstart.sh enables SSH, adds this PC&apos;s key, and prints the IP + username for the next step.',
+    alternativeTitle:'Prefer to install Linux yourself first?',
+    alternativeBody:'Also supported. Install Fedora / Silverblue / Bazzite / Nobara manually, reboot, and then run <code>bash quickstart.sh</code> on the installed system. QuickHatch will skip straight to drivers, desktop, and apps.',
+  },
+  opensuse:{
+    family:'opensuse',
+    liveBootLabel:'Boot the live session or rescue shell',
+    liveBootHint:'On openSUSE Tumbleweed / Leap, stay in the live environment if available. Do not start YaST if QuickHatch is doing the install.',
+    onlineHint:'Use the desktop network tools if present, or bring the network up before continuing.',
+    mountTitle:'Find the USB that holds the QuickHatch bundle',
+    mountHint:'openSUSE often auto-mounts removable drives. If not, mount the bundle USB manually and verify its contents.',
+    mountCommands:`mkdir -p /mnt/usb
+lsblk -f
+sudo mount /dev/sdX1 /mnt/usb
+ls /mnt/usb`,
+    copyTitle:'Copy the bundle to a writable location and run quickstart',
+    copyHint:'A writable temp directory like <code>/tmp/quickhatch</code> works fine.',
+    runCommands:`cp -r /mnt/usb /tmp/quickhatch
+cd /tmp/quickhatch
+bash quickstart.sh`,
+    successHint:'Leave that terminal open. quickstart.sh enables SSH, authorizes this PC, and prints the connection details for the next step.',
+    alternativeTitle:'Prefer to install Linux yourself first?',
+    alternativeBody:'Also supported. Use YaST / the distro installer first, reboot into the installed system, then run <code>bash quickstart.sh</code> there. QuickHatch will move straight to post-install configuration.',
+  },
+  nixos:{
+    family:'nixos',
+    liveBootLabel:'Boot the installer environment',
+    liveBootHint:'NixOS drops you into an installer shell. Stay there rather than starting any manual install flow if QuickHatch will handle it.',
+    onlineHint:'Ethernet is easiest. Bring up Wi-Fi first if needed before running the bundle.',
+    mountTitle:'Mount the USB that holds the QuickHatch bundle',
+    mountHint:'The NixOS installer shell usually needs a manual mount. Verify the files before continuing.',
+    mountCommands:`mkdir -p /mnt/usb
+lsblk -f
+mount /dev/sdX1 /mnt/usb
+ls /mnt/usb`,
+    copyTitle:'Copy the bundle to a writable location and run quickstart',
+    copyHint:'Copy it somewhere writable like <code>/root/quickhatch</code> first.',
+    runCommands:`cp -r /mnt/usb /root/quickhatch
+cd /root/quickhatch
+bash quickstart.sh`,
+    successHint:'Leave that terminal open. quickstart.sh enables SSH, authorizes this PC, and prints the connection details for the next step.',
+    alternativeTitle:'Prefer to install Linux yourself first?',
+    alternativeBody:'Also supported. If you prefer to complete a manual NixOS install first, reboot into the installed system and then run <code>bash quickstart.sh</code> there so QuickHatch can do the desktop/app layer.',
+  },
+  alpine:{
+    family:'alpine',
+    liveBootLabel:'Boot the Alpine live shell',
+    liveBootHint:'Alpine boots into a shell directly. Stay there if QuickHatch is handling the install.',
+    onlineHint:'Ethernet first if possible. Bring up Wi-Fi manually before continuing if needed.',
+    mountTitle:'Mount the USB that holds the QuickHatch bundle',
+    mountHint:'Alpine usually needs a manual mount for the bundle USB.',
+    mountCommands:`mkdir -p /mnt/usb
+lsblk -f
+mount /dev/sdX1 /mnt/usb
+ls /mnt/usb`,
+    copyTitle:'Copy the bundle to a writable location and run quickstart',
+    copyHint:'Use a writable path like <code>/root/quickhatch</code>.',
+    runCommands:`cp -r /mnt/usb /root/quickhatch
+cd /root/quickhatch
+bash quickstart.sh`,
+    successHint:'Leave that terminal open. quickstart.sh enables SSH, authorizes this PC, and prints the connection details for the next step.',
+    alternativeTitle:'Prefer to install Linux yourself first?',
+    alternativeBody:'Also supported. Install Alpine manually, reboot into the installed system, then run <code>bash quickstart.sh</code> there so QuickHatch can continue with the configured setup.',
+  },
+  void:{
+    family:'void',
+    liveBootLabel:'Boot the Void installer shell',
+    liveBootHint:'Stay in the installer environment if QuickHatch will do the install from there.',
+    onlineHint:'Get networking online first — Ethernet is simplest; Wi-Fi can be configured manually if needed.',
+    mountTitle:'Mount the USB that holds the QuickHatch bundle',
+    mountHint:'Void installer environments usually need a manual mount for removable drives.',
+    mountCommands:`mkdir -p /mnt/usb
+lsblk -f
+mount /dev/sdX1 /mnt/usb
+ls /mnt/usb`,
+    copyTitle:'Copy the bundle to a writable location and run quickstart',
+    copyHint:'Use a writable folder like <code>/root/quickhatch</code>.',
+    runCommands:`cp -r /mnt/usb /root/quickhatch
+cd /root/quickhatch
+bash quickstart.sh`,
+    successHint:'Leave that terminal open. quickstart.sh enables SSH, authorizes this PC, and prints the connection details for the next step.',
+    alternativeTitle:'Prefer to install Linux yourself first?',
+    alternativeBody:'Also supported. Install Void manually, reboot into the installed system, then run <code>bash quickstart.sh</code> there so QuickHatch can handle the desktop/app pass.',
+  },
+  gentoo:{
+    family:'gentoo',
+    liveBootLabel:'Boot the Gentoo live environment',
+    liveBootHint:'Stay in the live environment or installer shell if QuickHatch is handling the target-side steps.',
+    onlineHint:'Bring networking up first. Ethernet is simplest; configure Wi-Fi manually if needed.',
+    mountTitle:'Mount the USB that holds the QuickHatch bundle',
+    mountHint:'Gentoo live environments usually need a manual mount for removable drives.',
+    mountCommands:`mkdir -p /mnt/usb
+lsblk -f
+mount /dev/sdX1 /mnt/usb
+ls /mnt/usb`,
+    copyTitle:'Copy the bundle to a writable location and run quickstart',
+    copyHint:'Use a writable path like <code>/root/quickhatch</code>.',
+    runCommands:`cp -r /mnt/usb /root/quickhatch
+cd /root/quickhatch
+bash quickstart.sh`,
+    successHint:'Leave that terminal open. quickstart.sh enables SSH, authorizes this PC, and prints the connection details for the next step.',
+    alternativeTitle:'Prefer to install Linux yourself first?',
+    alternativeBody:'Also supported. Complete the Gentoo install manually, reboot into the installed system, then run <code>bash quickstart.sh</code> there so QuickHatch can continue with desktop/apps configuration.',
+  },
+};
+
+function normalizeDistroHint(value){
+  return String(value||'').trim().toLowerCase().replace(/\s+/g,'-');
+}
+
+function getDistroUsbGuide(distro){
+  const needle=normalizeDistroHint(distro);
+  const byAlias=[
+    {aliases:['arch','archlinux','arch-linux','endeavouros','endeavour','endeavour-os','eos','cachyos','cachy','cachy-os','garuda','garuda-linux','garuda-dr460nized','manjaro','manjaro-linux','manjarolinux','artix','artix-linux','artixlinux'], guide:'arch'},
+    {aliases:['fedora','fedora-workstation','fedora-ws','silverblue','fedora-silverblue','kinoite','fedora-kinoite','fedora-atomic','bazzite','ublue','universal-blue','nobara','nobara-linux','nobara-project','nobara-os','rocky','rocky-linux','rockylinux','alma','alma-linux','almalinux'], guide:'fedora'},
+    {aliases:['ubuntu','ubuntu-lts','ubuntu-desktop','ubuntu-server','debian','debian-stable','debian-bookworm','debian-trixie','mint','linux-mint','linuxmint','pop','pop-os','pop!_os','popos','zorin','zorin-os','zorinos','elementary','elementary-os','elementaryos','pantheon','kde-neon','kde-neon-user','neon','kdeneon','kali','kali-linux','kalilinux','kali-rolling','parrot','parrot-os','parrotos','parrot-security','parrotsec','mx','mx-linux','mxlinux'], guide:'debian'},
+    {aliases:['tumbleweed','opensuse-tumbleweed','opensuse','opensuse-tw','suse','leap','opensuse-leap'], guide:'opensuse'},
+    {aliases:['nixos','nix-os','nix'], guide:'nixos'},
+    {aliases:['alpine','alpine-linux'], guide:'alpine'},
+    {aliases:['void','void-linux','voidlinux'], guide:'void'},
+    {aliases:['gentoo','gentoo-linux'], guide:'gentoo'},
+  ];
+  for(const entry of byAlias){
+    if(entry.aliases.includes(needle))return DISTRO_USB_GUIDES[entry.guide];
+  }
+  return DISTRO_USB_GUIDES.generic;
+}
+
+function codeBlockHtml(text){
+  return `<pre class="md-code">${escHtml(text).trim()}</pre>`;
+}
 function exportResultCard(data){
   if(!data||data.status!=='ok')return'';
   const fileList=(data.files||[]).map(f=>`<li>${escHtml(f)}</li>`).join('');
@@ -1648,27 +1857,21 @@ const stepRenderers={
 
   usb(){
     const distro=state.profile.preferences?.distro_preference||'your chosen distro';
-    const distroLower=String(distro).toLowerCase();
     const offlineMode=(state.profile.preferences?.another_machine||'')==='no';
-    const liveBootLabel=distroLower.includes('arch')
-      ? 'Use the default boot entry'
-      : 'Pick "Try / Live" if the ISO offers it';
-    const liveBootHint=distroLower.includes('arch')
-      ? 'Arch boots straight into its live shell. Do not start archinstall if QuickHatch will perform the install.'
-      : 'Do NOT click Install in the live menu — boot into the live environment, and the script will do the install.';
+    const guide=getDistroUsbGuide(distro);
     // Step 5/6 depend on whether the agent is live over SSH (agentic) or
     // the user runs the AI-written script locally (offline single-machine).
     const step6 = offlineMode
       ? `<div class="guide-step"><div class="guide-num">6</div><div class="guide-text">Run <code>sudo bash install.sh</code><span>The script you got in your bundle. It asks you to retype the target disk to confirm, then partitions, installs the base system + desktop + apps, and reboots. Post-install config runs on first boot automatically.</span></div></div>`
-      : `<div class="guide-step"><div class="guide-num">6</div><div class="guide-text">Run <code>bash quickstart.sh</code><span>It detects the live env, enables SSH, adds this PC's key, prints the IP. Leave the terminal open afterwards — the agent will install the distro, reboot, and reconnect automatically.</span></div></div>`;
+      : `<div class="guide-step"><div class="guide-num">6</div><div class="guide-text">${guide.copyTitle}<span>${guide.copyHint}</span>${codeBlockHtml(guide.runCommands)}<div class="muted" style="font-size:var(--t-xs);margin-top:var(--s2)">${guide.successHint}</div></div></div>`;
     const tail = offlineMode
       ? `<div class="info-box" style="margin-top:var(--s3)">
             <strong>No agent during install</strong>
             <p style="margin:var(--s2) 0 0 0">Since you picked single-machine mode, the AI already wrote the whole plan up front as <code>install.sh</code>. There's no SSH loop, no second device needed. If something goes wrong mid-install, logs land in <code>/var/log/quickhatch-firstboot.log</code> on the installed system.</p>
           </div>`
       : `<div class="info-box" style="margin-top:var(--s3)">
-            <strong>Prefer to install Linux yourself first?</strong>
-            <p style="margin:var(--s2) 0 0 0">Also supported. Click Install in the live menu, pick a username/password in the distro installer, reboot into the fresh install, then run <code>bash quickstart.sh</code> on the installed system. The agent detects "installed" vs "live" automatically and skips straight to desktop + drivers + apps configuration.</p>
+            <strong>${guide.alternativeTitle}</strong>
+            <p style="margin:var(--s2) 0 0 0">${guide.alternativeBody}</p>
           </div>`;
     const subtitle = offlineMode
       ? `Flash the ISO, boot into the live environment, and run <code>install.sh</code> from your bundle. No agent, no SSH — the full install was baked into the script up front.`
@@ -1686,9 +1889,9 @@ const stepRenderers={
           <div class="guide-steps">
             <div class="guide-step"><div class="guide-num">1</div><div class="guide-text">Plug the USB into the target PC<span>If you're going to copy the export bundle over, a second USB is handy.</span></div></div>
             <div class="guide-step"><div class="guide-num">2</div><div class="guide-text">Boot from USB<span>Enter BIOS/UEFI (F2, F12, Del, or Esc during boot) and move the USB to the top of the boot order.</span></div></div>
-            <div class="guide-step"><div class="guide-num">3</div><div class="guide-text">${liveBootLabel}<span>${liveBootHint}</span></div></div>
-            <div class="guide-step"><div class="guide-num">4</div><div class="guide-text">Get online<span>Ethernet works out of the box. Wi-Fi: <code>nmcli device wifi connect SSID password …</code> or <code>iwctl</code> on Arch-based live envs.</span></div></div>
-            <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">Copy the QuickHatch bundle onto the live env<span>Use a second USB or another removable drive. Do not rely on <code>scp</code> yet — SSH only comes online after <code>quickstart.sh</code> runs.</span></div></div>
+            <div class="guide-step"><div class="guide-num">3</div><div class="guide-text">${guide.liveBootLabel}<span>${guide.liveBootHint}</span></div></div>
+            <div class="guide-step"><div class="guide-num">4</div><div class="guide-text">Get online<span>${guide.onlineHint}</span></div></div>
+            <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">${guide.mountTitle}<span>${guide.mountHint}</span>${codeBlockHtml(guide.mountCommands)}<div class="muted" style="font-size:var(--t-xs);margin-top:var(--s2)">Replace <code>/dev/sdX1</code> with the actual bundle USB partition. Do not rely on <code>scp</code> yet — SSH only comes online after <code>quickstart.sh</code> runs.</div></div></div>
             ${step6}
           </div>
         </div>
@@ -1710,10 +1913,8 @@ const stepRenderers={
     const isAPI=['api_anthropic','api_openai','api_gemini','api_grok','api_custom'].includes(provider);
     const anotherMachine=state.profile.preferences?.another_machine||'';
     const offlineMode=anotherMachine==='no';
-    const distroLower=String(state.profile.preferences?.distro_preference||'').toLowerCase();
-    const liveBootLabel=distroLower.includes('arch')
-      ? 'Boot the default live shell on the target'
-      : 'Boot the live environment on the target';
+    const distro=state.profile.preferences?.distro_preference||'your chosen distro';
+    const guide=getDistroUsbGuide(distro);
     const sshContinueEnabled=hasKey||state._sshSkipped;
     const sshContinueLabel=hasKey||state._sshSkipped?'Continue':'Generate a key, save your own .pub path, or pick manual mode';
 
@@ -1772,19 +1973,8 @@ const stepRenderers={
         </div>
 
         <div class="info-box" style="margin-top:var(--s3)">
-          <strong>The whole Linux-side flow</strong>
-          <ol>
-            <li><strong>Flash</strong> your distro ISO to a USB with Rufus.</li>
-            <li><strong>Boot the live environment</strong> on the target — if the ISO offers "Try / Live", pick it. On Arch, use the default live shell and skip <code>archinstall</code>.</li>
-            <li><strong>Plug in</strong> the QuickHatch bundle (second USB or another removable drive).</li>
-            <li><strong>Run one command</strong>: <code>bash quickstart.sh</code>. That installs SSH, adds this PC's key, prints your IP + the fact that it's a live env.</li>
-            <li><strong>Come back here</strong>, paste the IP into Remote Setup, click Start. The agent detects the live env, installs the distro from scratch, reboots, reconnects, and configures desktop + drivers + apps. <strong>No installer clicks needed.</strong></li>
-          </ol>
-          <p class="muted" style="font-size:var(--t-xs);margin-top:var(--s2)">One Rufus flash, one boot, one command. Everything else is automated by the agent.</p>
-        </div>
-        <div class="info-box" style="margin-top:var(--s3)">
-          <strong>Alternative: install Linux yourself first</strong>
-          <p style="margin:var(--s2) 0 0 0">If you'd rather go through your distro's installer manually (pick partitions, user, password), that also works. Install Linux normally, then run <code>bash quickstart.sh</code> on the installed system. The same script detects "installed" vs "live" and adapts — the agent skips the install phase and goes straight to desktop config.</p>
+          <strong>Target-side guide is on the previous step</strong>
+          <p style="margin:var(--s2) 0 0 0">Use <strong>Bootable USB</strong> for the exact ${escHtml(guide.family)}-style instructions: boot mode, network note, mount/copy commands, and the <code>quickstart.sh</code> command block. This step is only about getting the SSH key into the export bundle.</p>
         </div>
 
         <div class="info-box info-warn" style="margin-top:var(--s3)">

@@ -282,10 +282,39 @@ class TestFrontendProfileSync:
         root = Path(__file__).resolve().parent.parent
         html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
         assert "Do not rely on <code>scp</code> yet" in html
+        assert "Replace <code>/dev/sdX1</code> with the actual bundle USB partition." in html
+
+    def test_bootable_usb_uses_curated_distro_family_guides(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "const DISTRO_USB_GUIDES=" in html
+        assert "function getDistroUsbGuide(distro)" in html
+        assert "guide.mountCommands" in html
+        assert "guide.runCommands" in html
+        assert "Arch boots straight into a root shell." in html
         assert (
-            "Plug in</strong> the QuickHatch bundle (second USB or another removable drive)."
+            'Ubuntu, Mint, Pop!_OS, Zorin, KDE Neon, and similar ISOs usually have a "Try" or live desktop option.'
             in html
         )
+        assert (
+            "Fedora Workstation, Silverblue, Kinoite, Bazzite, Nobara, Rocky, and Alma usually boot into a live desktop."
+            in html
+        )
+        assert (
+            "Stay in the live environment or installer shell if QuickHatch is handling the target-side steps."
+            in html
+        )
+
+    def test_ssh_step_no_longer_duplicates_full_usb_walkthrough(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "Target-side guide is on the previous step" in html
+        assert "This step is only about getting the SSH key into the export bundle." in html
+        assert "The whole Linux-side flow" not in html
 
     def test_bring_your_own_key_path_is_saved_instead_of_only_skipped(self):
         from pathlib import Path
