@@ -961,7 +961,69 @@ let state={
   galleryFilters:{de:'all',mood:'all',busyness:'all',verifiedOnly:false},
   _profileRequestSeq:0,
   _profileAppliedSeq:0,
+  _autosaveTimers:{},
+  _draft:null,
 };
+
+const WIZARD_DRAFT_KEY='qh-wizard-draft-v1';
+
+function loadWizardDraft(){
+  try{
+    const raw=localStorage.getItem(WIZARD_DRAFT_KEY);
+    return raw?JSON.parse(raw):{};
+  }catch(_){
+    return {};
+  }
+}
+
+function saveWizardDraft(){
+  try{
+    localStorage.setItem(WIZARD_DRAFT_KEY, JSON.stringify(state._draft||{}));
+  }catch(_){}
+}
+
+function getPath(obj, path){
+  return String(path||'').split('.').reduce((cur, key)=>(
+    cur&&Object.prototype.hasOwnProperty.call(cur,key)?cur[key]:undefined
+  ), obj);
+}
+
+function setDraftValue(path, value){
+  if(!state._draft)state._draft={};
+  const keys=String(path||'').split('.');
+  let cur=state._draft;
+  for(let i=0;i<keys.length-1;i++){
+    const key=keys[i];
+    if(!cur[key]||typeof cur[key]!=='object')cur[key]={};
+    cur=cur[key];
+  }
+  cur[keys[keys.length-1]]=value;
+  saveWizardDraft();
+}
+
+function clearDraftValue(path){
+  if(!state._draft)return;
+  const keys=String(path||'').split('.');
+  let cur=state._draft;
+  for(let i=0;i<keys.length-1;i++){
+    cur=cur&&cur[keys[i]];
+    if(!cur||typeof cur!=='object')return;
+  }
+  delete cur[keys[keys.length-1]];
+  saveWizardDraft();
+}
+
+function draftOr(path, fallback){
+  const value=getPath(state._draft||{}, path);
+  return value===undefined?fallback:value;
+}
+
+function queueAutosave(key, fn, delayMs=450){
+  clearTimeout(state._autosaveTimers[key]);
+  state._autosaveTimers[key]=setTimeout(async()=>{
+    try{await fn();}catch(_){}
+  }, delayMs);
+}
 
 async function api(path,method='GET',body=null){
   const opts={method,headers:{'Content-Type':'application/json'}};
@@ -975,7 +1037,8 @@ function applyServerProfile(profile, seq){
   state._profileAppliedSeq=seq||0;
   state.profile=profile;
   state.completedSteps=state.profile.completed_steps||[];
-  state.galleryPinned=[...(state.profile?.preferences?.gallery_picks||[])];
+  const draftPicks=draftOr('preferences.gallery_picks', undefined);
+  state.galleryPinned=[...((Array.isArray(draftPicks)&&draftPicks.length)?draftPicks:(state.profile?.preferences?.gallery_picks||[]))];
   refreshSteps();
   return true;
 }
@@ -1031,7 +1094,7 @@ async function saveProfile(updates, opts){
   const resp=await api('/wizard/update','POST',updates);
   if(!resp||resp.status!=='ok'){
     const message=(resp&&resp.message)||'Could not save your changes.';
-    toast(message,'error');
+    if(!(opts&&opts.silentError))toast(message,'error');
     throw new Error(message);
   }
   if(resp&&resp.profile){
@@ -1110,6 +1173,8 @@ function toggleGalleryPin(recipeId){
     picks.push(recipeId);
   }
   state.galleryPinned=picks;
+  setDraftValue('preferences.gallery_picks', picks);
+  queueAutosave('questionnaire', ()=>saveProfile({preferences:{gallery_picks:[...(state.galleryPinned||[])]}}, {silentError:true}));
   render();
 }
 function filteredGalleryEntries(){
@@ -1331,8 +1396,10 @@ const stepRenderers={
 
   questionnaire(){
     const prefs=currentPrefs();
-    const useCasesText=Array.isArray(prefs.use_cases)?prefs.use_cases.join(', '):(prefs.use_cases||'');
-    const anotherMachine=(prefs.another_machine||'');
+    const useCasesText=draftOr('preferences.use_cases_text', Array.isArray(prefs.use_cases)?prefs.use_cases.join(', '):(prefs.use_cases||''));
+    const anotherMachine=draftOr('preferences.another_machine', (prefs.another_machine||''));
+    const designDesc=draftOr('preferences.desktop_look', prefs.desktop_look||'');
+    const distroPref=draftOr('preferences.distro_preference', prefs.distro_preference||'');
     const customize=isCustomizeMode();
     content().innerHTML=`
       <div class="card">
@@ -1341,19 +1408,19 @@ const stepRenderers={
 
         <div class="field">
           <label>How should it look?</label>
-          <textarea id="designDescription" rows="5" placeholder="e.g. 'Dark, minimal, macOS-inspired. I like warm neutral colors, subtle blur on active windows, a clean centered bar at the top. No cluttered widgets. Nerd font for code.'">${escHtml(prefs.desktop_look||'')}</textarea>
+          <textarea id="designDescription" rows="5" placeholder="e.g. 'Dark, minimal, macOS-inspired. I like warm neutral colors, subtle blur on active windows, a clean centered bar at the top. No cluttered widgets. Nerd font for code.'" oninput="persistQuestionnaireDraft()">${escHtml(designDesc)}</textarea>
           <div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Mention anything that matters: colors, fonts, panel style, window decorations, overall mood. The more specific, the closer the match.</div>
         </div>
 
         <div class="field">
           <label>What will you use this machine for?</label>
-          <input type="text" id="useCasesText" value="${escHtml(useCasesText)}" placeholder="e.g. web development in Rust and Python, some writing, occasional gaming">
+          <input type="text" id="useCasesText" value="${escHtml(useCasesText)}" placeholder="e.g. web development in Rust and Python, some writing, occasional gaming" oninput="persistQuestionnaireDraft()">
           <div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Comma-separated. Affects app suggestions and which designs get prioritized.</div>
         </div>
 
         ${customize?'':`<div class="field">
           <label>Preferred Linux distribution <span class="muted" style="font-weight:400">(optional)</span></label>
-          <input type="text" id="distroPref" value="${escHtml(prefs.distro_preference||'')}" placeholder="Leave blank and the AI will recommend one based on your hardware">
+          <input type="text" id="distroPref" value="${escHtml(distroPref)}" placeholder="Leave blank and the AI will recommend one based on your hardware" oninput="persistQuestionnaireDraft()">
         </div>`}
 
         ${customize?'':`
@@ -1380,7 +1447,7 @@ const stepRenderers={
     const scanDesc=isCustomizeMode()
       ?'Reads your hardware, installed packages, and desktop settings. No network calls, nothing leaves this machine.'
       :'Reads your hardware, installed apps, and settings. Runs locally — nothing leaves this machine.';
-    const existingOverride=state.profile.target_hardware_override||'';
+    const existingOverride=draftOr('target_hardware_override', state.profile.target_hardware_override||'');
     content().innerHTML=`
       <div class="card">
         <h2>Scan this machine</h2>
@@ -1396,7 +1463,7 @@ const stepRenderers={
             <div class="muted" style="font-size:var(--t-xs);margin-bottom:var(--s2);line-height:1.5">
               Example: "Target is a ThinkPad X1 Carbon Gen 11 — Intel i7-1365U, 32GB RAM, Intel Iris Xe GPU (no NVIDIA), Intel AX211 WiFi + Bluetooth 5.3, 1TB NVMe, UEFI with Secure Boot off." Anything you don't mention, the agent will assume matches this machine's scan above.
             </div>
-            <textarea id="targetOverrideText" rows="5" placeholder="CPU / GPU / RAM / storage / WiFi chipset / anything unusual…">${escHtml(existingOverride)}</textarea>
+            <textarea id="targetOverrideText" rows="5" placeholder="CPU / GPU / RAM / storage / WiFi chipset / anything unusual…" oninput="persistTargetOverrideDraft()">${escHtml(existingOverride)}</textarea>
             <div class="stack-h" style="gap:var(--s2);margin-top:var(--s2)">
               <button class="btn btn-primary btn-sm" onclick="saveTargetOverride()">Save description</button>
               ${existingOverride?'<button class="btn btn-ghost btn-sm" onclick="clearTargetOverride()">Remove — install for this machine</button>':''}
@@ -1413,9 +1480,11 @@ const stepRenderers={
 
   apps_data(){
     const apps=state.profile.apps||[];
-    const prev=state.profile.apps_to_install||[];
+    const prev=draftOr('apps_to_install', state.profile.apps_to_install||[]);
     state._appsPrev=new Set(prev);
     state._appsSelected=new Set(prev);
+    const dataTransferValue=draftOr('data_transfer_method', state.profile.data_transfer_method||'');
+    const dataDescriptionValue=draftOr('data_description', state.profile.data_description||'');
 
     const empty=!apps.length;
     content().innerHTML=`
@@ -1463,7 +1532,7 @@ const stepRenderers={
               ['keep_windows', 'Keep Windows around', 'Dual-boot or network share — Windows stays reachable'],
               ['nothing', 'Nothing to move', 'Fresh start, no data to carry over'],
             ].map(([v,t,d])=>`
-              <div class="choice${state.profile.data_transfer_method===v?' selected':''}" data-value="${v}" onclick="selectChoice('dataTransfer',this)">
+              <div class="choice${dataTransferValue===v?' selected':''}" data-value="${v}" onclick="selectChoice('dataTransfer',this)">
                 <div class="title">${t}</div>
                 <div class="desc">${d}</div>
               </div>`).join('')}
@@ -1473,7 +1542,7 @@ const stepRenderers={
         <div class="field">
           <label>What's important?</label>
           <p class="muted" style="font-size:var(--t-xs);margin-bottom:var(--s2)">Tell the agent what to watch for — it'll include the specific steps in the plan.</p>
-          <textarea id="dataDesc" placeholder="e.g. browser bookmarks and passwords, Documents and Pictures folders, game saves in %APPDATA%, SSH keys, Git repos, IDE settings…">${escHtml(state.profile.data_description||'')}</textarea>
+          <textarea id="dataDesc" placeholder="e.g. browser bookmarks and passwords, Documents and Pictures folders, game saves in %APPDATA%, SSH keys, Git repos, IDE settings…" oninput="persistAppsDataDraft()">${escHtml(dataDescriptionValue)}</textarea>
         </div>`:(isCustomizeMode()?'':`
         <div class="info-box">
           <strong>Offline install — data transfer is manual.</strong>
@@ -1492,12 +1561,13 @@ const stepRenderers={
   },
 
   additional(){
+    const additionalInfo=draftOr('additional_info', state.profile.additional_info||'');
     content().innerHTML=`
       <div class="card">
         <h2>Anything else?</h2>
         <p class="subtitle">Special setups the agent should know about — dual-boot, encryption, HiDPI, a specific kernel, hardware quirks. Skip if nothing comes to mind.</p>
         <div class="field">
-          <textarea id="additionalInfo" placeholder="e.g. dual-boot with Windows on the second drive, Btrfs with snapshots, enable full-disk encryption, HiDPI scaling at 200%, liquid-cooling pump on a custom fan curve…">${escHtml(state.profile.additional_info||'')}</textarea>
+          <textarea id="additionalInfo" placeholder="e.g. dual-boot with Windows on the second drive, Btrfs with snapshots, enable full-disk encryption, HiDPI scaling at 200%, liquid-cooling pump on a custom fan curve…" oninput="persistAdditionalDraft()">${escHtml(additionalInfo)}</textarea>
         </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
@@ -2127,6 +2197,7 @@ function selectChoice(gid,elem){
   document.querySelectorAll(`#${gid} .choice`).forEach(c=>c.classList.remove('selected'));
   elem.classList.add('selected');
   if(gid==='aiChoice') showAIExtra(elem.dataset.value);
+  if(gid==='dataTransfer') persistAppsDataDraft();
 }
 function aiAvailabilityCallout(provider){
   const local = ['local_lmstudio','local_ollama','codex'].includes(provider);
@@ -2263,6 +2334,54 @@ function toggleCustomField(sel,inputId){
   else{inp.classList.add('hidden');inp.value=''}
 }
 
+function persistQuestionnaireDraft(){
+  const designDesc=((el('designDescription')||{}).value||'').trim();
+  const useCasesText=((el('useCasesText')||{}).value||'').trim();
+  const distroPref=((el('distroPref')||{}).value||'').trim();
+  const grid=el('anotherMachineGrid');
+  const sel=grid?grid.querySelector('.pill.selected'):null;
+  const anotherMachine=sel?sel.dataset.value:(state.profile?.preferences?.another_machine||'');
+  setDraftValue('preferences.desktop_look', designDesc);
+  setDraftValue('preferences.use_cases_text', useCasesText);
+  setDraftValue('preferences.distro_preference', distroPref);
+  setDraftValue('preferences.another_machine', anotherMachine||'');
+  setDraftValue('preferences.gallery_picks', [...(state.galleryPinned||[])]);
+  queueAutosave('questionnaire', ()=>saveProfile({
+    preferences:{
+      desktop_look:designDesc,
+      use_cases:useCasesText?useCasesText.split(',').map(s=>s.trim()).filter(Boolean):[],
+      distro_preference:distroPref||null,
+      another_machine:anotherMachine||'',
+      gallery_picks:[...(state.galleryPinned||[])],
+    }
+  }, {silentError:true}));
+}
+
+function persistTargetOverrideDraft(){
+  const text=((el('targetOverrideText')||{}).value||'').trim();
+  setDraftValue('target_hardware_override', text);
+}
+
+function persistAppsDataDraft(){
+  const checked=state._appsSelected?[...state._appsSelected]:[...document.querySelectorAll('.app-check:checked')].map(c=>c.value);
+  const transfer=el('dataTransfer')?getSelected('dataTransfer'):'';
+  const desc=((el('dataDesc')||{}).value||'');
+  setDraftValue('apps_to_install', checked);
+  setDraftValue('data_transfer_method', transfer||'');
+  setDraftValue('data_description', desc);
+  queueAutosave('apps_data', ()=>saveProfile({
+    apps_to_install:checked,
+    ...(el('dataTransfer')?{data_transfer_method:transfer||''}:{}),
+    ...(el('dataDesc')?{data_description:desc}:{})
+  }, {silentError:true}));
+}
+
+function persistAdditionalDraft(){
+  const text=((el('additionalInfo')||{}).value||'');
+  setDraftValue('additional_info', text);
+  queueAutosave('additional', ()=>saveProfile({additional_info:text}, {silentError:true}));
+}
+
 // ── Submitters ──
 async function submitWelcome(){
   const t=getSelected('migType');if(!t)return;
@@ -2359,6 +2478,11 @@ async function submitPrefs(){
     extra.data_transfer_method='';
   }
   await saveProfile({preferences:prefs,...extra});
+  clearDraftValue('preferences.desktop_look');
+  clearDraftValue('preferences.use_cases_text');
+  clearDraftValue('preferences.distro_preference');
+  clearDraftValue('preferences.another_machine');
+  clearDraftValue('preferences.gallery_picks');
   // Step list depends on another_machine: refresh now so the next
   // render shows the correct subsequent steps.
   refreshSteps();
@@ -2379,6 +2503,7 @@ async function saveTargetOverride(){
   if(!text){toast('Enter a description first — or click Remove to clear.','error');return;}
   await saveProfile({target_hardware_override:text});
   state.profile.target_hardware_override=text;
+  clearDraftValue('target_hardware_override');
   toast('Target hardware description saved — agent will plan for it.','success');
   const btn=el('overrideToggle'); if(btn) btn.textContent='Edit target hardware';
 }
@@ -2390,6 +2515,7 @@ async function autoSaveTargetOverrideIfNeeded(){
   if(text===(state.profile?.target_hardware_override||''))return false;
   await saveProfile({target_hardware_override:text});
   state.profile.target_hardware_override=text;
+  clearDraftValue('target_hardware_override');
   const btn=el('overrideToggle'); if(btn) btn.textContent='Edit target hardware';
   return true;
 }
@@ -2397,6 +2523,7 @@ async function autoSaveTargetOverrideIfNeeded(){
 async function clearTargetOverride(){
   await saveProfile({target_hardware_override:''});
   state.profile.target_hardware_override='';
+  clearDraftValue('target_hardware_override');
   const ta=el('targetOverrideText'); if(ta) ta.value='';
   const panel=el('overridePanel'); if(panel) panel.classList.add('hidden');
   const btn=el('overrideToggle'); if(btn) btn.textContent='Install for different hardware';
@@ -2551,12 +2678,14 @@ function toggleGroup(btn){
     if(anyUnchecked)state._appsSelected.add(c.value);else state._appsSelected.delete(c.value);
   });
   updateAppsStats();
+  persistAppsDataDraft();
 }
 
 function onAppToggle(cb){
   if(cb.checked)state._appsSelected.add(cb.value);
   else state._appsSelected.delete(cb.value);
   updateAppsStats();
+  persistAppsDataDraft();
 }
 
 function filterApps(){
@@ -2582,6 +2711,7 @@ function appsBulk(select){
     else state._appsSelected.delete(c.value);
   });
   updateAppsStats();
+  persistAppsDataDraft();
 }
 
 function appsSmartSelect(){
@@ -2596,6 +2726,7 @@ function appsSmartSelect(){
     if(should)state._appsSelected.add(cb.value);else state._appsSelected.delete(cb.value);
   });
   updateAppsStats();
+  persistAppsDataDraft();
 }
 
 function updateAppsStats(){
@@ -2630,6 +2761,9 @@ async function submitAppsData(){
     payload.data_description=descEl.value||'';
   }
   await saveProfile(payload);
+  clearDraftValue('apps_to_install');
+  clearDraftValue('data_transfer_method');
+  clearDraftValue('data_description');
   await completeStep('apps_data');
 }
 
@@ -2638,6 +2772,7 @@ async function submitAdditional(){
   // handler is now just the free-text notes field.
   const payload={additional_info:el('additionalInfo').value};
   await saveProfile(payload);
+  clearDraftValue('additional_info');
   await completeStep('additional');
 }
 
@@ -2645,6 +2780,7 @@ function pickAnotherMachine(el){
   const grid=el.parentElement;
   grid.querySelectorAll('.pill').forEach(p=>p.classList.remove('selected'));
   el.classList.add('selected');
+  persistQuestionnaireDraft();
 }
 
 async function launchAgent(){
@@ -3450,6 +3586,7 @@ document.addEventListener('click',(ev)=>{
   if(inp)inp.value=val==null?'':val;
 });
 (async()=>{
+  state._draft=loadWizardDraft();
   await loadProfile();
   render();
   // Best-effort version fetch for the footer badge

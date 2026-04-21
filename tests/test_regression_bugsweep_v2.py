@@ -242,6 +242,19 @@ class TestFrontendProfileSync:
         assert 'onclick="completeScanStep()"' in html
         assert "async function completeScanStep()" in html
 
+    def test_wizard_uses_local_draft_and_silent_autosave_for_mid_step_fields(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "const WIZARD_DRAFT_KEY='qh-wizard-draft-v1';" in html
+        assert "state._draft=loadWizardDraft();" in html
+        assert 'oninput="persistQuestionnaireDraft()"' in html
+        assert 'oninput="persistAppsDataDraft()"' in html
+        assert 'oninput="persistAdditionalDraft()"' in html
+        assert "saveProfile({additional_info:text}, {silentError:true})" in html
+        assert "saveProfile({\n    preferences:{" in html or "saveProfile({preferences:{" in html
+
     def test_export_step_keeps_success_visible_until_user_continues(self):
         from pathlib import Path
 
