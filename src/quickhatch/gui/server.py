@@ -1439,15 +1439,18 @@ def _call_openai_with_tools(
     messages: list[dict],
     api_key: str | None,
     bridge: BridgeState,
+    provider: str | None = None,
     max_rounds: int = 10,
 ) -> str:
     """Call an OpenAI-compatible API with tool-use loop (LM Studio, OpenAI)."""
     import requests
 
+    from quickhatch.ai.model_list import chat_completions_url
+
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
-    url = f"{endpoint.rstrip('/')}/chat/completions"
+    url = chat_completions_url(provider, endpoint)
 
     tools_supported = True
 
@@ -1613,145 +1616,47 @@ def _call_anthropic_with_tools(
     return "\n".join(b["text"] for b in data["content"] if b["type"] == "text")
 
 
+def _call_model_analysis(
+    endpoint: str,
+    model: str,
+    prompt: str,
+    api_key: str | None,
+    bridge: BridgeState,
+    provider: str | None = None,
+) -> str:
+    """Run an analysis-section model call with tool use when supported."""
+    from quickhatch.ai.model_list import is_anthropic
+
+    if is_anthropic(provider):
+        return _call_anthropic_with_tools(
+            api_key or "",
+            model,
+            [{"role": "user", "content": prompt}],
+            "",
+            bridge,
+        )
+    return _call_openai_with_tools(
+        endpoint,
+        model,
+        [{"role": "user", "content": prompt}],
+        api_key,
+        bridge,
+        provider=provider,
+    )
+
+
 def _prefetch_search_context(
     profile: UserProfile, bridge: BridgeState
 ) -> tuple[str, list[dict[str, str]]]:
-    """Run targeted searches based on the user's profile.
+    """Legacy seam kept for compatibility; analysis no longer prefetches web data.
 
-    Returns (search_context_text, desktop_images) where desktop_images is a list
-    of {"title": ..., "url": ...} dicts to be injected directly into the desktop section.
+    The selected model now decides whether to use web_search/image_search.
+    Keeping this helper avoids wider churn in tests and call sites while
+    making the analysis path deterministic: no harness-generated hardware
+    searches, no raw-GPU loops, no duplicate search spam.
     """
-    context_parts: list[str] = []
-    desktop_images: list[dict[str, str]] = []
-
-    # Build search queries from profile data
-    queries: list[tuple[str, str]] = []  # (label, query)
-
-    # Use the current year so searches don't drift stale. Using the
-    # literal year ensures DuckDuckGo returns recent results for rapidly
-    # evolving topics like GPU driver support.
-    from datetime import date as _date
-
-    year = _date.today().year
-
-    # GPU driver search
-    gpus = getattr(profile, "hardware", None) and profile.hardware.gpus or []
-    for gpu in gpus:
-        if gpu.name:
-            queries.append(("GPU driver", f"Linux driver support {gpu.name} {year}"))
-
-    # WiFi search
-    hw = getattr(profile, "hardware", None)
-    if hw and hw.wifi_adapters:
-        for adapter in hw.wifi_adapters[:1]:
-            queries.append(("WiFi", f"Linux driver {adapter} compatibility"))
-
-    # Distro search based on use cases
-    prefs = getattr(profile, "preferences", None)
-    use_cases = prefs.use_cases if prefs else []
-    if use_cases:
-        queries.append(("Distro", f"best Linux distro for {' and '.join(use_cases[:3])} {year}"))
-
-    # Desktop environment search based on look preference
-    look = prefs.desktop_look if prefs else ""
-    if look:
-        look_desc = {
-            "windows_like": "Windows-like taskbar",
-            "macos_like": "macOS-like dock",
-            "minimal": "minimal clean",
-            "tiling": "tiling window manager",
-        }.get(look, look)
-        queries.append(("Desktop", f"Linux desktop environment {look_desc} screenshot"))
-
-    # Execute text searches
-    for label, query in queries:
-        bridge.add_message("agent", f"Searching: {query}")
-        result = _execute_web_search(query, max_results=4)
-        try:
-            data = json.loads(result)
-            results = data.get("results", [])
-            if results:
-                context_parts.append(f'### Search: {label} — "{query}"')
-                for r in results:
-                    context_parts.append(f"- [{r['title']}]({r['url']}): {r['snippet'][:200]}")
-                context_parts.append("")
-        except (json.JSONDecodeError, KeyError):
-            pass
-
-    # Image searches for desktop visuals — run multiple to get variety
-    image_queries: list[tuple[str, str]] = []
-    if look:
-        de_map = {
-            "windows_like": [
-                "KDE Plasma Windows 11 theme desktop screenshot",
-                "Linux Windows-like desktop customization",
-            ],
-            "macos_like": [
-                "GNOME macOS WhiteSur theme desktop screenshot",
-                "Linux macOS style desktop customization",
-            ],
-            "minimal": [
-                "minimal Linux desktop rice screenshot",
-                "clean minimal GNOME desktop",
-            ],
-            "tiling": [
-                "i3wm tiling desktop rice screenshot",
-                "Hyprland tiling window manager desktop",
-            ],
-        }
-        for q in de_map.get(look, [f"Linux {look} desktop screenshot"]):
-            image_queries.append(("Desktop preview", q))
-
-    # Also search for the icon style
-    icon_style = prefs.icon_style if prefs else ""
-    if icon_style and icon_style not in ("default", "custom"):
-        image_queries.append(("Icon preview", f"Linux {icon_style} icon theme pack screenshot"))
-
-    for label, query in image_queries:
-        bridge.add_message("agent", f"Finding images: {query}")
-        result = _execute_image_search(query, max_results=5)
-        try:
-            data = json.loads(result)
-            images = data.get("images", [])
-            for img in images:
-                url = img.get("url", "")
-                if not url:
-                    continue
-                # Skip URLs known to block hotlinking
-                if any(
-                    bad in url.lower()
-                    for bad in ["imgur.com", "pinterest.", "instagram.", "facebook."]
-                ):
-                    continue
-                desktop_images.append({"title": img.get("title", label), "url": url})
-        except (json.JSONDecodeError, KeyError):
-            pass
-
-    # Validate image URLs — keep only those that actually load
-    if desktop_images:
-        import requests as img_req
-
-        validated: list[dict[str, str]] = []
-        for img in desktop_images:
-            if len(validated) >= 4:
-                break  # enough good images
-            try:
-                resp = img_req.head(
-                    img["url"],
-                    timeout=5,
-                    allow_redirects=True,
-                    headers={
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-                    },
-                )
-                ct = resp.headers.get("content-type", "")
-                if resp.status_code == 200 and "image" in ct:
-                    validated.append(img)
-            except Exception:
-                pass
-        desktop_images = validated
-
-    return "\n".join(context_parts), desktop_images
+    del profile, bridge
+    return "", []
 
 
 def _trim_text(value: Any, *, limit: int = 600) -> str:
@@ -2612,8 +2517,9 @@ def _post_openai_compat(url: str, api_key: str | None, body: dict) -> str:
 def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "") -> None:
     """Run the AI agent in a background thread, posting results to the bridge.
 
-    Strategy: pre-fetch live search results, then call the model once per section.
-    This avoids relying on tool-use support and produces clean Markdown output.
+    Strategy: build one prompt per section and let the selected model decide
+    whether to use web-search tools. The harness supplies authoritative facts,
+    not precomputed hardware search queries.
     """
     import requests as req
 
@@ -2627,12 +2533,8 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
     try:
         bridge.add_message("agent", "Connected — reading your profile.")
 
-        # Phase 1: Pre-fetch search results and desktop images
-        bridge.add_message("agent", "Gathering live data from the web…")
-        search_context, desktop_images = _prefetch_search_context(gui_state.profile, bridge)
-
-        if desktop_images:
-            bridge.add_message("agent", f"Found {len(desktop_images)} desktop preview images.")
+        search_context = ""
+        desktop_images: list[dict[str, str]] = []
 
         endpoint = config.endpoint or ""
         model = config.model_name or ""
@@ -2731,8 +2633,13 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
             content = None
             for attempt in range(1, 4):
                 try:
-                    content = _call_model_simple(
-                        endpoint, model, prompt, api_key, provider=config.provider
+                    content = _call_model_analysis(
+                        endpoint,
+                        model,
+                        prompt,
+                        api_key,
+                        bridge,
+                        provider=config.provider,
                     )
                     break
                 except Exception as exc:

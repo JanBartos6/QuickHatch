@@ -281,6 +281,28 @@ class TestFrontendProfileSync:
         assert "Install guidance ready for the live environment" in html
 
 
+class TestAnalysisSearchOwnership:
+    """Regression: hardware search planning should belong to the selected LLM,
+    not to harness-side raw-GPU loops."""
+
+    def test_analysis_loop_uses_tool_capable_model_path(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        server_py = (root / "src/quickhatch/gui/server.py").read_text(encoding="utf-8")
+        assert "content = _call_model_analysis(" in server_py
+        assert "_call_model_simple(" in server_py  # helper still exists elsewhere
+
+    def test_prefetch_search_context_is_noop_and_has_no_gpu_driver_loop(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        server_py = (root / "src/quickhatch/gui/server.py").read_text(encoding="utf-8")
+        assert 'return "", []' in server_py
+        assert 'queries.append(("GPU driver"' not in server_py
+        assert 'bridge.add_message("agent", f"Searching: {query}")' in server_py
+
+
 class TestGalleryLicensePolicy:
     """Regression: unlicensed entries may be browsed, but the UI must not
     imply they are reproducible/applyable."""

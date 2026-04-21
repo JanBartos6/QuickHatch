@@ -40,7 +40,7 @@ class TestAnalysisAgentStructuredSections:
         gui_state = _make_state()
         suggested: list[dict] = []
 
-        def fake_model(endpoint, model, prompt, api_key, provider=None):
+        def fake_model(endpoint, model, prompt, api_key, bridge, provider=None):
             if "SECTION: DISTRO" in prompt:
                 return (
                     '{"title":"Recommended Distribution",'
@@ -59,13 +59,18 @@ class TestAnalysisAgentStructuredSections:
                 suggested.append(json)
             return _FakeResponse({"status": "ok"})
 
-        with patch("quickhatch.gui.server._prefetch_search_context", return_value=("", [])):
-            with patch("quickhatch.gui.server._call_model_simple", side_effect=fake_model):
-                with patch("requests.post", side_effect=fake_post):
-                    _run_agent_background(gui_state, 9999)
+        with patch("quickhatch.gui.server._call_model_analysis", side_effect=fake_model):
+            with patch("requests.post", side_effect=fake_post):
+                _run_agent_background(gui_state, 9999)
 
         distro_post = next(item for item in suggested if item["category"] == "distro")
         assert distro_post["content"] == "### Recommended Distribution\n\n**Fedora Workstation**"
         assert any(
             "Distro resolved: Fedora Workstation" in m["content"] for m in gui_state.bridge.messages
         )
+
+    def test_prefetch_search_context_no_longer_runs_harness_searches(self):
+        from quickhatch.gui.server import _prefetch_search_context
+
+        gui_state = _make_state()
+        assert _prefetch_search_context(gui_state.profile, gui_state.bridge) == ("", [])
