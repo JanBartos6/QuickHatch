@@ -702,6 +702,10 @@ code{background:var(--surface-alt);padding:1px 5px;border-radius:4px;font-size:.
 .guide-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:var(--t-xs);font-weight:700;background:var(--primary);color:var(--bg);flex-shrink:0;margin-top:1px;font-variant-numeric:tabular-nums}
 .guide-text{font-size:var(--t-sm);color:var(--text);line-height:var(--leading)}
 .guide-text span{display:block;color:var(--text-muted);font-size:var(--t-xs);margin-top:var(--s1)}
+.copyable-code{position:relative;margin:var(--s2) 0}
+.copyable-code .btn-copy-code{position:absolute;top:var(--s2);right:var(--s2);z-index:1}
+.copyable-code .md-code,
+.copyable-code .code-block{margin:0;padding-top:calc(var(--s3) + 28px)}
 
 /* ── Done screen ── */
 .done-screen{text-align:center;padding:var(--s5) 0}
@@ -1446,7 +1450,7 @@ function getDistroUsbGuide(distro){
 }
 
 function codeBlockHtml(text){
-  return `<pre class="md-code">${escHtml(text).trim()}</pre>`;
+  return renderCopyableCodeBlock(text,'md-code');
 }
 function exportResultCard(data){
   if(!data||data.status!=='ok')return'';
@@ -2394,6 +2398,28 @@ function copyFrom(btn,targetId){
     },1500);
   });
 }
+
+function copyCodeFromButton(btn){
+  const wrap=btn&&btn.closest?btn.closest('.copyable-code'):null;
+  const target=wrap&&wrap.querySelector?wrap.querySelector('.md-code,.code-block'):null;
+  if(!target)return;
+  navigator.clipboard.writeText(target.textContent.trim()).then(()=>{
+    const original=btn.dataset.original||btn.textContent;
+    btn.dataset.original=original;
+    btn.textContent='Copied';
+    btn.classList.add('btn-success-flash');
+    clearTimeout(btn._copyTimer);
+    btn._copyTimer=setTimeout(()=>{
+      btn.textContent=original;
+      btn.classList.remove('btn-success-flash');
+    },1500);
+  });
+}
+
+function renderCopyableCodeBlock(text, cls='md-code'){
+  return `<div class="copyable-code"><button class="btn btn-ghost btn-sm btn-copy-code" onclick="copyCodeFromButton(this)">Copy</button><pre class="${cls}">${escHtml(text).trim()}</pre></div>`;
+}
+
 function renderMd(s){
   // Robust markdown renderer for LLM output
   const blocks=[];  // extracted blocks (code, table) to protect from escaping
@@ -2401,7 +2427,7 @@ function renderMd(s){
 
   // 1) Extract fenced code blocks
   let text=s.replace(/```(\w*)\n([\s\S]*?)```/g,(_,lang,code)=>{
-    blocks.push(`<pre class="md-code">${escHtml(code.trim())}</pre>`);
+    blocks.push(renderCopyableCodeBlock(code,'md-code'));
     return PH(blocks.length-1);
   });
 

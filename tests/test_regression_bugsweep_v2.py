@@ -322,6 +322,18 @@ class TestFrontendProfileSync:
         assert "background:var(--primary);color:var(--bg);" in html
         assert "background:var(--primary);color:#fff;" not in html
 
+    def test_user_facing_code_snippets_have_copy_buttons(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "function renderCopyableCodeBlock(text, cls='md-code')" in html
+        assert "function copyCodeFromButton(btn)" in html
+        assert 'class="copyable-code"' in html
+        assert 'onclick="copyCodeFromButton(this)"' in html
+        assert "return renderCopyableCodeBlock(text,'md-code');" in html
+        assert "blocks.push(renderCopyableCodeBlock(code,'md-code'));" in html
+
     def test_ssh_step_no_longer_duplicates_full_usb_walkthrough(self):
         from pathlib import Path
 
