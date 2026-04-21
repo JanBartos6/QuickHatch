@@ -232,6 +232,16 @@ class TestFrontendProfileSync:
         assert "gallery_picks:[...(state.galleryPinned||[])]" in html
         assert "gallery_picks:[]" not in html
 
+    def test_scan_step_autosaves_non_empty_target_override(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "async function autoSaveTargetOverrideIfNeeded()" in html
+        assert "await autoSaveTargetOverrideIfNeeded();" in html
+        assert 'onclick="completeScanStep()"' in html
+        assert "async function completeScanStep()" in html
+
     def test_export_step_keeps_success_visible_until_user_continues(self):
         from pathlib import Path
 

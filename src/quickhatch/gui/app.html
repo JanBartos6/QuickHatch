@@ -1406,7 +1406,7 @@ const stepRenderers={
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
           <button class="btn btn-primary" id="scanBtn" onclick="runScan()">Scan</button>
-          <button class="btn btn-success hidden" id="scanNext" onclick="completeStep('scan')">Continue</button>
+          <button class="btn btn-success hidden" id="scanNext" onclick="completeScanStep()">Continue</button>
         </div>
       </div>`;
   },
@@ -2383,6 +2383,17 @@ async function saveTargetOverride(){
   const btn=el('overrideToggle'); if(btn) btn.textContent='Edit target hardware';
 }
 
+async function autoSaveTargetOverrideIfNeeded(){
+  const ta=el('targetOverrideText'); if(!ta)return false;
+  const text=(ta.value||'').trim();
+  if(!text)return false;
+  if(text===(state.profile?.target_hardware_override||''))return false;
+  await saveProfile({target_hardware_override:text});
+  state.profile.target_hardware_override=text;
+  const btn=el('overrideToggle'); if(btn) btn.textContent='Edit target hardware';
+  return true;
+}
+
 async function clearTargetOverride(){
   await saveProfile({target_hardware_override:''});
   state.profile.target_hardware_override='';
@@ -2393,6 +2404,7 @@ async function clearTargetOverride(){
 }
 
 async function runScan(){
+  await autoSaveTargetOverrideIfNeeded();
   const btn=el('scanBtn');
   btn.disabled=true;btn.textContent='Scanning…';
   el('scanResults').innerHTML='<p class="muted" style="font-size:var(--t-sm)">Scanning…</p>';
@@ -2441,6 +2453,11 @@ async function runScan(){
   const seq=++state._profileRequestSeq;
   const fresh=await api('/wizard/profile');
   if(fresh.profile)applyServerProfile(fresh.profile,seq);
+}
+
+async function completeScanStep(){
+  await autoSaveTargetOverrideIfNeeded();
+  await completeStep('scan');
 }
 function hwCard(label,value,sub){return`<div class="hw-card"><div class="hw-label">${label}</div><div class="hw-value">${value}</div>${sub?`<div class="hw-sub">${sub}</div>`:''}</div>`}
 
