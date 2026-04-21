@@ -117,6 +117,42 @@ class TestProfileEndpoint:
         assert status == 200
         assert data["profile"]["linux_ip"] == "10.0.0.5"
 
+    def test_restore_profile_rehydrates_sparse_state_and_preserves_live_api_key(self, server):
+        server["gui_state"].profile.ai_config.api_key = "sk-secret-xyz"
+        status, body = _post(
+            server["port"],
+            "/wizard/restore-profile",
+            {
+                "profile": {
+                    "preferences": {"migration_type": "fresh_install"},
+                    "ai_config": {"provider": "api", "api_key": "***SET***"},
+                    "hardware": {},
+                    "apps": [],
+                    "files_summary": {},
+                    "windows_settings": {},
+                    "ssh_public_key_path": "C:\\\\Users\\\\honzi\\\\.ssh\\\\quickhatch_ed25519.pub",
+                    "additional_info": "restored",
+                    "apps_to_install": ["Brave"],
+                    "data_description": "copied over",
+                    "data_transfer_method": "external_drive",
+                    "linux_ip": "192.168.50.162",
+                    "linux_user": "jan",
+                    "target_hardware_override": "single RTX 3080 target",
+                    "default_account_password": "password",
+                    "completed_steps": ["welcome", "ai_setup", "scan"],
+                }
+            },
+        )
+        data = json.loads(body)
+        assert status == 200
+        assert data["status"] == "ok"
+        assert data["profile"]["linux_ip"] == "192.168.50.162"
+        assert data["profile"]["linux_user"] == "jan"
+        assert data["profile"]["completed_steps"] == ["welcome", "ai_setup", "scan"]
+        assert server["gui_state"].profile.additional_info == "restored"
+        assert server["bridge"].profile.linux_user == "jan"
+        assert server["gui_state"].profile.ai_config.api_key == "sk-secret-xyz"
+
 
 class TestCompleteStepEndpoint:
     """/wizard/steps was removed (dead endpoint — the SPA drives step

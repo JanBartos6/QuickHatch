@@ -961,11 +961,15 @@ let state={
   galleryFilters:{de:'all',mood:'all',busyness:'all',verifiedOnly:false},
   _profileRequestSeq:0,
   _profileAppliedSeq:0,
+  _profileShadow:null,
+  _needsShadowRestore:false,
+  _shadowRestoreInFlight:false,
   _autosaveTimers:{},
   _draft:null,
 };
 
 const WIZARD_DRAFT_KEY='qh-wizard-draft-v1';
+const PROFILE_SHADOW_KEY='qh-profile-shadow-v1';
 
 function loadWizardDraft(){
   try{
@@ -980,6 +984,42 @@ function saveWizardDraft(){
   try{
     localStorage.setItem(WIZARD_DRAFT_KEY, JSON.stringify(state._draft||{}));
   }catch(_){}
+}
+
+function cloneJson(value){
+  if(value===undefined)return undefined;
+  if(value===null)return null;
+  return JSON.parse(JSON.stringify(value));
+}
+
+function loadProfileShadow(){
+  try{
+    const raw=localStorage.getItem(PROFILE_SHADOW_KEY);
+    return raw?JSON.parse(raw):null;
+  }catch(_){
+    return null;
+  }
+}
+
+function saveProfileShadow(profile){
+  try{
+    if(!profile)localStorage.removeItem(PROFILE_SHADOW_KEY);
+    else localStorage.setItem(PROFILE_SHADOW_KEY, JSON.stringify(profile));
+  }catch(_){}
+}
+
+function sanitizeProfileShadow(profile){
+  const clean=cloneJson(profile);
+  if(!clean||typeof clean!=='object')return null;
+  if(clean.ai_config&&clean.ai_config.api_key==='***SET***'){
+    clean.ai_config.api_key=null;
+  }
+  return clean;
+}
+
+function writeProfileShadow(profile){
+  state._profileShadow=sanitizeProfileShadow(profile);
+  saveProfileShadow(state._profileShadow);
 }
 
 function getPath(obj, path){
@@ -1018,6 +1058,67 @@ function draftOr(path, fallback){
   return value===undefined?fallback:value;
 }
 
+function profileProgressScore(value){
+  if(value===null||value===undefined)return 0;
+  if(Array.isArray(value)){
+    if(!value.length)return 0;
+    return 1+value.reduce((sum,item)=>sum+profileProgressScore(item),0);
+  }
+  if(typeof value==='string'){
+    const text=value.trim();
+    if(!text||text==='***SET***')return 0;
+    return 1;
+  }
+  if(typeof value==='number')return value===0?0:1;
+  if(typeof value==='boolean')return value?1:0;
+  if(typeof value==='object'){
+    return Object.values(value).reduce((sum,item)=>sum+profileProgressScore(item),0);
+  }
+  return 0;
+}
+
+function mergeProfileMissing(serverValue, shadowValue){
+  if(shadowValue===undefined)return cloneJson(serverValue);
+  if(serverValue===undefined)return cloneJson(shadowValue);
+  if(Array.isArray(serverValue)||Array.isArray(shadowValue)){
+    if(Array.isArray(serverValue)&&serverValue.length)return cloneJson(serverValue);
+    if(Array.isArray(shadowValue)&&shadowValue.length)return cloneJson(shadowValue);
+    return Array.isArray(serverValue)?cloneJson(serverValue):cloneJson(shadowValue);
+  }
+  if(serverValue&&typeof serverValue==='object'&&shadowValue&&typeof shadowValue==='object'){
+    const merged={};
+    for(const key of new Set([...Object.keys(shadowValue),...Object.keys(serverValue)])){
+      merged[key]=mergeProfileMissing(serverValue[key], shadowValue[key]);
+    }
+    return merged;
+  }
+  if(typeof serverValue==='string'){
+    return serverValue.trim()?serverValue:(typeof shadowValue==='string'?shadowValue:serverValue);
+  }
+  if(typeof serverValue==='number'){
+    return serverValue!==0?serverValue:(typeof shadowValue==='number'?shadowValue:serverValue);
+  }
+  if(typeof serverValue==='boolean'){
+    return serverValue||(typeof shadowValue==='boolean'&&shadowValue);
+  }
+  return serverValue??shadowValue;
+}
+
+async function restoreShadowProfileToServer(profile){
+  if(state._shadowRestoreInFlight||!profile)return null;
+  state._shadowRestoreInFlight=true;
+  try{
+    const seq=++state._profileRequestSeq;
+    const resp=await api('/wizard/restore-profile','POST',{profile:sanitizeProfileShadow(profile)});
+    if(resp&&resp.status==='ok'&&resp.profile){
+      applyServerProfile(resp.profile,seq);
+    }
+    return resp;
+  }finally{
+    state._shadowRestoreInFlight=false;
+  }
+}
+
 function queueAutosave(key, fn, delayMs=450){
   clearTimeout(state._autosaveTimers[key]);
   state._autosaveTimers[key]=setTimeout(async()=>{
@@ -1035,10 +1136,20 @@ function applyServerProfile(profile, seq){
   if(!profile)return false;
   if((seq||0) < (state._profileAppliedSeq||0))return false;
   state._profileAppliedSeq=seq||0;
-  state.profile=profile;
+  const serverProfile=cloneJson(profile);
+  const shadowProfile=state._profileShadow;
+  const mergedProfile=mergeProfileMissing(serverProfile, shadowProfile);
+  const shouldRestore=!!(
+    shadowProfile
+    && profileProgressScore(mergedProfile) > profileProgressScore(serverProfile)
+    && JSON.stringify(mergedProfile)!==JSON.stringify(serverProfile)
+  );
+  state._needsShadowRestore=shouldRestore;
+  state.profile=shouldRestore?mergedProfile:serverProfile;
   state.completedSteps=state.profile.completed_steps||[];
   const draftPicks=draftOr('preferences.gallery_picks', undefined);
   state.galleryPinned=[...((Array.isArray(draftPicks)&&draftPicks.length)?draftPicks:(state.profile?.preferences?.gallery_picks||[]))];
+  writeProfileShadow(state.profile);
   refreshSteps();
   return true;
 }
@@ -1047,6 +1158,9 @@ async function loadProfile(){
   const seq=++state._profileRequestSeq;
   const data=await api('/wizard/profile');
   if(!applyServerProfile(data.profile,seq))return;
+  if(state._needsShadowRestore){
+    try{await restoreShadowProfileToServer(state.profile);}catch(_){}
+  }
   state.currentStep=STEPS.length;
   for(let i=0;i<STEPS.length;i++){
     if(!state.completedSteps.includes(STEPS[i].id)){state.currentStep=i;break}
@@ -1085,6 +1199,8 @@ async function completeStep(stepId){
   }
   state.completedSteps=resp.completed||state.completedSteps;
   if(!state.completedSteps.includes(stepId))state.completedSteps.push(stepId);
+  if(state.profile)state.profile.completed_steps=[...state.completedSteps];
+  writeProfileShadow(state.profile);
   state.currentStep++;render();
   return resp;
 }
@@ -1099,6 +1215,9 @@ async function saveProfile(updates, opts){
   }
   if(resp&&resp.profile){
     applyServerProfile(resp.profile,seq);
+  }
+  else if(state.profile){
+    writeProfileShadow(state.profile);
   }
   if(opts&&opts.toast!==false&&opts&&opts.toast)toast(opts.toast,'success');
   return resp;
@@ -3764,6 +3883,7 @@ document.addEventListener('click',(ev)=>{
   if(inp)inp.value=val==null?'':val;
 });
 (async()=>{
+  state._profileShadow=loadProfileShadow();
   state._draft=loadWizardDraft();
   await loadProfile();
   render();

@@ -250,6 +250,12 @@ class TestFrontendProfileSync:
         root = Path(__file__).resolve().parent.parent
         html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
         assert "const WIZARD_DRAFT_KEY='qh-wizard-draft-v1';" in html
+        assert "const PROFILE_SHADOW_KEY='qh-profile-shadow-v1';" in html
+        assert "function writeProfileShadow(profile)" in html
+        assert "function mergeProfileMissing(serverValue, shadowValue)" in html
+        assert "state._profileShadow=loadProfileShadow();" in html
+        assert "await restoreShadowProfileToServer(state.profile);" in html
+        assert "writeProfileShadow(state.profile);" in html
         assert "state._draft=loadWizardDraft();" in html
         assert 'oninput="persistQuestionnaireDraft()"' in html
         assert 'oninput="persistAppsDataDraft()"' in html

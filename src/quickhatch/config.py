@@ -238,6 +238,14 @@ class UserProfile:
             )
             return None
 
+        return cls.from_dict(data)
+
+    @classmethod
+    def from_dict(cls, data: dict | None) -> UserProfile | None:
+        """Schema-tolerant reconstruction from a JSON-like dict."""
+        if not isinstance(data, dict):
+            return None
+
         # Schema-tolerant reconstruction. If a dataclass field was renamed
         # or removed since the checkpoint was saved, skip UNKNOWN keys
         # (`__init__` would TypeError) and warn rather than silently
@@ -271,21 +279,23 @@ class UserProfile:
                 except TypeError:
                     return None
 
-        # save_checkpoint redacts api_key to the literal "***REDACTED***"
-        # string. On reload that string would get used as the real API
-        # key on the next agent call, producing a 401. Treat the
-        # sentinel as "no key" so the UI re-prompts rather than silently
-        # failing.
+        # save_checkpoint used to redact api_key to "***REDACTED***" and
+        # the GUI response payload still uses "***SET***" as a non-secret
+        # presence marker. Neither sentinel should ever become the real
+        # runtime API key on restore.
         _ai = data.get("ai_config") or {}
-        if isinstance(_ai, dict) and _ai.get("api_key") == "***REDACTED***":
+        if isinstance(_ai, dict) and _ai.get("api_key") in {"***REDACTED***", "***SET***"}:
             _ai["api_key"] = None
             data["ai_config"] = _ai
 
         try:
             hw_raw = data.get("hardware", {}) or {}
-            hw = _safe_init(
-                HardwareInfo,
-                {k: v for k, v in hw_raw.items() if k not in ("gpus", "disks")},
+            hw = (
+                _safe_init(
+                    HardwareInfo,
+                    {k: v for k, v in hw_raw.items() if k not in ("gpus", "disks")},
+                )
+                or HardwareInfo()
             )
             hw.gpus = [g for g in (_safe_init(GPUInfo, g) for g in hw_raw.get("gpus", [])) if g]
             hw.disks = [d for d in (_safe_init(DiskInfo, d) for d in hw_raw.get("disks", [])) if d]
@@ -311,7 +321,7 @@ class UserProfile:
             )
         except Exception as exc:
             print(
-                f"[quickhatch] checkpoint load failed ({exc}). Starting with a fresh profile.",
+                f"[quickhatch] profile reconstruction failed ({exc}). Starting with a fresh profile.",
                 file=_sys.stderr,
             )
             return None

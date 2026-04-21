@@ -124,6 +124,29 @@ class TestCheckpointPath:
         assert loaded.additional_info == "keep me"
         assert [app.name for app in loaded.apps] == ["Firefox"]
 
+    def test_from_dict_treats_set_marker_api_key_as_absent(self, fake_home):
+        path = fake_home / ".quickhatch-checkpoint.json"
+        payload = {
+            "preferences": {},
+            "ai_config": {"provider": "api", "api_key": "***SET***"},
+            "hardware": {},
+            "apps": [],
+            "files_summary": {},
+            "windows_settings": {},
+            "ssh_public_key_path": None,
+            "additional_info": "",
+            "apps_to_install": [],
+            "data_description": "",
+            "data_transfer_method": "",
+            "linux_ip": "",
+            "linux_user": "",
+            "completed_steps": [],
+        }
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        loaded = UserProfile.load_checkpoint()
+        assert loaded is not None
+        assert loaded.ai_config.api_key is None
+
 
 class TestLegacyMigration:
     def test_legacy_cwd_file_migrates_on_load(self, fake_home, tmp_path, monkeypatch):

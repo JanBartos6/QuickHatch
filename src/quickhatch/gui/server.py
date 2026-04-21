@@ -11,7 +11,7 @@ import mimetypes
 import re
 import threading
 from collections.abc import Callable
-from dataclasses import asdict
+from dataclasses import asdict, fields
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -345,6 +345,22 @@ class GUIState:
                 file=_sys.stderr,
             )
         return changed
+
+    def restore_profile(self, restored: UserProfile) -> bool:
+        """Replace the current profile contents in place.
+
+        Keep the original UserProfile instance alive so BridgeState and any
+        long-lived references continue to observe the updated values.
+        """
+        with self.lock:
+            before = asdict(self.profile)
+            existing_api_key = self.profile.ai_config.api_key
+            if not restored.ai_config.api_key and existing_api_key:
+                restored.ai_config.api_key = existing_api_key
+            for field_def in fields(UserProfile):
+                setattr(self.profile, field_def.name, getattr(restored, field_def.name))
+            self.bridge.profile = self.profile
+            return asdict(self.profile) != before
 
 
 def _load_html() -> bytes:
@@ -901,6 +917,26 @@ def make_gui_server(
             if self.path == "/wizard/update":
                 data = self._read_json()
                 changed = gui_state.update_profile(data)
+                if changed:
+                    gui_state.profile.save_checkpoint()
+                self._send_json(
+                    {
+                        "status": "ok",
+                        "changed": changed,
+                        "profile": _profile_response_dict(gui_state.profile),
+                    }
+                )
+
+            elif self.path == "/wizard/restore-profile":
+                data = self._read_json()
+                payload = data.get("profile") if isinstance(data, dict) else None
+                restored = UserProfile.from_dict(payload)
+                if restored is None:
+                    self._send_json(
+                        {"status": "error", "message": "Expected a valid profile payload."}, 400
+                    )
+                    return
+                changed = gui_state.restore_profile(restored)
                 if changed:
                     gui_state.profile.save_checkpoint()
                 self._send_json(
