@@ -5003,7 +5003,10 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
 
                     lint_error = _preflight_setup_command(cmd, setup_facts)
                     if lint_error:
-                        bridge.add_message("agent", f"[harness] 🛑 Command blocked: {lint_error}")
+                        bridge.add_message(
+                            "agent",
+                            f"[harness] 🛑 Command blocked: `{cmd}`\n{lint_error}",
+                        )
                         pending_feedback.append(
                             "[quickhatch preflight]\n"
                             + lint_error

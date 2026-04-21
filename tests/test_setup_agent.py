@@ -404,6 +404,50 @@ class TestSetupCommandPreflight:
             is None
         )
 
+    def test_block_message_includes_the_exact_refused_command(self, ready_state):
+        def tracking_ssh(host, user, cmd, key_path=None, timeout=120, port=22):
+            if "echo 'QuickHatch connected!'" in cmd:
+                return (0, "QuickHatch connected!", "")
+            if "=== PACKAGE MANAGER ===" in cmd:
+                return (0, "Arch Linux\npacman (Arch)\n=== USER ===\njan", "")
+            if "QH_PM=" in cmd:
+                return (
+                    0,
+                    "\n".join(
+                        [
+                            "QH_PM=pacman",
+                            "QH_AUR=yay",
+                            "QH_USER=jan",
+                            "QH_IS_ROOT=no",
+                            "QH_SUDO_NOPASSWD=yes",
+                        ]
+                    ),
+                    "",
+                )
+            return (0, "", "")
+
+        blocked = "sudo pacman -S --noconfirm brave-bin discord"
+        responses = [
+            '{"action":"ssh_exec","command":"'
+            + blocked
+            + '","reason":"install apps"}',
+            '{"action":"done","summary":"done"}',
+        ]
+
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=tracking_ssh):
+            with patch("quickhatch.gui.server._smoke_test_preboot_script", return_value=None):
+                with patch(
+                    "quickhatch.gui.server._detect_live_env", return_value=(False, "INSTALLED")
+                ):
+                    with patch("requests.post", _make_model_mock(*responses)):
+                        _run_setup_agent(ready_state, 0)
+
+        msgs = [m["content"] for m in ready_state.bridge.messages]
+        blocked_msgs = [m for m in msgs if "Command blocked" in m]
+        assert blocked_msgs
+        assert blocked in blocked_msgs[-1]
+        assert "brave-bin" in blocked_msgs[-1]
+
 
 class TestSetupFactsRefresh:
     def test_successful_yay_install_refreshes_preflight_facts(self, ready_state):
