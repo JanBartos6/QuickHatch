@@ -404,6 +404,13 @@ class TestAnalysisSearchOwnership:
         assert 'queries.append(("GPU driver"' not in server_py
         assert 'bridge.add_message("agent", f"Searching: {query}")' in server_py
 
+    def test_analysis_slow_call_message_reports_attempt_elapsed_time(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        server_py = (root / "src/quickhatch/gui/server.py").read_text(encoding="utf-8")
+        assert "attempt took {elapsed}s, retrying in {wait}s" in server_py
+
 
 class TestGalleryLicensePolicy:
     """Regression: unlicensed entries may be browsed, but the UI must not

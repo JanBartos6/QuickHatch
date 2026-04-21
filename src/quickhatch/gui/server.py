@@ -2700,6 +2700,7 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
             last_exc = None
             content = None
             for attempt in range(1, 4):
+                attempt_started = _t.monotonic()
                 try:
                     content = _call_model_analysis(
                         endpoint,
@@ -2713,10 +2714,11 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
                 except Exception as exc:
                     last_exc = exc
                     if attempt < 3:
+                        elapsed = max(1, int(round(_t.monotonic() - attempt_started)))
                         wait = 3 * (3 ** (attempt - 1))  # 3, 9, 27
                         bridge.add_message(
                             "agent",
-                            f"{title} API call slow ({attempt}/3), waiting {wait}s…",
+                            f"{title} API call slow ({attempt}/3) — attempt took {elapsed}s, retrying in {wait}s…",
                         )
                         _t.sleep(wait)
             if content is None:
