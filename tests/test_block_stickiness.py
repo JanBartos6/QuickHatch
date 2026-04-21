@@ -14,7 +14,11 @@ from __future__ import annotations
 
 import pytest
 
-from quickhatch.gui.server import _command_addresses_topics, _extract_topic_words
+from quickhatch.gui.server import (
+    _command_addresses_topics,
+    _extract_topic_words,
+    _is_safe_diagnostic_setup_command,
+)
 
 
 class TestExtractTopicWords:
@@ -83,6 +87,11 @@ class TestCommandAddressesTopics:
         cmd = "git clone https://aur.archlinux.org/yay-bin.git"
         assert _command_addresses_topics(cmd, topics) is False
 
+    def test_sudo_wrapper_does_not_falsely_satisfy_recovery_block(self):
+        topics = {"root", "wheel", "sudo", "sudoers", "passwd"}
+        cmd = "sudo pacman -S --noconfirm steam"
+        assert _command_addresses_topics(cmd, topics) is False
+
     def test_chroot_grub_mkconfig_addresses_grub_block(self):
         topics = {"grub", "grub-mkconfig", "cmdline"}
         cmd = "arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg"
@@ -96,6 +105,27 @@ class TestCommandAddressesTopics:
         # 'encrypted' contains 'encrypt' but shouldn't word-boundary match.
         topics = {"encrypt"}
         assert _command_addresses_topics("echo encrypted-volume", topics) is False
+
+
+class TestSafeDiagnosticSetupCommand:
+    def test_ls_boot_is_allowed_as_read_only_diagnostic(self):
+        assert _is_safe_diagnostic_setup_command("ls -lh /mnt/boot") is True
+
+    def test_pacman_search_is_allowed_as_read_only_diagnostic(self):
+        assert _is_safe_diagnostic_setup_command("pacman -Ss nvidia") is True
+
+    def test_pacman_install_is_not_a_safe_diagnostic(self):
+        assert _is_safe_diagnostic_setup_command("pacman -S --noconfirm steam") is False
+
+    def test_git_clone_is_not_a_safe_diagnostic(self):
+        assert _is_safe_diagnostic_setup_command(
+            "git clone https://aur.archlinux.org/yay-bin.git /tmp/yay-bin"
+        ) is False
+
+    def test_echo_redirect_is_not_a_safe_diagnostic(self):
+        assert _is_safe_diagnostic_setup_command(
+            "echo '%wheel ALL=(ALL:ALL) ALL' > /etc/sudoers.d/10-wheel"
+        ) is False
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -3830,6 +3830,91 @@ def _extract_pacman_install_packages(tokens: list[str]) -> list[str]:
     return [arg for arg in args if arg and not arg.startswith("-")]
 
 
+def _is_safe_diagnostic_setup_command(cmd: str) -> bool:
+    """True when every command segment is a read-only diagnostic/probe.
+
+    Used only while a sticky pre-reboot block is active: we still want the
+    model to inspect `/mnt`, `/boot`, group membership, package metadata,
+    and service state, but we do NOT want it to keep mutating unrelated
+    parts of the system (desktop installs, app installs, theming, AUR work)
+    before the boot blockers are fixed.
+    """
+    import shlex
+
+    diagnostic_tools = {
+        "[",
+        "blkid",
+        "bootctl",
+        "cat",
+        "command",
+        "df",
+        "du",
+        "echo",
+        "false",
+        "find",
+        "free",
+        "getent",
+        "grep",
+        "head",
+        "id",
+        "journalctl",
+        "ls",
+        "lsblk",
+        "lscpu",
+        "lsinitrd",
+        "lsmod",
+        "lspci",
+        "mount",
+        "nvidia-smi",
+        "pacman",
+        "pwd",
+        "readlink",
+        "realpath",
+        "stat",
+        "systemctl",
+        "tail",
+        "test",
+        "true",
+        "uname",
+        "whoami",
+        "which",
+    }
+    for segment in _split_command_segments_for_lint(cmd):
+        try:
+            tokens = shlex.split(segment, posix=True)
+        except ValueError:
+            return False
+        tokens = _strip_command_wrappers(tokens)
+        if not tokens:
+            continue
+        tool = _normalize_command_tool(tokens[0])
+        args = tokens[1:]
+        if tool not in diagnostic_tools:
+            return False
+        if tool == "echo":
+            # Treat redirects as mutating even if the tool is echo.
+            if any(op in segment for op in (">", ">>")):
+                return False
+        elif tool == "systemctl":
+            allowed = {
+                "cat",
+                "is-active",
+                "is-enabled",
+                "list-unit-files",
+                "show",
+                "status",
+            }
+            if not args or args[0] not in allowed:
+                return False
+        elif tool == "pacman":
+            allowed_flags = {"-Q", "-Qi", "-Qq", "-Qs", "-Sg", "-Si", "-Ss"}
+            if not args or not any(arg in allowed_flags for arg in args):
+                return False
+        elif tool in {"[", "test"}:
+            continue
+    return True
+
+
 def _preflight_setup_command(cmd: str, facts: dict[str, str]) -> str | None:
     """Reject obviously impossible package-manager actions before they hit the target."""
     import shlex
@@ -4849,9 +4934,19 @@ def _command_addresses_topics(cmd: str, topics: set[str]) -> bool:
     if not topics:
         return True  # no active block → every command is fine
     import re as _re
+    import shlex as _shlex
 
-    low = (cmd or "").lower()
-    return any(_re.search(rf"\b{_re.escape(t)}\b", low) for t in topics)
+    normalized_segments: list[str] = []
+    for segment in _split_command_segments_for_lint(cmd or ""):
+        try:
+            tokens = _shlex.split(segment, posix=True)
+        except ValueError:
+            continue
+        normalized = _strip_command_wrappers(tokens)
+        if normalized:
+            normalized_segments.append(" ".join(normalized).lower())
+    haystack = "\n".join(normalized_segments)
+    return any(_re.search(rf"\b{_re.escape(t)}\b", haystack) for t in topics)
 
 
 def _recipe_apply_for_setup(profile: UserProfile) -> str:
@@ -5650,22 +5745,70 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                     if sticky_block_failures and not _is_reboot_command(cmd):
                         if _command_addresses_topics(cmd, sticky_block_topics):
                             pivot_counter = 0  # agent is on topic — reset
-                        else:
+                        elif _is_safe_diagnostic_setup_command(cmd):
                             pivot_counter += 1
                             bridge.add_message(
                                 "agent",
                                 f"[harness] ⚠️ Pivot detected ({pivot_counter}/3). "
                                 f"Current reboot block is still active on: "
                                 f"{', '.join(sorted(sticky_block_topics)) or '(unknown)'}. "
-                                f"Addressing one of those is higher priority than this command.",
+                                "This diagnostic command is being allowed because it is read-only, "
+                                "but the agent should stay focused on clearing the reboot blockers.",
+                            )
+                            pending_feedback.append(
+                                "REMINDER: a pre-reboot block is still in effect. Your last "
+                                "command was allowed because it is read-only, but it still did not "
+                                "touch the blocked topics "
+                                f"({', '.join(sorted(sticky_block_topics)) or '?'}). "
+                                "Use the results only to fix the reboot blockers — do NOT pivot to "
+                                "unrelated installs or theming."
+                            )
+                            if pivot_counter >= 3:
+                                import requests as _requests
+
+                                try:
+                                    _requests.post(
+                                        f"{base}/api/ask",
+                                        json={
+                                            "question": (
+                                                "The pre-reboot safety guard is still blocking on: "
+                                                + f"{', '.join(sorted(sticky_block_topics))}. "
+                                                + "The agent keeps spending turns on read-only diagnostics "
+                                                + "instead of fixing the blockers. How should it proceed?"
+                                            ),
+                                            "timeout": 600,
+                                        },
+                                        timeout=5,
+                                    )
+                                except Exception:
+                                    pass
+                                pivot_counter = 0
+                        else:
+                            pivot_counter += 1
+                            block_topics = ", ".join(sorted(sticky_block_topics)) or "(unknown)"
+                            block_hint = (
+                                f"A pre-reboot block is still active on: {block_topics}. "
+                                "This command does not address any blocked topic. Fix the reboot "
+                                "blockers first, then continue with drivers, desktop, apps, or theming."
+                            )
+                            bridge.add_message(
+                                "agent",
+                                f"[harness] 🛑 Command blocked: `{cmd}`\n{block_hint}",
+                            )
+                            bridge.add_message(
+                                "agent",
+                                f"[harness] ⚠️ Pivot detected ({pivot_counter}/3). "
+                                f"Current reboot block is still active on: {block_topics}. "
+                                "Addressing one of those is higher priority than this command.",
                             )
                             pending_feedback.append(
                                 "REMINDER: a pre-reboot block is still in effect. Your last "
                                 "command did not touch any of the blocked topics "
-                                f"({', '.join(sorted(sticky_block_topics)) or '?'}). Keep drilling "
+                                f"({block_topics}). Keep drilling "
                                 "into the failures listed above — do NOT pivot to unrelated "
                                 "work (apps, AUR, theming, etc.) until the reboot is unblocked."
                             )
+                            results_log.append(f"**`{cmd}`** — BLOCKED (sticky pre-reboot block)")
                             if pivot_counter >= 3:
                                 # Hand control to the user.
                                 import requests as _requests
@@ -5689,6 +5832,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                                 except Exception:
                                     pass
                                 pivot_counter = 0  # reset so we don't re-ask every turn
+                            continue
 
                     lint_error = _preflight_setup_command(cmd, setup_facts)
                     if lint_error:

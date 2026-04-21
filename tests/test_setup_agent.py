@@ -846,6 +846,68 @@ class TestRebootHandoff:
         assert ready_state.profile.linux_user == "alpine"
 
 
+class TestStickyPreRebootBlock:
+    def test_read_only_diagnostic_is_allowed_but_mutating_pivot_is_blocked(self, ready_state):
+        ssh_calls = []
+
+        def tracking_ssh(host, user, cmd, key_path=None, timeout=120, port=22):
+            ssh_calls.append(cmd)
+            if "echo 'QuickHatch connected!'" in cmd:
+                return (0, "QuickHatch connected!", "")
+            if "/etc/os-release" in cmd and "=== USER ===" in cmd:
+                return (0, "Arch Linux\n=== USER ===\nroot\nuid=0(root)", "")
+            if "QH_PM=" in cmd:
+                return (
+                    0,
+                    "\n".join(
+                        [
+                            "QH_PM=pacman",
+                            "QH_AUR=none",
+                            "QH_USER=root",
+                            "QH_IS_ROOT=yes",
+                            "QH_SUDO_NOPASSWD=yes",
+                        ]
+                    ),
+                    "",
+                )
+            if cmd == "ls -lh /mnt/boot":
+                return (0, "total 12M\n-rw-r--r-- 1 root root 12M vmlinuz-linux", "")
+            return (0, "", "")
+
+        responses = [
+            '{"action":"ssh_exec","command":"reboot","reason":"boot into the installed system"}',
+            '{"action":"ssh_exec","command":"ls -lh /mnt/boot","reason":"inspect boot artifacts"}',
+            '{"action":"ssh_exec","command":"sudo pacman -S --noconfirm steam","reason":"install apps"}',
+            '{"action":"done","summary":"done"}',
+        ]
+
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=tracking_ssh):
+            with patch("quickhatch.gui.server._smoke_test_preboot_script", return_value=None):
+                with patch(
+                    "quickhatch.gui.server._detect_live_env", return_value=(True, "LIVE:test")
+                ):
+                    with patch(
+                        "quickhatch.gui.server._run_pre_reboot_checks",
+                        return_value=(
+                            [
+                                "[bootloader] No bootloader installed in /boot",
+                                "[recovery] Root account is locked AND no sudo-capable user in 'wheel' or 'sudo' group",
+                            ],
+                            [],
+                        ),
+                    ):
+                        with patch("requests.post", _make_model_mock(*responses)):
+                            _run_setup_agent(ready_state, 0)
+
+        msgs = [m["content"] for m in ready_state.bridge.messages]
+        assert "ls -lh /mnt/boot" in ssh_calls
+        assert "sudo pacman -S --noconfirm steam" not in ssh_calls
+        assert any("This diagnostic command is being allowed because it is read-only" in m for m in msgs)
+        assert any(
+            "Command blocked" in m and "sudo pacman -S --noconfirm steam" in m for m in msgs
+        )
+
+
 class TestInstalledSystemBootstrap:
     def test_installed_system_bootstraps_nopasswd_sudo_before_model_commands(self, ready_state):
         ready_state.profile.linux_user = "jan"
