@@ -38,6 +38,8 @@
   --danger-soft:  #fdecec;
   --warning:      #b45309;
   --warning-soft: #fef3c7;
+  --selection-bg: #c7d2fe;
+  --selection-text: #111827;
 
   /* Category accent chips (for suggestion cards) */
   --cat-distro:  #16a34a;
@@ -120,6 +122,8 @@
   --danger-soft:  rgba(248,113,113,.14);
   --warning:      #fbbf24;
   --warning-soft: rgba(251,191,36,.14);
+  --selection-bg: rgba(123,141,255,.35);
+  --selection-text: #ffffff;
 
   --cat-distro:  #34d399;
   --cat-apps:    #7b8dff;
@@ -852,7 +856,7 @@ h4.md-h{font-size:var(--t-sm);margin:var(--s3) 0 var(--s1);text-transform:upperc
 hr{border:none;border-top:1px solid var(--border);margin:var(--s4) 0}
 
 /* ── Selection color ── */
-::selection{background:var(--primary-soft);color:var(--primary-hover)}
+::selection{background:var(--selection-bg);color:var(--selection-text)}
 
 /* ── Scrollbar (subtle) ── */
 *::-webkit-scrollbar{width:10px;height:10px}

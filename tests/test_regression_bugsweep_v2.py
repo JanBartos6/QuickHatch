@@ -332,6 +332,17 @@ class TestFrontendProfileSync:
         assert "background:var(--primary);color:var(--bg);" in html
         assert "background:var(--primary);color:#fff;" not in html
 
+    def test_text_selection_has_explicit_contrast_tokens_for_light_and_dark_mode(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "--selection-bg: #c7d2fe;" in html
+        assert "--selection-text: #111827;" in html
+        assert "--selection-bg: rgba(123,141,255,.35);" in html
+        assert "--selection-text: #ffffff;" in html
+        assert "::selection{background:var(--selection-bg);color:var(--selection-text)}" in html
+
     def test_user_facing_code_snippets_have_copy_buttons(self):
         from pathlib import Path
 
