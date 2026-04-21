@@ -3386,7 +3386,7 @@ def _setup_runtime_prompt_block(facts: dict[str, str], is_live: bool) -> str:
                 "- Official Arch packages, drivers, and core desktop packages must go through `pacman`.",
                 "- AUR-only packages must NOT be passed to `pacman`. Use the detected AUR helper or a manual `makepkg -s` + `pacman -U` flow.",
                 "- Treat names ending in `-bin` or `-git` as AUR candidates unless you have a concrete search result proving otherwise.",
-                "- If `pacman -S` says a target was not found, stop guessing. Search once with `pacman -Ss '^name$'` or `yay -Ss '^name$'`, then install the exact discovered package name.",
+                "- If `pacman -S` says a target was not found, stop guessing. Use the `repo_search`, `aur_search`, or `web_search` action next, then install the exact discovered package name.",
                 "- Do not fire a chain of alternative package names for the same app without a search result between them.",
             ]
         )
@@ -3425,6 +3425,17 @@ def _setup_runtime_prompt_block(facts: dict[str, str], is_live: bool) -> str:
                 "- If the migration plan contains live-installer steps, ignore those and execute only the post-install configuration parts.",
             ]
         )
+    lines.extend(
+        [
+            "",
+            "LOOKUP ACTIONS:",
+            "- `repo_search` asks the target OS package manager for matching packages and returns compact results.",
+            "- `aur_search` looks up AUR packages on Arch-family targets and falls back to a web search of aur.archlinux.org when needed.",
+            "- `web_search` performs an internet search for current package names, distro-specific instructions, and project pages.",
+            "- When the exact package name is uncertain, use a lookup action BEFORE `ssh_exec`.",
+            "- If any install command fails with 'target not found', 'unable to locate package', or 'no match', your very next action must be a lookup action instead of another guessed install command.",
+        ]
+    )
     return "\n".join(lines) + "\n\n"
 
 
@@ -3540,7 +3551,8 @@ def _preflight_setup_command(cmd: str, facts: dict[str, str]) -> str | None:
             if tool in {"yay", "paru"} and aur_helper == "none":
                 return (
                     f"The command uses `{tool}` but no AUR helper is installed yet. "
-                    "Install `yay`/`paru` first, or build the package manually with `makepkg -s` + `pacman -U`."
+                    "Install `yay`/`paru` first, build the package manually with `makepkg -s` + `pacman -U`, "
+                    "or use `aur_search`/`web_search` first if you still need to resolve the exact package name."
                 )
             if tool == "pacman":
                 packages = _extract_pacman_install_packages(tokens)
@@ -3555,7 +3567,8 @@ def _preflight_setup_command(cmd: str, facts: dict[str, str]) -> str | None:
                     return (
                         "Do not pass AUR-only packages to `pacman` on Arch. "
                         f"`{joined}` should be installed with {helper} or via manual `makepkg`, "
-                        "while repo packages stay on `pacman`."
+                        "while repo packages stay on `pacman`. If you are unsure about the exact package name, "
+                        "use `aur_search` before issuing another install command."
                     )
         elif package_manager == "apt" and tool in {"pacman", "yay", "paru", "dnf", "zypper"}:
             return f"This target uses apt, so `{tool}` is the wrong package manager."
@@ -3600,6 +3613,207 @@ def _describe_setup_fact_changes(
         return None
     mode = "live installer" if is_live else "installed system"
     return "[quickhatch runtime facts updated]\n" + f"Mode: {mode}\n" + "\n".join(changed)
+
+
+def _shell_single_quote(value: str) -> str:
+    """Quote an arbitrary string for a POSIX shell single-quoted literal."""
+    return "'" + value.replace("'", "'\"'\"'") + "'"
+
+
+def _truncate_setup_lookup_text(text: str, limit: int = 2200) -> str:
+    text = (text or "").strip()
+    if len(text) <= limit:
+        return text
+    head = int(limit * 0.7)
+    tail = max(200, limit - head - 24)
+    return text[:head] + "\n... (truncated) ...\n" + text[-tail:]
+
+
+def _format_setup_web_lookup_result(kind: str, query: str, raw_json: str) -> tuple[bool, str]:
+    header = f"[{kind} results for: {query}]"
+    try:
+        data = json.loads(raw_json)
+    except Exception:
+        return (
+            False,
+            f"{header}\nCould not parse search results.\n{_truncate_setup_lookup_text(raw_json)}",
+        )
+
+    error = (data.get("error") or "").strip()
+    if error:
+        return False, f"{header}\nSearch failed: {error}"
+
+    results = data.get("results") or []
+    if not isinstance(results, list) or not results:
+        message = (data.get("message") or "No results found.").strip()
+        return False, f"{header}\n{message}"
+
+    lines = [header]
+    for idx, item in enumerate(results[:5], start=1):
+        title = (item.get("title") or "").strip() or "(untitled)"
+        url = (item.get("url") or item.get("href") or "").strip()
+        snippet = (item.get("snippet") or item.get("body") or "").strip()
+        lines.append(f"{idx}. {title}")
+        if url:
+            lines.append(f"   URL: {url}")
+        if snippet:
+            lines.append(f"   Snippet: {snippet[:280]}")
+    return True, _truncate_setup_lookup_text("\n".join(lines))
+
+
+def _build_setup_repo_search_command(package_manager: str, query: str) -> str | None:
+    q = _shell_single_quote(" ".join((query or "").split()))
+    commands = {
+        "pacman": f"pacman -Ss {q} | sed -n '1,40p'",
+        "apt": f"apt-cache search --names-only {q} | sed -n '1,40p'",
+        "dnf": f"dnf search {q} | sed -n '1,60p'",
+        "zypper": f"zypper search --details {q} | sed -n '1,60p'",
+        "apk": f"apk search {q} | sed -n '1,40p'",
+        "xbps": f"xbps-query -Rs {q} | sed -n '1,40p'",
+        "emerge": f"emerge --search {q} | sed -n '1,60p'",
+    }
+    return commands.get(package_manager)
+
+
+def _execute_setup_repo_search(
+    host: str,
+    user: str,
+    key_path: str | None,
+    facts: dict[str, str],
+    query: str,
+    *,
+    port: int = 22,
+) -> tuple[bool, str]:
+    query = " ".join((query or "").split())
+    if not query:
+        return False, "[repo_search error]\nQuery was empty."
+
+    package_manager = facts.get("package_manager", "unknown")
+    cmd = _build_setup_repo_search_command(package_manager, query)
+    if cmd is None:
+        return (
+            False,
+            f"[repo_search error]\nNo repository search helper is defined for package manager '{package_manager}'. "
+            "Use web_search instead.",
+        )
+
+    rc, out, err = _ssh_exec(host, user, cmd, key_path, timeout=60, port=port)
+    header = f"[repo_search results for: {query}]"
+    if out.strip():
+        body = _truncate_setup_lookup_text(out)
+        if rc == 0:
+            return True, f"{header}\n{body}"
+        return False, f"{header}\nSearch produced partial output (exit {rc}).\n{body}"
+    if err.strip():
+        return (
+            False,
+            f"{header}\nSearch failed (exit {rc}).\n{_truncate_setup_lookup_text(err, 1200)}",
+        )
+    return False, f"{header}\nNo repo matches found."
+
+
+def _execute_setup_aur_search(
+    host: str,
+    user: str,
+    key_path: str | None,
+    facts: dict[str, str],
+    query: str,
+    *,
+    port: int = 22,
+) -> tuple[bool, str]:
+    query = " ".join((query or "").split())
+    if not query:
+        return False, "[aur_search error]\nQuery was empty."
+    if facts.get("package_manager") != "pacman":
+        return (
+            False,
+            "[aur_search error]\nAUR lookups are only valid on Arch-family targets. "
+            "Use repo_search or web_search instead.",
+        )
+
+    aur_helper = facts.get("aur_helper", "none")
+    header = f"[aur_search results for: {query}]"
+    if aur_helper != "none":
+        cmd = f"{aur_helper} -Ss {_shell_single_quote(query)} | sed -n '1,40p'"
+        rc, out, err = _ssh_exec(host, user, cmd, key_path, timeout=60, port=port)
+        if out.strip():
+            body = _truncate_setup_lookup_text(out)
+            if rc == 0:
+                return True, f"{header}\n{body}"
+            return (
+                False,
+                f"{header}\nLocal {aur_helper} search produced partial output (exit {rc}).\n{body}",
+            )
+        if err.strip():
+            local_note = (
+                f"Local {aur_helper} search failed (exit {rc}). Falling back to a web search of aur.archlinux.org.\n"
+                f"{_truncate_setup_lookup_text(err, 800)}\n\n"
+            )
+        else:
+            local_note = f"No local {aur_helper} matches found. Falling back to a web search of aur.archlinux.org.\n\n"
+    else:
+        local_note = "No AUR helper is installed, so using a web search of aur.archlinux.org.\n\n"
+
+    success, formatted = _format_setup_web_lookup_result(
+        "aur_search web fallback",
+        f"site:aur.archlinux.org {query}",
+        _execute_web_search(f"site:aur.archlinux.org {query}", max_results=5),
+    )
+    return success, f"{header}\n{local_note}{formatted}"
+
+
+def _execute_setup_web_lookup(query: str, max_results: int = 5) -> tuple[bool, str]:
+    query = " ".join((query or "").split())
+    if not query:
+        return False, "[web_search error]\nQuery was empty."
+    try:
+        max_results = max(1, min(10, int(max_results)))
+    except (TypeError, ValueError):
+        max_results = 5
+    return _format_setup_web_lookup_result(
+        "web_search",
+        query,
+        _execute_web_search(query, max_results=max_results),
+    )
+
+
+def _lookup_hint_for_failed_command(cmd: str, output: str, facts: dict[str, str]) -> str | None:
+    """Suggest a lookup action when a package install failed due to naming/resolution."""
+    text = (output or "").lower()
+    package_manager = facts.get("package_manager", "unknown")
+    if package_manager == "pacman" and any(
+        marker in text
+        for marker in (
+            "target not found",
+            "could not find all required packages",
+            "no package matched",
+        )
+    ):
+        return (
+            "This looks like a package-resolution failure. Do not guess another install command yet. "
+            "Your next action should be `repo_search` for official packages, `aur_search` for AUR packages, "
+            "or `web_search` if the result is still ambiguous."
+        )
+    if package_manager == "apt" and "unable to locate package" in text:
+        return (
+            "Apt could not resolve that package name. Use `repo_search` or `web_search` next, then install the exact "
+            "resolved package instead of guessing alternative names."
+        )
+    if package_manager == "dnf" and any(
+        marker in text for marker in ("no match for argument", "unable to find a match")
+    ):
+        return (
+            "DNF could not resolve that package name. Use `repo_search` or `web_search` next, then retry with the "
+            "exact resolved package name."
+        )
+    if package_manager == "zypper" and any(
+        marker in text for marker in ("no provider of", "no matching items found")
+    ):
+        return (
+            "Zypper could not resolve that package name. Use `repo_search` or `web_search` next, then retry with the "
+            "exact resolved package name."
+        )
+    return None
 
 
 # Shell script shipped to the target to detect whether we're booted from a
@@ -4614,10 +4828,22 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             _temporal_block
             + "You are a Linux system administrator. You are connected to a remote machine via SSH "
             "and your job is to execute the migration plan (provided below) on the remote machine.\n\n"
-            "You have ONE tool: ssh_exec — it runs a shell command on the remote machine and returns the output.\n"
-            "To use it, respond with a JSON object:\n"
+            "You have a SMALL, EXPLICIT ACTION SET. Every response must be one or more JSON objects.\n"
+            "Use only these actions:\n"
             '  {"action": "ssh_exec", "command": "your shell command here", "reason": "why you are running this"}\n'
-            '  Optional: add "timeout_seconds": 7200 for commands you KNOW may run longer than 30 minutes (big package installs, AUR builds, compiles).\n\n'
+            '    Optional: add "timeout_seconds": 7200 for commands you KNOW may run longer than 30 minutes (big package installs, AUR builds, compiles).\n'
+            '  {"action": "repo_search", "query": "package or app name", "reason": "why you are searching"}\n'
+            '  {"action": "aur_search", "query": "package or app name", "reason": "why you are searching"}\n'
+            '  {"action": "web_search", "query": "up-to-date package or distro question", "reason": "why you are searching", "max_results": 5}\n'
+            '  {"action": "status", "message": "what you are doing now"}\n'
+            '  {"action": "done", "summary": "brief summary of what was accomplished"}\n\n'
+            "ACTION DISCIPLINE:\n"
+            "- `ssh_exec` is for commands on the remote machine.\n"
+            "- `repo_search` is for official package-repository lookups on the target distro.\n"
+            "- `aur_search` is for Arch AUR lookups when an app/theme is likely AUR-only.\n"
+            "- `web_search` is for current public information when package names or distro instructions are uncertain.\n"
+            "- If an install command fails because a package was not found, your NEXT action must be one of the search actions, not another guessed install command.\n"
+            "- Before installing a package whose exact name is uncertain, look it up first. Linux package ecosystems are fragile; certainty beats guessing.\n\n"
             "When you are completely done with the entire setup, respond with:\n"
             '  {"action": "done", "summary": "brief summary of what was accomplished"}\n\n'
             "To post a progress update to the user (shown in the UI), respond with:\n"
@@ -4767,6 +4993,17 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
         # Consecutive pivot count since the last block — if >= 3, we
         # stop and /api/ask the user so they can steer.
         pivot_counter = 0
+        # Track how many bridge.messages we've already forwarded into the
+        # model conversation. The UI's chat input posts to /wizard/chat,
+        # which calls bridge.add_message("user", msg). Previously the
+        # setup loop never consulted bridge.messages, so anything the
+        # user typed mid-install was INVISIBLE to the agent (e.g. "don't
+        # encrypt my drive" arrived after the LUKS step had already
+        # run and was silently ignored). Every iteration we check for
+        # new user messages since _last_bridge_msg_idx and prepend them
+        # to pending_feedback with a loud marker so they actually land.
+        with bridge.lock:
+            _last_bridge_msg_idx = len(bridge.messages)
 
         for _iteration in range(MAX_ITERATIONS):
             # Plan re-anchor: on long runs the original MIGRATION PLAN
@@ -4996,7 +5233,15 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                 messages.append(
                     {
                         "role": "user",
-                        "content": 'Please respond with a valid JSON object as specified. Either {"action": "ssh_exec", "command": "..."} or {"action": "done", "summary": "..."}',
+                        "content": (
+                            "Please respond with a valid JSON object as specified. Use one of: "
+                            '{"action":"ssh_exec","command":"...","reason":"..."}, '
+                            '{"action":"repo_search","query":"...","reason":"..."}, '
+                            '{"action":"aur_search","query":"...","reason":"..."}, '
+                            '{"action":"web_search","query":"...","reason":"..."}, '
+                            '{"action":"status","message":"..."}, or '
+                            '{"action":"done","summary":"..."}.'
+                        ),
                     }
                 )
                 continue
@@ -5033,6 +5278,65 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                     req.post(f"{base}/api/done", json={"summary": summary}, timeout=5)
                     finished = True
                     break
+
+                if act == "repo_search":
+                    query = (action.get("query") or "").strip()
+                    if not query:
+                        pending_feedback.append(
+                            "Error: empty query. Provide a repo_search query string."
+                        )
+                        continue
+                    success, lookup_text = _execute_setup_repo_search(
+                        host,
+                        user,
+                        key_path,
+                        setup_facts,
+                        query,
+                        port=ssh_port,
+                    )
+                    pending_feedback.append(lookup_text)
+                    results_log.append(
+                        f"**[repo_search] {query}** — {'OK' if success else 'NO MATCH / ERROR'}"
+                    )
+                    continue
+
+                if act == "aur_search":
+                    query = (action.get("query") or "").strip()
+                    if not query:
+                        pending_feedback.append(
+                            "Error: empty query. Provide an aur_search query string."
+                        )
+                        continue
+                    success, lookup_text = _execute_setup_aur_search(
+                        host,
+                        user,
+                        key_path,
+                        setup_facts,
+                        query,
+                        port=ssh_port,
+                    )
+                    pending_feedback.append(lookup_text)
+                    results_log.append(
+                        f"**[aur_search] {query}** — {'OK' if success else 'NO MATCH / ERROR'}"
+                    )
+                    continue
+
+                if act == "web_search":
+                    query = (action.get("query") or "").strip()
+                    if not query:
+                        pending_feedback.append(
+                            "Error: empty query. Provide a web_search query string."
+                        )
+                        continue
+                    success, lookup_text = _execute_setup_web_lookup(
+                        query,
+                        action.get("max_results", 5),
+                    )
+                    pending_feedback.append(lookup_text)
+                    results_log.append(
+                        f"**[web_search] {query}** — {'OK' if success else 'NO MATCH / ERROR'}"
+                    )
+                    continue
 
                 if act == "ssh_exec":
                     cmd = action.get("command", "")
@@ -5407,6 +5711,12 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                     if len(recent_exits) > 10:
                         recent_exits[:] = recent_exits[-10:]
                     if rc != 0:
+                        lookup_hint = _lookup_hint_for_failed_command(
+                            cmd, (out or "") + "\n" + (err or ""), setup_facts
+                        )
+                        if lookup_hint:
+                            pending_feedback.append(f"[quickhatch lookup hint]\n{lookup_hint}")
+                            bridge.add_message("agent", f"💡 Lookup hint: {lookup_hint[:240]}")
                         hint = _advise_on_repeated_failure(
                             cmd, (out or "") + "\n" + (err or ""), recent_exits
                         )
@@ -5465,10 +5775,26 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                     # status-only — no feedback needed
                     continue
 
-                pending_feedback.append(f"Unknown action '{act}'. Use ssh_exec, status, or done.")
+                pending_feedback.append(
+                    f"Unknown action '{act}'. Use ssh_exec, repo_search, aur_search, web_search, status, or done."
+                )
 
             if finished:
                 return
+
+            # Pull any user chat messages typed since the last iteration.
+            # These come from the UI's chat box (/wizard/chat → bridge.add_message).
+            # Prepend them to the feedback with a loud marker so the agent
+            # actually notices, reconsiders the plan, and replies in-chat.
+            user_interjections: list[str] = []
+            with bridge.lock:
+                new_tail = bridge.messages[_last_bridge_msg_idx:]
+                _last_bridge_msg_idx = len(bridge.messages)
+            for m in new_tail:
+                if m.get("role") == "user":
+                    txt = (m.get("content") or "").strip()
+                    if txt:
+                        user_interjections.append(txt)
 
             # Send consolidated feedback back to the model. If a
             # pre-reboot block is still active, ALWAYS prepend the
@@ -5476,6 +5802,19 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             # model's immediate attention instead of letting them
             # scroll out of the context window behind command output.
             feedback_parts: list[str] = []
+            if user_interjections:
+                feedback_parts.append(
+                    "[USER INTERJECTION — HIGHEST PRIORITY]\n"
+                    "The user just typed the following in the chat. Treat this "
+                    "as a direct instruction from the user and re-evaluate your "
+                    "current plan before running another command. Acknowledge "
+                    "what they said by posting a short reply via the "
+                    "'message' action, then adapt. If what they ask is "
+                    "impossible at this stage (e.g. 'undo encryption' after "
+                    "LUKS is already formatted), say so plainly and explain "
+                    "what their options are.\n\n"
+                    + "\n\n".join(f"> {t}" for t in user_interjections)
+                )
             if sticky_block_failures:
                 feedback_parts.append(
                     "[STICKY — PRE-REBOOT BLOCK ACTIVE]\n"

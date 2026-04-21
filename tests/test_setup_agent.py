@@ -16,6 +16,7 @@ from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, UserProfile
 from quickhatch.gui.server import (
     GUIState,
+    _execute_setup_aur_search,
     _preflight_setup_command,
     _resolve_setup_cmd_timeout,
     _run_setup_agent,
@@ -103,6 +104,47 @@ class TestSetupAgentBasics:
 
 
 class TestAgenticLoop:
+    def test_setup_prompt_advertises_lookup_actions(self, ready_state):
+        seen_prompts = []
+
+        def tracking_ssh(host, user, cmd, key_path=None, timeout=120, port=22):
+            if "echo 'QuickHatch connected!'" in cmd:
+                return (0, "QuickHatch connected!", "")
+            if "=== OS ===" in cmd:
+                return (0, "Arch Linux", "")
+            if "QH_PM=" in cmd:
+                return (
+                    0,
+                    "QH_PM=pacman\nQH_AUR=yay\nQH_USER=root\nQH_IS_ROOT=yes\nQH_SUDO_NOPASSWD=yes\n",
+                    "",
+                )
+            return (0, "", "")
+
+        class FakeResp:
+            status_code = 200
+            headers = {}
+            text = ""
+
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"choices": [{"message": {"content": '{"action":"done","summary":"done"}'}}]}
+
+        def capturing_post(url, json=None, headers=None, timeout=300, **kw):
+            if url and "/chat/completions" in url and json:
+                seen_prompts.append(json.get("messages", []))
+            return FakeResp()
+
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=tracking_ssh):
+            with patch("requests.post", capturing_post):
+                _run_setup_agent(ready_state, 0)
+
+        first_prompt = "\n".join(m.get("content", "") for m in seen_prompts[0])
+        assert "repo_search" in first_prompt
+        assert "aur_search" in first_prompt
+        assert "web_search" in first_prompt
+
     def test_model_done_ends_loop_immediately(self, ready_state):
         """Model says 'done' on first turn; no commands should be run."""
         ssh_mock = _make_ssh_mock(
@@ -217,6 +259,68 @@ class TestAgenticLoop:
         assert any("About to update" in m for m in msgs)
         # Command executed
         assert any("pacman -Syu" in c for c in ssh_calls)
+
+    def test_repo_search_action_runs_lookup_and_feeds_result_back(self, ready_state):
+        ssh_calls = []
+        seen_prompts = []
+
+        def tracking_ssh(host, user, cmd, key_path=None, timeout=120, port=22):
+            ssh_calls.append(cmd)
+            if "echo 'QuickHatch connected!'" in cmd:
+                return (0, "QuickHatch connected!", "")
+            if "=== OS ===" in cmd:
+                return (0, "Arch Linux", "")
+            if "QH_PM=" in cmd:
+                return (
+                    0,
+                    "QH_PM=pacman\nQH_AUR=yay\nQH_USER=root\nQH_IS_ROOT=yes\nQH_SUDO_NOPASSWD=yes\n",
+                    "",
+                )
+            if "pacman -Ss 'lm studio'" in cmd:
+                return (
+                    0,
+                    "community/lm-studio-bin 0.4.12-1\n    Discover, download, and run local LLMs",
+                    "",
+                )
+            return (0, "", "")
+
+        class FakeResp:
+            status_code = 200
+            headers = {}
+            text = ""
+
+            def __init__(self, text):
+                self._text = text
+
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"choices": [{"message": {"content": self._text}}]}
+
+        responses = iter(
+            [
+                '{"action":"repo_search","query":"lm studio","reason":"resolve package name"}',
+                '{"action":"done","summary":"resolved package"}',
+            ]
+        )
+
+        def capturing_post(url, json=None, headers=None, timeout=300, **kw):
+            if url and "/chat/completions" in url and json:
+                seen_prompts.append(json.get("messages", []))
+            return FakeResp(next(responses, '{"action":"done","summary":"done"}'))
+
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=tracking_ssh):
+            with patch("requests.post", capturing_post):
+                _run_setup_agent(ready_state, 0)
+
+        assert any("pacman -Ss 'lm studio'" in c for c in ssh_calls)
+        second_prompt = "\n".join(
+            m.get("content", "") if isinstance(m.get("content"), str) else ""
+            for m in seen_prompts[1]
+        )
+        assert "[repo_search results for: lm studio]" in second_prompt
+        assert "lm-studio-bin" in second_prompt
 
     def test_stop_request_exits_loop(self, ready_state):
         """Setting stop_requested mid-loop makes the agent exit on next iteration."""
@@ -335,6 +439,62 @@ class TestFeedbackLoop:
         )
         assert "Exit code: 1" in concat or "not enough free disk space" in concat
 
+    def test_package_resolution_failure_adds_lookup_hint(self, ready_state):
+        seen_prompts = []
+
+        def tracking_ssh(host, user, cmd, key_path=None, timeout=120, port=22):
+            if "echo 'QuickHatch connected!'" in cmd:
+                return (0, "QuickHatch connected!", "")
+            if "=== OS ===" in cmd:
+                return (0, "Arch Linux", "")
+            if "QH_PM=" in cmd:
+                return (
+                    0,
+                    "QH_PM=pacman\nQH_AUR=yay\nQH_USER=root\nQH_IS_ROOT=yes\nQH_SUDO_NOPASSWD=yes\n",
+                    "",
+                )
+            if "pacman -S --noconfirm lm-studio-bin" in cmd:
+                return (1, "", "error: target not found: lm-studio-bin")
+            return (0, "", "")
+
+        class FakeResp:
+            status_code = 200
+            headers = {}
+            text = ""
+
+            def __init__(self, text):
+                self._text = text
+
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"choices": [{"message": {"content": self._text}}]}
+
+        responses = iter(
+            [
+                '{"action":"ssh_exec","command":"pacman -S --noconfirm lm-studio-bin","reason":"install app"}',
+                '{"action":"done","summary":"saw lookup hint"}',
+            ]
+        )
+
+        def capturing_post(url, json=None, headers=None, timeout=300, **kw):
+            if url and "/chat/completions" in url and json:
+                seen_prompts.append(json.get("messages", []))
+            return FakeResp(next(responses, '{"action":"done","summary":"done"}'))
+
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=tracking_ssh):
+            with patch("requests.post", capturing_post):
+                _run_setup_agent(ready_state, 0)
+
+        second_prompt = "\n".join(
+            m.get("content", "") if isinstance(m.get("content"), str) else ""
+            for m in seen_prompts[1]
+        )
+        assert "repo_search" in second_prompt
+        assert "exact package name" in second_prompt
+        assert "issue a corrected command" in second_prompt
+
 
 class TestSetupTimeoutResolution:
     def test_long_install_commands_default_to_one_hour(self):
@@ -398,6 +558,33 @@ class TestSetupCommandPreflight:
             is None
         )
 
+
+class TestSetupLookupHelpers:
+    def test_aur_search_falls_back_to_web_without_helper(self):
+        facts = {
+            "package_manager": "pacman",
+            "aur_helper": "none",
+            "current_user": "jan",
+            "is_root": "no",
+            "sudo_nopasswd": "yes",
+        }
+        raw = (
+            '{"results": [{"title": "lm-studio-bin AUR", "url": "https://aur.archlinux.org/packages/lm-studio-bin", '
+            '"snippet": "AUR package for LM Studio"}]}'
+        )
+        with patch("quickhatch.gui.server._execute_web_search", return_value=raw):
+            success, text = _execute_setup_aur_search(
+                "127.0.0.1",
+                "jan",
+                None,
+                facts,
+                "lm studio",
+            )
+
+        assert success is True
+        assert "aur.archlinux.org" in text
+        assert "lm-studio-bin" in text
+
     def test_arch_preflight_normalizes_absolute_tool_paths(self):
         facts = {
             "package_manager": "pacman",
@@ -454,9 +641,7 @@ class TestSetupCommandPreflight:
 
         blocked = "sudo pacman -S --noconfirm brave-bin discord"
         responses = [
-            '{"action":"ssh_exec","command":"'
-            + blocked
-            + '","reason":"install apps"}',
+            '{"action":"ssh_exec","command":"' + blocked + '","reason":"install apps"}',
             '{"action":"done","summary":"done"}',
         ]
 
