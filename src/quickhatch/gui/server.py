@@ -25,6 +25,46 @@ from quickhatch.gallery.library import (
     load_gallery_entries,
 )
 
+
+def _ssh_public_to_private_key_path(public_key_path: str | None) -> Path | None:
+    raw = (public_key_path or "").strip()
+    if not raw:
+        return None
+    path = Path(raw)
+    return path.with_suffix("") if path.suffix == ".pub" else path
+
+
+def _resolve_ssh_private_key_path(profile: UserProfile) -> str | None:
+    """Resolve the private key QuickHatch should use for SSH.
+
+    Prefer the generated QuickHatch key over unrelated default SSH identities
+    when the profile has lost `ssh_public_key_path` due to a refresh/recovery
+    bug. This keeps the client aligned with the public key shipped in the
+    export bundle and added by `quickstart.sh`.
+    """
+    candidates: list[Path] = []
+    explicit = _ssh_public_to_private_key_path(getattr(profile, "ssh_public_key_path", None))
+    if explicit is not None:
+        candidates.append(explicit)
+    home_ssh = Path.home() / ".ssh"
+    candidates.extend(
+        [
+            home_ssh / "quickhatch_ed25519",
+            home_ssh / "id_ed25519",
+            home_ssh / "id_rsa",
+        ]
+    )
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        if candidate.exists():
+            return key
+    return None
+
+
 # ── Tool schemas for function-calling ──
 
 _TOOLS_OPENAI = [
@@ -1268,15 +1308,7 @@ def make_gui_server(
                             port_num = int(p)
                         except ValueError:
                             pass
-                    key_path = None
-                    if gui_state.profile.ssh_public_key_path:
-                        priv = gui_state.profile.ssh_public_key_path.replace(".pub", "")
-                        if Path(priv).exists():
-                            key_path = priv
-                    if not key_path:
-                        default_key = Path.home() / ".ssh" / "id_ed25519"
-                        if default_key.exists():
-                            key_path = str(default_key)
+                    key_path = _resolve_ssh_private_key_path(gui_state.profile)
                     rc, out, err = _ssh_exec(
                         host,
                         user_in,
@@ -4255,15 +4287,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
         except ValueError:
             pass
 
-    key_path = None
-    if profile.ssh_public_key_path:
-        priv = profile.ssh_public_key_path.replace(".pub", "")
-        if Path(priv).exists():
-            key_path = priv
-    if not key_path:
-        default_key = Path.home() / ".ssh" / "id_ed25519"
-        if default_key.exists():
-            key_path = str(default_key)
+    key_path = _resolve_ssh_private_key_path(profile)
 
     if not host or not user:
         bridge.add_message("agent", "Error: No Linux IP/username configured.")

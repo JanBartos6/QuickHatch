@@ -16,7 +16,7 @@ import pytest
 
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import UserProfile
-from quickhatch.gui.server import GUIState, make_gui_server
+from quickhatch.gui.server import GUIState, _resolve_ssh_private_key_path, make_gui_server
 
 
 @pytest.fixture
@@ -152,6 +152,47 @@ class TestProfileEndpoint:
         assert server["gui_state"].profile.additional_info == "restored"
         assert server["bridge"].profile.linux_user == "jan"
         assert server["gui_state"].profile.ai_config.api_key == "sk-secret-xyz"
+
+
+class TestSSHKeyResolution:
+    def test_prefers_quickhatch_key_when_profile_path_is_missing(self, tmp_path, monkeypatch):
+        home = tmp_path / "home"
+        ssh_dir = home / ".ssh"
+        ssh_dir.mkdir(parents=True)
+        (ssh_dir / "quickhatch_ed25519").write_text("quickhatch-private", encoding="utf-8")
+        (ssh_dir / "id_ed25519").write_text("default-private", encoding="utf-8")
+        monkeypatch.setattr("quickhatch.gui.server.Path.home", lambda: home)
+        profile = UserProfile()
+        profile.ssh_public_key_path = ""
+        assert _resolve_ssh_private_key_path(profile) == str(ssh_dir / "quickhatch_ed25519")
+
+    def test_test_ssh_uses_quickhatch_key_when_profile_lost_public_path(
+        self, server, tmp_path, monkeypatch
+    ):
+        home = tmp_path / "home"
+        ssh_dir = home / ".ssh"
+        ssh_dir.mkdir(parents=True)
+        quickhatch_key = ssh_dir / "quickhatch_ed25519"
+        quickhatch_key.write_text("quickhatch-private", encoding="utf-8")
+        (ssh_dir / "id_ed25519").write_text("default-private", encoding="utf-8")
+        monkeypatch.setattr("quickhatch.gui.server.Path.home", lambda: home)
+        server["gui_state"].profile.ssh_public_key_path = None
+        seen = {}
+
+        def fake_ssh_exec(host, user, cmd, key_path=None, timeout=120, port=22):
+            seen["key_path"] = key_path
+            return (0, "Linux archiso 6.19", "")
+
+        monkeypatch.setattr("quickhatch.gui.server._ssh_exec", fake_ssh_exec)
+        status, body = _post(
+            server["port"],
+            "/wizard/test-ssh",
+            {"ip": "192.168.50.162", "user": "root"},
+        )
+        data = json.loads(body)
+        assert status == 200
+        assert data["status"] == "ok"
+        assert seen["key_path"] == str(quickhatch_key)
 
 
 class TestCompleteStepEndpoint:
