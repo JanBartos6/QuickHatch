@@ -313,6 +313,15 @@ class TestFrontendProfileSync:
             in html
         )
 
+    def test_bootable_usb_number_bubbles_keep_contrast_in_dark_mode(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert ".guide-num{" in html
+        assert "background:var(--primary);color:var(--bg);" in html
+        assert "background:var(--primary);color:#fff;" not in html
+
     def test_ssh_step_no_longer_duplicates_full_usb_walkthrough(self):
         from pathlib import Path
 
