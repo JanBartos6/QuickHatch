@@ -1465,7 +1465,6 @@ const stepRenderers={
             </div>
             <textarea id="targetOverrideText" rows="5" placeholder="CPU / GPU / RAM / storage / WiFi chipset / anything unusual…" oninput="persistTargetOverrideDraft()">${escHtml(existingOverride)}</textarea>
             <div class="stack-h" style="gap:var(--s2);margin-top:var(--s2)">
-              <button class="btn btn-primary btn-sm" onclick="saveTargetOverride()">Save description</button>
               ${existingOverride?'<button class="btn btn-ghost btn-sm" onclick="clearTargetOverride()">Remove — install for this machine</button>':''}
             </div>
           </div>
@@ -2495,17 +2494,6 @@ function toggleTargetOverride(){
   if(!panel.classList.contains('hidden')){
     const ta=el('targetOverrideText'); if(ta) ta.focus();
   }
-}
-
-async function saveTargetOverride(){
-  const ta=el('targetOverrideText'); if(!ta)return;
-  const text=(ta.value||'').trim();
-  if(!text){toast('Enter a description first — or click Remove to clear.','error');return;}
-  await saveProfile({target_hardware_override:text});
-  state.profile.target_hardware_override=text;
-  clearDraftValue('target_hardware_override');
-  toast('Target hardware description saved — agent will plan for it.','success');
-  const btn=el('overrideToggle'); if(btn) btn.textContent='Edit target hardware';
 }
 
 async function autoSaveTargetOverrideIfNeeded(){

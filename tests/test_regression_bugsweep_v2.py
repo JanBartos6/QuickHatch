@@ -241,6 +241,8 @@ class TestFrontendProfileSync:
         assert "await autoSaveTargetOverrideIfNeeded();" in html
         assert 'onclick="completeScanStep()"' in html
         assert "async function completeScanStep()" in html
+        assert "Save description" not in html
+        assert "async function saveTargetOverride()" not in html
 
     def test_wizard_uses_local_draft_and_silent_autosave_for_mid_step_fields(self):
         from pathlib import Path
