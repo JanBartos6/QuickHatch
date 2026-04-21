@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, Preferences, UserProfile
-from quickhatch.gui.server import GUIState, _run_agent_background
+from quickhatch.gui.server import GUIState, _call_model_analysis, _run_agent_background
 
 
 class _FakeResponse:
@@ -40,7 +40,9 @@ class TestAnalysisAgentStructuredSections:
         gui_state = _make_state()
         suggested: list[dict] = []
 
-        def fake_model(endpoint, model, prompt, api_key, bridge, provider=None):
+        def fake_model(
+            endpoint, model, prompt, api_key, bridge, provider=None, use_native_search=False
+        ):
             if "SECTION: DISTRO" in prompt:
                 return (
                     '{"title":"Recommended Distribution",'
@@ -74,3 +76,25 @@ class TestAnalysisAgentStructuredSections:
 
         gui_state = _make_state()
         assert _prefetch_search_context(gui_state.profile, gui_state.bridge) == ("", [])
+
+    def test_analysis_native_search_uses_provider_search_path(self):
+        gui_state = _make_state()
+
+        with patch(
+            "quickhatch.gui.server._call_model_with_native_search",
+            return_value="native result",
+        ) as native_call:
+            with patch("quickhatch.gui.server._call_openai_with_tools") as openai_call:
+                result = _call_model_analysis(
+                    gui_state.profile.ai_config.endpoint or "",
+                    gui_state.profile.ai_config.model_name or "",
+                    "SECTION: DISTRO",
+                    gui_state.profile.ai_config.api_key,
+                    gui_state.bridge,
+                    provider="api_openai",
+                    use_native_search=True,
+                )
+
+        assert result == "native result"
+        native_call.assert_called_once()
+        openai_call.assert_not_called()

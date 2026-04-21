@@ -117,6 +117,7 @@ class AIConfig:
     model_name: str | None = None
     api_key: str | None = None
     endpoint: str | None = None
+    native_search: bool = True
 
 
 @dataclass

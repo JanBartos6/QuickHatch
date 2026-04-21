@@ -24,6 +24,8 @@ from quickhatch.ai.model_list import (
     chat_completions_url,
     is_anthropic,
 )
+from quickhatch.config import AIConfig
+from quickhatch.gui.server import _provider_supports_native_search, _use_provider_native_search
 
 
 class TestIsAnthropic:
@@ -119,6 +121,24 @@ class TestProviderConstants:
 
     def test_local_providers_complete_set(self):
         assert LOCAL_PROVIDERS == {"local_ollama", "local_lmstudio", "codex"}
+
+
+class TestNativeSearchProviderSelection:
+    def test_major_four_support_native_search(self):
+        for provider in ("api_openai", "api_anthropic", "api_gemini", "api_grok"):
+            assert _provider_supports_native_search(provider) is True
+
+    def test_other_providers_do_not_support_native_search(self):
+        for provider in ("api_custom", "local_ollama", "local_lmstudio", "codex", None):
+            assert _provider_supports_native_search(provider) is False
+
+    def test_toggle_defaults_on_for_supported_provider(self):
+        cfg = AIConfig(provider="api_openai")
+        assert _use_provider_native_search(cfg) is True
+
+    def test_toggle_off_disables_native_search_even_when_supported(self):
+        cfg = AIConfig(provider="api_openai", native_search=False)
+        assert _use_provider_native_search(cfg) is False
 
 
 if __name__ == "__main__":  # pragma: no cover

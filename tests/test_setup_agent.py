@@ -16,10 +16,12 @@ from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, UserProfile
 from quickhatch.gui.server import (
     GUIState,
+    _call_setup_model_text,
     _execute_setup_aur_search,
     _preflight_setup_command,
     _resolve_setup_cmd_timeout,
     _run_setup_agent,
+    _setup_runtime_prompt_block,
 )
 
 
@@ -101,6 +103,68 @@ class TestSetupAgentBasics:
             _run_setup_agent(ready_state, 0)
         msgs = [m["content"] for m in ready_state.bridge.messages]
         assert any("SSH connection failed" in m for m in msgs)
+
+
+class TestNativeSearchSetupContract:
+    def test_runtime_prompt_suppresses_harness_search_when_native_search_is_active(self):
+        prompt = _setup_runtime_prompt_block(
+            {
+                "package_manager": "pacman",
+                "aur_helper": "yay",
+                "current_user": "root",
+                "is_root": "yes",
+                "sudo_nopasswd": "yes",
+            },
+            False,
+            native_search_active=True,
+        )
+
+        assert "SEARCH MODE:" in prompt
+        assert "provider-native web search is enabled" in prompt.lower()
+        assert "LOOKUP ACTIONS:" not in prompt
+        assert "Use the `repo_search`, `aur_search`, or `web_search` action next" not in prompt
+        assert "Do NOT emit QuickHatch harness lookup actions" in prompt
+
+    def test_setup_model_uses_native_search_for_supported_provider(self):
+        config = AIConfig(
+            provider="api_openai",
+            endpoint="https://api.openai.com/v1",
+            model_name="gpt-test",
+            api_key="secret",
+            native_search=True,
+        )
+        messages = [
+            {"role": "user", "content": "SYSTEM PROMPT"},
+            {"role": "assistant", "content": "Previous step"},
+            {"role": "user", "content": "Continue"},
+        ]
+
+        with patch(
+            "quickhatch.gui.server._call_model_with_native_search",
+            return_value='{"action":"done","summary":"ok"}',
+        ) as native_call:
+            with patch("quickhatch.gui.server._post_openai_compat") as compat_call:
+                result = _call_setup_model_text(
+                    config,
+                    config.endpoint or "",
+                    config.model_name or "",
+                    config.api_key,
+                    messages,
+                )
+
+        assert result == '{"action":"done","summary":"ok"}'
+        native_call.assert_called_once_with(
+            "api_openai",
+            "https://api.openai.com/v1",
+            "gpt-test",
+            [
+                {"role": "assistant", "content": "Previous step"},
+                {"role": "user", "content": "Continue"},
+            ],
+            "secret",
+            system_prompt="SYSTEM PROMPT",
+        )
+        compat_call.assert_not_called()
 
 
 class TestAgenticLoop:

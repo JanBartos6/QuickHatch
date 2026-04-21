@@ -18,7 +18,7 @@ from typing import Any
 from urllib.parse import unquote, urlparse
 
 from quickhatch.bridge.server import BridgeState
-from quickhatch.config import UserProfile
+from quickhatch.config import AIConfig, UserProfile
 from quickhatch.gallery.library import (
     find_gallery_entries,
     gallery_asset_path,
@@ -208,6 +208,7 @@ class GUIState:
     _LIST_TOP_FIELDS = frozenset({"apps_to_install"})
     # Fields whose declared type is str.
     _STR_AI_FIELDS = frozenset({"provider", "model_name", "api_key", "endpoint"})
+    _BOOL_AI_FIELDS = frozenset({"native_search"})
     _STR_PREF_FIELDS = frozenset(
         {
             "migration_type",
@@ -306,6 +307,8 @@ class GUIState:
                         changed |= self._set_if_changed(
                             self.profile.ai_config, k, self._coerce_str(v)
                         )
+                    elif k in self._BOOL_AI_FIELDS and isinstance(v, bool):
+                        changed |= self._set_if_changed(self.profile.ai_config, k, v)
                     else:
                         changed |= self._set_if_changed(self.profile.ai_config, k, v)
 
@@ -1596,6 +1599,203 @@ def _execute_image_search(query: str, max_results: int = 3) -> str:
         return json.dumps({"error": f"Image search failed: {e}"})
 
 
+_NATIVE_SEARCH_PROVIDERS = frozenset(
+    {"api_openai", "api_anthropic", "api_gemini", "api_grok"}
+)
+
+
+def _provider_supports_native_search(provider: str | None) -> bool:
+    return (provider or "") in _NATIVE_SEARCH_PROVIDERS
+
+
+def _use_provider_native_search(ai_config: AIConfig) -> bool:
+    return bool(getattr(ai_config, "native_search", True)) and _provider_supports_native_search(
+        ai_config.provider
+    )
+
+
+def _messages_to_openai_responses_input(
+    messages: list[dict[str, str]], system_prompt: str = ""
+) -> list[dict[str, str]]:
+    items: list[dict[str, str]] = []
+    if system_prompt.strip():
+        items.append({"role": "system", "content": system_prompt})
+    for message in messages:
+        role = message.get("role") or "user"
+        content = message.get("content", "")
+        if role not in {"system", "user", "assistant", "developer"}:
+            role = "user"
+        items.append({"role": role, "content": content})
+    return items
+
+
+def _extract_responses_output_text(payload: dict[str, Any]) -> str:
+    text = payload.get("output_text")
+    if isinstance(text, str) and text.strip():
+        return text
+    parts: list[str] = []
+    for item in payload.get("output", []) or []:
+        if not isinstance(item, dict):
+            continue
+        if item.get("type") != "message":
+            continue
+        for block in item.get("content", []) or []:
+            if not isinstance(block, dict):
+                continue
+            if block.get("type") in {"output_text", "text"} and block.get("text"):
+                parts.append(str(block["text"]))
+    return "\n".join(p for p in parts if p).strip()
+
+
+def _extract_gemini_text(payload: dict[str, Any]) -> str:
+    parts: list[str] = []
+    for cand in payload.get("candidates", []) or []:
+        if not isinstance(cand, dict):
+            continue
+        content = cand.get("content") or {}
+        for part in content.get("parts", []) or []:
+            if isinstance(part, dict) and part.get("text"):
+                parts.append(str(part["text"]))
+    return "\n".join(p for p in parts if p).strip()
+
+
+def _gemini_native_endpoint(endpoint: str | None, model: str) -> str:
+    from urllib.parse import quote
+
+    base = (endpoint or "https://generativelanguage.googleapis.com/v1beta/openai").rstrip("/")
+    if base.endswith("/openai"):
+        base = base[: -len("/openai")]
+    return f"{base}/models/{quote(model, safe='')}:generateContent"
+
+
+def _call_openai_responses_with_native_search(
+    endpoint: str,
+    model: str,
+    messages: list[dict[str, str]],
+    api_key: str | None,
+    *,
+    system_prompt: str = "",
+) -> str:
+    import requests
+
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    url = f"{(endpoint or '').rstrip('/')}/responses"
+    body = {
+        "model": model,
+        "input": _messages_to_openai_responses_input(messages, system_prompt),
+        "tools": [{"type": "web_search"}],
+    }
+    resp = requests.post(url, headers=headers, json=body, timeout=900)
+    resp.raise_for_status()
+    return _extract_responses_output_text(resp.json())
+
+
+def _call_anthropic_with_native_search(
+    api_key: str,
+    model: str,
+    messages: list[dict[str, str]],
+    *,
+    system_prompt: str = "",
+) -> str:
+    import requests
+
+    headers = {
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+    }
+    body = {
+        "model": model,
+        "max_tokens": 4096,
+        "system": system_prompt,
+        "messages": messages,
+        "tools": [{"type": "web_search_20250305", "name": "web_search", "max_uses": 5}],
+    }
+    resp = requests.post(
+        "https://api.anthropic.com/v1/messages",
+        headers=headers,
+        json=body,
+        timeout=900,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    return "\n".join(
+        block.get("text", "") for block in (data.get("content") or []) if block.get("type") == "text"
+    ).strip()
+
+
+def _call_gemini_with_native_search(
+    endpoint: str,
+    model: str,
+    messages: list[dict[str, str]],
+    api_key: str | None,
+    *,
+    system_prompt: str = "",
+) -> str:
+    import requests
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": api_key or "",
+    }
+    contents: list[dict[str, Any]] = []
+    for message in messages:
+        role = "model" if message.get("role") == "assistant" else "user"
+        contents.append({"role": role, "parts": [{"text": message.get("content", "")}]})
+    body: dict[str, Any] = {
+        "contents": contents,
+        "tools": [{"google_search": {}}],
+    }
+    if system_prompt.strip():
+        body["system_instruction"] = {"parts": [{"text": system_prompt}]}
+    resp = requests.post(
+        _gemini_native_endpoint(endpoint, model),
+        headers=headers,
+        json=body,
+        timeout=900,
+    )
+    resp.raise_for_status()
+    return _extract_gemini_text(resp.json())
+
+
+def _call_model_with_native_search(
+    provider: str | None,
+    endpoint: str,
+    model: str,
+    messages: list[dict[str, str]],
+    api_key: str | None,
+    *,
+    system_prompt: str = "",
+) -> str:
+    provider = provider or ""
+    if provider == "api_anthropic":
+        return _call_anthropic_with_native_search(
+            api_key or "",
+            model,
+            messages,
+            system_prompt=system_prompt,
+        )
+    if provider == "api_gemini":
+        return _call_gemini_with_native_search(
+            endpoint,
+            model,
+            messages,
+            api_key,
+            system_prompt=system_prompt,
+        )
+    if provider in {"api_openai", "api_grok"}:
+        return _call_openai_responses_with_native_search(
+            endpoint,
+            model,
+            messages,
+            api_key,
+            system_prompt=system_prompt,
+        )
+    raise ValueError(f"Provider {provider!r} does not support native search")
+
+
 def _call_openai_with_tools(
     endpoint: str,
     model: str,
@@ -1786,10 +1986,19 @@ def _call_model_analysis(
     api_key: str | None,
     bridge: BridgeState,
     provider: str | None = None,
+    use_native_search: bool = False,
 ) -> str:
     """Run an analysis-section model call with tool use when supported."""
     from quickhatch.ai.model_list import is_anthropic
 
+    if use_native_search and _provider_supports_native_search(provider):
+        return _call_model_with_native_search(
+            provider,
+            endpoint,
+            model,
+            [{"role": "user", "content": prompt}],
+            api_key,
+        )
     if is_anthropic(provider):
         return _call_anthropic_with_tools(
             api_key or "",
@@ -1805,6 +2014,78 @@ def _call_model_analysis(
         api_key,
         bridge,
         provider=provider,
+    )
+
+
+def _split_setup_system_prompt(messages: list[dict[str, str]]) -> tuple[str, list[dict[str, str]]]:
+    if messages and messages[0].get("role") == "user":
+        return messages[0].get("content", ""), messages[1:]
+    return "", messages
+
+
+def _call_setup_model_text(
+    config: AIConfig,
+    endpoint: str,
+    model: str,
+    api_key: str | None,
+    messages: list[dict[str, str]],
+) -> str:
+    from quickhatch.ai.model_list import chat_completions_url, is_anthropic
+
+    system_prompt, conversation = _split_setup_system_prompt(messages)
+
+    if _use_provider_native_search(config):
+        if not conversation:
+            conversation = [{"role": "user", "content": "Continue from the last action."}]
+        return _call_model_with_native_search(
+            config.provider,
+            endpoint,
+            model,
+            conversation,
+            api_key,
+            system_prompt=system_prompt,
+        )
+
+    if is_anthropic(config.provider):
+        a_msgs: list[dict[str, str]] = []
+        for m in conversation:
+            a_msgs.append(
+                {
+                    "role": "assistant" if m.get("role") == "assistant" else "user",
+                    "content": m.get("content", ""),
+                }
+            )
+        if not a_msgs:
+            a_msgs.append({"role": "user", "content": "Begin the migration."})
+        if a_msgs[0]["role"] != "user":
+            a_msgs.insert(0, {"role": "user", "content": "Continue from the last action."})
+        merged: list[dict[str, str]] = []
+        for m in a_msgs:
+            if merged and merged[-1]["role"] == m["role"]:
+                merged[-1]["content"] = merged[-1]["content"] + "\n\n" + m["content"]
+            else:
+                merged.append(dict(m))
+        return _post_anthropic(
+            url=chat_completions_url(config.provider, endpoint),
+            api_key=api_key or "",
+            body={
+                "model": model,
+                "max_tokens": 4096,
+                "system": system_prompt,
+                "messages": merged,
+            },
+        )
+
+    body: dict[str, Any] = {"model": model, "messages": messages}
+    if _is_reasoning_model(model):
+        body["max_completion_tokens"] = 4096
+    else:
+        body["temperature"] = 0.3
+        body["max_tokens"] = 4096
+    return _post_openai_compat(
+        url=chat_completions_url(config.provider, endpoint),
+        api_key=api_key,
+        body=body,
     )
 
 
@@ -1865,6 +2146,7 @@ def _analysis_context_profile(
             "endpoint": profile.ai_config.endpoint,
             "model_name": profile.ai_config.model_name,
             "api_key": "***REDACTED***" if profile.ai_config.api_key else None,
+            "native_search": profile.ai_config.native_search,
         },
     }
 
@@ -2702,6 +2984,8 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
         endpoint = config.endpoint or ""
         model = config.model_name or ""
         api_key = config.api_key
+        native_search_active = _use_provider_native_search(config)
+        native_search_active = _use_provider_native_search(config)
 
         # Phase 2: Generate each section with its own model call
         section_titles = {
@@ -2804,6 +3088,7 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
                         api_key,
                         bridge,
                         provider=config.provider,
+                        use_native_search=native_search_active,
                     )
                     break
                 except Exception as exc:
@@ -3356,7 +3641,9 @@ echo 'QH_SUDO_NOPASSWD='$(if [ "$(id -u 2>/dev/null)" = "0" ]; then echo yes; el
     return facts
 
 
-def _setup_runtime_prompt_block(facts: dict[str, str], is_live: bool) -> str:
+def _setup_runtime_prompt_block(
+    facts: dict[str, str], is_live: bool, *, native_search_active: bool = False
+) -> str:
     """Render execution facts and distro-aware package rules for the setup LLM."""
     package_manager = facts.get("package_manager", "unknown")
     aur_helper = facts.get("aur_helper", "none")
@@ -3381,12 +3668,17 @@ def _setup_runtime_prompt_block(facts: dict[str, str], is_live: bool) -> str:
         ]
     )
     if package_manager == "pacman":
+        package_lookup_line = (
+            "- If `pacman -S` says a target was not found, stop guessing. Search natively, then install the exact discovered package name."
+            if native_search_active
+            else "- If `pacman -S` says a target was not found, stop guessing. Use the `repo_search`, `aur_search`, or `web_search` action next, then install the exact discovered package name."
+        )
         lines.extend(
             [
                 "- Official Arch packages, drivers, and core desktop packages must go through `pacman`.",
                 "- AUR-only packages must NOT be passed to `pacman`. Use the detected AUR helper or a manual `makepkg -s` + `pacman -U` flow.",
                 "- Treat names ending in `-bin` or `-git` as AUR candidates unless you have a concrete search result proving otherwise.",
-                "- If `pacman -S` says a target was not found, stop guessing. Use the `repo_search`, `aur_search`, or `web_search` action next, then install the exact discovered package name.",
+                package_lookup_line,
                 "- Do not fire a chain of alternative package names for the same app without a search result between them.",
             ]
         )
@@ -3425,17 +3717,28 @@ def _setup_runtime_prompt_block(facts: dict[str, str], is_live: bool) -> str:
                 "- If the migration plan contains live-installer steps, ignore those and execute only the post-install configuration parts.",
             ]
         )
-    lines.extend(
-        [
-            "",
-            "LOOKUP ACTIONS:",
-            "- `repo_search` asks the target OS package manager for matching packages and returns compact results.",
-            "- `aur_search` looks up AUR packages on Arch-family targets and falls back to a web search of aur.archlinux.org when needed.",
-            "- `web_search` performs an internet search for current package names, distro-specific instructions, and project pages.",
-            "- When the exact package name is uncertain, use a lookup action BEFORE `ssh_exec`.",
-            "- If any install command fails with 'target not found', 'unable to locate package', or 'no match', your very next action must be a lookup action instead of another guessed install command.",
-        ]
-    )
+    if native_search_active:
+        lines.extend(
+            [
+                "",
+                "SEARCH MODE:",
+                "- Provider-native web search is enabled for this run.",
+                "- Use the model provider's own search capability inside the model when package names or distro instructions are uncertain.",
+                "- Do NOT emit QuickHatch harness lookup actions (`repo_search`, `aur_search`, `web_search`) in this mode.",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                "",
+                "LOOKUP ACTIONS:",
+                "- `repo_search` asks the target OS package manager for matching packages and returns compact results.",
+                "- `aur_search` looks up AUR packages on Arch-family targets and falls back to a web search of aur.archlinux.org when needed.",
+                "- `web_search` performs an internet search for current package names, distro-specific instructions, and project pages.",
+                "- When the exact package name is uncertain, use a lookup action BEFORE `ssh_exec`.",
+                "- If any install command fails with 'target not found', 'unable to locate package', or 'no match', your very next action must be a lookup action instead of another guessed install command.",
+            ]
+        )
     return "\n".join(lines) + "\n\n"
 
 
@@ -4599,6 +4902,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             pass
 
     key_path = _resolve_ssh_private_key_path(profile)
+    native_search_active = _use_provider_native_search(config)
 
     if not host or not user:
         bridge.add_message("agent", "Error: No Linux IP/username configured.")
@@ -4677,7 +4981,9 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                 facts=setup_facts,
                 port=ssh_port,
             )
-        runtime_block = _setup_runtime_prompt_block(setup_facts, is_live)
+        runtime_block = _setup_runtime_prompt_block(
+            setup_facts, is_live, native_search_active=native_search_active
+        )
 
         # Step 3: Build profile context
         profile_dict = asdict(profile)
@@ -4824,26 +5130,46 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             "one above — STOP and diagnose the actual root cause instead.\n\n"
         )
 
+        if native_search_active:
+            search_mode_block = (
+                "You have a SMALL, EXPLICIT ACTION SET. Every response must be one or more JSON objects.\n"
+                "Use only these actions:\n"
+                '  {"action": "ssh_exec", "command": "your shell command here", "reason": "why you are running this"}\n'
+                '    Optional: add "timeout_seconds": 7200 for commands you KNOW may run longer than 30 minutes (big package installs, AUR builds, compiles).\n'
+                '  {"action": "status", "message": "what you are doing now"}\n'
+                '  {"action": "done", "summary": "brief summary of what was accomplished"}\n\n'
+                "SEARCH DISCIPLINE:\n"
+                "- Provider-native web search is ENABLED for this run.\n"
+                "- Use the model provider's own search capability whenever you need current package names, distro-specific instructions, or up-to-date compatibility data.\n"
+                "- Do NOT emit QuickHatch harness search actions (`repo_search`, `aur_search`, `web_search`) in this mode.\n"
+                "- If an install command fails because a package was not found, search natively first and then issue a corrected command.\n\n"
+            )
+        else:
+            search_mode_block = (
+                "You have a SMALL, EXPLICIT ACTION SET. Every response must be one or more JSON objects.\n"
+                "Use only these actions:\n"
+                '  {"action": "ssh_exec", "command": "your shell command here", "reason": "why you are running this"}\n'
+                '    Optional: add "timeout_seconds": 7200 for commands you KNOW may run longer than 30 minutes (big package installs, AUR builds, compiles).\n'
+                '  {"action": "repo_search", "query": "package or app name", "reason": "why you are searching"}\n'
+                '  {"action": "aur_search", "query": "package or app name", "reason": "why you are searching"}\n'
+                '  {"action": "web_search", "query": "up-to-date package or distro question", "reason": "why you are searching", "max_results": 5}\n'
+                '  {"action": "status", "message": "what you are doing now"}\n'
+                '  {"action": "done", "summary": "brief summary of what was accomplished"}\n\n'
+                "ACTION DISCIPLINE:\n"
+                "- `ssh_exec` is for commands on the remote machine.\n"
+                "- `repo_search` is for official package-repository lookups on the target distro.\n"
+                "- `aur_search` is for Arch AUR lookups when an app/theme is likely AUR-only.\n"
+                "- `web_search` is for current public information when package names or distro instructions are uncertain.\n"
+                "- If an install command fails because a package was not found, your NEXT action must be one of the search actions, not another guessed install command.\n"
+                "- Before installing a package whose exact name is uncertain, look it up first. Linux package ecosystems are fragile; certainty beats guessing.\n\n"
+            )
+
         system_prompt = (
             _temporal_block
             + "You are a Linux system administrator. You are connected to a remote machine via SSH "
             "and your job is to execute the migration plan (provided below) on the remote machine.\n\n"
-            "You have a SMALL, EXPLICIT ACTION SET. Every response must be one or more JSON objects.\n"
-            "Use only these actions:\n"
-            '  {"action": "ssh_exec", "command": "your shell command here", "reason": "why you are running this"}\n'
-            '    Optional: add "timeout_seconds": 7200 for commands you KNOW may run longer than 30 minutes (big package installs, AUR builds, compiles).\n'
-            '  {"action": "repo_search", "query": "package or app name", "reason": "why you are searching"}\n'
-            '  {"action": "aur_search", "query": "package or app name", "reason": "why you are searching"}\n'
-            '  {"action": "web_search", "query": "up-to-date package or distro question", "reason": "why you are searching", "max_results": 5}\n'
-            '  {"action": "status", "message": "what you are doing now"}\n'
-            '  {"action": "done", "summary": "brief summary of what was accomplished"}\n\n'
-            "ACTION DISCIPLINE:\n"
-            "- `ssh_exec` is for commands on the remote machine.\n"
-            "- `repo_search` is for official package-repository lookups on the target distro.\n"
-            "- `aur_search` is for Arch AUR lookups when an app/theme is likely AUR-only.\n"
-            "- `web_search` is for current public information when package names or distro instructions are uncertain.\n"
-            "- If an install command fails because a package was not found, your NEXT action must be one of the search actions, not another guessed install command.\n"
-            "- Before installing a package whose exact name is uncertain, look it up first. Linux package ecosystems are fragile; certainty beats guessing.\n\n"
+            + search_mode_block
+            +
             "When you are completely done with the entire setup, respond with:\n"
             '  {"action": "done", "summary": "brief summary of what was accomplished"}\n\n'
             "To post a progress update to the user (shown in the UI), respond with:\n"
@@ -5055,74 +5381,14 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                 }
                 messages = [system_msg, summary_msg, *tail]
 
-            # Call the LLM. Use the EXPLICIT provider label, not an
-            # endpoint substring hack — a custom endpoint with
-            # 'anthropic' in its hostname (proxies, dotcom variants)
-            # would otherwise hijack the call to api.anthropic.com and
-            # leak the user's key.
-            from quickhatch.ai.model_list import chat_completions_url, is_anthropic
-
             try:
-                if is_anthropic(config.provider):
-                    # Convert our unified OpenAI-style `messages` list into
-                    # Anthropic's `/v1/messages` shape:
-                    #   - `system`: the very first 'user' message is actually
-                    #     our system prompt, so pull it out
-                    #   - `messages`: the rest, role-normalized
-                    a_system = ""
-                    a_msgs: list[dict[str, str]] = []
-                    for idx, m in enumerate(messages):
-                        if idx == 0 and m.get("role") == "user":
-                            a_system = m.get("content", "")
-                            continue
-                        a_msgs.append(
-                            {
-                                "role": "assistant" if m.get("role") == "assistant" else "user",
-                                "content": m.get("content", ""),
-                            }
-                        )
-                    if not a_msgs:
-                        a_msgs.append({"role": "user", "content": "Begin the migration."})
-                    if a_msgs[0]["role"] != "user":
-                        a_msgs.insert(
-                            0, {"role": "user", "content": "Continue from the last action."}
-                        )
-                    # Anthropic rejects two consecutive same-role messages with a
-                    # 400. Merge any consecutive same-role runs.
-                    merged: list[dict[str, str]] = []
-                    for m in a_msgs:
-                        if merged and merged[-1]["role"] == m["role"]:
-                            merged[-1]["content"] = merged[-1]["content"] + "\n\n" + m["content"]
-                        else:
-                            merged.append(dict(m))
-                    a_msgs = merged
-                    response_text = _post_anthropic(
-                        url=chat_completions_url(config.provider, endpoint),
-                        api_key=api_key or "",
-                        body={
-                            "model": model,
-                            "max_tokens": 4096,
-                            "system": a_system,
-                            "messages": a_msgs,
-                        },
-                    )
-                else:
-                    # OpenAI-compat path. Newer reasoning models (gpt-5/o1/o3
-                    # series) reject `temperature` and require
-                    # `max_completion_tokens` instead of `max_tokens`.
-                    body: dict = {"model": model, "messages": messages}
-                    if _is_reasoning_model(model):
-                        body["max_completion_tokens"] = 4096
-                    else:
-                        body["temperature"] = 0.3
-                        # Reasoning-style models (Gemma thinking, R1-like) need
-                        # generous budget — 1024 starved them.
-                        body["max_tokens"] = 4096
-                    response_text = _post_openai_compat(
-                        url=chat_completions_url(config.provider, endpoint),
-                        api_key=api_key,
-                        body=body,
-                    )
+                response_text = _call_setup_model_text(
+                    config,
+                    endpoint,
+                    model,
+                    api_key,
+                    messages,
+                )
             except Exception as call_exc:
                 # Surface the actual error to the user instead of letting
                 # it kill the thread silently. _http_post_with_retry
