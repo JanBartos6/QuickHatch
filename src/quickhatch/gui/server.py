@@ -4639,6 +4639,10 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
         # Count of consecutive blank model responses — three in a row
         # ends the run instead of looping forever.
         blank_turns = 0
+        # Remember why the latest blank turn happened. Real provider
+        # transport failures should stop with the underlying error,
+        # not collapse into a misleading "blank model output".
+        last_blank_cause: str | None = None
         # Same budget for consecutive non-JSON (unparseable) responses.
         # Without this cap, a model stuck emitting malformed JSON (e.g.
         # invalid `\[...\]` escapes) loops until MAX_ITERATIONS.
@@ -4791,9 +4795,10 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                 # Surface the actual error to the user instead of letting
                 # it kill the thread silently. _http_post_with_retry
                 # already includes the response body snippet.
+                last_blank_cause = str(call_exc)[:500]
                 bridge.add_message(
                     "agent",
-                    f"⚠️  LLM call failed: {str(call_exc)[:500]}. Retrying next iteration.",
+                    f"⚠️  LLM call failed: {last_blank_cause}. Retrying next iteration.",
                 )
                 response_text = ""
 
@@ -4805,40 +4810,59 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             if not response_text or not response_text.strip():
                 blank_turns += 1
                 if blank_turns >= 3:
-                    bridge.add_message(
-                        "agent",
-                        "Model returned blank responses 3 times in a row — "
-                        "stopping. Try a different model or temperature.",
-                    )
+                    if last_blank_cause:
+                        bridge.add_message(
+                            "agent",
+                            "Model backend failed 3 times in a row — stopping. "
+                            f"Last error: {last_blank_cause}",
+                        )
+                        summary = (
+                            "Agent stopped: model backend unavailable. "
+                            f"Last error: {last_blank_cause[:200]}"
+                        )
+                    else:
+                        bridge.add_message(
+                            "agent",
+                            "Model returned blank responses 3 times in a row — "
+                            "stopping. Try a different model or temperature.",
+                        )
+                        summary = "Agent stopped: blank model output."
                     req.post(
                         f"{base}/api/done",
-                        json={"summary": "Agent stopped: blank model output."},
+                        json={"summary": summary},
                         timeout=5,
                     )
                     return
-                bridge.add_message(
-                    "agent",
-                    f"Model returned empty content ({blank_turns}/3) — retrying.",
-                )
-                # Add a nudge so the retry isn't an identical request —
-                # identical input → identical blank output → we burn all
-                # 3 strikes with nothing to show for it. Vary the
-                # context by asking the model to acknowledge + produce
-                # one small action.
-                messages.append(
-                    {
-                        "role": "user",
-                        "content": (
-                            "Your previous response was empty. Please respond with a "
-                            "single JSON object now, e.g. "
-                            '{"action":"ssh_exec","command":"echo alive"} to confirm '
-                            "you are still running, or "
-                            '{"action":"done","summary":"..."} if you are stuck.'
-                        ),
-                    }
-                )
+                if last_blank_cause:
+                    bridge.add_message(
+                        "agent",
+                        f"Model backend unavailable ({blank_turns}/3) — retrying.",
+                    )
+                else:
+                    bridge.add_message(
+                        "agent",
+                        f"Model returned empty content ({blank_turns}/3) — retrying.",
+                    )
+                    # Add a nudge so the retry isn't an identical request —
+                    # identical input → identical blank output → we burn all
+                    # 3 strikes with nothing to show for it. Vary the
+                    # context by asking the model to acknowledge + produce
+                    # one small action.
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": (
+                                "Your previous response was empty. Please respond with a "
+                                "single JSON object now, e.g. "
+                                '{"action":"ssh_exec","command":"echo alive"} to confirm '
+                                "you are still running, or "
+                                '{"action":"done","summary":"..."} if you are stuck.'
+                            ),
+                        }
+                    )
                 continue
             blank_turns = 0  # reset on any real response
+            last_blank_cause = None
 
             # Append assistant response to history
             messages.append({"role": "assistant", "content": response_text})

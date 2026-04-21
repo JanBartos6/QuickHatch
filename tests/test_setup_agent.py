@@ -254,6 +254,32 @@ class TestAgenticLoop:
         msgs = [m["content"] for m in ready_state.bridge.messages]
         assert any(m == "Stopped." for m in msgs)
 
+    def test_provider_transport_failures_surface_real_error(self, ready_state):
+        ssh_mock = _make_ssh_mock(
+            (0, "QuickHatch connected!", ""),
+            (0, "Arch Linux", ""),
+        )
+        error_text = (
+            "HTTPConnectionPool(host='localhost', port=1234): Max retries exceeded "
+            "with url: /v1/chat/completions (Caused by NewConnectionError("
+            "'<urllib3.connection.HTTPConnection object at 0x1>: Failed to establish "
+            "a new connection: [WinError 10061] No connection could be made because "
+            "the target machine actively refused it'))"
+        )
+
+        with patch("quickhatch.gui.server._ssh_exec", ssh_mock):
+            with patch(
+                "quickhatch.gui.server._post_openai_compat",
+                side_effect=ConnectionError(error_text),
+            ):
+                _run_setup_agent(ready_state, 0)
+
+        msgs = [m["content"] for m in ready_state.bridge.messages]
+        assert any("LLM call failed" in m and "actively refused it" in m for m in msgs)
+        assert any("Model backend unavailable (1/3)" in m for m in msgs)
+        assert any("Model backend failed 3 times in a row" in m for m in msgs)
+        assert not any("blank responses 3 times in a row" in m for m in msgs)
+
 
 class TestFeedbackLoop:
     def test_command_failure_feeds_error_back_to_model(self, ready_state):
