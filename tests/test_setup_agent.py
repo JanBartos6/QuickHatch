@@ -24,6 +24,7 @@ from quickhatch.gui.server import (
     _resolve_setup_cmd_timeout,
     _run_setup_agent,
     _setup_runtime_prompt_block,
+    _verify_setup_completion,
 )
 
 
@@ -673,6 +674,40 @@ class TestSetupCommandPreflight:
             is None
         )
 
+    def test_preflight_blocks_fake_plasma_dbus_run_session_apply(self):
+        facts = {
+            "package_manager": "pacman",
+            "aur_helper": "yay",
+            "current_user": "jan",
+            "is_root": "no",
+            "sudo_nopasswd": "yes",
+        }
+        msg = _preflight_setup_command(
+            "wget -O ~/wall.png https://example.invalid/w.png && "
+            "dbus-run-session -- bash -c 'plasma-apply-lookandfeel -a Sweet && "
+            "plasma-apply-wallpaperimage ~/wall.png'",
+            facts,
+        )
+        assert msg is not None
+        assert "dbus-run-session" in msg
+        assert "logged-in user's actual session bus" in msg
+
+    def test_preflight_blocks_heavy_optional_wrapper_in_mixed_aur_batch(self):
+        facts = {
+            "package_manager": "pacman",
+            "aur_helper": "yay",
+            "current_user": "jan",
+            "is_root": "no",
+            "sudo_nopasswd": "yes",
+        }
+        msg = _preflight_setup_command(
+            "yay -S --noconfirm lmstudio-bin pake-chatgpt",
+            facts,
+        )
+        assert msg is not None
+        assert "heavyweight optional desktop wrappers" in msg
+        assert "pake-chatgpt" in msg
+
 
 class TestSetupLookupHelpers:
     def test_aur_search_falls_back_to_web_without_helper(self):
@@ -773,6 +808,106 @@ class TestSetupLookupHelpers:
         assert blocked_msgs
         assert blocked in blocked_msgs[-1]
         assert "brave-bin" in blocked_msgs[-1]
+
+
+class TestFinalSetupVerification:
+    def test_verify_setup_completion_flags_missing_kde_apply_artifacts(self):
+        def tracking_ssh(host, user, cmd, key_path=None, timeout=120, port=22):
+            if "QH_UID=" in cmd and "QH_COLOR=" in cmd:
+                return (
+                    0,
+                    "\n".join(
+                        [
+                            "QH_UID=1000",
+                            "QH_COLOR=",
+                            "QH_ICON=",
+                            "QH_WOBBLY=false",
+                            "QH_MAGIC=false",
+                            "QH_BUS=no",
+                            "QH_WALL=no",
+                        ]
+                    ),
+                    "",
+                )
+            return (0, "", "")
+
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=tracking_ssh):
+            failures = _verify_setup_completion(
+                "127.0.0.1",
+                "jan",
+                None,
+                "Finished with KDE Plasma and Sweet theme applied.",
+                [
+                    "**`plasma-apply-lookandfeel -a Sweet`** — OK",
+                    "**`plasma-apply-wallpaperimage ~/masterpiece.png`** — OK",
+                    "**`kwriteconfig6 --file ~/.config/kwinrc --group Plugins --key wobblywindowsEnabled true`** — OK",
+                ],
+            )
+
+        assert any("color scheme" in item.lower() for item in failures)
+        assert any("icon theme" in item.lower() for item in failures)
+        assert any("wallpaper" in item.lower() for item in failures)
+        assert any("session bus" in item.lower() for item in failures)
+
+    def test_done_is_blocked_when_final_verification_fails(self, ready_state):
+        state = {"color": "", "icon": ""}
+
+        def tracking_ssh(host, user, cmd, key_path=None, timeout=120, port=22):
+            if "echo 'QuickHatch connected!'" in cmd:
+                return (0, "QuickHatch connected!", "")
+            if "=== OS ===" in cmd:
+                return (0, "Arch Linux", "")
+            if "QH_PM=" in cmd:
+                return (
+                    0,
+                    "QH_PM=pacman\nQH_AUR=yay\nQH_USER=root\nQH_IS_ROOT=yes\nQH_SUDO_NOPASSWD=yes\n",
+                    "",
+                )
+            if (
+                cmd
+                == "kwriteconfig6 --file ~/.config/kdeglobals --group Icons --key Theme candy-icons"
+            ):
+                state["icon"] = "candy-icons"
+                return (0, "", "")
+            if (
+                cmd
+                == "kwriteconfig6 --file ~/.config/kdeglobals --group General --key ColorScheme Sweet"
+            ):
+                state["color"] = "Sweet"
+                return (0, "", "")
+            if "QH_UID=" in cmd and "QH_COLOR=" in cmd:
+                return (
+                    0,
+                    "\n".join(
+                        [
+                            "QH_UID=1000",
+                            f"QH_COLOR={state['color']}",
+                            f"QH_ICON={state['icon']}",
+                            "QH_WOBBLY=false",
+                            "QH_MAGIC=false",
+                            "QH_BUS=yes",
+                            "QH_WALL=no",
+                        ]
+                    ),
+                    "",
+                )
+            return (0, "", "")
+
+        responses = [
+            '{"action":"ssh_exec","command":"kwriteconfig6 --file ~/.config/kdeglobals --group Icons --key Theme candy-icons","reason":"set icons"}',
+            '{"action":"done","summary":"Finished with KDE Plasma and Sweet theme applied."}',
+            '{"action":"ssh_exec","command":"kwriteconfig6 --file ~/.config/kdeglobals --group General --key ColorScheme Sweet","reason":"fix colors"}',
+            '{"action":"done","summary":"Finished with KDE Plasma and Sweet theme applied."}',
+        ]
+
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=tracking_ssh):
+            with patch("requests.post", _make_model_mock(*responses)):
+                _run_setup_agent(ready_state, 0)
+
+        msgs = [m["content"] for m in ready_state.bridge.messages]
+        assert any("Final verification failed" in m for m in msgs)
+        assert any("KDE color scheme is still unset" in m for m in msgs)
+        assert any("Finished: Finished with KDE Plasma" in m for m in msgs)
 
 
 class TestSetupFactsRefresh:

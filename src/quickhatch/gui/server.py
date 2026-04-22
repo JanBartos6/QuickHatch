@@ -3740,6 +3740,15 @@ _ARCH_AUR_ONLY_PACKAGES = frozenset(
     }
 )
 _AURISH_SUFFIXES = ("-bin", "-git")
+_HEAVY_OPTIONAL_DESKTOP_PACKAGES = frozenset(
+    {
+        "pake-chatgpt",
+        "chatgpt-desktop-bin",
+        "claude-desktop-bin",
+        "openai-codex-desktop",
+        "codex-desktop-bin",
+    }
+)
 
 
 def _probe_setup_facts(
@@ -3991,6 +4000,14 @@ def _extract_pacman_install_packages(tokens: list[str]) -> list[str]:
     return [arg for arg in args if arg and not arg.startswith("-")]
 
 
+def _uses_fake_plasma_session_wrapper(cmd: str) -> bool:
+    """True when a command tries to apply live Plasma state inside dbus-run-session."""
+    lower = (cmd or "").lower()
+    return "dbus-run-session" in lower and (
+        "plasma-apply-lookandfeel" in lower or "plasma-apply-wallpaperimage" in lower
+    )
+
+
 def _is_safe_diagnostic_setup_command(cmd: str) -> bool:
     """True when every command segment is a read-only diagnostic/probe.
 
@@ -4166,6 +4183,15 @@ def _preflight_setup_command(
             "explicit user request right now because it can change routing, DNS, firewall "
             "policy, or kill-switch behavior and cut off remote access."
         )
+    if _uses_fake_plasma_session_wrapper(cmd):
+        return (
+            "Do not use `dbus-run-session` to apply KDE/Plasma theming. That creates a throwaway "
+            "bus, so `plasma-apply-lookandfeel`/`plasma-apply-wallpaperimage` do not touch the "
+            "real desktop the user sees. Use the logged-in user's actual session bus instead "
+            "(`XDG_RUNTIME_DIR=/run/user/<uid>` and "
+            "`DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/<uid>/bus`), or write KDE config files "
+            "directly and tell the user a logout/login is required."
+        )
     aur_helper = facts.get("aur_helper", "none")
     for segment in _split_command_segments_for_lint(cmd):
         try:
@@ -4203,6 +4229,19 @@ def _preflight_setup_command(
                         f"`{joined}` should be installed with {helper} or via manual `makepkg`, "
                         "while repo packages stay on `pacman`. If you are unsure about the exact package name, "
                         "use `aur_search` before issuing another install command."
+                    )
+            if tool in {"yay", "paru"}:
+                packages = _extract_pacman_install_packages(tokens)
+                heavy_optional = [
+                    pkg for pkg in packages if pkg in _HEAVY_OPTIONAL_DESKTOP_PACKAGES
+                ]
+                if heavy_optional and len(packages) > len(heavy_optional):
+                    joined = ", ".join(heavy_optional)
+                    return (
+                        "Do not bundle heavyweight optional desktop wrappers into a mixed install batch. "
+                        f"`{joined}` should be installed separately from core tools/themes so one slow or "
+                        "failed package does not derail the whole transaction. Split this into smaller commands "
+                        "and keep optional AI desktop clients independent."
                     )
         elif package_manager == "apt" and tool in {"pacman", "yay", "paru", "dnf", "zypper"}:
             return f"This target uses apt, so `{tool}` is the wrong package manager."
@@ -4409,6 +4448,88 @@ def _execute_setup_web_lookup(query: str, max_results: int = 5) -> tuple[bool, s
         query,
         _execute_web_search(query, max_results=max_results),
     )
+
+
+def _needs_kde_final_verification(results_log: list[str], summary: str) -> bool:
+    text = "\n".join([*results_log, summary]).lower()
+    return any(
+        marker in text
+        for marker in (
+            "plasma-apply-lookandfeel",
+            "plasma-apply-wallpaperimage",
+            "kwriteconfig6",
+            "kde plasma",
+            "candy-icons",
+            "sweet",
+        )
+    )
+
+
+def _verify_setup_completion(
+    host: str,
+    user: str,
+    key_path: str | None,
+    summary: str,
+    results_log: list[str],
+    *,
+    port: int = 22,
+) -> list[str]:
+    """Return final-verification failures that should block a premature `done`."""
+    failures: list[str] = []
+    if not _needs_kde_final_verification(results_log, summary):
+        return failures
+
+    command_log = "\n".join(results_log).lower()
+    require_wallpaper = (
+        "plasma-apply-wallpaperimage" in command_log or "masterpiece." in command_log
+    )
+    verify_cmd = r"""
+uid=$(id -u 2>/dev/null || echo "")
+echo "QH_UID=$uid"
+awk '/^\[General\]/{flag=1;next}/^\[/{flag=0}flag && /^ColorScheme=/{print "QH_COLOR=" substr($0,13)}' ~/.config/kdeglobals 2>/dev/null | tail -n1
+awk '/^\[Icons\]/{flag=1;next}/^\[/{flag=0}flag && /^Theme=/{print "QH_ICON=" substr($0,7)}' ~/.config/kdeglobals 2>/dev/null | tail -n1
+awk '/^\[Plugins\]/{flag=1;next}/^\[/{flag=0}flag && /^wobblywindowsEnabled=/{print "QH_WOBBLY=" substr($0,22)}' ~/.config/kwinrc 2>/dev/null | tail -n1
+awk '/^\[Plugins\]/{flag=1;next}/^\[/{flag=0}flag && /^magiclampEnabled=/{print "QH_MAGIC=" substr($0,19)}' ~/.config/kwinrc 2>/dev/null | tail -n1
+if [ -n "$uid" ] && [ -S "/run/user/$uid/bus" ]; then echo "QH_BUS=yes"; else echo "QH_BUS=no"; fi
+wall_ok=no
+for f in "$HOME"/masterpiece.*; do
+  if [ -s "$f" ]; then wall_ok=yes; break; fi
+done
+echo "QH_WALL=$wall_ok"
+"""
+    rc, out, err = _ssh_exec(host, user, verify_cmd, key_path, timeout=30, port=port)
+    if rc != 0:
+        return [
+            f"final verification probe failed: {(err or out or '').strip()[:200] or 'unknown error'}"
+        ]
+
+    facts: dict[str, str] = {}
+    for line in (out or "").splitlines():
+        if line.startswith("QH_") and "=" in line:
+            key, value = line.split("=", 1)
+            facts[key] = value.strip()
+
+    if not facts.get("QH_COLOR"):
+        failures.append("KDE color scheme is still unset in ~/.config/kdeglobals")
+    if not facts.get("QH_ICON"):
+        failures.append("KDE icon theme is still unset in ~/.config/kdeglobals")
+    if "wobblywindowsenabled" in command_log and facts.get("QH_WOBBLY", "").lower() != "true":
+        failures.append(
+            "KWin wobbly windows effect was requested but is not enabled in ~/.config/kwinrc"
+        )
+    if "magiclampenabled" in command_log and facts.get("QH_MAGIC", "").lower() != "true":
+        failures.append(
+            "KWin magic lamp effect was requested but is not enabled in ~/.config/kwinrc"
+        )
+    if require_wallpaper and facts.get("QH_WALL") != "yes":
+        failures.append(
+            "wallpaper apply was attempted, but no non-empty wallpaper asset was downloaded"
+        )
+    if facts.get("QH_BUS") != "yes":
+        failures.append(
+            "no live user session bus was detected under /run/user/<uid>/bus for Plasma apply verification"
+        )
+    return failures
 
 
 def _lookup_hint_for_failed_command(cmd: str, output: str, facts: dict[str, str]) -> str | None:
@@ -5519,6 +5640,19 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             "Installing a theme is NOT the same as activating it. Installing a package is NOT the\n"
             "same as configuring it. Think about what the user will actually SEE and USE at the end,\n"
             "and work backwards to make that happen.\n\n"
+            "DESKTOP-APPLY DISCIPLINE:\n"
+            "- KDE/Plasma live apply must target the REAL logged-in user's session bus. Do NOT use\n"
+            "  `dbus-run-session` for `plasma-apply-lookandfeel` or `plasma-apply-wallpaperimage`.\n"
+            "- If a Plasma GUI session is active, use `XDG_RUNTIME_DIR=/run/user/<uid>` and\n"
+            "  `DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/<uid>/bus` when talking to Plasma.\n"
+            "- If no GUI session is active, write KDE config files directly and tell the user a\n"
+            "  logout/login is required before visuals update.\n"
+            "- For GTK apps on KDE, `gsettings` is optional polish only. It does NOT prove the KDE shell\n"
+            "  theme was applied.\n\n"
+            "INSTALL-BATCH DISCIPLINE:\n"
+            "- Keep optional desktop clients and heavyweight wrappers in separate commands from core tools.\n"
+            "- If the user asks to skip one package from a batch, immediately reissue a reduced command;\n"
+            "  do not keep the skipped package in the transaction.\n\n"
             "DEFAULT ACCOUNT PASSWORD:\n"
             f"Set BOTH the root account AND the primary user account's password to the literal\n"
             f"string `{profile.default_account_password}` during install. This is a KNOWN CONSTANT —\n"
@@ -5869,6 +6003,33 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
 
                 if act == "done":
                     summary = action.get("summary", "Setup complete.")
+                    final_failures = _verify_setup_completion(
+                        host,
+                        user,
+                        key_path,
+                        summary,
+                        results_log,
+                        port=ssh_port,
+                    )
+                    if final_failures:
+                        verification_msg = (
+                            "[quickhatch final verification]\n"
+                            "Do NOT claim completion yet. The following end-state checks still failed:\n"
+                            + "\n".join(f"- {item}" for item in final_failures)
+                            + "\nFix the missing apply/verification steps first, then verify again and only "
+                            "after that emit another `done` action."
+                        )
+                        bridge.add_message(
+                            "agent",
+                            "🛑 Final verification failed — continuing setup instead of accepting `done`.",
+                        )
+                        for item in final_failures:
+                            bridge.add_message("agent", f"  ✗ {item}")
+                        pending_feedback.append(verification_msg)
+                        results_log.append(
+                            f"**[done blocked]** — {len(final_failures)} final verification failure(s)"
+                        )
+                        continue
                     bridge.add_message("agent", f"Finished: {summary}")
                     log_md = "### Execution Log\n\n"
                     for entry in results_log:
