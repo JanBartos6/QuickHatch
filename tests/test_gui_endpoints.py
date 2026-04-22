@@ -72,6 +72,12 @@ class TestStaticRoutes:
         assert status == 200
         assert "QuickHatch" in body
 
+    def test_remote_setup_html_exposes_wipe_mode_button(self, server):
+        status, body = _get(server["port"], "/")
+        assert status == 200
+        assert "Wipe + reinstall" in body
+        assert "setRemoteSetupMode" in body
+
 
 class TestProfileEndpoint:
     def test_returns_profile_json(self, server):
@@ -88,11 +94,16 @@ class TestProfileEndpoint:
         assert "***SET***" in body
 
     def test_reflects_update_via_wizard_update(self, server):
-        _post(server["port"], "/wizard/update", {"linux_ip": "1.2.3.4", "linux_user": "bob"})
+        _post(
+            server["port"],
+            "/wizard/update",
+            {"linux_ip": "1.2.3.4", "linux_user": "bob", "remote_setup_mode": "configure_only"},
+        )
         status, body = _get(server["port"], "/wizard/profile")
         data = json.loads(body)
         assert data["profile"]["linux_ip"] == "1.2.3.4"
         assert data["profile"]["linux_user"] == "bob"
+        assert data["profile"]["remote_setup_mode"] == "configure_only"
 
     def test_update_reports_changed_false_for_noop(self, server, monkeypatch):
         calls = []
@@ -117,6 +128,16 @@ class TestProfileEndpoint:
         data = json.loads(body)
         assert status == 200
         assert data["profile"]["linux_ip"] == "10.0.0.5"
+
+    def test_invalid_remote_setup_mode_falls_back_to_auto(self, server):
+        status, body = _post(
+            server["port"],
+            "/wizard/update",
+            {"remote_setup_mode": "definitely-not-valid"},
+        )
+        data = json.loads(body)
+        assert status == 200
+        assert data["profile"]["remote_setup_mode"] == "auto"
 
     def test_restore_profile_rehydrates_sparse_state_and_preserves_live_api_key(self, server):
         server["gui_state"].profile.ai_config.api_key = "sk-secret-xyz"

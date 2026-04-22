@@ -2329,6 +2329,7 @@ const stepRenderers={
   setup(){
     const ip=state.profile.linux_ip||'';
     const user=state.profile.linux_user||'';
+    const remoteSetupMode=state.profile.remote_setup_mode||'auto';
     const port=location.port;
     const hasConn=ip&&user;
     const canLaunch=!!(hasConn&&state._sshTestOk);
@@ -2344,6 +2345,22 @@ const stepRenderers={
           </div>
           <div class="field"><label>Username</label>
             <input type="text" id="linuxUser" value="${escHtml(user)}" placeholder="e.g. jan">
+          </div>
+        </div>
+
+        <div class="field" style="margin-bottom:var(--s5)">
+          <label>Remote setup mode</label>
+          <div class="stack-h" style="gap:var(--s2);flex-wrap:wrap">
+            <button type="button" class="btn ${remoteSetupMode==='auto'?'btn-primary':'btn-ghost'}" onclick="setRemoteSetupMode('auto')">Auto</button>
+            <button type="button" class="btn ${remoteSetupMode==='configure_only'?'btn-primary':'btn-ghost'}" onclick="setRemoteSetupMode('configure_only')">Configure only</button>
+            <button type="button" class="btn ${remoteSetupMode==='wipe_and_reinstall'?'btn-danger':'btn-ghost'}" onclick="setRemoteSetupMode('wipe_and_reinstall')">Wipe + reinstall</button>
+          </div>
+          <div class="muted" style="font-size:var(--t-sm);margin-top:var(--s2)">
+            ${remoteSetupMode==='wipe_and_reinstall'
+              ?'Destructive mode is armed. In a live environment the agent may wipe the selected target disk, but only after showing <code>lsblk -f</code> and getting explicit disk confirmation.'
+              :remoteSetupMode==='configure_only'
+              ?'Safe mode. The agent must not repartition or reinstall the distro; it should only configure the current installed system.'
+              :'Default mode. On a live ISO the agent may install Linux if needed after explicit disk confirmation; on an installed system it should continue with post-install configuration.'}
           </div>
         </div>
 
@@ -3838,8 +3855,9 @@ function copyExportPath(path){
 async function saveLinuxConn(){
   const ip=el('linuxIp').value.trim();
   const user=el('linuxUser').value.trim();
+  const remoteSetupMode=state.profile.remote_setup_mode||'auto';
   if(!ip||!user){toast('Enter IP and username first','error');return;}
-  await saveProfile({linux_ip:ip,linux_user:user});
+  await saveProfile({linux_ip:ip,linux_user:user,remote_setup_mode:remoteSetupMode});
   state._sshTestOk=false;
   state._setupStarted=false;
   state._setupDone=false;
@@ -3880,9 +3898,10 @@ async function testLinuxConn(){
   const btn=el('testConnBtn'),status=el('connStatus');
   const ip=el('linuxIp').value.trim();
   const user=el('linuxUser').value.trim();
+  const remoteSetupMode=state.profile.remote_setup_mode||'auto';
   if(!ip||!user)return;
   btn.disabled=true;btn.textContent='Testing…';status.textContent='';
-  await saveProfile({linux_ip:ip,linux_user:user});
+  await saveProfile({linux_ip:ip,linux_user:user,remote_setup_mode:remoteSetupMode});
   try{
     const r=await api('/wizard/test-ssh','POST',{ip,user});
     if(r.status==='ok'){
@@ -3900,6 +3919,21 @@ async function testLinuxConn(){
     const lb=el('setupLaunchBtn');if(lb)lb.disabled=true;
   }
   btn.disabled=false;btn.textContent='Test connection';
+}
+
+async function setRemoteSetupMode(mode){
+  const allowed=['auto','configure_only','wipe_and_reinstall'];
+  if(!allowed.includes(mode))return;
+  if(mode==='wipe_and_reinstall'){
+    const ok=window.confirm(
+      'Wipe + reinstall mode is destructive. On a live environment, QuickHatch may repartition and reformat the selected target disk after explicit disk confirmation. Continue?'
+    );
+    if(!ok)return;
+  }
+  state.profile.remote_setup_mode=mode;
+  await saveProfile({remote_setup_mode:mode},{silentError:true});
+  state._sshTestOk=false;
+  stepRenderers.setup();
 }
 
 async function sendSetupChat(){

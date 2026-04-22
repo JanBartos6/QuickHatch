@@ -19,6 +19,7 @@ from quickhatch.gui.server import (
     _call_setup_model_text,
     _execute_setup_aur_search,
     _preflight_setup_command,
+    _remote_setup_mode_block,
     _resolve_setup_cmd_timeout,
     _run_setup_agent,
     _setup_runtime_prompt_block,
@@ -103,6 +104,27 @@ class TestSetupAgentBasics:
             _run_setup_agent(ready_state, 0)
         msgs = [m["content"] for m in ready_state.bridge.messages]
         assert any("SSH connection failed" in m for m in msgs)
+
+
+class TestRemoteSetupModeContract:
+    def test_wipe_mode_block_is_explicitly_destructive(self):
+        profile = UserProfile()
+        profile.remote_setup_mode = "wipe_and_reinstall"
+
+        block = _remote_setup_mode_block(profile)
+
+        assert "WIPE TARGET DISK AND REINSTALL FROM SCRATCH" in block
+        assert "MAY repartition/reformat and wipe" in block
+        assert "ONLY after showing `lsblk -f` and getting explicit disk confirmation" in block
+
+    def test_configure_only_block_forbids_reinstall(self):
+        profile = UserProfile()
+        profile.remote_setup_mode = "configure_only"
+
+        block = _remote_setup_mode_block(profile)
+
+        assert "CONFIGURE EXISTING INSTALL ONLY" in block
+        assert "NEVER repartition, mkfs, wipe disks, or reinstall the distro" in block
 
 
 class TestNativeSearchSetupContract:

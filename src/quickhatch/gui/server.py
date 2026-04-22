@@ -227,6 +227,7 @@ class GUIState:
             "data_transfer_method",
             "linux_ip",
             "linux_user",
+            "remote_setup_mode",
             "target_hardware_override",
             "default_account_password",
             "ssh_public_key_path",
@@ -353,6 +354,11 @@ class GUIState:
                     "linux_user",
                     self._coerce_str(updates["linux_user"]) or "",
                 )
+            if "remote_setup_mode" in updates:
+                mode = self._coerce_str(updates["remote_setup_mode"]) or "auto"
+                if mode not in {"auto", "wipe_and_reinstall", "configure_only"}:
+                    mode = "auto"
+                changed |= self._set_if_changed(self.profile, "remote_setup_mode", mode)
             if "target_hardware_override" in updates:
                 changed |= self._set_if_changed(
                     self.profile,
@@ -440,6 +446,43 @@ def _profile_response_dict(profile: UserProfile) -> dict[str, Any]:
     if profile_dict.get("ai_config", {}).get("api_key"):
         profile_dict["ai_config"]["api_key"] = "***SET***"
     return profile_dict
+
+
+def _remote_setup_mode_block(profile: UserProfile) -> str:
+    """Explicit user intent for destructive vs non-destructive setup."""
+    mode = getattr(profile, "remote_setup_mode", "auto") or "auto"
+    if mode == "wipe_and_reinstall":
+        return (
+            "== REMOTE SETUP MODE ==\n"
+            "User selected: WIPE TARGET DISK AND REINSTALL FROM SCRATCH.\n\n"
+            "This is an explicit destructive mode. Rules:\n"
+            "- If you are in a LIVE environment, you MAY repartition/reformat and wipe the "
+            "chosen target disk, but ONLY after showing `lsblk -f` and getting explicit disk "
+            "confirmation from the user in bridge chat.\n"
+            "- If you are on an INSTALLED system (not a live ISO), DO NOT wipe the running "
+            "root filesystem in place. Ask the user to boot back into the live environment "
+            "first, then continue the reinstall there.\n"
+            "- Do not preserve the existing install unless the user explicitly changes mode.\n\n"
+        )
+    if mode == "configure_only":
+        return (
+            "== REMOTE SETUP MODE ==\n"
+            "User selected: CONFIGURE EXISTING INSTALL ONLY.\n\n"
+            "This mode is non-destructive. Rules:\n"
+            "- NEVER repartition, mkfs, wipe disks, or reinstall the distro.\n"
+            "- If you detect a LIVE environment, stop and tell the user to either boot into "
+            "their installed system or switch the wizard to wipe-and-reinstall mode.\n"
+            "- Focus only on drivers, desktop, apps, services, and user configuration.\n\n"
+        )
+    return (
+        "== REMOTE SETUP MODE ==\n"
+        "User selected: AUTO.\n\n"
+        "Default behavior rules:\n"
+        "- In a LIVE environment, you may perform a fresh install if needed, but destructive "
+        "disk changes still require explicit disk confirmation from the user after showing "
+        "`lsblk -f`.\n"
+        "- On an INSTALLED system, do not wipe disks; continue with post-install configuration.\n\n"
+    )
 
 
 def _reset_all_data(gui_state: GUIState) -> dict[str, Any]:
@@ -5323,6 +5366,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             "7. Run final verification: theme is active, services enabled, user can log in\n\n"
             f"== REMOTE SYSTEM INFO ==\n{system_info}\n\n"
             + runtime_block
+            + _remote_setup_mode_block(profile)
             + live_env_block
             + common_rules_block
             + (

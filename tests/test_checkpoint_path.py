@@ -90,11 +90,13 @@ class TestCheckpointPath:
         profile = UserProfile()
         profile.target_hardware_override = "Install for a Ryzen 7 box with RTX 4070."
         profile.default_account_password = "hunter2"
+        profile.remote_setup_mode = "wipe_and_reinstall"
         profile.save_checkpoint()
         loaded = UserProfile.load_checkpoint()
         assert loaded is not None
         assert loaded.target_hardware_override == profile.target_hardware_override
         assert loaded.default_account_password == "hunter2"
+        assert loaded.remote_setup_mode == "wipe_and_reinstall"
 
     def test_malformed_nested_app_row_does_not_drop_whole_profile(self, fake_home):
         path = fake_home / ".quickhatch-checkpoint.json"

@@ -139,6 +139,13 @@ class UserProfile:
     data_transfer_method: str = ""
     linux_ip: str = ""
     linux_user: str = ""
+    # Remote setup intent for the last step of the wizard.
+    # "auto" = current default behavior
+    # "wipe_and_reinstall" = destructive reinstall is explicitly allowed,
+    #   but only from a live environment after disk confirmation
+    # "configure_only" = never repartition/reformat; just configure the
+    #   current installed system
+    remote_setup_mode: str = "auto"
     # Free-text description of the TARGET hardware when it differs from
     # the machine QuickHatch is running on. Empty string means "install
     # for this machine" (hardware scan is authoritative). Non-empty
@@ -315,6 +322,7 @@ class UserProfile:
                 data_transfer_method=data.get("data_transfer_method", "") or "",
                 linux_ip=data.get("linux_ip", "") or "",
                 linux_user=data.get("linux_user", "") or "",
+                remote_setup_mode=data.get("remote_setup_mode", "auto") or "auto",
                 target_hardware_override=data.get("target_hardware_override", "") or "",
                 default_account_password=data.get("default_account_password", "password")
                 or "password",
