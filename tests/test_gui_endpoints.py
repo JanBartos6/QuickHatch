@@ -405,6 +405,32 @@ class TestBridgeEndpoints:
         assert data["status"] == "ok"
         assert data["suggestions"] == 1
 
+    def test_status_poll_does_not_mark_agent_connected(self, server):
+        assert server["bridge"].agent_connected is False
+
+        status, body = _get(server["port"], "/api/status")
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["agent_connected"] is False
+        assert server["bridge"].agent_connected is False
+
+    def test_status_clears_stale_dead_agent_state(self, server):
+        server["bridge"].agent_connected = True
+
+        stale = threading.Thread(target=lambda: None)
+        stale.start()
+        stale.join(timeout=1)
+        server["gui_state"]._agent_thread = stale
+
+        status, body = _get(server["port"], "/api/status")
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["agent_connected"] is False
+        assert server["gui_state"]._agent_thread is None
+        assert server["bridge"].agent_connected is False
+
     def test_suggestions_endpoint(self, server):
         server["bridge"].add_suggestion("distro", "Arch", "content")
         server["bridge"].add_suggestion("apps", "Firefox", "native")

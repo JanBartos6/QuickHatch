@@ -18,6 +18,7 @@ from quickhatch.gui.server import (
     GUIState,
     _call_setup_model_text,
     _execute_setup_aur_search,
+    _launch_agent,
     _preflight_setup_command,
     _remote_setup_mode_block,
     _resolve_setup_cmd_timeout,
@@ -469,6 +470,34 @@ class TestAgenticLoop:
         assert any("Model backend unavailable (1/3)" in m for m in msgs)
         assert any("Model backend failed 3 times in a row" in m for m in msgs)
         assert not any("blank responses 3 times in a row" in m for m in msgs)
+
+
+class TestAgentLifecycle:
+    def test_launch_wrapper_clears_runtime_state_when_setup_thread_exits(self, ready_state):
+        with patch("quickhatch.gui.server._run_setup_agent", return_value=None):
+            result = _launch_agent(ready_state, 8765, phase="setup")
+
+        assert result["status"] == "ok"
+        thread = ready_state._agent_thread
+        assert thread is not None
+        thread.join(timeout=1)
+
+        assert ready_state._agent_thread is None
+        assert ready_state.bridge.agent_connected is False
+        assert ready_state.bridge.current_phase == ""
+
+    def test_launch_wrapper_clears_runtime_state_when_analysis_thread_exits(self, ready_state):
+        with patch("quickhatch.gui.server._run_agent_background", return_value=None):
+            result = _launch_agent(ready_state, 8765, phase="analysis")
+
+        assert result["status"] == "ok"
+        thread = ready_state._agent_thread
+        assert thread is not None
+        thread.join(timeout=1)
+
+        assert ready_state._agent_thread is None
+        assert ready_state.bridge.agent_connected is False
+        assert ready_state.bridge.current_phase == ""
 
 
 class TestFeedbackLoop:
@@ -924,10 +953,10 @@ class TestStickyPreRebootBlock:
         msgs = [m["content"] for m in ready_state.bridge.messages]
         assert "ls -lh /mnt/boot" in ssh_calls
         assert "sudo pacman -S --noconfirm steam" not in ssh_calls
-        assert any("This diagnostic command is being allowed because it is read-only" in m for m in msgs)
         assert any(
-            "Command blocked" in m and "sudo pacman -S --noconfirm steam" in m for m in msgs
+            "This diagnostic command is being allowed because it is read-only" in m for m in msgs
         )
+        assert any("Command blocked" in m and "sudo pacman -S --noconfirm steam" in m for m in msgs)
 
 
 class TestInstalledSystemBootstrap:

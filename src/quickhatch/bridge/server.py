@@ -529,7 +529,6 @@ def _make_handler(state: BridgeState):
                 self._send_json({"status": "ok", "profile": profile_dict})
 
             elif self.path == "/api/status":
-                state.agent_connected = True
                 self._send_json(
                     {
                         "status": "ok",

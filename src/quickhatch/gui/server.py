@@ -201,6 +201,42 @@ class GUIState:
         # agents share bridge state and race on suggestions/messages.
         self._agent_thread: threading.Thread | None = None
 
+    def agent_thread_running(self) -> bool:
+        """Return whether the managed analysis/setup worker is still alive.
+
+        Also heals stale thread references after the worker exits so the
+        rest of the server does not keep treating a dead agent as active.
+        """
+        with self.lock:
+            thread = self._agent_thread
+            if thread is None:
+                return False
+            if thread.is_alive():
+                return True
+            self._agent_thread = None
+        with self.bridge.lock:
+            self.bridge.agent_connected = False
+            self.bridge.stop_requested = False
+            self.bridge.current_phase = ""
+        return False
+
+    def mark_agent_running(self, phase: str) -> None:
+        with self.bridge.lock:
+            self.bridge.agent_connected = True
+        self.bridge.set_current_phase(phase)
+
+    def mark_agent_stopped(self, finished_thread: threading.Thread | None = None) -> None:
+        with self.lock:
+            current = self._agent_thread
+            if finished_thread is not None and current is finished_thread:
+                self._agent_thread = None
+            elif current is not None and not current.is_alive():
+                self._agent_thread = None
+        with self.bridge.lock:
+            self.bridge.agent_connected = False
+            self.bridge.stop_requested = False
+            self.bridge.current_phase = ""
+
     # Fields whose declared type is list[...] — null and non-iterable
     # values get coerced to [] instead of crashing every downstream
     # .sort() / len() / iteration.
@@ -877,11 +913,7 @@ def make_gui_server(
                 self._send_json({"status": "ok", "profile": profile_dict})
 
             elif self.path == "/api/status":
-                # Only mark connected if called by the agent (not the GUI polling)
-                # The GUI uses fetch with default headers; agents use curl
-                ua = self.headers.get("User-Agent", "")
-                if "curl" in ua.lower() or "python" in ua.lower():
-                    bridge_state.agent_connected = True
+                gui_state.agent_thread_running()
                 self._send_json(
                     {
                         "status": "ok",
@@ -1428,6 +1460,8 @@ def make_gui_server(
             elif self.path == "/wizard/stop-agent":
                 self._read_json()  # drain request body so Windows doesn't RST
                 bridge_state.request_stop()
+                if not gui_state.agent_thread_running() and bridge_state.agent_connected:
+                    gui_state.mark_agent_stopped()
                 bridge_state.add_message(
                     "agent", "Stop requested — finishing current step and exiting."
                 )
@@ -1435,11 +1469,7 @@ def make_gui_server(
 
             elif self.path == "/wizard/clear-setup-log":
                 self._read_json()  # drain request body
-                with gui_state.lock:
-                    active = (
-                        gui_state._agent_thread is not None and gui_state._agent_thread.is_alive()
-                    )
-                if active:
+                if gui_state.agent_thread_running():
                     self._send_json(
                         {
                             "status": "error",
@@ -1453,19 +1483,16 @@ def make_gui_server(
 
             elif self.path == "/wizard/reset-remote-setup":
                 self._read_json()  # drain request body
-                with gui_state.lock:
-                    active = (
-                        gui_state._agent_thread is not None and gui_state._agent_thread.is_alive()
+                if gui_state.agent_thread_running():
+                    self._send_json(
+                        {
+                            "status": "error",
+                            "message": "Stop the running agent before resetting Remote Setup.",
+                        },
+                        409,
                     )
-                    if active:
-                        self._send_json(
-                            {
-                                "status": "error",
-                                "message": "Stop the running agent before resetting Remote Setup.",
-                            },
-                            409,
-                        )
-                        return
+                    return
+                with gui_state.lock:
                     gui_state.profile.linux_ip = ""
                     gui_state.profile.linux_user = ""
                     gui_state.profile.remote_setup_mode = "auto"
@@ -1687,9 +1714,7 @@ def _execute_image_search(query: str, max_results: int = 3) -> str:
         return json.dumps({"error": f"Image search failed: {e}"})
 
 
-_NATIVE_SEARCH_PROVIDERS = frozenset(
-    {"api_openai", "api_anthropic", "api_gemini", "api_grok"}
-)
+_NATIVE_SEARCH_PROVIDERS = frozenset({"api_openai", "api_anthropic", "api_gemini", "api_grok"})
 
 
 def _provider_supports_native_search(provider: str | None) -> bool:
@@ -1810,7 +1835,9 @@ def _call_anthropic_with_native_search(
     resp.raise_for_status()
     data = resp.json()
     return "\n".join(
-        block.get("text", "") for block in (data.get("content") or []) if block.get("type") == "text"
+        block.get("text", "")
+        for block in (data.get("content") or [])
+        if block.get("type") == "text"
     ).strip()
 
 
@@ -3313,6 +3340,33 @@ def _prepare_section_rerun(
         bridge_state.add_message("user", user_msg)
 
 
+def _make_managed_agent_target(
+    gui_state: GUIState,
+    phase: str,
+    target: Callable[..., None],
+    *args: Any,
+    **kwargs: Any,
+) -> Callable[[], None]:
+    """Wrap an agent worker so runtime state is always cleaned up.
+
+    The old launcher started `_run_agent_background` / `_run_setup_agent`
+    directly, which meant:
+    - `bridge.agent_connected` stayed sticky after the worker exited
+    - `gui_state._agent_thread` could keep pointing at a dead thread
+    - `current_phase` remained latched, so later UI actions inherited stale phase
+    """
+
+    def runner() -> None:
+        gui_state.mark_agent_running(phase)
+        current = threading.current_thread()
+        try:
+            target(*args, **kwargs)
+        finally:
+            gui_state.mark_agent_stopped(current)
+
+    return runner
+
+
 def _launch_agent(
     gui_state: GUIState,
     port: int,
@@ -3395,16 +3449,26 @@ def _launch_agent(
 
         if phase == "setup":
             thread = threading.Thread(
-                target=_run_setup_agent,
-                args=(gui_state, port),
-                kwargs={"user_feedback": user_feedback},
+                target=_make_managed_agent_target(
+                    gui_state,
+                    phase,
+                    _run_setup_agent,
+                    gui_state,
+                    port,
+                    user_feedback=user_feedback,
+                ),
                 daemon=True,
             )
         else:
             thread = threading.Thread(
-                target=_run_agent_background,
-                args=(gui_state, port),
-                kwargs={"user_feedback": user_feedback},
+                target=_make_managed_agent_target(
+                    gui_state,
+                    phase,
+                    _run_agent_background,
+                    gui_state,
+                    port,
+                    user_feedback=user_feedback,
+                ),
                 daemon=True,
             )
         gui_state._agent_thread = thread
@@ -3805,6 +3869,15 @@ def _setup_runtime_prompt_block(
                 "- If the migration plan contains live-installer steps, ignore those and execute only the post-install configuration parts.",
             ]
         )
+    lines.extend(
+        [
+            "",
+            "NETWORK-SECURITY GUARDRAIL:",
+            "- Do NOT enable/start VPN or firewall services automatically.",
+            "- Installing packages like Mullvad, WireGuard, OpenVPN, firewalld, ufw, or nftables is allowed, but activating them requires an explicit user request in the current run.",
+            "- If the user did not ask for network-security changes right now, leave those services stopped and mention any manual follow-up instead of changing routing, DNS, firewall rules, or kill-switch behavior remotely.",
+        ]
+    )
     if native_search_active:
         lines.extend(
             [
@@ -4003,11 +4076,96 @@ def _is_safe_diagnostic_setup_command(cmd: str) -> bool:
     return True
 
 
-def _preflight_setup_command(cmd: str, facts: dict[str, str]) -> str | None:
+_NETWORK_SECURITY_SERVICE_TOKENS = frozenset(
+    {
+        "mullvad-daemon",
+        "mullvad-vpn",
+        "openvpn",
+        "wg-quick",
+        "wg-quick@",
+        "wireguard",
+        "firewalld",
+        "ufw",
+        "nftables",
+        "iptables",
+    }
+)
+
+
+def _user_explicitly_requested_network_security_changes(*texts: str) -> bool:
+    """Best-effort signal that the user explicitly asked for VPN/firewall activation."""
+    positive = re.compile(
+        r"\b(enable|start|activate|configure|set up|setup|turn on|bring up|use)\b",
+        re.IGNORECASE,
+    )
+    sensitive = re.compile(
+        r"\b(mullvad|vpn|wireguard|openvpn|firewall|firewalld|ufw|nftables|iptables)\b",
+        re.IGNORECASE,
+    )
+    negative = re.compile(
+        r"\b(don't|do not|dont|never|avoid|skip)\b.{0,40}\b"
+        r"(mullvad|vpn|wireguard|openvpn|firewall|firewalld|ufw|nftables|iptables)\b",
+        re.IGNORECASE | re.DOTALL,
+    )
+    for text in texts:
+        if not text:
+            continue
+        if negative.search(text):
+            continue
+        if positive.search(text) and sensitive.search(text):
+            return True
+    return False
+
+
+def _activates_network_security_services(cmd: str) -> bool:
+    """True when the command enables/starts VPN or firewall services."""
+    import shlex
+
+    for segment in _split_command_segments_for_lint(cmd):
+        lower_segment = segment.lower()
+        try:
+            tokens = shlex.split(segment, posix=True)
+        except ValueError:
+            tokens = lower_segment.split()
+        tokens = _strip_command_wrappers(tokens)
+        if not tokens:
+            continue
+        tool = _normalize_command_tool(tokens[0])
+        args = [t.lower() for t in tokens[1:]]
+        if tool == "systemctl" and args:
+            verb = args[0]
+            if verb in {"enable", "start", "restart", "try-restart"}:
+                if any(
+                    any(token.startswith(svc) for svc in _NETWORK_SECURITY_SERVICE_TOKENS)
+                    for token in args[1:]
+                ):
+                    return True
+        if tool == "ufw" and args and args[0] in {"enable", "reload"}:
+            return True
+        if tool in {"firewall-cmd", "nft", "iptables", "ip6tables"}:
+            if any(word in lower_segment for word in ("enable", "reload", "default", "policy")):
+                return True
+    return False
+
+
+def _preflight_setup_command(
+    cmd: str,
+    facts: dict[str, str],
+    *,
+    allow_network_security_changes: bool = False,
+) -> str | None:
     """Reject obviously impossible package-manager actions before they hit the target."""
     import shlex
 
     package_manager = facts.get("package_manager", "unknown")
+    if not allow_network_security_changes and _activates_network_security_services(cmd):
+        return (
+            "Do not enable/start VPN or firewall services automatically. "
+            "Installing the package is fine, but activating Mullvad, WireGuard, OpenVPN, "
+            "firewalld, ufw, nftables, or similar network-security services requires an "
+            "explicit user request right now because it can change routing, DNS, firewall "
+            "policy, or kill-switch behavior and cut off remote access."
+        )
     aur_helper = facts.get("aur_helper", "none")
     for segment in _split_command_segments_for_lint(cmd):
         try:
@@ -5352,8 +5510,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             + "You are a Linux system administrator. You are connected to a remote machine via SSH "
             "and your job is to execute the migration plan (provided below) on the remote machine.\n\n"
             + search_mode_block
-            +
-            "When you are completely done with the entire setup, respond with:\n"
+            + "When you are completely done with the entire setup, respond with:\n"
             '  {"action": "done", "summary": "brief summary of what was accomplished"}\n\n'
             "To post a progress update to the user (shown in the UI), respond with:\n"
             '  {"action": "status", "message": "what you are doing now"}\n\n'
