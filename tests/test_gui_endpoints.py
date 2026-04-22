@@ -77,6 +77,8 @@ class TestStaticRoutes:
         assert status == 200
         assert "Wipe + reinstall" in body
         assert "setRemoteSetupMode" in body
+        assert "Clear setup log" in body
+        assert "Reset remote setup" in body
 
 
 class TestProfileEndpoint:
@@ -138,6 +140,29 @@ class TestProfileEndpoint:
         data = json.loads(body)
         assert status == 200
         assert data["profile"]["remote_setup_mode"] == "auto"
+
+    def test_reset_remote_setup_clears_only_setup_connection_fields(self, server):
+        bridge = server["bridge"]
+        gui_state = server["gui_state"]
+        gui_state.profile.linux_ip = "192.168.50.162"
+        gui_state.profile.linux_user = "jan"
+        gui_state.profile.remote_setup_mode = "wipe_and_reinstall"
+        gui_state.profile.additional_info = "keep me"
+        bridge.add_message("agent", "setup goes away", phase="setup")
+        bridge.add_message("agent", "analysis stays", phase="analysis")
+        bridge.add_question("Setup question?")
+
+        status, body = _post(server["port"], "/wizard/reset-remote-setup", {})
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["status"] == "ok"
+        assert gui_state.profile.linux_ip == ""
+        assert gui_state.profile.linux_user == ""
+        assert gui_state.profile.remote_setup_mode == "auto"
+        assert gui_state.profile.additional_info == "keep me"
+        assert [m["content"] for m in bridge.messages] == ["analysis stays"]
+        assert bridge.get_pending_questions() == []
 
     def test_restore_profile_rehydrates_sparse_state_and_preserves_live_api_key(self, server):
         server["gui_state"].profile.ai_config.api_key = "sk-secret-xyz"
@@ -402,6 +427,22 @@ class TestBridgeEndpoints:
         _post(server["port"], "/api/message", {"role": "user", "content": "poke"})
         assert len(server["bridge"].messages) == 1
         assert server["bridge"].messages[0]["content"] == "poke"
+
+    def test_clear_setup_log_removes_only_setup_messages_and_pending_questions(self, server):
+        bridge = server["bridge"]
+        bridge.add_message("agent", "analysis stays", phase="analysis")
+        bridge.add_message("agent", "setup goes away", phase="setup")
+        bridge.add_question("Need disk confirmation?")
+
+        status, body = _post(server["port"], "/wizard/clear-setup-log", {})
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["status"] == "ok"
+        assert [m["content"] for m in bridge.messages] == ["analysis stays"]
+        assert bridge.get_pending_questions() == []
+        assert bridge.agent_done is False
+        assert bridge.stop_requested is False
 
     def test_post_suggest_adds_suggestion(self, server):
         _post(

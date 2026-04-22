@@ -1433,6 +1433,51 @@ def make_gui_server(
                 )
                 self._send_json({"status": "ok"})
 
+            elif self.path == "/wizard/clear-setup-log":
+                self._read_json()  # drain request body
+                with gui_state.lock:
+                    active = (
+                        gui_state._agent_thread is not None and gui_state._agent_thread.is_alive()
+                    )
+                if active:
+                    self._send_json(
+                        {
+                            "status": "error",
+                            "message": "Stop the running agent before clearing the setup log.",
+                        },
+                        409,
+                    )
+                else:
+                    bridge_state.clear_phase_log("setup")
+                    self._send_json({"status": "ok"})
+
+            elif self.path == "/wizard/reset-remote-setup":
+                self._read_json()  # drain request body
+                with gui_state.lock:
+                    active = (
+                        gui_state._agent_thread is not None and gui_state._agent_thread.is_alive()
+                    )
+                    if active:
+                        self._send_json(
+                            {
+                                "status": "error",
+                                "message": "Stop the running agent before resetting Remote Setup.",
+                            },
+                            409,
+                        )
+                        return
+                    gui_state.profile.linux_ip = ""
+                    gui_state.profile.linux_user = ""
+                    gui_state.profile.remote_setup_mode = "auto"
+                    gui_state.profile.save_checkpoint()
+                bridge_state.clear_phase_log("setup")
+                self._send_json(
+                    {
+                        "status": "ok",
+                        "profile": _profile_response_dict(gui_state.profile),
+                    }
+                )
+
             elif self.path == "/wizard/test-ssh":
                 data = self._read_json()
                 host_in = (data.get("ip") or "").strip()

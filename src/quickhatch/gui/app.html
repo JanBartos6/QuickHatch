@@ -2367,6 +2367,8 @@ const stepRenderers={
         <div class="stack-h" style="gap:var(--s2);margin-bottom:var(--s5)">
           <button class="btn btn-ghost" onclick="saveLinuxConn()" id="saveConnBtn">Save</button>
           <button class="btn btn-ghost" onclick="testLinuxConn()" id="testConnBtn"${hasConn?'':' disabled'}>Test connection</button>
+          <button class="btn btn-ghost" onclick="resetRemoteSetup()" id="resetRemoteSetupBtn">Reset remote setup</button>
+          <button class="btn btn-ghost" onclick="clearSetupLog()" id="clearSetupLogBtn">Clear setup log</button>
           <span id="connStatus" class="muted" style="font-size:var(--t-sm)"></span>
         </div>
 
@@ -3919,6 +3921,62 @@ async function testLinuxConn(){
     const lb=el('setupLaunchBtn');if(lb)lb.disabled=true;
   }
   btn.disabled=false;btn.textContent='Test connection';
+}
+
+async function clearSetupLog(){
+  try{
+    const r=await api('/wizard/clear-setup-log','POST',{});
+    if(r.status!=='ok'){
+      toast(r.message||'Could not clear setup log','error');
+      return;
+    }
+    state._setupStarted=false;
+    state._setupDone=false;
+    state._lastSetupMsgCount=-1;
+    state._lastSetupSugCount=0;
+    state._knownSetupQIds=new Set();
+    const qa=el('setupQuestions'); if(qa) qa.innerHTML='';
+    const feed=el('setupFeed'); if(feed) feed.innerHTML='';
+    const timeline=el('setupTimeline'); if(timeline) timeline.innerHTML='';
+    const action=el('setupAction'); if(action) action.textContent='';
+    const phase=el('setupPhase'); if(phase) phase.textContent='Connecting…';
+    const command=el('setupCommand'); if(command){ command.textContent=''; command.classList.add('hidden'); }
+    const logBody=el('setupLogBody'); if(logBody) logBody.innerHTML='';
+    const logDetails=el('setupLogDetails'); if(logDetails) logDetails.classList.add('hidden');
+    const section=el('setupSuggestionsSection'); if(section) section.classList.add('hidden');
+    const launch=el('setupLaunch'); if(launch) launch.classList.remove('hidden');
+    const panel=el('setupPanel'); if(panel) panel.classList.add('hidden');
+    const stop=el('setupStopBtn'); if(stop) stop.classList.add('hidden');
+    const done=el('setupDone'); if(done){ done.disabled=true; done.textContent='Agent working…'; }
+    toast('Remote setup log cleared','success');
+  }catch(e){
+    toast(e.message||'Could not clear setup log','error');
+  }
+}
+
+async function resetRemoteSetup(){
+  const ok=window.confirm(
+    'Reset Remote Setup? This clears the saved IP, username, setup transcript, and current setup-state for this step, but keeps the rest of your wizard profile.'
+  );
+  if(!ok)return;
+  try{
+    const r=await api('/wizard/reset-remote-setup','POST',{});
+    if(r.status!=='ok'){
+      toast(r.message||'Could not reset Remote Setup','error');
+      return;
+    }
+    if(r.profile)state.profile=r.profile;
+    state._sshTestOk=false;
+    state._setupStarted=false;
+    state._setupDone=false;
+    state._lastSetupMsgCount=-1;
+    state._lastSetupSugCount=0;
+    state._knownSetupQIds=new Set();
+    stepRenderers.setup();
+    toast('Remote setup reset','success');
+  }catch(e){
+    toast(e.message||'Could not reset Remote Setup','error');
+  }
 }
 
 async function setRemoteSetupMode(mode){

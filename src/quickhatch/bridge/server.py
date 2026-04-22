@@ -356,6 +356,25 @@ class BridgeState:
             self.agent_done = False
             self._persist()
 
+    def clear_phase_log(self, phase: str) -> None:
+        """Clear message/question runtime associated with one agent phase.
+
+        Intended for UI-level "clear this run's log" actions. This is
+        non-destructive to the saved profile and does not touch
+        suggestions, because those are shared across analysis/setup and
+        currently have no phase tag.
+        """
+        target = phase or ""
+        with self.lock:
+            self.messages[:] = [m for m in self.messages if (m.get("phase") or "") != target]
+            self._clear_unanswered_questions_locked()
+            self.agent_done = False
+            self.stop_requested = False
+            if self.current_phase == target:
+                self.current_phase = ""
+            data = self._serialize_payload_locked()
+        self._write_payload_unlocked(data)
+
     def snapshot_suggestions(self) -> list[Suggestion]:
         """SHALLOW copy of the suggestions list, atomically, under the lock."""
         with self.lock:
