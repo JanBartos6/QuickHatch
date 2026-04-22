@@ -3395,6 +3395,41 @@ async function answerQuestion(qid){
   }
 }
 
+function renderQuestionCards(container, questions){
+  if(!container)return;
+  const drafts={};
+  container.querySelectorAll('input[id^="answer-"]').forEach(inp=>{
+    drafts[inp.id]=inp.value;
+  });
+  const active=document.activeElement;
+  const activeId=active&&active.id&&active.id.startsWith('answer-')?active.id:'';
+  const selStart=active&&typeof active.selectionStart==='number'?active.selectionStart:null;
+  const selEnd=active&&typeof active.selectionEnd==='number'?active.selectionEnd:null;
+  container.innerHTML=questions.map(q=>`
+    <div class="info-box info-primary" id="qcard-${escHtml(q.id)}">
+      <strong>${escHtml(q.question)}</strong>
+      ${q.choices?`<div class="pill-grid" style="margin:var(--s2) 0">${q.choices.map(c=>`<span class="pill" data-qid="${escHtml(q.id)}" data-val="${escHtml(c)}">${escHtml(c)}</span>`).join('')}</div>`:''}
+      <div class="stack-h" style="margin-top:var(--s2)">
+        <input type="text" id="answer-${escHtml(q.id)}" placeholder="Type your answer…" onkeydown="if(event.key==='Enter')answerQuestion('${escHtml(q.id)}')" style="flex:1">
+        <button class="btn btn-primary" onclick="answerQuestion('${escHtml(q.id)}')">Answer</button>
+      </div>
+    </div>`).join('');
+  Object.entries(drafts).forEach(([id,val])=>{
+    const inp=el(id);
+    if(inp&&typeof val==='string')inp.value=val;
+  });
+  if(activeId){
+    const next=el(activeId);
+    if(next){
+      next.focus();
+      if(selStart!==null&&selEnd!==null&&typeof next.setSelectionRange==='function'){
+        const len=(next.value||'').length;
+        next.setSelectionRange(Math.min(selStart,len), Math.min(selEnd,len));
+      }
+    }
+  }
+}
+
 let bridgePollTimer=null;
 // ── Agent message classifier ──
 // Returns {kind, label, cmd?} where kind ∈ 'phase' | 'command' | 'event' | 'error' | 'user' | 'done'
@@ -3587,15 +3622,7 @@ async function pollBridge(){
             newQs.forEach(q=>knownIds.add(q.id));
             notifyAttention('Agent is asking a question');
           }
-          qa.innerHTML=qd.questions.map(q=>`
-            <div class="info-box info-primary" id="qcard-${escHtml(q.id)}">
-              <strong>${escHtml(q.question)}</strong>
-              ${q.choices?`<div class="pill-grid" style="margin:var(--s2) 0">${q.choices.map(c=>`<span class="pill" data-qid="${escHtml(q.id)}" data-val="${escHtml(c)}">${escHtml(c)}</span>`).join('')}</div>`:''}
-              <div class="stack-h" style="margin-top:var(--s2)">
-                <input type="text" id="answer-${escHtml(q.id)}" placeholder="Type your answer…" onkeydown="if(event.key==='Enter')answerQuestion('${escHtml(q.id)}')" style="flex:1">
-                <button class="btn btn-primary" onclick="answerQuestion('${escHtml(q.id)}')">Answer</button>
-              </div>
-            </div>`).join('');
+          renderQuestionCards(qa, qd.questions);
         }
       }else{
         if(qa&&qa.innerHTML)qa.innerHTML='';
@@ -3926,15 +3953,7 @@ async function pollSetup(){
             newQs.forEach(q=>knownIds.add(q.id));
             notifyAttention('Agent is asking a question (setup)');
           }
-          qa2.innerHTML=qd.questions.map(q=>`
-            <div class="info-box info-primary" id="qcard-${escHtml(q.id)}">
-              <strong>${escHtml(q.question)}</strong>
-              ${q.choices?`<div class="pill-grid" style="margin:var(--s2) 0">${q.choices.map(c=>`<span class="pill" data-qid="${escHtml(q.id)}" data-val="${escHtml(c)}">${escHtml(c)}</span>`).join('')}</div>`:''}
-              <div class="stack-h" style="margin-top:var(--s2)">
-                <input type="text" id="answer-${escHtml(q.id)}" placeholder="Type your answer…" onkeydown="if(event.key==='Enter')answerQuestion('${escHtml(q.id)}')" style="flex:1">
-                <button class="btn btn-primary" onclick="answerQuestion('${escHtml(q.id)}')">Answer</button>
-              </div>
-            </div>`).join('');
+          renderQuestionCards(qa2, qd.questions);
         }
       }else{
         // Clear stale question cards once the backend has no pending
