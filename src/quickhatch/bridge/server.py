@@ -33,6 +33,9 @@ class PendingQuestion:
     question: str
     choices: list[str] | None = None  # None = free text, list = pick from choices
     answer: str | None = None
+    blocking: bool = False
+    phase: str = ""
+    context: dict[str, Any] = field(default_factory=dict)
     answered: threading.Event = field(default_factory=threading.Event)
 
 
@@ -65,6 +68,15 @@ class BridgeState:
         self.agent_connected = False
         self.agent_done = False
         self.stop_requested = False
+        self.setup_run: dict[str, Any] = {
+            "run_id": "",
+            "stage": "",
+            "status": "idle",
+            "blockers": [],
+            "waiting_for_input": False,
+            "active_question_id": "",
+            "planning_complete": False,
+        }
         # Where to persist suggestions/messages. Pass None to disable
         # persistence (e.g. in unit tests).
         self._persist_path: Path | None = Path(persist_path) if persist_path else None
@@ -195,6 +207,9 @@ class BridgeState:
                     question=qdata["question"],
                     choices=qdata.get("choices"),
                     answer=qdata.get("answer"),
+                    blocking=bool(qdata.get("blocking", False)),
+                    phase=qdata.get("phase", "") or "",
+                    context=dict(qdata.get("context", {}) or {}),
                 )
             except TypeError:
                 continue
@@ -207,6 +222,7 @@ class BridgeState:
             self.suggestions.extend(loaded_suggestions)
             self.messages.extend(loaded_messages)
             self.questions.update(loaded_questions)
+            self.setup_run.update(dict(data.get("setup_run", {}) or {}))
 
     def reload_persisted_state(self) -> None:
         """Re-evaluate the persisted bridge payload for the CURRENT profile.
@@ -235,6 +251,15 @@ class BridgeState:
             self.stop_requested = False
             self.current_phase = ""
             self._persist_version = 0
+            self.setup_run = {
+                "run_id": "",
+                "stage": "",
+                "status": "idle",
+                "blockers": [],
+                "waiting_for_input": False,
+                "active_question_id": "",
+                "planning_complete": False,
+            }
         if self._persist_path is None:
             return
         with self._persist_write_lock:
@@ -269,9 +294,13 @@ class BridgeState:
                     "choices": q.choices,
                     "answered": q.answered.is_set(),
                     "answer": q.answer,
+                    "blocking": q.blocking,
+                    "phase": q.phase,
+                    "context": q.context,
                 }
                 for q in self.questions.values()
             ],
+            "setup_run": dict(self.setup_run),
             "saved_at": time.time(),
         }
         try:
@@ -397,11 +426,33 @@ class BridgeState:
             cb(suggestion)
         return sid
 
-    def add_question(self, question: str, choices: list[str] | None = None) -> PendingQuestion:
+    def add_question(
+        self,
+        question: str,
+        choices: list[str] | None = None,
+        *,
+        blocking: bool = False,
+        phase: str = "",
+        context: dict[str, Any] | None = None,
+    ) -> PendingQuestion:
         qid = str(uuid.uuid4())[:8]
-        q = PendingQuestion(id=qid, question=question, choices=choices)
+        q = PendingQuestion(
+            id=qid,
+            question=question,
+            choices=choices,
+            blocking=blocking,
+            phase=phase or self.current_phase,
+            context=dict(context or {}),
+        )
         with self.lock:
             self.questions[qid] = q
+            if blocking:
+                self.setup_run["waiting_for_input"] = True
+                self.setup_run["active_question_id"] = qid
+                blockers = list(self.setup_run.get("blockers", []) or [])
+                if question not in blockers:
+                    blockers.append(question)
+                self.setup_run["blockers"] = blockers
             data = self._serialize_payload_locked()
         self._write_payload_unlocked(data)
         for cb in self._on_question:
@@ -415,6 +466,14 @@ class BridgeState:
                 return False
             q.answer = answer
             q.answered.set()
+            if q.blocking and self.setup_run.get("active_question_id") == qid:
+                self.setup_run["waiting_for_input"] = False
+                self.setup_run["active_question_id"] = ""
+                self.setup_run["blockers"] = [
+                    item
+                    for item in (self.setup_run.get("blockers", []) or [])
+                    if item != q.question
+                ]
             data = self._serialize_payload_locked()
         self._write_payload_unlocked(data)
         return True
@@ -475,6 +534,18 @@ class BridgeState:
         with self.lock:
             return [q for q in self.questions.values() if not q.answered.is_set()]
 
+    def update_setup_run(self, **updates: Any) -> None:
+        with self.lock:
+            for key, value in updates.items():
+                if value is not None:
+                    self.setup_run[key] = value
+            data = self._serialize_payload_locked()
+        self._write_payload_unlocked(data)
+
+    def snapshot_setup_run(self) -> dict[str, Any]:
+        with self.lock:
+            return dict(self.setup_run)
+
     def get_suggestions_by_category(self, category: str) -> list[Suggestion]:
         with self.lock:
             return [s for s in self.suggestions if s.category == category]
@@ -529,12 +600,14 @@ def _make_handler(state: BridgeState):
                 self._send_json({"status": "ok", "profile": profile_dict})
 
             elif self.path == "/api/status":
+                setup_run = state.snapshot_setup_run()
                 self._send_json(
                     {
                         "status": "ok",
                         "pending_questions": len(state.get_pending_questions()),
                         "suggestions": len(state.suggestions),
                         "agent_done": state.agent_done,
+                        "setup_run": setup_run,
                     }
                 )
 
@@ -563,6 +636,25 @@ def _make_handler(state: BridgeState):
                     ]
                 self._send_json({"status": "ok", "suggestions": data})
 
+            elif self.path == "/api/pending-questions":
+                pending = state.get_pending_questions()
+                self._send_json(
+                    {
+                        "status": "ok",
+                        "questions": [
+                            {
+                                "id": q.id,
+                                "question": q.question,
+                                "choices": q.choices,
+                                "blocking": q.blocking,
+                                "phase": q.phase,
+                                "context": q.context,
+                            }
+                            for q in pending
+                        ],
+                    }
+                )
+
             else:
                 self._send_json({"status": "error", "message": "Not found"}, 404)
 
@@ -582,8 +674,13 @@ def _make_handler(state: BridgeState):
                 question = data.get("question", "")
                 choices = data.get("choices")  # optional list
                 timeout = data.get("timeout", 300)  # default 5 min
-
-                q = state.add_question(question, choices)
+                q = state.add_question(
+                    question,
+                    choices,
+                    blocking=bool(data.get("blocking", False)),
+                    phase=data.get("phase", "") or "",
+                    context=dict(data.get("context", {}) or {}),
+                )
 
                 # Block until user answers or timeout
                 answered = q.answered.wait(timeout=timeout)
@@ -598,7 +695,13 @@ def _make_handler(state: BridgeState):
                 # Non-blocking ask — LLM polls /api/response/{id} later
                 question = data.get("question", "")
                 choices = data.get("choices")
-                q = state.add_question(question, choices)
+                q = state.add_question(
+                    question,
+                    choices,
+                    blocking=bool(data.get("blocking", False)),
+                    phase=data.get("phase", "") or "",
+                    context=dict(data.get("context", {}) or {}),
+                )
                 self._send_json({"status": "ok", "question_id": q.id})
 
             elif self.path == "/api/message":

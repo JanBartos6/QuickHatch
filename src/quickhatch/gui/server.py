@@ -11,6 +11,7 @@ import mimetypes
 import re
 import threading
 from collections.abc import Callable
+from copy import deepcopy
 from dataclasses import asdict, fields
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -23,6 +24,15 @@ from quickhatch.gallery.library import (
     find_gallery_entries,
     gallery_asset_path,
     load_gallery_entries,
+)
+from quickhatch.setup import (
+    SetupFacts,
+    SetupOrchestrator,
+    SetupRuntime,
+    detect_family,
+)
+from quickhatch.setup import (
+    probe_setup_facts as _probe_typed_setup_facts,
 )
 
 
@@ -218,11 +228,14 @@ class GUIState:
             self.bridge.agent_connected = False
             self.bridge.stop_requested = False
             self.bridge.current_phase = ""
+            self.bridge.setup_run["status"] = "idle"
         return False
 
     def mark_agent_running(self, phase: str) -> None:
         with self.bridge.lock:
             self.bridge.agent_connected = True
+            if phase == "setup":
+                self.bridge.setup_run["status"] = "running"
         self.bridge.set_current_phase(phase)
 
     def mark_agent_stopped(self, finished_thread: threading.Thread | None = None) -> None:
@@ -236,6 +249,7 @@ class GUIState:
             self.bridge.agent_connected = False
             self.bridge.stop_requested = False
             self.bridge.current_phase = ""
+            self.bridge.setup_run["status"] = "idle"
 
     # Fields whose declared type is list[...] — null and non-iterable
     # values get coerced to [] instead of crashing every downstream
@@ -914,6 +928,7 @@ def make_gui_server(
 
             elif self.path == "/api/status":
                 gui_state.agent_thread_running()
+                setup_run = bridge_state.snapshot_setup_run()
                 self._send_json(
                     {
                         "status": "ok",
@@ -921,6 +936,7 @@ def make_gui_server(
                         "pending_questions": len(bridge_state.get_pending_questions()),
                         "suggestions": len(bridge_state.suggestions),
                         "agent_done": bridge_state.agent_done,
+                        "setup_run": setup_run,
                     }
                 )
 
@@ -960,7 +976,14 @@ def make_gui_server(
                     {
                         "status": "ok",
                         "questions": [
-                            {"id": q.id, "question": q.question, "choices": q.choices}
+                            {
+                                "id": q.id,
+                                "question": q.question,
+                                "choices": q.choices,
+                                "blocking": q.blocking,
+                                "phase": q.phase,
+                                "context": q.context,
+                            }
                             for q in pending
                         ],
                     }
@@ -986,7 +1009,13 @@ def make_gui_server(
                 question = data.get("question", "")
                 choices = data.get("choices")
                 timeout = data.get("timeout", 300)
-                q = bridge_state.add_question(question, choices)
+                q = bridge_state.add_question(
+                    question,
+                    choices,
+                    blocking=bool(data.get("blocking", False)),
+                    phase=data.get("phase", "") or "",
+                    context=dict(data.get("context", {}) or {}),
+                )
                 answered = q.answered.wait(timeout=timeout)
                 if answered:
                     self._send_json({"status": "ok", "answer": q.answer})
@@ -998,7 +1027,13 @@ def make_gui_server(
             elif self.path == "/api/ask/async":
                 question = data.get("question", "")
                 choices = data.get("choices")
-                q = bridge_state.add_question(question, choices)
+                q = bridge_state.add_question(
+                    question,
+                    choices,
+                    blocking=bool(data.get("blocking", False)),
+                    phase=data.get("phase", "") or "",
+                    context=dict(data.get("context", {}) or {}),
+                )
                 self._send_json({"status": "ok", "question_id": q.id})
 
             elif self.path == "/api/message":
@@ -1280,13 +1315,14 @@ def make_gui_server(
                         # Reflect the enriched apps in the response
                         results["apps"] = [asdict(a) for a in apps]
                     if results.get("hardware"):
-                        from quickhatch.config import DiskInfo, GPUInfo, HardwareInfo
+                        from quickhatch.config import DiskInfo, DisplayInfo, GPUInfo, HardwareInfo
 
                         hw = results["hardware"]
                         gui_state.profile.hardware = HardwareInfo(
-                            **{k: v for k, v in hw.items() if k not in ("gpus", "disks")},
+                            **{k: v for k, v in hw.items() if k not in ("gpus", "disks", "displays")},
                             gpus=[GPUInfo(**g) for g in hw.get("gpus", [])],
                             disks=[DiskInfo(**d) for d in hw.get("disks", [])],
+                            displays=[DisplayInfo(**d) for d in hw.get("displays", [])],
                         )
                     if results.get("settings"):
                         gui_state.profile.windows_settings = results["settings"]
@@ -3912,6 +3948,95 @@ def _setup_runtime_prompt_block(
     return "\n".join(lines) + "\n\n"
 
 
+def _collect_remote_system_info(
+    host: str, user: str, key_path: str | None, *, port: int = 22
+) -> str:
+    info_cmd = (
+        "echo '=== OS ==='; cat /etc/os-release 2>/dev/null; "
+        "echo '=== DISK ==='; df -h / 2>/dev/null; "
+        "echo '=== MEMORY ==='; free -h 2>/dev/null; "
+        "echo '=== LSPCI GPU ==='; lspci 2>/dev/null | grep -i vga; "
+        "echo '=== NETWORK ==='; ip link show 2>/dev/null | grep -E '^[0-9]|state'; "
+        "echo '=== PACKAGE MANAGER ==='; "
+        "command -v pacman >/dev/null && echo 'pacman (Arch)'; "
+        "command -v apt >/dev/null && echo 'apt (Debian/Ubuntu)'; "
+        "command -v dnf >/dev/null && echo 'dnf (Fedora)'; "
+        "echo '=== USER ==='; whoami; id"
+    )
+    rc, system_info, _ = _ssh_exec(host, user, info_cmd, key_path, port=port)
+    return system_info.strip() if rc == 0 else "Could not gather system info"
+
+
+def _probe_setup_facts_typed(
+    host: str,
+    user: str,
+    key_path: str | None,
+    *,
+    port: int = 22,
+    fallback: SetupFacts | None = None,
+    is_live: bool = False,
+    live_marker: str = "",
+    pending_question_id: str = "",
+    pending_question_blocking: bool = False,
+) -> SetupFacts:
+    facts = _probe_typed_setup_facts(
+        lambda ssh_host, ssh_user, cmd, ssh_key, timeout, ssh_port: _ssh_exec(
+            ssh_host, ssh_user, cmd, ssh_key, timeout=timeout, port=ssh_port
+        ),
+        host,
+        user,
+        key_path,
+        port=port,
+        fallback=fallback,
+        is_live=is_live,
+        live_marker=live_marker,
+        pending_question_id=pending_question_id,
+        pending_question_blocking=pending_question_blocking,
+    )
+    facts.distro_family = detect_family(facts)
+    return facts
+
+
+def _bootstrap_setup_facts_typed(
+    host: str,
+    user: str,
+    key_path: str | None,
+    profile: UserProfile,
+    bridge: BridgeState,
+    facts: SetupFacts,
+    *,
+    port: int = 22,
+) -> SetupFacts:
+    if facts.is_root or facts.sudo_nopasswd:
+        return facts
+    _maybe_bootstrap_nopasswd_sudo(
+        host,
+        user,
+        key_path,
+        profile,
+        bridge,
+        facts={
+            "package_manager": facts.package_manager,
+            "aur_helper": facts.community_helper,
+            "current_user": facts.current_user,
+            "is_root": "yes" if facts.is_root else "no",
+            "sudo_nopasswd": "yes" if facts.sudo_nopasswd else "no",
+        },
+        port=port,
+    )
+    return _probe_setup_facts_typed(
+        host,
+        user,
+        key_path,
+        port=port,
+        fallback=facts,
+        is_live=facts.is_live,
+        live_marker=facts.live_marker,
+        pending_question_id=facts.pending_question_id,
+        pending_question_blocking=facts.pending_question_blocking,
+    )
+
+
 def _maybe_bootstrap_nopasswd_sudo(
     host: str,
     user: str,
@@ -5335,7 +5460,168 @@ def _recipe_apply_for_setup(profile: UserProfile) -> str:
         return ""
 
 
+def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = "") -> SetupRuntime:
+    bridge = gui_state.bridge
+    bridge.set_current_phase("setup")
+    profile = gui_state.profile
+    config = profile.ai_config
+    host = getattr(profile, "linux_ip", "") or ""
+    user = getattr(profile, "linux_user", "") or ""
+    ssh_port = 22
+    if ":" in host:
+        host, port_str = host.rsplit(":", 1)
+        try:
+            ssh_port = int(port_str)
+        except ValueError:
+            pass
+    key_path = _resolve_ssh_private_key_path(profile)
+    native_search_active = _use_provider_native_search(config)
+
+    migration_plan_md = ""
+    if bridge.suggestions:
+        plan_parts = [
+            "The migration plan has already been generated during the analysis phase.\n"
+            "Use this as your blueprint — do not re-plan from scratch.\n"
+        ]
+        for suggestion in bridge.snapshot_suggestions():
+            plan_parts.append(f"\n### {suggestion.title}\n{suggestion.content}")
+        migration_plan_md = "\n".join(plan_parts)
+
+    from quickhatch.ai.install_primer import primer_prompt_block, resolve_primer
+
+    distro_hint = (profile.preferences.distro_preference or "").strip()
+    if not distro_hint and bridge.suggestions:
+        for suggestion in bridge.snapshot_suggestions():
+            if getattr(suggestion, "category", "") == "distro" or "distribut" in (
+                suggestion.title or ""
+            ).lower():
+                match = resolve_primer(suggestion.content or "")
+                if match is not None:
+                    distro_hint = match["canonical"]
+                    break
+    distro_primer_md = primer_prompt_block(distro_hint)
+    config_for_runtime = deepcopy(config)
+    session_user = {"value": user}
+
+    def _repo_search(query: str) -> str:
+        facts = _probe_setup_facts(host, session_user["value"], key_path, port=ssh_port)
+        return _execute_setup_repo_search(
+            host, session_user["value"], key_path, facts, query, port=ssh_port
+        )[1]
+
+    def _community_search(query: str) -> str:
+        facts = _probe_setup_facts(host, session_user["value"], key_path, port=ssh_port)
+        return _execute_setup_aur_search(
+            host, session_user["value"], key_path, facts, query, port=ssh_port
+        )[1]
+
+    def _wait_for_reconnect(reconnect_user: str) -> tuple[bool, str, str]:
+        ok = _wait_for_ssh_reconnect(
+            host,
+            reconnect_user,
+            key_path,
+            port=ssh_port,
+            timeout=None,
+            stop_flag_getter=lambda: bridge.stop_requested,
+        )
+        if ok:
+            session_user["value"] = reconnect_user
+        fresh_info = (
+            _collect_remote_system_info(host, session_user["value"], key_path, port=ssh_port)
+            if ok
+            else ""
+        )
+        return ok, fresh_info, reconnect_user
+
+    def _pre_reboot_result() -> tuple[bool, list[str], str]:
+        failures, oks = _run_pre_reboot_checks(
+            host, session_user["value"], key_path, port=ssh_port
+        )
+        summary_lines = [f"✓ {line}" for line in oks] + [f"✗ {line}" for line in failures]
+        return (not failures, failures, "\n".join(summary_lines))
+
+    return SetupRuntime(
+        profile=profile,
+        bridge=bridge,
+        config=config_for_runtime,
+        host=host,
+        user=user,
+        ssh_port=ssh_port,
+        key_path=key_path,
+        system_info_fn=lambda: _collect_remote_system_info(
+            host, session_user["value"], key_path, port=ssh_port
+        ),
+        call_model_text=lambda model_config, messages: _call_setup_model_text(
+            model_config,
+            model_config.endpoint or "",
+            model_config.model_name or "",
+            model_config.api_key,
+            messages,
+        ),
+        probe_facts=lambda **kwargs: _probe_setup_facts_typed(
+            host,
+            session_user["value"],
+            key_path,
+            port=ssh_port,
+            **kwargs,
+        ),
+        detect_live_env=lambda: _detect_live_env(host, session_user["value"], key_path, port=ssh_port),
+        ssh_exec=lambda command, timeout: _ssh_exec(
+            host, session_user["value"], command, key_path, timeout=timeout, port=ssh_port
+        ),
+        repo_search=_repo_search,
+        community_search=_community_search,
+        web_search=lambda query, max_results: _execute_web_search(query, max_results),
+        wait_for_reconnect=_wait_for_reconnect,
+        run_pre_reboot_checks=_pre_reboot_result,
+        smoke_test_preboot_script=lambda: _smoke_test_preboot_script(
+            host, session_user["value"], key_path, port=ssh_port
+        ),
+        bootstrap_nopasswd_sudo=lambda facts: _bootstrap_setup_facts_typed(
+            host, session_user["value"], key_path, profile, bridge, facts, port=ssh_port
+        ),
+        runtime_prompt_block=lambda facts, is_live: _setup_runtime_prompt_block(
+            {
+                "package_manager": facts.package_manager,
+                "aur_helper": facts.community_helper,
+                "current_user": facts.current_user,
+                "is_root": "yes" if facts.is_root else "no",
+                "sudo_nopasswd": "yes" if facts.sudo_nopasswd else "no",
+            },
+            is_live,
+            native_search_active=False,
+        ),
+        migration_plan_md=migration_plan_md
+        + (
+            f"\n\n== USER FEEDBACK ==\n{user_feedback.strip()}"
+            if user_feedback.strip()
+            else ""
+        ),
+        distro_primer_md=distro_primer_md,
+        native_search_active=native_search_active,
+    )
+
+
 def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") -> None:
+    runtime = _build_setup_runtime(gui_state, port, user_feedback)
+    if not runtime.host or not runtime.user:
+        runtime.bridge.add_message("agent", "Error: No Linux IP/username configured.")
+        return
+    try:
+        summary = SetupOrchestrator(runtime).run()
+    except Exception as exc:
+        summary = f"Agent stopped: {exc}"
+        runtime.bridge.add_message("agent", f"⚠️ {summary}")
+    import requests as req
+
+    req.post(
+        f"http://localhost:{port}/api/done",
+        json={"summary": summary},
+        timeout=5,
+    )
+
+
+def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str = "") -> None:
     """Run the setup phase as an agentic loop: SSH into the Linux machine,
     let the LLM decide what to run, execute it, feed results back, repeat.
 

@@ -613,3 +613,48 @@ class TestAgentLaunchAdmission:
         assert [s.category for s in bridge.suggestions] == ["distro"]
         assert bridge.messages[-1]["role"] == "user"
         assert bridge.messages[-1]["content"] == "redo apps"
+
+
+class TestSetupApiSurface:
+    def test_api_status_includes_setup_run(self, server):
+        server["bridge"].update_setup_run(
+            run_id="run123",
+            stage="research_and_plan",
+            status="waiting_for_input",
+            blockers=["Need confirmation"],
+            waiting_for_input=True,
+            active_question_id="q1",
+            planning_complete=False,
+        )
+
+        status, body = _get(server["port"], "/api/status")
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["setup_run"]["run_id"] == "run123"
+        assert data["setup_run"]["stage"] == "research_and_plan"
+        assert data["setup_run"]["waiting_for_input"] is True
+
+    def test_pending_questions_exposes_blocking_metadata(self, server):
+        q = server["bridge"].add_question(
+            "Install optional slow app?",
+            ["install now", "manual follow-up"],
+            blocking=True,
+            phase="setup",
+            context={"stage": "apps"},
+        )
+
+        status, body = _get(server["port"], "/api/pending-questions")
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["questions"] == [
+            {
+                "id": q.id,
+                "question": "Install optional slow app?",
+                "choices": ["install now", "manual follow-up"],
+                "blocking": True,
+                "phase": "setup",
+                "context": {"stage": "apps"},
+            }
+        ]

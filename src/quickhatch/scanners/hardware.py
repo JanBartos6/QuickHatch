@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ctypes
 import json
 import platform
 import subprocess
@@ -10,7 +11,7 @@ from pathlib import Path
 
 import psutil
 
-from quickhatch.config import DiskInfo, GPUInfo, HardwareInfo
+from quickhatch.config import DiskInfo, DisplayInfo, GPUInfo, HardwareInfo
 from quickhatch.console import print_info
 
 
@@ -486,6 +487,103 @@ def _is_efi() -> bool:
     return False
 
 
+def _get_displays() -> list[DisplayInfo]:
+    """Best-effort display inventory from the source machine."""
+    displays: list[DisplayInfo] = []
+    if sys.platform == "win32":
+        try:
+            class _DEVMODEW(ctypes.Structure):
+                _fields_ = [
+                    ("dmDeviceName", ctypes.c_wchar * 32),
+                    ("dmSpecVersion", ctypes.c_ushort),
+                    ("dmDriverVersion", ctypes.c_ushort),
+                    ("dmSize", ctypes.c_ushort),
+                    ("dmDriverExtra", ctypes.c_ushort),
+                    ("dmFields", ctypes.c_ulong),
+                    ("dmPositionX", ctypes.c_long),
+                    ("dmPositionY", ctypes.c_long),
+                    ("dmDisplayOrientation", ctypes.c_ulong),
+                    ("dmDisplayFixedOutput", ctypes.c_ulong),
+                    ("dmColor", ctypes.c_short),
+                    ("dmDuplex", ctypes.c_short),
+                    ("dmYResolution", ctypes.c_short),
+                    ("dmTTOption", ctypes.c_short),
+                    ("dmCollate", ctypes.c_short),
+                    ("dmFormName", ctypes.c_wchar * 32),
+                    ("dmLogPixels", ctypes.c_ushort),
+                    ("dmBitsPerPel", ctypes.c_ulong),
+                    ("dmPelsWidth", ctypes.c_ulong),
+                    ("dmPelsHeight", ctypes.c_ulong),
+                    ("dmDisplayFlags", ctypes.c_ulong),
+                    ("dmDisplayFrequency", ctypes.c_ulong),
+                    ("dmICMMethod", ctypes.c_ulong),
+                    ("dmICMIntent", ctypes.c_ulong),
+                    ("dmMediaType", ctypes.c_ulong),
+                    ("dmDitherType", ctypes.c_ulong),
+                    ("dmReserved1", ctypes.c_ulong),
+                    ("dmReserved2", ctypes.c_ulong),
+                    ("dmPanningWidth", ctypes.c_ulong),
+                    ("dmPanningHeight", ctypes.c_ulong),
+                ]
+
+            devmode = _DEVMODEW()
+            devmode.dmSize = ctypes.sizeof(_DEVMODEW)
+            ENUM_CURRENT_SETTINGS = -1
+            if ctypes.windll.user32.EnumDisplaySettingsW(None, ENUM_CURRENT_SETTINGS, ctypes.byref(devmode)):
+                displays.append(
+                    DisplayInfo(
+                        name="Primary Display",
+                        width_px=int(devmode.dmPelsWidth or 0),
+                        height_px=int(devmode.dmPelsHeight or 0),
+                        refresh_hz=float(devmode.dmDisplayFrequency or 0) or None,
+                        primary=True,
+                        source_platform="win32",
+                    )
+                )
+        except Exception:
+            pass
+    elif sys.platform == "linux":
+        try:
+            result = subprocess.run(
+                ["xrandr", "--query"],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=10,
+            )
+            for line in (result.stdout or "").splitlines():
+                if " connected" not in line:
+                    continue
+                parts = line.split()
+                name = parts[0]
+                primary = " primary " in f" {line} "
+                width = height = 0
+                refresh = None
+                for token in parts:
+                    if "+" in token and "x" in token:
+                        mode = token.split("+", 1)[0]
+                        if "x" in mode:
+                            try:
+                                width, height = [int(v) for v in mode.split("x", 1)]
+                            except ValueError:
+                                width = height = 0
+                        break
+                displays.append(
+                    DisplayInfo(
+                        name=name,
+                        width_px=width,
+                        height_px=height,
+                        refresh_hz=refresh,
+                        primary=primary,
+                        source_platform="linux",
+                    )
+                )
+        except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+            pass
+    return displays
+
+
 def scan() -> HardwareInfo:
     """Scan all hardware information."""
     print_info("Scanning hardware...")
@@ -496,6 +594,7 @@ def scan() -> HardwareInfo:
     wifi = _get_wifi()
     bluetooth = _get_bluetooth()
     disks = _get_disks()
+    displays = _get_displays()
     efi = _is_efi()
 
     info = HardwareInfo(
@@ -506,6 +605,7 @@ def scan() -> HardwareInfo:
         wifi_adapters=wifi,
         bluetooth=bluetooth,
         disks=disks,
+        displays=displays,
         efi=efi,
     )
 
@@ -515,6 +615,15 @@ def scan() -> HardwareInfo:
         vram_str = f" ({gpu.vram_mb} MB)" if gpu.vram_mb else ""
         print_info(f"GPU: {gpu.name}{vram_str} [{gpu.vendor}]")
     print_info(f"Disks: {len(disks)} partitions found")
+    if displays:
+        for display in displays:
+            mode = (
+                f"{display.width_px}x{display.height_px}"
+                if display.width_px and display.height_px
+                else "unknown resolution"
+            )
+            hz = f" @ {display.refresh_hz:.0f} Hz" if display.refresh_hz else ""
+            print_info(f"Display: {display.name} ({mode}{hz})")
     print_info(f"WiFi adapters: {len(wifi)}")
     print_info(f"Bluetooth: {'Yes' if bluetooth else 'No'}")
     print_info(f"EFI boot: {'Yes' if efi else 'No'}")
