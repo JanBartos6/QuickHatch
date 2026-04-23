@@ -115,6 +115,31 @@ class TestQuestions:
         state.add_question("hi")
         assert len(received) == 1
 
+    def test_blocking_question_updates_setup_run_state(self, state):
+        q = state.add_question(
+            "Need confirmation?",
+            blocking=True,
+            phase="setup",
+            context={"stage": "apps"},
+        )
+
+        setup_run = state.snapshot_setup_run()
+
+        assert q.blocking is True
+        assert q.phase == "setup"
+        assert q.context == {"stage": "apps"}
+        assert setup_run["waiting_for_input"] is True
+        assert setup_run["active_question_id"] == q.id
+
+    def test_answering_blocking_question_clears_wait_state(self, state):
+        q = state.add_question("Need confirmation?", blocking=True, phase="setup")
+        assert state.answer_question(q.id, "yes") is True
+
+        setup_run = state.snapshot_setup_run()
+
+        assert setup_run["waiting_for_input"] is False
+        assert setup_run["active_question_id"] == ""
+
 
 class TestMessages:
     def test_add_message_stores_with_timestamp(self, state):
@@ -210,6 +235,26 @@ class TestPrepareForLaunch:
         state.prepare_for_launch()
         assert stale.id not in state.questions
         assert kept.id in state.questions
+
+
+class TestSetupRunState:
+    def test_update_setup_run_persists_snapshot(self, state):
+        state.update_setup_run(
+            run_id="run123",
+            stage="research_and_plan",
+            status="running",
+            blockers=["Need package resolution"],
+            waiting_for_input=True,
+            active_question_id="q1",
+            planning_complete=False,
+        )
+
+        snapshot = state.snapshot_setup_run()
+
+        assert snapshot["run_id"] == "run123"
+        assert snapshot["stage"] == "research_and_plan"
+        assert snapshot["blockers"] == ["Need package resolution"]
+        assert snapshot["waiting_for_input"] is True
 
 
 class TestThreadSafety:

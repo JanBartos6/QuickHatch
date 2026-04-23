@@ -1,0 +1,271 @@
+"""Research-plan prompt and validation helpers."""
+
+from __future__ import annotations
+
+import json
+from dataclasses import asdict
+from typing import Any
+
+from quickhatch.config import UserProfile
+
+from .types import (
+    AppPlanItem,
+    CommandGroup,
+    PlanItemStatus,
+    ResearchPlan,
+    SetupFacts,
+    SetupStage,
+    StrategyDecision,
+)
+
+_OPTIONAL_SLOW_PACKAGES = {
+    "pake-chatgpt",
+    "chatgpt-desktop-bin",
+    "chatgpt-desktop-unix-git",
+    "claude-desktop-bin",
+    "openai-codex-desktop",
+    "codex-desktop-bin",
+}
+
+
+class ResearchPlanValidationError(ValueError):
+    """Raised when planner output is malformed or incomplete."""
+
+
+def _coerce_stage(value: str) -> SetupStage:
+    try:
+        return SetupStage(value)
+    except ValueError as exc:
+        raise ResearchPlanValidationError(f"Unknown setup stage: {value}") from exc
+
+
+def _coerce_status(value: str | None) -> PlanItemStatus:
+    if not value:
+        return PlanItemStatus.PENDING
+    try:
+        return PlanItemStatus(value)
+    except ValueError as exc:
+        raise ResearchPlanValidationError(f"Unknown plan item status: {value}") from exc
+
+
+def _extract_json_payload(text: str) -> dict[str, Any]:
+    raw = (text or "").strip()
+    if raw.startswith("```"):
+        lines = raw.splitlines()
+        raw = "\n".join(lines[1:-1] if len(lines) >= 2 else lines)
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ResearchPlanValidationError(f"Planner did not return valid JSON: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ResearchPlanValidationError("Planner output must be a single JSON object.")
+    return data
+
+
+def _parse_strategy(raw: Any, field_name: str) -> StrategyDecision:
+    if not isinstance(raw, dict):
+        raise ResearchPlanValidationError(f"{field_name} must be an object.")
+    strategy = str(raw.get("strategy", "")).strip()
+    if not strategy:
+        raise ResearchPlanValidationError(f"{field_name}.strategy is required.")
+    return StrategyDecision(
+        strategy=strategy,
+        confidence=str(raw.get("confidence", "manual_followup_required")),
+        source=str(raw.get("source", "manual_followup")),
+        packages=list(raw.get("packages", []) or []),
+        services=list(raw.get("services", []) or []),
+        notes=str(raw.get("notes", "") or ""),
+    )
+
+
+def _parse_command_groups(raw: Any) -> list[CommandGroup]:
+    if not isinstance(raw, list) or not raw:
+        raise ResearchPlanValidationError("command_groups must be a non-empty list.")
+    groups: list[CommandGroup] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            raise ResearchPlanValidationError("Each command group must be an object.")
+        gid = str(item.get("id", "")).strip()
+        title = str(item.get("title", "")).strip()
+        stage = _coerce_stage(str(item.get("stage", "")).strip())
+        commands = list(item.get("commands", []) or [])
+        if not gid or not title or not commands:
+            raise ResearchPlanValidationError(
+                "Each command group needs id, title, stage, and at least one command."
+            )
+        groups.append(
+            CommandGroup(
+                id=gid,
+                stage=stage,
+                title=title,
+                commands=[str(cmd) for cmd in commands if str(cmd).strip()],
+                verification=[str(cmd) for cmd in (item.get("verification", []) or []) if str(cmd).strip()],
+                rationale=str(item.get("rationale", "") or ""),
+                source=str(item.get("source", "repo") or "repo"),
+                packages=[str(pkg) for pkg in (item.get("packages", []) or []) if str(pkg).strip()],
+                optional=bool(item.get("optional", False)),
+                optional_slow=bool(item.get("optional_slow", False)),
+                status=_coerce_status(item.get("status")),
+            )
+        )
+    return groups
+
+
+def _normalize_app_items(raw: Any, requested: list[str]) -> list[AppPlanItem]:
+    items: list[AppPlanItem] = []
+    if raw is None:
+        raw = []
+    if not isinstance(raw, list):
+        raise ResearchPlanValidationError("apps must be a list.")
+    for item in raw:
+        if not isinstance(item, dict):
+            raise ResearchPlanValidationError("Each app plan item must be an object.")
+        name = str(item.get("name", "")).strip()
+        if not name:
+            raise ResearchPlanValidationError("Each app plan item needs a name.")
+        package_name = str(item.get("package_name", item.get("package", "")) or "").strip()
+        source = str(item.get("source", "manual_followup") or "manual_followup")
+        optional_slow = bool(item.get("optional_slow", False)) or package_name in _OPTIONAL_SLOW_PACKAGES
+        status = _coerce_status(item.get("status"))
+        if optional_slow and status == PlanItemStatus.PENDING:
+            status = PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION
+        items.append(
+            AppPlanItem(
+                name=name,
+                package_name=package_name,
+                source=source,
+                status=status,
+                required=bool(item.get("required", name in requested)),
+                optional_slow=optional_slow,
+                reason=str(item.get("reason", "") or ""),
+            )
+        )
+    requested_lower = {name.lower(): name for name in requested}
+    known = {item.name.lower() for item in items}
+    for lower, original in requested_lower.items():
+        if lower in known:
+            continue
+        items.append(
+            AppPlanItem(
+                name=original,
+                source="manual_followup",
+                status=PlanItemStatus.MANUAL_FOLLOWUP,
+                required=True,
+                reason="Planner did not resolve this requested app yet.",
+            )
+        )
+    return items
+
+
+def extract_research_plan(text: str, profile: UserProfile) -> ResearchPlan:
+    payload = _extract_json_payload(text)
+    target_summary = str(payload.get("target_summary", "")).strip()
+    distro_family = str(payload.get("distro_family", "")).strip()
+    package_manager = str(payload.get("package_manager", "")).strip()
+    if not target_summary or not distro_family or not package_manager:
+        raise ResearchPlanValidationError(
+            "Planner output must include target_summary, distro_family, and package_manager."
+        )
+    driver = _parse_strategy(payload.get("driver_strategy"), "driver_strategy")
+    desktop = _parse_strategy(payload.get("desktop_strategy"), "desktop_strategy")
+    command_groups = _parse_command_groups(payload.get("command_groups"))
+    apps = _normalize_app_items(payload.get("apps"), list(profile.apps_to_install or []))
+    questions = list(payload.get("unresolved_questions", []) or [])
+    for question in questions:
+        if not isinstance(question, dict) or not str(question.get("question", "")).strip():
+            raise ResearchPlanValidationError("Each unresolved question must contain question text.")
+        question.setdefault("required", True)
+        question.setdefault("choices", None)
+    return ResearchPlan(
+        target_summary=target_summary,
+        distro_family=distro_family,
+        package_manager=package_manager,
+        driver_strategy=driver,
+        desktop_strategy=desktop,
+        command_groups=command_groups,
+        apps=apps,
+        unresolved_questions=questions,
+        verification_commands={
+            str(k): [str(cmd) for cmd in (v or []) if str(cmd).strip()]
+            for k, v in (payload.get("verification_commands", {}) or {}).items()
+        },
+        required_items=[str(item) for item in (payload.get("required_items", []) or []) if str(item).strip()],
+        optional_items=[str(item) for item in (payload.get("optional_items", []) or []) if str(item).strip()],
+        planner_revision=int(payload.get("planner_revision", 1) or 1),
+    )
+
+
+def build_research_prompt(
+    profile: UserProfile,
+    facts: SetupFacts,
+    *,
+    system_info: str,
+    migration_plan_md: str,
+    distro_primer_md: str,
+    native_search_active: bool,
+) -> str:
+    profile_payload = asdict(profile)
+    if profile_payload.get("ai_config", {}).get("api_key"):
+        profile_payload["ai_config"]["api_key"] = "***REDACTED***"
+    display_preferences = [
+        asdict(display)
+        for display in getattr(getattr(profile, "hardware", None), "displays", []) or []
+    ]
+    search_block = (
+        "Provider-native search is ENABLED for this planning pass. Use it heavily for current package names, driver families, and distro-specific instructions.\n"
+        "Do not mention harness lookup actions in the output.\n"
+        if native_search_active
+        else "Provider-native search is NOT available here. Use the harness planning actions when exact package names or distro-specific steps are uncertain.\n"
+    )
+    response_contract = (
+        (
+            "You are generating a STRICT remote-setup research plan. "
+            "Return ONE JSON object only, with no markdown fences or prose.\n\n"
+        )
+        if native_search_active
+        else (
+            "You are generating a staged remote-setup research plan. "
+            "Because native search is unavailable, you may use a small planning action loop.\n"
+            "Return JSON only. You may either:\n"
+            '- emit one action object: {"action":"repo_search"|"community_search"|"web_search","query":"...","reason":"..."}\n'
+            '- emit one action object: {"action":"question","question":"...","choices":[...],"required":true}\n'
+            '- or emit one final action object: {"action":"plan","plan":{...full plan schema below...}}\n\n'
+        )
+    )
+    return (
+        response_contract
+        + "The plan schema MUST contain:\n"
+        "- target_summary (string)\n"
+        "- distro_family (string)\n"
+        "- package_manager (string)\n"
+        "- driver_strategy (object: strategy, confidence, source, packages, services, notes)\n"
+        "- desktop_strategy (object: strategy, confidence, source, packages, services, notes)\n"
+        "- command_groups (non-empty list; each item: id, stage, title, commands, verification, rationale, source, packages, optional, optional_slow)\n"
+        "- apps (list; each item: name, package_name, source, status, required, optional_slow, reason)\n"
+        "- unresolved_questions (list of objects with question, required, choices)\n"
+        "- verification_commands (object keyed by stage)\n"
+        "- required_items (list)\n"
+        "- optional_items (list)\n"
+        "- planner_revision (integer)\n\n"
+        "Rules:\n"
+        "- Every command group MUST belong to exactly one stage.\n"
+        "- No mutating work can happen before research_and_plan finishes.\n"
+        "- Use official repos by default; only use community sources when needed and explicit.\n"
+        "- Classify slow desktop wrappers (ChatGPT/Claude/Codex desktop wrappers, Electron bundle wrappers, etc.) as optional_slow.\n"
+        "- If an app is unresolved, mark it manual_followup or ask a blocking question; do not hallucinate a package.\n"
+        "- Use the scanned display info only as preference input; remote runtime facts are truth.\n"
+        "- Do not mark the run as complete. This is planning only.\n\n"
+        + search_block
+        + "\n== NORMALIZED SETUP FACTS ==\n"
+        + json.dumps(asdict(facts), indent=2, default=str)
+        + "\n\n== REMOTE SYSTEM INFO ==\n"
+        + (system_info or "").strip()
+        + "\n\n== DISPLAY PREFERENCES FROM SOURCE MACHINE ==\n"
+        + json.dumps(display_preferences, indent=2)
+        + "\n\n== DISTRO PRIMER ==\n"
+        + (distro_primer_md or "").strip()
+        + "\n\n== MIGRATION PLAN ==\n"
+        + (migration_plan_md or "").strip()
+        + "\n\n== USER PROFILE ==\n"
+        + json.dumps(profile_payload, indent=2, default=str)
+    )

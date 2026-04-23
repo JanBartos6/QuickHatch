@@ -75,6 +75,19 @@ class DiskInfo:
 
 
 @dataclass
+class DisplayInfo:
+    """Display/monitor preferences captured from the source machine."""
+
+    name: str
+    width_px: int = 0
+    height_px: int = 0
+    refresh_hz: float | None = None
+    scale_percent: int | None = None
+    primary: bool = False
+    source_platform: str = ""
+
+
+@dataclass
 class HardwareInfo:
     """Detected hardware information."""
 
@@ -85,6 +98,7 @@ class HardwareInfo:
     wifi_adapters: list[str] = field(default_factory=list)
     bluetooth: bool = False
     disks: list[DiskInfo] = field(default_factory=list)
+    displays: list[DisplayInfo] = field(default_factory=list)
     efi: bool = False
 
 
@@ -301,12 +315,15 @@ class UserProfile:
             hw = (
                 _safe_init(
                     HardwareInfo,
-                    {k: v for k, v in hw_raw.items() if k not in ("gpus", "disks")},
+                    {k: v for k, v in hw_raw.items() if k not in ("gpus", "disks", "displays")},
                 )
                 or HardwareInfo()
             )
             hw.gpus = [g for g in (_safe_init(GPUInfo, g) for g in hw_raw.get("gpus", [])) if g]
             hw.disks = [d for d in (_safe_init(DiskInfo, d) for d in hw_raw.get("disks", [])) if d]
+            hw.displays = [
+                d for d in (_safe_init(DisplayInfo, d) for d in hw_raw.get("displays", [])) if d
+            ]
 
             return cls(
                 preferences=_safe_init(Preferences, data.get("preferences", {})) or Preferences(),
