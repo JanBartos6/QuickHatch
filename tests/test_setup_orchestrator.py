@@ -484,3 +484,130 @@ def test_orchestrator_can_convert_failed_verification_into_manual_followup_after
         helper.join(timeout=2)
 
     assert "Manual follow-up: ChatGPT" in summary
+
+
+def test_orchestrator_blocks_when_required_repair_question_times_out():
+    profile = UserProfile(apps_to_install=["Brave"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        session_type="wayland",
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    )
+    model_calls = {"count": 0}
+
+    def model_call(_cfg, _messages):
+        model_calls["count"] += 1
+        if model_calls["count"] == 1:
+            return json.dumps(
+                {
+                    "target_summary": "Arch workstation.",
+                    "distro_family": "arch",
+                    "package_manager": "pacman",
+                    "driver_strategy": {
+                        "strategy": "no_special_driver",
+                        "confidence": "resolved_official",
+                        "source": "official",
+                        "packages": [],
+                        "services": [],
+                        "notes": "",
+                    },
+                    "desktop_strategy": {
+                        "strategy": "plasma",
+                        "confidence": "resolved_official",
+                        "source": "official",
+                        "packages": ["plasma-desktop"],
+                        "services": ["sddm"],
+                        "notes": "",
+                    },
+                    "command_groups": [
+                        {
+                            "id": "desktop-1",
+                            "stage": "desktop",
+                            "title": "Persist desktop config",
+                            "commands": [
+                                "kwriteconfig6 --file kdeglobals --group Icons --key Theme candy-icons"
+                            ],
+                            "verification": [],
+                            "rationale": "",
+                            "source": "repo",
+                            "packages": [],
+                        },
+                        {
+                            "id": "apps-1",
+                            "stage": "apps",
+                            "title": "Install Brave",
+                            "commands": ["bad install brave"],
+                            "verification": [],
+                            "rationale": "",
+                            "source": "community",
+                            "packages": ["brave-bin"],
+                        },
+                    ],
+                    "apps": [
+                        {
+                            "name": "Brave",
+                            "package_name": "brave-bin",
+                            "source": "community",
+                            "status": "pending",
+                            "required": True,
+                        }
+                    ],
+                    "unresolved_questions": [],
+                    "verification_commands": {},
+                    "required_items": ["desktop", "apps"],
+                    "optional_items": [],
+                    "planner_revision": 1,
+                }
+            )
+        return json.dumps(
+            {
+                "action": "question",
+                "question": "Should I try a manual package build for Brave?",
+                "choices": ["yes", "no"],
+                "required": True,
+                "timeout_seconds": 0.01,
+            }
+        )
+
+    def ssh_exec(command, _timeout):
+        if command == "bad install brave":
+            return (1, "", "target not found")
+        return (0, "", "")
+
+    runtime = SetupRuntime(
+        profile=profile,
+        bridge=bridge,
+        config=AIConfig(provider="local_lmstudio", endpoint="http://localhost:1234/v1", model_name="test"),
+        host="127.0.0.1",
+        user="jan",
+        ssh_port=22,
+        key_path=None,
+        system_info_fn=lambda: "system info",
+        call_model_text=model_call,
+        probe_facts=lambda **kwargs: facts,
+        detect_live_env=lambda: (False, "INSTALLED"),
+        ssh_exec=ssh_exec,
+        repo_search=lambda query: "",
+        community_search=lambda query: "",
+        web_search=lambda query, max_results: "",
+        wait_for_reconnect=lambda reconnect_user: (True, "fresh info", reconnect_user),
+        run_pre_reboot_checks=lambda: (True, [], ""),
+        smoke_test_preboot_script=lambda: None,
+        bootstrap_nopasswd_sudo=lambda current: current,
+        runtime_prompt_block=lambda current, is_live: "",
+        migration_plan_md="",
+        distro_primer_md="",
+        native_search_active=False,
+    )
+
+    summary = SetupOrchestrator(runtime).run()
+
+    assert "required item" in summary.lower()
+    pending = bridge.get_pending_questions()
+    assert len(pending) == 1
+    assert pending[0].blocking is True

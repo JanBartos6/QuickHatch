@@ -661,11 +661,15 @@ class SetupOrchestrator:
                     },
                     timeout=float(action.get("timeout_seconds", 600) or 600),
                 )
-                if not answer and not bool(action.get("required", True)):
-                    return {
-                        "action": "manual_followup",
-                        "reason": "Repair question timed out for a non-required item.",
-                    }
+                if not answer:
+                    if not bool(action.get("required", True)):
+                        return {
+                            "action": "manual_followup",
+                            "reason": "Repair question timed out for a non-required item.",
+                        }
+                    raise RuntimeError(
+                        f"Repair question timed out for required item in '{failed_group.title}'."
+                    )
                 answer_text = f"[question answer]\n{answer or 'no answer'}"
                 messages = [
                     {"role": "user", "content": prompt},
