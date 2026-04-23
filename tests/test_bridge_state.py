@@ -115,6 +115,59 @@ class TestQuestions:
         state.add_question("hi")
         assert len(received) == 1
 
+    def test_blocking_setup_question_updates_setup_run(self, state):
+        state.start_setup_run("install_or_skip")
+
+        q = state.add_question(
+            "Need confirmation?",
+            blocking=True,
+            phase="setup",
+            context={"stage": "install_or_skip", "blockers": ["bootloader", "initramfs"]},
+        )
+
+        snap = state.snapshot_setup_run()
+        assert q.blocking is True
+        assert snap["status"] == "waiting_for_user_input"
+        assert snap["waiting_for_input"] is True
+        assert snap["blocking_question_id"] == q.id
+        assert snap["stage"] == "install_or_skip"
+        assert snap["blockers"] == ["bootloader", "initramfs"]
+
+    def test_answering_blocking_setup_question_resumes_setup_run(self, state):
+        state.start_setup_run("install_or_skip")
+        q = state.add_question(
+            "Proceed?",
+            blocking=True,
+            phase="setup",
+            context={"stage": "install_or_skip"},
+        )
+
+        assert state.answer_question(q.id, "yes") is True
+
+        snap = state.snapshot_setup_run()
+        assert snap["status"] == "running"
+        assert snap["waiting_for_input"] is False
+        assert snap["blocking_question_id"] == ""
+
+    def test_wait_for_question_answer_honors_stop_flag(self, state):
+        q = state.add_question("Wait here?")
+        stop = {"value": False}
+        result = {}
+
+        def waiter():
+            result["value"] = state.wait_for_question_answer(
+                q.id,
+                timeout=2,
+                stop_flag_getter=lambda: stop["value"],
+                poll_interval=0.01,
+            )
+
+        t = threading.Thread(target=waiter)
+        t.start()
+        stop["value"] = True
+        t.join(timeout=2)
+        assert result["value"] == ("stopped", None)
+
 
 class TestMessages:
     def test_add_message_stores_with_timestamp(self, state):
@@ -391,3 +444,39 @@ class TestPersistedRestore:
 
         assert [s.title for s in restored.suggestions] == ["Migration Plan"]
         assert [m["content"] for m in restored.messages] == ["persisted message"]
+
+    def test_persisted_answered_question_restores_blocking_metadata(self, tmp_path):
+        profile = UserProfile()
+        path = tmp_path / "bridge.json"
+        fingerprint = BridgeState(profile, persist_path=None)._profile_fingerprint()
+        path.write_text(
+            json.dumps(
+                {
+                    "profile_fingerprint": fingerprint,
+                    "suggestions": [],
+                    "messages": [],
+                    "questions": [
+                        {
+                            "id": "q1",
+                            "question": "Need input?",
+                            "choices": ["yes", "no"],
+                            "blocking": True,
+                            "phase": "setup",
+                            "context": {"stage": "install_or_skip", "blockers": ["bootloader"]},
+                            "answered": True,
+                            "answer": "yes",
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        restored = BridgeState(profile, persist_path=path)
+
+        assert restored.questions["q1"].blocking is True
+        assert restored.questions["q1"].phase == "setup"
+        assert restored.questions["q1"].context == {
+            "stage": "install_or_skip",
+            "blockers": ["bootloader"],
+        }

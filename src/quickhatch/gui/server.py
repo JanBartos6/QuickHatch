@@ -215,6 +215,13 @@ class GUIState:
                 return True
             self._agent_thread = None
         with self.bridge.lock:
+            if self.bridge.current_phase == "setup" and self.bridge.setup_run.status in {
+                "running",
+                "waiting_for_user_input",
+            }:
+                self.bridge.setup_run.status = "stopped"
+                self.bridge.setup_run.waiting_for_input = False
+                self.bridge.setup_run.blocking_question_id = ""
             self.bridge.agent_connected = False
             self.bridge.stop_requested = False
             self.bridge.current_phase = ""
@@ -233,6 +240,13 @@ class GUIState:
             elif current is not None and not current.is_alive():
                 self._agent_thread = None
         with self.bridge.lock:
+            if self.bridge.current_phase == "setup" and self.bridge.setup_run.status in {
+                "running",
+                "waiting_for_user_input",
+            }:
+                self.bridge.setup_run.status = "stopped"
+                self.bridge.setup_run.waiting_for_input = False
+                self.bridge.setup_run.blocking_question_id = ""
             self.bridge.agent_connected = False
             self.bridge.stop_requested = False
             self.bridge.current_phase = ""
@@ -914,6 +928,7 @@ def make_gui_server(
 
             elif self.path == "/api/status":
                 gui_state.agent_thread_running()
+                setup_run = bridge_state.snapshot_setup_run()
                 self._send_json(
                     {
                         "status": "ok",
@@ -921,6 +936,12 @@ def make_gui_server(
                         "pending_questions": len(bridge_state.get_pending_questions()),
                         "suggestions": len(bridge_state.suggestions),
                         "agent_done": bridge_state.agent_done,
+                        "setup_run": setup_run,
+                        "setup_run_id": setup_run.get("run_id", ""),
+                        "setup_stage": setup_run.get("stage", ""),
+                        "setup_waiting_for_input": bool(setup_run.get("waiting_for_input")),
+                        "setup_blockers": list(setup_run.get("blockers") or []),
+                        "setup_blocking_question_id": setup_run.get("blocking_question_id", ""),
                     }
                 )
 
@@ -960,7 +981,14 @@ def make_gui_server(
                     {
                         "status": "ok",
                         "questions": [
-                            {"id": q.id, "question": q.question, "choices": q.choices}
+                            {
+                                "id": q.id,
+                                "question": q.question,
+                                "choices": q.choices,
+                                "blocking": q.blocking,
+                                "phase": q.phase,
+                                "context": q.context,
+                            }
                             for q in pending
                         ],
                     }
@@ -986,19 +1014,53 @@ def make_gui_server(
                 question = data.get("question", "")
                 choices = data.get("choices")
                 timeout = data.get("timeout", 300)
-                q = bridge_state.add_question(question, choices)
-                answered = q.answered.wait(timeout=timeout)
-                if answered:
-                    self._send_json({"status": "ok", "answer": q.answer})
+                blocking = bool(data.get("blocking", False))
+                phase = str(data.get("phase", "") or "")
+                context = data.get("context")
+                q = bridge_state.add_question(
+                    question,
+                    choices,
+                    blocking=blocking,
+                    phase=phase,
+                    context=context if isinstance(context, dict) else None,
+                )
+                wait_status, answer = bridge_state.wait_for_question_answer(
+                    q.id,
+                    timeout=timeout,
+                    stop_flag_getter=lambda: bridge_state.stop_requested,
+                )
+                if wait_status == "answered":
+                    self._send_json({"status": "ok", "answer": answer, "question_id": q.id})
+                elif wait_status == "stopped":
+                    self._send_json(
+                        {
+                            "status": "stopped",
+                            "message": "Agent stop requested while waiting for user input",
+                            "question_id": q.id,
+                        }
+                    )
                 else:
                     self._send_json(
-                        {"status": "timeout", "message": "User did not respond in time"}
+                        {
+                            "status": "timeout",
+                            "message": "User did not respond in time",
+                            "question_id": q.id,
+                        }
                     )
 
             elif self.path == "/api/ask/async":
                 question = data.get("question", "")
                 choices = data.get("choices")
-                q = bridge_state.add_question(question, choices)
+                blocking = bool(data.get("blocking", False))
+                phase = str(data.get("phase", "") or "")
+                context = data.get("context")
+                q = bridge_state.add_question(
+                    question,
+                    choices,
+                    blocking=blocking,
+                    phase=phase,
+                    context=context if isinstance(context, dict) else None,
+                )
                 self._send_json({"status": "ok", "question_id": q.id})
 
             elif self.path == "/api/message":
@@ -5370,9 +5432,51 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
 
     key_path = _resolve_ssh_private_key_path(profile)
     native_search_active = _use_provider_native_search(config)
+    bridge.start_setup_run("connect_and_probe")
+
+    def _set_setup_stage(stage: str, *, blockers: list[str] | None = None) -> None:
+        bridge.set_setup_stage(stage, blockers=blockers)
+
+    def _finish_setup(status: str, *, stage: str = "", blockers: list[str] | None = None) -> None:
+        bridge.finish_setup_run(status=status, stage=stage, blockers=blockers)
+
+    def _ask_blocking_setup_question(
+        question: str,
+        *,
+        timeout: float = 600,
+        blockers: list[str] | None = None,
+        stage: str | None = None,
+        choices: list[str] | None = None,
+    ) -> tuple[str, str | None]:
+        blocker_list = [str(item) for item in (blockers or []) if str(item).strip()]
+        effective_stage = stage or bridge.snapshot_setup_run().get("stage") or "setup"
+        q = bridge.add_question(
+            question,
+            choices,
+            blocking=True,
+            phase="setup",
+            context={"stage": effective_stage, "blockers": blocker_list},
+        )
+        bridge.add_message("agent", f"User input required — {question}")
+        wait_status, answer = bridge.wait_for_question_answer(
+            q.id,
+            timeout=timeout,
+            stop_flag_getter=lambda: bridge.stop_requested,
+        )
+        if wait_status == "answered" and answer:
+            bridge.add_message("user", answer, phase="setup")
+        elif wait_status == "timeout":
+            bridge.add_message(
+                "agent",
+                "No user answer arrived before the setup-question timeout elapsed.",
+            )
+        elif wait_status == "stopped":
+            bridge.add_message("agent", "Stop requested while waiting for user input.")
+        return wait_status, answer
 
     if not host or not user:
         bridge.add_message("agent", "Error: No Linux IP/username configured.")
+        _finish_setup("error", stage="connect_and_probe", blockers=["missing_remote_connection"])
         return
 
     try:
@@ -5383,6 +5487,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
         )
         if rc != 0:
             bridge.add_message("agent", f"SSH connection failed: {err.strip()}")
+            _finish_setup("error", stage="connect_and_probe", blockers=["ssh_connect_failed"])
             return
         bridge.add_message("agent", f"Connected — {out.strip()}")
 
@@ -5438,6 +5543,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
         else:
             bridge.add_message("agent", "Installed system — skipping install phase.")
         setup_facts = _probe_setup_facts(host, user, key_path, port=ssh_port)
+        _set_setup_stage("install_or_skip" if is_live else "research_and_plan")
         if not is_live:
             setup_facts = _maybe_bootstrap_nopasswd_sudo(
                 host,
@@ -5841,6 +5947,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                     json={"summary": "Agent stopped by user."},
                     timeout=5,
                 )
+                _finish_setup("stopped", stage=bridge.snapshot_setup_run().get("stage", ""))
                 return
             # Cap conversation history to keep prompts under the model's
             # context window. Local models like Gemma-4-26b crash with
@@ -5910,6 +6017,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                         json={"summary": summary},
                         timeout=5,
                     )
+                    _finish_setup("error", stage=bridge.snapshot_setup_run().get("stage", ""))
                     return
                 if last_blank_cause:
                     bridge.add_message(
@@ -5975,6 +6083,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                         json={"summary": "Agent stopped: repeated non-JSON output."},
                         timeout=5,
                     )
+                    _finish_setup("error", stage=bridge.snapshot_setup_run().get("stage", ""))
                     return
                 messages.append(
                     {
@@ -6008,6 +6117,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
 
                 if act == "done":
                     summary = action.get("summary", "Setup complete.")
+                    _set_setup_stage("final_audit")
                     final_failures = _verify_setup_completion(
                         host,
                         user,
@@ -6049,6 +6159,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                         timeout=5,
                     )
                     req.post(f"{base}/api/done", json={"summary": summary}, timeout=5)
+                    _finish_setup("done", stage="final_audit")
                     finished = True
                     break
 
@@ -6176,24 +6287,26 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                                 "unrelated installs or theming."
                             )
                             if pivot_counter >= 3:
-                                import requests as _requests
-
-                                try:
-                                    _requests.post(
-                                        f"{base}/api/ask",
-                                        json={
-                                            "question": (
-                                                "The pre-reboot safety guard is still blocking on: "
-                                                + f"{', '.join(sorted(sticky_block_topics))}. "
-                                                + "The agent keeps spending turns on read-only diagnostics "
-                                                + "instead of fixing the blockers. How should it proceed?"
-                                            ),
-                                            "timeout": 600,
-                                        },
-                                        timeout=5,
+                                wait_status, answer = _ask_blocking_setup_question(
+                                    "The pre-reboot safety guard is still blocking on: "
+                                    + f"{', '.join(sorted(sticky_block_topics))}. "
+                                    + "The agent keeps spending turns on read-only diagnostics "
+                                    + "instead of fixing the blockers. How should it proceed?",
+                                    timeout=600,
+                                    blockers=sorted(sticky_block_topics),
+                                    stage="install_or_skip",
+                                )
+                                if wait_status == "answered" and answer:
+                                    pending_feedback.append(
+                                        "USER GUIDANCE (highest priority): " + answer.strip()
                                     )
-                                except Exception:
-                                    pass
+                                elif wait_status == "stopped":
+                                    _finish_setup(
+                                        "stopped",
+                                        stage="install_or_skip",
+                                        blockers=sorted(sticky_block_topics),
+                                    )
+                                    return
                                 pivot_counter = 0
                         else:
                             pivot_counter += 1
@@ -6221,28 +6334,33 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                                 "work (apps, AUR, theming, etc.) until the reboot is unblocked."
                             )
                             results_log.append(f"**`{cmd}`** — BLOCKED (sticky pre-reboot block)")
+                            _set_setup_stage(
+                                "install_or_skip", blockers=sorted(sticky_block_topics)
+                            )
                             if pivot_counter >= 3:
                                 # Hand control to the user.
-                                import requests as _requests
-
-                                try:
-                                    _requests.post(
-                                        f"{base}/api/ask",
-                                        json={
-                                            "question": (
-                                                "The pre-reboot safety guard has blocked the reboot "
-                                                + f"on: {', '.join(sorted(sticky_block_topics))}. "
-                                                + "The agent has tried 3+ commands that don't address "
-                                                + "the blockers. How should it proceed? "
-                                                + "(e.g. 'set root password NOPASSWD', "
-                                                + "'skip encryption check', 'I'll fix it manually, continue')"
-                                            ),
-                                            "timeout": 600,
-                                        },
-                                        timeout=5,
+                                wait_status, answer = _ask_blocking_setup_question(
+                                    "The pre-reboot safety guard has blocked the reboot "
+                                    + f"on: {', '.join(sorted(sticky_block_topics))}. "
+                                    + "The agent has tried 3+ commands that don't address "
+                                    + "the blockers. How should it proceed? "
+                                    + "(e.g. 'set root password NOPASSWD', "
+                                    + "'skip encryption check', 'I'll fix it manually, continue')",
+                                    timeout=600,
+                                    blockers=sorted(sticky_block_topics),
+                                    stage="install_or_skip",
+                                )
+                                if wait_status == "answered" and answer:
+                                    pending_feedback.append(
+                                        "USER GUIDANCE (highest priority): " + answer.strip()
                                     )
-                                except Exception:
-                                    pass
+                                elif wait_status == "stopped":
+                                    _finish_setup(
+                                        "stopped",
+                                        stage="install_or_skip",
+                                        blockers=sorted(sticky_block_topics),
+                                    )
+                                    return
                                 pivot_counter = 0  # reset so we don't re-ask every turn
                             continue
 
@@ -6303,6 +6421,10 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                                 sticky_block_failures = list(failures)
                                 sticky_block_topics = _extract_topic_words(failures)
                                 pivot_counter = 0
+                                _set_setup_stage(
+                                    "install_or_skip",
+                                    blockers=sorted(sticky_block_topics),
+                                )
                                 msg = (
                                     "REBOOT BLOCKED — pre-reboot checks failed. Fix these "
                                     "BEFORE attempting another reboot:\n\n"
@@ -6332,6 +6454,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                             sticky_block_failures = []
                             sticky_block_topics = set()
                             pivot_counter = 0
+                            _set_setup_stage("postboot_driver", blockers=[])
                             # === LUKS-at-reboot user prompt ===
                             # If LUKS is in play, the initramfs will prompt
                             # for the passphrase on the TARGET machine's
@@ -6425,6 +6548,7 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
                             "Reconnected to the installed system. Continuing with "
                             "post-install configuration.",
                         )
+                        _set_setup_stage("postboot_driver", blockers=[])
                         # After the first successful reconnect we are no
                         # longer in a live env — flip the flag so downstream
                         # prompt/logic treats the session as installed.
@@ -6662,9 +6786,11 @@ def _run_setup_agent(gui_state: GUIState, port: int, user_feedback: str = "") ->
             },
             timeout=5,
         )
+        _finish_setup("stopped", stage=bridge.snapshot_setup_run().get("stage", ""))
 
     except Exception as e:
         bridge.add_message("agent", f"Error: {e}")
+        _finish_setup("error", stage=bridge.snapshot_setup_run().get("stage", ""))
 
 
 def _generate_ssh_key(gui_state: GUIState) -> dict:

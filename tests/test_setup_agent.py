@@ -8,6 +8,7 @@ and iteration limits.
 
 from __future__ import annotations
 
+import threading
 from unittest.mock import patch
 
 import pytest
@@ -1092,6 +1093,84 @@ class TestStickyPreRebootBlock:
             "This diagnostic command is being allowed because it is read-only" in m for m in msgs
         )
         assert any("Command blocked" in m and "sudo pacman -S --noconfirm steam" in m for m in msgs)
+
+    def test_blocking_setup_question_pauses_loop_until_user_answers(self, ready_state):
+        def tracking_ssh(host, user, cmd, key_path=None, timeout=120, port=22):
+            if "echo 'QuickHatch connected!'" in cmd:
+                return (0, "QuickHatch connected!", "")
+            if "/etc/os-release" in cmd and "=== USER ===" in cmd:
+                return (0, "Arch Linux\n=== USER ===\nroot\nuid=0(root)", "")
+            if "QH_PM=" in cmd:
+                return (
+                    0,
+                    "\n".join(
+                        [
+                            "QH_PM=pacman",
+                            "QH_AUR=none",
+                            "QH_USER=root",
+                            "QH_IS_ROOT=yes",
+                            "QH_SUDO_NOPASSWD=yes",
+                        ]
+                    ),
+                    "",
+                )
+            return (0, "", "")
+
+        responses = [
+            '{"action":"ssh_exec","command":"reboot","reason":"boot into the installed system"}',
+            '{"action":"ssh_exec","command":"sudo pacman -S --noconfirm steam","reason":"install apps"}',
+            '{"action":"ssh_exec","command":"sudo pacman -S --noconfirm discord","reason":"install apps"}',
+            '{"action":"ssh_exec","command":"sudo pacman -S --noconfirm bitwarden","reason":"install apps"}',
+            '{"action":"done","summary":"done"}',
+        ]
+
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=tracking_ssh):
+            with patch("quickhatch.gui.server._smoke_test_preboot_script", return_value=None):
+                with patch(
+                    "quickhatch.gui.server._detect_live_env", return_value=(True, "LIVE:test")
+                ):
+                    with patch(
+                        "quickhatch.gui.server._run_pre_reboot_checks",
+                        return_value=(
+                            [
+                                "[bootloader] No bootloader installed in /boot",
+                                "[recovery] Root account is locked AND no sudo-capable user in 'wheel' or 'sudo' group",
+                            ],
+                            [],
+                        ),
+                    ):
+                        with patch(
+                            "quickhatch.gui.server._verify_setup_completion",
+                            return_value=[],
+                        ):
+                            with patch("requests.post", _make_model_mock(*responses)):
+                                t = threading.Thread(
+                                    target=_run_setup_agent,
+                                    args=(ready_state, 0),
+                                    daemon=True,
+                                )
+                                t.start()
+
+                                for _ in range(50):
+                                    pending = ready_state.bridge.get_pending_questions()
+                                    if pending:
+                                        break
+                                    threading.Event().wait(0.02)
+
+                                pending = ready_state.bridge.get_pending_questions()
+                                assert pending
+                                snap = ready_state.bridge.snapshot_setup_run()
+                                assert snap["status"] == "waiting_for_user_input"
+                                assert snap["waiting_for_input"] is True
+                                assert t.is_alive()
+
+                                ready_state.bridge.answer_question(
+                                    pending[0].id, "skip and continue"
+                                )
+                                t.join(timeout=2)
+
+        assert not t.is_alive()
+        assert ready_state.bridge.snapshot_setup_run()["status"] == "done"
 
 
 class TestInstalledSystemBootstrap:

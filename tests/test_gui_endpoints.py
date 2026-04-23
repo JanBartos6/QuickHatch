@@ -81,6 +81,45 @@ class TestStaticRoutes:
         assert "Reset remote setup" in body
 
 
+class TestBridgeApiEndpoints:
+    def test_status_includes_setup_run_fields(self, server):
+        bridge = server["bridge"]
+        bridge.start_setup_run("connect_and_probe")
+        bridge.set_setup_stage("install_or_skip", blockers=["bootloader"])
+
+        status, body = _get(server["port"], "/api/status")
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["status"] == "ok"
+        assert data["setup_run"]["stage"] == "install_or_skip"
+        assert data["setup_stage"] == "install_or_skip"
+        assert data["setup_blockers"] == ["bootloader"]
+        assert data["setup_waiting_for_input"] is False
+
+    def test_pending_questions_exposes_setup_metadata(self, server):
+        bridge = server["bridge"]
+        bridge.start_setup_run("install_or_skip")
+        bridge.add_question(
+            "How should it proceed?",
+            choices=["continue", "stop"],
+            blocking=True,
+            phase="setup",
+            context={"stage": "install_or_skip", "blockers": ["root", "sudoers"]},
+        )
+
+        status, body = _get(server["port"], "/api/pending-questions")
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["questions"][0]["blocking"] is True
+        assert data["questions"][0]["phase"] == "setup"
+        assert data["questions"][0]["context"] == {
+            "stage": "install_or_skip",
+            "blockers": ["root", "sudoers"],
+        }
+
+
 class TestProfileEndpoint:
     def test_returns_profile_json(self, server):
         status, body = _get(server["port"], "/wizard/profile")
