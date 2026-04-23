@@ -14,7 +14,14 @@ from quickhatch.config import AIConfig, UserProfile
 
 from .audit import audit_stage, final_audit
 from .facts import describe_fact_changes
-from .planner import ResearchPlanValidationError, build_research_prompt, extract_research_plan
+from .planner import (
+    RepairActionValidationError,
+    ResearchPlanValidationError,
+    build_repair_prompt,
+    build_research_prompt,
+    extract_repair_action,
+    extract_research_plan,
+)
 from .runlog import SetupRunLogger
 from .types import (
     AuditResult,
@@ -67,8 +74,20 @@ class SetupExecutionContext:
     created_user: str | None = None
 
 
+@dataclass
+class GroupFailure:
+    failure_type: str
+    command: str
+    stdout: str
+    stderr: str
+    detail: str
+
+
 class SetupOrchestrator:
     """Execute staged remote setup with typed plans and audits."""
+
+    MAX_GROUP_REPAIRS = 2
+    MAX_REPAIR_TURNS = 8
 
     def __init__(self, runtime: SetupRuntime) -> None:
         self.runtime = runtime
@@ -290,64 +309,60 @@ class SetupOrchestrator:
         for group in self._iter_stage_groups(stage):
             if self.bridge.stop_requested:
                 raise RuntimeError("Agent stopped by user.")
-            if group.optional_slow:
-                answer = self._ask_optional_slow_confirmation(group)
-                if answer is None:
-                    group.status = PlanItemStatus.MANUAL_FOLLOWUP
-                    self._mark_optional_apps_manual_followup(group)
-                    continue
-            group.status = PlanItemStatus.IN_PROGRESS
-            self.bridge.add_message("agent", f"[{stage.value}] {group.title}")
-            self.runlog.record(
-                "command_group_started",
-                stage=stage.value,
-                group=asdict(group),
-            )
-            for command in group.commands:
-                rc, stdout, stderr = self.runtime.ssh_exec(command, self._command_timeout(command))
-                self.ctx.results_log.append(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
-                self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
-                self.runlog.record(
-                    "command",
-                    stage=stage.value,
-                    group_id=group.id,
-                    command=command,
-                    rc=rc,
-                    stdout_tail=(stdout or "")[-800:],
-                    stderr_tail=(stderr or "")[-800:],
-                )
-                if rc != 0:
-                    group.status = PlanItemStatus.FAILED
-                    stage_state.setdefault("failed_commands", []).append(command)
+            current_group = group
+            repair_attempts = 0
+            while True:
+                if current_group.optional_slow:
+                    answer = self._ask_optional_slow_confirmation(current_group)
+                    if answer is None:
+                        current_group.status = PlanItemStatus.MANUAL_FOLLOWUP
+                        self._mark_optional_apps_manual_followup(current_group)
+                        self.runlog.record(
+                            "group_manual_followup",
+                            stage=stage.value,
+                            group_id=current_group.id,
+                            reason="User skipped optional slow install during setup.",
+                        )
+                        break
+                failure = self._execute_group(stage, current_group, stage_state)
+                if failure is None:
+                    current_group.status = PlanItemStatus.COMPLETED
+                    self._mark_group_completion(current_group, stage=stage)
+                    self._refresh_facts(stage=stage)
+                    break
+                repair_attempts += 1
+                if repair_attempts > self.MAX_GROUP_REPAIRS:
                     raise RuntimeError(
-                        f"Stage {stage.value} failed in '{group.title}' with command: {command}\n{stderr.strip() or stdout.strip()}"
+                        f"Stage {stage.value} exhausted repair attempts for '{current_group.title}': {failure.detail}"
                     )
-                self._update_from_command(command, stdout, stderr, stage=stage)
-            failed_verifications: list[str] = []
-            for verification in list(group.verification) + list(
-                self.ctx.plan.verification_commands.get(stage.value, [])
-            ):
-                rc, stdout, stderr = self.runtime.ssh_exec(verification, 120)
-                self.runlog.record(
-                    "verification",
-                    stage=stage.value,
-                    group_id=group.id,
-                    command=verification,
-                    rc=rc,
-                    stdout_tail=(stdout or "")[-500:],
-                    stderr_tail=(stderr or "")[-500:],
+                current_group.status = PlanItemStatus.FAILED
+                repair_outcome = self._repair_failed_group(
+                    stage,
+                    current_group,
+                    failure,
+                    repair_attempt=repair_attempts,
                 )
-                if rc != 0:
-                    failed_verifications.append(
-                        f"Verification failed for {group.title}: {verification}"
+                action = str(repair_outcome.get("action", ""))
+                if action == "retry_group":
+                    current_group = repair_outcome["group"]
+                    continue
+                if action == "manual_followup":
+                    current_group.status = PlanItemStatus.MANUAL_FOLLOWUP
+                    reason = str(repair_outcome.get("reason", "") or failure.detail)
+                    self._mark_group_manual_followup(
+                        current_group,
+                        stage=stage,
+                        reason=reason,
+                        app_names=list(repair_outcome.get("app_names", []) or []),
                     )
-            if failed_verifications:
-                stage_state.setdefault("failed_verifications", []).extend(failed_verifications)
-                group.status = PlanItemStatus.FAILED
-                raise RuntimeError("; ".join(failed_verifications))
-            group.status = PlanItemStatus.COMPLETED
-            self._mark_group_completion(group, stage=stage)
-            self._refresh_facts(stage=stage)
+                    self.runlog.record(
+                        "group_manual_followup",
+                        stage=stage.value,
+                        group_id=current_group.id,
+                        reason=reason,
+                    )
+                    break
+                raise RuntimeError(f"Unsupported repair outcome for {current_group.title}: {action}")
         result = audit_stage(stage, self.ctx.facts, plan=self.ctx.plan, stage_state=stage_state)
         self._record_stage_result(result)
 
@@ -492,6 +507,175 @@ class SetupOrchestrator:
         )
         return pending.id if return_qid else (pending.answer or "")
 
+    def _execute_group(
+        self,
+        stage: SetupStage,
+        group: CommandGroup,
+        stage_state: dict[str, Any],
+    ) -> GroupFailure | None:
+        group.status = PlanItemStatus.IN_PROGRESS
+        self.bridge.add_message("agent", f"[{stage.value}] {group.title}")
+        self.runlog.record(
+            "command_group_started",
+            stage=stage.value,
+            group=asdict(group),
+        )
+        for command in group.commands:
+            rc, stdout, stderr = self.runtime.ssh_exec(command, self._command_timeout(command))
+            self.ctx.results_log.append(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+            self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
+            self.runlog.record(
+                "command",
+                stage=stage.value,
+                group_id=group.id,
+                command=command,
+                rc=rc,
+                stdout_tail=(stdout or "")[-800:],
+                stderr_tail=(stderr or "")[-800:],
+            )
+            if rc != 0:
+                stage_state.setdefault("failed_commands", []).append(command)
+                detail = stderr.strip() or stdout.strip() or "command failed"
+                return GroupFailure(
+                    failure_type="command",
+                    command=command,
+                    stdout=stdout,
+                    stderr=stderr,
+                    detail=detail,
+                )
+            self._update_from_command(command, stdout, stderr, stage=stage)
+        for verification in list(group.verification) + list(
+            self.ctx.plan.verification_commands.get(stage.value, [])
+        ):
+            rc, stdout, stderr = self.runtime.ssh_exec(verification, 120)
+            self.runlog.record(
+                "verification",
+                stage=stage.value,
+                group_id=group.id,
+                command=verification,
+                rc=rc,
+                stdout_tail=(stdout or "")[-500:],
+                stderr_tail=(stderr or "")[-500:],
+            )
+            if rc != 0:
+                detail = f"Verification failed for {group.title}: {verification}"
+                stage_state.setdefault("failed_verifications", []).append(detail)
+                return GroupFailure(
+                    failure_type="verification",
+                    command=verification,
+                    stdout=stdout,
+                    stderr=stderr,
+                    detail=detail,
+                )
+        return None
+
+    def _repair_model_call(self, messages: list[dict[str, str]]) -> str:
+        repair_config = copy.copy(self.runtime.config)
+        repair_config.native_search = False
+        return self.runtime.call_model_text(repair_config, messages)
+
+    def _repair_search_result(self, action: dict[str, Any]) -> str:
+        query = str(action.get("query", "")).strip()
+        name = str(action.get("action", ""))
+        if name == "repo_search":
+            result = self.runtime.repo_search(query)
+        elif name == "community_search":
+            result = self.runtime.community_search(query)
+        elif name == "web_search":
+            result = self.runtime.web_search(query, int(action.get("max_results", 5) or 5))
+        else:
+            raise RuntimeError(f"Unsupported repair search action: {name}")
+        return f"[{name}]\nquery={query}\n{result}"
+
+    def _repair_failed_group(
+        self,
+        stage: SetupStage,
+        failed_group: CommandGroup,
+        failure: GroupFailure,
+        *,
+        repair_attempt: int,
+    ) -> dict[str, Any]:
+        prompt = build_repair_prompt(
+            stage=stage,
+            failed_group=failed_group,
+            failure_type=failure.failure_type,
+            failed_command=failure.command,
+            stdout_tail=failure.stdout,
+            stderr_tail=failure.stderr,
+            facts=self.ctx.facts or SetupFacts(),
+            recent_results=self.ctx.results_log,
+        )
+        self.runlog.record(
+            "repair_prompt",
+            stage=stage.value,
+            group_id=failed_group.id,
+            repair_attempt=repair_attempt,
+            prompt=prompt,
+        )
+        messages = [{"role": "user", "content": prompt}]
+        for turn in range(1, self.MAX_REPAIR_TURNS + 1):
+            response_text = self._repair_model_call(messages)
+            self.runlog.record(
+                "repair_response",
+                stage=stage.value,
+                group_id=failed_group.id,
+                repair_attempt=repair_attempt,
+                repair_turn=turn,
+                text=response_text,
+            )
+            try:
+                action = extract_repair_action(
+                    response_text,
+                    fallback_stage=stage,
+                    failed_group=failed_group,
+                )
+            except RepairActionValidationError as exc:
+                raise RuntimeError(
+                    f"Repair planning failed for '{failed_group.title}': {exc}"
+                ) from exc
+            self.runlog.record(
+                "repair_action",
+                stage=stage.value,
+                group_id=failed_group.id,
+                repair_attempt=repair_attempt,
+                repair_turn=turn,
+                action=action["action"],
+            )
+            if action["action"] in {"repo_search", "community_search", "web_search"}:
+                result = self._repair_search_result(action)
+                messages = [
+                    {"role": "user", "content": prompt},
+                    {"role": "assistant", "content": response_text},
+                    {"role": "user", "content": result},
+                ]
+                continue
+            if action["action"] == "question":
+                answer = self._ask_blocking_question(
+                    action["question"],
+                    choices=action.get("choices"),
+                    stage=stage,
+                    context={
+                        "repair": True,
+                        "group_id": failed_group.id,
+                        "failure_type": failure.failure_type,
+                    },
+                    timeout=float(action.get("timeout_seconds", 600) or 600),
+                )
+                if not answer and not bool(action.get("required", True)):
+                    return {
+                        "action": "manual_followup",
+                        "reason": "Repair question timed out for a non-required item.",
+                    }
+                answer_text = f"[question answer]\n{answer or 'no answer'}"
+                messages = [
+                    {"role": "user", "content": prompt},
+                    {"role": "assistant", "content": response_text},
+                    {"role": "user", "content": answer_text},
+                ]
+                continue
+            return action
+        raise RuntimeError(f"Repair loop exhausted for '{failed_group.title}'.")
+
     def _mark_optional_apps_manual_followup(self, group: CommandGroup) -> None:
         if not self.ctx.plan:
             return
@@ -502,6 +686,40 @@ class SetupOrchestrator:
             ):
                 app.status = PlanItemStatus.MANUAL_FOLLOWUP
                 app.reason = "User skipped optional slow install during setup."
+
+    def _mark_group_manual_followup(
+        self,
+        group: CommandGroup,
+        *,
+        stage: SetupStage,
+        reason: str,
+        app_names: list[str],
+    ) -> None:
+        if not self.ctx.plan:
+            return
+        if stage != SetupStage.APPS:
+            self.ctx.stage_state.setdefault(stage.value, {}).setdefault("manual_followups", []).append(
+                {"group_id": group.id, "reason": reason}
+            )
+            return
+        app_names_lower = {name.lower() for name in app_names if name}
+        group_pkgs = {pkg.lower() for pkg in group.packages}
+        title = group.title.lower()
+        matched = False
+        for app in self.ctx.plan.apps:
+            if app.package_name.lower() in group_pkgs:
+                app.status = PlanItemStatus.MANUAL_FOLLOWUP
+                app.reason = reason
+                matched = True
+                continue
+            if app.name.lower() in app_names_lower or app.name.lower() in title:
+                app.status = PlanItemStatus.MANUAL_FOLLOWUP
+                app.reason = reason
+                matched = True
+        if not matched:
+            self.ctx.stage_state.setdefault(stage.value, {}).setdefault("manual_followups", []).append(
+                {"group_id": group.id, "reason": reason}
+            )
 
     def _mark_group_completion(self, group: CommandGroup, *, stage: SetupStage) -> None:
         if not self.ctx.plan:

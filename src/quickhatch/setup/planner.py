@@ -32,6 +32,10 @@ class ResearchPlanValidationError(ValueError):
     """Raised when planner output is malformed or incomplete."""
 
 
+class RepairActionValidationError(ValueError):
+    """Raised when a repair action is malformed or incomplete."""
+
+
 def _coerce_stage(value: str) -> SetupStage:
     try:
         return SetupStage(value)
@@ -78,36 +82,38 @@ def _parse_strategy(raw: Any, field_name: str) -> StrategyDecision:
     )
 
 
+def _parse_command_group(item: Any) -> CommandGroup:
+    if not isinstance(item, dict):
+        raise ResearchPlanValidationError("Each command group must be an object.")
+    gid = str(item.get("id", "")).strip()
+    title = str(item.get("title", "")).strip()
+    stage = _coerce_stage(str(item.get("stage", "")).strip())
+    commands = list(item.get("commands", []) or [])
+    if not gid or not title or not commands:
+        raise ResearchPlanValidationError(
+            "Each command group needs id, title, stage, and at least one command."
+        )
+    return CommandGroup(
+        id=gid,
+        stage=stage,
+        title=title,
+        commands=[str(cmd) for cmd in commands if str(cmd).strip()],
+        verification=[str(cmd) for cmd in (item.get("verification", []) or []) if str(cmd).strip()],
+        rationale=str(item.get("rationale", "") or ""),
+        source=str(item.get("source", "repo") or "repo"),
+        packages=[str(pkg) for pkg in (item.get("packages", []) or []) if str(pkg).strip()],
+        optional=bool(item.get("optional", False)),
+        optional_slow=bool(item.get("optional_slow", False)),
+        status=_coerce_status(item.get("status")),
+    )
+
+
 def _parse_command_groups(raw: Any) -> list[CommandGroup]:
     if not isinstance(raw, list) or not raw:
         raise ResearchPlanValidationError("command_groups must be a non-empty list.")
     groups: list[CommandGroup] = []
     for item in raw:
-        if not isinstance(item, dict):
-            raise ResearchPlanValidationError("Each command group must be an object.")
-        gid = str(item.get("id", "")).strip()
-        title = str(item.get("title", "")).strip()
-        stage = _coerce_stage(str(item.get("stage", "")).strip())
-        commands = list(item.get("commands", []) or [])
-        if not gid or not title or not commands:
-            raise ResearchPlanValidationError(
-                "Each command group needs id, title, stage, and at least one command."
-            )
-        groups.append(
-            CommandGroup(
-                id=gid,
-                stage=stage,
-                title=title,
-                commands=[str(cmd) for cmd in commands if str(cmd).strip()],
-                verification=[str(cmd) for cmd in (item.get("verification", []) or []) if str(cmd).strip()],
-                rationale=str(item.get("rationale", "") or ""),
-                source=str(item.get("source", "repo") or "repo"),
-                packages=[str(pkg) for pkg in (item.get("packages", []) or []) if str(pkg).strip()],
-                optional=bool(item.get("optional", False)),
-                optional_slow=bool(item.get("optional_slow", False)),
-                status=_coerce_status(item.get("status")),
-            )
-        )
+        groups.append(_parse_command_group(item))
     return groups
 
 
@@ -268,4 +274,121 @@ def build_research_prompt(
         + (migration_plan_md or "").strip()
         + "\n\n== USER PROFILE ==\n"
         + json.dumps(profile_payload, indent=2, default=str)
+    )
+
+
+def extract_repair_action(
+    text: str,
+    *,
+    fallback_stage: SetupStage,
+    failed_group: CommandGroup,
+) -> dict[str, Any]:
+    try:
+        payload = _extract_json_payload(text)
+    except ResearchPlanValidationError as exc:
+        raise RepairActionValidationError(str(exc)) from exc
+    action = str(payload.get("action", "")).strip()
+    if action not in {
+        "repo_search",
+        "community_search",
+        "web_search",
+        "question",
+        "retry_group",
+        "manual_followup",
+    }:
+        raise RepairActionValidationError(f"Unsupported repair action: {action or '<empty>'}")
+    if action in {"repo_search", "community_search", "web_search"}:
+        query = str(payload.get("query", "")).strip()
+        if not query:
+            raise RepairActionValidationError(f"{action} requires a non-empty query.")
+        return {
+            "action": action,
+            "query": query,
+            "reason": str(payload.get("reason", "") or ""),
+            "max_results": int(payload.get("max_results", 5) or 5),
+        }
+    if action == "question":
+        question = str(payload.get("question", "")).strip()
+        if not question:
+            raise RepairActionValidationError("question action requires question text.")
+        return {
+            "action": action,
+            "question": question,
+            "choices": payload.get("choices"),
+            "required": bool(payload.get("required", True)),
+            "timeout_seconds": float(payload.get("timeout_seconds", 600) or 600),
+        }
+    if action == "manual_followup":
+        return {
+            "action": action,
+            "reason": str(payload.get("reason", "") or "Model deferred this item to manual follow-up."),
+            "app_names": [
+                str(name) for name in (payload.get("app_names", []) or []) if str(name).strip()
+            ],
+        }
+    group_payload = payload.get("group")
+    if not isinstance(group_payload, dict):
+        raise RepairActionValidationError("retry_group requires a group object.")
+    normalized_group = dict(group_payload)
+    normalized_group.setdefault("id", f"{failed_group.id}-repair")
+    normalized_group.setdefault("stage", fallback_stage.value)
+    normalized_group.setdefault("title", f"{failed_group.title} (repair)")
+    normalized_group.setdefault("verification", failed_group.verification)
+    normalized_group.setdefault("source", failed_group.source)
+    normalized_group.setdefault("packages", failed_group.packages)
+    normalized_group.setdefault("optional", failed_group.optional)
+    normalized_group.setdefault("optional_slow", failed_group.optional_slow)
+    try:
+        group = _parse_command_group(normalized_group)
+    except ResearchPlanValidationError as exc:
+        raise RepairActionValidationError(str(exc)) from exc
+    return {"action": action, "group": group}
+
+
+def build_repair_prompt(
+    *,
+    stage: SetupStage,
+    failed_group: CommandGroup,
+    failure_type: str,
+    failed_command: str,
+    stdout_tail: str,
+    stderr_tail: str,
+    facts: SetupFacts,
+    recent_results: list[str],
+) -> str:
+    recent_block = "\n\n".join(result.strip() for result in recent_results[-3:] if result.strip())
+    return (
+        "You are repairing ONE failed remote-setup command group.\n"
+        "Return ONE JSON object only with no markdown fences or prose.\n\n"
+        "Allowed actions:\n"
+        '- {"action":"repo_search","query":"...","reason":"..."}\n'
+        '- {"action":"community_search","query":"...","reason":"..."}\n'
+        '- {"action":"web_search","query":"...","max_results":5,"reason":"..."}\n'
+        '- {"action":"question","question":"...","choices":[...],"required":true}\n'
+        '- {"action":"retry_group","group":{...replacement command group...}}\n'
+        '- {"action":"manual_followup","reason":"...","app_names":["..."]}\n\n'
+        "Rules:\n"
+        "- Repair only the current failed group; do not redesign the whole run.\n"
+        "- Provider-native search is NOT available in repair mode. Use harness search actions if needed.\n"
+        "- Prefer repo/community search over guessing package names.\n"
+        "- If a desktop wrapper or other slow optional app is the problem, prefer manual_followup unless truly necessary.\n"
+        "- If you emit retry_group, keep it scoped to this stage and include at least one command.\n"
+        "- Do not emit final success prose.\n\n"
+        f"== CURRENT STAGE ==\n{stage.value}\n\n"
+        "== FAILED GROUP ==\n"
+        + json.dumps(asdict(failed_group), indent=2, default=str)
+        + "\n\n== FAILURE ==\n"
+        + json.dumps(
+            {
+                "failure_type": failure_type,
+                "failed_command": failed_command,
+                "stdout_tail": stdout_tail[-1200:],
+                "stderr_tail": stderr_tail[-1200:],
+            },
+            indent=2,
+        )
+        + "\n\n== NORMALIZED SETUP FACTS ==\n"
+        + json.dumps(asdict(facts), indent=2, default=str)
+        + "\n\n== RECENT EXECUTION RESULTS ==\n"
+        + (recent_block or "(none)")
     )
