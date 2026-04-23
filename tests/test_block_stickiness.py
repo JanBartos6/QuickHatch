@@ -118,14 +118,20 @@ class TestSafeDiagnosticSetupCommand:
         assert _is_safe_diagnostic_setup_command("pacman -S --noconfirm steam") is False
 
     def test_git_clone_is_not_a_safe_diagnostic(self):
-        assert _is_safe_diagnostic_setup_command(
-            "git clone https://aur.archlinux.org/yay-bin.git /tmp/yay-bin"
-        ) is False
+        assert (
+            _is_safe_diagnostic_setup_command(
+                "git clone https://aur.archlinux.org/yay-bin.git /tmp/yay-bin"
+            )
+            is False
+        )
 
     def test_echo_redirect_is_not_a_safe_diagnostic(self):
-        assert _is_safe_diagnostic_setup_command(
-            "echo '%wheel ALL=(ALL:ALL) ALL' > /etc/sudoers.d/10-wheel"
-        ) is False
+        assert (
+            _is_safe_diagnostic_setup_command(
+                "echo '%wheel ALL=(ALL:ALL) ALL' > /etc/sudoers.d/10-wheel"
+            )
+            is False
+        )
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -131,7 +131,9 @@ def _normalize_app_items(raw: Any, requested: list[str]) -> list[AppPlanItem]:
             raise ResearchPlanValidationError("Each app plan item needs a name.")
         package_name = str(item.get("package_name", item.get("package", "")) or "").strip()
         source = str(item.get("source", "manual_followup") or "manual_followup")
-        optional_slow = bool(item.get("optional_slow", False)) or package_name in _OPTIONAL_SLOW_PACKAGES
+        optional_slow = (
+            bool(item.get("optional_slow", False)) or package_name in _OPTIONAL_SLOW_PACKAGES
+        )
         status = _coerce_status(item.get("status"))
         if optional_slow and status == PlanItemStatus.PENDING:
             status = PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION
@@ -179,7 +181,9 @@ def extract_research_plan(text: str, profile: UserProfile) -> ResearchPlan:
     questions = list(payload.get("unresolved_questions", []) or [])
     for question in questions:
         if not isinstance(question, dict) or not str(question.get("question", "")).strip():
-            raise ResearchPlanValidationError("Each unresolved question must contain question text.")
+            raise ResearchPlanValidationError(
+                "Each unresolved question must contain question text."
+            )
         question.setdefault("required", True)
         question.setdefault("choices", None)
     return ResearchPlan(
@@ -195,8 +199,12 @@ def extract_research_plan(text: str, profile: UserProfile) -> ResearchPlan:
             str(k): [str(cmd) for cmd in (v or []) if str(cmd).strip()]
             for k, v in (payload.get("verification_commands", {}) or {}).items()
         },
-        required_items=[str(item) for item in (payload.get("required_items", []) or []) if str(item).strip()],
-        optional_items=[str(item) for item in (payload.get("optional_items", []) or []) if str(item).strip()],
+        required_items=[
+            str(item) for item in (payload.get("required_items", []) or []) if str(item).strip()
+        ],
+        optional_items=[
+            str(item) for item in (payload.get("optional_items", []) or []) if str(item).strip()
+        ],
         planner_revision=int(payload.get("planner_revision", 1) or 1),
     )
 
@@ -239,8 +247,7 @@ def build_research_prompt(
         )
     )
     return (
-        response_contract
-        + "The plan schema MUST contain:\n"
+        response_contract + "The plan schema MUST contain:\n"
         "- target_summary (string)\n"
         "- distro_family (string)\n"
         "- package_manager (string)\n"
@@ -321,7 +328,9 @@ def extract_repair_action(
     if action == "manual_followup":
         return {
             "action": action,
-            "reason": str(payload.get("reason", "") or "Model deferred this item to manual follow-up."),
+            "reason": str(
+                payload.get("reason", "") or "Model deferred this item to manual follow-up."
+            ),
             "app_names": [
                 str(name) for name in (payload.get("app_names", []) or []) if str(name).strip()
             ],

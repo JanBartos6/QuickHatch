@@ -96,8 +96,7 @@ def build_service_enable_command(services: list[str], facts: SetupFacts) -> str:
         return " && ".join(f"sudo rc-update add {shlex.quote(s)} default" for s in services)
     if init == "runit":
         return " && ".join(
-            f"sudo ln -sf /etc/sv/{shlex.quote(s)} /var/service/{shlex.quote(s)}"
-            for s in services
+            f"sudo ln -sf /etc/sv/{shlex.quote(s)} /var/service/{shlex.quote(s)}" for s in services
         )
     return ""
 

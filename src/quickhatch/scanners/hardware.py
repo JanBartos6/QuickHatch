@@ -492,6 +492,7 @@ def _get_displays() -> list[DisplayInfo]:
     displays: list[DisplayInfo] = []
     if sys.platform == "win32":
         try:
+
             class _DEVMODEW(ctypes.Structure):
                 _fields_ = [
                     ("dmDeviceName", ctypes.c_wchar * 32),
@@ -529,7 +530,9 @@ def _get_displays() -> list[DisplayInfo]:
             devmode = _DEVMODEW()
             devmode.dmSize = ctypes.sizeof(_DEVMODEW)
             ENUM_CURRENT_SETTINGS = -1
-            if ctypes.windll.user32.EnumDisplaySettingsW(None, ENUM_CURRENT_SETTINGS, ctypes.byref(devmode)):
+            if ctypes.windll.user32.EnumDisplaySettingsW(
+                None, ENUM_CURRENT_SETTINGS, ctypes.byref(devmode)
+            ):
                 displays.append(
                     DisplayInfo(
                         name="Primary Display",

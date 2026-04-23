@@ -49,10 +49,15 @@ def _desktop_runtime_state(facts: SetupFacts) -> DesktopRuntimeState:
         return DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
     if facts.display_manager_enabled:
         return DesktopRuntimeState.PENDING_RELOGIN
-    if facts.gpu_vendors and "nvidia" in facts.gpu_vendors and facts.nvidia_smi_state not in {
-        "ok",
-        "missing",
-    }:
+    if (
+        facts.gpu_vendors
+        and "nvidia" in facts.gpu_vendors
+        and facts.nvidia_smi_state
+        not in {
+            "ok",
+            "missing",
+        }
+    ):
         return DesktopRuntimeState.BLOCKED_DRIVER_OR_DISPLAY_STACK
     return DesktopRuntimeState.BLOCKED_NO_GUI_SESSION
 
@@ -156,11 +161,15 @@ def probe_setup_facts(
     facts.display_manager_enabled = raw.get("QH_DM_ENABLED", "no") == "yes"
     facts.gpu_vendors = [p for p in raw.get("QH_GPU_VENDORS", "").split(",") if p]
     facts.gpu_inventory = [p for p in raw.get("QH_GPU_INVENTORY", "").split("|") if p]
-    facts.nvidia_smi_state = raw.get("QH_NVIDIA_SMI", facts.nvidia_smi_state) or facts.nvidia_smi_state
+    facts.nvidia_smi_state = (
+        raw.get("QH_NVIDIA_SMI", facts.nvidia_smi_state) or facts.nvidia_smi_state
+    )
     facts.driver_modules = [p for p in raw.get("QH_DRIVER_MODULES", "").split(",") if p]
     facts.displays = [
         display
-        for display in (_parse_display_entry(entry) for entry in raw.get("QH_DISPLAYS", "").split("|"))
+        for display in (
+            _parse_display_entry(entry) for entry in raw.get("QH_DISPLAYS", "").split("|")
+        )
         if display
     ]
     facts.desktop_runtime_state = _desktop_runtime_state(facts)

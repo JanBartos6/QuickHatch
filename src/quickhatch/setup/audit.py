@@ -79,13 +79,12 @@ def audit_stage(
         ]
         if pending_slow:
             blockers.append(
-                "Optional slow apps still need user confirmation: " + ", ".join(sorted(pending_slow))
+                "Optional slow apps still need user confirmation: "
+                + ", ".join(sorted(pending_slow))
             )
         if unresolved:
             blockers.append("Required apps are still unresolved: " + ", ".join(sorted(unresolved)))
-        details["apps"] = {
-            app.name: app.status.value for app in (plan.apps if plan else [])
-        }
+        details["apps"] = {app.name: app.status.value for app in (plan.apps if plan else [])}
 
     elif stage == SetupStage.FINAL_AUDIT:
         prior_results = list(state.get("stage_results", []) or [])
@@ -107,7 +106,9 @@ def audit_stage(
     return AuditResult(stage=stage, passed=not blockers, blockers=blockers, details=details)
 
 
-def final_audit(facts: SetupFacts, plan: ResearchPlan, stage_results: list[AuditResult]) -> AuditResult:
+def final_audit(
+    facts: SetupFacts, plan: ResearchPlan, stage_results: list[AuditResult]
+) -> AuditResult:
     return audit_stage(
         SetupStage.FINAL_AUDIT,
         facts,

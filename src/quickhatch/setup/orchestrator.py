@@ -151,7 +151,9 @@ class SetupOrchestrator:
             is_live=self.ctx.facts.is_live if self.ctx.facts else False,
             live_marker=self.ctx.facts.live_marker if self.ctx.facts else "",
             pending_question_id=self.bridge.snapshot_setup_run().get("active_question_id", ""),
-            pending_question_blocking=self.bridge.snapshot_setup_run().get("waiting_for_input", False),
+            pending_question_blocking=self.bridge.snapshot_setup_run().get(
+                "waiting_for_input", False
+            ),
         )
         change_text = describe_fact_changes(before, self.ctx.facts)
         if change_text:
@@ -162,7 +164,8 @@ class SetupOrchestrator:
     def _run_connect_and_probe(self) -> None:
         self.bridge.update_setup_run(stage=SetupStage.CONNECT_AND_PROBE.value, status="running")
         self.bridge.add_message(
-            "agent", f"Connecting to {self.runtime.user}@{self.runtime.host}:{self.runtime.ssh_port}…"
+            "agent",
+            f"Connecting to {self.runtime.user}@{self.runtime.host}:{self.runtime.ssh_port}…",
         )
         rc, out, err = self.runtime.ssh_exec("echo 'QuickHatch connected!' && uname -a", 60)
         if rc != 0:
@@ -173,7 +176,8 @@ class SetupOrchestrator:
             self.bridge.add_message("agent", f"⚠️ Pre-reboot guard self-test failed: {preboot_err}")
         else:
             self.bridge.add_message(
-                "agent", "✓ Pre-reboot guard self-test passed — checks will run correctly at reboot time."
+                "agent",
+                "✓ Pre-reboot guard self-test passed — checks will run correctly at reboot time.",
             )
         self.ctx.system_info = self.runtime.system_info_fn()
         is_live, live_marker = self.runtime.detect_live_env()
@@ -219,7 +223,9 @@ class SetupOrchestrator:
             distro_primer_md=self.runtime.distro_primer_md,
             native_search_active=self.runtime.native_search_active,
         )
-        self.runlog.record("planner_prompt", stage=SetupStage.RESEARCH_AND_PLAN.value, prompt=prompt)
+        self.runlog.record(
+            "planner_prompt", stage=SetupStage.RESEARCH_AND_PLAN.value, prompt=prompt
+        )
         if self.runtime.native_search_active:
             response_text = self._planner_model_call([{"role": "user", "content": prompt}])
             self.runlog.record(
@@ -248,7 +254,9 @@ class SetupOrchestrator:
                     self.ctx.plan = extract_research_plan(response_text, self.profile)
                     break
                 if action == "plan":
-                    self.ctx.plan = extract_research_plan(json.dumps(payload.get("plan", {})), self.profile)
+                    self.ctx.plan = extract_research_plan(
+                        json.dumps(payload.get("plan", {})), self.profile
+                    )
                     break
                 if action == "repo_search":
                     result = self.runtime.repo_search(str(payload.get("query", "")).strip())
@@ -362,7 +370,9 @@ class SetupOrchestrator:
                         reason=reason,
                     )
                     break
-                raise RuntimeError(f"Unsupported repair outcome for {current_group.title}: {action}")
+                raise RuntimeError(
+                    f"Unsupported repair outcome for {current_group.title}: {action}"
+                )
         result = audit_stage(stage, self.ctx.facts, plan=self.ctx.plan, stage_state=stage_state)
         self._record_stage_result(result)
 
@@ -431,7 +441,9 @@ class SetupOrchestrator:
                 blockers=["No research plan exists for final audit."],
             )
         else:
-            result = final_audit(self.ctx.facts or SetupFacts(), self.ctx.plan, self.ctx.stage_results)
+            result = final_audit(
+                self.ctx.facts or SetupFacts(), self.ctx.plan, self.ctx.stage_results
+            )
         self.ctx.stage_results.append(result)
         self.runlog.record("final_audit", result=asdict(result))
         self.bridge.update_setup_run(
@@ -702,9 +714,9 @@ class SetupOrchestrator:
         if not self.ctx.plan:
             return
         if stage != SetupStage.APPS:
-            self.ctx.stage_state.setdefault(stage.value, {}).setdefault("manual_followups", []).append(
-                {"group_id": group.id, "reason": reason}
-            )
+            self.ctx.stage_state.setdefault(stage.value, {}).setdefault(
+                "manual_followups", []
+            ).append({"group_id": group.id, "reason": reason})
             return
         app_names_lower = {name.lower() for name in app_names if name}
         group_pkgs = {pkg.lower() for pkg in group.packages}
@@ -721,9 +733,9 @@ class SetupOrchestrator:
                 app.reason = reason
                 matched = True
         if not matched:
-            self.ctx.stage_state.setdefault(stage.value, {}).setdefault("manual_followups", []).append(
-                {"group_id": group.id, "reason": reason}
-            )
+            self.ctx.stage_state.setdefault(stage.value, {}).setdefault(
+                "manual_followups", []
+            ).append({"group_id": group.id, "reason": reason})
 
     def _mark_group_completion(self, group: CommandGroup, *, stage: SetupStage) -> None:
         if not self.ctx.plan:
@@ -752,7 +764,10 @@ class SetupOrchestrator:
                 self.ctx.created_user = parts[-1].strip("'\"")
         if stage == SetupStage.DESKTOP:
             state = self.ctx.stage_state.setdefault(stage.value, {})
-            if any(token in command for token in ("kwriteconfig", "plasma-apply", "gsettings", "wallpaper")):
+            if any(
+                token in command
+                for token in ("kwriteconfig", "plasma-apply", "gsettings", "wallpaper")
+            ):
                 state["persisted_config_written"] = True
             if "plasma-apply" in command and stdout.strip() == "":
                 if self.ctx.facts and self.ctx.facts.session_type:
@@ -760,7 +775,9 @@ class SetupOrchestrator:
 
     def _command_timeout(self, command: str) -> int:
         command_lower = command.lower()
-        if any(token in command_lower for token in ("yay -s", "makepkg", "pacstrap", "debootstrap")):
+        if any(
+            token in command_lower for token in ("yay -s", "makepkg", "pacstrap", "debootstrap")
+        ):
             return 1800
         if "reboot" in command_lower:
             return 60
@@ -769,7 +786,11 @@ class SetupOrchestrator:
     def _build_summary(self) -> str:
         plan = self.ctx.plan
         apps = plan.apps if plan else []
-        installed = [app.name for app in apps if app.status in {PlanItemStatus.COMPLETED, PlanItemStatus.INSTALLED}]
+        installed = [
+            app.name
+            for app in apps
+            if app.status in {PlanItemStatus.COMPLETED, PlanItemStatus.INSTALLED}
+        ]
         followup = [
             app.name
             for app in apps

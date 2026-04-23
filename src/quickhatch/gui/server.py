@@ -1319,7 +1319,11 @@ def make_gui_server(
 
                         hw = results["hardware"]
                         gui_state.profile.hardware = HardwareInfo(
-                            **{k: v for k, v in hw.items() if k not in ("gpus", "disks", "displays")},
+                            **{
+                                k: v
+                                for k, v in hw.items()
+                                if k not in ("gpus", "disks", "displays")
+                            },
                             gpus=[GPUInfo(**g) for g in hw.get("gpus", [])],
                             disks=[DiskInfo(**d) for d in hw.get("disks", [])],
                             displays=[DisplayInfo(**d) for d in hw.get("displays", [])],
@@ -2523,12 +2527,33 @@ def _build_section_prompt(
             "your table has three rows.\n\n"
             "If `apps_to_install` is empty, fall back to mapping everything in\n"
             "`apps` (the scan) that has a meaningful Linux equivalent.\n\n"
-            "Use a Markdown TABLE with columns: | App | Install Command | Notes |\n"
+            "Use a Markdown TABLE with columns: | App | Install Command | Source | Est Time | Notes |\n"
             "The install command must be the EXACT command for the chosen distro\n"
-            "(from the install primer above). Notes are for post-install config\n"
-            "only — e.g. 'enable Proton in Steam settings', 'run git config --global\n"
-            "user.email ...'. Skip apps that need no post-install setup rather than\n"
-            "padding with 'works out of the box'.\n\n"
+            "(from the install primer above). The `Source` column is one of\n"
+            "`official-repo` / `aur-binary` / `aur-source` / `flatpak` / `appimage` /\n"
+            "`snap` / `npm`. The `Est Time` column is a rough wall-clock estimate\n"
+            "per app — use these calibration points:\n"
+            "  - official-repo binary, small (<50MB): 5–20s\n"
+            "  - official-repo binary, large (Steam, LibreOffice, nvidia stack): 30–90s\n"
+            "  - aur-binary (-bin suffix, AppImage wrapper): 30–90s\n"
+            "  - aur-source (builds from source, Rust/C++ projects): 5–30 MIN\n"
+            "  - flatpak/appimage: 10–60s\n"
+            "Notes are for post-install config only — e.g. 'enable Proton in Steam',\n"
+            "'run git config --global user.email ...'. Skip apps that need no\n"
+            "post-install setup rather than padding with 'works out of the box'.\n\n"
+            "RESEARCH-FIRST RULE: If you are not 100% certain of a package's exact\n"
+            "name in the chosen distro's ecosystem (e.g. is it `lmstudio-bin` or\n"
+            "`lm-studio-bin`? does `claude-desktop-bin` exist on AUR? does the\n"
+            "current openai-codex npm package require node-lts or node-current?),\n"
+            "USE web search / web-capable tools before writing the row.\n"
+            "It is FAR better to output a correct row from a 5-second lookup than\n"
+            "an incorrect row the setup agent then spends 10 minutes failing on.\n"
+            "Package names change; your training data is stale. Search.\n\n"
+            "CALL OUT SLOW INSTALLS: For any row with Est Time ≥ 10 min (big AUR\n"
+            "source builds), add a 🐌 emoji to the app name and in Notes write:\n"
+            "'Slow install — consider AppImage/flatpak alternative: <link>'. This\n"
+            "lets the setup agent proactively ask the user whether to proceed or\n"
+            "swap for a faster path.\n\n"
             "If an app in `apps_to_install` has no native package on the chosen\n"
             "distro, give the AUR/Flatpak/AppImage path — still only that one app,\n"
             "not a survey of packaging options.\n"
@@ -3937,12 +3962,16 @@ def _setup_runtime_prompt_block(
         lines.extend(
             [
                 "",
-                "LOOKUP ACTIONS:",
+                "LOOKUP ACTIONS (use these aggressively — you will be PENALISED for guessing package names):",
                 "- `repo_search` asks the target OS package manager for matching packages and returns compact results.",
                 "- `aur_search` looks up AUR packages on Arch-family targets and falls back to a web search of aur.archlinux.org when needed.",
-                "- `web_search` performs an internet search for current package names, distro-specific instructions, and project pages.",
+                "- `web_search` performs an internet search for current package names, distro-specific instructions, and project pages. USE THIS FIRST whenever a package or command syntax is uncertain — the harness has live internet access and the 10s search beats 5 minutes of broken pacman retries.",
                 "- When the exact package name is uncertain, use a lookup action BEFORE `ssh_exec`.",
                 "- If any install command fails with 'target not found', 'unable to locate package', or 'no match', your very next action must be a lookup action instead of another guessed install command.",
+                "",
+                "USER INTERACTION:",
+                '- `ask` posts a BLOCKING question to the user and waits up to 10 minutes for their answer. Use it whenever you need a decision that\'s outside the plan (e.g. \'The LUKS step is about to run — keep encryption or skip?\', \'This AUR build will take ~20 minutes — proceed or swap for an AppImage?\'). Schema: `{"action": "ask", "question": "…", "choices": ["yes", "no"], "timeout": 600}`. `choices` is optional; omit for free text. The user\'s answer comes back as the next feedback message.',
+                "- `message` is one-way — use it for status updates. If you actually need an answer, use `ask`; posting a message and then running a command that depends on the answer is a bug.",
             ]
         )
     return "\n".join(lines) + "\n\n"
@@ -4598,13 +4627,121 @@ def _verify_setup_completion(
     results_log: list[str],
     *,
     port: int = 22,
+    apps_to_install: list[str] | None = None,
+    setup_facts: dict[str, str] | None = None,
 ) -> list[str]:
-    """Return final-verification failures that should block a premature `done`."""
+    """Return final-verification failures that should block a premature `done`.
+
+    Checks, in order:
+
+    1. **Apps** — every entry in ``apps_to_install`` resolves to an
+       installed package on the target (queried via the detected
+       package manager). A requested app that isn't installed is the
+       single most common "agent said done, nothing actually landed"
+       failure; this catches it deterministically.
+    2. **System services** — display manager enabled + no failed
+       systemd units. Without a display manager the user boots to a
+       tty; "done" there is wrong.
+    3. **KDE-specific theming** — unchanged from the original checks.
+       Only runs when the results_log mentions KDE commands.
+    """
     failures: list[str] = []
+    command_log = "\n".join(results_log).lower()
+
+    # --- App installation verification ------------------------------------
+    # apps_to_install is the user's CURATED list from the wizard (not the
+    # raw scan). Each should resolve to an installed package. Tolerant of
+    # package-name drift between distros: we try a couple of common
+    # normalisations before declaring a miss (e.g. "GitHub Desktop" →
+    # "github-desktop-bin" on Arch).
+    if apps_to_install and setup_facts:
+        pm = (setup_facts.get("package_manager") or "").lower()
+        query_cmds: dict[str, str] = {
+            "pacman": "pacman -Qq",
+            "apt": "dpkg-query -W -f='${Package}\\n'",
+            "dnf": "rpm -qa --queryformat '%{NAME}\\n'",
+            "zypper": "rpm -qa --queryformat '%{NAME}\\n'",
+        }
+        query_cmd = query_cmds.get(pm)
+        if query_cmd:
+            rc, out, _ = _ssh_exec(host, user, query_cmd, key_path, timeout=30, port=port)
+            if rc == 0:
+                installed = {
+                    line.strip().lower() for line in (out or "").splitlines() if line.strip()
+                }
+                missing: list[str] = []
+                for app in apps_to_install:
+                    needle = (app or "").strip().lower()
+                    if not needle:
+                        continue
+                    variants = {
+                        needle,
+                        needle.replace(" ", "-"),
+                        needle.replace(" ", "-") + "-bin",
+                        needle.replace(" ", "-") + "-git",
+                        needle.replace(" ", ""),
+                        needle.split()[0] if needle.split() else needle,
+                    }
+                    if not any(v in installed for v in variants if v):
+                        missing.append(app)
+                if missing:
+                    failures.append(
+                        "apps_to_install contained "
+                        f"{len(missing)} package(s) that are NOT installed on the target: "
+                        + ", ".join(repr(m) for m in missing[:10])
+                        + (f" (+{len(missing) - 10} more)" if len(missing) > 10 else "")
+                        + ". Install them (use repo_search / aur_search first if names "
+                        "are uncertain) before emitting `done`."
+                    )
+
+    # --- System-service verification --------------------------------------
+    # systemctl --failed returns non-zero units. If any core service is
+    # failing (NetworkManager, sddm, bluetooth, dbus, etc.), the desktop
+    # won't boot correctly. Also check that a display manager is enabled
+    # — otherwise the user gets a tty prompt at boot.
+    svc_cmd = (
+        "systemctl --failed --no-legend 2>/dev/null | awk '{print $1}' | head -20; "
+        "echo '---DM---'; "
+        "for dm in sddm gdm lightdm greetd tuigreet ly; do "
+        '  if systemctl is-enabled $dm.service >/dev/null 2>&1; then echo "DM_ENABLED=$dm"; break; fi; '
+        "done; "
+        "echo '---USER---'; "
+        "id -u 2>/dev/null; "
+        "getent group wheel sudo 2>/dev/null | head -5"
+    )
+    rc, svc_out, _ = _ssh_exec(host, user, svc_cmd, key_path, timeout=20, port=port)
+    if rc == 0 and svc_out:
+        lines = svc_out.splitlines()
+        try:
+            dm_idx = lines.index("---DM---")
+            user_idx = lines.index("---USER---")
+        except ValueError:
+            dm_idx = user_idx = -1
+        if dm_idx >= 0:
+            failed_units = [line.strip() for line in lines[:dm_idx] if line.strip()]
+            # Whitelist non-critical "failures" that we don't want to hard-block on.
+            _ignore_failed = {"systemd-modules-load.service", "systemd-resolved.service"}
+            critical_failed = [u for u in failed_units if u not in _ignore_failed]
+            if critical_failed:
+                failures.append(
+                    "systemctl reports failed units: "
+                    + ", ".join(critical_failed[:10])
+                    + ". Investigate with `systemctl status <unit>` and `journalctl -u <unit> -b` "
+                    "before declaring done."
+                )
+            dm_lines = lines[dm_idx + 1 : user_idx] if user_idx > dm_idx else []
+            dm_enabled = any(line.startswith("DM_ENABLED=") for line in dm_lines)
+            if not dm_enabled:
+                failures.append(
+                    "no display manager is enabled (looked for sddm/gdm/lightdm/greetd/tuigreet/ly). "
+                    "The user will boot to a tty instead of a graphical login. "
+                    "Enable one with `systemctl enable <dm>` before done."
+                )
+
+    # --- KDE-specific theming (unchanged) ---------------------------------
     if not _needs_kde_final_verification(results_log, summary):
         return failures
 
-    command_log = "\n".join(results_log).lower()
     require_wallpaper = (
         "plasma-apply-wallpaperimage" in command_log or "masterpiece." in command_log
     )
@@ -4624,9 +4761,10 @@ echo "QH_WALL=$wall_ok"
 """
     rc, out, err = _ssh_exec(host, user, verify_cmd, key_path, timeout=30, port=port)
     if rc != 0:
-        return [
+        failures.append(
             f"final verification probe failed: {(err or out or '').strip()[:200] or 'unknown error'}"
-        ]
+        )
+        return failures
 
     facts: dict[str, str] = {}
     for line in (out or "").splitlines():
@@ -5054,6 +5192,166 @@ def _advise_on_repeated_failure(
     return None
 
 
+def _command_intent_signature(cmd: str) -> str | None:
+    """Normalize an install/remove command to its INTENT so sibling variants
+    collapse to the same key.
+
+    Motivated by the live run where the agent spent 8 turns in a pacman
+    conflict loop, each command a different flag variation of the same
+    intent:
+
+        pacman -Rns nodejs && pacman -S nodejs-lts-iron openai-codex
+        pacman -S nodejs-lts-iron openai-codex               # tried plain
+        echo 'y' | pacman -S nodejs-lts-iron openai-codex    # piped y
+        pacman -S --nodeps nodejs-lts-iron openai-codex      # added --nodeps
+        pacman -Rdd nodejs && pacman -S nodejs-lts-iron ...  # force-remove
+
+    The exact-command detector didn't fire (each literal string differs).
+    Stripping flags, env prefixes, pipes, and `sudo` reveals a single
+    intent ("install nodejs-lts-iron openai-codex") repeated five times.
+
+    Returns a stable signature like ``pacman:install:nodejs-lts-iron openai-codex``
+    for install/remove-shaped commands, or None for commands we don't
+    try to normalize (the same-exact-command detector still covers those).
+    """
+    import re as _re
+
+    if not cmd:
+        return None
+    # Strip leading `echo ... |` / `yes |` / `printf ... |` — these are
+    # pseudo-confirmation tricks, not the real intent.
+    stripped = _re.sub(
+        r"^\s*(?:echo\s+['\"]?y['\"]?|yes|printf\s+['\"][^'\"]*['\"])\s*\|\s*",
+        "",
+        cmd,
+    )
+    # Split on `&&` / `;` / `||` and pick the LAST install-shaped segment.
+    # Conflict-escalation loops typically bury the real install at the end
+    # behind a preparatory remove (`-Rdd nodejs && -S nodejs-lts-iron`).
+    segments = _re.split(r"\s*(?:&&|\|\||;)\s*", stripped)
+    segments = [s.strip() for s in segments if s.strip()]
+    if not segments:
+        return None
+
+    def _sig_for_segment(seg: str) -> str | None:
+        # Drop leading env vars + sudo (in any order / interleaving).
+        # Env vars look like UPPER_CASE=value; they can appear before
+        # or after `sudo`, and more than once.
+        env_or_sudo = r"(?:sudo\s+|[A-Z_][A-Z0-9_]*=\S+\s+)+"
+        seg = _re.sub(r"^\s*" + env_or_sudo, "", seg)
+        tokens = seg.split()
+        if not tokens:
+            return None
+        tool = tokens[0]
+        if tool not in {"pacman", "yay", "paru", "apt", "apt-get", "dnf", "zypper"}:
+            return None
+        # Collapse short + long operation flags to a canonical verb.
+        op: str | None = None
+        targets: list[str] = []
+        install_ops = {
+            "-S",
+            "-Sy",
+            "-Syu",
+            "-Syyu",
+            "install",
+            "reinstall",
+            "localinstall",
+            "in",
+        }
+        remove_ops = {
+            "-R",
+            "-Rs",
+            "-Rn",
+            "-Rns",
+            "-Rnsu",
+            "-Rdd",
+            "-U",
+            "remove",
+            "purge",
+            "autoremove",
+        }
+        # All flags we explicitly strip — escalation flags, noninteractive
+        # flags, confirmation-override flags. If any of these drift between
+        # turns the intent is still identical.
+        DROP_FLAGS = {
+            "--noconfirm",
+            "--needed",
+            "--nodeps",
+            "--force",
+            "-f",
+            "-y",
+            "--yes",
+            "-q",
+            "--quiet",
+            "--overwrite",
+            "--assume-yes",
+            "--allow-downgrades",
+            "--allow-unauthenticated",
+            "-Dd",
+            "-dd",
+        }
+        for tok in tokens[1:]:
+            if tok in install_ops:
+                op = op or "install"
+                continue
+            if tok in remove_ops:
+                op = op or "remove"
+                continue
+            if tok.startswith("-") and tok in DROP_FLAGS:
+                continue
+            if tok.startswith("--") and tok in DROP_FLAGS:
+                continue
+            # Unrecognised short flag stack (e.g. -Syyu) — if it's all
+            # letters, treat it as operation modifier and drop.
+            if _re.fullmatch(r"-[A-Za-z]{1,6}", tok):
+                # Heuristic: if it contains S/R/U, map to install/remove/upgrade.
+                if op is None:
+                    if "S" in tok:
+                        op = "install"
+                    elif "R" in tok:
+                        op = "remove"
+                    elif "U" in tok:
+                        op = "install"
+                continue
+            # Treat remaining tokens as package names (deduped, sorted).
+            targets.append(tok)
+        if op is None or not targets:
+            return None
+        return f"{tool}:{op}:" + " ".join(sorted(set(targets)))
+
+    # Prefer the LAST install/remove segment — that's the real intent.
+    for seg in reversed(segments):
+        sig = _sig_for_segment(seg)
+        if sig:
+            return sig
+    return None
+
+
+def _detect_flag_escalation(recent_commands: list[str]) -> str | None:
+    """If the agent has issued 3+ variants of the same intent with
+    PROGRESSIVELY MORE DESTRUCTIVE flags, return a warning string.
+
+    Catches the escalation pattern where each attempt differs from the
+    last only by adding a more forceful flag (``--noconfirm`` →
+    ``--nodeps`` → ``-Rdd`` → ``echo y |``) to work around the same
+    underlying problem. The intent signature normalises all those
+    variants to the same key — we just need N repeats of the key.
+    """
+    if len(recent_commands) < 3:
+        return None
+    sigs = [_command_intent_signature(c) for c in recent_commands[-5:]]
+    sigs = [s for s in sigs if s]
+    if len(sigs) < 3:
+        return None
+    from collections import Counter
+
+    counts = Counter(sigs)
+    top_sig, top_n = counts.most_common(1)[0]
+    if top_n < 3:
+        return None
+    return top_sig
+
+
 def _is_reboot_command(cmd: str) -> bool:
     """True if ``cmd`` will reboot the target (triggering a reconnect loop).
 
@@ -5071,14 +5369,22 @@ _STALL_TOPIC_WORDS = re.compile(
     # Nouns + tools that typically headline a topic. Pulled from the
     # failure modes observed in live runs — extend as we see more.
     r"\b("
-    r"pacman\.conf|mirrorlist|sig(?:level|nature)|keyring|archlinux-keyring|"
+    r"pacman\.conf|pacman|mirrorlist|sig(?:level|nature)|keyring|archlinux-keyring|"
     r"multilib|reflector|architecture|gpg|clock|ntp|timedatectl|date|"
     r"xorg|x11|wayland|sddm|kwin|modeset|drm|vboxvideo|"
     r"useradd|chpasswd|wheel|sudoers|"
     r"brave|steam|github-desktop|yay|aur|makepkg|base-devel|"
     r"disk|partition|mount|fstab|grub|systemd-boot|efi|luks|"
     r"nvidia|mesa|driver|kernel-fsync|"
-    r"network|resolv|dhcp|nmcli|systemd-networkd"
+    r"network|resolv|dhcp|nmcli|systemd-networkd|"
+    # Generic package-manager concepts — these caught the nodejs /
+    # openai-codex conflict loop after the fact. If the agent mentions
+    # "conflict" or "dependency" for 4+ turns it's almost always stuck
+    # on a dep-resolution rabbit hole.
+    r"conflict|dependency|deps|dependencies|unresolvable|"
+    r"nodejs|node-lts|npm|"
+    # Build-from-source common grief spots.
+    r"cmake|meson|ninja|configure|autoreconf|linker|ld\.so|pkgconfig"
     r")\b",
     re.IGNORECASE,
 )
@@ -5492,9 +5798,10 @@ def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = ""
     distro_hint = (profile.preferences.distro_preference or "").strip()
     if not distro_hint and bridge.suggestions:
         for suggestion in bridge.snapshot_suggestions():
-            if getattr(suggestion, "category", "") == "distro" or "distribut" in (
-                suggestion.title or ""
-            ).lower():
+            if (
+                getattr(suggestion, "category", "") == "distro"
+                or "distribut" in (suggestion.title or "").lower()
+            ):
                 match = resolve_primer(suggestion.content or "")
                 if match is not None:
                     distro_hint = match["canonical"]
@@ -5534,9 +5841,7 @@ def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = ""
         return ok, fresh_info, reconnect_user
 
     def _pre_reboot_result() -> tuple[bool, list[str], str]:
-        failures, oks = _run_pre_reboot_checks(
-            host, session_user["value"], key_path, port=ssh_port
-        )
+        failures, oks = _run_pre_reboot_checks(host, session_user["value"], key_path, port=ssh_port)
         summary_lines = [f"✓ {line}" for line in oks] + [f"✗ {line}" for line in failures]
         return (not failures, failures, "\n".join(summary_lines))
 
@@ -5565,7 +5870,9 @@ def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = ""
             port=ssh_port,
             **kwargs,
         ),
-        detect_live_env=lambda: _detect_live_env(host, session_user["value"], key_path, port=ssh_port),
+        detect_live_env=lambda: _detect_live_env(
+            host, session_user["value"], key_path, port=ssh_port
+        ),
         ssh_exec=lambda command, timeout: _ssh_exec(
             host, session_user["value"], command, key_path, timeout=timeout, port=ssh_port
         ),
@@ -5592,11 +5899,7 @@ def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = ""
             native_search_active=False,
         ),
         migration_plan_md=migration_plan_md
-        + (
-            f"\n\n== USER FEEDBACK ==\n{user_feedback.strip()}"
-            if user_feedback.strip()
-            else ""
-        ),
+        + (f"\n\n== USER FEEDBACK ==\n{user_feedback.strip()}" if user_feedback.strip() else ""),
         distro_primer_md=distro_primer_md,
         native_search_active=native_search_active,
     )
@@ -5926,6 +6229,32 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
             "Installing a theme is NOT the same as activating it. Installing a package is NOT the\n"
             "same as configuring it. Think about what the user will actually SEE and USE at the end,\n"
             "and work backwards to make that happen.\n\n"
+            "SEARCH-FIRST DISCIPLINE (READ THIS TWICE):\n"
+            "You have live internet access via `web_search`, `aur_search`, and `repo_search`. USE THEM.\n"
+            "A 5-second search is ALWAYS cheaper than a 5-minute loop of failed pacman commands.\n"
+            "Before issuing an install command, if the exact package name is not 100% certain\n"
+            "(e.g. 'is it `lmstudio-bin` or `lm-studio-bin`? `claude-desktop` or `claude-desktop-bin`?'),\n"
+            "SEARCH FIRST. Do not guess. Do not try variations of the same wrong name.\n\n"
+            "IF A PACKAGE INSTALL FAILS with 'target not found', 'unable to locate', 'no match',\n"
+            "or any 'conflicting dependencies' error, your NEXT action is NOT another variation of\n"
+            "the same install with more flags. Your next action is ONE OF:\n"
+            "  (a) a `repo_search` / `aur_search` / `web_search` to find the real package name, or\n"
+            "  (b) an `ask` action to the user if the package you want doesn't seem to exist.\n"
+            "Escalating flags (`--noconfirm` → `--nodeps` → `-Rdd`) to work around a conflict is\n"
+            "ALMOST ALWAYS a sign you picked the wrong package variant. Re-read the conflict\n"
+            "message: it usually tells you exactly which dep is incompatible. If `openai-codex`\n"
+            "wants `nodejs` and you already have `nodejs`, DROP `nodejs-lts-iron` from the command\n"
+            "— you never needed it. The harness WILL detect escalation loops and block you.\n\n"
+            "WHEN TO STOP AND ASK:\n"
+            "If a single app in the user's list would take >10 minutes to install (big AUR source\n"
+            "builds, multi-gigabyte downloads on slow links, long-running npm postinstalls), or\n"
+            "if the package you need doesn't exist under any obvious name, emit an `ask` action:\n"
+            '  {"action": "ask", "question": "<X> is a 20-minute AUR build and not critical for '
+            'first-login. Install now, skip, or replace with the official AppImage from <Y>?", '
+            '"choices": ["install", "skip", "appimage"]}\n'
+            "The user's answer comes back in the next turn's feedback and you adapt. Do NOT "
+            "silently skip important apps, and do NOT silently commit to long installs without\n"
+            "warning — both surprise the user in bad ways.\n\n"
             "DESKTOP-APPLY DISCIPLINE:\n"
             "- KDE/Plasma live apply must target the REAL logged-in user's session bus. Do NOT use\n"
             "  `dbus-run-session` for `plasma-apply-lookandfeel` or `plasma-apply-wallpaperimage`.\n"
@@ -6060,11 +6389,23 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
         # the same topic (e.g. 10 turns investigating pacman.conf
         # warnings that don't actually block anything).
         recent_reasons: list[str] = []
+        # Sliding window of recent literal commands, used by the
+        # flag-escalation detector. Separate from recent_reasons because
+        # the reasons are free text (good for topic detection) while the
+        # commands are what the intent-signature normaliser needs.
+        recent_commands: list[str] = []
         # Track iterations since last plan re-anchor so we can re-inject
         # the remaining-goal checklist periodically. Without this, on
         # long runs the early plan falls out of the attention window
         # and the model drifts into tangents.
         last_anchor_iter = 0
+        # Track when we last re-probed the installed system for a
+        # rolling state-refresh (installed packages, failed units,
+        # free disk space). Refreshed setup_facts already cover
+        # package manager + live/installed flag, but the model also
+        # needs to know "what's already installed" so it doesn't
+        # re-fetch or re-configure steps already done earlier.
+        last_state_refresh_iter = 0
         # Sticky pre-reboot-guard state. When the guard blocks a reboot,
         # we latch the failures here and keep re-injecting them on every
         # turn until the next reboot attempt's check passes (or the
@@ -6114,6 +6455,51 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
                         ),
                     }
                 )
+            # Rolling state-refresh — once out of the live ISO, every 8
+            # turns (or after the first time we're past the reboot) we
+            # snapshot a few cheap probes and feed them back as context.
+            # Without this the model is planning against its original
+            # assumption of the system state and can re-run commands that
+            # already succeeded earlier (e.g. re-install a package that's
+            # already there, re-configure a service that's already active).
+            # Only runs on the installed system — during live ISO the
+            # useful state is all behind chroot and not worth probing.
+            if not is_live and _iteration > 0 and _iteration - last_state_refresh_iter >= 8:
+                last_state_refresh_iter = _iteration
+                pm = (setup_facts or {}).get("package_manager", "").lower()
+                pkg_count_cmd = {
+                    "pacman": "pacman -Q 2>/dev/null | wc -l",
+                    "apt": "dpkg-query -W 2>/dev/null | wc -l",
+                    "dnf": "rpm -qa 2>/dev/null | wc -l",
+                    "zypper": "rpm -qa 2>/dev/null | wc -l",
+                }.get(pm, "echo 0")
+                refresh_probe = (
+                    f"echo '===PKG==='; {pkg_count_cmd}; "
+                    "echo '===FAILED==='; "
+                    "systemctl --failed --no-legend 2>/dev/null | awk '{print $1}'; "
+                    "echo '===DISK==='; "
+                    "df -h / /home 2>/dev/null | awk 'NR>1 {print $1, $4, $5}'; "
+                    "echo '===SERVICES==='; "
+                    "for s in NetworkManager sshd sddm gdm lightdm docker; do "
+                    "  if systemctl is-active $s.service >/dev/null 2>&1; "
+                    'then echo "$s=active"; fi; done; '
+                    "echo '===UPTIME==='; uptime -p"
+                )
+                _rc, _rout, _ = _ssh_exec(
+                    host, user, refresh_probe, key_path, timeout=15, port=ssh_port
+                )
+                if _rc == 0 and _rout:
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": (
+                                "[harness state refresh — snapshot of the remote system "
+                                "RIGHT NOW. Use this to avoid re-running steps already done, "
+                                "and to notice things that regressed.]\n"
+                                f"{_rout.strip()[:2000]}"
+                            ),
+                        }
+                    )
             # Honor Stop requests from the UI
             if bridge.stop_requested:
                 bridge.add_message("agent", "Stopped.")
@@ -6296,6 +6682,8 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
                         summary,
                         results_log,
                         port=ssh_port,
+                        apps_to_install=list(profile.apps_to_install or []),
+                        setup_facts=setup_facts,
                     )
                     if final_failures:
                         verification_msg = (
@@ -6392,6 +6780,72 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
                     )
                     continue
 
+                if act == "ask":
+                    # Blocking question to the user. Previously the agent
+                    # could only `message` the user (one-way) and then
+                    # immediately moved on to the next command — if it
+                    # "wanted an answer", there was no way to pause.
+                    # `ask` mirrors /api/ask semantics: add the question
+                    # to the bridge, wait up to 10 min for an answer,
+                    # feed it back into the next turn as user feedback.
+                    question = (action.get("question") or "").strip()
+                    if not question:
+                        pending_feedback.append(
+                            "Error: empty question. Provide 'question' (and optionally "
+                            "'choices' list, 'timeout' seconds) when using action=ask."
+                        )
+                        continue
+                    choices = action.get("choices")
+                    if choices is not None and not isinstance(choices, list):
+                        choices = None
+                    try:
+                        ask_timeout = int(action.get("timeout", 600))
+                    except (TypeError, ValueError):
+                        ask_timeout = 600
+                    # Clamp so a pathological model can't park the loop
+                    # for hours with timeout=999999.
+                    ask_timeout = max(30, min(ask_timeout, 1800))
+                    q = bridge.add_question(question, choices)
+                    bridge.add_message(
+                        "agent",
+                        f"❓ Waiting for your answer: {question}",
+                    )
+                    results_log.append(f"**[ask]** {question}")
+                    # Block the setup loop until the user answers, they
+                    # hit Stop, or the timeout expires. Check stop_requested
+                    # on a short poll so Stop stays responsive.
+                    answered = False
+                    waited = 0
+                    poll_interval = 2
+                    while waited < ask_timeout:
+                        if q.answered.wait(timeout=poll_interval):
+                            answered = True
+                            break
+                        if bridge.stop_requested:
+                            break
+                        waited += poll_interval
+                    if bridge.stop_requested:
+                        # Stop was hit while waiting — let the main loop's
+                        # stop handler catch it on the next iteration.
+                        pending_feedback.append(
+                            "User pressed Stop while you were awaiting an answer. "
+                            "Exit cleanly on the next turn with action=done."
+                        )
+                        continue
+                    if answered:
+                        pending_feedback.append(
+                            f"[USER ANSWER TO `{question}`]\n{q.answer or '(empty)'}"
+                        )
+                    else:
+                        pending_feedback.append(
+                            f"[ask TIMED OUT after {ask_timeout}s]\n"
+                            "The user did not respond. If the question was optional, "
+                            "pick a sensible default and proceed. If the question was "
+                            "blocking (e.g. a passphrase), post a `message` explaining "
+                            "you need a reply and ask again once they're active."
+                        )
+                    continue
+
                 if act == "ssh_exec":
                     cmd = action.get("command", "")
                     reason = action.get("reason", "")
@@ -6409,6 +6863,40 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
                     recent_reasons.append(reason or cmd)
                     if len(recent_reasons) > 5:
                         recent_reasons.pop(0)
+                    recent_commands.append(cmd)
+                    if len(recent_commands) > 6:
+                        recent_commands.pop(0)
+
+                    # Flag-escalation detector: catches the pattern where
+                    # the agent issues 3+ variants of the same install/
+                    # remove intent with progressively more destructive
+                    # flags (--noconfirm → --nodeps → -Rdd → piped `y`).
+                    # Normalise to an intent signature so sibling variants
+                    # collapse to the same key, then check for 3+ repeats.
+                    _esc_sig = _detect_flag_escalation(recent_commands)
+                    if _esc_sig is not None:
+                        escalation_msg = (
+                            f"[harness] FLAG-ESCALATION LOOP DETECTED — your last "
+                            f"3+ commands all share the intent `{_esc_sig}`, each "
+                            f"time with more destructive flags. This pattern is a "
+                            f"signature of fighting the symptom instead of the "
+                            f"cause. STOP and reconsider: (a) do you actually need "
+                            f"this exact package set? Can you drop one and unblock "
+                            f"yourself? (b) is the conflict message pointing at a "
+                            f"version of a dep you already have (e.g. nodejs) that "
+                            f"would satisfy everything if you just used the DEFAULT "
+                            f"package instead of a variant? (c) if you truly need "
+                            f"user input, emit an `ask` action — don't keep "
+                            f"piling force flags. Next command MUST be different "
+                            f"in SUBSTANCE (different packages or lookup action), "
+                            f"not just flags."
+                        )
+                        bridge.add_message("agent", escalation_msg)
+                        pending_feedback.append(escalation_msg)
+                        # Reset so we don't fire on every subsequent turn
+                        # — the model gets ONE loud warning then normal
+                        # operation resumes.
+                        recent_commands.clear()
                     _topic = _detect_stall_topic(recent_reasons)
                     if _topic is not None:
                         nudge = (
@@ -6879,7 +7367,7 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
                     continue
 
                 pending_feedback.append(
-                    f"Unknown action '{act}'. Use ssh_exec, repo_search, aur_search, web_search, status, or done."
+                    f"Unknown action '{act}'. Use ssh_exec, repo_search, aur_search, web_search, ask, status, or done."
                 )
 
             if finished:

@@ -169,7 +169,9 @@ def test_orchestrator_uses_harness_search_during_non_native_planning():
     runtime = SetupRuntime(
         profile=profile,
         bridge=bridge,
-        config=AIConfig(provider="local_lmstudio", endpoint="http://localhost:1234/v1", model_name="test"),
+        config=AIConfig(
+            provider="local_lmstudio", endpoint="http://localhost:1234/v1", model_name="test"
+        ),
         host="127.0.0.1",
         user="jan",
         ssh_port=22,
@@ -179,7 +181,9 @@ def test_orchestrator_uses_harness_search_during_non_native_planning():
         probe_facts=lambda **kwargs: facts,
         detect_live_env=lambda: (False, "INSTALLED"),
         ssh_exec=lambda command, timeout: (0, "", ""),
-        repo_search=lambda query: seen_searches.append(query) or "[repo_search results]\nnvidia-open",
+        repo_search=lambda query: (
+            seen_searches.append(query) or "[repo_search results]\nnvidia-open"
+        ),
         community_search=lambda query: "",
         web_search=lambda query, max_results: "",
         wait_for_reconnect=lambda reconnect_user: (True, "fresh info", reconnect_user),
@@ -281,7 +285,11 @@ def test_orchestrator_repairs_failed_command_group_with_search_and_retry():
             )
         if model_calls["count"] == 2:
             return json.dumps(
-                {"action": "repo_search", "query": "brave-bin arch package", "reason": "resolve package"}
+                {
+                    "action": "repo_search",
+                    "query": "brave-bin arch package",
+                    "reason": "resolve package",
+                }
             )
         return json.dumps(
             {
@@ -308,7 +316,9 @@ def test_orchestrator_repairs_failed_command_group_with_search_and_retry():
     runtime = SetupRuntime(
         profile=profile,
         bridge=bridge,
-        config=AIConfig(provider="local_lmstudio", endpoint="http://localhost:1234/v1", model_name="test"),
+        config=AIConfig(
+            provider="local_lmstudio", endpoint="http://localhost:1234/v1", model_name="test"
+        ),
         host="127.0.0.1",
         user="jan",
         ssh_port=22,
@@ -456,7 +466,9 @@ def test_orchestrator_can_convert_failed_verification_into_manual_followup_after
         runtime = SetupRuntime(
             profile=profile,
             bridge=bridge,
-            config=AIConfig(provider="local_lmstudio", endpoint="http://localhost:1234/v1", model_name="test"),
+            config=AIConfig(
+                provider="local_lmstudio", endpoint="http://localhost:1234/v1", model_name="test"
+            ),
             host="127.0.0.1",
             user="jan",
             ssh_port=22,
@@ -582,7 +594,9 @@ def test_orchestrator_blocks_when_required_repair_question_times_out():
     runtime = SetupRuntime(
         profile=profile,
         bridge=bridge,
-        config=AIConfig(provider="local_lmstudio", endpoint="http://localhost:1234/v1", model_name="test"),
+        config=AIConfig(
+            provider="local_lmstudio", endpoint="http://localhost:1234/v1", model_name="test"
+        ),
         host="127.0.0.1",
         user="jan",
         ssh_port=22,
