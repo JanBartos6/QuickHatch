@@ -63,6 +63,19 @@ class GPUInfo:
 
 
 @dataclass
+class DisplayInfo:
+    """Connected display information."""
+
+    name: str
+    width_px: int | None = None
+    height_px: int | None = None
+    refresh_hz: float | None = None
+    scale_percent: int | None = None
+    primary: bool = False
+    source: str = "unknown"
+
+
+@dataclass
 class DiskInfo:
     """Disk/partition information."""
 
@@ -82,6 +95,7 @@ class HardwareInfo:
     cpu_cores: int = 0
     ram_gb: float = 0.0
     gpus: list[GPUInfo] = field(default_factory=list)
+    displays: list[DisplayInfo] = field(default_factory=list)
     wifi_adapters: list[str] = field(default_factory=list)
     bluetooth: bool = False
     disks: list[DiskInfo] = field(default_factory=list)
@@ -301,11 +315,14 @@ class UserProfile:
             hw = (
                 _safe_init(
                     HardwareInfo,
-                    {k: v for k, v in hw_raw.items() if k not in ("gpus", "disks")},
+                    {k: v for k, v in hw_raw.items() if k not in ("gpus", "displays", "disks")},
                 )
                 or HardwareInfo()
             )
             hw.gpus = [g for g in (_safe_init(GPUInfo, g) for g in hw_raw.get("gpus", [])) if g]
+            hw.displays = [
+                d for d in (_safe_init(DisplayInfo, d) for d in hw_raw.get("displays", [])) if d
+            ]
             hw.disks = [d for d in (_safe_init(DiskInfo, d) for d in hw_raw.get("disks", [])) if d]
 
             return cls(

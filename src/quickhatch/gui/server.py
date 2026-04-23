@@ -1280,12 +1280,17 @@ def make_gui_server(
                         # Reflect the enriched apps in the response
                         results["apps"] = [asdict(a) for a in apps]
                     if results.get("hardware"):
-                        from quickhatch.config import DiskInfo, GPUInfo, HardwareInfo
+                        from quickhatch.config import DiskInfo, DisplayInfo, GPUInfo, HardwareInfo
 
                         hw = results["hardware"]
                         gui_state.profile.hardware = HardwareInfo(
-                            **{k: v for k, v in hw.items() if k not in ("gpus", "disks")},
+                            **{
+                                k: v
+                                for k, v in hw.items()
+                                if k not in ("gpus", "displays", "disks")
+                            },
                             gpus=[GPUInfo(**g) for g in hw.get("gpus", [])],
+                            displays=[DisplayInfo(**d) for d in hw.get("displays", [])],
                             disks=[DiskInfo(**d) for d in hw.get("disks", [])],
                         )
                     if results.get("settings"):

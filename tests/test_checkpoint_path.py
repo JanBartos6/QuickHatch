@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 
 from quickhatch import config as config_mod
-from quickhatch.config import UserProfile
+from quickhatch.config import DisplayInfo, UserProfile
 
 
 @pytest.fixture
@@ -97,6 +97,28 @@ class TestCheckpointPath:
         assert loaded.target_hardware_override == profile.target_hardware_override
         assert loaded.default_account_password == "hunter2"
         assert loaded.remote_setup_mode == "wipe_and_reinstall"
+
+    def test_roundtrip_preserves_display_facts(self, fake_home):
+        profile = UserProfile()
+        profile.hardware.displays = [
+            DisplayInfo(
+                name="Dell U2720Q",
+                width_px=3840,
+                height_px=2160,
+                refresh_hz=60.0,
+                scale_percent=150,
+                primary=True,
+                source="winforms",
+            )
+        ]
+        profile.save_checkpoint()
+        loaded = UserProfile.load_checkpoint()
+        assert loaded is not None
+        assert len(loaded.hardware.displays) == 1
+        display = loaded.hardware.displays[0]
+        assert display.name == "Dell U2720Q"
+        assert display.width_px == 3840
+        assert display.refresh_hz == 60.0
 
     def test_malformed_nested_app_row_does_not_drop_whole_profile(self, fake_home):
         path = fake_home / ".quickhatch-checkpoint.json"

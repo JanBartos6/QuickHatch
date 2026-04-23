@@ -10,7 +10,7 @@ from pathlib import Path
 
 import psutil
 
-from quickhatch.config import DiskInfo, GPUInfo, HardwareInfo
+from quickhatch.config import DiskInfo, DisplayInfo, GPUInfo, HardwareInfo
 from quickhatch.console import print_info
 
 
@@ -289,6 +289,181 @@ def _get_linux_gpu_driver(gpu_name: str) -> str | None:
     return None
 
 
+def _coerce_int(value: object) -> int | None:
+    try:
+        ivalue = int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+    return ivalue if ivalue > 0 else None
+
+
+def _coerce_refresh_hz(value: object) -> float | None:
+    try:
+        fvalue = float(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+    return round(fvalue, 2) if fvalue > 0 else None
+
+
+def _get_displays() -> list[DisplayInfo]:
+    """Detect connected displays and their current mode."""
+    displays: list[DisplayInfo] = []
+
+    if sys.platform == "win32":
+        try:
+            result = subprocess.run(
+                [
+                    "powershell",
+                    "-NoProfile",
+                    "-Command",
+                    r"""
+Add-Type -AssemblyName System.Windows.Forms
+$refresh = Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue |
+  Where-Object { $_.CurrentRefreshRate } |
+  Select-Object -First 1 -ExpandProperty CurrentRefreshRate
+[System.Windows.Forms.Screen]::AllScreens |
+  ForEach-Object {
+    [pscustomobject]@{
+      Name = $_.DeviceName
+      Width = $_.Bounds.Width
+      Height = $_.Bounds.Height
+      RefreshHz = $refresh
+      ScalePercent = $null
+      Primary = $_.Primary
+      Source = 'winforms'
+    }
+  } | ConvertTo-Json -Compress
+""",
+                ],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=15,
+            )
+            raw = (result.stdout or "").strip()
+            if raw:
+                data = json.loads(raw)
+                rows = data if isinstance(data, list) else [data]
+                for row in rows:
+                    name = str((row or {}).get("Name") or "").strip()
+                    if not name:
+                        continue
+                    displays.append(
+                        DisplayInfo(
+                            name=name,
+                            width_px=_coerce_int((row or {}).get("Width")),
+                            height_px=_coerce_int((row or {}).get("Height")),
+                            refresh_hz=_coerce_refresh_hz((row or {}).get("RefreshHz")),
+                            scale_percent=_coerce_int((row or {}).get("ScalePercent")),
+                            primary=bool((row or {}).get("Primary")),
+                            source=str((row or {}).get("Source") or "winforms"),
+                        )
+                    )
+        except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            pass
+
+    elif sys.platform == "linux":
+        try:
+            result = subprocess.run(
+                ["xrandr", "--query"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            current_name = None
+            current_primary = False
+            for raw_line in (result.stdout or "").splitlines():
+                line = raw_line.rstrip()
+                if " connected" in line and not line.startswith(" "):
+                    parts = line.split()
+                    current_name = parts[0]
+                    current_primary = " primary " in f" {line} "
+                    width = height = None
+                    if len(parts) >= 3:
+                        for part in parts[2:]:
+                            if "x" in part and "+" in part:
+                                mode = part.split("+", 1)[0]
+                                if "x" in mode:
+                                    try:
+                                        width, height = [int(x) for x in mode.split("x", 1)]
+                                    except ValueError:
+                                        width = height = None
+                                break
+                    displays.append(
+                        DisplayInfo(
+                            name=current_name,
+                            width_px=width,
+                            height_px=height,
+                            primary=current_primary,
+                            source="xrandr",
+                        )
+                    )
+                    continue
+                if current_name and line.startswith(" ") and "*" in line and displays:
+                    mode_bits = line.split()
+                    if mode_bits:
+                        mode = mode_bits[0]
+                        if "x" in mode:
+                            try:
+                                displays[-1].width_px, displays[-1].height_px = [
+                                    int(x) for x in mode.split("x", 1)
+                                ]
+                            except ValueError:
+                                pass
+                    for token in mode_bits[1:]:
+                        if token.endswith("*"):
+                            token = token.rstrip("*+")
+                        try:
+                            displays[-1].refresh_hz = round(float(token.rstrip("+*")), 2)
+                            break
+                        except ValueError:
+                            continue
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
+
+    elif sys.platform == "darwin":
+        try:
+            result = subprocess.run(
+                ["system_profiler", "SPDisplaysDataType", "-json"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            data = json.loads(result.stdout or "{}")
+            is_first = True
+            for gpu in data.get("SPDisplaysDataType", []):
+                for display in gpu.get("spdisplays_ndrvs", []):
+                    name = (
+                        display.get("_name")
+                        or display.get("spdisplays_display-product-name")
+                        or gpu.get("sppci_model")
+                        or "Display"
+                    )
+                    resolution = str(display.get("_spdisplays_resolution") or "")
+                    width = height = None
+                    if " x " in resolution:
+                        try:
+                            width, height = [int(x.strip()) for x in resolution.split(" x ", 1)]
+                        except ValueError:
+                            width = height = None
+                    displays.append(
+                        DisplayInfo(
+                            name=name,
+                            width_px=width,
+                            height_px=height,
+                            refresh_hz=_coerce_refresh_hz(display.get("spdisplays_refresh_rate")),
+                            primary=is_first,
+                            source="system_profiler",
+                        )
+                    )
+                    is_first = False
+        except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            pass
+
+    return displays
+
+
 def _get_wifi() -> list[str]:
     """Detect WiFi adapters."""
     adapters = []
@@ -493,6 +668,7 @@ def scan() -> HardwareInfo:
     cpu_name, cpu_cores = _get_cpu()
     ram = _get_ram()
     gpus = _get_gpus()
+    displays = _get_displays()
     wifi = _get_wifi()
     bluetooth = _get_bluetooth()
     disks = _get_disks()
@@ -503,6 +679,7 @@ def scan() -> HardwareInfo:
         cpu_cores=cpu_cores,
         ram_gb=ram,
         gpus=gpus,
+        displays=displays,
         wifi_adapters=wifi,
         bluetooth=bluetooth,
         disks=disks,
@@ -514,6 +691,14 @@ def scan() -> HardwareInfo:
     for gpu in gpus:
         vram_str = f" ({gpu.vram_mb} MB)" if gpu.vram_mb else ""
         print_info(f"GPU: {gpu.name}{vram_str} [{gpu.vendor}]")
+    for display in displays:
+        mode = ""
+        if display.width_px and display.height_px:
+            mode = f" {display.width_px}x{display.height_px}"
+            if display.refresh_hz:
+                mode += f" @{display.refresh_hz:g}Hz"
+        primary = " [primary]" if display.primary else ""
+        print_info(f"Display: {display.name}{mode}{primary}")
     print_info(f"Disks: {len(disks)} partitions found")
     print_info(f"WiFi adapters: {len(wifi)}")
     print_info(f"Bluetooth: {'Yes' if bluetooth else 'No'}")

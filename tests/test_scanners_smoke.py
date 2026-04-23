@@ -138,6 +138,58 @@ class TestLinuxPackageScanners:
         assert apps_mod._scan_pacman() == []
 
 
+class TestHardwareDisplayScanner:
+    def test_windows_display_scan_parses_current_mode(self, monkeypatch):
+        import sys as _sys
+
+        from quickhatch.scanners import hardware as hw_mod
+
+        payload = (
+            '[{"Name":"\\\\.\\\\DISPLAY1","Width":3840,"Height":2160,"RefreshHz":60,'
+            '"ScalePercent":150,"Primary":true,"Source":"winforms"}]'
+        )
+        monkeypatch.setattr(
+            subprocess,
+            "run",
+            lambda *a, **k: SimpleNamespace(returncode=0, stdout=payload, stderr=""),
+        )
+        monkeypatch.setattr(_sys, "platform", "win32")
+
+        displays = hw_mod._get_displays()
+        assert len(displays) == 1
+        assert displays[0].name == "\\.\\DISPLAY1"
+        assert displays[0].width_px == 3840
+        assert displays[0].height_px == 2160
+        assert displays[0].refresh_hz == 60.0
+        assert displays[0].scale_percent == 150
+        assert displays[0].primary is True
+
+    def test_linux_display_scan_uses_current_xrandr_mode(self, monkeypatch):
+        import sys as _sys
+
+        from quickhatch.scanners import hardware as hw_mod
+
+        output = (
+            "HDMI-A-1 connected primary 2560x1440+0+0\n"
+            "   3840x2160     29.98\n"
+            "   2560x1440     59.91*+\n"
+        )
+        monkeypatch.setattr(
+            subprocess,
+            "run",
+            lambda *a, **k: SimpleNamespace(returncode=0, stdout=output, stderr=""),
+        )
+        monkeypatch.setattr(_sys, "platform", "linux")
+
+        displays = hw_mod._get_displays()
+        assert len(displays) == 1
+        assert displays[0].name == "HDMI-A-1"
+        assert displays[0].primary is True
+        assert displays[0].width_px == 2560
+        assert displays[0].height_px == 1440
+        assert displays[0].refresh_hz == 59.91
+
+
 # ---------------------------------------------------------------------------
 # settings scanner smoke test
 # ---------------------------------------------------------------------------
