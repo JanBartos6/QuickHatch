@@ -2037,7 +2037,7 @@ const stepRenderers={
           <div class="apps-list" id="appsList"></div>
 
           <div class="stack-h" style="margin-top:var(--s3);gap:var(--s2)">
-            <button class="btn btn-ghost btn-sm" onclick="appsBulk(true)">Select all visible</button>
+            <button class="btn btn-ghost btn-sm" id="appsBulkToggle" onclick="appsBulkToggle()">Select all visible</button>
             <button class="btn btn-ghost btn-sm" onclick="appsBulk(false)">Clear visible</button>
             <button class="btn btn-ghost btn-sm" onclick="appsSmartSelect()">Smart select</button>
           </div>
@@ -3223,6 +3223,22 @@ function renderAppsList(apps){
   updateAppsStats();
 }
 
+function updateAppsBulkLabels(){
+  const visible=[...document.querySelectorAll('.app-row:not(.hidden) .app-check')];
+  const bulk=el('appsBulkToggle');
+  if(bulk){
+    const allVisibleSelected=visible.length>0&&visible.every(c=>c.checked);
+    bulk.textContent=allVisibleSelected?'Unselect all visible':'Select all visible';
+  }
+  document.querySelectorAll('.apps-group').forEach(group=>{
+    const checks=[...group.querySelectorAll('.app-row:not(.hidden) .app-check')];
+    const label=group.querySelector('.apps-group-toggle .dim');
+    if(!label)return;
+    const allSelected=checks.length>0&&checks.every(c=>c.checked);
+    label.textContent=allSelected?'Unselect all':'Select all';
+  });
+}
+
 function toggleGroup(btn){
   const group=btn.closest('.apps-group');
   const visibleChecks=[...group.querySelectorAll('.app-row:not(.hidden) .app-check')];
@@ -3269,6 +3285,12 @@ function appsBulk(select){
   persistAppsDataDraft();
 }
 
+function appsBulkToggle(){
+  const visible=[...document.querySelectorAll('.app-row:not(.hidden) .app-check')];
+  const allSelected=visible.length>0&&visible.every(c=>c.checked);
+  appsBulk(!allSelected);
+}
+
 function appsSmartSelect(){
   // Select everything that has Linux-native or alternative compatibility
   const rows=[...document.querySelectorAll('.app-row')];
@@ -3292,6 +3314,7 @@ function updateAppsStats(){
   const selEl=el('appStatsSelected');
   if(foundEl)foundEl.textContent=visible===total?`${total} apps`:`${visible} of ${total} apps`;
   if(selEl)selEl.textContent=`${selected} selected`;
+  updateAppsBulkLabels();
 }
 
 async function submitAppsData(){

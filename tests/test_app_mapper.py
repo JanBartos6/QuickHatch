@@ -213,6 +213,16 @@ class TestCuratedCatalog:
         assert "Games are handled through launchers." in html
         assert "Launchers & gaming tools" in html
 
+    def test_app_bulk_select_button_can_toggle_to_unselect(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert 'id="appsBulkToggle"' in html
+        assert "function appsBulkToggle()" in html
+        assert "Unselect all visible" in html
+        assert "Unselect all" in html
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
