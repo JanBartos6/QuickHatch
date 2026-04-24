@@ -1,0 +1,365 @@
+{
+  "schema": 1,
+  "batch": "004",
+  "part": 16,
+  "source_batch": "src/quickhatch/data/app_catalog.research_batch_004_part_016.json",
+  "generated_on": "2026-04-25",
+  "entries": [
+    {
+      "id": "winget:360.360VirtualVault",
+      "name": "360 Virtual Vault",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Cryptomator",
+        "VeraCrypt"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "security",
+      "notes": "360 Virtual Vault is presented as a 360 Total Security PC security tool; no native Linux package was identified. Use a Linux-native encryption tool instead.",
+      "install_hints": {
+        "arch": {
+          "source": "flatpak",
+          "packages": [
+            "org.cryptomator.Cryptomator"
+          ],
+          "notes": "Install Cryptomator from Flathub as a Linux-native file-encryption alternative."
+        },
+        "debian": {
+          "source": "flatpak",
+          "packages": [
+            "org.cryptomator.Cryptomator"
+          ],
+          "notes": "Install Cryptomator from Flathub as a Linux-native file-encryption alternative."
+        },
+        "ubuntu": {
+          "source": "flatpak",
+          "packages": [
+            "org.cryptomator.Cryptomator"
+          ],
+          "notes": "Install Cryptomator from Flathub as a Linux-native file-encryption alternative."
+        },
+        "fedora": {
+          "source": "flatpak",
+          "packages": [
+            "org.cryptomator.Cryptomator"
+          ],
+          "notes": "Install Cryptomator from Flathub as a Linux-native file-encryption alternative."
+        },
+        "opensuse": {
+          "source": "flatpak",
+          "packages": [
+            "org.cryptomator.Cryptomator"
+          ],
+          "notes": "Install Cryptomator from Flathub as a Linux-native file-encryption alternative."
+        },
+        "alpine": {
+          "source": "flatpak",
+          "packages": [
+            "org.cryptomator.Cryptomator"
+          ],
+          "notes": "Install Cryptomator from Flathub as a Linux-native file-encryption alternative."
+        },
+        "void": {
+          "source": "flatpak",
+          "packages": [
+            "org.cryptomator.Cryptomator"
+          ],
+          "notes": "Install Cryptomator from Flathub as a Linux-native file-encryption alternative."
+        },
+        "gentoo": {
+          "source": "flatpak",
+          "packages": [
+            "org.cryptomator.Cryptomator"
+          ],
+          "notes": "Install Cryptomator from Flathub as a Linux-native file-encryption alternative."
+        }
+      },
+      "evidence": [
+        {
+          "label": "360 Virtual Vault",
+          "url": "https://www.360totalsecurity.com/en/tools/virtual-vault/"
+        },
+        {
+          "label": "Cryptomator Flathub",
+          "url": "https://flathub.org/en/apps/org.cryptomator.Cryptomator"
+        }
+      ]
+    },
+    {
+      "id": "winget:DoubleGIS.2GIS",
+      "name": "2GIS",
+      "compatibility": "wine",
+      "alternatives": [
+        "2GIS web/mobile",
+        "OpenStreetMap",
+        "QGIS"
+      ],
+      "source_hint": "web",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "2GIS publishes a Linux archive for the PC version, but its own download page says Linux use requires Wine 1.5 or newer.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "wine"
+          ],
+          "notes": "Install Wine from the distro repository, then use the 2GIS Linux .orig.zip archive and city database from 2GIS."
+        },
+        "debian": {
+          "source": "repo",
+          "packages": [
+            "wine"
+          ],
+          "notes": "Install Wine from the distro repository, then use the 2GIS Linux .orig.zip archive and city database from 2GIS."
+        },
+        "ubuntu": {
+          "source": "repo",
+          "packages": [
+            "wine"
+          ],
+          "notes": "Install Wine from the distro repository, then use the 2GIS Linux .orig.zip archive and city database from 2GIS."
+        },
+        "fedora": {
+          "source": "repo",
+          "packages": [
+            "wine"
+          ],
+          "notes": "Install Wine from the distro repository, then use the 2GIS Linux .orig.zip archive and city database from 2GIS."
+        },
+        "opensuse": {
+          "source": "repo",
+          "packages": [
+            "wine"
+          ],
+          "notes": "Install Wine from the distro repository, then use the 2GIS Linux .orig.zip archive and city database from 2GIS."
+        },
+        "alpine": {
+          "source": "repo",
+          "packages": [
+            "wine"
+          ],
+          "notes": "Install Wine from the distro repository where available, then use the 2GIS Linux .orig.zip archive and city database from 2GIS."
+        },
+        "void": {
+          "source": "repo",
+          "packages": [
+            "wine"
+          ],
+          "notes": "Install Wine from the distro repository, then use the 2GIS Linux .orig.zip archive and city database from 2GIS."
+        },
+        "gentoo": {
+          "source": "repo",
+          "packages": [
+            "app-emulation/wine-vanilla"
+          ],
+          "notes": "Install Wine from the Gentoo repository, then use the 2GIS Linux .orig.zip archive and city database from 2GIS."
+        }
+      },
+      "evidence": [
+        {
+          "label": "2GIS downloads",
+          "url": "https://info.2gis.ru/en/krasnodar/products/download"
+        },
+        {
+          "label": "Arch wine package",
+          "url": "https://archlinux.org/packages/extra/x86_64/wine/"
+        },
+        {
+          "label": "Fedora wine package",
+          "url": "https://packages.fedoraproject.org/pkgs/wine/"
+        }
+      ]
+    },
+    {
+      "id": "winget:1History.1History",
+      "name": "1History",
+      "compatibility": "native",
+      "alternatives": [
+        "1History",
+        "browser-history"
+      ],
+      "source_hint": "web",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "1History is an upstream Rust CLI that supports Chrome, Firefox, and Safari on Linux, macOS, and Windows; upstream provides Linux binaries and cargo install.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the upstream Linux release binary or cargo install onehistory; no verified distro package was recorded."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the upstream Linux release binary or cargo install onehistory; no verified distro package was recorded."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the upstream Linux release binary or cargo install onehistory; no verified distro package was recorded."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the upstream Linux release binary or cargo install onehistory; no verified distro package was recorded."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the upstream Linux release binary or cargo install onehistory; no verified distro package was recorded."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the upstream Linux release binary or cargo install onehistory; no verified distro package was recorded."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the upstream Linux release binary or cargo install onehistory; no verified distro package was recorded."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the upstream Linux release binary or cargo install onehistory; no verified distro package was recorded."
+        }
+      },
+      "evidence": [
+        {
+          "label": "1History GitHub",
+          "url": "https://github.com/localfirstapp/1History"
+        }
+      ]
+    },
+    {
+      "id": "winget:123.123pan",
+      "name": "123云盘",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "123云盘 web app",
+        "WebDAV clients",
+        "rclone"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Official 123云盘 download pages were gated during research, and a native Linux desktop package could not be verified from an accessible official source.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify the official download center manually; use the web client or WebDAV-compatible tools if available for the account."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify the official download center manually; use the web client or WebDAV-compatible tools if available for the account."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify the official download center manually; use the web client or WebDAV-compatible tools if available for the account."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify the official download center manually; use the web client or WebDAV-compatible tools if available for the account."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify the official download center manually; use the web client or WebDAV-compatible tools if available for the account."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify the official download center manually; use the web client or WebDAV-compatible tools if available for the account."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify the official download center manually; use the web client or WebDAV-compatible tools if available for the account."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify the official download center manually; use the web client or WebDAV-compatible tools if available for the account."
+        }
+      },
+      "evidence": [
+        {
+          "label": "123云盘 download center",
+          "url": "https://www.123pan.com/Downloadclient"
+        },
+        {
+          "label": "123云盘 App Store",
+          "url": "https://apps.apple.com/cn/app/123%E4%BA%91%E7%9B%98-%E4%B8%8A%E4%BC%A0%E4%B8%8B%E8%BD%BD%E4%B8%8D%E9%99%90%E9%80%9F%E7%AC%AC%E5%85%AD%E5%B9%B4/id1597682672"
+        }
+      ]
+    },
+    {
+      "id": "winget:Comsci.100PcVatFreeBridge",
+      "name": "100PcVatFreeBridge",
+      "compatibility": "native",
+      "alternatives": [
+        "100PcVatFreeBridge",
+        "LibreOffice Calc",
+        "GnuCash"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "office",
+      "notes": "Comsci publishes self-contained Ubuntu 20.04 and 22.04 deb packages for 100PcVatFreeBridge; no RPM or general distro package was identified.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "No Arch package identified; vendor only lists Ubuntu deb packages, so manual compatibility testing is required."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Vendor lists Ubuntu deb packages; verify Debian compatibility manually before use."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Use the vendor self-contained deb package for Ubuntu 20.04 or Ubuntu 22.04."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "No vendor RPM identified; use an alternative or test manually if repackaging is acceptable."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "No vendor RPM identified; use an alternative or test manually if repackaging is acceptable."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "No Alpine package identified; vendor only lists Ubuntu deb packages."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "No Void package identified; vendor only lists Ubuntu deb packages."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "No Gentoo package identified; vendor only lists Ubuntu deb packages."
+        }
+      },
+      "evidence": [
+        {
+          "label": "100PcVatFreeBridge",
+          "url": "https://comsci.co.uk/100PcVatFreeBridge"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "purpose": "Remaining unknown catalog entries for distro-family support research, batch 004 split into parts",
+  "batch": "004",
+  "part": 16,
+  "entries": [
+    {
+      "id": "winget:360.360VirtualVault",
+      "name": "360 Virtual Vault",
+      "match_names": [
+        "360 Virtual Vault",
+        "360.360VirtualVault"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "360 Virtual Vault"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DoubleGIS.2GIS",
+      "name": "2GIS",
+      "match_names": [
+        "2GIS",
+        "DoubleGIS.2GIS"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "2GIS"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:1History.1History",
+      "name": "1History",
+      "match_names": [
+        "1History",
+        "1History.1History"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "1History"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:123.123pan",
+      "name": "123云盘",
+      "match_names": [
+        "123云盘",
+        "123.123pan"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "123云盘"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Comsci.100PcVatFreeBridge",
+      "name": "100PcVatFreeBridge",
+      "match_names": [
+        "100PcVatFreeBridge",
+        "Comsci.100PcVatFreeBridge"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "100PcVatFreeBridge"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}
