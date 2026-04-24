@@ -100,3 +100,37 @@ def test_winget_parser_skips_truncated_wrapped_rows():
     )
 
     assert [row.name for row in rows] == ["Cisco Webex Network Recording Converter"]
+
+
+def test_catalog_loader_skips_truncated_generated_rows(tmp_path):
+    builder = _load_builder()
+    generated = tmp_path / "generated.json"
+    overrides = tmp_path / "overrides.json"
+
+    generated.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "entries": [
+                    {
+                        "id": "winget:1.0",
+                        "name": "Acronis Cyber Protect Home Off… Acronis.CyberProtectHomeOffice",
+                    },
+                    {"id": "winget:Valid.App", "name": "Valid App"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    overrides.write_text(json.dumps({"schema": 1, "entries": []}), encoding="utf-8")
+
+    payload = builder.build_catalog(
+        existing_path=generated,
+        overrides_path=overrides,
+        winget_lists=[],
+        winget_searches=[],
+        fetch_flathub=False,
+        flathub_limit=10,
+    )
+
+    assert [entry["name"] for entry in payload["entries"]] == ["Valid App"]

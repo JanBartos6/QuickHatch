@@ -72,6 +72,8 @@ def _entry_from_mapping(raw: dict[str, Any]) -> AppCatalogEntry | None:
     app_id = str(raw.get("id") or name).strip()
     if not name or not app_id:
         return None
+    if "…" in name or "…" in app_id:
+        return None
     match_names = tuple(
         str(v).strip() for v in raw.get("match_names", []) if str(v).strip()
     ) or (name,)

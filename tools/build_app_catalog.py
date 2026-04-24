@@ -71,12 +71,16 @@ def _dedupe(values: list[str]) -> list[str]:
 def _category_from_text(name: str, app_id: str = "", categories: list[str] | None = None) -> str:
     text = " ".join([name, app_id, *(categories or [])]).lower()
     checks = [
-        ("browsers", r"browser|web|chrome|firefox|edge|brave|chromium|librewolf|zen"),
+        ("media", r"video|audio|music|media|player|stream|obs|vlc|spotify|podcast|editor"),
+        (
+            "development",
+            r"develop|\bcode\b|programming|\bgit\b|\bide\b|terminal|database|api|"
+            r"docker|kubernetes|\bjdk\b|\bjre\b|\bjava\b|netbeans|compiler|\bsdk\b",
+        ),
+        ("browsers", r"browser|web|chrome|firefox|\bedge\b|brave|chromium|librewolf|zen"),
         ("communication", r"chat|mail|messag|discord|slack|teams|telegram|signal|zoom|matrix"),
-        ("development", r"develop|code|programming|git|ide|terminal|database|api|docker|kubernetes"),
         ("gaming-tools", r"game|steam|proton|lutris|heroic|bottles|launcher|minecraft"),
         ("graphics", r"graphics|photo|image|paint|vector|drawing|krita|gimp|inkscape|blender"),
-        ("media", r"video|audio|music|media|player|stream|obs|vlc|spotify|podcast"),
         ("office", r"office|document|pdf|notes|markdown|calendar|spreadsheet|presentation"),
         ("security", r"password|vpn|security|auth|bitwarden|keepass|firewall"),
         ("utilities", r"utility|tool|system|backup|sync|file|archive|clipboard|monitor"),
@@ -91,6 +95,8 @@ def _row_from_mapping(raw: dict[str, Any]) -> CatalogRow | None:
     name = str(raw.get("name") or "").strip()
     app_id = str(raw.get("id") or name).strip()
     if not name or not app_id:
+        return None
+    if "…" in name or "…" in app_id:
         return None
     return CatalogRow(
         id=app_id,
