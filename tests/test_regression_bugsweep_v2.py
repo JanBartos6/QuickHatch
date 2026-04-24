@@ -273,6 +273,19 @@ class TestFrontendProfileSync:
         assert "saveProfile({additional_info:text}, {silentError:true})" in html
         assert "saveProfile({\n    preferences:{" in html or "saveProfile({preferences:{" in html
 
+    def test_reset_all_data_returns_to_first_step_without_rewriting_draft(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "_resettingAllData:false" in html
+        assert "if(state._resettingAllData)return;" in html
+        assert "if(state._resettingAllData)return state.profile||{};" in html
+        assert "state._resettingAllData=true;" in html
+        assert "state.currentStep=0;" in html
+        assert "QuickHatch data cleared. Back at the first step." in html
+        assert "window.location.reload()" not in html
+
     def test_export_step_keeps_success_visible_until_user_continues(self):
         from pathlib import Path
 

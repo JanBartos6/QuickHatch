@@ -984,6 +984,7 @@ let state={
   _shadowRestoreInFlight:false,
   _autosaveTimers:{},
   _draft:null,
+  _resettingAllData:false,
 };
 
 const WIZARD_DRAFT_KEY='qh-wizard-draft-v1';
@@ -1029,6 +1030,12 @@ function saveProfileShadow(profile){
 function clearClientWizardPersistence(){
   try{localStorage.removeItem(WIZARD_DRAFT_KEY);}catch(_){}
   try{localStorage.removeItem(PROFILE_SHADOW_KEY);}catch(_){}
+  if(_profileSnapshotTimer){
+    clearTimeout(_profileSnapshotTimer);
+    _profileSnapshotTimer=null;
+  }
+  Object.values(state._autosaveTimers||{}).forEach(t=>clearTimeout(t));
+  state._autosaveTimers={};
   state._draft={};
   state._profileShadow=null;
   state._needsShadowRestore=false;
@@ -1172,6 +1179,7 @@ function buildProfileFromDraft(baseProfile){
 }
 
 function persistWizardProgressDraft(){
+  if(state._resettingAllData)return;
   if(!state._draft||typeof state._draft!=='object')state._draft={};
   if(!state._draft._wizard||typeof state._draft._wizard!=='object')state._draft._wizard={};
   state._draft._wizard.completed_steps=[...(state.completedSteps||[])];
@@ -1194,6 +1202,7 @@ function persistAIDraft(){
 }
 
 function captureInFlightDraftForCurrentStep(){
+  if(state._resettingAllData)return;
   const stepId=(STEPS[state.currentStep]||{}).id||'';
   if(stepId==='welcome'){
     const t=getSelected('migType');
@@ -1221,6 +1230,7 @@ function captureInFlightDraftForCurrentStep(){
 }
 
 function snapshotClientProfile(){
+  if(state._resettingAllData)return state.profile||{};
   captureInFlightDraftForCurrentStep();
   const profile=buildProfileFromDraft(state.profile||{});
   writeProfileShadow(profile);
@@ -1229,6 +1239,7 @@ function snapshotClientProfile(){
 
 let _profileSnapshotTimer=null;
 function scheduleProfileSnapshot(){
+  if(state._resettingAllData)return;
   if(_profileSnapshotTimer)clearTimeout(_profileSnapshotTimer);
   _profileSnapshotTimer=setTimeout(()=>{
     _profileSnapshotTimer=null;
@@ -1375,14 +1386,34 @@ async function resetAllData(){
     + 'Your own manually-provided SSH keys are not deleted.'
   );
   if(!confirmed)return;
-  const resp=await api('/wizard/reset-all','POST',{});
-  if(!resp||resp.status!=='ok'){
-    toast((resp&&resp.message)||'Could not clear QuickHatch data.','error');
-    return;
+  state._resettingAllData=true;
+  try{
+    const resp=await api('/wizard/reset-all','POST',{});
+    if(!resp||resp.status!=='ok'){
+      toast((resp&&resp.message)||'Could not clear QuickHatch data.','error');
+      state._resettingAllData=false;
+      return;
+    }
+    clearClientWizardPersistence();
+    state.profile=resp.profile||state.profile;
+    state.completedSteps=[];
+    state.currentStep=0;
+    state.agentConnected=false;
+    state._agentDone=false;
+    state._setupStarted=false;
+    state._setupDone=false;
+    state._sshSkipped=false;
+    state._sshTestOk=false;
+    state._showOwnKeyInput=false;
+    state._lastMsgCount=-1;
+    state._lastSugCount=undefined;
+    refreshSteps();
+    state.currentStep=0;
+    render();
+    toast('QuickHatch data cleared. Back at the first step.','success');
+  }finally{
+    state._resettingAllData=false;
   }
-  clearClientWizardPersistence();
-  toast('QuickHatch data cleared. Reloading…','success');
-  setTimeout(()=>window.location.reload(), 180);
 }
 
 function render(){
