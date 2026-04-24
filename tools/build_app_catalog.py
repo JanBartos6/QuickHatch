@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 import urllib.request
 from dataclasses import dataclass, field
@@ -21,6 +22,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "src" / "quickhatch" / "data"
 FLATHUB_POPULAR_URL = "https://flathub.org/api/v2/collection/popular"
+WINGET_BROAD_SEARCH_QUERIES = ("a", "e", "i", "o", "u", "s", "m", "c", "d", "p", "t", "g", "r", "l")
 
 
 @dataclass
@@ -148,13 +150,17 @@ def fetch_flathub_popular(limit: int = 500) -> list[CatalogRow]:
     return rows
 
 
-def parse_winget_list(path: Path) -> list[CatalogRow]:
-    """Parse a saved `winget list` output as low-confidence catalog candidates."""
-
+def parse_winget_table_text(text: str) -> list[CatalogRow]:
+    """Parse winget list/search table output as low-confidence candidates."""
     rows: list[CatalogRow] = []
-    for raw_line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+    for raw_line in text.splitlines():
         line = raw_line.strip()
-        if not line or line.startswith("-") or line.lower().startswith(("name ", "winget ")):
+        if (
+            not line
+            or line.startswith("-")
+            or "…" in line
+            or line.lower().startswith(("name ", "winget ", "no package", "the source"))
+        ):
             continue
         # winget list is column-aligned. The package identifier is usually the
         # first token containing a dot after at least two spaces.
@@ -179,6 +185,39 @@ def parse_winget_list(path: Path) -> list[CatalogRow]:
             )
         )
     return rows
+
+
+def parse_winget_list(path: Path) -> list[CatalogRow]:
+    """Parse a saved winget list/search output as low-confidence catalog candidates."""
+
+    return parse_winget_table_text(path.read_text(encoding="utf-8", errors="ignore"))
+
+
+def run_winget_search(query: str, count: int = 1000) -> list[CatalogRow]:
+    """Run `winget search` and convert the result table into catalog candidates."""
+
+    completed = subprocess.run(
+        [
+            "winget",
+            "search",
+            query,
+            "--source",
+            "winget",
+            "--accept-source-agreements",
+            "--disable-interactivity",
+            "--count",
+            str(count),
+        ],
+        check=False,
+        capture_output=True,
+        encoding="utf-8",
+        errors="ignore",
+        text=True,
+    )
+    text = "\n".join(part for part in (completed.stdout, completed.stderr) if part)
+    if completed.returncode not in (0, 1):
+        print(f"warning: winget search {query!r} exited {completed.returncode}", file=sys.stderr)
+    return parse_winget_table_text(text)
 
 
 def merge_rows(groups: list[list[CatalogRow]]) -> list[CatalogRow]:
@@ -239,6 +278,7 @@ def build_catalog(
     existing_path: Path,
     overrides_path: Path,
     winget_lists: list[Path],
+    winget_searches: list[str],
     fetch_flathub: bool,
     flathub_limit: int,
 ) -> dict[str, Any]:
@@ -253,6 +293,8 @@ def build_catalog(
             print(f"warning: Flathub fetch failed: {exc}", file=sys.stderr)
     for winget_list in winget_lists:
         source_groups.append(parse_winget_list(winget_list))
+    for query in winget_searches:
+        source_groups.append(run_winget_search(query))
     override_rows = load_catalog_file(overrides_path)
     if override_rows:
         source_groups.append(override_rows)
@@ -276,14 +318,30 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--existing", type=Path, default=DATA_DIR / "app_catalog.generated.json")
     parser.add_argument("--overrides", type=Path, default=DATA_DIR / "app_catalog.overrides.json")
     parser.add_argument("--winget-list", type=Path, action="append", default=[])
+    parser.add_argument(
+        "--winget-search",
+        action="append",
+        default=[],
+        help="Run winget search QUERY and import results as low-confidence candidates.",
+    )
+    parser.add_argument(
+        "--winget-search-preset",
+        choices=["broad"],
+        help="Run a predefined broad set of winget searches to seed thousands of Windows app names.",
+    )
     parser.add_argument("--no-network", action="store_true", help="Skip Flathub refresh.")
     parser.add_argument("--flathub-limit", type=int, default=500)
     args = parser.parse_args(argv)
+
+    winget_searches = list(args.winget_search or [])
+    if args.winget_search_preset == "broad":
+        winget_searches.extend(WINGET_BROAD_SEARCH_QUERIES)
 
     payload = build_catalog(
         existing_path=args.existing,
         overrides_path=args.overrides,
         winget_lists=list(args.winget_list or []),
+        winget_searches=winget_searches,
         fetch_flathub=not args.no_network,
         flathub_limit=args.flathub_limit,
     )

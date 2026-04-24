@@ -76,6 +76,7 @@ def test_catalog_builder_merges_existing_winget_and_curated_overrides(tmp_path):
         existing_path=existing,
         overrides_path=overrides,
         winget_lists=[winget_list],
+        winget_searches=[],
         fetch_flathub=False,
         flathub_limit=10,
     )
@@ -86,3 +87,16 @@ def test_catalog_builder_merges_existing_winget_and_curated_overrides(tmp_path):
     assert "FooApp" in entries["Foo App"]["match_names"]
     assert entries["Mystery Tool"]["source_hint"] == "needs_research"
     assert entries["Mystery Tool"]["confidence"] == "low"
+
+
+def test_winget_parser_skips_truncated_wrapped_rows():
+    builder = _load_builder()
+
+    rows = builder.parse_winget_table_text(
+        "Name                                      Id                     Version\n"
+        "-----------------------------------------------------------------------\n"
+        "Cisco Webex Network Recording Converter   Cisco.WebexConverter   1.0\n"
+        "Cisco Webex Network Recording Conve… Cisco.WebexNetworkRecordingConverter   45.6\n"
+    )
+
+    assert [row.name for row in rows] == ["Cisco Webex Network Recording Converter"]
