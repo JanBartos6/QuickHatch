@@ -6,6 +6,7 @@ import json
 import re
 from pathlib import Path
 
+from quickhatch.analysis.app_catalog import match_catalog_entry
 from quickhatch.config import AppInfo
 from quickhatch.console import print_info
 
@@ -107,6 +108,20 @@ def map_apps(apps: list[AppInfo]) -> list[AppInfo]:
     mapped_count = 0
 
     for app in apps:
+        catalog_entry = match_catalog_entry(app.name)
+        if catalog_entry is not None:
+            app.linux_alternative = ", ".join(catalog_entry.alternatives)
+            app.compatibility = catalog_entry.compatibility
+            details = [
+                f"source={catalog_entry.source_hint}",
+                f"confidence={catalog_entry.confidence}",
+            ]
+            if catalog_entry.notes:
+                details.append(catalog_entry.notes)
+            app.notes = "; ".join(details)
+            mapped_count += 1
+            continue
+
         # Check direct database match
         match = _fuzzy_match(app.name, db)
         if match:

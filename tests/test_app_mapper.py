@@ -59,7 +59,7 @@ class TestNativeLinuxDetection:
 
     def test_short_native_tokens_do_not_poison_longer_words(self):
         apps = [
-            AppInfo(name="GitHub Desktop", source="winget"),
+            AppInfo(name="LegitApp", source="winget"),
             AppInfo(name="SignalRGB", source="registry"),
             AppInfo(name="Codec Pack", source="registry"),
             AppInfo(name="Nodepad", source="registry"),
@@ -170,6 +170,48 @@ class TestRealWorldSamples:
         recognized = [a for a in mapped if a.compatibility != "unknown"]
         # At least 75% should be recognized out of this hand-picked list
         assert len(recognized) >= len(names) * 0.75
+
+
+class TestCuratedCatalog:
+    def test_generated_catalog_has_large_popular_app_seed(self):
+        from quickhatch.analysis.app_catalog import load_catalog
+
+        generated = [entry for entry in load_catalog() if not entry.id.startswith("legacy:")]
+        assert len(generated) >= 500
+
+    def test_catalog_maps_popular_flathub_app_without_model_call(self):
+        apps = [AppInfo(name="GitHub Desktop", source="winget")]
+        mapped = map_apps(apps)
+        assert mapped[0].compatibility == "native"
+        assert "GitHub Desktop" in (mapped[0].linux_alternative or "")
+        assert "source=flatpak" in mapped[0].notes
+
+    def test_catalog_keeps_launchers_but_filters_individual_games(self):
+        from quickhatch.analysis.app_catalog import filter_migration_apps
+
+        apps = [
+            AppInfo(name="Steam", source="winget"),
+            AppInfo(name="Heroic Games Launcher", source="winget"),
+            AppInfo(name="Cyberpunk 2077", source="registry"),
+            AppInfo(name="Elden Ring", source="registry"),
+            AppInfo(name="Discord", source="winget"),
+        ]
+
+        visible = filter_migration_apps(apps)
+        names = [app.name for app in visible]
+        assert "Steam" in names
+        assert "Heroic Games Launcher" in names
+        assert "Discord" in names
+        assert "Cyberpunk 2077" not in names
+        assert "Elden Ring" not in names
+
+    def test_scan_ui_explains_game_filtering(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "Games are handled through launchers." in html
+        assert "Launchers & gaming tools" in html
 
 
 if __name__ == "__main__":

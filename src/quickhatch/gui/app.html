@@ -2029,6 +2029,10 @@ const stepRenderers={
             <span class="compat-badge compat-alt"><span class="compat-dot"></span>Has a good alternative</span>
             <span class="compat-badge compat-unknown"><span class="compat-dot"></span>Agent will figure it out</span>
           </div>
+          <div class="info-box" style="margin-bottom:var(--s3)">
+            <strong>Games are handled through launchers.</strong>
+            <p class="muted" style="font-size:var(--t-xs);margin:var(--s1) 0 0">QuickHatch hides individual game titles here. Select Steam, Heroic, Lutris, Bottles, or Proton tools instead; the setup plan will configure drivers, Proton, and launchers.</p>
+          </div>
 
           <div class="apps-list" id="appsList"></div>
 
@@ -3146,7 +3150,7 @@ const APP_CATEGORIES = [
   {id:'media', title:'Media', match:/\b(vlc|spotify|audacity|obs|obs studio|handbrake|kodi|plex|winamp|foobar|blender|davinci resolve|premiere|after effects|shotcut|kdenlive|photoshop|illustrator|lightroom|gimp|inkscape|krita|figma|affinity)\b/i},
   {id:'office', title:'Office & Productivity', match:/\b(libreoffice|microsoft 365|microsoft office|word|excel|powerpoint|onenote|outlook|notion|obsidian|evernote|todoist|onedrive|dropbox|google drive|icloud|zotero|mendeley|typora)\b/i},
   {id:'communication', title:'Communication', match:/\b(discord|slack|zoom|teams|skype|whatsapp|signal|telegram|thunderbird|mailbird|betterbird)\b/i},
-  {id:'gaming', title:'Gaming', match:/\b(steam|epic games|ubisoft connect|ea( app)?|origin|battle\.net|gog galaxy|heroic|lutris|minecraft|proton|playnite|riot( client)?|rockstar)\b/i},
+  {id:'gaming', title:'Launchers & gaming tools', match:/\b(steam|epic games|ubisoft connect|ea( app)?|origin|battle\.net|gog galaxy|heroic|lutris|bottles|proton|protonup|protontricks|playnite|riot( client)?|rockstar)\b/i},
   {id:'utilities', title:'Utilities', match:/\b(7-zip|winrar|winzip|notepad\+\+|everything|flameshot|sharex|greenshot|autohotkey|powertoys|rufus|ventoy|balena|crystaldisk|hwinfo|cpu-?z|gpu-?z|msi afterburner|cpuid|speccy|hwmonitor|teracopy|fastcopy)\b/i},
   {id:'security', title:'Security & VPN', match:/\b(bitwarden|1password|lastpass|keepassxc?|mullvad|nordvpn|protonvpn|wireguard|openvpn|malwarebytes|windscribe)\b/i},
   {id:'system', title:'System & Drivers', match:/\b(nvidia|realtek|intel(r)?|amd|razer|logitech|corsair|steelseries|asus|msi|gigabyte|dell|hp |lenovo|broadcom|microsoft visual c\+\+|\.net|dotnet|direct ?x|windows sdk|openssh)\b/i},

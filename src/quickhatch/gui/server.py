@@ -1303,6 +1303,7 @@ def make_gui_server(
                 results = _run_scan()
                 with gui_state.lock:
                     if results.get("apps"):
+                        from quickhatch.analysis.app_catalog import filter_migration_apps
                         from quickhatch.analysis.app_mapper import map_apps
                         from quickhatch.config import AppInfo
 
@@ -1311,6 +1312,7 @@ def make_gui_server(
                             apps = map_apps(apps)
                         except Exception:
                             pass
+                        apps = filter_migration_apps(apps)
                         gui_state.profile.apps = apps
                         # Reflect the enriched apps in the response
                         results["apps"] = [asdict(a) for a in apps]
