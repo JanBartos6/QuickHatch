@@ -1,0 +1,1611 @@
+{
+  "schema": 1,
+  "purpose": "100 unknown catalog entries for distro-family support research, batch 003 split into 5 parts",
+  "batch": "003",
+  "part": 4,
+  "entries": [
+    {
+      "id": "winget:BinaryMark.BatchImageResizer",
+      "name": "Batch Image Resizer Free Edition",
+      "match_names": [
+        "Batch Image Resizer Free Edition",
+        "BinaryMark.BatchImageResizer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch Image Resizer Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchImageEnhancer",
+      "name": "Batch Image Enhancer Free Edition",
+      "match_names": [
+        "Batch Image Enhancer Free Edition",
+        "BinaryMark.BatchImageEnhancer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch Image Enhancer Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchImageConverter",
+      "name": "Batch Image Converter Free Edition",
+      "match_names": [
+        "Batch Image Converter Free Edition",
+        "BinaryMark.BatchImageConverter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch Image Converter Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Axialis.IconVectors",
+      "name": "Axialis IconVectors",
+      "match_names": [
+        "Axialis IconVectors"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Axialis IconVectors"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ascensio.AVSImageConverter",
+      "name": "AVS Image Converter",
+      "match_names": [
+        "AVS Image Converter",
+        "Ascensio.AVSImageConverter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AVS Image Converter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CI010.XMinecraftLauncher",
+      "name": "X Minecraft Launcher",
+      "match_names": [
+        "X Minecraft Launcher",
+        "CI010.XMinecraftLauncher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "X Minecraft Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Codeusa.SteamCleaner",
+      "name": "SteamCleaner",
+      "match_names": [
+        "SteamCleaner",
+        "Codeusa.SteamCleaner"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "SteamCleaner"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CatnipGames.ShroudoftheAvatar",
+      "name": "Shroud of the Avatar",
+      "match_names": [
+        "Shroud of the Avatar",
+        "CatnipGames.ShroudoftheAvatar"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Shroud of the Avatar"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Game1024.OpenSpeedy",
+      "name": "OpenSpeedy",
+      "match_names": [
+        "OpenSpeedy",
+        "Game1024.OpenSpeedy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "OpenSpeedy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gamebanana.Modboy",
+      "name": "Modboy",
+      "match_names": [
+        "Modboy",
+        "Gamebanana.Modboy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Modboy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gilgamech.MoarShopBot",
+      "name": "MoarShopBot",
+      "match_names": [
+        "MoarShopBot",
+        "Gilgamech.MoarShopBot"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "MoarShopBot"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Devolutions.Launcher",
+      "name": "Launcher",
+      "match_names": [
+        "Launcher",
+        "Devolutions.Launcher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CodeLyokoGames.KolossusLauncher",
+      "name": "Kolossus Launcher",
+      "match_names": [
+        "Kolossus Launcher",
+        "CodeLyokoGames.KolossusLauncher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Kolossus Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CodeLyokoGames.IFSCL.Standalone",
+      "name": "IFSCL",
+      "match_names": [
+        "IFSCL",
+        "CodeLyokoGames.IFSCL.Standalone"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "IFSCL"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GameSir.GameSirT4kApp",
+      "name": "GameSir T4k App",
+      "match_names": [
+        "GameSir T4k App",
+        "GameSir.GameSirT4kApp"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GameSir T4k App"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GameSir.GameSirConnect",
+      "name": "GameSir Connect",
+      "match_names": [
+        "GameSir Connect",
+        "GameSir.GameSirConnect"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GameSir Connect"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aida-Enna.GamebarHandler",
+      "name": "GamebarHandler",
+      "match_names": [
+        "GamebarHandler",
+        "Aida-Enna.GamebarHandler"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GamebarHandler"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Blueberry.FBX",
+      "name": "FBX Game Recorder",
+      "match_names": [
+        "FBX Game Recorder",
+        "Blueberry.FBX"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FBX Game Recorder"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CCPGames.EVEOnline",
+      "name": "eve-online",
+      "match_names": [
+        "eve-online",
+        "CCPGames.EVEOnline"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "eve-online"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EtternaProject.EtternaGame",
+      "name": "Etterna",
+      "match_names": [
+        "Etterna",
+        "EtternaProject.EtternaGame"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Etterna"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EnigmaGame.Enigma",
+      "name": "Enigma",
+      "match_names": [
+        "Enigma",
+        "EnigmaGame.Enigma"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Enigma"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bay12Games.DwarfFortressClassic",
+      "name": "Dwarf Fortress Classic",
+      "match_names": [
+        "Dwarf Fortress Classic",
+        "Bay12Games.DwarfFortressClassic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dwarf Fortress Classic"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GameGodS3.DropPoint",
+      "name": "DropPoint",
+      "match_names": [
+        "DropPoint",
+        "GameGodS3.DropPoint"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DropPoint"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aries-Sciences-LLC.AI-Chess",
+      "name": "Dr. Henry's Chess Game",
+      "match_names": [
+        "Dr. Henry's Chess Game",
+        "Aries-Sciences-LLC.AI-Chess"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dr. Henry's Chess Game"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Fangamer.Deltarune",
+      "name": "Deltarune",
+      "match_names": [
+        "Deltarune",
+        "Fangamer.Deltarune"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Deltarune"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CorporateClashCrew.ToontownCorporateClash",
+      "name": "Corporate Clash Launcher",
+      "match_names": [
+        "Corporate Clash Launcher",
+        "CorporateClashCrew.ToontownCorporateClash"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Corporate Clash Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CollapseLauncher.Collapse.Preview",
+      "name": "Collapse",
+      "match_names": [
+        "Collapse",
+        "CollapseLauncher.Collapse",
+        "CollapseLauncher.Collapse.Preview"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Collapse"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GameTec-live.ChameleonUltraGUI",
+      "name": "Chameleon Ultra GUI",
+      "match_names": [
+        "Chameleon Ultra GUI",
+        "GameTec-live.ChameleonUltraGUI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Chameleon Ultra GUI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gilgamech.Cat",
+      "name": "Cat",
+      "match_names": [
+        "Cat",
+        "Gilgamech.Cat"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cat"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CanhCutTeam.CanhCutTeamLauncher",
+      "name": "CanhCutTeam Launcher",
+      "match_names": [
+        "CanhCutTeam Launcher",
+        "CanhCutTeam.CanhCutTeamLauncher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CanhCutTeam Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BlindPandasTeam.Bookworm",
+      "name": "Bookworm",
+      "match_names": [
+        "Bookworm",
+        "BlindPandasTeam.Bookworm"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bookworm"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bloret.Launcher",
+      "name": "Bloret Launcher",
+      "match_names": [
+        "Bloret Launcher",
+        "Bloret.BloretLauncher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bloret Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BitGuardian.BitGameBooster",
+      "name": "Bit Game Booster",
+      "match_names": [
+        "Bit Game Booster",
+        "BitGuardian.BitGameBooster"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bit Game Booster"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bethesda.Launcher",
+      "name": "Bethesda.net Launcher",
+      "match_names": [
+        "Bethesda.net Launcher",
+        "Bethesda.Launcher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bethesda.net Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ATLauncher.ATLauncher",
+      "name": "ATLauncher Setup",
+      "match_names": [
+        "ATLauncher Setup",
+        "ATLauncher.ATLauncher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ATLauncher Setup"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AstrBot.AstrBotLauncher",
+      "name": "AstrBot Launcher",
+      "match_names": [
+        "AstrBot Launcher",
+        "AstrBot.AstrBotLauncher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AstrBot Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Atrix.AtrixLauncher",
+      "name": "Artix Game Launcher",
+      "match_names": [
+        "Artix Game Launcher",
+        "Atrix.AtrixLauncher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Artix Game Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ankama.AnkamaLauncher",
+      "name": "Ankama Launcher",
+      "match_names": [
+        "Ankama Launcher",
+        "Ankama.AnkamaLauncher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ankama Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Games",
+      "name": "Amazon Games",
+      "match_names": [
+        "Amazon Games"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Games"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:APIDocumentation.Scalar",
+      "name": "Scalar",
+      "match_names": [
+        "Scalar",
+        "APIDocumentation.Scalar"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Scalar"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CyberTimon.RapidRAW",
+      "name": "RapidRAW",
+      "match_names": [
+        "RapidRAW",
+        "CyberTimon.RapidRAW"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "RapidRAW"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DevelopedMethods.playit",
+      "name": "playit",
+      "match_names": [
+        "playit",
+        "DevelopedMethods.playit"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "playit"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Core-ai.PhoenixCode",
+      "name": "Phoenix Code",
+      "match_names": [
+        "Phoenix Code",
+        "Core-ai.PhoenixCode"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Phoenix Code"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CerberAuth.openapi-oathkeeper",
+      "name": "openapi-oathkeeper",
+      "match_names": [
+        "openapi-oathkeeper",
+        "CerberAuth.openapi-oathkeeper"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "openapi-oathkeeper"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:odin-lang.Odin",
+      "name": "Odin Programming Language",
+      "match_names": [
+        "Odin Programming Language",
+        "odin-lang.Odin"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Odin Programming Language"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdventDevelopmentInc.Kudu",
+      "name": "Kudu",
+      "match_names": [
+        "Kudu",
+        "AdventDevelopmentInc.Kudu"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Kudu"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ChemAxon.jchemdotnetapi",
+      "name": "JChem .NET API",
+      "match_names": [
+        "JChem .NET API",
+        "ChemAxon.jchemdotnetapi"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "JChem .NET API"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DaringDevelopmentInc.Horizon",
+      "name": "Horizon",
+      "match_names": [
+        "Horizon",
+        "DaringDevelopmentInc.Horizon"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Horizon"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gcndevelopment.GNURadio",
+      "name": "GNU Radio",
+      "match_names": [
+        "GNU Radio",
+        "Gcndevelopment.GNURadio"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GNU Radio"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GDevelop.GDevelop",
+      "name": "GDevelop",
+      "match_names": [
+        "GDevelop",
+        "GDevelop.GDevelop"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GDevelop"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EpicGames.EpicOnlineServicesSDK.CSharp",
+      "name": "EOS SDK (C#)",
+      "match_names": [
+        "EOS SDK (C#)",
+        "EpicGames.EpicOnlineServicesSDK.CSharp"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EOS SDK (C#)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DragonLang.Dragon",
+      "name": "Dragon Programming Language",
+      "match_names": [
+        "Dragon Programming Language",
+        "DragonLang.Dragon"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dragon Programming Language"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Discord.Discord.Development.arm64",
+      "name": "Discord Development (arm64)",
+      "match_names": [
+        "Discord Development (arm64)",
+        "Discord.Discord.Development.arm64"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Discord Development (arm64)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Discord.Discord.Development.x86",
+      "name": "Discord Development",
+      "match_names": [
+        "Discord Development",
+        "Discord.Discord.Development",
+        "Discord.Discord.Development.x86"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Discord Development"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gekorm.Dart.stable",
+      "name": "Dart SDK - stable channel",
+      "match_names": [
+        "Dart SDK - stable channel",
+        "Gekorm.Dart.stable"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dart SDK - stable channel"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CodeOrg.MakerApp",
+      "name": "Code.org Maker App",
+      "match_names": [
+        "Code.org Maker App",
+        "CodeOrg.MakerApp"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Code.org Maker App"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Anthropic.ClaudeCode",
+      "name": "Claude Code",
+      "match_names": [
+        "Claude Code",
+        "Anthropic.ClaudeCode"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Claude Code"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CE-Programming.CEmu",
+      "name": "CEmu",
+      "match_names": [
+        "CEmu",
+        "CE-Programming.CEmu",
+        "Cemu.Cemu"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cemu"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AppiumDevelopers.AppiumInspector",
+      "name": "Appium Inspector",
+      "match_names": [
+        "Appium Inspector",
+        "AppiumDevelopers.AppiumInspector"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Appium Inspector"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Apipost.ApiPost",
+      "name": "Apipost",
+      "match_names": [
+        "Apipost",
+        "Apipost.ApiPost"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Apipost"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CodeStory.Aide",
+      "name": "Aide",
+      "match_names": [
+        "Aide",
+        "CodeStory.Aide"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Aide"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ArcanaDevelopment.adTempus.5.Console",
+      "name": "adTempus 5 Console",
+      "match_names": [
+        "adTempus 5 Console",
+        "ArcanaDevelopment.adTempus.5.Console"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "adTempus 5 Console"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ActiveState.KomodoIDE",
+      "name": "ActiveState Komodo IDE",
+      "match_names": [
+        "ActiveState Komodo IDE",
+        "ActiveState.KomodoIDE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ActiveState Komodo IDE"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:3CX.MultilineTAPI",
+      "name": "3CX",
+      "match_names": [
+        "3CX",
+        "3CX.MultilineTAPI",
+        "3CX.Softphone"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "3CX"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Approximatrix.SimplyFortran",
+      "name": "Simply Fortran 3",
+      "match_names": [
+        "Simply Fortran 3",
+        "Approximatrix.SimplyFortran"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Simply Fortran 3"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cod-e-Codes.Marchat",
+      "name": "marchat",
+      "match_names": [
+        "marchat",
+        "Cod-e-Codes.Marchat"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "marchat"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Foundry376.Mailspring",
+      "name": "Mailspring",
+      "match_names": [
+        "Mailspring",
+        "Foundry376.Mailspring"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Mailspring"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DirkJansen.MailCheck2",
+      "name": "MailCheck 2",
+      "match_names": [
+        "MailCheck 2",
+        "DirkJansen.MailCheck2"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "MailCheck 2"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DiskInternals.MailRecoveryExpress",
+      "name": "DiskInternals Mail Recovery Express",
+      "match_names": [
+        "DiskInternals Mail Recovery Express",
+        "DiskInternals.MailRecoveryExpress"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DiskInternals Mail Recovery Express"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DiskInternals.MailRecovery",
+      "name": "DiskInternals Mail Recovery",
+      "match_names": [
+        "DiskInternals Mail Recovery",
+        "DiskInternals.MailRecovery"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DiskInternals Mail Recovery"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Discord.Discord.PTB.arm64",
+      "name": "Discord PTB (arm64)",
+      "match_names": [
+        "Discord PTB (arm64)",
+        "Discord.Discord.PTB.arm64"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Discord PTB (arm64)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Discord.Discord.PTB.x86",
+      "name": "Discord PTB",
+      "match_names": [
+        "Discord PTB",
+        "Discord.Discord.PTB",
+        "Discord.Discord.PTB.x86"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Discord PTB"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Discord.Discord.Canary.arm64",
+      "name": "Discord Canary (arm64)",
+      "match_names": [
+        "Discord Canary (arm64)",
+        "Discord.Discord.Canary.arm64"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Discord Canary (arm64)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Discord.Discord.arm64",
+      "name": "Discord (arm64)",
+      "match_names": [
+        "Discord (arm64)",
+        "Discord.Discord.arm64"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Discord (arm64)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DimonSmart.OllamaChat",
+      "name": "DimonSmart.OllamaChat",
+      "match_names": [
+        "DimonSmart.OllamaChat"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DimonSmart.OllamaChat"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ClawsMail.ClawsMail",
+      "name": "Claws Mail",
+      "match_names": [
+        "Claws Mail",
+        "ClawsMail.ClawsMail"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Claws Mail"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ChatterinoTeam.Chatterino",
+      "name": "Chatterino",
+      "match_names": [
+        "Chatterino",
+        "ChatterinoTeam.Chatterino"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Chatterino"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bin-Huang.Chatbox.CommunityEdition",
+      "name": "Chatbox CE",
+      "match_names": [
+        "Chatbox CE",
+        "Bin-Huang.Chatbox.CommunityEdition"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Chatbox CE"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bin-Huang.Chatbox",
+      "name": "Chatbox",
+      "match_names": [
+        "Chatbox",
+        "Bin-Huang.Chatbox"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Chatbox"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AI-Shifu.ChatALL",
+      "name": "ChatALL",
+      "match_names": [
+        "ChatALL",
+        "AI-Shifu.ChatALL"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ChatALL"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Blix.BlueMail",
+      "name": "BlueMail",
+      "match_names": [
+        "BlueMail",
+        "Blix.BlueMail"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BlueMail"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BitRecover.WindowsLiveMailConverter",
+      "name": "BitRecover Windows Live Mail Converter Wizard",
+      "match_names": [
+        "BitRecover Windows Live Mail Converter Wizard",
+        "BitRecover.WindowsLiveMailConverter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BitRecover Windows Live Mail Converter Wizard"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Alibaba.AliMail",
+      "name": "AliMail",
+      "match_names": [
+        "AliMail",
+        "Alibaba.AliMail"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AliMail"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrystalRich.Zentimo",
+      "name": "Zentimo PRO",
+      "match_names": [
+        "Zentimo PRO",
+        "CrystalRich.Zentimo"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Zentimo PRO"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aignesberger.WebSiteWatcherFree",
+      "name": "WebSite-Watcher Free",
+      "match_names": [
+        "WebSite-Watcher Free",
+        "Aignesberger.WebSiteWatcherFree"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WebSite-Watcher Free"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aignesberger.WebSiteWatcher",
+      "name": "WebSite-Watcher",
+      "match_names": [
+        "WebSite-Watcher",
+        "Aignesberger.WebSiteWatcher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WebSite-Watcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Argorar.WebMConverter",
+      "name": "WebMConverter",
+      "match_names": [
+        "WebMConverter",
+        "Argorar.WebMConverter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WebMConverter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EugeneZrazhevsky.WeblocOpener",
+      "name": "WeblocOpener",
+      "match_names": [
+        "WeblocOpener",
+        "EugeneZrazhevsky.WeblocOpener"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WeblocOpener"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Approximatrix.WebFortran",
+      "name": "WebFortran Command Line Interface",
+      "match_names": [
+        "WebFortran Command Line Interface",
+        "Approximatrix.WebFortran"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WebFortran Command Line Interface"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cisco.WebexWRFtoWMV",
+      "name": "Webex WRF to WMV",
+      "match_names": [
+        "Webex WRF to WMV",
+        "Cisco.WebexWRFtoWMV"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Webex WRF to WMV"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cisco.Webex.Bundle",
+      "name": "Webex",
+      "match_names": [
+        "Webex",
+        "Cisco.Webex.Bundle"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Webex"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Diladele.WebProxy",
+      "name": "Web Filtering Proxy",
+      "match_names": [
+        "Web Filtering Proxy",
+        "Diladele.WebProxy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Web Filtering Proxy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BitTorrentLimited.uTorrentWeb",
+      "name": "uTorrent Web",
+      "match_names": [
+        "uTorrent Web",
+        "BitTorrentLimited.uTorrentWeb"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "uTorrent Web"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CenSoft.TinyTERMPlusforWeb",
+      "name": "TinyTERM Plus for Web",
+      "match_names": [
+        "TinyTERM Plus for Web",
+        "CenSoft.TinyTERMPlusforWeb"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "TinyTERM Plus for Web"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:1357310795.TboxWebdav",
+      "name": "TboxWebdav",
+      "match_names": [
+        "TboxWebdav",
+        "1357310795.TboxWebdav"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "TboxWebdav"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CleverData.SiftAgent",
+      "name": "Sift Edge Agent",
+      "match_names": [
+        "Sift Edge Agent",
+        "CleverData.SiftAgent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Sift Edge Agent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.IcedTea-Web",
+      "name": "IcedTea-Web",
+      "match_names": [
+        "IcedTea-Web",
+        "AdoptOpenJDK.IcedTea-Web",
+        "Azul.IcedTea-Web"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "IcedTea-Web"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gadwin.WebSnapshot",
+      "name": "Gadwin Web Snapshot",
+      "match_names": [
+        "Gadwin Web Snapshot",
+        "Gadwin.WebSnapshot"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gadwin Web Snapshot"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FireDaemon.FireDaemonLozenge",
+      "name": "FireDaemon Lozenge",
+      "match_names": [
+        "FireDaemon Lozenge",
+        "FireDaemon.FireDaemonLozenge"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FireDaemon Lozenge"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Egnyte.EgnyteWebEdit",
+      "name": "Egnyte WebEdit",
+      "match_names": [
+        "Egnyte WebEdit",
+        "Egnyte.EgnyteWebEdit"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Egnyte WebEdit"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}

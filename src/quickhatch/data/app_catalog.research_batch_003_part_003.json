@@ -1,0 +1,1624 @@
+{
+  "schema": 1,
+  "purpose": "100 unknown catalog entries for distro-family support research, batch 003 split into 5 parts",
+  "batch": "003",
+  "part": 3,
+  "entries": [
+    {
+      "id": "winget:C-PartnerSystemhausGmbH.QuickFinder",
+      "name": "QuickFinder",
+      "match_names": [
+        "QuickFinder",
+        "C-PartnerSystemhausGmbH.QuickFinder"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "QuickFinder"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AMSSoftware.PhoenixFileRescue",
+      "name": "Phoenix File Rescue",
+      "match_names": [
+        "Phoenix File Rescue",
+        "AMSSoftware.PhoenixFileRescue"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Phoenix File Rescue"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BicomSystems.OutCALL",
+      "name": "OutCALL",
+      "match_names": [
+        "OutCALL",
+        "BicomSystems.OutCALL"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "OutCALL"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ArkaneSystems.MouseJiggler",
+      "name": "MouseJiggler",
+      "match_names": [
+        "MouseJiggler",
+        "ArkaneSystems.MouseJiggler"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "MouseJiggler"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:4ngel2769.MessyOrganizer",
+      "name": "MessyFileOrganizer",
+      "match_names": [
+        "MessyFileOrganizer",
+        "4ngel2769.MessyOrganizer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "MessyFileOrganizer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BicomSystems.gloCOM",
+      "name": "gloCOM",
+      "match_names": [
+        "gloCOM",
+        "BicomSystems.gloCOM"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "gloCOM"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GISInternals.GDAL.FileGDB",
+      "name": "GDAL FileGDB plugin",
+      "match_names": [
+        "GDAL FileGDB plugin",
+        "GISInternals.GDAL.FileGDB"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GDAL FileGDB plugin"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ElectronX.GbxDump",
+      "name": "Gbx File Dumper",
+      "match_names": [
+        "Gbx File Dumper",
+        "ElectronX.GbxDump"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gbx File Dumper"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FileVoyager.FileVoyager",
+      "name": "FileVoyager",
+      "match_names": [
+        "FileVoyager",
+        "FileVoyager.FileVoyager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FileVoyager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BC3Tech.FileSorter",
+      "name": "FileSorter",
+      "match_names": [
+        "FileSorter",
+        "BC3Tech.FileSorter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FileSorter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GAI.FileShows",
+      "name": "FileShows",
+      "match_names": [
+        "FileShows",
+        "GAI.FileShows"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FileShows"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryFortress.FileSeek",
+      "name": "FileSeek",
+      "match_names": [
+        "FileSeek",
+        "BinaryFortress.FileSeek"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FileSeek"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ChemTableSoftware.FilesInspector",
+      "name": "Files Inspector",
+      "match_names": [
+        "Files Inspector",
+        "ChemTableSoftware.FilesInspector"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Files Inspector"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cjwdev.FilePermissionsCheck",
+      "name": "File Permissions Check",
+      "match_names": [
+        "File Permissions Check",
+        "Cjwdev.FilePermissionsCheck"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "File Permissions Check"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.FileHashGenerator",
+      "name": "File Hash Generator Free Edition",
+      "match_names": [
+        "File Hash Generator Free Edition",
+        "BinaryMark.FileHashGenerator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "File Hash Generator Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdrienAllard.FileConverter",
+      "name": "File Converter",
+      "match_names": [
+        "File Converter",
+        "AdrienAllard.FileConverter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "File Converter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DZEDSystems.Dragonframe",
+      "name": "Dragonframe",
+      "match_names": [
+        "Dragonframe",
+        "DZEDSystems.Dragonframe"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dragonframe"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CleverFiles.DiskDrill",
+      "name": "Disk Drill",
+      "match_names": [
+        "Disk Drill",
+        "CleverFiles.DiskDrill"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Disk Drill"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dell.SystemUpdate",
+      "name": "Dell System Update",
+      "match_names": [
+        "Dell System Update",
+        "Dell.SystemUpdate"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dell System Update"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CyberIntelSystems.CICB",
+      "name": "Cyber Intel Classification Banner",
+      "match_names": [
+        "Cyber Intel Classification Banner",
+        "CyberIntelSystems.CICB"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cyber Intel Classification Banner"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Boeing.config-file-validator",
+      "name": "Config File Validator",
+      "match_names": [
+        "Config File Validator",
+        "Boeing.config-file-validator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Config File Validator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BicomSystems.Communicator",
+      "name": "Communicator",
+      "match_names": [
+        "Communicator",
+        "BicomSystems.Communicator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Communicator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ComfortSoftwareGroup.ComfortClipboardPro",
+      "name": "Comfort Clipboard Pro",
+      "match_names": [
+        "Comfort Clipboard Pro",
+        "ComfortSoftwareGroup.ComfortClipboardPro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Comfort Clipboard Pro"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Calibrite.PROFILER",
+      "name": "calibrite PROFILER",
+      "match_names": [
+        "calibrite PROFILER"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "calibrite PROFILER"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Carrier.BuildingSystemOptimizer",
+      "name": "Building System Optimizer",
+      "match_names": [
+        "Building System Optimizer",
+        "Carrier.BuildingSystemOptimizer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Building System Optimizer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BlackwellSystems.blackdot",
+      "name": "blackdot",
+      "match_names": [
+        "blackdot",
+        "BlackwellSystems.blackdot"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "blackdot"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AxiomaticSystems.Bento4",
+      "name": "Bento4",
+      "match_names": [
+        "Bento4",
+        "AxiomaticSystems.Bento4"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bento4"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchFiles",
+      "name": "Batch Files Free Edition",
+      "match_names": [
+        "Batch Files Free Edition",
+        "BinaryMark.BatchFiles"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch Files Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:5.0",
+      "name": "Batch File Replace Free Edition BinaryMark.BatchFileReplace",
+      "match_names": [
+        "Batch File Replace Free Edition BinaryMark.BatchFileReplace",
+        "File Hash Generator Free Editi… BinaryMark.FileHashGenerator",
+        "Batch Encoding Converter Free Editi… BinaryMark.BatchEncodingConverter",
+        "5.0",
+        "Advanced File Finder Free Edit… BinaryMark.AdvancedFileFinder",
+        "Batch Encoding Converter Free … BinaryMark.BatchEncodingConverter",
+        "Batch File Encrypt Free Edition BinaryMark.BatchFileEncrypt",
+        "Batch File Manager Free Edition BinaryMark.BatchFileManager",
+        "Batch File Split & Join Free E… BinaryMark.BatchFileSplitJoin",
+        "Batch Text File Editor Free Ed… BinaryMark.BatchTextFileEditor",
+        "Batch Encoding Converter Free Edition BinaryMark.BatchEncodingConverter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "File Hash Generator Free Editi… BinaryMark.FileHashGenerator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchFileReplace",
+      "name": "Batch File Replace Free Edition",
+      "match_names": [
+        "Batch File Replace Free Edition",
+        "BinaryMark.BatchFileReplace"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch File Replace Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchFileRename",
+      "name": "Batch File Rename Free Edition",
+      "match_names": [
+        "Batch File Rename Free Edition",
+        "BinaryMark.BatchFileRename"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch File Rename Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchFileEncrypt",
+      "name": "Batch File Encrypt Free Edition",
+      "match_names": [
+        "Batch File Encrypt Free Edition",
+        "BinaryMark.BatchFileEncrypt"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch File Encrypt Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Auslogics.FileRecovery",
+      "name": "Auslogics File Recovery",
+      "match_names": [
+        "Auslogics File Recovery",
+        "Auslogics.FileRecovery"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Auslogics File Recovery"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:11.1.0.0",
+      "name": "Auslogics Duplicate File Finder Auslogics.DuplicateFileFinder",
+      "match_names": [
+        "Auslogics Duplicate File Finder Auslogics.DuplicateFileFinder",
+        "11.1.0.0"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Auslogics Duplicate File Finder Auslogics.DuplicateFileFinder"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Auslogics.DuplicateFileFinder",
+      "name": "Auslogics Duplicate File Finder",
+      "match_names": [
+        "Auslogics Duplicate File Finder",
+        "Auslogics.DuplicateFileFinder"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Auslogics Duplicate File Finder"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CoenFin.AuditfileConverterAndAnalyser",
+      "name": "Auditfile Converter",
+      "match_names": [
+        "Auditfile Converter",
+        "CoenFin.AuditfileConverterAndAnalyser"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Auditfile Converter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BlackCatSystems.Atomic",
+      "name": "Atomic PC",
+      "match_names": [
+        "Atomic PC",
+        "BlackCatSystems.Atomic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Atomic PC"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Argente.SystemRepair",
+      "name": "Argente System Repair",
+      "match_names": [
+        "Argente System Repair",
+        "Argente.SystemRepair"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Argente System Repair"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BlackwellSystems.agent-lsp",
+      "name": "agent-lsp",
+      "match_names": [
+        "agent-lsp",
+        "BlackwellSystems.agent-lsp"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "agent-lsp"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.AdvancedFileFinder",
+      "name": "Advanced File Finder Free Edition",
+      "match_names": [
+        "Advanced File Finder Free Edition",
+        "BinaryMark.AdvancedFileFinder"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Advanced File Finder Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.DeviceEnabler.PlaybackFile",
+      "name": "ADInstruments Playback File",
+      "match_names": [
+        "ADInstruments Playback File",
+        "ADInstruments.LabChart.DeviceEnabler.PlaybackFile"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Playback File"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Actifile.ActifileAgent",
+      "name": "Actifile Agent",
+      "match_names": [
+        "Actifile Agent",
+        "Actifile.ActifileAgent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Actifile Agent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ACDSystems.ACDSee.Free",
+      "name": "ACDSee Free",
+      "match_names": [
+        "ACDSee Free",
+        "ACDSystems.ACDSee.Free"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ACDSee Free"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:3CX.PhoneSystem",
+      "name": "3CX Phone System",
+      "match_names": [
+        "3CX Phone System",
+        "3CX.PhoneSystem"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "3CX Phone System"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:360.360DocProtect",
+      "name": "360 File Guard",
+      "match_names": [
+        "360 File Guard",
+        "360.360DocProtect"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "360 File Guard"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Deminimis.MinimalFirewall",
+      "name": "Minimal Firewall",
+      "match_names": [
+        "Minimal Firewall",
+        "Deminimis.MinimalFirewall"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Minimal Firewall"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DominikReichl.KeePass.Classic",
+      "name": "KeePass",
+      "match_names": [
+        "KeePass",
+        "DominikReichl.KeePass",
+        "DominikReichl.KeePass.Classic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "KeePass"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CerberAuth.jwtop",
+      "name": "jwtop",
+      "match_names": [
+        "jwtop",
+        "CerberAuth.jwtop"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "jwtop"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BayerischesLandesamtfuerSteuern.ElsterAuthenticator",
+      "name": "ElsterAuthenticator",
+      "match_names": [
+        "ElsterAuthenticator",
+        "BayerischesLandesamtfuerSteuern.ElsterAuthenticator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ElsterAuthenticator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BrightSign.BrightAuthor",
+      "name": "BrightAuthor",
+      "match_names": [
+        "BrightAuthor",
+        "BrightSign.BrightAuthor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BrightAuthor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bitwarden.DirectoryConnector.CLI",
+      "name": "Bitwarden Directory Connector (CLI)",
+      "match_names": [
+        "Bitwarden Directory Connector (CLI)",
+        "Bitwarden.DirectoryConnector.CLI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bitwarden Directory Connector (CLI)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bitwarden.DirectoryConnector",
+      "name": "Bitwarden Directory Connector",
+      "match_names": [
+        "Bitwarden Directory Connector",
+        "Bitwarden.DirectoryConnector"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bitwarden Directory Connector"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bitwarden.CLI",
+      "name": "Bitwarden CLI",
+      "match_names": [
+        "Bitwarden CLI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bitwarden CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bitwarden.Bitwarden",
+      "name": "Bitwarden",
+      "match_names": [
+        "Bitwarden",
+        "Bitwarden.Bitwarden"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bitwarden"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Authpass.Authpass",
+      "name": "AuthPass",
+      "match_names": [
+        "AuthPass",
+        "Authpass.Authpass"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AuthPass"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aldaviva.AuthenticatorChooser",
+      "name": "AuthenticatorChooser",
+      "match_names": [
+        "AuthenticatorChooser",
+        "Aldaviva.AuthenticatorChooser",
+        "Aldaviva.AuthenticatorChooser.Prerelease"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AuthenticatorChooser"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.Authentic.Integration.2026",
+      "name": "Altova Authentic 2026 Integration Package",
+      "match_names": [
+        "Altova Authentic 2026 Integration Package",
+        "Altova.Authentic.Integration.2026"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova Authentic 2026 Integration Package"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.Authentic.2026.Enterprise",
+      "name": "Altova Authentic 2026 Enterprise Edition",
+      "match_names": [
+        "Altova Authentic 2026 Enterprise Edition",
+        "Altova.Authentic.2026.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova Authentic 2026 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.Authentic.Integration.2025",
+      "name": "Altova Authentic 2025 Integration Package",
+      "match_names": [
+        "Altova Authentic 2025 Integration Package",
+        "Altova.Authentic.Integration.2025"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova Authentic 2025 Integration Package"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.Authentic.2025.Enterprise",
+      "name": "Altova Authentic 2025 Enterprise Edition",
+      "match_names": [
+        "Altova Authentic 2025 Enterprise Edition",
+        "Altova.Authentic.2025.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova Authentic 2025 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.Authentic.Integration.2024",
+      "name": "Altova Authentic 2024 Integration Package",
+      "match_names": [
+        "Altova Authentic 2024 Integration Package",
+        "Altova.Authentic.Integration.2024"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova Authentic 2024 Integration Package"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.Authentic.2024.Enterprise",
+      "name": "Altova Authentic 2024 Enterprise Edition",
+      "match_names": [
+        "Altova Authentic 2024 Enterprise Edition",
+        "Altova.Authentic.2024.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova Authentic 2024 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.Authentic.Integration.2023",
+      "name": "Altova Authentic 2023 Integration Package",
+      "match_names": [
+        "Altova Authentic 2023 Integration Package",
+        "Altova.Authentic.Integration.2023"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova Authentic 2023 Integration Package"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.Authentic.2023.Enterprise",
+      "name": "Altova Authentic 2023 Enterprise Edition",
+      "match_names": [
+        "Altova Authentic 2023 Enterprise Edition",
+        "Altova.Authentic.2023.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova Authentic 2023 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:63BeetleSmurf.PinnyNotes",
+      "name": "Pinny Notes",
+      "match_names": [
+        "Pinny Notes",
+        "63BeetleSmurf.PinnyNotes"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Pinny Notes"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BestNotes.BestNotes",
+      "name": "BestNotes",
+      "match_names": [
+        "BestNotes",
+        "BestNotes.BestNotes"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BestNotes"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cisco.WebexRecorderAndPlayer",
+      "name": "Webex Recorder and Player",
+      "match_names": [
+        "Webex Recorder and Player",
+        "Cisco.WebexRecorderAndPlayer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Webex Recorder and Player"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:vgmstream.vgmstream",
+      "name": "vgmstream",
+      "match_names": [
+        "vgmstream",
+        "vgmstream.vgmstream"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "vgmstream"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Coldlake.StellarPlayer",
+      "name": "StellarPlayer",
+      "match_names": [
+        "StellarPlayer",
+        "Coldlake.StellarPlayer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "StellarPlayer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BartelsMedia.ShareMouse",
+      "name": "ShareMouse",
+      "match_names": [
+        "ShareMouse",
+        "BartelsMedia.ShareMouse"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ShareMouse"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Daum.PotPlayer",
+      "name": "PotPlayer",
+      "match_names": [
+        "PotPlayer",
+        "Daum.PotPlayer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "PotPlayer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BartelsMedia.PhraseExpress",
+      "name": "PhraseExpress",
+      "match_names": [
+        "PhraseExpress",
+        "BartelsMedia.PhraseExpress"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "PhraseExpress"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Andrelouis.NokiaSPMIDIPlayer",
+      "name": "Nokia SP MIDI Player",
+      "match_names": [
+        "Nokia SP MIDI Player",
+        "Andrelouis.NokiaSPMIDIPlayer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Nokia SP MIDI Player"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BartelsMedia.MacroRecorder",
+      "name": "MacroRecorder",
+      "match_names": [
+        "MacroRecorder",
+        "BartelsMedia.MacroRecorder"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "MacroRecorder"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GOMLab.GOMPlayer",
+      "name": "GOM Player",
+      "match_names": [
+        "GOM Player",
+        "GOMLab.GOMPlayer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GOM Player"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Envoy49.go-spotify-cli",
+      "name": "Go Spotify Cli",
+      "match_names": [
+        "Go Spotify Cli",
+        "Envoy49.go-spotify-cli"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Go Spotify Cli"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AveekSaha.DuskPlayer",
+      "name": "DuskPlayer",
+      "match_names": [
+        "DuskPlayer",
+        "AveekSaha.DuskPlayer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DuskPlayer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DMM.GamePlayer",
+      "name": "DMMGamePlayer",
+      "match_names": [
+        "DMMGamePlayer",
+        "DMM.GamePlayer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DMMGamePlayer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Crestron.AirMediaPeripherals",
+      "name": "Crestron AirMedia Peripherals",
+      "match_names": [
+        "Crestron AirMedia Peripherals",
+        "Crestron.AirMediaPeripherals"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Crestron AirMedia Peripherals"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Crestron.AirMedia",
+      "name": "Crestron AirMedia",
+      "match_names": [
+        "Crestron AirMedia"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Crestron AirMedia"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AXIS.AxisStreamingAssistant.x86",
+      "name": "AXIS Streaming Assistant (x86)",
+      "match_names": [
+        "AXIS Streaming Assistant (x86)",
+        "AXIS.AxisStreamingAssistant.x86"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AXIS Streaming Assistant (x86)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AXIS.AxisStreamingAssistant.x64",
+      "name": "AXIS Streaming Assistant (x64)",
+      "match_names": [
+        "AXIS Streaming Assistant (x64)",
+        "AXIS.AxisStreamingAssistant.x64"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AXIS Streaming Assistant (x64)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AxisCommunicationsAB.FilePlayerLauncher",
+      "name": "AXIS File Player Launcher",
+      "match_names": [
+        "AXIS File Player Launcher",
+        "AxisCommunicationsAB.FilePlayerLauncher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AXIS File Player Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ascensio.AVSMediaPlayer",
+      "name": "AVS Media Player",
+      "match_names": [
+        "AVS Media Player",
+        "Ascensio.AVSMediaPlayer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AVS Media Player"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Audacious.MediaPlayer",
+      "name": "Audacious",
+      "match_names": [
+        "Audacious",
+        "Audacious.MediaPlayer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Audacious"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AntstreamLtd.Antstream",
+      "name": "Antstream",
+      "match_names": [
+        "Antstream",
+        "AntstreamLtd.Antstream"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Antstream"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GillesVollantSoftware.WinImage",
+      "name": "WinImage",
+      "match_names": [
+        "WinImage",
+        "GillesVollantSoftware.WinImage"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WinImage"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GaetanSencie.SimpleImageConverter",
+      "name": "Simple Image Converter",
+      "match_names": [
+        "Simple Image Converter",
+        "GaetanSencie.SimpleImageConverter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Simple Image Converter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cognirush.MassImageCompressor",
+      "name": "Mass Image Compressor",
+      "match_names": [
+        "Mass Image Compressor",
+        "Cognirush.MassImageCompressor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Mass Image Compressor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DuongDieuPhap.ImageGlass",
+      "name": "ImageGlass",
+      "match_names": [
+        "ImageGlass",
+        "DuongDieuPhap.ImageGlass"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ImageGlass"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BriceLambson.ImageResizerforWindows",
+      "name": "Image Resizer for Windows",
+      "match_names": [
+        "Image Resizer for Windows",
+        "BriceLambson.ImageResizerforWindows"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Image Resizer for Windows"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EvanR.ImageFiles",
+      "name": "Image Encode",
+      "match_names": [
+        "Image Encode",
+        "EvanR.ImageFiles"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Image Encode"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GIMP.GIMP.Nightly",
+      "name": "GIMP Nightly",
+      "match_names": [
+        "GIMP Nightly",
+        "GIMP.GIMP.Nightly"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GIMP Nightly"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GIMP.Help.3",
+      "name": "GIMP Help 3.0.0",
+      "match_names": [
+        "GIMP Help 3.0.0",
+        "GIMP.Help.3"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GIMP Help 3.0.0"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GIMP.GIMP.3",
+      "name": "GIMP",
+      "match_names": [
+        "GIMP",
+        "GIMP.GIMP.2",
+        "GIMP.GIMP.3"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GIMP"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Fiji.ImageJ",
+      "name": "Fiji ImageJ",
+      "match_names": [
+        "Fiji ImageJ"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Fiji ImageJ"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BlenderFoundation.Blender.LTS.4.5",
+      "name": "blender",
+      "match_names": [
+        "blender",
+        "BlenderFoundation.Blender",
+        "BlenderFoundation.Blender.LTS.4.2",
+        "BlenderFoundation.Blender.LTS.4.5"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Blender"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchImages",
+      "name": "Batch Images Free Edition",
+      "match_names": [
+        "Batch Images Free Edition",
+        "BinaryMark.BatchImages"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch Images Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:5.6",
+      "name": "Batch Image Watermarker Free Edition BinaryMark.BatchImageWatermarker",
+      "match_names": [
+        "Batch Image Watermarker Free Edition BinaryMark.BatchImageWatermarker",
+        "Batch Word Replace Free Edition BinaryMark.BatchWordReplace",
+        "5.6",
+        "Batch Image Converter Free Edi… BinaryMark.BatchImageConverter",
+        "Batch Image Enhancer Free Edit… BinaryMark.BatchImageEnhancer",
+        "Batch Image Resizer Free Editi… BinaryMark.BatchImageResizer",
+        "Batch Image Splitter Free Edit… BinaryMark.BatchImageSplitter",
+        "Batch Image Watermarker Free E… BinaryMark.BatchImageWatermarker"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch Word Replace Free Edition BinaryMark.BatchWordReplace"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchImageWatermarker",
+      "name": "Batch Image Watermarker Free Edition",
+      "match_names": [
+        "Batch Image Watermarker Free Edition",
+        "BinaryMark.BatchImageWatermarker"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch Image Watermarker Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}

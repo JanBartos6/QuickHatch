@@ -1,0 +1,1603 @@
+{
+  "schema": 1,
+  "purpose": "100 unknown catalog entries for distro-family support research, batch 003 split into 5 parts",
+  "batch": "003",
+  "part": 1,
+  "entries": [
+    {
+      "id": "winget:CatoNetworks.CatoClient",
+      "name": "Cato Client",
+      "match_names": [
+        "Cato Client",
+        "CatoNetworks.CatoClient"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cato Client"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Autodesk.DesignReview",
+      "name": "Autodesk Design Review",
+      "match_names": [
+        "Autodesk Design Review",
+        "Autodesk.DesignReview"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Autodesk Design Review"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DarkDaskin.VigilantMonitor",
+      "name": "Vigilant Monitor",
+      "match_names": [
+        "Vigilant Monitor",
+        "DarkDaskin.VigilantMonitor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Vigilant Monitor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Carrier.SystemDesignLoad",
+      "name": "System Design Load",
+      "match_names": [
+        "System Design Load",
+        "Carrier.SystemDesignLoad"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "System Design Load"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cogin.QueueMonitor.Std",
+      "name": "QueueMonitor Standard",
+      "match_names": [
+        "QueueMonitor Standard",
+        "Cogin.QueueMonitor.Std"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "QueueMonitor Standard"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cogin.QueueMonitor.Pro",
+      "name": "QueueMonitor Professional",
+      "match_names": [
+        "QueueMonitor Professional",
+        "Cogin.QueueMonitor.Pro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "QueueMonitor Professional"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Diorser.LiteMonitor",
+      "name": "LiteMonitor",
+      "match_names": [
+        "LiteMonitor",
+        "Diorser.LiteMonitor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "LiteMonitor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EMCO.PingMonitor.9",
+      "name": "EMCO Ping Monitor 9",
+      "match_names": [
+        "EMCO Ping Monitor 9",
+        "EMCO.PingMonitor.9"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EMCO Ping Monitor 9"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EMCOSoftware.PingMonitor",
+      "name": "EMCO Ping Monitor",
+      "match_names": [
+        "EMCO Ping Monitor",
+        "EMCOSoftware.PingMonitor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EMCO Ping Monitor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CPUID.HWMonitor",
+      "name": "CPUID HWMonitor",
+      "match_names": [
+        "CPUID HWMonitor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CPUID HWMonitor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Argotronic.ArgusMonitor",
+      "name": "Argus Monitor",
+      "match_names": [
+        "Argus Monitor",
+        "Argotronic.ArgusMonitor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Argus Monitor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cisco.NetworkRecordingPlayer",
+      "name": "Network Recording Player",
+      "match_names": [
+        "Network Recording Player",
+        "Cisco.NetworkRecordingPlayer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Network Recording Player"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AMSSoftware.PhotoWorks",
+      "name": "PhotoWorks",
+      "match_names": [
+        "PhotoWorks",
+        "AMSSoftware.PhotoWorks"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "PhotoWorks"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AMSSoftware.PhotoDiva",
+      "name": "PhotoDiva",
+      "match_names": [
+        "PhotoDiva",
+        "AMSSoftware.PhotoDiva"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "PhotoDiva"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AMSSoftware.PhotoCalendarCreator",
+      "name": "Photo Calendar Creator",
+      "match_names": [
+        "Photo Calendar Creator",
+        "AMSSoftware.PhotoCalendarCreator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Photo Calendar Creator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EasternGraphics.pCon-planner.STD",
+      "name": "pCon.planner STD",
+      "match_names": [
+        "pCon.planner STD",
+        "EasternGraphics.pCon-planner.STD"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "pCon.planner STD"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EasternGraphics.pCon-planner.Pro",
+      "name": "pCon.planner Pro",
+      "match_names": [
+        "pCon.planner Pro",
+        "EasternGraphics.pCon-planner.Pro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "pCon.planner Pro"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EasternGraphics.pCon-planner.Plugin.Acoustics",
+      "name": "pCon.planner Plugin - Acoustics",
+      "match_names": [
+        "pCon.planner Plugin - Acoustics",
+        "EasternGraphics.pCon-planner.Plugin.Acoustics"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "pCon.planner Plugin - Acoustics"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EasternGraphics.pCon-planner.ME",
+      "name": "pCon.planner ME",
+      "match_names": [
+        "pCon.planner ME",
+        "EasternGraphics.pCon-planner.ME"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "pCon.planner ME"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EasternGraphics.pCon-basket",
+      "name": "pCon.basket",
+      "match_names": [
+        "pCon.basket",
+        "EasternGraphics.pCon-basket"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "pCon.basket"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AMSSoftware.PassportPhotoMaker",
+      "name": "Passport Photo Maker",
+      "match_names": [
+        "Passport Photo Maker",
+        "AMSSoftware.PassportPhotoMaker"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Passport Photo Maker"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DisplayLink.GraphicsDriver",
+      "name": "DisplayLink Graphics",
+      "match_names": [
+        "DisplayLink Graphics",
+        "DisplayLink.GraphicsDriver"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DisplayLink Graphics"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchPhotoFace",
+      "name": "Batch Photo Face Free Edition",
+      "match_names": [
+        "Batch Photo Face Free Edition",
+        "BinaryMark.BatchPhotoFace"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch Photo Face Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AlterPhoto.AlterPhoto",
+      "name": "AlterPhoto",
+      "match_names": [
+        "AlterPhoto",
+        "AlterPhoto.AlterPhoto"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AlterPhoto"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cjwdev.ADPhotoEdit.Free",
+      "name": "AD Photo Edit Free Edition",
+      "match_names": [
+        "AD Photo Edit Free Edition",
+        "Cjwdev.ADPhotoEdit.Free"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AD Photo Edit Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cjwdev.ADPhotoEdit.Bulk.Trial",
+      "name": "AD Photo Edit Bulk Edition Trial",
+      "match_names": [
+        "AD Photo Edit Bulk Edition Trial",
+        "Cjwdev.ADPhotoEdit.Bulk.Trial"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AD Photo Edit Bulk Edition Trial"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GaijinNetwork.WarThunder",
+      "name": "War Thunder Launcher",
+      "match_names": [
+        "War Thunder Launcher",
+        "GaijinNetwork.WarThunder"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "War Thunder Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GaijinNetwork.StarConflict",
+      "name": "StarConflict Launcher",
+      "match_names": [
+        "StarConflict Launcher",
+        "GaijinNetwork.StarConflict"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "StarConflict Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GaijinNetwork.Enlisted",
+      "name": "Enlisted Launcher",
+      "match_names": [
+        "Enlisted Launcher",
+        "GaijinNetwork.Enlisted"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Enlisted Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GaijinNetwork.CRSED",
+      "name": "CRSED Launcher",
+      "match_names": [
+        "CRSED Launcher",
+        "GaijinNetwork.CRSED"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CRSED Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GaijinNetwork.Crossout",
+      "name": "Crossout Launcher",
+      "match_names": [
+        "Crossout Launcher",
+        "GaijinNetwork.Crossout"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Crossout Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CodeZeno.ClaudeCodeUsageMonitor",
+      "name": "Claude Code Usage Monitor",
+      "match_names": [
+        "Claude Code Usage Monitor",
+        "CodeZeno.ClaudeCodeUsageMonitor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Claude Code Usage Monitor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cisco.WebexNetworkRecordingConverter",
+      "name": "Cisco Webex Network Recording Converter",
+      "match_names": [
+        "Cisco Webex Network Recording Converter",
+        "Cisco.WebexNetworkRecordingConverter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cisco Webex Network Recording Converter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ElectronicTeam.USBNetworkGate",
+      "name": "USB Network Gate",
+      "match_names": [
+        "USB Network Gate",
+        "ElectronicTeam.USBNetworkGate"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "USB Network Gate"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CABS.ScanPrix",
+      "name": "ScanPrix",
+      "match_names": [
+        "ScanPrix",
+        "CABS.ScanPrix"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ScanPrix"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Carrier.RefrigerantPipingDesign",
+      "name": "Refrigerant Piping Design",
+      "match_names": [
+        "Refrigerant Piping Design",
+        "Carrier.RefrigerantPipingDesign"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Refrigerant Piping Design"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BrickLink.PartDesigner",
+      "name": "PartDesigner",
+      "match_names": [
+        "PartDesigner",
+        "BrickLink.PartDesigner"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "PartDesigner"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ArrayNetworks.MotionPro",
+      "name": "MotionPro",
+      "match_names": [
+        "MotionPro",
+        "ArrayNetworks.MotionPro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "MotionPro"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AMSSoftware.InteriorDesign3D",
+      "name": "Interior Design 3D",
+      "match_names": [
+        "Interior Design 3D",
+        "AMSSoftware.InteriorDesign3D"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Interior Design 3D"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DinamoNetworks.HSMDinamo",
+      "name": "HSM Dinamo",
+      "match_names": [
+        "HSM Dinamo",
+        "DinamoNetworks.HSMDinamo"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "HSM Dinamo"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ChristianAviBulan.GlassCannon",
+      "name": "Glass Cannon",
+      "match_names": [
+        "Glass Cannon",
+        "ChristianAviBulan.GlassCannon"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Glass Cannon"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cjwdev.GetLocalAdminsGUI",
+      "name": "Get Local Admins GUI",
+      "match_names": [
+        "Get Local Admins GUI",
+        "Cjwdev.GetLocalAdminsGUI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Get Local Admins GUI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ENIAC-Tech.FlexDesigner",
+      "name": "FlexDesigner",
+      "match_names": [
+        "FlexDesigner",
+        "ENIAC-Tech.FlexDesigner"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FlexDesigner"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cjcr-Software.EasyBlindScanPro",
+      "name": "Easy BlindScan Pro",
+      "match_names": [
+        "Easy BlindScan Pro",
+        "Cjcr-Software.EasyBlindScanPro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Easy BlindScan Pro"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ABB.e-Design",
+      "name": "e-Design",
+      "match_names": [
+        "e-Design",
+        "ABB.e-Design"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "e-Design"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DBAdminX.Diff",
+      "name": "Diff",
+      "match_names": [
+        "Diff",
+        "DBAdminX.Diff"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Diff"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DeskSoft.DesktopPlant",
+      "name": "DesktopPlant",
+      "match_names": [
+        "DesktopPlant",
+        "DeskSoft.DesktopPlant"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DesktopPlant"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aixbox.DesktopGo",
+      "name": "DesktopGo",
+      "match_names": [
+        "DesktopGo",
+        "Aixbox.DesktopGo"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DesktopGo"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DeskTime.Desktop",
+      "name": "DeskTime",
+      "match_names": [
+        "DeskTime",
+        "DeskTime.Desktop"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DeskTime"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DelugeTeam.DelugeBeta",
+      "name": "Deluge BitTorrent Client Beta",
+      "match_names": [
+        "Deluge BitTorrent Client Beta",
+        "DelugeTeam.DelugeBeta"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Deluge BitTorrent Client Beta"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DelugeTeam.Deluge",
+      "name": "Deluge BitTorrent Client",
+      "match_names": [
+        "Deluge BitTorrent Client",
+        "DelugeTeam.Deluge"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Deluge BitTorrent Client"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dell.PeripheralManager",
+      "name": "Dell Peripheral Manager",
+      "match_names": [
+        "Dell Peripheral Manager",
+        "Dell.PeripheralManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dell Peripheral Manager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dell.DisplayManager",
+      "name": "Dell Display Manager",
+      "match_names": [
+        "Dell Display Manager",
+        "Dell.DisplayManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dell Display Manager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dell.DisplayAndPeripheralManager",
+      "name": "Dell Display and Peripheral Manager",
+      "match_names": [
+        "Dell Display and Peripheral Manager",
+        "Dell.DisplayAndPeripheralManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dell Display and Peripheral Manager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Delinea.DelineaConnectionManager",
+      "name": "Delinea Connection Manager",
+      "match_names": [
+        "Delinea Connection Manager",
+        "Delinea.DelineaConnectionManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Delinea Connection Manager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CobaltFusion.DebugViewPP",
+      "name": "DebugViewPP",
+      "match_names": [
+        "DebugViewPP",
+        "CobaltFusion.DebugViewPP"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DebugViewPP"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DigitalDevices.DD-TV",
+      "name": "DD-TV",
+      "match_names": [
+        "DD-TV",
+        "DigitalDevices.DD-TV"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DD-TV"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DaxStudio.DaxStudio",
+      "name": "DAX Studio",
+      "match_names": [
+        "DAX Studio",
+        "DaxStudio.DaxStudio"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DAX Studio"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Datto.WorkplaceServer",
+      "name": "Datto Workplace Server",
+      "match_names": [
+        "Datto Workplace Server",
+        "Datto.WorkplaceServer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Datto Workplace Server"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Datto.CloudContinuityAgent",
+      "name": "Datto Cloud Continuity Agent",
+      "match_names": [
+        "Datto Cloud Continuity Agent",
+        "Datto.CloudContinuityAgent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Datto Cloud Continuity Agent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CtrlPrint.CtrlPrintTransferManager",
+      "name": "CtrlPrint Transfer Manager",
+      "match_names": [
+        "CtrlPrint Transfer Manager",
+        "CtrlPrint.CtrlPrintTransferManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CtrlPrint Transfer Manager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Adobe.Cryptr",
+      "name": "Cryptr",
+      "match_names": [
+        "Cryptr",
+        "Adobe.Cryptr"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cryptr"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Creality.CRStudio",
+      "name": "CRStudio",
+      "match_names": [
+        "CRStudio",
+        "Creality.CRStudio"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CRStudio"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CozyCloud.CozyDrive.Beta",
+      "name": "Cozy Drive (Beta)",
+      "match_names": [
+        "Cozy Drive (Beta)",
+        "CozyCloud.CozyDrive.Beta"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cozy Drive (Beta)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CozyCloud.CozyDrive",
+      "name": "Cozy Drive",
+      "match_names": [
+        "Cozy Drive",
+        "CozyCloud.CozyDrive"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cozy Drive"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Couchbase.ServerEnterprise",
+      "name": "Couchbase Server Enterprise Edition",
+      "match_names": [
+        "Couchbase Server Enterprise Edition",
+        "Couchbase.ServerEnterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Couchbase Server Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Couchbase.ServerCommunity",
+      "name": "Couchbase Server",
+      "match_names": [
+        "Couchbase Server",
+        "Couchbase.ServerCommunity"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Couchbase Server"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CoreFTP.CoreFTPServer",
+      "name": "Core FTP Server",
+      "match_names": [
+        "Core FTP Server",
+        "CoreFTP.CoreFTPServer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Core FTP Server"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CopyTrans.Studio",
+      "name": "CopyTrans Studio",
+      "match_names": [
+        "CopyTrans Studio"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CopyTrans Studio"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GitHub.Copilot.modernization.agent",
+      "name": "Copilot modernization agent",
+      "match_names": [
+        "Copilot modernization agent",
+        "GitHub.Copilot.modernization.agent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Copilot modernization agent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GitHub.Copilot.Prerelease",
+      "name": "Copilot CLI (Preview)",
+      "match_names": [
+        "Copilot CLI (Preview)",
+        "GitHub.Copilot.Prerelease"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Copilot CLI (Preview)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GitHub.Copilot",
+      "name": "Copilot CLI",
+      "match_names": [
+        "Copilot CLI",
+        "GitHub.Copilot"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Copilot CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:2.4.2.136",
+      "name": "ControlUp Remote DX - Omnissa Horizon ControlUp.RemoteDX.Omnissa",
+      "match_names": [
+        "ControlUp Remote DX - Omnissa Horizon ControlUp.RemoteDX.Omnissa",
+        "ControlUp Remote DX - Microsoft AVD/… ControlUp.RemoteDX.Microsoft",
+        "2.4.2.136"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ControlUp Remote DX - Omnissa Horizon ControlUp.RemoteDX.Omnissa"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ControlUp.RemoteDX.Omnissa",
+      "name": "ControlUp Remote DX - Omnissa Horizon",
+      "match_names": [
+        "ControlUp Remote DX - Omnissa Horizon",
+        "ControlUp.RemoteDX.Omnissa"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ControlUp Remote DX - Omnissa Horizon"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ControlUp.RemoteDX.Microsoft",
+      "name": "ControlUp Remote DX - Microsoft AVD/RDP",
+      "match_names": [
+        "ControlUp Remote DX - Microsoft AVD/RDP",
+        "ControlUp.RemoteDX.Microsoft"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ControlUp Remote DX - Microsoft AVD/RDP"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ControlUp.RemoteDX.Citrix",
+      "name": "ControlUp Remote DX - Citrix",
+      "match_names": [
+        "ControlUp Remote DX - Citrix",
+        "ControlUp.RemoteDX.Citrix"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ControlUp Remote DX - Citrix"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ControlUp.ControlUpAgentManager",
+      "name": "ControlUp Real-Time Agent (and Manager)",
+      "match_names": [
+        "ControlUp Real-Time Agent (and Manager)",
+        "ControlUp.ControlUpAgentManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ControlUp Real-Time Agent (and Manager)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ContourDesign.ContourShuttle",
+      "name": "Contour Shuttle",
+      "match_names": [
+        "Contour Shuttle",
+        "ContourDesign.ContourShuttle"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Contour Shuttle"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ContourDesign.ContourPointingDevices",
+      "name": "Contour Pointing Devices",
+      "match_names": [
+        "Contour Pointing Devices",
+        "ContourDesign.ContourPointingDevices"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Contour Pointing Devices"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BluePointLilac.ContextMenuManager",
+      "name": "ContextMenuManager",
+      "match_names": [
+        "ContextMenuManager",
+        "BluePointLilac.ContextMenuManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ContextMenuManager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Contasimple.ContasimpleDesktop",
+      "name": "Contasimple Desktop",
+      "match_names": [
+        "Contasimple Desktop",
+        "Contasimple.ContasimpleDesktop"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Contasimple Desktop"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ConnectWise.ConnectWiseManageClient64-bit",
+      "name": "ConnectWise Manage Client 64-bit",
+      "match_names": [
+        "ConnectWise Manage Client 64-bit",
+        "ConnectWise.ConnectWiseManageClient64-bit"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ConnectWise Manage Client 64-bit"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:JFrog.Conan",
+      "name": "Conan Package Manager",
+      "match_names": [
+        "Conan Package Manager",
+        "JFrog.Conan"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Conan Package Manager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CLPM.CLPM",
+      "name": "Common Lisp Package Manager (CLPM)",
+      "match_names": [
+        "Common Lisp Package Manager (CLPM)",
+        "CLPM.CLPM"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Common Lisp Package Manager (CLPM)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Comfy.ComfyUI-Desktop",
+      "name": "ComfyUI",
+      "match_names": [
+        "ComfyUI",
+        "Comfy.ComfyUI-Desktop"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ComfyUI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Coinomi.CoinomiWallet",
+      "name": "Coinomi Wallet",
+      "match_names": [
+        "Coinomi Wallet",
+        "Coinomi.CoinomiWallet"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Coinomi Wallet"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Coder.CoderDesktop",
+      "name": "Coder Desktop (Core)",
+      "match_names": [
+        "Coder Desktop (Core)",
+        "Coder.CoderDesktop"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Coder Desktop (Core)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CloudTalk.Phone",
+      "name": "CloudTalk Phone",
+      "match_names": [
+        "CloudTalk Phone"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CloudTalk Phone"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cloudstic.CLI",
+      "name": "Cloudstic CLI",
+      "match_names": [
+        "Cloudstic CLI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cloudstic CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cloudreve.Cloudreve",
+      "name": "Cloudreve",
+      "match_names": [
+        "Cloudreve",
+        "Cloudreve.Cloudreve"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cloudreve"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cloudfleet.CLI",
+      "name": "Cloudfleet CLI",
+      "match_names": [
+        "Cloudfleet CLI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cloudfleet CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cloudflare.cloudflared",
+      "name": "cloudflared",
+      "match_names": [
+        "cloudflared",
+        "Cloudflare.cloudflared"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "cloudflared"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cloudflare.Warp",
+      "name": "Cloudflare WARP",
+      "match_names": [
+        "Cloudflare WARP"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cloudflare WARP"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Devolvio-B-V.cf-dlp-decode",
+      "name": "Cloudflare DLP Forensic Copy Decoder",
+      "match_names": [
+        "Cloudflare DLP Forensic Copy Decoder",
+        "Devolvio-B-V.cf-dlp-decode"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cloudflare DLP Forensic Copy Decoder"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CloudCompare.CloudCompare",
+      "name": "CloudCompare",
+      "match_names": [
+        "CloudCompare",
+        "CloudCompare.CloudCompare"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CloudCompare"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CloudApp.CloudApp",
+      "name": "CloudApp for Windows",
+      "match_names": [
+        "CloudApp for Windows",
+        "CloudApp.CloudApp"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CloudApp for Windows"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CloudFoundry.CLI.v8",
+      "name": "Cloud Foundry CLI v8",
+      "match_names": [
+        "Cloud Foundry CLI v8",
+        "CloudFoundry.CLI.v8"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cloud Foundry CLI v8"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CloudFoundry.CLI.v7",
+      "name": "Cloud Foundry CLI v7",
+      "match_names": [
+        "Cloud Foundry CLI v7",
+        "CloudFoundry.CLI.v7"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cloud Foundry CLI v7"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CloneSpy.CloneSpy",
+      "name": "CloneSpy",
+      "match_names": [
+        "CloneSpy",
+        "CloneSpy.CloneSpy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CloneSpy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GitHub.ClassroomAssistant",
+      "name": "classroom-assistant",
+      "match_names": [
+        "classroom-assistant",
+        "GitHub.ClassroomAssistant"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "classroom-assistant"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}

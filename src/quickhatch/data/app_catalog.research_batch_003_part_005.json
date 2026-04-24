@@ -1,0 +1,1615 @@
+{
+  "schema": 1,
+  "purpose": "100 unknown catalog entries for distro-family support research, batch 003 split into 5 parts",
+  "batch": "003",
+  "part": 5,
+  "entries": [
+    {
+      "id": "winget:Cyotek.WebCopy",
+      "name": "Cyotek WebCopy",
+      "match_names": [
+        "Cyotek WebCopy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cyotek WebCopy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cribl.CriblEdge",
+      "name": "Cribl Edge",
+      "match_names": [
+        "Cribl Edge",
+        "Cribl.CriblEdge"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cribl Edge"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cisco.CiscoWebexMeetings",
+      "name": "Cisco Webex Meetings",
+      "match_names": [
+        "Cisco Webex Meetings",
+        "Cisco.CiscoWebexMeetings"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cisco Webex Meetings"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CryptoPro.Chromium-Gost",
+      "name": "Chromium-Gost",
+      "match_names": [
+        "Chromium-Gost",
+        "CryptoPro.Chromium-Gost"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Chromium-Gost"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Chromium.ChromeDriver",
+      "name": "ChromeDriver",
+      "match_names": [
+        "ChromeDriver",
+        "Chromium.ChromeDriver"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ChromeDriver"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Brave.BraveUpdater",
+      "name": "Brave Updater",
+      "match_names": [
+        "Brave Updater",
+        "Brave.BraveUpdater"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Brave Updater"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Brave.Brave.Nightly",
+      "name": "Brave Nightly",
+      "match_names": [
+        "Brave Nightly",
+        "Brave.Brave.Nightly"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Brave Nightly"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Brave.Brave.Dev",
+      "name": "Brave Dev",
+      "match_names": [
+        "Brave Dev",
+        "Brave.Brave.Dev"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Brave Dev"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Brave.Brave.Beta",
+      "name": "Brave Beta",
+      "match_names": [
+        "Brave Beta",
+        "Brave.Brave.Beta"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Brave Beta"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DSoundSoft.AISingersWeb",
+      "name": "AISingers Web",
+      "match_names": [
+        "AISingers Web",
+        "DSoundSoft.AISingersWeb"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AISingers Web"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:360.360Chrome.X",
+      "name": "360 极速浏览器X",
+      "match_names": [
+        "360 极速浏览器X",
+        "360.360Chrome.X"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "360 极速浏览器X"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:115.115Chrome",
+      "name": "115浏览器",
+      "match_names": [
+        "115浏览器",
+        "115.115Chrome"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "115浏览器"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Codemao.kitten.4",
+      "name": "源码编辑器 4.0",
+      "match_names": [
+        "源码编辑器 4.0",
+        "Codemao.kitten.4"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "源码编辑器 4.0"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dangbei.XiaowangScreenshot",
+      "name": "小旺AI截图",
+      "match_names": [
+        "小旺AI截图",
+        "360.NamiAI",
+        "Antutu.AntutuLLMBenchmark",
+        "Baidu.BaiduSIAssistant",
+        "Baidu.BaiduSIMeeting",
+        "Dangbei.XiaowangScreenshot"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "百度AI同传会议版"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AlanJhu.OXWUEEW",
+      "name": "地牛 Wake Up!",
+      "match_names": [
+        "地牛 Wake Up!",
+        "AlanJhu.OXWUEEW"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "地牛 Wake Up!"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BoanAnbo.ZoteroCitationPicker",
+      "name": "Zotero Citation Picker for Windows",
+      "match_names": [
+        "Zotero Citation Picker for Windows",
+        "BoanAnbo.ZoteroCitationPicker"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Zotero Citation Picker for Windows"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DocumizeInc.Zerabase",
+      "name": "Zerabase",
+      "match_names": [
+        "Zerabase",
+        "DocumizeInc.Zerabase"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Zerabase"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ColorLogic.ZePrA",
+      "name": "ZePrA",
+      "match_names": [
+        "ZePrA",
+        "ColorLogic.ZePrA"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ZePrA"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Addi.Yucca",
+      "name": "Yucca",
+      "match_names": [
+        "Yucca",
+        "Addi.Yucca"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Yucca"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Carvel.ytt",
+      "name": "ytt",
+      "match_names": [
+        "ytt",
+        "Carvel.ytt"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ytt"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Abelssoft.YouTubeSongDownloader",
+      "name": "YouTube Song Downloader",
+      "match_names": [
+        "YouTube Song Downloader",
+        "Abelssoft.YouTubeSongDownloader"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "YouTube Song Downloader"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AmN.YASBGUI",
+      "name": "YASB GUI",
+      "match_names": [
+        "YASB GUI",
+        "AmN.YASBGUI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "YASB GUI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AmN.yasb",
+      "name": "yasb",
+      "match_names": [
+        "yasb",
+        "AmN.yasb"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "yasb"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CologneCodeCompany.XYplorerPortable",
+      "name": "XYplorer Portable",
+      "match_names": [
+        "XYplorer Portable",
+        "CologneCodeCompany.XYplorerPortable"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "XYplorer Portable"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CologneCodeCompany.XYplorer",
+      "name": "XYplorer",
+      "match_names": [
+        "XYplorer",
+        "CologneCodeCompany.XYplorer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "XYplorer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BurntSushi.xsv.GNU",
+      "name": "xsv",
+      "match_names": [
+        "xsv",
+        "BurntSushi.xsv.MSVC",
+        "BurntSushi.xsv.GNU"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "xsv"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ChristianHohnstadt.xca",
+      "name": "XCA",
+      "match_names": [
+        "XCA",
+        "ChristianHohnstadt.xca"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "XCA"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ApacheFriends.Xampp.8.2",
+      "name": "XAMPP 8.2",
+      "match_names": [
+        "XAMPP 8.2",
+        "ApacheFriends.Xampp.8.2"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "XAMPP 8.2"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ApacheFriends.Xampp.8.1",
+      "name": "XAMPP 8.1",
+      "match_names": [
+        "XAMPP 8.1",
+        "ApacheFriends.Xampp.8.1"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "XAMPP 8.1"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Geert-JanBesjes.wxMUN",
+      "name": "wxMUN",
+      "match_names": [
+        "wxMUN",
+        "Geert-JanBesjes.wxMUN"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "wxMUN"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AAAInternetPublishing.WTFast",
+      "name": "WTFast",
+      "match_names": [
+        "WTFast",
+        "AAAInternetPublishing.WTFast"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WTFast"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BiSS.WSLDiskShrinker",
+      "name": "WSL Disk Shrinker",
+      "match_names": [
+        "WSL Disk Shrinker",
+        "BiSS.WSLDiskShrinker"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WSL Disk Shrinker"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Automattic.Wordpress",
+      "name": "WordPress.com",
+      "match_names": [
+        "WordPress.com",
+        "Automattic.Wordpress"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WordPress.com"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DarkfullDante.wol",
+      "name": "wol",
+      "match_names": [
+        "wol",
+        "DarkfullDante.wol"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "wol"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AntibodySoftware.WizTree",
+      "name": "WizTree",
+      "match_names": [
+        "WizTree",
+        "AntibodySoftware.WizTree"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WizTree"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AntibodySoftware.WizMouse",
+      "name": "WizMouse",
+      "match_names": [
+        "WizMouse",
+        "AntibodySoftware.WizMouse"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WizMouse"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AntibodySoftware.WizKey",
+      "name": "WizKey",
+      "match_names": [
+        "WizKey",
+        "AntibodySoftware.WizKey"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WizKey"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Corel.WinZip.SelfExtractor",
+      "name": "WinZip Self-Extractor",
+      "match_names": [
+        "WinZip Self-Extractor",
+        "Corel.WinZip.SelfExtractor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WinZip Self-Extractor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Corel.WinZip.CommandLineSupportAddOn",
+      "name": "WinZip Command Line Support Add-On",
+      "match_names": [
+        "WinZip Command Line Support Add-On",
+        "Corel.WinZip.CommandLineSupportAddOn"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WinZip Command Line Support Add-On"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Corel.WinZip",
+      "name": "WinZip",
+      "match_names": [
+        "WinZip",
+        "Corel.WinZip"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WinZip"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Builtbybel.Winslop",
+      "name": "Winslop",
+      "match_names": [
+        "Winslop",
+        "Builtbybel.Winslop"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Winslop"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Tatsh.WinPrefs",
+      "name": "WinPrefs",
+      "match_names": [
+        "WinPrefs",
+        "Tatsh.WinPrefs"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WinPrefs"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Abdelrhman-AK.WinPaletter",
+      "name": "WinPaletter",
+      "match_names": [
+        "WinPaletter",
+        "Abdelrhman-AK.WinPaletter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WinPaletter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:hfiref0x.WinObjEx64",
+      "name": "WinObjEx64",
+      "match_names": [
+        "WinObjEx64",
+        "hfiref0x.WinObjEx64"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WinObjEx64"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gawindx.WinNUT",
+      "name": "WinNUT",
+      "match_names": [
+        "WinNUT",
+        "Gawindx.WinNUT"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WinNUT"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ailuntz.Winmon",
+      "name": "winmon",
+      "match_names": [
+        "winmon",
+        "Ailuntx.Winmon",
+        "Ailuntz.Winmon"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "winmon"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BrechtSanders.WinLibs.POSIX.UCRT",
+      "name": "WinLibs (POSIX threads, UCRT runtime)",
+      "match_names": [
+        "WinLibs (POSIX threads, UCRT runtime)",
+        "BrechtSanders.WinLibs.POSIX.UCRT"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WinLibs (POSIX threads, UCRT runtime)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BrechtSanders.WinLibs.POSIX.MSVCRT",
+      "name": "WinLibs (POSIX threads, MSVCRT runtime)",
+      "match_names": [
+        "WinLibs (POSIX threads, MSVCRT runtime)",
+        "BrechtSanders.WinLibs.POSIX.MSVCRT"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WinLibs (POSIX threads, MSVCRT runtime)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BrechtSanders.WinLibs.MCF.UCRT",
+      "name": "WinLibs (MCF threads, UCRT runtime)",
+      "match_names": [
+        "WinLibs (MCF threads, UCRT runtime)",
+        "BrechtSanders.WinLibs.MCF.UCRT"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WinLibs (MCF threads, UCRT runtime)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bitmutex.Winhider",
+      "name": "winhider",
+      "match_names": [
+        "winhider",
+        "Bitmutex.Winhider"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "winhider"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:5mdt.WinGoDarkTray",
+      "name": "WinGoDarkTray",
+      "match_names": [
+        "WinGoDarkTray",
+        "5mdt.WinGoDarkTray"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WinGoDarkTray"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:7gxycn08.WinGetCreateGui",
+      "name": "WingetCreate GUI",
+      "match_names": [
+        "WingetCreate GUI",
+        "7gxycn08.WinGetCreateGui"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WingetCreate GUI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Codeium.Windsurf",
+      "name": "Windsurf",
+      "match_names": [
+        "Windsurf",
+        "Codeium.Windsurf"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Windsurf"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrazyMax.WindowsSpyBlocker",
+      "name": "WindowsSpyBlocker",
+      "match_names": [
+        "WindowsSpyBlocker",
+        "CrazyMax.WindowsSpyBlocker"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WindowsSpyBlocker"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Arm.WindowsPerf.Beta",
+      "name": "WindowsPerf Beta",
+      "match_names": [
+        "WindowsPerf Beta",
+        "Arm.WindowsPerf.Beta"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WindowsPerf Beta"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Arm.WindowsPerf",
+      "name": "WindowsPerf",
+      "match_names": [
+        "WindowsPerf",
+        "Arm.WindowsPerf"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WindowsPerf"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FelixRieseberg.Windows95",
+      "name": "windows95",
+      "match_names": [
+        "windows95",
+        "FelixRieseberg.Windows95"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "windows95"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Apple.WindowsMigrationAssistant",
+      "name": "Windows Migration Assistant",
+      "match_names": [
+        "Windows Migration Assistant",
+        "Apple.WindowsMigrationAssistant"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Windows Migration Assistant"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:99natmar99.Windows11Fixer",
+      "name": "Windows 11 Fixer",
+      "match_names": [
+        "Windows 11 Fixer",
+        "99natmar99.Windows11Fixer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Windows 11 Fixer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryFortress.WindowInspector",
+      "name": "Window Inspector",
+      "match_names": [
+        "Window Inspector",
+        "BinaryFortress.WindowInspector"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Window Inspector"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CatBraaain.winconfig",
+      "name": "winconfig",
+      "match_names": [
+        "winconfig",
+        "CatBraaain.winconfig"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "winconfig"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DaiyuuNobori.Win10Pcap",
+      "name": "Win10Pcap",
+      "match_names": [
+        "Win10Pcap",
+        "DaiyuuNobori.Win10Pcap"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Win10Pcap"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:D4koon.WhatsappTray",
+      "name": "WhatsappTray",
+      "match_names": [
+        "WhatsappTray",
+        "D4koon.WhatsappTray"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WhatsappTray"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GNU.Wget2",
+      "name": "Wget2",
+      "match_names": [
+        "Wget2",
+        "GNU.Wget2"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Wget2"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AlbrechtL.WelleIO",
+      "name": "welle.io",
+      "match_names": [
+        "welle.io",
+        "AlbrechtL.WelleIO"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "welle.io"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BaldBeardedBuilder.WeatherforCommandPalette",
+      "name": "Weather for Command Palette",
+      "match_names": [
+        "Weather for Command Palette",
+        "BaldBeardedBuilder.WeatherforCommandPalette"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Weather for Command Palette"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DJ7NT.WaveLogGate",
+      "name": "WaveLogGate",
+      "match_names": [
+        "WaveLogGate",
+        "DJ7NT.WaveLogGate"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WaveLogGate"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CommandLine.Wave",
+      "name": "Wave",
+      "match_names": [
+        "Wave",
+        "CommandLine.Wave"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Wave"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:54145a.145watch",
+      "name": "Watch",
+      "match_names": [
+        "Watch",
+        "54145a.145watch"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Watch"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BytecodeAlliance.Wasmtime.Portable",
+      "name": "Wasmtime",
+      "match_names": [
+        "Wasmtime",
+        "BytecodeAlliance.Wasmtime",
+        "BytecodeAlliance.Wasmtime.Portable"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Wasmtime"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ChasseurdeBots.Warsow",
+      "name": "Warsow",
+      "match_names": [
+        "Warsow",
+        "ChasseurdeBots.Warsow"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Warsow"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryFortress.VoiceBot",
+      "name": "VoiceBot",
+      "match_names": [
+        "VoiceBot",
+        "BinaryFortress.VoiceBot"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "VoiceBot"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AndrewCalcutt.Vistumbler",
+      "name": "Vistumbler",
+      "match_names": [
+        "Vistumbler",
+        "AndrewCalcutt.Vistumbler"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Vistumbler"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CONZEInformatik.Vistrax",
+      "name": "Vistrax",
+      "match_names": [
+        "Vistrax",
+        "CONZEInformatik.Vistrax"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Vistrax"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:VisIt.VisIt",
+      "name": "VisIt",
+      "match_names": [
+        "VisIt",
+        "VisIt.VisIt"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "VisIt"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AtomixProductions.VirtualDJ",
+      "name": "VirtualDJ",
+      "match_names": [
+        "VirtualDJ",
+        "AtomixProductions.VirtualDJ"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "VirtualDJ"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CodeF0x.violin",
+      "name": "Violin",
+      "match_names": [
+        "Violin",
+        "CodeF0x.violin"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Violin"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CapricornConsultingGmbH.Vigoon",
+      "name": "Vigoon",
+      "match_names": [
+        "Vigoon",
+        "CapricornConsultingGmbH.Vigoon"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Vigoon"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Codilime.Veles",
+      "name": "Veles",
+      "match_names": [
+        "Veles",
+        "Codilime.Veles"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Veles"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GiantPinkRobots.Varia",
+      "name": "Varia",
+      "match_names": [
+        "Varia",
+        "GiantPinkRobots.Varia"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Varia"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GibsonResearchCorporation.ValiDrive",
+      "name": "ValiDrive, freeware by Steve Gibson",
+      "match_names": [
+        "ValiDrive, freeware by Steve Gibson",
+        "GibsonResearchCorporation.ValiDrive"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ValiDrive, freeware by Steve Gibson"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:2dust.v2rayN",
+      "name": "v2rayN",
+      "match_names": [
+        "v2rayN",
+        "2dust.v2rayN"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "v2rayN"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Banbuds.VsWhitty",
+      "name": "V.S. Whitty Full Week",
+      "match_names": [
+        "V.S. Whitty Full Week",
+        "Banbuds.VsWhitty"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "V.S. Whitty Full Week"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Devflow.Uzi",
+      "name": "Uzi",
+      "match_names": [
+        "Uzi",
+        "Devflow.Uzi"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Uzi"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BlueMystical.EDHM",
+      "name": "User Interface for Elite Dangerous HUD Mod",
+      "match_names": [
+        "User Interface for Elite Dangerous HUD Mod",
+        "BlueMystical.EDHM"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "User Interface for Elite Dangerous HUD Mod"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrystalRich.USBSafelyRemove",
+      "name": "USB Safely Remove",
+      "match_names": [
+        "USB Safely Remove",
+        "CrystalRich.USBSafelyRemove"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "USB Safely Remove"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CompLabs.GoogleDocs",
+      "name": "Unofficial Google Docs",
+      "match_names": [
+        "Unofficial Google Docs",
+        "CompLabs.GoogleDocs"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Unofficial Google Docs"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bit4id.UniversalMiddleware",
+      "name": "Universal MW",
+      "match_names": [
+        "Universal MW",
+        "Bit4id.UniversalMiddleware"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Universal MW"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:UniversalCtags.Ctags.Nightly",
+      "name": "Universal Ctags",
+      "match_names": [
+        "Universal Ctags",
+        "UniversalCtags.Ctags",
+        "UniversalCtags.Ctags.Nightly"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Universal Ctags"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:0.5.1",
+      "name": "Universal Android Debloater GUI 0x192.UniversalAndroidDebloaterGUI",
+      "match_names": [
+        "Universal Android Debloater GUI 0x192.UniversalAndroidDebloaterGUI",
+        "0.5.1"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Universal Android Debloater GUI 0x192.UniversalAndroidDebloaterGUI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:0x192.UniversalAndroidDebloaterGUI",
+      "name": "Universal Android Debloater GUI",
+      "match_names": [
+        "Universal Android Debloater GUI",
+        "0x192.UniversalAndroidDebloaterGUI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Universal Android Debloater GUI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ClockworkMod.UniversalADBDriver",
+      "name": "Universal Adb Driver",
+      "match_names": [
+        "Universal Adb Driver",
+        "ClockworkMod.UniversalADBDriver"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Universal Adb Driver"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Codice.PlasticSCM.Enterprise",
+      "name": "Unity DevOps Version Control",
+      "match_names": [
+        "Unity DevOps Version Control",
+        "Codice.PlasticSCM.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Unity DevOps Version Control"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Devolutions.UniGetUI",
+      "name": "UniGetUI",
+      "match_names": [
+        "UniGetUI",
+        "Devolutions.UniGetUI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "UniGetUI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:2BrightSparks.UndeleteOnClick",
+      "name": "UndeleteOnClick",
+      "match_names": [
+        "UndeleteOnClick",
+        "2BrightSparks.UndeleteOnClick"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "UndeleteOnClick"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CESNET.UltraGrid",
+      "name": "UltraGrid",
+      "match_names": [
+        "UltraGrid",
+        "CESNET.UltraGrid"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "UltraGrid"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:G3G4X5X6.ultimate-cube",
+      "name": "ultimatecube",
+      "match_names": [
+        "ultimatecube",
+        "G3G4X5X6.ultimate-cube"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ultimatecube"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Anjok07.UltimateVocalRemover",
+      "name": "Ultimate Vocal Remover",
+      "match_names": [
+        "Ultimate Vocal Remover",
+        "Anjok07.UltimateVocalRemover"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ultimate Vocal Remover"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ByteDance.UI-TARS",
+      "name": "UI TARS",
+      "match_names": [
+        "UI TARS",
+        "ByteDance.UI-TARS"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "UI TARS"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Genivia.ugrep",
+      "name": "ugrep",
+      "match_names": [
+        "ugrep",
+        "Genivia.ugrep"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ugrep"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}
