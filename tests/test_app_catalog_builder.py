@@ -134,3 +134,58 @@ def test_catalog_loader_skips_truncated_generated_rows(tmp_path):
     )
 
     assert [entry["name"] for entry in payload["entries"]] == ["Valid App"]
+
+
+def test_catalog_builder_preserves_curated_install_hints_and_evidence(tmp_path):
+    builder = _load_builder()
+    existing = tmp_path / "existing.json"
+    overrides = tmp_path / "overrides.json"
+
+    existing.write_text(json.dumps({"schema": 1, "entries": []}), encoding="utf-8")
+    overrides.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "entries": [
+                    {
+                        "id": "override:hinted",
+                        "name": "Hinted App",
+                        "match_names": ["Hinted App"],
+                        "compatibility": "native",
+                        "alternatives": ["Hinted App"],
+                        "source_hint": "flatpak",
+                        "confidence": "high",
+                        "category": "utilities",
+                        "notes": "Has distro hints.",
+                        "install_hints": {
+                            "arch": {
+                                "source": "flatpak",
+                                "packages": ["org.example.HintedApp"],
+                                "notes": "Use Flathub.",
+                            }
+                        },
+                        "evidence": [
+                            {
+                                "label": "Flathub",
+                                "url": "https://flathub.org/apps/org.example.HintedApp",
+                            }
+                        ],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    payload = builder.build_catalog(
+        existing_path=existing,
+        overrides_path=overrides,
+        winget_lists=[],
+        winget_searches=[],
+        fetch_flathub=False,
+        flathub_limit=10,
+    )
+
+    entry = payload["entries"][0]
+    assert entry["install_hints"]["arch"]["packages"] == ["org.example.HintedApp"]
+    assert entry["evidence"][0]["label"] == "Flathub"

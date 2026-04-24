@@ -2323,6 +2323,7 @@ def _analysis_context_profile(
     selected_app_catalog = selected_app_catalog_context(
         list(profile.apps_to_install or []),
         list(profile.apps or []),
+        distro_family=chosen_distro or prefs.distro_preference or "",
     )
     if selected_app_catalog:
         base["selected_app_catalog"] = selected_app_catalog
@@ -2562,7 +2563,11 @@ def _build_section_prompt(
             "SELECTED APP CATALOG: The profile may include `selected_app_catalog`.\n"
             "Treat those rows as curated prior knowledge for the user's selected\n"
             "apps: catalog_id, compatibility, source_hint, confidence, category,\n"
-            "and notes. Prefer high-confidence catalog hints. If confidence is\n"
+            "notes, evidence, and active_install_hint when a distro family is known.\n"
+            "Prefer high-confidence catalog hints. Treat active_install_hint as\n"
+            "advisory package-resolution data that must still be verified when the\n"
+            "source is web/manual_followup/alternative or package names are empty.\n"
+            "If confidence is\n"
             "medium/low or the exact distro package is unclear, search before\n"
             "writing the install command. Do not expand beyond the selected apps.\n\n"
             "CALL OUT SLOW INSTALLS: For any row with Est Time ≥ 10 min (big AUR\n"
@@ -6092,6 +6097,7 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
         selected_app_catalog = selected_app_catalog_context(
             list(gui_state.profile.apps_to_install or []),
             list(gui_state.profile.apps or []),
+            distro_family=getattr(setup_facts, "distro_family", "") or distro_hint,
         )
         if selected_app_catalog:
             profile_dict["selected_app_catalog"] = selected_app_catalog

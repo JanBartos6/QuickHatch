@@ -537,7 +537,9 @@ def _get_displays() -> list[DisplayInfo]:
                     ("DeviceKey", ctypes.c_wchar * 128),
                 ]
 
-            def _display_device(index: int, device_name: str | None = None) -> _DISPLAY_DEVICEW | None:
+            def _display_device(
+                index: int, device_name: str | None = None
+            ) -> _DISPLAY_DEVICEW | None:
                 device = _DISPLAY_DEVICEW()
                 device.cb = ctypes.sizeof(_DISPLAY_DEVICEW)
                 parent = device_name if device_name is not None else None

@@ -133,3 +133,4 @@ def test_build_research_prompt_includes_selected_app_catalog():
     assert "catalog_id" in prompt
     assert "source_hint" in prompt
     assert "Use selected_app_catalog as curated prior knowledge" in prompt
+    assert "active_install_hint" in prompt

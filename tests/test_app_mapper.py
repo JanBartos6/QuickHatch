@@ -237,6 +237,39 @@ class TestCuratedCatalog:
         assert "Unselect all visible" in html
         assert "Unselect all" in html
 
+    def test_selected_catalog_context_scopes_install_hint_to_distro(self, monkeypatch):
+        from quickhatch.analysis import app_catalog
+
+        entry = app_catalog.AppCatalogEntry(
+            id="override:hinted",
+            name="Hinted App",
+            compatibility="native",
+            alternatives=("Hinted App",),
+            source_hint="flatpak",
+            confidence="high",
+            category="utilities",
+            notes="Has hints.",
+            install_hints={
+                "arch": {
+                    "source": "flatpak",
+                    "packages": ["org.example.HintedApp"],
+                    "notes": "Use Flathub.",
+                },
+                "fedora": {
+                    "source": "repo",
+                    "packages": ["hinted-app"],
+                    "notes": "Use dnf.",
+                },
+            },
+        )
+        monkeypatch.setattr(app_catalog, "load_catalog", lambda: (entry,))
+
+        rows = app_catalog.selected_app_catalog_context(["Hinted App"], distro_family="Arch Linux")
+
+        assert rows[0]["active_install_hint"]["family"] == "arch"
+        assert rows[0]["active_install_hint"]["packages"] == ["org.example.HintedApp"]
+        assert "install_hints" not in rows[0]
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

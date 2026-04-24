@@ -36,9 +36,11 @@ class CatalogRow:
     confidence: str = "low"
     category: str = "other"
     notes: str = ""
+    install_hints: dict[str, dict[str, Any]] = field(default_factory=dict)
+    evidence: list[dict[str, str]] = field(default_factory=list)
 
     def to_json(self) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "id": self.id,
             "name": self.name,
             "match_names": _dedupe([self.name, *self.match_names]),
@@ -49,6 +51,11 @@ class CatalogRow:
             "category": self.category,
             "notes": self.notes,
         }
+        if self.install_hints:
+            payload["install_hints"] = self.install_hints
+        if self.evidence:
+            payload["evidence"] = self.evidence
+        return payload
 
 
 def _normalize(value: str) -> str:
@@ -98,6 +105,17 @@ def _row_from_mapping(raw: dict[str, Any]) -> CatalogRow | None:
         return None
     if "…" in name or "…" in app_id:
         return None
+    install_hints = raw.get("install_hints") if isinstance(raw.get("install_hints"), dict) else {}
+    evidence = [
+        {
+            "label": str(item.get("label", "")).strip(),
+            "url": str(item.get("url", "")).strip(),
+        }
+        for item in raw.get("evidence", [])
+        if isinstance(item, dict)
+        and str(item.get("label", "")).strip()
+        and str(item.get("url", "")).strip()
+    ]
     return CatalogRow(
         id=app_id,
         name=name,
@@ -108,6 +126,20 @@ def _row_from_mapping(raw: dict[str, Any]) -> CatalogRow | None:
         confidence=str(raw.get("confidence") or "low"),
         category=str(raw.get("category") or "other"),
         notes=str(raw.get("notes") or ""),
+        install_hints={
+            str(family): {
+                "source": str(hint.get("source", "manual_followup")),
+                "packages": [
+                    str(pkg)
+                    for pkg in hint.get("packages", [])
+                    if str(pkg).strip()
+                ],
+                "notes": str(hint.get("notes", "") or ""),
+            }
+            for family, hint in install_hints.items()
+            if isinstance(hint, dict)
+        },
+        evidence=evidence,
     )
 
 
@@ -251,6 +283,10 @@ def merge_rows(groups: list[list[CatalogRow]]) -> list[CatalogRow]:
             row.match_names = _dedupe([*existing.match_names, existing.name, *row.match_names])
             if not row.alternatives:
                 row.alternatives = existing.alternatives
+            if not row.install_hints:
+                row.install_hints = existing.install_hints
+            if not row.evidence:
+                row.evidence = existing.evidence
             merged[key] = row
             for name in [row.name, *row.match_names]:
                 aliases[_normalize(name)] = key

@@ -28,6 +28,8 @@ class AppCatalogEntry:
     confidence: str = "low"
     category: str = "other"
     notes: str = ""
+    install_hints: dict[str, dict[str, Any]] = field(default_factory=dict)
+    evidence: tuple[dict[str, str], ...] = field(default_factory=tuple)
 
 
 _GAMING_LAUNCHER_RE = re.compile(
@@ -67,6 +69,44 @@ def _normalize_name(value: str) -> str:
     return re.sub(r"\s+", " ", cleaned)
 
 
+def _distro_family_candidates(value: str) -> tuple[str, ...]:
+    """Return likely catalog hint keys for a distro/family label."""
+
+    normalized = _normalize_name(value)
+    if not normalized or normalized == "unknown":
+        return ()
+    if any(token in normalized for token in ("arch", "manjaro", "endeavour")):
+        return ("arch",)
+    if any(token in normalized for token in ("ubuntu", "pop os", "popos", "mint", "zorin")):
+        return ("ubuntu", "debian")
+    if "debian" in normalized:
+        return ("debian", "ubuntu")
+    if any(
+        token in normalized for token in ("fedora", "rhel", "red hat", "centos", "rocky", "alma")
+    ):
+        return ("fedora",)
+    if any(token in normalized for token in ("opensuse", "open suse", "suse")):
+        return ("opensuse",)
+    if "alpine" in normalized:
+        return ("alpine",)
+    if "void" in normalized:
+        return ("void",)
+    if "gentoo" in normalized:
+        return ("gentoo",)
+    return (normalized.replace(" ", "_"),)
+
+
+def _active_install_hint(
+    install_hints: dict[str, dict[str, Any]],
+    distro_family: str,
+) -> dict[str, Any]:
+    for candidate in _distro_family_candidates(distro_family):
+        hint = install_hints.get(candidate)
+        if hint:
+            return {"family": candidate, **hint}
+    return {}
+
+
 def _entry_from_mapping(raw: dict[str, Any]) -> AppCatalogEntry | None:
     name = str(raw.get("name") or "").strip()
     app_id = str(raw.get("id") or name).strip()
@@ -74,12 +114,23 @@ def _entry_from_mapping(raw: dict[str, Any]) -> AppCatalogEntry | None:
         return None
     if "…" in name or "…" in app_id:
         return None
-    match_names = tuple(
-        str(v).strip() for v in raw.get("match_names", []) if str(v).strip()
-    ) or (name,)
-    alternatives = tuple(
-        str(v).strip() for v in raw.get("alternatives", []) if str(v).strip()
-    ) or (name,)
+    match_names = tuple(str(v).strip() for v in raw.get("match_names", []) if str(v).strip()) or (
+        name,
+    )
+    alternatives = tuple(str(v).strip() for v in raw.get("alternatives", []) if str(v).strip()) or (
+        name,
+    )
+    install_hints = raw.get("install_hints") if isinstance(raw.get("install_hints"), dict) else {}
+    evidence = tuple(
+        {
+            "label": str(item.get("label", "")).strip(),
+            "url": str(item.get("url", "")).strip(),
+        }
+        for item in raw.get("evidence", [])
+        if isinstance(item, dict)
+        and str(item.get("label", "")).strip()
+        and str(item.get("url", "")).strip()
+    )
     return AppCatalogEntry(
         id=app_id,
         name=name,
@@ -90,6 +141,16 @@ def _entry_from_mapping(raw: dict[str, Any]) -> AppCatalogEntry | None:
         confidence=str(raw.get("confidence") or "low"),
         category=str(raw.get("category") or "other"),
         notes=str(raw.get("notes") or ""),
+        install_hints={
+            str(family): {
+                "source": str(hint.get("source", "manual_followup")),
+                "packages": [str(pkg) for pkg in hint.get("packages", []) if str(pkg).strip()],
+                "notes": str(hint.get("notes", "") or ""),
+            }
+            for family, hint in install_hints.items()
+            if isinstance(hint, dict)
+        },
+        evidence=evidence,
     )
 
 
@@ -144,6 +205,8 @@ def load_catalog() -> tuple[AppCatalogEntry, ...]:
                         confidence="high",
                         category="curated",
                         notes=str(raw.get("notes") or ""),
+                        install_hints={},
+                        evidence=(),
                     )
                 )
         except (OSError, json.JSONDecodeError):
@@ -169,13 +232,15 @@ def match_catalog_entry(app_name: str) -> AppCatalogEntry | None:
         return exact[normalized]
 
     # Phrase-level fallback for scanned names like "Brave Browser" or
-    # "Mozilla Firefox ESR". Avoid one/two-letter aliases.
+    # "Mozilla Firefox ESR". Avoid one/two-letter aliases and do not match
+    # arbitrary substrings inside larger words ("git" in "LegitApp").
     for entry in load_catalog():
         for alias in (entry.name, *entry.match_names):
             alias_norm = _normalize_name(alias)
             if len(alias_norm) < 3:
                 continue
-            if alias_norm in normalized or normalized in alias_norm:
+            pattern = rf"(?<![a-z0-9]){re.escape(alias_norm)}(?![a-z0-9])"
+            if re.search(pattern, normalized):
                 return entry
     return None
 
@@ -208,6 +273,7 @@ def filter_migration_apps(apps: list[Any]) -> list[Any]:
 def selected_app_catalog_context(
     app_names: list[str],
     scanned_apps: list[Any] | None = None,
+    distro_family: str = "",
 ) -> list[dict[str, Any]]:
     """Build compact catalog rows for selected apps.
 
@@ -245,8 +311,11 @@ def selected_app_catalog_context(
                 "confidence": "low",
                 "category": "unknown",
                 "notes": "No curated catalog match; research before installing.",
+                "install_hints": {},
+                "evidence": [],
             }
         else:
+            active_hint = _active_install_hint(entry.install_hints, distro_family)
             row = {
                 "name": name,
                 "catalog_id": entry.id,
@@ -257,7 +326,12 @@ def selected_app_catalog_context(
                 "confidence": entry.confidence,
                 "category": entry.category,
                 "notes": entry.notes,
+                "evidence": list(entry.evidence[:5]),
             }
+            if active_hint:
+                row["active_install_hint"] = active_hint
+            elif not distro_family:
+                row["install_hints"] = entry.install_hints
         if scanned is not None:
             if isinstance(scanned, dict):
                 scanned_source = scanned.get("source")
