@@ -96,6 +96,18 @@ def load_catalog() -> tuple[AppCatalogEntry, ...]:
     """Load the generated popular-app catalog plus legacy hand mappings."""
 
     entries: list[AppCatalogEntry] = []
+    overrides = _data_dir() / "app_catalog.overrides.json"
+    if overrides.exists():
+        try:
+            payload = json.loads(overrides.read_text(encoding="utf-8"))
+            for raw in payload.get("entries", []):
+                if isinstance(raw, dict):
+                    entry = _entry_from_mapping(raw)
+                    if entry is not None:
+                        entries.append(entry)
+        except (OSError, json.JSONDecodeError):
+            pass
+
     generated = _data_dir() / "app_catalog.generated.json"
     if generated.exists():
         try:

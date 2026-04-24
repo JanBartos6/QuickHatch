@@ -184,7 +184,21 @@ class TestCuratedCatalog:
         mapped = map_apps(apps)
         assert mapped[0].compatibility == "native"
         assert "GitHub Desktop" in (mapped[0].linux_alternative or "")
-        assert "source=flatpak" in mapped[0].notes
+        assert "source=flatpak_or_aur" in mapped[0].notes
+
+    def test_catalog_maps_common_unsupported_windows_apps(self):
+        apps = [
+            AppInfo(name="Adobe Creative Cloud", source="winget"),
+            AppInfo(name="Logitech G HUB", source="winget"),
+            AppInfo(name="Microsoft OneDrive", source="winget"),
+        ]
+
+        mapped = map_apps(apps)
+        by_name = {app.name: app for app in mapped}
+        assert by_name["Adobe Creative Cloud"].compatibility == "none"
+        assert by_name["Logitech G HUB"].compatibility == "alternative"
+        assert by_name["Microsoft OneDrive"].compatibility == "alternative"
+        assert "confidence=high" in by_name["Adobe Creative Cloud"].notes
 
     def test_catalog_keeps_launchers_but_filters_individual_games(self):
         from quickhatch.analysis.app_catalog import filter_migration_apps
