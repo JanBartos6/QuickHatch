@@ -3095,6 +3095,13 @@ async function runScan(){
     html+=hwCard('CPU',escHtml(r.hardware.cpu||'Unknown'),r.hardware.cpu_cores?r.hardware.cpu_cores+' cores':'');
     html+=hwCard('RAM',r.hardware.ram_gb?r.hardware.ram_gb+' GB':'Unknown','');
     (r.hardware.gpus||[]).forEach(g=>{html+=hwCard('GPU',escHtml(g.name),escHtml(g.vendor))});
+    (r.hardware.displays||[]).forEach(d=>{
+      const mode=(d.width_px&&d.height_px)?`${d.width_px}×${d.height_px}`:'unknown resolution';
+      const refresh=d.refresh_hz?` @ ${Math.round(d.refresh_hz)} Hz`:'';
+      const scale=d.scale_percent?` · ${d.scale_percent}% scale`:'';
+      const primary=d.primary?'primary':'';
+      html+=hwCard('Display',escHtml(d.name||'Unknown display'),escHtml(`${mode}${refresh}${scale}${primary?' · '+primary:''}`));
+    });
     if(r.hardware.wifi_adapters?.length)html+=hwCard('WiFi',r.hardware.wifi_adapters.length+' adapter'+(r.hardware.wifi_adapters.length>1?'s':''),'');
     html+=hwCard('Bluetooth',r.hardware.bluetooth?'Available':'Not detected','');
     html+=hwCard('Boot',r.hardware.efi?'UEFI':'Legacy BIOS','');

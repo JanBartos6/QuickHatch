@@ -527,18 +527,86 @@ def _get_displays() -> list[DisplayInfo]:
                     ("dmPanningHeight", ctypes.c_ulong),
                 ]
 
-            devmode = _DEVMODEW()
-            devmode.dmSize = ctypes.sizeof(_DEVMODEW)
+            class _DISPLAY_DEVICEW(ctypes.Structure):
+                _fields_ = [
+                    ("cb", ctypes.c_ulong),
+                    ("DeviceName", ctypes.c_wchar * 32),
+                    ("DeviceString", ctypes.c_wchar * 128),
+                    ("StateFlags", ctypes.c_ulong),
+                    ("DeviceID", ctypes.c_wchar * 128),
+                    ("DeviceKey", ctypes.c_wchar * 128),
+                ]
+
+            def _display_device(index: int, device_name: str | None = None) -> _DISPLAY_DEVICEW | None:
+                device = _DISPLAY_DEVICEW()
+                device.cb = ctypes.sizeof(_DISPLAY_DEVICEW)
+                parent = device_name if device_name is not None else None
+                if ctypes.windll.user32.EnumDisplayDevicesW(parent, index, ctypes.byref(device), 0):
+                    return device
+                return None
+
+            def _display_mode(device_name: str | None) -> _DEVMODEW | None:
+                devmode = _DEVMODEW()
+                devmode.dmSize = ctypes.sizeof(_DEVMODEW)
+                if ctypes.windll.user32.EnumDisplaySettingsW(
+                    device_name, ENUM_CURRENT_SETTINGS, ctypes.byref(devmode)
+                ):
+                    return devmode
+                return None
+
+            def _scale_percent(devmode: _DEVMODEW) -> int | None:
+                if not devmode.dmLogPixels:
+                    return None
+                # 96 DPI is Windows' 100% scale baseline.
+                return max(50, round(float(devmode.dmLogPixels) / 96 * 100))
+
             ENUM_CURRENT_SETTINGS = -1
-            if ctypes.windll.user32.EnumDisplaySettingsW(
-                None, ENUM_CURRENT_SETTINGS, ctypes.byref(devmode)
-            ):
+            DISPLAY_DEVICE_ACTIVE = 0x00000001
+            DISPLAY_DEVICE_PRIMARY_DEVICE = 0x00000004
+            seen_devices: set[str] = set()
+            for index in range(32):
+                adapter = _display_device(index)
+                if adapter is None:
+                    break
+                if not adapter.StateFlags & DISPLAY_DEVICE_ACTIVE:
+                    continue
+                adapter_name = str(adapter.DeviceName or "")
+                if adapter_name in seen_devices:
+                    continue
+                mode = _display_mode(adapter_name)
+                if mode is None:
+                    continue
+                seen_devices.add(adapter_name)
+                monitor = _display_device(0, adapter_name)
+                monitor_name = ""
+                if monitor is not None and monitor.DeviceString:
+                    monitor_name = str(monitor.DeviceString).strip()
+                adapter_label = str(adapter.DeviceString or adapter_name).strip()
+                name = monitor_name or adapter_label or f"Display {index + 1}"
+                displays.append(
+                    DisplayInfo(
+                        name=name,
+                        width_px=int(mode.dmPelsWidth or 0),
+                        height_px=int(mode.dmPelsHeight or 0),
+                        refresh_hz=float(mode.dmDisplayFrequency or 0) or None,
+                        scale_percent=_scale_percent(mode),
+                        primary=bool(adapter.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE),
+                        source_platform="win32",
+                    )
+                )
+
+            if not displays:
+                # Fallback for unusual Windows sessions where display-device
+                # enumeration fails but the current desktop mode is available.
+                devmode = _display_mode(None)
+            if not displays and devmode is not None:
                 displays.append(
                     DisplayInfo(
                         name="Primary Display",
                         width_px=int(devmode.dmPelsWidth or 0),
                         height_px=int(devmode.dmPelsHeight or 0),
                         refresh_hz=float(devmode.dmDisplayFrequency or 0) or None,
+                        scale_percent=_scale_percent(devmode),
                         primary=True,
                         source_platform="win32",
                     )

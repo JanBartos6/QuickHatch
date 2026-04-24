@@ -9,6 +9,7 @@ regressions.
 from __future__ import annotations
 
 import subprocess
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -153,6 +154,74 @@ class TestSettingsScanner:
         result = settings.scan()
         assert isinstance(result, dict)
         # Should not raise; content may be empty or partial.
+
+
+# ---------------------------------------------------------------------------
+# hardware — display scanner
+# ---------------------------------------------------------------------------
+
+
+class TestDisplayScanner:
+    def test_windows_display_scanner_enumerates_active_monitors(self, monkeypatch):
+        from quickhatch.scanners import hardware as hardware_mod
+
+        class FakeUser32:
+            def EnumDisplayDevicesW(self, parent, index, device_ref, _flags):
+                device = device_ref._obj
+                if parent is None:
+                    if index == 0:
+                        device.DeviceName = r"\\.\DISPLAY1"
+                        device.DeviceString = "NVIDIA GeForce RTX 3080"
+                        device.StateFlags = 0x00000001 | 0x00000004
+                        return 1
+                    if index == 1:
+                        device.DeviceName = r"\\.\DISPLAY2"
+                        device.DeviceString = "Parsec Virtual Display Adapter"
+                        device.StateFlags = 0x00000000
+                        return 1
+                    return 0
+                if parent == r"\\.\DISPLAY1" and index == 0:
+                    device.DeviceString = "AOC U28G2XU"
+                    device.StateFlags = 0x00000001
+                    return 1
+                return 0
+
+            def EnumDisplaySettingsW(self, device_name, _mode, devmode_ref):
+                if device_name != r"\\.\DISPLAY1":
+                    return 0
+                devmode = devmode_ref._obj
+                devmode.dmPelsWidth = 3840
+                devmode.dmPelsHeight = 2160
+                devmode.dmDisplayFrequency = 60
+                devmode.dmLogPixels = 144
+                return 1
+
+        monkeypatch.setattr(sys, "platform", "win32")
+        monkeypatch.setattr(
+            hardware_mod.ctypes,
+            "windll",
+            SimpleNamespace(user32=FakeUser32()),
+            raising=False,
+        )
+
+        displays = hardware_mod._get_displays()
+        assert len(displays) == 1
+        assert displays[0].name == "AOC U28G2XU"
+        assert displays[0].width_px == 3840
+        assert displays[0].height_px == 2160
+        assert displays[0].refresh_hz == 60
+        assert displays[0].scale_percent == 150
+        assert displays[0].primary is True
+
+    def test_scan_ui_renders_display_cards(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "(r.hardware.displays||[]).forEach" in html
+        assert "hwCard('Display'" in html
+        assert "d.refresh_hz" in html
+        assert "d.scale_percent" in html
 
 
 # ---------------------------------------------------------------------------
