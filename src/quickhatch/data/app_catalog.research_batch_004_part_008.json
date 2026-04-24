@@ -1,0 +1,1601 @@
+{
+  "schema": 1,
+  "purpose": "Remaining unknown catalog entries for distro-family support research, batch 004 split into parts",
+  "batch": "004",
+  "part": 8,
+  "entries": [
+    {
+      "id": "winget:Aserto.DSLoad",
+      "name": "ds-load",
+      "match_names": [
+        "ds-load",
+        "Aserto.DSLoad"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ds-load"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BrunoNova.DrMIPS",
+      "name": "DrMIPS",
+      "match_names": [
+        "DrMIPS",
+        "BrunoNova.DrMIPS"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DrMIPS"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DMT.DMTDriverPackage",
+      "name": "Driver Package",
+      "match_names": [
+        "Driver Package",
+        "DMT.DMTDriverPackage"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Driver Package"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CosimoMatteini.DRA",
+      "name": "DRA",
+      "match_names": [
+        "DRA",
+        "CosimoMatteini.DRA"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DRA"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dilluti0n.DPIBreak",
+      "name": "DPIBreak",
+      "match_names": [
+        "DPIBreak",
+        "Dilluti0n.DPIBreak"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DPIBreak"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DimitriVanHeesch.Doxygen",
+      "name": "doxygen",
+      "match_names": [
+        "doxygen",
+        "DimitriVanHeesch.Doxygen"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "doxygen"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ACLAP.DownloadHelperCoApp",
+      "name": "DownloadHelper CoApp",
+      "match_names": [
+        "DownloadHelper CoApp",
+        "ACLAP.DownloadHelperCoApp"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DownloadHelper CoApp"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DOSBoxStaging.DOSBoxStaging",
+      "name": "DOSBox Staging",
+      "match_names": [
+        "DOSBox Staging",
+        "DOSBoxStaging.DOSBoxStaging"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DOSBox Staging"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Digimezzo.Dopamine.3",
+      "name": "Dopamine 3",
+      "match_names": [
+        "Dopamine 3",
+        "Digimezzo.Dopamine.3"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dopamine 3"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DEngine.DoomsdayEngine.Stable",
+      "name": "Doomsday Engine",
+      "match_names": [
+        "Doomsday Engine",
+        "DEngine.DoomsdayEngine.Candidate",
+        "DEngine.DoomsdayEngine.Stable"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Doomsday Engine"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DoomExplorer.DoomExplorer",
+      "name": "Doom Explorer",
+      "match_names": [
+        "Doom Explorer",
+        "DoomExplorer.DoomExplorer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Doom Explorer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:COAS.Donkey",
+      "name": "Donkey for Oracle",
+      "match_names": [
+        "Donkey for Oracle",
+        "COAS.Donkey"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Donkey for Oracle"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DolphinComputerAccess.EasyReader",
+      "name": "Dolphin EasyReader",
+      "match_names": [
+        "Dolphin EasyReader",
+        "DolphinComputerAccess.EasyReader"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dolphin EasyReader"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DenisZhitnyakov.DolphinAnty",
+      "name": "Dolphin Anty",
+      "match_names": [
+        "Dolphin Anty",
+        "DenisZhitnyakov.DolphinAnty"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dolphin Anty"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DolphinEmulator.Dolphin",
+      "name": "Dolphin",
+      "match_names": [
+        "Dolphin",
+        "DolphinEmulator.Dolphin"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dolphin"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ByteDance.Dola",
+      "name": "Dola",
+      "match_names": [
+        "Dola",
+        "ByteDance.Dola"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dola"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DogecoinCoreproject.DogecoinCore",
+      "name": "Dogecoin Core",
+      "match_names": [
+        "Dogecoin Core",
+        "DogecoinCoreproject.DogecoinCore"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dogecoin Core"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DocuSign.DocusignPKI",
+      "name": "Docusign PKI",
+      "match_names": [
+        "Docusign PKI",
+        "DocuSign.DocusignPKI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Docusign PKI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DocuSign.DocusignEdit",
+      "name": "Docusign Edit",
+      "match_names": [
+        "Docusign Edit",
+        "DocuSign.DocusignEdit"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Docusign Edit"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DNSCrypt.dnscrypt-proxy",
+      "name": "dnscrypt-proxy",
+      "match_names": [
+        "dnscrypt-proxy",
+        "DNSCrypt.dnscrypt-proxy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "dnscrypt-proxy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdGuard.dnsproxy",
+      "name": "DNS Proxy",
+      "match_names": [
+        "DNS Proxy",
+        "AdGuard.dnsproxy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DNS Proxy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DMT.DMT840MDControllerSoftware",
+      "name": "DMT840MD Controller Software",
+      "match_names": [
+        "DMT840MD Controller Software",
+        "DMT.DMT840MDControllerSoftware"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DMT840MD Controller Software"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DMT.DMTDeviceEnabler",
+      "name": "DMT Device Enabler",
+      "match_names": [
+        "DMT Device Enabler",
+        "DMT.DMTDeviceEnabler"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DMT Device Enabler"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AmrakSoftware.DMGExtractor",
+      "name": "DMG Extractor",
+      "match_names": [
+        "DMG Extractor",
+        "AmrakSoftware.DMGExtractor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DMG Extractor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DMDE.DataRecovery.GUI",
+      "name": "DMDE Data Recovery Software",
+      "match_names": [
+        "DMDE Data Recovery Software",
+        "DMDE.DataRecovery.GUI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DMDE Data Recovery Software"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dlang.DMD",
+      "name": "DMD",
+      "match_names": [
+        "DMD",
+        "Dlang.DMD"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DMD"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CEWE.dm-Fotowelt",
+      "name": "dm-Fotowelt",
+      "match_names": [
+        "dm-Fotowelt",
+        "CEWE.dm-Fotowelt"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "dm-Fotowelt"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Allen&Heath.dLiveDirector",
+      "name": "dLive Director",
+      "match_names": [
+        "dLive Director",
+        "Allen&Heath.dLiveDirector"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "dLive Director"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Diskuv.OCaml",
+      "name": "DkML Native",
+      "match_names": [
+        "DkML Native",
+        "Diskuv.OCaml"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DkML Native"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Diskuv.dk",
+      "name": "dk",
+      "match_names": [
+        "dk",
+        "Diskuv.dk"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "dk"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DjVuLibre.DjView",
+      "name": "DjVuLibre DjView",
+      "match_names": [
+        "DjVuLibre DjView"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DjVuLibre DjView"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DJI.DJIAssistant2.ForMatrice",
+      "name": "DJIAssistant2ForMatrice",
+      "match_names": [
+        "DJIAssistant2ForMatrice",
+        "DJI.DJIAssistant2.ForMatrice"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DJIAssistant2ForMatrice"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DJI.DJIAssistant2.ForPhantom",
+      "name": "DJI Assistant 2 For Phantom",
+      "match_names": [
+        "DJI Assistant 2 For Phantom",
+        "DJI.DJIAssistant2.ForPhantom"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DJI Assistant 2 For Phantom"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DJI.DJIAssistant2.ForMG",
+      "name": "DJI Assistant 2 For MG",
+      "match_names": [
+        "DJI Assistant 2 For MG",
+        "DJI.DJIAssistant2.ForMG"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DJI Assistant 2 For MG"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DJI.DJIAssistant2.ForMavic",
+      "name": "DJI Assistant 2 For Mavic",
+      "match_names": [
+        "DJI Assistant 2 For Mavic",
+        "DJI.DJIAssistant2.ForMavic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DJI Assistant 2 For Mavic"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DJI.DJIAssistant2.ForAutopilot",
+      "name": "DJI Assistant 2 For Autopilot",
+      "match_names": [
+        "DJI Assistant 2 For Autopilot",
+        "DJI.DJIAssistant2.ForAutopilot"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DJI Assistant 2 For Autopilot"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DJI.DJIAssistant2.EnterpriseSeries",
+      "name": "DJI Assistant 2 (Enterprise Series)",
+      "match_names": [
+        "DJI Assistant 2 (Enterprise Series)",
+        "DJI.DJIAssistant2.EnterpriseSeries"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DJI Assistant 2 (Enterprise Series)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DJI.DJIAssistant2.FPV",
+      "name": "DJI Assistant 2 (DJI FPV series)",
+      "match_names": [
+        "DJI Assistant 2 (DJI FPV series)",
+        "DJI.DJIAssistant2.FPV"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DJI Assistant 2 (DJI FPV series)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:V2.1.5.8",
+      "name": "DJI Assistant 2 (Consumer Drones Series) DJI.DJIAssistant2.ConsumerDronesSeries",
+      "match_names": [
+        "DJI Assistant 2 (Consumer Drones Series) DJI.DJIAssistant2.ConsumerDronesSeries",
+        "DJI Assistant 2 (Consumer Drones Ser… DJI.DJIAssistant2.ConsumerDronesSeries",
+        "V2.1.5.8"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DJI Assistant 2 (Consumer Drones Series) DJI.DJIAssistant2.ConsumerDronesSeries"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Asus.DisplayWidgetCenter",
+      "name": "DisplayWidget Center",
+      "match_names": [
+        "DisplayWidget Center",
+        "Asus.DisplayWidgetCenter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DisplayWidget Center"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ErkanOzgurYilmaz.DisplayCAL",
+      "name": "DisplayCAL",
+      "match_names": [
+        "DisplayCAL",
+        "ErkanOzgurYilmaz.DisplayCAL"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DisplayCAL"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ChuyuTeam.DISM++",
+      "name": "DISM++ Multi Language",
+      "match_names": [
+        "DISM++ Multi Language",
+        "ChuyuTeam.DISM++"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DISM++ Multi Language"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DiskInternals.ZIPRepair",
+      "name": "DiskInternals ZIP Repair",
+      "match_names": [
+        "DiskInternals ZIP Repair",
+        "DiskInternals.ZIPRepair"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DiskInternals ZIP Repair"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DiskInternals.VMFSRecovery",
+      "name": "DiskInternals VMFS Recovery",
+      "match_names": [
+        "DiskInternals VMFS Recovery",
+        "DiskInternals.VMFSRecovery"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DiskInternals VMFS Recovery"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DiskInternals.Uneraser",
+      "name": "DiskInternals Uneraser",
+      "match_names": [
+        "DiskInternals Uneraser"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DiskInternals Uneraser"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DiskInternals.PartitionRecovery",
+      "name": "DiskInternals Partition Recovery",
+      "match_names": [
+        "DiskInternals Partition Recovery",
+        "DiskInternals.PartitionRecovery"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DiskInternals Partition Recovery"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DiskInternals.OutlookRecovery",
+      "name": "DiskInternals Outlook Recovery",
+      "match_names": [
+        "DiskInternals Outlook Recovery",
+        "DiskInternals.OutlookRecovery"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DiskInternals Outlook Recovery"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DiskInternals.LinuxRecovery",
+      "name": "DiskInternals Linux Recovery",
+      "match_names": [
+        "DiskInternals Linux Recovery",
+        "DiskInternals.LinuxRecovery"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DiskInternals Linux Recovery"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DiskInternals.LinuxReader",
+      "name": "DiskInternals Linux Reader",
+      "match_names": [
+        "DiskInternals Linux Reader",
+        "DiskInternals.LinuxReader"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DiskInternals Linux Reader"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Eassos.DiskGenius",
+      "name": "DiskGenius",
+      "match_names": [
+        "DiskGenius",
+        "Eassos.DiskGenius"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DiskGenius"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Byron.dua-cli",
+      "name": "Disk Usage Analyzer",
+      "match_names": [
+        "Disk Usage Analyzer",
+        "Byron.dua-cli"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Disk Usage Analyzer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Airesoft.DisAsm",
+      "name": "DisAsm",
+      "match_names": [
+        "DisAsm",
+        "Airesoft.DisAsm"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DisAsm"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GPSoftware.DirectoryOpus",
+      "name": "Directory Opus",
+      "match_names": [
+        "Directory Opus",
+        "GPSoftware.DirectoryOpus"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Directory Opus"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CodeSector.DirectFolders",
+      "name": "Direct Folders",
+      "match_names": [
+        "Direct Folders",
+        "CodeSector.DirectFolders"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Direct Folders"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dioss.DiosseIDMiddleware",
+      "name": "Dioss eID Middleware",
+      "match_names": [
+        "Dioss eID Middleware",
+        "Dioss.DiosseIDMiddleware"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dioss eID Middleware"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Alibaba.DingTalkWorkspaceCLI",
+      "name": "DingTalk Workspace CLI",
+      "match_names": [
+        "DingTalk Workspace CLI",
+        "Alibaba.DingTalkWorkspaceCLI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DingTalk Workspace CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Alibaba.DingTalk",
+      "name": "DingTalk",
+      "match_names": [
+        "DingTalk",
+        "Alibaba.DingTalk"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DingTalk"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DimisAIO.DindeGDPS",
+      "name": "DindeGDPS",
+      "match_names": [
+        "DindeGDPS",
+        "DimisAIO.DindeGDPS"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DindeGDPS"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Digiexam.Digiexam",
+      "name": "Digiexam",
+      "match_names": [
+        "Digiexam",
+        "Digiexam.Digiexam"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Digiexam"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DIAL.DIALux-evo",
+      "name": "DIALux evo",
+      "match_names": [
+        "DIALux evo",
+        "DIAL.DIALux-evo"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DIALux evo"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dialpad.DialpadMeetings",
+      "name": "Dialpad Meetings",
+      "match_names": [
+        "Dialpad Meetings",
+        "Dialpad.DialpadMeetings"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dialpad Meetings"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dialpad.Dialpad",
+      "name": "Dialpad",
+      "match_names": [
+        "Dialpad",
+        "Dialpad.Dialpad"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dialpad"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DFNetResearch.DFexplore",
+      "name": "DFexplore",
+      "match_names": [
+        "DFexplore",
+        "DFNetResearch.DFexplore"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DFexplore"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DFetch-org.DFetch",
+      "name": "dfetch",
+      "match_names": [
+        "dfetch",
+        "DFetch-org.DFetch"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "dfetch"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DevToys-app.DevToys",
+      "name": "DevToys",
+      "match_names": [
+        "DevToys",
+        "DevToys-app.DevToys"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DevToys"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Devolutions.Workspace",
+      "name": "Devolutions Workspace",
+      "match_names": [
+        "Devolutions Workspace"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Devolutions Workspace"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Devolutions.MsRdpEx",
+      "name": "Devolutions Microsoft RDP Extensions",
+      "match_names": [
+        "Devolutions Microsoft RDP Extensions",
+        "Devolutions.MsRdpEx"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Devolutions Microsoft RDP Extensions"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Devolutions.Gateway",
+      "name": "Devolutions Gateway",
+      "match_names": [
+        "Devolutions Gateway"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Devolutions Gateway"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Devolutions.Agent",
+      "name": "Devolutions Agent",
+      "match_names": [
+        "Devolutions Agent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Devolutions Agent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AndyBochmann.DevKill",
+      "name": "DevKill",
+      "match_names": [
+        "DevKill",
+        "AndyBochmann.DevKill"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DevKill"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DevHub.DevHub",
+      "name": "DevHub",
+      "match_names": [
+        "DevHub",
+        "DevHub.DevHub"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DevHub"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Orwell.Dev-C++",
+      "name": "Dev-C++",
+      "match_names": [
+        "Dev-C++",
+        "Orwell.Dev-C++"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dev-C++"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DevProxy.DevProxy.Beta",
+      "name": "Dev Proxy Beta",
+      "match_names": [
+        "Dev Proxy Beta",
+        "DevProxy.DevProxy.Beta"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dev Proxy Beta"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DevProxy.DevProxy",
+      "name": "Dev Proxy",
+      "match_names": [
+        "Dev Proxy",
+        "DevProxy.DevProxy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dev Proxy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DeterminedAI.CLI",
+      "name": "Determined AI CLI",
+      "match_names": [
+        "Determined AI CLI",
+        "DeterminedAI.CLI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Determined AI CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Deta.Space.CLI",
+      "name": "Deta Space CLI",
+      "match_names": [
+        "Deta Space CLI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Deta Space CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DeSmuMETeam.DeSmuME",
+      "name": "DeSmuME",
+      "match_names": [
+        "DeSmuME",
+        "DeSmuMETeam.DeSmuME"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DeSmuME"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Descript.Descript",
+      "name": "Descript",
+      "match_names": [
+        "Descript",
+        "Descript.Descript"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Descript"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Arnica.DepsGuard",
+      "name": "DepsGuard",
+      "match_names": [
+        "DepsGuard",
+        "Arnica.DepsGuard"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DepsGuard"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Denemo.Denemo",
+      "name": "Denemo",
+      "match_names": [
+        "Denemo",
+        "Denemo.Denemo"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Denemo"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Denby.Calculator",
+      "name": "Denby Calculator",
+      "match_names": [
+        "Denby Calculator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Denby Calculator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Deltek.Maconomy",
+      "name": "Deltek Maconomy",
+      "match_names": [
+        "Deltek Maconomy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Deltek Maconomy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dell.Optimizer",
+      "name": "Dell Optimizer",
+      "match_names": [
+        "Dell Optimizer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dell Optimizer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dell.CommandUpdate",
+      "name": "Dell Command | Update",
+      "match_names": [
+        "Dell Command | Update",
+        "Dell.CommandUpdate"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dell Command | Update"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dell.CommandConfigure",
+      "name": "Dell Command | Configure",
+      "match_names": [
+        "Dell Command | Configure",
+        "Dell.CommandConfigure"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dell Command | Configure"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DrygvalArtyom.DelAfterReboot",
+      "name": "DelAfterReboot",
+      "match_names": [
+        "DelAfterReboot",
+        "DrygvalArtyom.DelAfterReboot"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DelAfterReboot"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DefangLabs.Defang",
+      "name": "Defang",
+      "match_names": [
+        "Defang",
+        "DefangLabs.Defang"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Defang"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Boxstar.DeepVocal",
+      "name": "DeepVocal",
+      "match_names": [
+        "DeepVocal",
+        "Boxstar.DeepVocal"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DeepVocal"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DeepL.DeepL",
+      "name": "DeepL",
+      "match_names": [
+        "DeepL",
+        "DeepL.DeepL"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DeepL"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DeepCool.DeepCool",
+      "name": "DeepCool",
+      "match_names": [
+        "DeepCool",
+        "DeepCool.DeepCool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DeepCool"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cypherix.DeCypherIT",
+      "name": "DeCypherIt",
+      "match_names": [
+        "DeCypherIt",
+        "Cypherix.DeCypherIT"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DeCypherIt"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Baldknobber.DeckSave",
+      "name": "DeckSave",
+      "match_names": [
+        "DeckSave",
+        "Baldknobber.DeckSave"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DeckSave"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ByteDance.Debugtron",
+      "name": "Debugtron",
+      "match_names": [
+        "Debugtron",
+        "ByteDance.Debugtron"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Debugtron"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DeDietrich.PRO",
+      "name": "De Dietrich PRO",
+      "match_names": [
+        "De Dietrich PRO",
+        "DeDietrich.PRO"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "De Dietrich PRO"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DDEVFoundation.DDEV",
+      "name": "DDEV",
+      "match_names": [
+        "DDEV",
+        "DDEVFoundation.DDEV"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DDEV"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Datadog.dda",
+      "name": "dda",
+      "match_names": [
+        "dda",
+        "Datadog.dda"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "dda"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EagleDynamics.DCSWorldOpenBeta",
+      "name": "DCS World OpenBeta",
+      "match_names": [
+        "DCS World OpenBeta",
+        "EagleDynamics.DCSWorldOpenBeta"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DCS World OpenBeta"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DBVis.DBVisualizer",
+      "name": "DbVisualizer",
+      "match_names": [
+        "DbVisualizer",
+        "DBVis.DBVisualizer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DbVisualizer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DBeaver.DBeaver.Ultimate",
+      "name": "DBeaverUltimate",
+      "match_names": [
+        "DBeaverUltimate",
+        "DBeaver.DBeaver.Ultimate"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DBeaverUltimate"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DBeaver.DBeaver.Team",
+      "name": "DBeaverTeam",
+      "match_names": [
+        "DBeaverTeam",
+        "DBeaver.DBeaver.Team"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DBeaverTeam"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}

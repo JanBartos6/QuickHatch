@@ -1,0 +1,1596 @@
+{
+  "schema": 1,
+  "purpose": "Remaining unknown catalog entries for distro-family support research, batch 004 split into parts",
+  "batch": "004",
+  "part": 6,
+  "entries": [
+    {
+      "id": "winget:Carrier.HourlyAnalysisProgram",
+      "name": "Hourly Analysis Program",
+      "match_names": [
+        "Hourly Analysis Program",
+        "Carrier.HourlyAnalysisProgram"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Hourly Analysis Program"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ComfortSoftwareGroup.HotAlarmClock",
+      "name": "Hot Alarm Clock",
+      "match_names": [
+        "Hot Alarm Clock",
+        "ComfortSoftwareGroup.HotAlarmClock"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Hot Alarm Clock"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bandisoft.Honeyview",
+      "name": "Honeyview",
+      "match_names": [
+        "Honeyview",
+        "Bandisoft.Honeyview"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Honeyview"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:COVERCorp.Holoearth",
+      "name": "Holoearth",
+      "match_names": [
+        "Holoearth",
+        "COVERCorp.Holoearth"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Holoearth"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ChawyeHsu.Hok",
+      "name": "Hok",
+      "match_names": [
+        "Hok",
+        "ChawyeHsu.Hok"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Hok"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gabia.HiworksMessenger",
+      "name": "Hiworks Messenger",
+      "match_names": [
+        "Hiworks Messenger",
+        "Gabia.HiworksMessenger"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Hiworks Messenger"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Catacombae.HFSExplorer",
+      "name": "HFSExplorer",
+      "match_names": [
+        "HFSExplorer",
+        "Catacombae.HFSExplorer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "HFSExplorer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Carmix.HexWalk",
+      "name": "HexWalk",
+      "match_names": [
+        "HexWalk",
+        "Carmix.HexWalk"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "HexWalk"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BreakPointSoftware.HexWorkshop",
+      "name": "Hex Workshop",
+      "match_names": [
+        "Hex Workshop",
+        "BreakPointSoftware.HexWorkshop"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Hex Workshop"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Arnau478.hevi",
+      "name": "hevi",
+      "match_names": [
+        "hevi",
+        "Arnau478.hevi"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "hevi"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BeyondCode.Herd",
+      "name": "Herd",
+      "match_names": [
+        "Herd",
+        "BeyondCode.Herd"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Herd"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BrettMayson.HEMTT",
+      "name": "HEMTT",
+      "match_names": [
+        "HEMTT",
+        "BrettMayson.HEMTT"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "HEMTT"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Basti-def.helloworld.package",
+      "name": "helloworld.package",
+      "match_names": [
+        "helloworld.package",
+        "Basti-def.helloworld.package"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "helloworld.package"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AlvinAshcraft.HeartIt",
+      "name": "Heart It",
+      "match_names": [
+        "Heart It",
+        "AlvinAshcraft.HeartIt"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Heart It"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AcaciaAve.HUD",
+      "name": "Heads-Up Display",
+      "match_names": [
+        "Heads-Up Display",
+        "AcaciaAve.HUD"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Heads-Up Display"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DG0JBJ.HDSDR",
+      "name": "HDSDR",
+      "match_names": [
+        "HDSDR",
+        "DG0JBJ.HDSDR"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "HDSDR"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AndreaMarucci.HD2Arsenal",
+      "name": "HD2Arsenal",
+      "match_names": [
+        "HD2Arsenal",
+        "AndreaMarucci.HD2Arsenal"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "HD2Arsenal"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CKingX.haveibeenpwned",
+      "name": "haveibeenpwned",
+      "match_names": [
+        "haveibeenpwned",
+        "CKingX.haveibeenpwned"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "haveibeenpwned"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DeskSoft.HardCopyPro",
+      "name": "HardCopy Pro",
+      "match_names": [
+        "HardCopy Pro",
+        "DeskSoft.HardCopyPro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "HardCopy Pro"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BenjaminLSR.HandheldCompanion",
+      "name": "Handheld Companion",
+      "match_names": [
+        "Handheld Companion",
+        "BenjaminLSR.HandheldCompanion"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Handheld Companion"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FredEmmott.HandTrackedCockpitClicking",
+      "name": "Hand Tracked Cockpit Clicking",
+      "match_names": [
+        "Hand Tracked Cockpit Clicking",
+        "FredEmmott.HandTrackedCockpitClicking"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Hand Tracked Cockpit Clicking"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CabinInteractive.HAMRSPro",
+      "name": "HAMRS Pro",
+      "match_names": [
+        "HAMRS Pro",
+        "CabinInteractive.HAMRSPro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "HAMRS Pro"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AfreetSoftware.HamVNA",
+      "name": "Ham VNA",
+      "match_names": [
+        "Ham VNA",
+        "AfreetSoftware.HamVNA"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ham VNA"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Asdmir786.HalalDL",
+      "name": "HalalDL",
+      "match_names": [
+        "HalalDL",
+        "Asdmir786.HalalDL"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "HalalDL"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ClusterM.hakchi2",
+      "name": "hakchi2",
+      "match_names": [
+        "hakchi2",
+        "ClusterM.hakchi2"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "hakchi2"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DrewNaylor.guinget",
+      "name": "guinget",
+      "match_names": [
+        "guinget",
+        "DrewNaylor.guinget"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "guinget"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ghostgum.GSview",
+      "name": "GSview",
+      "match_names": [
+        "GSview",
+        "Ghostgum.GSview"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GSview"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AlexanderShaduri.GSmartControl",
+      "name": "GSmartControl",
+      "match_names": [
+        "GSmartControl",
+        "AlexanderShaduri.GSmartControl"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GSmartControl"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CWEcomputerservices.GSAK",
+      "name": "GSAK",
+      "match_names": [
+        "GSAK",
+        "CWEcomputerservices.GSAK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GSAK"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Citadel5-JP.GS-Calc",
+      "name": "GS-Calc",
+      "match_names": [
+        "GS-Calc",
+        "Citadel5-JP.GS-Calc"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GS-Calc"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Citadel5-JP.GS-Base",
+      "name": "GS-Base",
+      "match_names": [
+        "GS-Base",
+        "Citadel5-JP.GS-Base"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GS-Base"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Anchore.Grype",
+      "name": "Grype",
+      "match_names": [
+        "Grype",
+        "Anchore.Grype"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Grype"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Apache.Groovy.5",
+      "name": "Groovy 5",
+      "match_names": [
+        "Groovy 5",
+        "Apache.Groovy.5"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Groovy 5"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Apache.Groovy.4",
+      "name": "Groovy 4",
+      "match_names": [
+        "Groovy 4",
+        "Apache.Groovy.4"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Groovy 4"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Apache.Groovy.3",
+      "name": "Groovy 3",
+      "match_names": [
+        "Groovy 3",
+        "Apache.Groovy.3"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Groovy 3"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Apache.Groovy.2",
+      "name": "Groovy 2",
+      "match_names": [
+        "Groovy 2",
+        "Apache.Groovy.2"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Groovy 2"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EryouHao.Gridea",
+      "name": "Gridea",
+      "match_names": [
+        "Gridea",
+        "EryouHao.Gridea"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gridea"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ethereum.grid",
+      "name": "Grid",
+      "match_names": [
+        "Grid",
+        "Ethereum.grid"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Grid"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdamMiskiewicz.GraphiQL",
+      "name": "GraphiQL",
+      "match_names": [
+        "GraphiQL",
+        "AdamMiskiewicz.GraphiQL"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GraphiQL"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Asus.GpuTweak3.Stable",
+      "name": "GPU Tweak III (Stable)",
+      "match_names": [
+        "GPU Tweak III (Stable)",
+        "Asus.GpuTweak3.Stable"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GPU Tweak III (Stable)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AlexandruCsete.Gpredict",
+      "name": "Gpredict",
+      "match_names": [
+        "Gpredict",
+        "AlexandruCsete.Gpredict"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gpredict"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GPAC.GPAC",
+      "name": "GPAC",
+      "match_names": [
+        "GPAC",
+        "GPAC.GPAC"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GPAC"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GAM-Team.GotYourBack",
+      "name": "Got Your Back",
+      "match_names": [
+        "Got Your Back",
+        "GAM-Team.GotYourBack"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Got Your Back"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bioruebe.godotdec",
+      "name": "godotdec",
+      "match_names": [
+        "godotdec",
+        "Bioruebe.godotdec"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "godotdec"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Exploitox.GoAwayEdge",
+      "name": "GoAwayEdge",
+      "match_names": [
+        "GoAwayEdge",
+        "Exploitox.GoAwayEdge"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GoAwayEdge"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GNU.Solfege",
+      "name": "GNU Solfege",
+      "match_names": [
+        "GNU Solfege"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GNU Solfege"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GNU.Nano",
+      "name": "GNU Nano",
+      "match_names": [
+        "GNU Nano"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GNU Nano"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GNU.MidnightCommander",
+      "name": "GNU Midnight Commander",
+      "match_names": [
+        "GNU Midnight Commander",
+        "GNU.MidnightCommander"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GNU Midnight Commander"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GNU.Emacs",
+      "name": "GNU Emacs",
+      "match_names": [
+        "GNU Emacs"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GNU Emacs"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GNU.datamash",
+      "name": "GNU datamash",
+      "match_names": [
+        "GNU datamash"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GNU datamash"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GLPI-Project.GLPI-Agent",
+      "name": "GLPI Agent",
+      "match_names": [
+        "GLPI Agent",
+        "GLPI-Project.GLPI-Agent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GLPI Agent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bonnefon.glogg",
+      "name": "glogg",
+      "match_names": [
+        "glogg",
+        "Bonnefon.glogg"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "glogg"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GLab.GLab",
+      "name": "GLab",
+      "match_names": [
+        "GLab",
+        "GLab.GLab"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GLab"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ginger.GingerWriter",
+      "name": "Ginger Writer",
+      "match_names": [
+        "Ginger Writer",
+        "Ginger.GingerWriter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ginger Writer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gamani.GIFMovieGear",
+      "name": "GIF Movie Gear",
+      "match_names": [
+        "GIF Movie Gear",
+        "Gamani.GIFMovieGear"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GIF Movie Gear"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Futureglobe.Gibu",
+      "name": "Gibu",
+      "match_names": [
+        "Gibu",
+        "Futureglobe.Gibu"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gibu"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GaduGadu.GaduGadu",
+      "name": "GG",
+      "match_names": [
+        "GG",
+        "GaduGadu.GaduGadu"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GG"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CompuBench.GFXBench",
+      "name": "GFXBench",
+      "match_names": [
+        "GFXBench",
+        "CompuBench.GFXBench"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GFXBench"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GNU.Gforth",
+      "name": "Gforth",
+      "match_names": [
+        "Gforth",
+        "GNU.Gforth"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gforth"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Getscreenme.Dashboard.Beta",
+      "name": "Getscreen.me Dashboard (beta)",
+      "match_names": [
+        "Getscreen.me Dashboard (beta)",
+        "Getscreenme.Dashboard.Beta"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Getscreen.me Dashboard (beta)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BlankSpruce.Gersemi",
+      "name": "Gersemi",
+      "match_names": [
+        "Gersemi",
+        "BlankSpruce.Gersemi"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gersemi"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gephi.Gephi",
+      "name": "Gephi",
+      "match_names": [
+        "Gephi",
+        "Gephi.Gephi"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gephi"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Geph.Geph",
+      "name": "Geph",
+      "match_names": [
+        "Geph",
+        "Geph.Geph"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Geph"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GeoGebra.GraphingCalculator",
+      "name": "GeoGebra Graphing Calculator",
+      "match_names": [
+        "GeoGebra Graphing Calculator",
+        "GeoGebra.GraphingCalculator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GeoGebra Graphing Calculator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GeoGebra.Geometry",
+      "name": "GeoGebra Geometry",
+      "match_names": [
+        "GeoGebra Geometry"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GeoGebra Geometry"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GeoGebra.Classic.5",
+      "name": "GeoGebra Classic 5",
+      "match_names": [
+        "GeoGebra Classic 5"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GeoGebra Classic 5"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GeoGebra.Classic",
+      "name": "GeoGebra Classic",
+      "match_names": [
+        "GeoGebra Classic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GeoGebra Classic"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GeoGebra.CASCalculator",
+      "name": "GeoGebra CAS Calculator",
+      "match_names": [
+        "GeoGebra CAS Calculator",
+        "GeoGebra.CASCalculator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GeoGebra CAS Calculator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GeoGebra.CalculatorSuite",
+      "name": "GeoGebra Calculator Suite",
+      "match_names": [
+        "GeoGebra Calculator Suite",
+        "GeoGebra.CalculatorSuite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GeoGebra Calculator Suite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GeodeSDK.GeodeCLI",
+      "name": "Geode CLI",
+      "match_names": [
+        "Geode CLI",
+        "GeodeSDK.GeodeCLI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Geode CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GeoDa.GeoDa",
+      "name": "GeoDa",
+      "match_names": [
+        "GeoDa",
+        "GeoDa.GeoDa"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GeoDa"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Genymobile.Genymotion",
+      "name": "Genymotion",
+      "match_names": [
+        "Genymotion",
+        "Genymobile.Genymotion"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Genymotion"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gentee.Gentee",
+      "name": "Gentee",
+      "match_names": [
+        "Gentee",
+        "Gentee.Gentee"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gentee"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gadwin.GeForms",
+      "name": "GeForms",
+      "match_names": [
+        "GeForms",
+        "Gadwin.GeForms"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GeForms"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Geeks3D.FurMark.2",
+      "name": "Geeks3D FurMark 2",
+      "match_names": [
+        "Geeks3D FurMark 2"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Geeks3D FurMark 2"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Geeks3D.FurMark.1",
+      "name": "Geeks3D FurMark",
+      "match_names": [
+        "Geeks3D FurMark",
+        "Geeks3D.FurMark.1"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Geeks3D FurMark"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GeekUninstaller.GeekUninstaller",
+      "name": "Geek Uninstaller",
+      "match_names": [
+        "Geek Uninstaller",
+        "GeekUninstaller.GeekUninstaller"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Geek Uninstaller"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Geany.Geany",
+      "name": "Geany",
+      "match_names": [
+        "Geany",
+        "Geany.Geany"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Geany"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GISInternals.GDAL.Oracle",
+      "name": "GDAL Oracle plugin",
+      "match_names": [
+        "GDAL Oracle plugin",
+        "GISInternals.GDAL.Oracle"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GDAL Oracle plugin"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GISInternals.GDAL.MrSID",
+      "name": "GDAL MrSID plugin",
+      "match_names": [
+        "GDAL MrSID plugin",
+        "GISInternals.GDAL.MrSID"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GDAL MrSID plugin"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GISInternals.GDAL.ECW",
+      "name": "GDAL ECW 5.5 plugin",
+      "match_names": [
+        "GDAL ECW 5.5 plugin",
+        "GISInternals.GDAL.ECW"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GDAL ECW 5.5 plugin"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GISInternals.GDAL",
+      "name": "GDAL",
+      "match_names": [
+        "GDAL",
+        "GISInternals.GDAL"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GDAL"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Exidex.Gauntlet",
+      "name": "Gauntlet",
+      "match_names": [
+        "Gauntlet",
+        "Exidex.Gauntlet"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gauntlet"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gauge.Gauge",
+      "name": "Gauge",
+      "match_names": [
+        "Gauge",
+        "Gauge.Gauge"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gauge"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gather.Gather",
+      "name": "Gather",
+      "match_names": [
+        "Gather",
+        "Gather.Gather"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gather"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Garmin.Express",
+      "name": "Garmin Express",
+      "match_names": [
+        "Garmin Express"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Garmin Express"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Garmin.BaseCamp",
+      "name": "Garmin BaseCamp",
+      "match_names": [
+        "Garmin BaseCamp"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Garmin BaseCamp"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Garena.Garena",
+      "name": "Garena",
+      "match_names": [
+        "Garena",
+        "Garena.Garena"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Garena"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gardener.gardenctl",
+      "name": "gardenctl",
+      "match_names": [
+        "gardenctl",
+        "Gardener.gardenctl"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "gardenctl"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GanttProject.GanttProject",
+      "name": "GanttProject",
+      "match_names": [
+        "GanttProject",
+        "GanttProject.GanttProject"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GanttProject"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GamaPlatform.Gama",
+      "name": "Gama",
+      "match_names": [
+        "Gama",
+        "GamaPlatform.Gama"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gama"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GAM-Team.gam",
+      "name": "gam",
+      "match_names": [
+        "gam",
+        "GAM-Team.gam"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "gam"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GalvanizeInc.GalvanizeCirrus",
+      "name": "Galvanize Cirrus",
+      "match_names": [
+        "Galvanize Cirrus",
+        "GalvanizeInc.GalvanizeCirrus"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Galvanize Cirrus"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gajim.Gajim",
+      "name": "Gajim",
+      "match_names": [
+        "Gajim",
+        "Gajim.Gajim"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gajim"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GAI.GAI",
+      "name": "Gai",
+      "match_names": [
+        "Gai",
+        "GAI.GAI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gai"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gadwin.ScreenRecorder",
+      "name": "Gadwin ScreenRecorder",
+      "match_names": [
+        "Gadwin ScreenRecorder"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gadwin ScreenRecorder"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gadwin.PrintScreen.Pro",
+      "name": "Gadwin PrintScreenPro",
+      "match_names": [
+        "Gadwin PrintScreenPro",
+        "Gadwin.PrintScreen.Pro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gadwin PrintScreenPro"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gadwin.PrintScreen",
+      "name": "Gadwin PrintScreen",
+      "match_names": [
+        "Gadwin PrintScreen"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gadwin PrintScreen"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AlexRedden.G14ControlV2",
+      "name": "G14ControlV2",
+      "match_names": [
+        "G14ControlV2",
+        "AlexRedden.G14ControlV2"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "G14ControlV2"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CoocooFroggy.FutureRestore-GUI",
+      "name": "FutureRestore GUI",
+      "match_names": [
+        "FutureRestore GUI",
+        "CoocooFroggy.FutureRestore-GUI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FutureRestore GUI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}

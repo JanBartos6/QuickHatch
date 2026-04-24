@@ -1,0 +1,1608 @@
+{
+  "schema": 1,
+  "purpose": "Remaining unknown catalog entries for distro-family support research, batch 004 split into parts",
+  "batch": "004",
+  "part": 7,
+  "entries": [
+    {
+      "id": "winget:Buct0r.fullfetch",
+      "name": "fullfetch",
+      "match_names": [
+        "fullfetch",
+        "Buct0r.fullfetch"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "fullfetch"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DTHCST.Fregonator",
+      "name": "Fregonator",
+      "match_names": [
+        "Fregonator",
+        "DTHCST.Fregonator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Fregonator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AlexKaul.Freeter",
+      "name": "Freeter",
+      "match_names": [
+        "Freeter",
+        "AlexKaul.Freeter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Freeter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ChurchApps.FreeShow",
+      "name": "FreeShow",
+      "match_names": [
+        "FreeShow",
+        "ChurchApps.FreeShow"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FreeShow"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FreedroidRPG.FreedroidRPG",
+      "name": "FreedroidRPG",
+      "match_names": [
+        "FreedroidRPG",
+        "FreedroidRPG.FreedroidRPG"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FreedroidRPG"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ComfortSoftwareGroup.FreeVirtualKeyboard",
+      "name": "Free Virtual Keyboard",
+      "match_names": [
+        "Free Virtual Keyboard",
+        "ComfortSoftwareGroup.FreeVirtualKeyboard"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Free Virtual Keyboard"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ComfortSoftwareGroup.FreeAlarmClock",
+      "name": "Free Alarm Clock",
+      "match_names": [
+        "Free Alarm Clock",
+        "ComfortSoftwareGroup.FreeAlarmClock"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Free Alarm Clock"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:66HEX.Frame",
+      "name": "Frame",
+      "match_names": [
+        "Frame",
+        "66HEX.Frame"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Frame"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Forkgram.Forkgram",
+      "name": "Forkgram",
+      "match_names": [
+        "Forkgram",
+        "Forkgram.Forkgram"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Forkgram"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ForceAutoHDR.7gxycn08",
+      "name": "ForceAutoHDR",
+      "match_names": [
+        "ForceAutoHDR",
+        "ForceAutoHDR.7gxycn08"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ForceAutoHDR"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FontForge.FontForge",
+      "name": "FontForge",
+      "match_names": [
+        "FontForge",
+        "FontForge.FontForge"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FontForge"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Folge.Folge",
+      "name": "Folge",
+      "match_names": [
+        "Folge",
+        "Folge.Folge"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Folge"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bazwise.FolderSizeExplorer",
+      "name": "Folder Size Explorer",
+      "match_names": [
+        "Folder Size Explorer",
+        "Bazwise.FolderSizeExplorer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Folder Size Explorer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Brio.FolderSize",
+      "name": "Folder Size",
+      "match_names": [
+        "Folder Size",
+        "Brio.FolderSize"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Folder Size"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Flydigi.FlydigiSpaceStation",
+      "name": "FlydigiSpaceStation",
+      "match_names": [
+        "FlydigiSpaceStation",
+        "Flydigi.FlydigiSpaceStation"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FlydigiSpaceStation"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Flydigi.FlydigiPCSpace",
+      "name": "FlydigiPcSpace",
+      "match_names": [
+        "FlydigiPcSpace",
+        "Flydigi.FlydigiPCSpace"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FlydigiPcSpace"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BlastApps.FluentSearch",
+      "name": "Fluent Search",
+      "match_names": [
+        "Fluent Search",
+        "BlastApps.FluentSearch"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Fluent Search"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DevinCook.Flowgorithm",
+      "name": "Flowgorithm",
+      "match_names": [
+        "Flowgorithm",
+        "DevinCook.Flowgorithm"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Flowgorithm"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FlightGear.FlightGear",
+      "name": "FlightGear",
+      "match_names": [
+        "FlightGear",
+        "FlightGear.FlightGear"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FlightGear"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FlightDeck.FlightDeck",
+      "name": "FlightDeck",
+      "match_names": [
+        "FlightDeck",
+        "FlightDeck.FlightDeck"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FlightDeck"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DaimlerTruck.FleetboardCockpit",
+      "name": "Fleetboard Cockpit",
+      "match_names": [
+        "Fleetboard Cockpit",
+        "DaimlerTruck.FleetboardCockpit"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Fleetboard Cockpit"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FlaxEngine.Flax",
+      "name": "Flax",
+      "match_names": [
+        "Flax",
+        "FlaxEngine.Flax"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Flax"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AshishBharadwajJ.Flawesome",
+      "name": "Flawesome",
+      "match_names": [
+        "Flawesome",
+        "AshishBharadwajJ.Flawesome"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Flawesome"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Constructor.Flat",
+      "name": "Flat",
+      "match_names": [
+        "Flat",
+        "Constructor.Flat"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Flat"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Flashforge.FlashPrint",
+      "name": "FlashPrint",
+      "match_names": [
+        "FlashPrint",
+        "Flashforge.FlashPrint"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FlashPrint"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Blueberry.FlashBackPro",
+      "name": "FlashBack Pro 5",
+      "match_names": [
+        "FlashBack Pro 5",
+        "Blueberry.FlashBackPro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FlashBack Pro 5"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Blueberry.FlashbackExpress.7",
+      "name": "Flashback Express 7",
+      "match_names": [
+        "Flashback Express 7",
+        "Blueberry.FlashbackExpress.7"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Flashback Express 7"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Blueberry.FlashbackExpress.6",
+      "name": "Flashback Express 6",
+      "match_names": [
+        "Flashback Express 6",
+        "Blueberry.FlashbackExpress.6"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Flashback Express 6"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DonutWare.Fladder.Nightly",
+      "name": "Fladder - Nightly",
+      "match_names": [
+        "Fladder - Nightly",
+        "DonutWare.Fladder.Nightly"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Fladder - Nightly"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cfx.re.FiveM",
+      "name": "FiveM",
+      "match_names": [
+        "FiveM",
+        "Cfx.re.FiveM"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FiveM"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:1zilc.FishingFunds",
+      "name": "Fishing Funds",
+      "match_names": [
+        "Fishing Funds",
+        "1zilc.FishingFunds"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Fishing Funds"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FischertechnikGMBH.ROBOPro",
+      "name": "fischertechnik ROBOPro",
+      "match_names": [
+        "fischertechnik ROBOPro",
+        "FischertechnikGMBH.ROBOPro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "fischertechnik ROBOPro"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DavidMeeker.FEMM",
+      "name": "Finite Element Method Magnetics",
+      "match_names": [
+        "Finite Element Method Magnetics",
+        "DavidMeeker.FEMM"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Finite Element Method Magnetics"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Fing.Fing",
+      "name": "Fing",
+      "match_names": [
+        "Fing",
+        "Fing.Fing"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Fing"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Benbuck.Finestray",
+      "name": "Finestray",
+      "match_names": [
+        "Finestray",
+        "Benbuck.Finestray"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Finestray"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Atola.FindandMount",
+      "name": "Find and Mount",
+      "match_names": [
+        "Find and Mount",
+        "Atola.FindandMount"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Find and Mount"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ByteForge.FIGPrint",
+      "name": "FIGPrint",
+      "match_names": [
+        "FIGPrint",
+        "ByteForge.FIGPrint"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FIGPrint"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Figma.FigmaAgent",
+      "name": "Figma Agent",
+      "match_names": [
+        "Figma Agent",
+        "Figma.FigmaAgent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Figma Agent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Figma.Figma",
+      "name": "Figma",
+      "match_names": [
+        "Figma",
+        "Figma.Figma"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Figma"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CodeF0x.ffzap",
+      "name": "ffzap",
+      "match_names": [
+        "ffzap",
+        "CodeF0x.ffzap"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ffzap"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ferdium.Ferdium.Nightly",
+      "name": "Ferdium Nightly",
+      "match_names": [
+        "Ferdium Nightly",
+        "Ferdium.Ferdium.Nightly"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ferdium Nightly"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FellowInsights.Fellow",
+      "name": "Fellow",
+      "match_names": [
+        "Fellow",
+        "FellowInsights.Fellow"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Fellow"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ByteDance.FeishuRooms",
+      "name": "FeishuRooms",
+      "match_names": [
+        "FeishuRooms",
+        "ByteDance.FeishuRooms"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FeishuRooms"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ByteDance.Feishu",
+      "name": "Feishu",
+      "match_names": [
+        "Feishu",
+        "ByteDance.Feishu"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Feishu"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ByteDance.FeiLian",
+      "name": "FeiLian",
+      "match_names": [
+        "FeiLian",
+        "ByteDance.FeiLian"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FeiLian"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DaCosySheeep.FactDownloader",
+      "name": "Fact downloader",
+      "match_names": [
+        "Fact downloader",
+        "DaCosySheeep.FactDownloader"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Fact downloader"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ChrisLong.EZSignIt",
+      "name": "EZSignIt",
+      "match_names": [
+        "EZSignIt",
+        "ChrisLong.EZSignIt"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EZSignIt"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Avestura.EyesGuard",
+      "name": "Eyes Guard",
+      "match_names": [
+        "Eyes Guard",
+        "Avestura.EyesGuard"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Eyes Guard"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AndrejFogelton.eyeblink",
+      "name": "eyeblink",
+      "match_names": [
+        "eyeblink",
+        "AndrejFogelton.eyeblink"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "eyeblink"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ExpressLRS.ExpressLRS-Configurator",
+      "name": "ExpressLRS Configurator",
+      "match_names": [
+        "ExpressLRS Configurator",
+        "ExpressLRS.ExpressLRS-Configurator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ExpressLRS Configurator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Exelearning.Exelearning",
+      "name": "eXeLearning",
+      "match_names": [
+        "eXeLearning",
+        "Exelearning.Exelearning"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "eXeLearning"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AMDphreak.EvolutionEngine",
+      "name": "Evolution Engine",
+      "match_names": [
+        "Evolution Engine",
+        "AMDphreak.EvolutionEngine"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Evolution Engine"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Audient.EVO",
+      "name": "EVO",
+      "match_names": [
+        "EVO",
+        "Audient.EVO"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EVO"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Everbridge.Everbridge360",
+      "name": "Everbridge 360",
+      "match_names": [
+        "Everbridge 360",
+        "Everbridge.Everbridge360"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Everbridge 360"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BioSilico.MicroBreak",
+      "name": "EssayWriter",
+      "match_names": [
+        "EssayWriter",
+        "BioSilico.EssayWriter",
+        "BioSilico.MicroBreak"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EssayWriter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ESBConsultancy.ESBProgCalc.Pro.Trial",
+      "name": "ESBProgCalc Pro TRIAL",
+      "match_names": [
+        "ESBProgCalc Pro TRIAL",
+        "ESBConsultancy.ESBProgCalc.Pro.Trial"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ESBProgCalc Pro TRIAL"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Erlang.ErlangOTP",
+      "name": "Erlang OTP",
+      "match_names": [
+        "Erlang OTP",
+        "Erlang.ErlangOTP"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Erlang OTP"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ergosoft.ErgoFAKT_V5",
+      "name": "ErgoFAKT V5",
+      "match_names": [
+        "ErgoFAKT V5",
+        "Ergosoft.ErgoFAKT_V5"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ErgoFAKT V5"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EdgelessPE.ept",
+      "name": "ept",
+      "match_names": [
+        "ept",
+        "EdgelessPE.ept"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ept"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EPSON.EpsonNetConfig.Portable",
+      "name": "EpsonNet Config Portable",
+      "match_names": [
+        "EpsonNet Config Portable",
+        "EPSON.EpsonNetConfig.Portable"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EpsonNet Config Portable"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Elgato.EpocCam",
+      "name": "EpocCam drivers",
+      "match_names": [
+        "EpocCam drivers",
+        "Elgato.EpocCam"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EpocCam drivers"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Epilogue.EpilogueOperator",
+      "name": "Epilogue Operator",
+      "match_names": [
+        "Epilogue Operator",
+        "Epilogue.EpilogueOperator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Epilogue Operator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EntropiQ.agent",
+      "name": "entropiq",
+      "match_names": [
+        "entropiq",
+        "EntropiQ.agent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "entropiq"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cteros.ENO-M",
+      "name": "ENO-M",
+      "match_names": [
+        "ENO-M",
+        "Cteros.ENO-M"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ENO-M"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Enigma.VirtualBox",
+      "name": "Enigma Virtual Box",
+      "match_names": [
+        "Enigma Virtual Box",
+        "Enigma.VirtualBox"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Enigma Virtual Box"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Carrier.EngineeringEconomicAnalysis",
+      "name": "Engineering Economic Analysis",
+      "match_names": [
+        "Engineering Economic Analysis",
+        "Carrier.EngineeringEconomicAnalysis"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Engineering Economic Analysis"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EngageHealth.EngageAgent",
+      "name": "Engage Agent",
+      "match_names": [
+        "Engage Agent",
+        "EngageHealth.EngageAgent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Engage Agent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ClarivateAnalytics.EndNote",
+      "name": "EndNote 2025",
+      "match_names": [
+        "EndNote 2025",
+        "ClarivateAnalytics.EndNote"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EndNote 2025"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Emsisoft.EmergencyKit",
+      "name": "Emsisoft Emergency Kit",
+      "match_names": [
+        "Emsisoft Emergency Kit",
+        "Emsisoft.EmergencyKit"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Emsisoft Emergency Kit"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GS.EmEsGi",
+      "name": "EmEsGi",
+      "match_names": [
+        "EmEsGi",
+        "GS.EmEsGi"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EmEsGi"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EMCO.MSIPackageBuilder.12",
+      "name": "EMCO MSI Package Builder 12",
+      "match_names": [
+        "EMCO MSI Package Builder 12",
+        "EMCO.MSIPackageBuilder.12"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EMCO MSI Package Builder 12"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EDCD.EliteDangerousMarketConnector",
+      "name": "Elite Dangerous Market Connector",
+      "match_names": [
+        "Elite Dangerous Market Connector",
+        "EDCD.EliteDangerousMarketConnector"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Elite Dangerous Market Connector"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Elgato.WaveLink",
+      "name": "Elgato Wave Link",
+      "match_names": [
+        "Elgato Wave Link",
+        "Elgato.WaveLink"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Elgato Wave Link"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Elgato.ControlCenter",
+      "name": "Elgato Control Center",
+      "match_names": [
+        "Elgato Control Center",
+        "Elgato.ControlCenter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Elgato Control Center"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Elgato.CameraHub",
+      "name": "Elgato Camera Hub",
+      "match_names": [
+        "Elgato Camera Hub",
+        "Elgato.CameraHub"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Elgato Camera Hub"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Eigent.Eigent",
+      "name": "Eigent",
+      "match_names": [
+        "Eigent",
+        "Eigent.Eigent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Eigent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:7S2P.Effie.CN",
+      "name": "Effie",
+      "match_names": [
+        "Effie",
+        "7S2P.Effie.CN",
+        "7S2P.Effie"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Effie"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ByteDance.EffectHouse",
+      "name": "Effect House",
+      "match_names": [
+        "Effect House",
+        "ByteDance.EffectHouse"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Effect House"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Educator.Engine",
+      "name": "Educator Engine",
+      "match_names": [
+        "Educator Engine"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Educator Engine"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ES-Computing.EditPlus",
+      "name": "EditPlus",
+      "match_names": [
+        "EditPlus",
+        "ES-Computing.EditPlus"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EditPlus"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EdgeTX.Companion",
+      "name": "EdgeTX Companion",
+      "match_names": [
+        "EdgeTX Companion"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EdgeTX Companion"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DeXPeriX.EbookTalker",
+      "name": "EbookTalker",
+      "match_names": [
+        "EbookTalker",
+        "DeXPeriX.EbookTalker"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EbookTalker"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EasyTier.EasyTierGUI",
+      "name": "easytier-gui",
+      "match_names": [
+        "easytier-gui",
+        "EasyTier.EasyTierGUI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "easytier-gui"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Auroral0810.EasyRename",
+      "name": "EasyRename",
+      "match_names": [
+        "EasyRename",
+        "Auroral0810.EasyRename"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EasyRename"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GaoyangZhang.EasyClaw",
+      "name": "EasyClaw",
+      "match_names": [
+        "EasyClaw",
+        "GaoyangZhang.EasyClaw"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EasyClaw"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Easy2Convert.png2dds",
+      "name": "Easy2Convert PNG to DDS",
+      "match_names": [
+        "Easy2Convert PNG to DDS",
+        "Easy2Convert.png2dds"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Easy2Convert PNG to DDS"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DYMO.DYMOScale",
+      "name": "DYMO Scale",
+      "match_names": [
+        "DYMO Scale",
+        "DYMO.DYMOScale"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DYMO Scale"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DYMO.DYMOLabel",
+      "name": "DYMO Label",
+      "match_names": [
+        "DYMO Label",
+        "DYMO.DYMOLabel"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DYMO Label"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DYMO.DYMOID",
+      "name": "DYMO ID",
+      "match_names": [
+        "DYMO ID",
+        "DYMO.DYMOID"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DYMO ID"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DYMO.DYMOConnect",
+      "name": "DYMO Connect",
+      "match_names": [
+        "DYMO Connect",
+        "DYMO.DYMOConnect"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DYMO Connect"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CodeBerserkers888.DxGPT-AI",
+      "name": "DxGPT-Ai",
+      "match_names": [
+        "DxGPT-Ai",
+        "CodeBerserkers888.DxGPT-AI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DxGPT-Ai"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DH2iCompany.DxEnterprise",
+      "name": "DxEnterprise",
+      "match_names": [
+        "DxEnterprise",
+        "DH2iCompany.DxEnterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DxEnterprise"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DanWBR.DWSIM",
+      "name": "DWSIM",
+      "match_names": [
+        "DWSIM",
+        "DanWBR.DWSIM"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DWSIM"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AutoDWG.DWGSeePro",
+      "name": "DWGSee Pro 2026",
+      "match_names": [
+        "DWGSee Pro 2026",
+        "AutoDWG.DWGSeePro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DWGSee Pro 2026"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AlexThuering.DVDStyler",
+      "name": "DVDStyler",
+      "match_names": [
+        "DVDStyler",
+        "AlexThuering.DVDStyler"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DVDStyler"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Apple.DVDorCDSharing",
+      "name": "DVD or CD Sharing",
+      "match_names": [
+        "DVD or CD Sharing",
+        "Apple.DVDorCDSharing"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DVD or CD Sharing"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DupeGuru.DupeGuru",
+      "name": "dupeGuru",
+      "match_names": [
+        "dupeGuru",
+        "DupeGuru.DupeGuru"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "dupeGuru"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DCSS.DungeonCrawlStoneSoup",
+      "name": "Dungeon Crawl Stone Soup",
+      "match_names": [
+        "Dungeon Crawl Stone Soup",
+        "DCSS.DungeonCrawlStoneSoup"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dungeon Crawl Stone Soup"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Airzone.Ductzone",
+      "name": "DuctZone: Airzone duct calculation",
+      "match_names": [
+        "DuctZone: Airzone duct calculation",
+        "Airzone.Ductzone"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DuctZone: Airzone duct calculation"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Kornelski.DSSIM",
+      "name": "DSSIM",
+      "match_names": [
+        "DSSIM",
+        "Kornelski.DSSIM"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DSSIM"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}

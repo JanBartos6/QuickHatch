@@ -1,0 +1,1601 @@
+{
+  "schema": 1,
+  "purpose": "Remaining unknown catalog entries for distro-family support research, batch 004 split into parts",
+  "batch": "004",
+  "part": 9,
+  "entries": [
+    {
+      "id": "winget:DBeaver.DBeaver.Enterprise",
+      "name": "DBeaverEE",
+      "match_names": [
+        "DBeaverEE",
+        "DBeaver.DBeaver.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DBeaverEE"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DBeaver.DBeaver.Community",
+      "name": "DBeaver",
+      "match_names": [
+        "DBeaver",
+        "DBeaver.DBeaver.Community"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DBeaver"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Columnar.dbc",
+      "name": "dbc",
+      "match_names": [
+        "dbc",
+        "Columnar.dbc"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "dbc"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DavidJoffe.DaveGnukem",
+      "name": "Dave Gnukem",
+      "match_names": [
+        "Dave Gnukem",
+        "DavidJoffe.DaveGnukem"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dave Gnukem"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Datto.Workplace",
+      "name": "Datto Workplace",
+      "match_names": [
+        "Datto Workplace"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Datto Workplace"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Datto.WindowsAgent",
+      "name": "Datto Windows Agent",
+      "match_names": [
+        "Datto Windows Agent",
+        "Datto.WindowsAgent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Datto Windows Agent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CZNIC.Datovka",
+      "name": "Datovka",
+      "match_names": [
+        "Datovka",
+        "CZNIC.Datovka"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Datovka"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DATEV.SmartITConnect",
+      "name": "DATEV-SmartIT Connect",
+      "match_names": [
+        "DATEV-SmartIT Connect",
+        "DATEV.SmartITConnect"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DATEV-SmartIT Connect"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DATEV.Belegtransfer",
+      "name": "DATEV Belegtransfer",
+      "match_names": [
+        "DATEV Belegtransfer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DATEV Belegtransfer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Datahunter.DatahunterTNT",
+      "name": "Datahunter TNT",
+      "match_names": [
+        "Datahunter TNT",
+        "Datahunter.DatahunterTNT"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Datahunter TNT"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Datahunter.Datahunter",
+      "name": "Datahunter",
+      "match_names": [
+        "Datahunter",
+        "Datahunter.Datahunter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Datahunter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Datadog.Agent",
+      "name": "Datadog Agent",
+      "match_names": [
+        "Datadog Agent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Datadog Agent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Datadog.dd-trace-dotnet",
+      "name": "Datadog .NET Tracer",
+      "match_names": [
+        "Datadog .NET Tracer",
+        "Datadog.dd-trace-dotnet"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Datadog .NET Tracer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Futureglobe.Dashy",
+      "name": "Dashy",
+      "match_names": [
+        "Dashy",
+        "Futureglobe.Dashy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dashy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dapr.CLI",
+      "name": "Dapr CLI",
+      "match_names": [
+        "Dapr CLI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dapr CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DaouTech.DaouMessenger",
+      "name": "Daou Messenger",
+      "match_names": [
+        "Daou Messenger",
+        "DaouTech.DaouMessenger"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Daou Messenger"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Audinate.DanteVirtualSoundcard",
+      "name": "Dante Virtual Soundcard",
+      "match_names": [
+        "Dante Virtual Soundcard",
+        "Audinate.DanteVirtualSoundcard"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dante Virtual Soundcard"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Audinate.DanteVia",
+      "name": "Dante Via",
+      "match_names": [
+        "Dante Via",
+        "Audinate.DanteVia"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dante Via"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FreedomofthePressFoundation.Dangerzone",
+      "name": "Dangerzone",
+      "match_names": [
+        "Dangerzone",
+        "FreedomofthePressFoundation.Dangerzone"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dangerzone"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dalux.Dalux.MSI",
+      "name": "Dalux (MSI)",
+      "match_names": [
+        "Dalux (MSI)",
+        "Dalux.Dalux.MSI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dalux (MSI)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dalux.Dalux",
+      "name": "Dalux",
+      "match_names": [
+        "Dalux",
+        "Dalux.Dalux"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dalux"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AbiruzzamanMolla.DailyPrayerTimer",
+      "name": "Daily Prayer Timer",
+      "match_names": [
+        "Daily Prayer Timer",
+        "AbiruzzamanMolla.DailyPrayerTimer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Daily Prayer Timer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dagger.Cli",
+      "name": "dagger",
+      "match_names": [
+        "dagger",
+        "Dagger.Cli"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "dagger"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cyotek.SitemapCreator",
+      "name": "Cyotek Sitemap Creator",
+      "match_names": [
+        "Cyotek Sitemap Creator",
+        "Cyotek.SitemapCreator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cyotek Sitemap Creator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cygwin.CygwinSetup",
+      "name": "Cygwin Setup",
+      "match_names": [
+        "Cygwin Setup",
+        "Cygwin.CygwinSetup"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cygwin Setup"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cygwin.Cygwin",
+      "name": "Cygwin",
+      "match_names": [
+        "Cygwin",
+        "Cygwin.Cygwin"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cygwin"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CycloneDX.cdxgen",
+      "name": "CycloneDX Generator (cdxgen)",
+      "match_names": [
+        "CycloneDX Generator (cdxgen)",
+        "CycloneDX.cdxgen"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CycloneDX Generator (cdxgen)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CyberGhost.CyberGhost",
+      "name": "CyberGhost",
+      "match_names": [
+        "CyberGhost",
+        "CyberGhost.CyberGhost"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CyberGhost"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Corsinvest.cv4pve.vdi",
+      "name": "cv4pve-vdi",
+      "match_names": [
+        "cv4pve-vdi",
+        "Corsinvest.cv4pve.vdi"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "cv4pve-vdi"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Corsinvest.cv4pve.report",
+      "name": "cv4pve-report",
+      "match_names": [
+        "cv4pve-report",
+        "Corsinvest.cv4pve.report"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "cv4pve-report"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Corsinvest.cv4pve.pepper",
+      "name": "cv4pve-pepper",
+      "match_names": [
+        "cv4pve-pepper",
+        "Corsinvest.cv4pve.pepper"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "cv4pve-pepper"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Corsinvest.cv4pve.nodeprotect",
+      "name": "cv4pve-node-protect",
+      "match_names": [
+        "cv4pve-node-protect",
+        "Corsinvest.cv4pve.nodeprotect"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "cv4pve-node-protect"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Corsinvest.cv4pve.metrics-exporter",
+      "name": "cv4pve-metrics-exporter",
+      "match_names": [
+        "cv4pve-metrics-exporter",
+        "Corsinvest.cv4pve.metrics-exporter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "cv4pve-metrics-exporter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Corsinvest.cv4pve.diag",
+      "name": "cv4pve-diag",
+      "match_names": [
+        "cv4pve-diag",
+        "Corsinvest.cv4pve.diag"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "cv4pve-diag"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Corsinvest.cv4pve.cli",
+      "name": "cv4pve-cli",
+      "match_names": [
+        "cv4pve-cli",
+        "Corsinvest.cv4pve.cli"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "cv4pve-cli"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Corsinvest.cv4pve.botgram",
+      "name": "cv4pve-botgram",
+      "match_names": [
+        "cv4pve-botgram",
+        "Corsinvest.cv4pve.botgram"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "cv4pve-botgram"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Corsinvest.cv4pve.autosnap",
+      "name": "cv4pve-autosnap",
+      "match_names": [
+        "cv4pve-autosnap",
+        "Corsinvest.cv4pve.autosnap"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "cv4pve-autosnap"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CuteChess.CuteChess",
+      "name": "Cute Chess",
+      "match_names": [
+        "Cute Chess",
+        "CuteChess.CuteChess"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cute Chess"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BLife.CustomCursor",
+      "name": "Custom Cursor",
+      "match_names": [
+        "Custom Cursor",
+        "BLife.CustomCursor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Custom Cursor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CurveSeries.CurveSeries",
+      "name": "CURVESERIES",
+      "match_names": [
+        "CURVESERIES",
+        "CurveSeries.CurveSeries"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CURVESERIES"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Curiosity.Curiosity",
+      "name": "Curiosity",
+      "match_names": [
+        "Curiosity",
+        "Curiosity.Curiosity"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Curiosity"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CumulusMX.CumulusMX",
+      "name": "Cumulus MX",
+      "match_names": [
+        "Cumulus MX",
+        "CumulusMX.CumulusMX"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cumulus MX"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CueLang.Cue",
+      "name": "Cue",
+      "match_names": [
+        "Cue",
+        "CueLang.Cue"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cue"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CudaText.CudaText",
+      "name": "CudaText",
+      "match_names": [
+        "CudaText",
+        "CudaText.CudaText"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CudaText"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CubicSDR.CubicSDR",
+      "name": "CubicSDR",
+      "match_names": [
+        "CubicSDR",
+        "CubicSDR.CubicSDR"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CubicSDR"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CubeSoft.CubeICE",
+      "name": "CubeICE",
+      "match_names": [
+        "CubeICE",
+        "CubeSoft.CubeICE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CubeICE"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aardappel.Cube",
+      "name": "Cube",
+      "match_names": [
+        "Cube",
+        "Aardappel.Cube"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cube"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CTerm.CTerm",
+      "name": "CTerm",
+      "match_names": [
+        "CTerm",
+        "CTerm.CTerm"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CTerm"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrystalDewWorld.CrystalMarkRetro.ShizukuEdition",
+      "name": "CrystalMark Retro Shizuku Edition",
+      "match_names": [
+        "CrystalMark Retro Shizuku Edition",
+        "CrystalDewWorld.CrystalMarkRetro.ShizukuEdition"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CrystalMark Retro Shizuku Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrystalDewWorld.CrystalMarkRetro.AoiEdition",
+      "name": "CrystalMark Retro Aoi Edition",
+      "match_names": [
+        "CrystalMark Retro Aoi Edition",
+        "CrystalDewWorld.CrystalMarkRetro.AoiEdition"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CrystalMark Retro Aoi Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrystalDewWorld.CrystalMarkRetro",
+      "name": "CrystalMark Retro",
+      "match_names": [
+        "CrystalMark Retro",
+        "CrystalDewWorld.CrystalMarkRetro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CrystalMark Retro"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrystalDewWorld.CrystalMark3D25",
+      "name": "CrystalMark 3D25",
+      "match_names": [
+        "CrystalMark 3D25",
+        "CrystalDewWorld.CrystalMark3D25"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CrystalMark 3D25"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrystalDewWorld.CrystalDiskMark.ShizukuEdition",
+      "name": "CrystalDiskMark Shizuku Edition",
+      "match_names": [
+        "CrystalDiskMark Shizuku Edition",
+        "CrystalDewWorld.CrystalDiskMark.ShizukuEdition"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CrystalDiskMark Shizuku Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrystalDewWorld.CrystalDiskMark.AoiEdition",
+      "name": "CrystalDiskMark Aoi Edition",
+      "match_names": [
+        "CrystalDiskMark Aoi Edition",
+        "CrystalDewWorld.CrystalDiskMark.AoiEdition"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CrystalDiskMark Aoi Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrystalDewWorld.CrystalDiskMark",
+      "name": "CrystalDiskMark",
+      "match_names": [
+        "CrystalDiskMark",
+        "CrystalDewWorld.CrystalDiskMark"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CrystalDiskMark"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrystalDewWorld.CrystalDiskInfo.ShizukuEdition",
+      "name": "CrystalDiskInfo Shizuku Edition",
+      "match_names": [
+        "CrystalDiskInfo Shizuku Edition",
+        "CrystalDewWorld.CrystalDiskInfo.ShizukuEdition"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CrystalDiskInfo Shizuku Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrystalDewWorld.CrystalDiskInfo.KureiKeiEdition",
+      "name": "CrystalDiskInfo Kurei Kei Edition",
+      "match_names": [
+        "CrystalDiskInfo Kurei Kei Edition",
+        "CrystalDewWorld.CrystalDiskInfo.KureiKeiEdition"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CrystalDiskInfo Kurei Kei Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrystalLang.Crystal",
+      "name": "Crystal",
+      "match_names": [
+        "Crystal",
+        "CrystalLang.Crystal"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Crystal"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cryptomator.Cryptomator",
+      "name": "Cryptomator",
+      "match_names": [
+        "Cryptomator",
+        "Cryptomator.Cryptomator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cryptomator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cypherix.Cryptainer.Personal.19",
+      "name": "Cryptainer PE 19",
+      "match_names": [
+        "Cryptainer PE 19",
+        "Cypherix.Cryptainer.Personal.19"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cryptainer PE 19"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cypherix.Cryptainer.Personal.18",
+      "name": "Cryptainer PE 18",
+      "match_names": [
+        "Cryptainer PE 18",
+        "Cypherix.Cryptainer.Personal.18"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cryptainer PE 18"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cypherix.Cryptainer.Lite.19",
+      "name": "Cryptainer LE 19",
+      "match_names": [
+        "Cryptainer LE 19",
+        "Cypherix.Cryptainer.Lite.19"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cryptainer LE 19"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cypherix.Cryptainer.Lite.18",
+      "name": "Cryptainer LE 18",
+      "match_names": [
+        "Cryptainer LE 18",
+        "Cypherix.Cryptainer.Lite.18"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cryptainer LE 18"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cypherix.Cryptainer.Pro.19",
+      "name": "Cryptainer 19",
+      "match_names": [
+        "Cryptainer 19",
+        "Cypherix.Cryptainer.Pro.19"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cryptainer 19"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cypherix.Cryptainer.Pro.18",
+      "name": "Cryptainer 18",
+      "match_names": [
+        "Cryptainer 18",
+        "Cypherix.Cryptainer.Pro.18"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cryptainer 18"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Crucial.StorageExecutive",
+      "name": "Crucial Storage Executive",
+      "match_names": [
+        "Crucial Storage Executive",
+        "Crucial.StorageExecutive"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Crucial Storage Executive"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Rowley.CrossWorks",
+      "name": "CrossWorks for ARM",
+      "match_names": [
+        "CrossWorks for ARM",
+        "Rowley.CrossWorks"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CrossWorks for ARM"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Crossplane.CrossplaneCli",
+      "name": "Crossplane CLI",
+      "match_names": [
+        "Crossplane CLI",
+        "Crossplane.CrossplaneCli"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Crossplane CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AlperHan.CrossMacro",
+      "name": "CrossMacro",
+      "match_names": [
+        "CrossMacro",
+        "AlperHan.CrossMacro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CrossMacro"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrisisGo.CrisisGo",
+      "name": "CrisisGo",
+      "match_names": [
+        "CrisisGo",
+        "CrisisGo.CrisisGo"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CrisisGo"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CreativeTechnology.CreativeNexus",
+      "name": "Creative Nexus",
+      "match_names": [
+        "Creative Nexus",
+        "CreativeTechnology.CreativeNexus"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Creative Nexus"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CreativeTechnology.CreativeApp",
+      "name": "Creative App",
+      "match_names": [
+        "Creative App",
+        "CreativeTechnology.CreativeApp"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Creative App"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Creality.CrealityPrint",
+      "name": "Creality Print",
+      "match_names": [
+        "Creality Print",
+        "Creality.CrealityPrint"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Creality Print"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Crazybump.Crazybump",
+      "name": "Crazybump",
+      "match_names": [
+        "Crazybump",
+        "Crazybump.Crazybump"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Crazybump"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrashPlan.CrashPlan",
+      "name": "CrashPlan",
+      "match_names": [
+        "CrashPlan",
+        "CrashPlan.CrashPlan"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CrashPlan"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CPUID.CPU-Z.TAICHI",
+      "name": "CPUID TAICHI CPU-Z",
+      "match_names": [
+        "CPUID TAICHI CPU-Z",
+        "CPUID.CPU-Z.TAICHI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CPUID TAICHI CPU-Z"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CPUID.CPU-Z.ROG",
+      "name": "CPUID ROG CPU-Z",
+      "match_names": [
+        "CPUID ROG CPU-Z",
+        "CPUID.CPU-Z.ROG"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CPUID ROG CPU-Z"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CPUID.CPU-Z.PHANTOM",
+      "name": "CPUID PHANTOM CPU-Z",
+      "match_names": [
+        "CPUID PHANTOM CPU-Z",
+        "CPUID.CPU-Z.PHANTOM"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CPUID PHANTOM CPU-Z"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CPUID.CPU-Z.ASR",
+      "name": "CPUID CPU-Z OC Formula",
+      "match_names": [
+        "CPUID CPU-Z OC Formula",
+        "CPUID.CPU-Z.ASR"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CPUID CPU-Z OC Formula"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CPUID.CPU-Z.MSI",
+      "name": "CPUID CPU-Z MSI",
+      "match_names": [
+        "CPUID CPU-Z MSI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CPUID CPU-Z MSI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CPUID.CPU-Z.GBT",
+      "name": "CPUID CPU-Z Gigabyte",
+      "match_names": [
+        "CPUID CPU-Z Gigabyte",
+        "CPUID.CPU-Z.GBT"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CPUID CPU-Z Gigabyte"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CPUID.CPU-Z.AORUS",
+      "name": "CPUID CPU-Z Aorus",
+      "match_names": [
+        "CPUID CPU-Z Aorus"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CPUID CPU-Z Aorus"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CPUID.CPU-Z",
+      "name": "CPUID CPU-Z",
+      "match_names": [
+        "CPUID CPU-Z"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CPUID CPU-Z"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CPUID.CPU-Z.CM",
+      "name": "CPUID CoolerMaster CPU-Z",
+      "match_names": [
+        "CPUID CoolerMaster CPU-Z",
+        "CPUID.CPU-Z.CM"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CPUID CoolerMaster CPU-Z"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BaileyBrown.cppcryptfs",
+      "name": "cppcryptfs",
+      "match_names": [
+        "cppcryptfs",
+        "BaileyBrown.cppcryptfs"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "cppcryptfs"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cppcheck.Cppcheck",
+      "name": "Cppcheck",
+      "match_names": [
+        "Cppcheck",
+        "Cppcheck.Cppcheck"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cppcheck"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Coupang.CoupangPOS",
+      "name": "CoupangPOS",
+      "match_names": [
+        "CoupangPOS",
+        "Coupang.CoupangPOS"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CoupangPOS"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Corsair.iCUE.5",
+      "name": "Corsair iCUE5 Software",
+      "match_names": [
+        "Corsair iCUE5 Software",
+        "Corsair.iCUE.5"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Corsair iCUE5 Software"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Corsair.iCUE.4",
+      "name": "CORSAIR iCUE 4 Software",
+      "match_names": [
+        "CORSAIR iCUE 4 Software",
+        "Corsair.iCUE.4"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CORSAIR iCUE 4 Software"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Corsair.iCUE.3",
+      "name": "CORSAIR iCUE 3 Software",
+      "match_names": [
+        "CORSAIR iCUE 3 Software",
+        "Corsair.iCUE.3"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CORSAIR iCUE 3 Software"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BitSum.Coreprio",
+      "name": "Coreprio",
+      "match_names": [
+        "Coreprio",
+        "BitSum.Coreprio"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Coreprio"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ALCPU.CoreTemp",
+      "name": "Core Temp",
+      "match_names": [
+        "Core Temp",
+        "ALCPU.CoreTemp"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Core Temp"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CoreFTP.CoreFTP",
+      "name": "Core FTP Pro",
+      "match_names": [
+        "Core FTP Pro",
+        "CoreFTP.CoreFTP"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Core FTP Pro"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Coq.CoqPlatform.Beta",
+      "name": "Coq Beta",
+      "match_names": [
+        "Coq Beta",
+        "Coq.CoqPlatform.Beta"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Coq Beta"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Coq.CoqPlatform",
+      "name": "Coq",
+      "match_names": [
+        "Coq",
+        "Coq.CoqPlatform"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Coq"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CopyTranslator.CopyTranslator",
+      "name": "CopyTranslator",
+      "match_names": [
+        "CopyTranslator",
+        "CopyTranslator.CopyTranslator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CopyTranslator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:9001.copyparty",
+      "name": "copyparty",
+      "match_names": [
+        "copyparty",
+        "9001.copyparty"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "copyparty"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ColorLogic.CoPrA",
+      "name": "CoPrA",
+      "match_names": [
+        "CoPrA",
+        "ColorLogic.CoPrA"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CoPrA"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:COPASI.COPASI",
+      "name": "COPASI",
+      "match_names": [
+        "COPASI",
+        "COPASI.COPASI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "COPASI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Danfoss.CoolConfig",
+      "name": "CoolConfig",
+      "match_names": [
+        "CoolConfig",
+        "Danfoss.CoolConfig"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CoolConfig"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}
