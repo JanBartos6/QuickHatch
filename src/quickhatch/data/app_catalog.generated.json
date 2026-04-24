@@ -19,7 +19,22 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.brave.Browser",
+      "id": "net_ankiweb_Anki",
+      "name": "Anki",
+      "match_names": [
+        "Anki"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Anki"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "browsers",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_brave_Browser",
       "name": "Brave",
       "match_names": [
         "Brave"
@@ -34,7 +49,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.chromium.Chromium",
+      "id": "org_chromium_Chromium",
       "name": "Chromium Web Browser",
       "match_names": [
         "Chromium Web Browser"
@@ -94,7 +109,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.mozilla.firefox",
+      "id": "org_mozilla_firefox",
       "name": "Firefox",
       "match_names": [
         "Firefox"
@@ -109,22 +124,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "one.ablaze.floorp",
-      "name": "Floorp",
-      "match_names": [
-        "Floorp"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Floorp"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "browsers",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.google.Chrome",
+      "id": "com_google_Chrome",
       "name": "Google Chrome",
       "match_names": [
         "Google Chrome"
@@ -154,7 +154,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.gitlab.librewolf-community",
+      "id": "io_gitlab_librewolf-community",
       "name": "LibreWolf",
       "match_names": [
         "LibreWolf"
@@ -169,7 +169,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.microsoft.Edge",
+      "id": "com_microsoft_Edge",
       "name": "Microsoft Edge",
       "match_names": [
         "Microsoft Edge"
@@ -184,22 +184,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.mozilla.vpn",
-      "name": "Mozilla VPN",
-      "match_names": [
-        "Mozilla VPN"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Mozilla VPN"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "browsers",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "net.mullvad.MullvadBrowser",
+      "id": "net_mullvad_MullvadBrowser",
       "name": "Mullvad Browser",
       "match_names": [
         "Mullvad Browser"
@@ -214,22 +199,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.opera.Opera",
-      "name": "Opera",
-      "match_names": [
-        "Opera"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Opera"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "browsers",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.torproject.torbrowser-launcher",
+      "id": "org_torproject_torbrowser-launcher",
       "name": "Tor Browser Launcher",
       "match_names": [
         "Tor Browser Launcher"
@@ -244,7 +214,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.github.ungoogled_software.ungoogled_chromium",
+      "id": "io_github_ungoogled_software_ungoogled_chromium",
       "name": "Ungoogled Chromium",
       "match_names": [
         "Ungoogled Chromium"
@@ -259,14 +229,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.vivaldi.Vivaldi",
-      "name": "Vivaldi",
+      "id": "io_github_spacingbat3_webcord",
+      "name": "WebCord",
       "match_names": [
-        "Vivaldi"
+        "WebCord"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Vivaldi"
+        "WebCord"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -274,22 +244,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "net.waterfox.waterfox",
-      "name": "Waterfox",
-      "match_names": [
-        "Waterfox"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Waterfox"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "browsers",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "ru.yandex.Browser",
+      "id": "ru_yandex_Browser",
       "name": "Yandex Browser",
       "match_names": [
         "Yandex Browser"
@@ -297,6 +252,21 @@
       "compatibility": "native",
       "alternatives": [
         "Yandex Browser"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "browsers",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "app_zen_browser_zen",
+      "name": "Zen",
+      "match_names": [
+        "Zen"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Zen"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -312,21 +282,6 @@
       "compatibility": "native",
       "alternatives": [
         "Aerion"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "communication",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.jeffser.Alpaca",
-      "name": "Alpaca",
-      "match_names": [
-        "Alpaca"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Alpaca"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -385,7 +340,7 @@
       "notes": "Official Linux desktop packaging is not a reliable baseline. Prefer web/PWA unless user explicitly wants wrappers."
     },
     {
-      "id": "com.discordapp.Discord",
+      "id": "com_discordapp_Discord",
       "name": "Discord",
       "match_names": [
         "Discord"
@@ -554,7 +509,7 @@
       "notes": "Use the web/PWA experience on Linux unless a distro-specific package is confirmed."
     },
     {
-      "id": "com.github.IsmaelMartinez.teams_for_linux",
+      "id": "com_github_IsmaelMartinez_teams_for_linux",
       "name": "Portal for Teams",
       "match_names": [
         "Portal for Teams"
@@ -569,7 +524,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "me.proton.Mail",
+      "id": "me_proton_Mail",
       "name": "Proton Mail",
       "match_names": [
         "Proton Mail"
@@ -629,7 +584,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.signal.Signal",
+      "id": "org_signal_Signal",
       "name": "Signal Desktop",
       "match_names": [
         "Signal Desktop"
@@ -659,7 +614,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.slack.Slack",
+      "id": "com_slack_Slack",
       "name": "Slack",
       "match_names": [
         "Slack"
@@ -667,21 +622,6 @@
       "compatibility": "native",
       "alternatives": [
         "Slack"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "communication",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.vinegarhq.Sober",
-      "name": "Sober",
-      "match_names": [
-        "Sober"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Sober"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -704,7 +644,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.telegram.desktop",
+      "id": "org_telegram_desktop",
       "name": "Telegram",
       "match_names": [
         "Telegram"
@@ -712,21 +652,6 @@
       "compatibility": "native",
       "alternatives": [
         "Telegram"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "communication",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.mozilla.Thunderbird",
-      "name": "Thunderbird",
-      "match_names": [
-        "Thunderbird"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Thunderbird"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -749,14 +674,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "dev.vencord.Vesktop",
-      "name": "Vesktop",
+      "id": "us_zoom_Zoom",
+      "name": "Zoom",
       "match_names": [
-        "Vesktop"
+        "Zoom"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Vesktop"
+        "Zoom"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -764,44 +689,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.github.spacingbat3.webcord",
-      "name": "WebCord",
+      "id": "org_gnome_gitlab_somas_Apostrophe",
+      "name": "Apostrophe",
       "match_names": [
-        "WebCord"
+        "Apostrophe"
       ],
       "compatibility": "native",
       "alternatives": [
-        "WebCord"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "communication",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.rtosta.zapzap",
-      "name": "ZapZap",
-      "match_names": [
-        "ZapZap"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "ZapZap"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "communication",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.google.AndroidStudio",
-      "name": "Android Studio",
-      "match_names": [
-        "Android Studio"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Android Studio"
+        "Apostrophe"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -824,7 +719,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "cc.arduino.IDE2",
+      "id": "cc_arduino_IDE2",
       "name": "Arduino IDE v2",
       "match_names": [
         "Arduino IDE v2"
@@ -832,6 +727,21 @@
       "compatibility": "native",
       "alternatives": [
         "Arduino IDE v2"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_github_kolunmi_Bazaar",
+      "name": "Bazaar",
+      "match_names": [
+        "Bazaar"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Bazaar"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -914,6 +824,81 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
+      "id": "io_github_cosmic_utils_camera",
+      "name": "Camera",
+      "match_names": [
+        "Camera"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Camera"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_github_celluloid_player_Celluloid",
+      "name": "Celluloid",
+      "match_names": [
+        "Celluloid"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Celluloid"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_github_streetpea_Chiaki4deck",
+      "name": "chiaki-ng",
+      "match_names": [
+        "chiaki-ng"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "chiaki-ng"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_github_linx_systems_ClamUI",
+      "name": "ClamUI",
+      "match_names": [
+        "ClamUI"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "ClamUI"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_github_rafostar_Clapper",
+      "name": "Clapper",
+      "match_names": [
+        "Clapper"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Clapper"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "com.jetbrains.CLion",
       "name": "CLion",
       "match_names": [
@@ -922,6 +907,21 @@
       "compatibility": "native",
       "alternatives": [
         "CLion"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_github_thetumultuousunicornofdarkness_cpu-x",
+      "name": "CPU-X",
+      "match_names": [
+        "CPU-X"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "CPU-X"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -944,21 +944,6 @@
       "confidence": "high",
       "category": "development",
       "notes": "Native Linux builds exist; exact package source depends on distro."
-    },
-    {
-      "id": "io.dbeaver.DBeaverCommunity",
-      "name": "DBeaver Community",
-      "match_names": [
-        "DBeaver Community"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "DBeaver Community"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "development",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
       "id": "ca.desrt.dconf-editor",
@@ -993,6 +978,36 @@
       "notes": "On Linux, Docker Engine is usually preferable to Docker Desktop."
     },
     {
+      "id": "com_github_maoschanz_drawing",
+      "name": "Drawing",
+      "match_names": [
+        "Drawing"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Drawing"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_github_wwmm_easyeffects",
+      "name": "Easy Effects",
+      "match_names": [
+        "Easy Effects"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Easy Effects"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "org.eclipse.Java",
       "name": "Eclipse IDE for Java Developers",
       "match_names": [
@@ -1001,6 +1016,51 @@
       "compatibility": "native",
       "alternatives": [
         "Eclipse IDE for Java Developers"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_github_wiiznokes_fan-control",
+      "name": "Fan Control",
+      "match_names": [
+        "Fan Control"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Fan Control"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_github_Faugus_faugus-launcher",
+      "name": "Faugus Launcher",
+      "match_names": [
+        "Faugus Launcher"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Faugus Launcher"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_github_tchx84_Flatseal",
+      "name": "Flatseal",
+      "match_names": [
+        "Flatseal"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Flatseal"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -1031,6 +1091,36 @@
       "compatibility": "native",
       "alternatives": [
         "Fog Panther"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_github_johnfactotum_Foliate",
+      "name": "Foliate",
+      "match_names": [
+        "Foliate"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Foliate"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_github_realmazharhussain_GdmSettings",
+      "name": "GDM Settings",
+      "match_names": [
+        "GDM Settings"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "GDM Settings"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -1071,6 +1161,51 @@
       "notes": "Official GitHub Desktop is not upstream-supported on Linux, but maintained Linux builds exist."
     },
     {
+      "id": "io_github_benjamimgois_goverlay",
+      "name": "Goverlay",
+      "match_names": [
+        "Goverlay"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Goverlay"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_github_jeffshee_Hidamari",
+      "name": "Hidamari",
+      "match_names": [
+        "Hidamari"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Hidamari"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_gitlab_adhami3310_Impression",
+      "name": "Impression",
+      "match_names": [
+        "Impression"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Impression"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "com.indomitusgroup.indipdf",
       "name": "indiPDF",
       "match_names": [
@@ -1079,21 +1214,6 @@
       "compatibility": "native",
       "alternatives": [
         "indiPDF"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "development",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.inkscape.Inkscape",
-      "name": "Inkscape",
-      "match_names": [
-        "Inkscape"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Inkscape"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -1146,6 +1266,21 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
+      "id": "com_github_iwalton3_jellyfin-media-player",
+      "name": "Jellyfin Media Player",
+      "match_names": [
+        "Jellyfin Media Player"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Jellyfin Media Player"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "override:jetbrains.toolbox",
       "name": "JetBrains Toolbox",
       "match_names": [
@@ -1163,29 +1298,14 @@
       "notes": "Native Linux app exists."
     },
     {
-      "id": "org.kde.kate",
-      "name": "Kate",
+      "id": "io_github_seadve_Kooha",
+      "name": "Kooha",
       "match_names": [
-        "Kate"
+        "Kooha"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Kate"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "development",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.kde.kdenlive",
-      "name": "Kdenlive",
-      "match_names": [
-        "Kdenlive"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Kdenlive"
+        "Kooha"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -1201,6 +1321,21 @@
       "compatibility": "native",
       "alternatives": [
         "KWrite"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_github_ilya_zlobintsev_LACT",
+      "name": "LACT",
+      "match_names": [
+        "LACT"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "LACT"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -1241,6 +1376,21 @@
       "notes": "Linux AppImage exists; package names change, so setup should verify before installing."
     },
     {
+      "id": "io_github_radiolamp_mangojuice",
+      "name": "Mango Juice",
+      "match_names": [
+        "Mango Juice"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Mango Juice"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "com.github.marktext.marktext",
       "name": "MarkText",
       "match_names": [
@@ -1256,7 +1406,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "net.code_industry.MasterPDFEditor",
+      "id": "net_code_industry_MasterPDFEditor",
       "name": "Master PDF Editor",
       "match_names": [
         "Master PDF Editor"
@@ -1293,6 +1443,21 @@
       "notes": "Full Visual Studio IDE is Windows/macOS only. Linux workflows need different IDEs/toolchains."
     },
     {
+      "id": "com_github_phase1geo_minder",
+      "name": "Minder",
+      "match_names": [
+        "Minder"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Minder"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "io.neovim.nvim",
       "name": "Neovim",
       "match_names": [
@@ -1316,6 +1481,36 @@
       "compatibility": "native",
       "alternatives": [
         "NetBeans"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_gitlab_news_flash_NewsFlash",
+      "name": "Newsflash",
+      "match_names": [
+        "Newsflash"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Newsflash"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_github_dail8859_NotepadNext",
+      "name": "Notepad Next",
+      "match_names": [
+        "Notepad Next"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Notepad Next"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -1357,7 +1552,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.openshot.OpenShot",
+      "id": "org_openshot_OpenShot",
       "name": "OpenShot Video Editor",
       "match_names": [
         "OpenShot Video Editor"
@@ -1365,6 +1560,21 @@
       "compatibility": "native",
       "alternatives": [
         "OpenShot Video Editor"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_github_jeromerobert_pdfarranger",
+      "name": "PDF Arranger",
+      "match_names": [
+        "PDF Arranger"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "PDF Arranger"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -1387,6 +1597,21 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
+      "id": "io_github_peazip_PeaZip",
+      "name": "PeaZip",
+      "match_names": [
+        "PeaZip"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "PeaZip"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "com.github.vikdevelop.photopea_app",
       "name": "Photocrea",
       "match_names": [
@@ -1402,6 +1627,21 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
+      "id": "com_github_PintaProject_Pinta",
+      "name": "Pinta",
+      "match_names": [
+        "Pinta"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Pinta"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "com.orama_interactive.Pixelorama",
       "name": "Pixelorama",
       "match_names": [
@@ -1410,6 +1650,51 @@
       "compatibility": "native",
       "alternatives": [
         "Pixelorama"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_github_alainm23_planify",
+      "name": "Planify",
+      "match_names": [
+        "Planify"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Planify"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_github_shiiion_primehack",
+      "name": "PrimeHack",
+      "match_names": [
+        "PrimeHack"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "PrimeHack"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_github_Matoking_protontricks",
+      "name": "Protontricks",
+      "match_names": [
+        "Protontricks"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Protontricks"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -1477,14 +1762,59 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.shotcut.Shotcut",
-      "name": "Shotcut",
+      "id": "com_github_Rosalie241_RMG",
+      "name": "Rosalie's Mupen GUI",
       "match_names": [
-        "Shotcut"
+        "Rosalie's Mupen GUI"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Shotcut"
+        "Rosalie's Mupen GUI"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_github_ryubing_Ryujinx",
+      "name": "Ryujinx (Ryubing)",
+      "match_names": [
+        "Ryujinx (Ryubing)"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Ryujinx (Ryubing)"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_github_pwr_solaar_solaar",
+      "name": "Solaar",
+      "match_names": [
+        "Solaar"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Solaar"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_github_k4zmu2a_spacecadetpinball",
+      "name": "Space Cadet Pinball",
+      "match_names": [
+        "Space Cadet Pinball"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Space Cadet Pinball"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -1511,21 +1841,6 @@
       "notes": "SSMS is Windows-only. Azure Data Studio and DBeaver are native Linux options."
     },
     {
-      "id": "org.gnome.TextEditor",
-      "name": "Text Editor",
-      "match_names": [
-        "Text Editor"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Text Editor"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "development",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "org.thonny.Thonny",
       "name": "Thonny",
       "match_names": [
@@ -1541,7 +1856,67 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.visualstudio.code",
+      "id": "io_gitlab_theevilskeleton_Upscaler",
+      "name": "Upscaler",
+      "match_names": [
+        "Upscaler"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Upscaler"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_github_unrud_VideoDownloader",
+      "name": "Video Downloader",
+      "match_names": [
+        "Video Downloader"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Video Downloader"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_gnome_Showtime",
+      "name": "Video Player",
+      "match_names": [
+        "Video Player"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Video Player"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_gnome_gitlab_YaLTeR_VideoTrimmer",
+      "name": "Video Trimmer",
+      "match_names": [
+        "Video Trimmer"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Video Trimmer"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_visualstudio_code",
       "name": "Visual Studio Code",
       "match_names": [
         "Visual Studio Code"
@@ -1556,14 +1931,29 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.vscodium.codium",
-      "name": "VSCodium",
+      "id": "org_videolan_VLC",
+      "name": "VLC",
       "match_names": [
-        "VSCodium"
+        "VLC"
       ],
       "compatibility": "native",
       "alternatives": [
-        "VSCodium"
+        "VLC"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_github_flattool_Warehouse",
+      "name": "Warehouse",
+      "match_names": [
+        "Warehouse"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Warehouse"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -1601,14 +1991,44 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "dev.zed.Zed",
-      "name": "Zed",
+      "id": "io_github_fastrizwaan_WineZGUI",
+      "name": "WineZGUI",
       "match_names": [
-        "Zed"
+        "WineZGUI"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Zed"
+        "WineZGUI"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_github_xournalpp_xournalpp",
+      "name": "Xournal++",
+      "match_names": [
+        "Xournal++"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Xournal++"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_github_aandrew_me_ytdn",
+      "name": "ytDownloader",
+      "match_names": [
+        "ytDownloader"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "ytDownloader"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -1634,7 +2054,22 @@
       "notes": "Use Lutris/Bottles; game anti-cheat and launcher updates can break compatibility."
     },
     {
-      "id": "com.usebottles.bottles",
+      "id": "com_adamcake_Bolt",
+      "name": "Bolt Launcher",
+      "match_names": [
+        "Bolt Launcher"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Bolt Launcher"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "gaming-tools",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_usebottles_bottles",
       "name": "Bottles",
       "match_names": [
         "Bottles"
@@ -1644,9 +2079,9 @@
         "Bottles"
       ],
       "source_hint": "flatpak",
-      "confidence": "high",
+      "confidence": "medium",
       "category": "gaming-tools",
-      "notes": "Manage Wine prefixes for Windows apps and launchers."
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
       "id": "override:ea-app",
@@ -1704,6 +2139,21 @@
       "notes": "GOG Galaxy itself is Windows-first; Linux users generally use Heroic/Lutris/Minigalaxy."
     },
     {
+      "id": "com_heroicgameslauncher_hgl",
+      "name": "Heroic",
+      "match_names": [
+        "Heroic"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Heroic"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "gaming-tools",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "com.heroicgameslauncher.hgl",
       "name": "Heroic Games Launcher",
       "match_names": [
@@ -1719,7 +2169,22 @@
       "notes": "Epic/GOG/Amazon launcher for Linux."
     },
     {
-      "id": "net.lutris.Lutris",
+      "id": "ch_tlaun_TL",
+      "name": "Legacy Launcher",
+      "match_names": [
+        "Legacy Launcher"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Legacy Launcher"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "gaming-tools",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "net_lutris_Lutris",
       "name": "Lutris",
       "match_names": [
         "Lutris"
@@ -1729,27 +2194,117 @@
         "Lutris"
       ],
       "source_hint": "flatpak",
-      "confidence": "high",
+      "confidence": "medium",
       "category": "gaming-tools",
-      "notes": "Launcher for Wine/Proton game and app prefixes."
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.github.Matoking.protontricks",
-      "name": "Protontricks",
+      "id": "com_mojang_Minecraft",
+      "name": "Minecraft",
       "match_names": [
-        "Protontricks"
+        "Minecraft"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Protontricks"
+        "Minecraft"
       ],
       "source_hint": "flatpak",
-      "confidence": "high",
+      "confidence": "medium",
       "category": "gaming-tools",
-      "notes": "Tweaks Proton prefixes for Steam titles when needed."
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "net.davidotek.pupgui2",
+      "id": "io_mrarm_mcpelauncher",
+      "name": "Minecraft Bedrock Launcher",
+      "match_names": [
+        "Minecraft Bedrock Launcher"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Minecraft Bedrock Launcher"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "gaming-tools",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "ru_linux_gaming_PortProton",
+      "name": "PortProton",
+      "match_names": [
+        "PortProton"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "PortProton"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "gaming-tools",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_prismlauncher_PrismLauncher",
+      "name": "Prism Launcher",
+      "match_names": [
+        "Prism Launcher"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Prism Launcher"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "gaming-tools",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "me_proton_Pass",
+      "name": "Proton Pass",
+      "match_names": [
+        "Proton Pass"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Proton Pass"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "gaming-tools",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_protonvpn_www",
+      "name": "Proton VPN",
+      "match_names": [
+        "Proton VPN"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Proton VPN"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "gaming-tools",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_vysp3r_ProtonPlus",
+      "name": "ProtonPlus",
+      "match_names": [
+        "ProtonPlus"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "ProtonPlus"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "gaming-tools",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "net_davidotek_pupgui2",
       "name": "ProtonUp-Qt",
       "match_names": [
         "ProtonUp-Qt"
@@ -1759,9 +2314,9 @@
         "ProtonUp-Qt"
       ],
       "source_hint": "flatpak",
-      "confidence": "high",
+      "confidence": "medium",
       "category": "gaming-tools",
-      "notes": "Install and manage Proton-GE/Wine-GE versions."
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
       "id": "override:riot-client",
@@ -1797,6 +2352,21 @@
       "confidence": "high",
       "category": "gaming-tools",
       "notes": "Steam is the main Linux gaming launcher; enable Proton for Windows games."
+    },
+    {
+      "id": "com_valvesoftware_SteamLink",
+      "name": "Steam Link",
+      "match_names": [
+        "Steam Link"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Steam Link"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "gaming-tools",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
       "id": "override:ubisoft-connect",
@@ -1839,22 +2409,7 @@
       "notes": "The Windows Xbox/Game Pass app is not available on Linux. Some games work through other stores or cloud streaming."
     },
     {
-      "id": "com.bambulab.BambuStudio",
-      "name": "Bambu Studio",
-      "match_names": [
-        "Bambu Studio"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Bambu Studio"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "graphics",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.blender.Blender",
+      "id": "org_blender_Blender",
       "name": "Blender",
       "match_names": [
         "Blender"
@@ -1862,51 +2417,6 @@
       "compatibility": "native",
       "alternatives": [
         "Blender"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "graphics",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.darktable.Darktable",
-      "name": "darktable",
-      "match_names": [
-        "darktable"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "darktable"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "graphics",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.jgraph.drawio.desktop",
-      "name": "draw.io",
-      "match_names": [
-        "draw.io"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "draw.io"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "graphics",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.freecad.FreeCAD",
-      "name": "FreeCAD",
-      "match_names": [
-        "FreeCAD"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "FreeCAD"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -1929,14 +2439,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.google.EarthPro",
-      "name": "Google Earth Pro",
+      "id": "org_gimp_GIMP",
+      "name": "GNU Image Manipulation Program",
       "match_names": [
-        "Google Earth Pro"
+        "GNU Image Manipulation Program"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Google Earth Pro"
+        "GNU Image Manipulation Program"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -1944,14 +2454,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.kicad.KiCad",
-      "name": "KiCad",
+      "id": "org_gnome_Loupe",
+      "name": "Image Viewer",
       "match_names": [
-        "KiCad"
+        "Image Viewer"
       ],
       "compatibility": "native",
       "alternatives": [
-        "KiCad"
+        "Image Viewer"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -1959,7 +2469,37 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.kde.kolourpaint",
+      "id": "org_inkscape_Inkscape",
+      "name": "Inkscape",
+      "match_names": [
+        "Inkscape"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Inkscape"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "graphics",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_kde_isoimagewriter",
+      "name": "ISO Image Writer",
+      "match_names": [
+        "ISO Image Writer"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "ISO Image Writer"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "graphics",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_kde_kolourpaint",
       "name": "KolourPaint",
       "match_names": [
         "KolourPaint"
@@ -1974,7 +2514,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.kde.krita",
+      "id": "org_kde_krita",
       "name": "Krita",
       "match_names": [
         "Krita"
@@ -1982,21 +2522,6 @@
       "compatibility": "native",
       "alternatives": [
         "Krita"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "graphics",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "io.github.ilya_zlobintsev.LACT",
-      "name": "LACT",
-      "match_names": [
-        "LACT"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "LACT"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -2019,29 +2544,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.github.PintaProject.Pinta",
-      "name": "Pinta",
+      "id": "org_raspberrypi_rpi-imager",
+      "name": "Raspberry Pi Imager",
       "match_names": [
-        "Pinta"
+        "Raspberry Pi Imager"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Pinta"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "graphics",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.prusa3d.PrusaSlicer",
-      "name": "PrusaSlicer",
-      "match_names": [
-        "PrusaSlicer"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "PrusaSlicer"
+        "Raspberry Pi Imager"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -2079,21 +2589,6 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.warlordsoftwares.youtube-downloader-4ktube",
-      "name": "4KTUBE",
-      "match_names": [
-        "4KTUBE"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "4KTUBE"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "com.adobe.Flash-Player-Projector",
       "name": "Adobe Flash Player",
       "match_names": [
@@ -2124,36 +2619,6 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.bassi.Amberol",
-      "name": "Amberol",
-      "match_names": [
-        "Amberol"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Amberol"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.ardour.Ardour",
-      "name": "Ardour",
-      "match_names": [
-        "Ardour"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Ardour"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "org.atheme.audacious",
       "name": "Audacious",
       "match_names": [
@@ -2162,21 +2627,6 @@
       "compatibility": "native",
       "alternatives": [
         "Audacious"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.audacityteam.Audacity",
-      "name": "Audacity",
-      "match_names": [
-        "Audacity"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Audacity"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -2274,21 +2724,6 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.github.cosmic_utils.camera",
-      "name": "Camera",
-      "match_names": [
-        "Camera"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Camera"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "hu.irl.cameractrls",
       "name": "Cameractrls",
       "match_names": [
@@ -2364,21 +2799,6 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.github.wwmm.easyeffects",
-      "name": "Easy Effects",
-      "match_names": [
-        "Easy Effects"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Easy Effects"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "org.kde.elisa",
       "name": "Elisa",
       "match_names": [
@@ -2387,6 +2807,21 @@
       "compatibility": "native",
       "alternatives": [
         "Elisa"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "media",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_fedoraproject_MediaWriter",
+      "name": "Fedora Media Writer",
+      "match_names": [
+        "Fedora Media Writer"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Fedora Media Writer"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -2454,21 +2889,6 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.freetubeapp.FreeTube",
-      "name": "FreeTube",
-      "match_names": [
-        "FreeTube"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "FreeTube"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "com.github.neithern.g4music",
       "name": "Gapless",
       "match_names": [
@@ -2484,21 +2904,6 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.gimp.GIMP",
-      "name": "GNU Image Manipulation Program",
-      "match_names": [
-        "GNU Image Manipulation Program"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "GNU Image Manipulation Program"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "org.gnome.gThumb",
       "name": "gThumb Image Viewer",
       "match_names": [
@@ -2507,96 +2912,6 @@
       "compatibility": "native",
       "alternatives": [
         "gThumb Image Viewer"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.kde.gwenview",
-      "name": "Gwenview",
-      "match_names": [
-        "Gwenview"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Gwenview"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "fr.handbrake.ghb",
-      "name": "HandBrake",
-      "match_names": [
-        "HandBrake"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "HandBrake"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.kde.haruna",
-      "name": "Haruna",
-      "match_names": [
-        "Haruna"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Haruna"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "io.github.jeffshee.Hidamari",
-      "name": "Hidamari",
-      "match_names": [
-        "Hidamari"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Hidamari"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.gnome.Loupe",
-      "name": "Image Viewer",
-      "match_names": [
-        "Image Viewer"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Image Viewer"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.kde.isoimagewriter",
-      "name": "ISO Image Writer",
-      "match_names": [
-        "ISO Image Writer"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "ISO Image Writer"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -2621,81 +2936,6 @@
       "confidence": "high",
       "category": "media",
       "notes": "Modern iTunes is not a native Linux app."
-    },
-    {
-      "id": "me.timschneeberger.jdsp4linux",
-      "name": "JamesDSP",
-      "match_names": [
-        "JamesDSP"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "JamesDSP"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.jellyfin.JellyfinDesktop",
-      "name": "Jellyfin Desktop",
-      "match_names": [
-        "Jellyfin Desktop"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Jellyfin Desktop"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.github.iwalton3.jellyfin-media-player",
-      "name": "Jellyfin Media Player",
-      "match_names": [
-        "Jellyfin Media Player"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Jellyfin Media Player"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.jellyfin.JellyfinServer",
-      "name": "Jellyfin Server",
-      "match_names": [
-        "Jellyfin Server"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Jellyfin Server"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "io.github.seadve.Kooha",
-      "name": "Kooha",
-      "match_names": [
-        "Kooha"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Kooha"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
       "id": "io.lmms.LMMS",
@@ -2743,14 +2983,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.mpv.Mpv",
-      "name": "mpv",
+      "id": "com_moonlight_stream_Moonlight",
+      "name": "Moonlight",
       "match_names": [
-        "mpv"
+        "Moonlight"
       ],
       "compatibility": "native",
       "alternatives": [
-        "mpv"
+        "Moonlight"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -2848,7 +3088,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.nuclearplayer.Nuclear",
+      "id": "com_nuclearplayer_Nuclear",
       "name": "Nuclear",
       "match_names": [
         "Nuclear"
@@ -2863,7 +3103,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.obsproject.Studio",
+      "id": "com_obsproject_Studio",
       "name": "OBS Studio",
       "match_names": [
         "OBS Studio"
@@ -2871,6 +3111,21 @@
       "compatibility": "native",
       "alternatives": [
         "OBS Studio"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "media",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "md_obsidian_Obsidian",
+      "name": "Obsidian",
+      "match_names": [
+        "Obsidian"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Obsidian"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -2886,36 +3141,6 @@
       "compatibility": "native",
       "alternatives": [
         "OpenDeck"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.nickvision.tubeconverter",
-      "name": "Parabolic",
-      "match_names": [
-        "Parabolic"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Parabolic"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "tv.plex.PlexDesktop",
-      "name": "Plex",
-      "match_names": [
-        "Plex"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Plex"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -3058,7 +3283,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.spotify.Client",
+      "id": "com_spotify_Client",
       "name": "Spotify",
       "match_names": [
         "Spotify"
@@ -3088,22 +3313,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.valvesoftware.SteamLink",
-      "name": "Steam Link",
-      "match_names": [
-        "Steam Link"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Steam Link"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.strawberrymusicplayer.strawberry",
+      "id": "org_strawberrymusicplayer_strawberry",
       "name": "Strawberry Music Player",
       "match_names": [
         "Strawberry Music Player"
@@ -3111,21 +3321,6 @@
       "compatibility": "native",
       "alternatives": [
         "Strawberry Music Player"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.stremio.Stremio",
-      "name": "Stremio",
-      "match_names": [
-        "Stremio"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Stremio"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -3193,7 +3388,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.ktechpit.ultimate-media-downloader",
+      "id": "com_ktechpit_ultimate-media-downloader",
       "name": "Ultimate Media Downloader",
       "match_names": [
         "Ultimate Media Downloader"
@@ -3201,51 +3396,6 @@
       "compatibility": "native",
       "alternatives": [
         "Ultimate Media Downloader"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.upscayl.Upscayl",
-      "name": "Upscayl",
-      "match_names": [
-        "Upscayl"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Upscayl"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "rocks.shy.VacuumTube",
-      "name": "VacuumTube",
-      "match_names": [
-        "VacuumTube"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "VacuumTube"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.github.unrud.VideoDownloader",
-      "name": "Video Downloader",
-      "match_names": [
-        "Video Downloader"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Video Downloader"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -3268,44 +3418,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.gnome.Showtime",
-      "name": "Video Player",
+      "id": "org_pulseaudio_pavucontrol",
+      "name": "Volume Control",
       "match_names": [
-        "Video Player"
+        "Volume Control"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Video Player"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.gnome.gitlab.YaLTeR.VideoTrimmer",
-      "name": "Video Trimmer",
-      "match_names": [
-        "Video Trimmer"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Video Trimmer"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.videolan.VLC",
-      "name": "VLC",
-      "match_names": [
-        "VLC"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "VLC"
+        "Volume Control"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -3358,52 +3478,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "us.zoom.Zoom",
-      "name": "Zoom",
-      "match_names": [
-        "Zoom"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Zoom"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "media",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.adobe.Reader",
-      "name": "Adobe Reader",
-      "match_names": [
-        "Adobe Reader"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Adobe Reader"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "office",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.gnome.gitlab.somas.Apostrophe",
-      "name": "Apostrophe",
-      "match_names": [
-        "Apostrophe"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Apostrophe"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "office",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.gnome.Calendar",
+      "id": "org_gnome_Calendar",
       "name": "Calendar",
       "match_names": [
         "Calendar"
@@ -3418,7 +3493,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.collaboraoffice.Office",
+      "id": "com_collaboraoffice_Office",
       "name": "Collabora Office",
       "match_names": [
         "Collabora Office"
@@ -3433,7 +3508,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.gnome.SimpleScan",
+      "id": "org_gnome_SimpleScan",
       "name": "Document Scanner",
       "match_names": [
         "Document Scanner"
@@ -3448,7 +3523,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.gnome.Evince",
+      "id": "org_gnome_Papers",
       "name": "Document Viewer",
       "match_names": [
         "Document Viewer"
@@ -3478,29 +3553,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "net.cozic.joplin_desktop",
-      "name": "Joplin",
+      "id": "org_libreoffice_LibreOffice",
+      "name": "LibreOffice",
       "match_names": [
-        "Joplin"
+        "LibreOffice"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Joplin"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "office",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.logseq.Logseq",
-      "name": "Logseq",
-      "match_names": [
-        "Logseq"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Logseq"
+        "LibreOffice"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -3577,22 +3637,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "md.obsidian.Obsidian",
-      "name": "Obsidian",
-      "match_names": [
-        "Obsidian"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Obsidian"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "office",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.onlyoffice.desktopeditors",
+      "id": "org_onlyoffice_desktopeditors",
       "name": "ONLYOFFICE Desktop Editors",
       "match_names": [
         "ONLYOFFICE Desktop Editors"
@@ -3600,21 +3645,6 @@
       "compatibility": "native",
       "alternatives": [
         "ONLYOFFICE Desktop Editors"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "office",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.github.jeromerobert.pdfarranger",
-      "name": "PDF Arranger",
-      "match_names": [
-        "PDF Arranger"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "PDF Arranger"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -3652,21 +3682,6 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "net.mkiol.SpeechNote",
-      "name": "Speech Note",
-      "match_names": [
-        "Speech Note"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Speech Note"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "office",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "org.standardnotes.standardnotes",
       "name": "Standard Notes",
       "match_names": [
@@ -3682,7 +3697,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.vixalien.sticky",
+      "id": "com_vixalien_sticky",
       "name": "Sticky Notes",
       "match_names": [
         "Sticky Notes"
@@ -3712,7 +3727,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.wps.Office",
+      "id": "com_wps_Office",
       "name": "WPS Office",
       "match_names": [
         "WPS Office"
@@ -3720,36 +3735,6 @@
       "compatibility": "native",
       "alternatives": [
         "WPS Office"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "office",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.github.xournalpp.xournalpp",
-      "name": "Xournal++",
-      "match_names": [
-        "Xournal++"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Xournal++"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "office",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.zotero.Zotero",
-      "name": "Zotero",
-      "match_names": [
-        "Zotero"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Zotero"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -3772,7 +3757,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.bitwarden.desktop",
+      "id": "com_bitwarden_desktop",
       "name": "Bitwarden",
       "match_names": [
         "Bitwarden"
@@ -3803,7 +3788,7 @@
       "notes": "Linux client exists, but setup is account/provider-specific."
     },
     {
-      "id": "org.keepassxc.KeePassXC",
+      "id": "org_keepassxc_KeePassXC",
       "name": "KeePassXC",
       "match_names": [
         "KeePassXC"
@@ -3811,6 +3796,21 @@
       "compatibility": "native",
       "alternatives": [
         "KeePassXC"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "security",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_mozilla_vpn",
+      "name": "Mozilla VPN",
+      "match_names": [
+        "Mozilla VPN"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Mozilla VPN"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -3858,36 +3858,6 @@
       "compatibility": "native",
       "alternatives": [
         "NymVPN"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "security",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "me.proton.Pass",
-      "name": "Proton Pass",
-      "match_names": [
-        "Proton Pass"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Proton Pass"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "security",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.protonvpn.www",
-      "name": "Proton VPN",
-      "match_names": [
-        "Proton VPN"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Proton VPN"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -4132,21 +4102,6 @@
       "notes": "Official Linux support is limited; audio/RGB/device features vary."
     },
     {
-      "id": "org.angryip.ipscan",
-      "name": "Angry IP Scanner",
-      "match_names": [
-        "Angry IP Scanner"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Angry IP Scanner"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "com.github.hluk.copyq",
       "name": "CopyQ",
       "match_names": [
@@ -4170,21 +4125,6 @@
       "compatibility": "native",
       "alternatives": [
         "CoreX - Hardware Monitor"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.gnome.baobab",
-      "name": "Disk Usage Analyzer",
-      "match_names": [
-        "Disk Usage Analyzer"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Disk Usage Analyzer"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -4274,7 +4214,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.kde.filelight",
+      "id": "org_kde_filelight",
       "name": "Filelight",
       "match_names": [
         "Filelight"
@@ -4289,44 +4229,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.gnome.font-viewer",
-      "name": "Fonts",
+      "id": "org_filezillaproject_Filezilla",
+      "name": "FileZilla",
       "match_names": [
-        "Fonts"
+        "FileZilla"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Fonts"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.freedownloadmanager.Manager",
-      "name": "Free Download Manager",
-      "match_names": [
-        "Free Download Manager"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Free Download Manager"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.freerdp.FreeRDP",
-      "name": "FreeRDP Client",
-      "match_names": [
-        "FreeRDP Client"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "FreeRDP Client"
+        "FileZilla"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -4342,21 +4252,6 @@
       "compatibility": "native",
       "alternatives": [
         "FSearch"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "io.github.realmazharhussain.GdmSettings",
-      "name": "GDM Settings",
-      "match_names": [
-        "GDM Settings"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "GDM Settings"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -4417,21 +4312,6 @@
       "notes": "No full official Linux iCloud desktop sync suite."
     },
     {
-      "id": "org.jdownloader.JDownloader",
-      "name": "JDownloader",
-      "match_names": [
-        "JDownloader"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "JDownloader"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "io.github.jonmagon.kdiskmark",
       "name": "KDiskMark",
       "match_names": [
@@ -4462,21 +4342,6 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.localsend.localsend_app",
-      "name": "LocalSend",
-      "match_names": [
-        "LocalSend"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "LocalSend"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "org.gnome.Logs",
       "name": "Logs",
       "match_names": [
@@ -4485,21 +4350,6 @@
       "compatibility": "native",
       "alternatives": [
         "Logs"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.makemkv.MakeMKV",
-      "name": "MakeMKV",
-      "match_names": [
-        "MakeMKV"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "MakeMKV"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -4543,21 +4393,6 @@
       "confidence": "high",
       "category": "utilities",
       "notes": "PowerToys is Windows-only, but most features have Linux desktop equivalents."
-    },
-    {
-      "id": "io.missioncenter.MissionCenter",
-      "name": "Mission Center",
-      "match_names": [
-        "Mission Center"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Mission Center"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
       "id": "net.agalwood.Motrix",
@@ -4605,22 +4440,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.github.peazip.PeaZip",
-      "name": "PeaZip",
-      "match_names": [
-        "PeaZip"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "PeaZip"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.gnome.World.PikaBackup",
+      "id": "org_gnome_World_PikaBackup",
       "name": "Pika Backup",
       "match_names": [
         "Pika Backup"
@@ -4628,6 +4448,21 @@
       "compatibility": "native",
       "alternatives": [
         "Pika Backup"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_system76_Popsicle",
+      "name": "Popsicle",
+      "match_names": [
+        "Popsicle"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Popsicle"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -4665,51 +4500,6 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.raspberrypi.rpi-imager",
-      "name": "Raspberry Pi Imager",
-      "match_names": [
-        "Raspberry Pi Imager"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Raspberry Pi Imager"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "page.tesk.Refine",
-      "name": "Refine",
-      "match_names": [
-        "Refine"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Refine"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.remmina.Remmina",
-      "name": "Remmina",
-      "match_names": [
-        "Remmina"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Remmina"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "com.devolutions.remotedesktopmanager",
       "name": "Remote Desktop Manager",
       "match_names": [
@@ -4718,21 +4508,6 @@
       "compatibility": "native",
       "alternatives": [
         "Remote Desktop Manager"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "net.nokyan.Resources",
-      "name": "Resources",
-      "match_names": [
-        "Resources"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Resources"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -4773,21 +4548,6 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.rustdesk.RustDesk",
-      "name": "RustDesk",
-      "match_names": [
-        "RustDesk"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "RustDesk"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "override:sharex",
       "name": "ShareX",
       "match_names": [
@@ -4821,21 +4581,6 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.thincast.client",
-      "name": "Thincast Remote Desktop Client",
-      "match_names": [
-        "Thincast Remote Desktop Client"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Thincast Remote Desktop Client"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "com.github.d4nj1.tlpui",
       "name": "TLP-UI",
       "match_names": [
@@ -4844,21 +4589,6 @@
       "compatibility": "native",
       "alternatives": [
         "TLP-UI"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.transmissionbt.Transmission",
-      "name": "Transmission",
-      "match_names": [
-        "Transmission"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Transmission"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -4889,21 +4619,6 @@
       "compatibility": "native",
       "alternatives": [
         "Warp"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.x.Warpinator",
-      "name": "Warpinator",
-      "match_names": [
-        "Warpinator"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Warpinator"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -4946,21 +4661,6 @@
       "confidence": "high",
       "category": "utilities",
       "notes": "Linux file managers and CLI tools handle SFTP/SCP well."
-    },
-    {
-      "id": "io.github.aandrew_me.ytdn",
-      "name": "ytDownloader",
-      "match_names": [
-        "ytDownloader"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "ytDownloader"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "utilities",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
       "id": "override:adobe.after-effects",
@@ -5079,6 +4779,36 @@
       "notes": "No official Linux build. DaVinci Resolve is the strongest native professional replacement."
     },
     {
+      "id": "com_warlordsoftwares_youtube-downloader-4ktube",
+      "name": "4KTUBE",
+      "match_names": [
+        "4KTUBE"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "4KTUBE"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_adobe_Reader",
+      "name": "Adobe Reader",
+      "match_names": [
+        "Adobe Reader"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Adobe Reader"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "io.github.Foldex.AdwSteamGtk",
       "name": "AdwSteamGtk",
       "match_names": [
@@ -5094,14 +4824,74 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "net.ankiweb.Anki",
-      "name": "Anki",
+      "id": "org_gnome_Aisleriot",
+      "name": "Aisleriot Solitaire",
       "match_names": [
-        "Anki"
+        "Aisleriot Solitaire"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Anki"
+        "Aisleriot Solitaire"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_jeffser_Alpaca",
+      "name": "Alpaca",
+      "match_names": [
+        "Alpaca"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Alpaca"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_bassi_Amberol",
+      "name": "Amberol",
+      "match_names": [
+        "Amberol"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Amberol"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_google_AndroidStudio",
+      "name": "Android Studio",
+      "match_names": [
+        "Android Studio"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Android Studio"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_angryip_ipscan",
+      "name": "Angry IP Scanner",
+      "match_names": [
+        "Angry IP Scanner"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Angry IP Scanner"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -5124,7 +4914,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.anydesk.Anydesk",
+      "id": "com_anydesk_Anydesk",
       "name": "AnyDesk",
       "match_names": [
         "AnyDesk"
@@ -5184,6 +4974,21 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
+      "id": "org_ardour_Ardour",
+      "name": "Ardour",
+      "match_names": [
+        "Ardour"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Ardour"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "org.kde.ark",
       "name": "Ark",
       "match_names": [
@@ -5192,6 +4997,21 @@
       "compatibility": "native",
       "alternatives": [
         "Ark"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_audacityteam_Audacity",
+      "name": "Audacity",
+      "match_names": [
+        "Audacity"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Audacity"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -5244,14 +5064,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.github.kolunmi.Bazaar",
-      "name": "Bazaar",
+      "id": "org_azahar_emu_Azahar",
+      "name": "Azahar",
       "match_names": [
-        "Bazaar"
+        "Azahar"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Bazaar"
+        "Azahar"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -5259,7 +5079,22 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "eu.betterbird.Betterbird",
+      "id": "com_bambulab_BambuStudio",
+      "name": "Bambu Studio",
+      "match_names": [
+        "Bambu Studio"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Bambu Studio"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "eu_betterbird_Betterbird",
       "name": "Betterbird",
       "match_names": [
         "Betterbird"
@@ -5289,7 +5124,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.rafaelmardojai.Blanket",
+      "id": "com_rafaelmardojai_Blanket",
       "name": "Blanket",
       "match_names": [
         "Blanket"
@@ -5304,7 +5139,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.bleachbit.BleachBit",
+      "id": "org_bleachbit_BleachBit",
       "name": "BleachBit",
       "match_names": [
         "BleachBit"
@@ -5327,21 +5162,6 @@
       "compatibility": "native",
       "alternatives": [
         "Bluejay"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "other",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.adamcake.Bolt",
-      "name": "Bolt Launcher",
-      "match_names": [
-        "Bolt Launcher"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Bolt Launcher"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -5379,7 +5199,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.gnome.Boxes",
+      "id": "org_gnome_Boxes",
       "name": "Boxes",
       "match_names": [
         "Boxes"
@@ -5424,7 +5244,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.kde.kalk",
+      "id": "org_gnome_Calculator",
       "name": "Calculator",
       "match_names": [
         "Calculator"
@@ -5439,7 +5259,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.calibre_ebook.calibre",
+      "id": "com_calibre_ebook_calibre",
       "name": "calibre",
       "match_names": [
         "calibre"
@@ -5454,14 +5274,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.github.celluloid_player.Celluloid",
-      "name": "Celluloid",
+      "id": "info_cemu_Cemu",
+      "name": "Cemu",
       "match_names": [
-        "Celluloid"
+        "Cemu"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Celluloid"
+        "Cemu"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -5499,21 +5319,6 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.github.linx_systems.ClamUI",
-      "name": "ClamUI",
-      "match_names": [
-        "ClamUI"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "ClamUI"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "other",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "de.leopoldluley.Clapgrep",
       "name": "Clapgrep",
       "match_names": [
@@ -5522,21 +5327,6 @@
       "compatibility": "native",
       "alternatives": [
         "Clapgrep"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "other",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.github.rafostar.Clapper",
-      "name": "Clapper",
-      "match_names": [
-        "Clapper"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Clapper"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -5574,7 +5364,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.gnome.clocks",
+      "id": "org_gnome_clocks",
       "name": "Clocks",
       "match_names": [
         "Clocks"
@@ -5649,7 +5439,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.gnome.Contacts",
+      "id": "org_gnome_Contacts",
       "name": "Contacts",
       "match_names": [
         "Contacts"
@@ -5672,21 +5462,6 @@
       "compatibility": "native",
       "alternatives": [
         "CoreKeyboard"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "other",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "io.github.thetumultuousunicornofdarkness.cpu-x",
-      "name": "CPU-X",
-      "match_names": [
-        "CPU-X"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "CPU-X"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -5739,6 +5514,36 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
+      "id": "org_darktable_Darktable",
+      "name": "darktable",
+      "match_names": [
+        "darktable"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "darktable"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_dbeaver_DBeaverCommunity",
+      "name": "DBeaver Community",
+      "match_names": [
+        "DBeaver Community"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "DBeaver Community"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "com.belmoussaoui.Decoder",
       "name": "Decoder",
       "match_names": [
@@ -5754,7 +5559,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.deskflow.deskflow",
+      "id": "org_deskflow_deskflow",
       "name": "Deskflow",
       "match_names": [
         "Deskflow"
@@ -5799,7 +5604,22 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.ranfdev.DistroShelf",
+      "id": "org_gnome_baobab",
+      "name": "Disk Usage Analyzer",
+      "match_names": [
+        "Disk Usage Analyzer"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Disk Usage Analyzer"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_ranfdev_DistroShelf",
       "name": "DistroShelf",
       "match_names": [
         "DistroShelf"
@@ -5814,7 +5634,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.kde.dolphin",
+      "id": "org_kde_dolphin",
       "name": "Dolphin",
       "match_names": [
         "Dolphin"
@@ -5829,14 +5649,29 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.github.maoschanz.drawing",
-      "name": "Drawing",
+      "id": "org_DolphinEmu_dolphin-emu",
+      "name": "Dolphin Emulator",
       "match_names": [
-        "Drawing"
+        "Dolphin Emulator"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Drawing"
+        "Dolphin Emulator"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_jgraph_drawio_desktop",
+      "name": "draw.io",
+      "match_names": [
+        "draw.io"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "draw.io"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -5874,7 +5709,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.dupot.easyflatpak",
+      "id": "org_dupot_easyflatpak",
       "name": "Easyflatpak",
       "match_names": [
         "Easyflatpak"
@@ -5889,7 +5724,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "im.riot.Riot",
+      "id": "im_riot_Riot",
       "name": "Element",
       "match_names": [
         "Element"
@@ -5994,7 +5829,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.mattjakeman.ExtensionManager",
+      "id": "com_mattjakeman_ExtensionManager",
       "name": "Extension Manager",
       "match_names": [
         "Extension Manager"
@@ -6009,7 +5844,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.gnome.Extensions",
+      "id": "org_gnome_Extensions",
       "name": "Extensions",
       "match_names": [
         "Extensions"
@@ -6054,21 +5889,6 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.github.wiiznokes.fan-control",
-      "name": "Fan Control",
-      "match_names": [
-        "Fan Control"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Fan Control"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "other",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "org.fcitx.Fcitx5",
       "name": "Fcitx 5",
       "match_names": [
@@ -6077,36 +5897,6 @@
       "compatibility": "native",
       "alternatives": [
         "Fcitx 5"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "other",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.fedoraproject.MediaWriter",
-      "name": "Fedora Media Writer",
-      "match_names": [
-        "Fedora Media Writer"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Fedora Media Writer"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "other",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.filezillaproject.Filezilla",
-      "name": "FileZilla",
-      "match_names": [
-        "FileZilla"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "FileZilla"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -6129,7 +5919,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.flameshot.Flameshot",
+      "id": "org_flameshot_Flameshot",
       "name": "Flameshot",
       "match_names": [
         "Flameshot"
@@ -6137,21 +5927,6 @@
       "compatibility": "native",
       "alternatives": [
         "Flameshot"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "other",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.github.tchx84.Flatseal",
-      "name": "Flatseal",
-      "match_names": [
-        "Flatseal"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Flatseal"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -6174,14 +5949,44 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.github.johnfactotum.Foliate",
-      "name": "Foliate",
+      "id": "one_ablaze_floorp",
+      "name": "Floorp",
       "match_names": [
-        "Foliate"
+        "Floorp"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Foliate"
+        "Floorp"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_flycast_Flycast",
+      "name": "Flycast",
+      "match_names": [
+        "Flycast"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Flycast"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_gnome_font-viewer",
+      "name": "Fonts",
+      "match_names": [
+        "Fonts"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Fonts"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -6204,7 +6009,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "dev.fredol.open-tv",
+      "id": "dev_fredol_open-tv",
       "name": "Fred TV",
       "match_names": [
         "Fred TV"
@@ -6212,6 +6017,36 @@
       "compatibility": "native",
       "alternatives": [
         "Fred TV"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_freedownloadmanager_Manager",
+      "name": "Free Download Manager",
+      "match_names": [
+        "Free Download Manager"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Free Download Manager"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_freecad_FreeCAD",
+      "name": "FreeCAD",
+      "match_names": [
+        "FreeCAD"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "FreeCAD"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -6234,6 +6069,36 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
+      "id": "com_freerdp_FreeRDP",
+      "name": "FreeRDP Client",
+      "match_names": [
+        "FreeRDP Client"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "FreeRDP Client"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_freetubeapp_FreeTube",
+      "name": "FreeTube",
+      "match_names": [
+        "FreeTube"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "FreeTube"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "com.github.tenderowl.frog",
       "name": "Frog",
       "match_names": [
@@ -6249,7 +6114,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.geeks3d.furmark",
+      "id": "com_geeks3d_furmark",
       "name": "FurMark",
       "match_names": [
         "FurMark"
@@ -6264,7 +6129,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "it.mijorus.gearlever",
+      "id": "it_mijorus_gearlever",
       "name": "Gear Lever",
       "match_names": [
         "Gear Lever"
@@ -6309,7 +6174,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.geogebra.GeoGebra",
+      "id": "org_geogebra_GeoGebra",
       "name": "GeoGebra",
       "match_names": [
         "GeoGebra"
@@ -6339,7 +6204,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.gnome.NetworkDisplays",
+      "id": "org_gnome_NetworkDisplays",
       "name": "GNOME Network Displays",
       "match_names": [
         "GNOME Network Displays"
@@ -6354,14 +6219,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.github.benjamimgois.goverlay",
-      "name": "Goverlay",
+      "id": "org_godotengine_Godot",
+      "name": "Godot Engine",
       "match_names": [
-        "Goverlay"
+        "Godot Engine"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Goverlay"
+        "Godot Engine"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -6369,7 +6234,22 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.dec05eba.gpu_screen_recorder",
+      "id": "com_google_EarthPro",
+      "name": "Google Earth Pro",
+      "match_names": [
+        "Google Earth Pro"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Google Earth Pro"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_dec05eba_gpu_screen_recorder",
       "name": "GPU Screen Recorder",
       "match_names": [
         "GPU Screen Recorder"
@@ -6399,7 +6279,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "be.alexandervanhee.gradia",
+      "id": "be_alexandervanhee_gradia",
       "name": "Gradia",
       "match_names": [
         "Gradia"
@@ -6407,6 +6287,21 @@
       "compatibility": "native",
       "alternatives": [
         "Gradia"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_kde_gwenview",
+      "name": "Gwenview",
+      "match_names": [
+        "Gwenview"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Gwenview"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -6422,6 +6317,36 @@
       "compatibility": "native",
       "alternatives": [
         "Haguichi"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "fr_handbrake_ghb",
+      "name": "HandBrake",
+      "match_names": [
+        "HandBrake"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "HandBrake"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_kde_haruna",
+      "name": "Haruna",
+      "match_names": [
+        "Haruna"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Haruna"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -6474,21 +6399,6 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.gitlab.adhami3310.Impression",
-      "name": "Impression",
-      "match_names": [
-        "Impression"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Impression"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "other",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "io.itch.itch",
       "name": "itch",
       "match_names": [
@@ -6497,6 +6407,21 @@
       "compatibility": "native",
       "alternatives": [
         "itch"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "me_timschneeberger_jdsp4linux",
+      "name": "JamesDSP",
+      "match_names": [
+        "JamesDSP"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "JamesDSP"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -6519,6 +6444,66 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
+      "id": "org_jdownloader_JDownloader",
+      "name": "JDownloader",
+      "match_names": [
+        "JDownloader"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "JDownloader"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_jellyfin_JellyfinDesktop",
+      "name": "Jellyfin Desktop",
+      "match_names": [
+        "Jellyfin Desktop"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Jellyfin Desktop"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_jellyfin_JellyfinServer",
+      "name": "Jellyfin Server",
+      "match_names": [
+        "Jellyfin Server"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Jellyfin Server"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "net_cozic_joplin_desktop",
+      "name": "Joplin",
+      "match_names": [
+        "Joplin"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Joplin"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "org.kde.kamoso",
       "name": "Kamoso",
       "match_names": [
@@ -6534,7 +6519,22 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.kde.kcalc",
+      "id": "org_kde_kate",
+      "name": "Kate",
+      "match_names": [
+        "Kate"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Kate"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_kde_kcalc",
       "name": "KCalc",
       "match_names": [
         "KCalc"
@@ -6542,6 +6542,21 @@
       "compatibility": "native",
       "alternatives": [
         "KCalc"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_kde_kdenlive",
+      "name": "Kdenlive",
+      "match_names": [
+        "Kdenlive"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Kdenlive"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -6564,7 +6579,22 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "tv.kodi.Kodi",
+      "id": "org_kicad_KiCad",
+      "name": "KiCad",
+      "match_names": [
+        "KiCad"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "KiCad"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "tv_kodi_Kodi",
       "name": "Kodi",
       "match_names": [
         "Kodi"
@@ -6609,7 +6639,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.kde.konsole",
+      "id": "org_kde_konsole",
       "name": "Konsole",
       "match_names": [
         "Konsole"
@@ -6617,6 +6647,21 @@
       "compatibility": "native",
       "alternatives": [
         "Konsole"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_kde_kpat",
+      "name": "KPatience",
+      "match_names": [
+        "KPatience"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "KPatience"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -6654,21 +6699,6 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.libreoffice.LibreOffice",
-      "name": "LibreOffice",
-      "match_names": [
-        "LibreOffice"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "LibreOffice"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "other",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "com.qq.QQ",
       "name": "Linux QQ",
       "match_names": [
@@ -6692,6 +6722,51 @@
       "compatibility": "native",
       "alternatives": [
         "Linux Theme Store"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_localsend_localsend_app",
+      "name": "LocalSend",
+      "match_names": [
+        "LocalSend"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "LocalSend"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_logseq_Logseq",
+      "name": "Logseq",
+      "match_names": [
+        "Logseq"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Logseq"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_lunarclient_LunarClient",
+      "name": "Lunar Client",
+      "match_names": [
+        "Lunar Client"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Lunar Client"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -6729,14 +6804,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.github.radiolamp.mangojuice",
-      "name": "Mango Juice",
+      "id": "com_makemkv_MakeMKV",
+      "name": "MakeMKV",
       "match_names": [
-        "Mango Juice"
+        "MakeMKV"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Mango Juice"
+        "MakeMKV"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -6744,7 +6819,22 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.gnome.Maps",
+      "id": "org_mamedev_MAME",
+      "name": "MAME",
+      "match_names": [
+        "MAME"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "MAME"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_gnome_Maps",
       "name": "Maps",
       "match_names": [
         "Maps"
@@ -6834,14 +6924,29 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.github.phase1geo.minder",
-      "name": "Minder",
+      "id": "net_kuribo64_melonDS",
+      "name": "melonDS",
       "match_names": [
-        "Minder"
+        "melonDS"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Minder"
+        "melonDS"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_mgba_mGBA",
+      "name": "mGBA",
+      "match_names": [
+        "mGBA"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "mGBA"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -6857,6 +6962,21 @@
       "compatibility": "native",
       "alternatives": [
         "Mines"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_missioncenter_MissionCenter",
+      "name": "Mission Center",
+      "match_names": [
+        "Mission Center"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Mission Center"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -6894,6 +7014,21 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
+      "id": "com_modrinth_ModrinthApp",
+      "name": "Modrinth App",
+      "match_names": [
+        "Modrinth App"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Modrinth App"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "io.github.amit9838.mousam",
       "name": "Mousam",
       "match_names": [
@@ -6902,6 +7037,21 @@
       "compatibility": "native",
       "alternatives": [
         "Mousam"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "io_mpv_Mpv",
+      "name": "mpv",
+      "match_names": [
+        "mpv"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "mpv"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -6924,22 +7074,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.gitlab.news_flash.NewsFlash",
-      "name": "Newsflash",
-      "match_names": [
-        "Newsflash"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Newsflash"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "other",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.nextcloud.desktopclient.nextcloud",
+      "id": "com_nextcloud_desktopclient_nextcloud",
       "name": "Nextcloud Desktop Client",
       "match_names": [
         "Nextcloud Desktop Client"
@@ -6984,22 +7119,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.github.dail8859.NotepadNext",
-      "name": "Notepad Next",
-      "match_names": [
-        "Notepad Next"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Notepad Next"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "other",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "org.kde.okular",
+      "id": "org_kde_okular",
       "name": "Okular",
       "match_names": [
         "Okular"
@@ -7044,7 +7164,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.openrgb.OpenRGB",
+      "id": "org_openrgb_OpenRGB",
       "name": "OpenRGB",
       "match_names": [
         "OpenRGB"
@@ -7074,7 +7194,37 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.orcaslicer.OrcaSlicer",
+      "id": "com_opera_Opera",
+      "name": "Opera",
+      "match_names": [
+        "Opera"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Opera"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_opera_opera-gx",
+      "name": "Opera GX",
+      "match_names": [
+        "Opera GX"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Opera GX"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_orcaslicer_OrcaSlicer",
       "name": "OrcaSlicer",
       "match_names": [
         "OrcaSlicer"
@@ -7119,7 +7269,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "sh.ppy.osu",
+      "id": "sh_ppy_osu",
       "name": "osu!",
       "match_names": [
         "osu!"
@@ -7149,6 +7299,36 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
+      "id": "org_nickvision_tubeconverter",
+      "name": "Parabolic",
+      "match_names": [
+        "Parabolic"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Parabolic"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_parsecgaming_parsec",
+      "name": "Parsec",
+      "match_names": [
+        "Parsec"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Parsec"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "re.fossplant.pbtk",
       "name": "pbtk",
       "match_names": [
@@ -7157,6 +7337,21 @@
       "compatibility": "native",
       "alternatives": [
         "pbtk"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "net_pcsx2_PCSX2",
+      "name": "PCSX2",
+      "match_names": [
+        "PCSX2"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "PCSX2"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -7179,21 +7374,6 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.github.alainm23.planify",
-      "name": "Planify",
-      "match_names": [
-        "Planify"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Planify"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "other",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
       "id": "com.playonlinux.PlayOnLinux4",
       "name": "PlayOnLinux 4",
       "match_names": [
@@ -7202,6 +7382,21 @@
       "compatibility": "native",
       "alternatives": [
         "PlayOnLinux 4"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "tv_plex_PlexDesktop",
+      "name": "Plex",
+      "match_names": [
+        "Plex"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Plex"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -7224,7 +7419,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.podman_desktop.PodmanDesktop",
+      "id": "io_podman_desktop_PodmanDesktop",
       "name": "Podman Desktop",
       "match_names": [
         "Podman Desktop"
@@ -7269,22 +7464,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.system76.Popsicle",
-      "name": "Popsicle",
-      "match_names": [
-        "Popsicle"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "Popsicle"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "other",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.getpostman.Postman",
+      "id": "com_getpostman_Postman",
       "name": "Postman",
       "match_names": [
         "Postman"
@@ -7299,7 +7479,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.poweriso.PowerISO",
+      "id": "com_poweriso_PowerISO",
       "name": "PowerISO",
       "match_names": [
         "PowerISO"
@@ -7314,14 +7494,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.github.shiiion.primehack",
-      "name": "PrimeHack",
+      "id": "org_ppsspp_PPSSPP",
+      "name": "PPSSPP",
       "match_names": [
-        "PrimeHack"
+        "PPSSPP"
       ],
       "compatibility": "native",
       "alternatives": [
-        "PrimeHack"
+        "PPSSPP"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -7329,29 +7509,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.prismlauncher.PrismLauncher",
-      "name": "Prism Launcher",
+      "id": "com_prusa3d_PrusaSlicer",
+      "name": "PrusaSlicer",
       "match_names": [
-        "Prism Launcher"
+        "PrusaSlicer"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Prism Launcher"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "other",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "com.vysp3r.ProtonPlus",
-      "name": "ProtonPlus",
-      "match_names": [
-        "ProtonPlus"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "ProtonPlus"
+        "PrusaSlicer"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -7374,7 +7539,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.qbittorrent.qBittorrent",
+      "id": "org_qbittorrent_qBittorrent",
       "name": "qBittorrent",
       "match_names": [
         "qBittorrent"
@@ -7464,6 +7629,111 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
+      "id": "page_tesk_Refine",
+      "name": "Refine",
+      "match_names": [
+        "Refine"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Refine"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_remmina_Remmina",
+      "name": "Remmina",
+      "match_names": [
+        "Remmina"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Remmina"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "net_nokyan_Resources",
+      "name": "Resources",
+      "match_names": [
+        "Resources"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Resources"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_libretro_RetroArch",
+      "name": "RetroArch",
+      "match_names": [
+        "RetroArch"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "RetroArch"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "net_retrodeck_retrodeck",
+      "name": "RetroDECK",
+      "match_names": [
+        "RetroDECK"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "RetroDECK"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "net_rpcs3_RPCS3",
+      "name": "RPCS3",
+      "match_names": [
+        "RPCS3"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "RPCS3"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_rustdesk_RustDesk",
+      "name": "RustDesk",
+      "match_names": [
+        "RustDesk"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "RustDesk"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "net.scribus.Scribus",
       "name": "Scribus",
       "match_names": [
@@ -7472,6 +7742,21 @@
       "compatibility": "native",
       "alternatives": [
         "Scribus"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_scummvm_ScummVM",
+      "name": "ScummVM",
+      "match_names": [
+        "ScummVM"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "ScummVM"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -7494,7 +7779,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "de.haeckerfelix.Shortwave",
+      "id": "de_haeckerfelix_Shortwave",
       "name": "Shortwave",
       "match_names": [
         "Shortwave"
@@ -7502,6 +7787,21 @@
       "compatibility": "native",
       "alternatives": [
         "Shortwave"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_shotcut_Shotcut",
+      "name": "Shotcut",
+      "match_names": [
+        "Shotcut"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Shotcut"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -7524,14 +7824,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.github.pwr_solaar.solaar",
-      "name": "Solaar",
+      "id": "org_vinegarhq_Sober",
+      "name": "Sober",
       "match_names": [
-        "Solaar"
+        "Sober"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Solaar"
+        "Sober"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -7592,6 +7892,21 @@
       "compatibility": "native",
       "alternatives": [
         "Spedread"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "net_mkiol_SpeechNote",
+      "name": "Speech Note",
+      "match_names": [
+        "Speech Note"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Speech Note"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -7689,6 +8004,21 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
+      "id": "com_stremio_Stremio",
+      "name": "Stremio",
+      "match_names": [
+        "Stremio"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Stremio"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "com.sublimehq.SublimeText",
       "name": "Sublime Text",
       "match_names": [
@@ -7704,7 +8034,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "dev.lizardbyte.app.Sunshine",
+      "id": "dev_lizardbyte_app_Sunshine",
       "name": "Sunshine",
       "match_names": [
         "Sunshine"
@@ -7734,7 +8064,37 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.surfshark.Surfshark",
+      "id": "com_supermodel3_Supermodel",
+      "name": "Supermodel",
+      "match_names": [
+        "Supermodel"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Supermodel"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "net_supertuxkart_SuperTuxKart",
+      "name": "SuperTuxKart",
+      "match_names": [
+        "SuperTuxKart"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "SuperTuxKart"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_surfshark_Surfshark",
       "name": "Surfshark",
       "match_names": [
         "Surfshark"
@@ -7824,6 +8184,51 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
+      "id": "org_gnome_TextEditor",
+      "name": "Text Editor",
+      "match_names": [
+        "Text Editor"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Text Editor"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_thincast_client",
+      "name": "Thincast Remote Desktop Client",
+      "match_names": [
+        "Thincast Remote Desktop Client"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Thincast Remote Desktop Client"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_mozilla_Thunderbird",
+      "name": "Thunderbird",
+      "match_names": [
+        "Thunderbird"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Thunderbird"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
       "id": "com.ktechpit.torrhunt",
       "name": "TorrHunt",
       "match_names": [
@@ -7847,6 +8252,21 @@
       "compatibility": "native",
       "alternatives": [
         "Touché"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_transmissionbt_Transmission",
+      "name": "Transmission",
+      "match_names": [
+        "Transmission"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Transmission"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -7884,7 +8304,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "dev.edfloreshz.CosmicTweaks",
+      "id": "dev_edfloreshz_CosmicTweaks",
       "name": "Tweaks",
       "match_names": [
         "Tweaks"
@@ -7899,14 +8319,44 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.gitlab.theevilskeleton.Upscaler",
-      "name": "Upscaler",
+      "id": "org_upscayl_Upscayl",
+      "name": "Upscayl",
       "match_names": [
-        "Upscaler"
+        "Upscayl"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Upscaler"
+        "Upscayl"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_zdoom_UZDoom",
+      "name": "UZDoom",
+      "match_names": [
+        "UZDoom"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "UZDoom"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "rocks_shy_VacuumTube",
+      "name": "VacuumTube",
+      "match_names": [
+        "VacuumTube"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "VacuumTube"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -7922,6 +8372,21 @@
       "compatibility": "native",
       "alternatives": [
         "Valot"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "dev_vencord_Vesktop",
+      "name": "Vesktop",
+      "match_names": [
+        "Vesktop"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Vesktop"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -7959,7 +8424,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.vinegarhq.Vinegar",
+      "id": "org_vinegarhq_Vinegar",
       "name": "Vinegar",
       "match_names": [
         "Vinegar"
@@ -7974,7 +8439,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.virt_manager.virt-manager",
+      "id": "org_virt_manager_virt-manager",
       "name": "Virtual Machine Manager",
       "match_names": [
         "Virtual Machine Manager"
@@ -7982,6 +8447,21 @@
       "compatibility": "native",
       "alternatives": [
         "Virtual Machine Manager"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "com_vivaldi_Vivaldi",
+      "name": "Vivaldi",
+      "match_names": [
+        "Vivaldi"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Vivaldi"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -8004,14 +8484,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.pulseaudio.pavucontrol",
-      "name": "Volume Control",
+      "id": "com_vscodium_codium",
+      "name": "VSCodium",
       "match_names": [
-        "Volume Control"
+        "VSCodium"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Volume Control"
+        "VSCodium"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -8064,14 +8544,14 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "io.github.flattool.Warehouse",
-      "name": "Warehouse",
+      "id": "org_x_Warpinator",
+      "name": "Warpinator",
       "match_names": [
-        "Warehouse"
+        "Warpinator"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Warehouse"
+        "Warpinator"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -8079,7 +8559,22 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.kde.kweather",
+      "id": "net_waterfox_waterfox",
+      "name": "Waterfox",
+      "match_names": [
+        "Waterfox"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Waterfox"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_gnome_Weather",
       "name": "Weather",
       "match_names": [
         "Weather"
@@ -8154,7 +8649,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "com.ktechpit.whatsie",
+      "id": "com_ktechpit_whatsie",
       "name": "Whatsie",
       "match_names": [
         "Whatsie"
@@ -8199,7 +8694,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "org.winehq.Wine",
+      "id": "org_winehq_Wine",
       "name": "Wine",
       "match_names": [
         "Wine"
@@ -8222,21 +8717,6 @@
       "compatibility": "native",
       "alternatives": [
         "WineCharm"
-      ],
-      "source_hint": "flatpak",
-      "confidence": "medium",
-      "category": "other",
-      "notes": "Popular Flathub app; exact distro package names are resolved later."
-    },
-    {
-      "id": "io.github.fastrizwaan.WineZGUI",
-      "name": "WineZGUI",
-      "match_names": [
-        "WineZGUI"
-      ],
-      "compatibility": "native",
-      "alternatives": [
-        "WineZGUI"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -8274,7 +8754,7 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "xyz.xclicker.xclicker",
+      "id": "xyz_xclicker_xclicker",
       "name": "XClicker",
       "match_names": [
         "XClicker"
@@ -8282,6 +8762,21 @@
       "compatibility": "native",
       "alternatives": [
         "XClicker"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "app_xemu_xemu",
+      "name": "xemu",
+      "match_names": [
+        "xemu"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "xemu"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
@@ -8334,14 +8829,44 @@
       "notes": "Popular Flathub app; exact distro package names are resolved later."
     },
     {
-      "id": "app.zen_browser.zen",
-      "name": "Zen",
+      "id": "com_rtosta_zapzap",
+      "name": "ZapZap",
       "match_names": [
-        "Zen"
+        "ZapZap"
       ],
       "compatibility": "native",
       "alternatives": [
-        "Zen"
+        "ZapZap"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "dev_zed_Zed",
+      "name": "Zed",
+      "match_names": [
+        "Zed"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Zed"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "medium",
+      "category": "other",
+      "notes": "Popular Flathub app; exact distro package names are resolved later."
+    },
+    {
+      "id": "org_zotero_Zotero",
+      "name": "Zotero",
+      "match_names": [
+        "Zotero"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Zotero"
       ],
       "source_hint": "flatpak",
       "confidence": "medium",
