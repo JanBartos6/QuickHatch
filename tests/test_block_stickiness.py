@@ -133,6 +133,12 @@ class TestSafeDiagnosticSetupCommand:
             is False
         )
 
+    def test_cat_redirect_is_not_a_safe_diagnostic(self):
+        assert _is_safe_diagnostic_setup_command("cat > /etc/sudoers.d/10-wheel") is False
+
+    def test_mount_device_is_not_a_safe_diagnostic(self):
+        assert _is_safe_diagnostic_setup_command("mount /dev/sda1 /mnt") is False
+
 
 if __name__ == "__main__":  # pragma: no cover
     pytest.main([__file__, "-v"])

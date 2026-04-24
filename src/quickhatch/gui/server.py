@@ -4212,6 +4212,8 @@ def _is_safe_diagnostic_setup_command(cmd: str) -> bool:
         "which",
     }
     for segment in _split_command_segments_for_lint(cmd):
+        if any(op in segment for op in (">", ">>")):
+            return False
         try:
             tokens = shlex.split(segment, posix=True)
         except ValueError:
@@ -4223,11 +4225,7 @@ def _is_safe_diagnostic_setup_command(cmd: str) -> bool:
         args = tokens[1:]
         if tool not in diagnostic_tools:
             return False
-        if tool == "echo":
-            # Treat redirects as mutating even if the tool is echo.
-            if any(op in segment for op in (">", ">>")):
-                return False
-        elif tool == "systemctl":
+        if tool == "systemctl":
             allowed = {
                 "cat",
                 "is-active",
@@ -4237,6 +4235,11 @@ def _is_safe_diagnostic_setup_command(cmd: str) -> bool:
                 "status",
             }
             if not args or args[0] not in allowed:
+                return False
+        elif tool == "mount":
+            # `mount` without arguments is a read-only inventory command.
+            # Mounting a device/path mutates the live/install environment.
+            if args:
                 return False
         elif tool == "pacman":
             allowed_flags = {"-Q", "-Qi", "-Qq", "-Qs", "-Sg", "-Si", "-Ss"}
@@ -5192,32 +5195,12 @@ def _advise_on_repeated_failure(
     return None
 
 
-def _command_intent_signature(cmd: str) -> str | None:
-    """Normalize an install/remove command to its INTENT so sibling variants
-    collapse to the same key.
-
-    Motivated by the live run where the agent spent 8 turns in a pacman
-    conflict loop, each command a different flag variation of the same
-    intent:
-
-        pacman -Rns nodejs && pacman -S nodejs-lts-iron openai-codex
-        pacman -S nodejs-lts-iron openai-codex               # tried plain
-        echo 'y' | pacman -S nodejs-lts-iron openai-codex    # piped y
-        pacman -S --nodeps nodejs-lts-iron openai-codex      # added --nodeps
-        pacman -Rdd nodejs && pacman -S nodejs-lts-iron ...  # force-remove
-
-    The exact-command detector didn't fire (each literal string differs).
-    Stripping flags, env prefixes, pipes, and `sudo` reveals a single
-    intent ("install nodejs-lts-iron openai-codex") repeated five times.
-
-    Returns a stable signature like ``pacman:install:nodejs-lts-iron openai-codex``
-    for install/remove-shaped commands, or None for commands we don't
-    try to normalize (the same-exact-command detector still covers those).
-    """
+def _command_intent_signatures(cmd: str) -> list[str]:
+    """Normalize all install/remove command segments to stable intent keys."""
     import re as _re
 
     if not cmd:
-        return None
+        return []
     # Strip leading `echo ... |` / `yes |` / `printf ... |` — these are
     # pseudo-confirmation tricks, not the real intent.
     stripped = _re.sub(
@@ -5225,13 +5208,10 @@ def _command_intent_signature(cmd: str) -> str | None:
         "",
         cmd,
     )
-    # Split on `&&` / `;` / `||` and pick the LAST install-shaped segment.
-    # Conflict-escalation loops typically bury the real install at the end
-    # behind a preparatory remove (`-Rdd nodejs && -S nodejs-lts-iron`).
     segments = _re.split(r"\s*(?:&&|\|\||;)\s*", stripped)
     segments = [s.strip() for s in segments if s.strip()]
     if not segments:
-        return None
+        return []
 
     def _sig_for_segment(seg: str) -> str | None:
         # Drop leading env vars + sudo (in any order / interleaving).
@@ -5319,12 +5299,41 @@ def _command_intent_signature(cmd: str) -> str | None:
             return None
         return f"{tool}:{op}:" + " ".join(sorted(set(targets)))
 
-    # Prefer the LAST install/remove segment — that's the real intent.
-    for seg in reversed(segments):
+    sigs: list[str] = []
+    for seg in segments:
         sig = _sig_for_segment(seg)
         if sig:
-            return sig
-    return None
+            sigs.append(sig)
+    return sigs
+
+
+def _command_intent_signature(cmd: str) -> str | None:
+    """Normalize an install/remove command to its INTENT so sibling variants
+    collapse to the same key.
+
+    Motivated by the live run where the agent spent 8 turns in a pacman
+    conflict loop, each command a different flag variation of the same
+    intent:
+
+        pacman -Rns nodejs && pacman -S nodejs-lts-iron openai-codex
+        pacman -S nodejs-lts-iron openai-codex               # tried plain
+        echo 'y' | pacman -S nodejs-lts-iron openai-codex    # piped y
+        pacman -S --nodeps nodejs-lts-iron openai-codex      # added --nodeps
+        pacman -Rdd nodejs && pacman -S nodejs-lts-iron ...  # force-remove
+
+    The exact-command detector didn't fire (each literal string differs).
+    Stripping flags, env prefixes, pipes, and `sudo` reveals a single
+    intent ("install nodejs-lts-iron openai-codex") repeated five times.
+
+    Returns a stable signature like ``pacman:install:nodejs-lts-iron openai-codex``
+    for install/remove-shaped commands, or None for commands we don't
+    try to normalize (the same-exact-command detector still covers those).
+    """
+    # Split on `&&` / `;` / `||` and pick the LAST install-shaped segment.
+    # Conflict-escalation loops typically bury the real install at the end
+    # behind a preparatory remove (`-Rdd nodejs && -S nodejs-lts-iron`).
+    sigs = _command_intent_signatures(cmd)
+    return sigs[-1] if sigs else None
 
 
 def _detect_flag_escalation(recent_commands: list[str]) -> str | None:
@@ -5339,14 +5348,24 @@ def _detect_flag_escalation(recent_commands: list[str]) -> str | None:
     """
     if len(recent_commands) < 3:
         return None
-    sigs = [_command_intent_signature(c) for c in recent_commands[-5:]]
-    sigs = [s for s in sigs if s]
+    sigs: list[str] = []
+    for command in recent_commands[-5:]:
+        sigs.extend(_command_intent_signatures(command))
     if len(sigs) < 3:
         return None
     from collections import Counter
 
     counts = Counter(sigs)
-    top_sig, top_n = counts.most_common(1)[0]
+    candidates = [(sig, n) for sig, n in counts.items() if n >= 3]
+    if not candidates:
+        return None
+
+    def _target_count(sig: str) -> int:
+        return len(sig.rsplit(":", 1)[-1].split())
+
+    # In chained commands, an unrelated helper install can repeat more often
+    # than the actual conflict. Prefer the richer repeated package intent.
+    top_sig, top_n = max(candidates, key=lambda item: (_target_count(item[0]), item[1]))
     if top_n < 3:
         return None
     return top_sig

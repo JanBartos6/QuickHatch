@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import copy
 import json
+import re
+import shlex
+import time
 import uuid
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
@@ -146,10 +149,20 @@ class SetupOrchestrator:
 
     def _refresh_facts(self, *, stage: SetupStage) -> SetupFacts:
         before = self.ctx.facts
+        is_live = self.ctx.facts.is_live if self.ctx.facts else False
+        live_marker = self.ctx.facts.live_marker if self.ctx.facts else ""
+        try:
+            is_live, live_marker = self.runtime.detect_live_env()
+        except Exception as exc:
+            self.runlog.record(
+                "live_env_refresh_failed",
+                stage=stage.value,
+                error=str(exc),
+            )
         self.ctx.facts = self.runtime.probe_facts(
             fallback=self.ctx.facts,
-            is_live=self.ctx.facts.is_live if self.ctx.facts else False,
-            live_marker=self.ctx.facts.live_marker if self.ctx.facts else "",
+            is_live=is_live,
+            live_marker=live_marker,
             pending_question_id=self.bridge.snapshot_setup_run().get("active_question_id", ""),
             pending_question_blocking=self.bridge.snapshot_setup_run().get(
                 "waiting_for_input", False
@@ -215,12 +228,21 @@ class SetupOrchestrator:
 
     def _run_research_and_plan(self) -> None:
         self.bridge.update_setup_run(stage=SetupStage.RESEARCH_AND_PLAN.value, status="running")
+        facts = self.ctx.facts or SetupFacts()
+        runtime_guardrails = self.runtime.runtime_prompt_block(facts, facts.is_live)
         prompt = build_research_prompt(
             self.profile,
-            self.ctx.facts or SetupFacts(),
+            facts,
             system_info=self.ctx.system_info,
             migration_plan_md=self.runtime.migration_plan_md,
-            distro_primer_md=self.runtime.distro_primer_md,
+            distro_primer_md=(
+                self.runtime.distro_primer_md
+                + (
+                    "\n\n== SETUP RUNTIME GUARDRAILS ==\n" + runtime_guardrails
+                    if runtime_guardrails
+                    else ""
+                )
+            ),
             native_search_active=self.runtime.native_search_active,
         )
         self.runlog.record(
@@ -309,7 +331,7 @@ class SetupOrchestrator:
             return []
         return [group for group in self.ctx.plan.command_groups if group.stage == stage]
 
-    def _run_stage_groups(self, stage: SetupStage) -> None:
+    def _run_stage_groups(self, stage: SetupStage, *, audit_after: bool = True) -> None:
         if self.ctx.facts is None or self.ctx.plan is None:
             raise RuntimeError("Setup orchestration missing facts or plan.")
         self.bridge.update_setup_run(stage=stage.value, status="running")
@@ -373,8 +395,9 @@ class SetupOrchestrator:
                 raise RuntimeError(
                     f"Unsupported repair outcome for {current_group.title}: {action}"
                 )
-        result = audit_stage(stage, self.ctx.facts, plan=self.ctx.plan, stage_state=stage_state)
-        self._record_stage_result(result)
+        if audit_after:
+            result = audit_stage(stage, self.ctx.facts, plan=self.ctx.plan, stage_state=stage_state)
+            self._record_stage_result(result)
 
     def _run_install_or_skip(self) -> None:
         if self.ctx.facts and not self.ctx.facts.is_live:
@@ -391,7 +414,7 @@ class SetupOrchestrator:
             )
             self._record_stage_result(result)
             return
-        self._run_stage_groups(SetupStage.INSTALL_OR_SKIP)
+        self._run_stage_groups(SetupStage.INSTALL_OR_SKIP, audit_after=False)
         ok, failures, summary = self.runtime.run_pre_reboot_checks()
         self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})[
             "pre_reboot_checks_passed"
@@ -404,6 +427,7 @@ class SetupOrchestrator:
         )
         if not ok:
             raise RuntimeError(summary or "; ".join(failures))
+        self._issue_install_reboot()
         reconnect_user = self.ctx.created_user or self.runtime.user
         reconnected, fresh_info, new_user = self.runtime.wait_for_reconnect(reconnect_user)
         self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})[
@@ -423,6 +447,24 @@ class SetupOrchestrator:
         )
         self._record_stage_result(result)
 
+    def _issue_install_reboot(self) -> None:
+        command = (
+            "(umount -R /mnt 2>/dev/null || true); (umount -R /target 2>/dev/null || true); reboot"
+        )
+        self.runlog.record(
+            "install_reboot",
+            stage=SetupStage.INSTALL_OR_SKIP.value,
+            command=command,
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 60)
+        self.runlog.record(
+            "install_reboot_result",
+            stage=SetupStage.INSTALL_OR_SKIP.value,
+            rc=rc,
+            stdout_tail=(stdout or "")[-500:],
+            stderr_tail=(stderr or "")[-500:],
+        )
+
     def _run_postboot_driver(self) -> None:
         self._run_stage_groups(SetupStage.POSTBOOT_DRIVER)
 
@@ -434,6 +476,8 @@ class SetupOrchestrator:
 
     def _run_final_audit(self) -> AuditResult:
         self.bridge.update_setup_run(stage=SetupStage.FINAL_AUDIT.value, status="running")
+        if self.ctx.facts is not None:
+            self._refresh_facts(stage=SetupStage.FINAL_AUDIT)
         if self.ctx.plan is None:
             result = AuditResult(
                 stage=SetupStage.FINAL_AUDIT,
@@ -444,6 +488,11 @@ class SetupOrchestrator:
             result = final_audit(
                 self.ctx.facts or SetupFacts(), self.ctx.plan, self.ctx.stage_results
             )
+            remote_blockers = self._remote_final_verification()
+            if remote_blockers:
+                result.blockers.extend(remote_blockers)
+                result.passed = False
+                result.details["remote_final_verification"] = remote_blockers
         self.ctx.stage_results.append(result)
         self.runlog.record("final_audit", result=asdict(result))
         self.bridge.update_setup_run(
@@ -452,6 +501,127 @@ class SetupOrchestrator:
             stage=SetupStage.FINAL_AUDIT.value,
         )
         return result
+
+    def _remote_final_verification(self) -> list[str]:
+        if self.ctx.plan is None or self.ctx.facts is None:
+            return []
+        blockers: list[str] = []
+        blockers.extend(self._verify_planned_packages_installed())
+        blockers.extend(self._verify_systemd_health())
+        return blockers
+
+    def _verify_planned_packages_installed(self) -> list[str]:
+        if self.ctx.plan is None or self.ctx.facts is None:
+            return []
+        package_sources = {
+            "repo",
+            "official",
+            "official-repo",
+            "community",
+            "aur",
+            "aur-binary",
+            "aur-source",
+        }
+        candidates = [
+            app
+            for app in self.ctx.plan.apps
+            if app.status in {PlanItemStatus.INSTALLED, PlanItemStatus.COMPLETED}
+            and (app.source or "").lower() in package_sources
+        ]
+        if not candidates:
+            return []
+        query_cmds = {
+            "pacman": "pacman -Qq",
+            "apt": "dpkg-query -W -f='${Package}\\n'",
+            "dnf": "rpm -qa --queryformat '%{NAME}\\n'",
+            "zypper": "rpm -qa --queryformat '%{NAME}\\n'",
+            "apk": "apk info",
+            "xbps": "xbps-query -m | sed 's/-[0-9][^-]*$//'",
+            "emerge": "qlist -IC 2>/dev/null || true",
+        }
+        query = query_cmds.get(self.ctx.facts.package_manager)
+        if not query:
+            return []
+        rc, stdout, stderr = self.runtime.ssh_exec(query, 45)
+        self.runlog.record(
+            "final_package_verification",
+            package_manager=self.ctx.facts.package_manager,
+            command=query,
+            rc=rc,
+            stdout_tail=(stdout or "")[-800:],
+            stderr_tail=(stderr or "")[-800:],
+        )
+        if rc != 0:
+            return [
+                "Could not verify installed packages with "
+                f"{self.ctx.facts.package_manager}: {(stderr or stdout or '').strip()[:200]}"
+            ]
+        installed = {line.strip().lower() for line in (stdout or "").splitlines() if line.strip()}
+        missing: list[str] = []
+        for app in candidates:
+            variants = self._package_name_variants(app.name, app.package_name)
+            if not variants:
+                missing.append(app.name)
+                continue
+            if not any(variant in installed for variant in variants):
+                missing.append(app.name)
+        if not missing:
+            return []
+        return [
+            "Final package verification failed for installed app(s): "
+            + ", ".join(sorted(missing))
+            + ". Re-check exact package names or mark them manual_followup before done."
+        ]
+
+    @staticmethod
+    def _package_name_variants(app_name: str, package_name: str) -> set[str]:
+        raw = {app_name, package_name}
+        variants: set[str] = set()
+        for value in raw:
+            normalized = (value or "").strip().lower()
+            if not normalized:
+                continue
+            dashed = normalized.replace(" ", "-")
+            compact = normalized.replace(" ", "")
+            variants.update(
+                {
+                    normalized,
+                    dashed,
+                    compact,
+                    f"{dashed}-bin",
+                    f"{dashed}-git",
+                }
+            )
+        return {variant for variant in variants if variant}
+
+    def _verify_systemd_health(self) -> list[str]:
+        if self.ctx.facts is None or self.ctx.facts.init_system != "systemd":
+            return []
+        rc, stdout, stderr = self.runtime.ssh_exec(
+            "systemctl --failed --no-legend --plain 2>/dev/null | awk '{print $1}' | head -20",
+            20,
+        )
+        self.runlog.record(
+            "final_systemd_verification",
+            rc=rc,
+            stdout_tail=(stdout or "")[-800:],
+            stderr_tail=(stderr or "")[-800:],
+        )
+        if rc != 0:
+            return []
+        ignore_failed = {"systemd-modules-load.service", "systemd-resolved.service"}
+        failed_units = [
+            line.strip()
+            for line in (stdout or "").splitlines()
+            if line.strip() and line.strip() not in ignore_failed
+        ]
+        if not failed_units:
+            return []
+        return [
+            "systemctl reports failed unit(s): "
+            + ", ".join(failed_units)
+            + ". Investigate them before declaring setup complete."
+        ]
 
     def _ask_optional_slow_confirmation(self, group: CommandGroup) -> str | None:
         qid = self._ask_blocking_question(
@@ -499,13 +669,25 @@ class SetupOrchestrator:
             question=question,
             choices=choices,
         )
-        answered = pending.answered.wait(timeout=timeout)
+        deadline = time.monotonic() + max(0.0, timeout)
+        answered = False
+        while time.monotonic() < deadline:
+            if pending.answered.wait(timeout=min(2.0, max(0.0, deadline - time.monotonic()))):
+                answered = True
+                break
+            if self.bridge.stop_requested:
+                break
         self.bridge.update_setup_run(
             waiting_for_input=False,
             active_question_id="",
             blockers=[],
             status="running",
         )
+        if self.bridge.stop_requested and not answered:
+            self.runlog.record(
+                "blocking_question_stopped", stage=stage.value, question_id=pending.id
+            )
+            raise RuntimeError("Agent stopped by user while waiting for an answer.")
         if not answered:
             self.runlog.record(
                 "blocking_question_timeout", stage=stage.value, question_id=pending.id
@@ -526,6 +708,7 @@ class SetupOrchestrator:
         stage_state: dict[str, Any],
     ) -> GroupFailure | None:
         group.status = PlanItemStatus.IN_PROGRESS
+        stage_state["failed_verifications"] = []
         self.bridge.add_message("agent", f"[{stage.value}] {group.title}")
         self.runlog.record(
             "command_group_started",
@@ -533,6 +716,15 @@ class SetupOrchestrator:
             group=asdict(group),
         )
         for command in group.commands:
+            if stage == SetupStage.INSTALL_OR_SKIP and self._is_reboot_command(command):
+                stage_state["deferred_reboot_command"] = command
+                self.runlog.record(
+                    "command_deferred_until_guarded_reboot",
+                    stage=stage.value,
+                    group_id=group.id,
+                    command=command,
+                )
+                continue
             rc, stdout, stderr = self.runtime.ssh_exec(command, self._command_timeout(command))
             self.ctx.results_log.append(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
             self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
@@ -740,8 +932,6 @@ class SetupOrchestrator:
     def _mark_group_completion(self, group: CommandGroup, *, stage: SetupStage) -> None:
         if not self.ctx.plan:
             return
-        if stage == SetupStage.DESKTOP:
-            self.ctx.stage_state.setdefault(stage.value, {})["persisted_config_written"] = True
         if stage != SetupStage.APPS:
             return
         group_pkgs = {pkg.lower() for pkg in group.packages}
@@ -759,9 +949,9 @@ class SetupOrchestrator:
     ) -> None:
         del stderr
         if stage == SetupStage.INSTALL_OR_SKIP and "useradd " in command:
-            parts = command.split()
-            if parts:
-                self.ctx.created_user = parts[-1].strip("'\"")
+            created_user = self._extract_created_user(command)
+            if created_user:
+                self.ctx.created_user = created_user
         if stage == SetupStage.DESKTOP:
             state = self.ctx.stage_state.setdefault(stage.value, {})
             if any(
@@ -782,6 +972,64 @@ class SetupOrchestrator:
         if "reboot" in command_lower:
             return 60
         return 300
+
+    @staticmethod
+    def _is_reboot_command(command: str) -> bool:
+        return bool(re.search(r"(^|[;&|]\s*)(?:sudo\s+)?(?:systemctl\s+)?reboot\b", command))
+
+    @staticmethod
+    def _extract_created_user(command: str) -> str | None:
+        flags_with_values = {
+            "-c",
+            "--comment",
+            "-d",
+            "--home-dir",
+            "-e",
+            "--expiredate",
+            "-f",
+            "--inactive",
+            "-g",
+            "--gid",
+            "--ingroup",
+            "-G",
+            "--groups",
+            "-k",
+            "--skel",
+            "-p",
+            "--password",
+            "-s",
+            "--shell",
+            "-u",
+            "--uid",
+            "-Z",
+            "--selinux-user",
+            "-K",
+            "--key",
+        }
+        for line in command.splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            match = re.search(
+                r"(?:^|[;&|]\s*)(?:sudo\s+)?(?:(?:arch-chroot|chroot)\s+\S+\s+)?"
+                r"(?:useradd|adduser)\b(?P<tail>[^;&|]*)",
+                line,
+            )
+            if not match:
+                continue
+            try:
+                tokens = shlex.split(match.group("tail"))
+            except ValueError:
+                tokens = match.group("tail").split()
+            for idx in range(len(tokens) - 1, -1, -1):
+                token = tokens[idx].strip("\"'`")
+                if not token or token.startswith("-"):
+                    continue
+                if idx > 0 and tokens[idx - 1] in flags_with_values:
+                    continue
+                if re.fullmatch(r"[a-z_][a-z0-9_-]{0,31}", token):
+                    return token
+        return None
 
     def _build_summary(self) -> str:
         plan = self.ctx.plan

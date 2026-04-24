@@ -123,6 +123,8 @@ class TestDetectFlagEscalation:
         ]
         sig = _detect_flag_escalation(history)
         assert sig is not None
+        assert "nodejs-lts-iron" in sig
+        assert "openai-codex" in sig
 
 
 class TestStallVocabExtension:

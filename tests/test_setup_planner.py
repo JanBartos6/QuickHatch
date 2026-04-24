@@ -88,6 +88,15 @@ def test_extract_research_plan_rejects_incomplete_payload():
         extract_research_plan(json.dumps(payload), profile)
 
 
+def test_extract_research_plan_rejects_blank_command_group_commands():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["command_groups"][0]["commands"] = ["", "   "]
+
+    with pytest.raises(ResearchPlanValidationError):
+        extract_research_plan(json.dumps(payload), profile)
+
+
 def test_extract_research_plan_backfills_unresolved_requested_apps_as_manual_followup():
     profile = UserProfile()
     profile.apps_to_install = ["Brave", "LocalSend"]

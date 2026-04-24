@@ -36,8 +36,11 @@ def audit_stage(
     elif stage == SetupStage.RESEARCH_AND_PLAN:
         if plan is None:
             blockers.append("No research plan was produced.")
-        elif any(bool(q.get("required", True)) for q in plan.unresolved_questions):
-            blockers.append("Research plan still has unresolved required questions.")
+        elif any(
+            bool(q.get("required", True)) and not str(q.get("answer", "") or "").strip()
+            for q in plan.unresolved_questions
+        ):
+            blockers.append("Research plan still has unanswered required questions.")
         details["planner_revision"] = getattr(plan, "planner_revision", 0)
 
     elif stage == SetupStage.INSTALL_OR_SKIP:

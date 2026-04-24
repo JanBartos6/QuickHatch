@@ -89,7 +89,8 @@ def _parse_command_group(item: Any) -> CommandGroup:
     title = str(item.get("title", "")).strip()
     stage = _coerce_stage(str(item.get("stage", "")).strip())
     commands = list(item.get("commands", []) or [])
-    if not gid or not title or not commands:
+    cleaned_commands = [str(cmd) for cmd in commands if str(cmd).strip()]
+    if not gid or not title or not cleaned_commands:
         raise ResearchPlanValidationError(
             "Each command group needs id, title, stage, and at least one command."
         )
@@ -97,7 +98,7 @@ def _parse_command_group(item: Any) -> CommandGroup:
         id=gid,
         stage=stage,
         title=title,
-        commands=[str(cmd) for cmd in commands if str(cmd).strip()],
+        commands=cleaned_commands,
         verification=[str(cmd) for cmd in (item.get("verification", []) or []) if str(cmd).strip()],
         rationale=str(item.get("rationale", "") or ""),
         source=str(item.get("source", "repo") or "repo"),
