@@ -1,0 +1,1612 @@
+{
+  "schema": 1,
+  "purpose": "100 unknown catalog entries for distro-family support research, batch 002 split into 5 parts",
+  "batch": "002",
+  "part": 4,
+  "entries": [
+    {
+      "id": "winget:Amazon.Corretto.8.JRE",
+      "name": "Amazon Corretto JRE 8",
+      "match_names": [
+        "Amazon Corretto JRE 8",
+        "Amazon.Corretto.8.JRE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Corretto JRE 8"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Corretto.8.JDK",
+      "name": "Amazon Corretto 8",
+      "match_names": [
+        "Amazon Corretto 8",
+        "Amazon.Corretto.8.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Corretto 8"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Corretto.26.JDK",
+      "name": "Amazon Corretto 26",
+      "match_names": [
+        "Amazon Corretto 26",
+        "Amazon.Corretto.26.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Corretto 26"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Corretto.25.JDK",
+      "name": "Amazon Corretto 25",
+      "match_names": [
+        "Amazon Corretto 25",
+        "Amazon.Corretto.25.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Corretto 25"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Corretto.24.JDK",
+      "name": "Amazon Corretto 24",
+      "match_names": [
+        "Amazon Corretto 24",
+        "Amazon.Corretto.24.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Corretto 24"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Corretto.23.JDK",
+      "name": "Amazon Corretto 23",
+      "match_names": [
+        "Amazon Corretto 23",
+        "Amazon.Corretto.23.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Corretto 23"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Corretto.22.JDK",
+      "name": "Amazon Corretto 22",
+      "match_names": [
+        "Amazon Corretto 22",
+        "Amazon.Corretto.22.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Corretto 22"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Corretto.21.JDK",
+      "name": "Amazon Corretto 21",
+      "match_names": [
+        "Amazon Corretto 21",
+        "Amazon.Corretto.21.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Corretto 21"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Corretto.20.JDK",
+      "name": "Amazon Corretto 20",
+      "match_names": [
+        "Amazon Corretto 20",
+        "Amazon.Corretto.20.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Corretto 20"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Corretto.19.JDK",
+      "name": "Amazon Corretto 19",
+      "match_names": [
+        "Amazon Corretto 19",
+        "Amazon.Corretto.19.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Corretto 19"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Corretto.18.JDK",
+      "name": "Amazon Corretto 18",
+      "match_names": [
+        "Amazon Corretto 18",
+        "Amazon.Corretto.18.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Corretto 18"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Corretto.17.JDK",
+      "name": "Amazon Corretto 17",
+      "match_names": [
+        "Amazon Corretto 17",
+        "Amazon.Corretto.17.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Corretto 17"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Corretto.11.JDK",
+      "name": "Amazon Corretto 11",
+      "match_names": [
+        "Amazon Corretto 11",
+        "Amazon.Corretto.11.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Corretto 11"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Docker.Agent",
+      "name": "Agent",
+      "match_names": [
+        "Agent",
+        "Docker.Agent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Agent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:8.0.292.10",
+      "name": "AdoptOpenJDK JDK with Hotspot 8 AdoptOpenJDK.OpenJDK.8",
+      "match_names": [
+        "AdoptOpenJDK JDK with Hotspot 8 AdoptOpenJDK.OpenJDK.8",
+        "8.0.292.10"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdoptOpenJDK JDK with Hotspot 8 AdoptOpenJDK.OpenJDK.8"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdoptOpenJDK.OpenJDK.8",
+      "name": "AdoptOpenJDK JDK with Hotspot 8",
+      "match_names": [
+        "AdoptOpenJDK JDK with Hotspot 8",
+        "AdoptOpenJDK.OpenJDK.8"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdoptOpenJDK JDK with Hotspot 8"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdoptOpenJDK.OpenJDK.17",
+      "name": "AdoptOpenJDK JDK with Hotspot 17",
+      "match_names": [
+        "AdoptOpenJDK JDK with Hotspot 17",
+        "AdoptOpenJDK.OpenJDK.17"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdoptOpenJDK JDK with Hotspot 17"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdoptOpenJDK.OpenJDK.16",
+      "name": "AdoptOpenJDK JDK with Hotspot 16",
+      "match_names": [
+        "AdoptOpenJDK JDK with Hotspot 16",
+        "AdoptOpenJDK.OpenJDK.16"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdoptOpenJDK JDK with Hotspot 16"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdoptOpenJDK.OpenJDK.15",
+      "name": "AdoptOpenJDK JDK with Hotspot 15",
+      "match_names": [
+        "AdoptOpenJDK JDK with Hotspot 15",
+        "AdoptOpenJDK.OpenJDK.15"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdoptOpenJDK JDK with Hotspot 15"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdoptOpenJDK.OpenJDK.14",
+      "name": "AdoptOpenJDK JDK with Hotspot 14",
+      "match_names": [
+        "AdoptOpenJDK JDK with Hotspot 14",
+        "AdoptOpenJDK.OpenJDK.14"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdoptOpenJDK JDK with Hotspot 14"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdoptOpenJDK.OpenJDK.11",
+      "name": "AdoptOpenJDK JDK with Hotspot 11",
+      "match_names": [
+        "AdoptOpenJDK JDK with Hotspot 11",
+        "AdoptOpenJDK.OpenJDK.11"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdoptOpenJDK JDK with Hotspot 11"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdoptOpenJDK.OpenJDK.17.OpenJ9",
+      "name": "AdoptOpenJDK JDK with Eclipse OpenJ9 17",
+      "match_names": [
+        "AdoptOpenJDK JDK with Eclipse OpenJ9 17",
+        "AdoptOpenJDK.OpenJDK.17.OpenJ9"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdoptOpenJDK JDK with Eclipse OpenJ9 17"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdoptOpenJDK.OpenJDK.16.OpenJ9",
+      "name": "AdoptOpenJDK JDK with Eclipse OpenJ9 16",
+      "match_names": [
+        "AdoptOpenJDK JDK with Eclipse OpenJ9 16",
+        "AdoptOpenJDK.OpenJDK.16.OpenJ9"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdoptOpenJDK JDK with Eclipse OpenJ9 16"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BigSweetPotatoStudio.HyperChat",
+      "name": "HyperChat",
+      "match_names": [
+        "HyperChat",
+        "BigSweetPotatoStudio.HyperChat"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "HyperChat"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ByteDance.TOSBrowser",
+      "name": "TOS Browser",
+      "match_names": [
+        "TOS Browser",
+        "ByteDance.TOSBrowser"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "TOS Browser"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AGILELEAP.SlideBrowser",
+      "name": "Slide Browser",
+      "match_names": [
+        "Slide Browser",
+        "AGILELEAP.SlideBrowser"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Slide Browser"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BrowserStackInc.Requestly",
+      "name": "Requestly",
+      "match_names": [
+        "Requestly",
+        "BrowserStackInc.Requestly"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Requestly"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ghostery.GhosteryDawn",
+      "name": "Ghostery Private Browser",
+      "match_names": [
+        "Ghostery Private Browser",
+        "Ghostery.GhosteryDawn"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ghostery Private Browser"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Dichromate.Browser",
+      "name": "Dichromate",
+      "match_names": [
+        "Dichromate",
+        "Dichromate.Browser"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dichromate"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:108thecitizen.DesktopTileLauncher",
+      "name": "DesktopTileLauncher",
+      "match_names": [
+        "DesktopTileLauncher",
+        "108thecitizen.DesktopTileLauncher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DesktopTileLauncher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Chaoleme.ClipCascadeGo.Web",
+      "name": "ClipCascade Go (Web)",
+      "match_names": [
+        "ClipCascade Go (Web)",
+        "Chaoleme.ClipCascadeGo.Web"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ClipCascade Go (Web)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cisco.webex-outlook-plugin",
+      "name": "Cisco Webex Productivity Tools",
+      "match_names": [
+        "Cisco Webex Productivity Tools",
+        "Cisco.webex-outlook-plugin"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cisco Webex Productivity Tools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CertifyTheWeb.CertifySSLManager",
+      "name": "Certify The Web",
+      "match_names": [
+        "Certify The Web",
+        "CertifyTheWeb.CertifySSLManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Certify The Web"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CatalystDevOrg.CatalystBrowser",
+      "name": "catalyst-browser",
+      "match_names": [
+        "catalyst-browser",
+        "CatalystDevOrg.CatalystBrowser"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "catalyst-browser"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CAI.CASecureBrowser",
+      "name": "CASecureBrowser",
+      "match_names": [
+        "CASecureBrowser",
+        "CAI.CASecureBrowser"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CASecureBrowser"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BrowserStack.BrowserStackLocal",
+      "name": "BrowserStackLocal",
+      "match_names": [
+        "BrowserStackLocal",
+        "BrowserStack.BrowserStackLocal"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BrowserStackLocal"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Browserpass.BrowserpassNative",
+      "name": "Browserpass",
+      "match_names": [
+        "Browserpass",
+        "Browserpass.BrowserpassNative"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Browserpass"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BrowserOS.BrowserOSCLI",
+      "name": "BrowserOS",
+      "match_names": [
+        "BrowserOS",
+        "BrowserOS.BrowserOSCLI",
+        "BrowserOS.BrowserOS"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BrowserOS"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:0xGingi.Browser",
+      "name": "0xGingi-Browser",
+      "match_names": [
+        "0xGingi-Browser"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "0xGingi-Browser"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DigitalScholar.Zotero",
+      "name": "Zotero",
+      "match_names": [
+        "Zotero",
+        "DigitalScholar.Zotero"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Zotero"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AETMobileB.V.ZORG-IDDesktopApp",
+      "name": "ZORG-ID Desktop App",
+      "match_names": [
+        "ZORG-ID Desktop App",
+        "AETMobileB.V.ZORG-IDDesktopApp"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ZORG-ID Desktop App"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bostrot.WSLManager",
+      "name": "WSL Manager",
+      "match_names": [
+        "WSL Manager",
+        "Bostrot.WSLManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WSL Manager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Adobe.WorkfrontProof",
+      "name": "Workfront Proof",
+      "match_names": [
+        "Workfront Proof",
+        "Adobe.WorkfrontProof"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Workfront Proof"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FrancescoSorge.WinPower",
+      "name": "WinPower",
+      "match_names": [
+        "WinPower",
+        "FrancescoSorge.WinPower"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WinPower"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CloudBees.WindowsServiceWrapper.3",
+      "name": "Windows Service Wrapper",
+      "match_names": [
+        "Windows Service Wrapper",
+        "CloudBees.WindowsServiceWrapper",
+        "CloudBees.WindowsServiceWrapper.3"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Windows Service Wrapper"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GadgetsRevived.GadgetsRevived",
+      "name": "Windows Desktop Gadgets",
+      "match_names": [
+        "Windows Desktop Gadgets",
+        "GadgetsRevived.GadgetsRevived"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Windows Desktop Gadgets"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BrandonHill.Windows11ContextMenuManager",
+      "name": "Windows 11 Context Menu Manager",
+      "match_names": [
+        "Windows 11 Context Menu Manager",
+        "BrandonHill.Windows11ContextMenuManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Windows 11 Context Menu Manager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DeskSoft.WindowManager",
+      "name": "WindowManager",
+      "match_names": [
+        "WindowManager",
+        "DeskSoft.WindowManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "WindowManager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DigitalExtremes.Warframe",
+      "name": "Warframe",
+      "match_names": [
+        "Warframe",
+        "DigitalExtremes.Warframe"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Warframe"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AndrewWhewell.VirtualRadarServer",
+      "name": "Virtual Radar Server",
+      "match_names": [
+        "Virtual Radar Server",
+        "AndrewWhewell.VirtualRadarServer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Virtual Radar Server"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cisco.UmbrellaRoamingClient",
+      "name": "Umbrella Roaming Client",
+      "match_names": [
+        "Umbrella Roaming Client",
+        "Cisco.UmbrellaRoamingClient"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Umbrella Roaming Client"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AlexanderSpiess.Ultramarinviewer",
+      "name": "Ultramarin eRechnung Viewer",
+      "match_names": [
+        "Ultramarin eRechnung Viewer",
+        "AlexanderSpiess.Ultramarinviewer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ultramarin eRechnung Viewer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Alibaba.UCCloudDrive",
+      "name": "UC网盘",
+      "match_names": [
+        "UC网盘",
+        "Alibaba.UC",
+        "Alibaba.UCCloudDrive"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "UC网盘"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DigitalScholar.Tropy",
+      "name": "Tropy",
+      "match_names": [
+        "Tropy",
+        "DigitalScholar.Tropy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Tropy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CeruleanStudios.Trillian.EXE",
+      "name": "Trillian (EXE)",
+      "match_names": [
+        "Trillian (EXE)",
+        "CeruleanStudios.Trillian.EXE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Trillian (EXE)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CeruleanStudios.Trillian",
+      "name": "Trillian",
+      "match_names": [
+        "Trillian",
+        "CeruleanStudios.Trillian"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Trillian"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Devart.TMetric",
+      "name": "TMetric Desktop",
+      "match_names": [
+        "TMetric Desktop",
+        "Devart.TMetric"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "TMetric Desktop"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CenSoft.TinyTERMEnterpriceTEServer",
+      "name": "TinyTERM Enterprise TE Server",
+      "match_names": [
+        "TinyTERM Enterprise TE Server",
+        "CenSoft.TinyTERMEnterpriceTEServer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "TinyTERM Enterprise TE Server"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GeekCorner.threema",
+      "name": "Threema For Desktop",
+      "match_names": [
+        "Threema For Desktop",
+        "GeekCorner.threema"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Threema For Desktop"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cendio.ThinLincClient",
+      "name": "ThinLinc client",
+      "match_names": [
+        "ThinLinc client",
+        "Cendio.ThinLincClient"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ThinLinc client"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:D-Link.TFTPServer",
+      "name": "TFTP Server",
+      "match_names": [
+        "TFTP Server",
+        "D-Link.TFTPServer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "TFTP Server"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DigitalVolcanoSoftware.TextCrawler.Pro",
+      "name": "TextCrawler Pro",
+      "match_names": [
+        "TextCrawler Pro",
+        "DigitalVolcanoSoftware.TextCrawler.Pro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "TextCrawler Pro"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DigitalVolcanoSoftware.TextCrawler",
+      "name": "TextCrawler Free",
+      "match_names": [
+        "TextCrawler Free",
+        "DigitalVolcanoSoftware.TextCrawler"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "TextCrawler Free"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AtomicJar.Testcontainers",
+      "name": "Testcontainers Desktop",
+      "match_names": [
+        "Testcontainers Desktop",
+        "AtomicJar.Testcontainers"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Testcontainers Desktop"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DigitalVolcanoSoftware.TaskCanvas",
+      "name": "TaskCanvas",
+      "match_names": [
+        "TaskCanvas",
+        "DigitalVolcanoSoftware.TaskCanvas"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "TaskCanvas"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Flexense.SysGaugeServer",
+      "name": "SysGauge Server",
+      "match_names": [
+        "SysGauge Server",
+        "Flexense.SysGaugeServer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "SysGauge Server"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:3TSoftwareLabs.Studio3T",
+      "name": "Studio 3T",
+      "match_names": [
+        "Studio 3T",
+        "3TSoftwareLabs.Studio3T"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Studio 3T"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BrickLink.Studio.EarlyAccess",
+      "name": "Studio 2.0 EarlyAccess version 2.0",
+      "match_names": [
+        "Studio 2.0 EarlyAccess version 2.0",
+        "BrickLink.Studio.EarlyAccess"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Studio 2.0 EarlyAccess version 2.0"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BrickLink.Studio",
+      "name": "Studio",
+      "match_names": [
+        "Studio",
+        "BrickLink.Studio"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Studio"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DoD.STIGViewer",
+      "name": "STIG Viewer",
+      "match_names": [
+        "STIG Viewer",
+        "DoD.STIGViewer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "STIG Viewer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CoralCreek.SQLiteExpert.Professional",
+      "name": "SQLite Expert Professional",
+      "match_names": [
+        "SQLite Expert Professional",
+        "CoralCreek.SQLiteExpert.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "SQLite Expert Professional"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CoralCreek.SQLiteExpert.Personal",
+      "name": "SQLite Expert Personal",
+      "match_names": [
+        "SQLite Expert Personal",
+        "CoralCreek.SQLiteExpert.Personal"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "SQLite Expert Personal"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Airspy.SpyServer",
+      "name": "Spy Server",
+      "match_names": [
+        "Spy Server",
+        "Airspy.SpyServer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Spy Server"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Datronicsoft.SpacedeskDriver.Server",
+      "name": "spacedesk Windows DRIVER",
+      "match_names": [
+        "spacedesk Windows DRIVER",
+        "Datronicsoft.SpacedeskDriver.Server"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "spacedesk Windows DRIVER"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GeorgieLabs.SoundWireServer",
+      "name": "SoundWireServer",
+      "match_names": [
+        "SoundWireServer",
+        "GeorgieLabs.SoundWireServer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "SoundWireServer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BernatRomagosa.Snap4Arduino",
+      "name": "Snap4Arduino",
+      "match_names": [
+        "Snap4Arduino",
+        "BernatRomagosa.Snap4Arduino"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Snap4Arduino"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GitHub.smimesign",
+      "name": "smimesign",
+      "match_names": [
+        "smimesign",
+        "GitHub.smimesign"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "smimesign"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DeskSoft.SmartCapture",
+      "name": "SmartCapture",
+      "match_names": [
+        "SmartCapture",
+        "DeskSoft.SmartCapture"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "SmartCapture"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ArcadeRenegade.SidebarDiagnostics",
+      "name": "Sidebar Diagnostics",
+      "match_names": [
+        "Sidebar Diagnostics",
+        "ArcadeRenegade.SidebarDiagnostics"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Sidebar Diagnostics"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.SessionManagerPlugin",
+      "name": "Session Manager Plugin",
+      "match_names": [
+        "Session Manager Plugin",
+        "Amazon.SessionManagerPlugin"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Session Manager Plugin"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:2.0.1",
+      "name": "Service Credentials Manager Free Edition Cjwdev.ServiceCredentialsManager.Free",
+      "match_names": [
+        "Service Credentials Manager Free Edition Cjwdev.ServiceCredentialsManager.Free",
+        "Service Credentials Manager Free Edi… Cjwdev.ServiceCredentialsManager.Free",
+        "2.0.1",
+        "Service Credentials Manager Free Ed… Cjwdev.ServiceCredentialsManager.Free"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Service Credentials Manager Free Edi… Cjwdev.ServiceCredentialsManager.Free"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:5rahim.Seanime",
+      "name": "Seanime Desktop",
+      "match_names": [
+        "Seanime Desktop",
+        "5rahim.Seanime"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Seanime Desktop"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DataPower.SaveWizardforPS4MAX",
+      "name": "Save Wizard for PS4 MAX",
+      "match_names": [
+        "Save Wizard for PS4 MAX",
+        "DataPower.SaveWizardforPS4MAX"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Save Wizard for PS4 MAX"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CABS.SalesPrix",
+      "name": "SalesPrix",
+      "match_names": [
+        "SalesPrix",
+        "CABS.SalesPrix"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "SalesPrix"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Posit.RStudio",
+      "name": "RStudio",
+      "match_names": [
+        "RStudio",
+        "Posit.RStudio"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "RStudio"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ABB.RobotStudio",
+      "name": "RobotStudio",
+      "match_names": [
+        "RobotStudio",
+        "ABB.RobotStudio"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "RobotStudio"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FleetingClarityStudios.RipShout",
+      "name": "RipShout",
+      "match_names": [
+        "RipShout",
+        "FleetingClarityStudios.RipShout"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "RipShout"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BlueprintFreespeech.RicochetRefresh",
+      "name": "RicochetRefresh",
+      "match_names": [
+        "RicochetRefresh",
+        "BlueprintFreespeech.RicochetRefresh"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "RicochetRefresh"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GIGABYTE.RGBFusion",
+      "name": "RGB Fusion",
+      "match_names": [
+        "RGB Fusion",
+        "GIGABYTE.RGBFusion"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "RGB Fusion"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DigitalForcesCorp.ResolutionSuggester",
+      "name": "Resolution Suggester",
+      "match_names": [
+        "Resolution Suggester",
+        "DigitalForcesCorp.ResolutionSuggester"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Resolution Suggester"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EvgenyCherpak.RemoteHelperApp",
+      "name": "Remote Helper App",
+      "match_names": [
+        "Remote Helper App",
+        "EvgenyCherpak.RemoteHelperApp"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Remote Helper App"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FleetingClarityStudios.QuickFixMyPic",
+      "name": "QuickFixMyPic",
+      "match_names": [
+        "QuickFixMyPic",
+        "FleetingClarityStudios.QuickFixMyPic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "QuickFixMyPic"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CarlWenrich.PythonTkGuiBuilder",
+      "name": "Python Tk Gui Builder",
+      "match_names": [
+        "Python Tk Gui Builder",
+        "CarlWenrich.PythonTkGuiBuilder"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Python Tk Gui Builder"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Certum.SmartSignSimplySignDesktop",
+      "name": "proCertum SmartSign SimplySign Desktop",
+      "match_names": [
+        "proCertum SmartSign SimplySign Desktop",
+        "Certum.SmartSignSimplySignDesktop"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "proCertum SmartSign SimplySign Desktop"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Delinea.PrivilegeManagerAgents",
+      "name": "Privilege Manager Agents",
+      "match_names": [
+        "Privilege Manager Agents",
+        "Delinea.PrivilegeManagerAgents"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Privilege Manager Agents"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Codejunkies.PowerSaves",
+      "name": "PowerSaves",
+      "match_names": [
+        "PowerSaves",
+        "Codejunkies.PowerSaves"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "PowerSaves"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CPUID.powerMAX",
+      "name": "powerMAX",
+      "match_names": [
+        "powerMAX",
+        "CPUID.powerMAX"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "powerMAX"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Appeon.PowerBuilderRuntime2022R3",
+      "name": "PowerBuilder runtime 2022R3",
+      "match_names": [
+        "PowerBuilder runtime 2022R3",
+        "Appeon.PowerBuilderRuntime2022R3"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "PowerBuilder runtime 2022R3"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Codice.PlasticSCM.CloudEdition",
+      "name": "PlasticSCM Cloud Edition",
+      "match_names": [
+        "PlasticSCM Cloud Edition",
+        "Codice.PlasticSCM.CloudEdition"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "PlasticSCM Cloud Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AbdullahZeb.PastPaperManager",
+      "name": "Past Paper Manager",
+      "match_names": [
+        "Past Paper Manager",
+        "AbdullahZeb.PastPaperManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Past Paper Manager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}

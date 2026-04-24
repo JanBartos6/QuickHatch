@@ -1,0 +1,6245 @@
+{
+  "schema": 1,
+  "batch": "002",
+  "part": 5,
+  "source_batch": "src/quickhatch/data/app_catalog.research_batch_002_part_005.json",
+  "generated_on": "2026-04-25",
+  "entries": [
+    {
+      "id": "winget:AntoniKepinski.ParsifyDesktop",
+      "name": "Parsify",
+      "compatibility": "native",
+      "alternatives": [
+        "Parsify",
+        "SpeedCrunch",
+        "Qalculate!"
+      ],
+      "source_hint": "web",
+      "confidence": "low",
+      "category": "productivity",
+      "notes": "Linux AppImage availability is reported, but exact upstream artifact should be verified before packaging.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the upstream Linux AppImage and verify the current release."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the upstream Linux AppImage and verify the current release."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the upstream Linux AppImage and verify the current release."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the upstream Linux AppImage and verify the current release."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the upstream Linux AppImage and verify the current release."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the upstream Linux AppImage and verify the current release."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the upstream Linux AppImage and verify the current release."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the upstream Linux AppImage and verify the current release."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Parsify downloads",
+          "url": "https://parsify.app/download"
+        }
+      ]
+    },
+    {
+      "id": "winget:DigitalScience.Papers",
+      "name": "Papers",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Zotero",
+        "Mendeley Reference Manager",
+        "JabRef"
+      ],
+      "source_hint": "web",
+      "confidence": "medium",
+      "category": "office",
+      "notes": "Current vendor desktop installers are not confirmed for Linux; use web access or a Linux-native reference manager.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Papers web access if available, or install a Linux-native reference manager."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Papers web access if available, or install a Linux-native reference manager."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Papers web access if available, or install a Linux-native reference manager."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Papers web access if available, or install a Linux-native reference manager."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Papers web access if available, or install a Linux-native reference manager."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Papers web access if available, or install a Linux-native reference manager."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Papers web access if available, or install a Linux-native reference manager."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Papers web access if available, or install a Linux-native reference manager."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Papers app downloads",
+          "url": "https://www.papersapp.com/download/"
+        }
+      ]
+    },
+    {
+      "id": "winget:ChangemakerStudios.Papercut-SMTP",
+      "name": "Papercut SMTP",
+      "compatibility": "none",
+      "alternatives": [
+        "Mailpit",
+        "MailHog",
+        "smtp4dev"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "development",
+      "notes": "Official installation documentation describes a Windows setup executable.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Papercut SMTP installation guide",
+          "url": "https://www.papercut-smtp.com/installation/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Amazon.OpenSearch.ODBC",
+      "name": "OpenSearch SQL ODBC Driver",
+      "compatibility": "none",
+      "alternatives": [
+        "OpenSearch SQL CLI",
+        "PostgreSQL ODBC alternatives",
+        "JDBC clients"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "development",
+      "notes": "OpenSearch documentation lists supported ODBC driver OSes as Windows and macOS.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "OpenSearch ODBC documentation",
+          "url": "https://docs.opensearch.org/latest/search-plugins/sql/odbc/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BepassOrg.OblivionDesktop",
+      "name": "Oblivion Desktop",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "Oblivion Desktop",
+        "WireGuard",
+        "OpenVPN"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "network",
+      "notes": "Project appears VPN/proxy related; Linux desktop artifacts need release-level verification.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Amazon.NoSQLWorkbench",
+      "name": "NoSQL Workbench",
+      "compatibility": "native",
+      "alternatives": [
+        "NoSQL Workbench",
+        "DynamoDB local",
+        "Dynobase"
+      ],
+      "source_hint": "web",
+      "confidence": "high",
+      "category": "development",
+      "notes": "AWS provides a Linux download and documents Ubuntu, Fedora, and Debian support.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the AWS Linux AppImage; Debian/Ubuntu may require libfuse2 and curl."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the AWS Linux AppImage; Debian/Ubuntu may require libfuse2 and curl."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the AWS Linux AppImage; Debian/Ubuntu may require libfuse2 and curl."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the AWS Linux AppImage; Debian/Ubuntu may require libfuse2 and curl."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the AWS Linux AppImage; Debian/Ubuntu may require libfuse2 and curl."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the AWS Linux AppImage; Debian/Ubuntu may require libfuse2 and curl."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the AWS Linux AppImage; Debian/Ubuntu may require libfuse2 and curl."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the AWS Linux AppImage; Debian/Ubuntu may require libfuse2 and curl."
+        }
+      },
+      "evidence": [
+        {
+          "label": "AWS NoSQL Workbench Linux download",
+          "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/workbench.settingup.html"
+        }
+      ]
+    },
+    {
+      "id": "winget:BornToBeRoot.NETworkManager",
+      "name": "NETworkManager",
+      "compatibility": "none",
+      "alternatives": [
+        "GNOME NetworkManager tools",
+        "nmap",
+        "Wireshark"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "network",
+      "notes": "The winget app is a Windows desktop network toolkit; no distro package was confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:34u.MultiBaseCSServer",
+      "name": "MultiBaseCS Server",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "PostgreSQL",
+        "MariaDB",
+        "FileMaker Server"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Could not confirm a Linux distro-ready installer from primary sources.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:CloudStack.Msty.CPU",
+      "name": "Msty (CPU only)",
+      "compatibility": "native",
+      "alternatives": [
+        "Msty",
+        "Ollama",
+        "LM Studio"
+      ],
+      "source_hint": "web",
+      "confidence": "medium",
+      "category": "ai",
+      "notes": "Vendor download page offers Linux builds; exact package format should be selected manually.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Msty Linux build from the vendor and verify CPU-only/GPU variant."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Msty Linux build from the vendor and verify CPU-only/GPU variant."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Msty Linux build from the vendor and verify CPU-only/GPU variant."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Msty Linux build from the vendor and verify CPU-only/GPU variant."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Msty Linux build from the vendor and verify CPU-only/GPU variant."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Msty Linux build from the vendor and verify CPU-only/GPU variant."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Msty Linux build from the vendor and verify CPU-only/GPU variant."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Msty Linux build from the vendor and verify CPU-only/GPU variant."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Msty downloads",
+          "url": "https://msty.app/download"
+        }
+      ]
+    },
+    {
+      "id": "winget:CloudStack.Msty",
+      "name": "Msty",
+      "compatibility": "native",
+      "alternatives": [
+        "Msty",
+        "Ollama",
+        "LM Studio"
+      ],
+      "source_hint": "web",
+      "confidence": "medium",
+      "category": "ai",
+      "notes": "Vendor download page offers Linux builds; exact package format should be selected manually.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Msty Linux build from the vendor and verify CPU/GPU requirements."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Msty Linux build from the vendor and verify CPU/GPU requirements."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Msty Linux build from the vendor and verify CPU/GPU requirements."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Msty Linux build from the vendor and verify CPU/GPU requirements."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Msty Linux build from the vendor and verify CPU/GPU requirements."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Msty Linux build from the vendor and verify CPU/GPU requirements."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Msty Linux build from the vendor and verify CPU/GPU requirements."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Msty Linux build from the vendor and verify CPU/GPU requirements."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Msty downloads",
+          "url": "https://msty.app/download"
+        }
+      ]
+    },
+    {
+      "id": "winget:CoreFTP.MiniSFTPServer",
+      "name": "Mini SFTP Server",
+      "compatibility": "alternative",
+      "alternatives": [
+        "OpenSSH server",
+        "SFTPGo",
+        "vsftpd"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "network",
+      "notes": "Core FTP Mini SFTP Server is a Windows utility; Linux should use native OpenSSH/SFTP services.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro OpenSSH server/SFTP alternatives instead of the Windows utility."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro OpenSSH server/SFTP alternatives instead of the Windows utility."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro OpenSSH server/SFTP alternatives instead of the Windows utility."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro OpenSSH server/SFTP alternatives instead of the Windows utility."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro OpenSSH server/SFTP alternatives instead of the Windows utility."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro OpenSSH server/SFTP alternatives instead of the Windows utility."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro OpenSSH server/SFTP alternatives instead of the Windows utility."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro OpenSSH server/SFTP alternatives instead of the Windows utility."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Corel.MindManager.25",
+      "name": "MindManager 25",
+      "compatibility": "alternative",
+      "alternatives": [
+        "MindManager Web",
+        "Freeplane",
+        "XMind"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "productivity",
+      "notes": "Desktop MindManager is Windows/macOS-focused; Linux use is via web or alternatives.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        }
+      },
+      "evidence": [
+        {
+          "label": "MindManager downloads",
+          "url": "https://www.mindmanager.com/en/support/download-library/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Corel.MindManager.24",
+      "name": "MindManager 24",
+      "compatibility": "alternative",
+      "alternatives": [
+        "MindManager Web",
+        "Freeplane",
+        "XMind"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "productivity",
+      "notes": "Desktop MindManager is Windows/macOS-focused; Linux use is via web or alternatives.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        }
+      },
+      "evidence": [
+        {
+          "label": "MindManager downloads",
+          "url": "https://www.mindmanager.com/en/support/download-library/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Corel.MindManager.23",
+      "name": "MindManager",
+      "compatibility": "alternative",
+      "alternatives": [
+        "MindManager Web",
+        "Freeplane",
+        "XMind"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "productivity",
+      "notes": "Desktop MindManager is Windows/macOS-focused; Linux use is via web or alternatives.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        }
+      },
+      "evidence": [
+        {
+          "label": "MindManager downloads",
+          "url": "https://www.mindmanager.com/en/support/download-library/"
+        }
+      ]
+    },
+    {
+      "id": "winget:AutonomousSoftware.MetronomeWallet",
+      "name": "Metronome Wallet",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "MetaMask",
+        "Rabby Wallet",
+        "Frame"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "finance",
+      "notes": "Legacy wallet package; current Linux artifact and safety status need manual verification.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Elsevier.MendeleyReferenceManager",
+      "name": "Mendeley Reference Manager",
+      "compatibility": "native",
+      "alternatives": [
+        "Mendeley Reference Manager",
+        "Zotero",
+        "JabRef"
+      ],
+      "source_hint": "web",
+      "confidence": "high",
+      "category": "office",
+      "notes": "Elsevier provides a Linux AppImage for Mendeley Reference Manager.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Mendeley Reference Manager Linux AppImage and make it executable."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Mendeley Reference Manager Linux AppImage and make it executable."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Mendeley Reference Manager Linux AppImage and make it executable."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Mendeley Reference Manager Linux AppImage and make it executable."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Mendeley Reference Manager Linux AppImage and make it executable."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Mendeley Reference Manager Linux AppImage and make it executable."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Mendeley Reference Manager Linux AppImage and make it executable."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Mendeley Reference Manager Linux AppImage and make it executable."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Mendeley Linux instructions",
+          "url": "https://service.elsevier.com/app/answers/detail/a_id/38538/supporthub/mendeley/p/16075/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DigitalCreations.MaxTo",
+      "name": "MaxTo",
+      "compatibility": "none",
+      "alternatives": [
+        "KDE KWin tiling",
+        "GNOME tiling extensions",
+        "xmonad"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "MaxTo is a Windows window manager/desktop layout tool.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Easybits.MagicDesktop.Kiosk",
+      "name": "Magic Desktop Kiosk Edition",
+      "compatibility": "none",
+      "alternatives": [
+        "GNOME kiosk mode",
+        "KDE kiosk framework",
+        "Porteus Kiosk"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "education",
+      "notes": "Magic Desktop Kiosk Edition appears Windows-focused; no Linux package was confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BJLive!.LumineaRemote",
+      "name": "Luminea Remote",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "GNOME Remote Desktop",
+        "RustDesk",
+        "Barrier"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "accessibility",
+      "notes": "Linux support could not be confirmed from reliable package sources.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BinaryFortress.LogFusion",
+      "name": "LogFusion",
+      "compatibility": "none",
+      "alternatives": [
+        "KSystemLog",
+        "lnav",
+        "glogg"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "Binary Fortress LogFusion is a Windows desktop log viewer.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "LogFusion download",
+          "url": "https://www.logfusion.ca/Download/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DavidWheatley.fs2020-livery-manager",
+      "name": "Liveries Mega Pack Manager",
+      "compatibility": "none",
+      "alternatives": [
+        "Manual MSFS livery management",
+        "Open-source archive tools"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "gaming",
+      "notes": "This is a Microsoft Flight Simulator Windows ecosystem tool; no native Linux package identified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:CloudComputing.LexAI-Agent",
+      "name": "LexAI Agent",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "Browser access",
+        "vendor web app"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "ai",
+      "notes": "Could not confirm Linux desktop package availability.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:AMD.LemonadeServer",
+      "name": "Lemonade Server",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "Ollama",
+        "llama.cpp",
+        "vLLM"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "ai",
+      "notes": "AMD-related server package needs current Linux release verification before suggesting packages.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DYMO.PrintServerControlCenter",
+      "name": "LabelWriter Print Server Control Center",
+      "compatibility": "none",
+      "alternatives": [
+        "CUPS",
+        "system-config-printer",
+        "DYMO Label Linux drivers if available"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "The print server control center is a Windows utility; use CUPS/admin interfaces on Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Amazon.KindlePreviewer",
+      "name": "Kindle Previewer",
+      "compatibility": "none",
+      "alternatives": [
+        "Kindle Previewer via supported OS",
+        "Calibre ebook-viewer",
+        "Kindle web tools"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "office",
+      "notes": "Amazon Kindle Previewer desktop downloads are for Windows and macOS.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Kindle Previewer download",
+          "url": "https://kdp.amazon.com/en_US/help/topic/G202131170"
+        }
+      ]
+    },
+    {
+      "id": "winget:ATNSOFT.KeyManager",
+      "name": "Key Manager",
+      "compatibility": "none",
+      "alternatives": [
+        "input-remapper",
+        "keyd",
+        "KDE shortcuts"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "ATNSOFT Key Manager is a Windows keyboard/mouse remapping utility.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:ApeCloud.kbcli",
+      "name": "kbcli",
+      "compatibility": "native",
+      "alternatives": [
+        "kbcli",
+        "kubectl",
+        "Helm"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "development",
+      "notes": "ApeCloud documents Linux curl install plus Debian and Red Hat package repositories.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream install script or binary release; no official Arch package confirmed."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [
+            "kbcli"
+          ],
+          "notes": "Use the upstream kbcli apt repository."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [
+            "kbcli"
+          ],
+          "notes": "Use the upstream kbcli apt repository."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [
+            "kbcli"
+          ],
+          "notes": "Use the upstream yum/dnf repository."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream install script or binary release; verify RPM compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream install script or binary release if compatible."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream install script or binary release if compatible."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream install script or binary release if compatible."
+        }
+      },
+      "evidence": [
+        {
+          "label": "kbcli install docs",
+          "url": "https://github.com/apecloud/kbcli"
+        }
+      ]
+    },
+    {
+      "id": "winget:AnnyStudio.JPEGLosslessRotator",
+      "name": "JPEG Lossless Rotator",
+      "compatibility": "alternative",
+      "alternatives": [
+        "jpegtran",
+        "ExifTool",
+        "Geeqie"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "media",
+      "notes": "The app is Windows-focused; Linux can perform lossless JPEG transforms with common tools.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro image tools such as jpegtran/ExifTool instead of the Windows app."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro image tools such as jpegtran/ExifTool instead of the Windows app."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro image tools such as jpegtran/ExifTool instead of the Windows app."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro image tools such as jpegtran/ExifTool instead of the Windows app."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro image tools such as jpegtran/ExifTool instead of the Windows app."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro image tools such as jpegtran/ExifTool instead of the Windows app."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro image tools such as jpegtran/ExifTool instead of the Windows app."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro image tools such as jpegtran/ExifTool instead of the Windows app."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DeskShare.IPCameraViewer",
+      "name": "IP Camera Viewer",
+      "compatibility": "alternative",
+      "alternatives": [
+        "VLC",
+        "ZoneMinder",
+        "Frigate"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "media",
+      "notes": "DeskShare IP Camera Viewer is a Windows desktop utility; Linux alternatives handle RTSP/IP cameras.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux camera/VMS alternatives such as VLC, ZoneMinder, or Frigate."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux camera/VMS alternatives such as VLC, ZoneMinder, or Frigate."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux camera/VMS alternatives such as VLC, ZoneMinder, or Frigate."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux camera/VMS alternatives such as VLC, ZoneMinder, or Frigate."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux camera/VMS alternatives such as VLC, ZoneMinder, or Frigate."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux camera/VMS alternatives such as VLC, ZoneMinder, or Frigate."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux camera/VMS alternatives such as VLC, ZoneMinder, or Frigate."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux camera/VMS alternatives such as VLC, ZoneMinder, or Frigate."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:ArashiVisionInc.Insta360Studio",
+      "name": "Insta360 Studio",
+      "compatibility": "none",
+      "alternatives": [
+        "Insta360 mobile app",
+        "Kdenlive",
+        "DaVinci Resolve"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "media",
+      "notes": "Official desktop installation/update instructions cover Windows and macOS, not Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Insta360 Studio installation guide",
+          "url": "https://onlinemanual.insta360.com/studio/en-us/operation-guide/installation-and-update/download-and-installation-operations"
+        }
+      ]
+    },
+    {
+      "id": "winget:BotProductions.IconViewer",
+      "name": "IconViewer",
+      "compatibility": "none",
+      "alternatives": [
+        "Nautilus icon previews",
+        "KDE Dolphin previews",
+        "icotool"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "IconViewer is a Windows Explorer shell extension; no Linux-native equivalent package identified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Apple.iCloud",
+      "name": "iCloud (Legacy)",
+      "compatibility": "alternative",
+      "alternatives": [
+        "iCloud web",
+        "icloudpd",
+        "rclone iCloud-compatible workflows"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "cloud",
+      "notes": "Apple iCloud for Windows is not available as a native Linux desktop sync client.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use iCloud web or manually verified third-party sync tools."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use iCloud web or manually verified third-party sync tools."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use iCloud web or manually verified third-party sync tools."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use iCloud web or manually verified third-party sync tools."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use iCloud web or manually verified third-party sync tools."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use iCloud web or manually verified third-party sync tools."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use iCloud web or manually verified third-party sync tools."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use iCloud web or manually verified third-party sync tools."
+        }
+      },
+      "evidence": [
+        {
+          "label": "iCloud for Windows",
+          "url": "https://support.apple.com/en-us/103232"
+        }
+      ]
+    },
+    {
+      "id": "winget:GilmarQuinelato.i18nManager",
+      "name": "i18n Manager",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "Lokalize",
+        "Poedit",
+        "Weblate"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Could not confirm current Linux release artifacts for this specific i18n Manager package.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:AprelTech.HVManager",
+      "name": "HvManager",
+      "compatibility": "none",
+      "alternatives": [
+        "virt-manager",
+        "Cockpit Machines",
+        "GNOME Boxes"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "virtualization",
+      "notes": "HvManager manages Microsoft Hyper-V and is Windows-focused; Linux virtualization uses KVM/libvirt tooling.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use KVM/libvirt management tools instead."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use KVM/libvirt management tools instead."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use KVM/libvirt management tools instead."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use KVM/libvirt management tools instead."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use KVM/libvirt management tools instead."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use KVM/libvirt management tools instead."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use KVM/libvirt management tools instead."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use KVM/libvirt management tools instead."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:GitHub.hub",
+      "name": "hub",
+      "compatibility": "native",
+      "alternatives": [
+        "hub",
+        "GitHub CLI",
+        "git"
+      ],
+      "source_hint": "repo",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "hub is cross-platform but effectively superseded by GitHub CLI; package names vary by distro.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "hub"
+          ],
+          "notes": "Install hub from distro repositories if still available."
+        },
+        "debian": {
+          "source": "repo",
+          "packages": [
+            "hub"
+          ],
+          "notes": "Install hub from distro repositories if still available."
+        },
+        "ubuntu": {
+          "source": "repo",
+          "packages": [
+            "hub"
+          ],
+          "notes": "Install hub from distro repositories if still available."
+        },
+        "fedora": {
+          "source": "repo",
+          "packages": [
+            "hub"
+          ],
+          "notes": "Install hub from distro repositories if still available."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current repository package or use GitHub CLI instead."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current repository package or use GitHub CLI instead."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current repository package or use GitHub CLI instead."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current ebuild or use GitHub CLI instead."
+        }
+      },
+      "evidence": [
+        {
+          "label": "hub project",
+          "url": "https://github.com/github/hub"
+        }
+      ]
+    },
+    {
+      "id": "winget:ChunghwaTelecom.HiCOSClient",
+      "name": "HiCOS Client",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "OpenSC",
+        "pcsc-tools",
+        "vendor web flow"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Smart-card middleware may have Linux components, but exact distro package/support needs manual regional verification.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:GaoYoubo.HexoClient",
+      "name": "HexoClient",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "Hexo CLI",
+        "VS Code",
+        "Git"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Could not confirm current Linux desktop artifacts for HexoClient.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:ElrikCty.HeatSaveManager",
+      "name": "Heat Save Manager",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "OpenEnergyMonitor",
+        "Home Assistant",
+        "vendor web tools"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Could not confirm Linux package availability.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Automattic.harper-ls",
+      "name": "Harper Language Server",
+      "compatibility": "native",
+      "alternatives": [
+        "Harper Language Server",
+        "Vale",
+        "LanguageTool"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "development",
+      "notes": "Harper documents Linux installation via Homebrew, Cargo, Arch extra, and Nixpkgs.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "harper"
+          ],
+          "notes": "Install Harper from Arch extra."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install with cargo or Linux Homebrew; no Debian package confirmed."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install with cargo or Linux Homebrew; no Ubuntu package confirmed."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install with cargo or Linux Homebrew; no Fedora package confirmed."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install with cargo or Linux Homebrew; no openSUSE package confirmed."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install with cargo if Rust toolchain and musl build work."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install with cargo or Linux Homebrew."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install with cargo or Linux Homebrew."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Harper language server install docs",
+          "url": "https://writewithharper.com/docs/integrations/language-server"
+        }
+      ]
+    },
+    {
+      "id": "winget:Cjwdev.GroupManager.Free",
+      "name": "Group Manager Free Edition",
+      "compatibility": "none",
+      "alternatives": [
+        "Cockpit",
+        "Samba tools",
+        "LDAP Account Manager"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "admin",
+      "notes": "Cjwdev Group Manager is a Windows/Active Directory administration tool.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BerndBestel.grocy-desktop",
+      "name": "grocy-desktop",
+      "compatibility": "native",
+      "alternatives": [
+        "grocy web app",
+        "grocy-desktop",
+        "Home Assistant grocy integration"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "medium",
+      "category": "productivity",
+      "notes": "Desktop wrapper has upstream releases; verify current Linux artifact before packaging.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the upstream Linux release/AppImage if still published, or deploy grocy as a web app."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the upstream Linux release/AppImage if still published, or deploy grocy as a web app."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the upstream Linux release/AppImage if still published, or deploy grocy as a web app."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the upstream Linux release/AppImage if still published, or deploy grocy as a web app."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the upstream Linux release/AppImage if still published, or deploy grocy as a web app."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the upstream Linux release/AppImage if still published, or deploy grocy as a web app."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the upstream Linux release/AppImage if still published, or deploy grocy as a web app."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the upstream Linux release/AppImage if still published, or deploy grocy as a web app."
+        }
+      },
+      "evidence": [
+        {
+          "label": "grocy-desktop releases",
+          "url": "https://github.com/berrnd/grocy-desktop/releases"
+        }
+      ]
+    },
+    {
+      "id": "winget:DataFortressCloud.GOATLYMeetingSummarizer",
+      "name": "GOATLY Meeting Summarizer",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "Web meeting summarizer",
+        "Whisper",
+        "Obsidian notes"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "ai",
+      "notes": "Could not confirm native Linux package availability.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Fortra.GoAnywhereOpenPGPStudio",
+      "name": "GoAnywhere OpenPGP Studio",
+      "compatibility": "native",
+      "alternatives": [
+        "GoAnywhere OpenPGP Studio",
+        "GnuPG",
+        "Kleopatra"
+      ],
+      "source_hint": "web",
+      "confidence": "medium",
+      "category": "security",
+      "notes": "Fortra has historically provided cross-platform OpenPGP Studio downloads; exact Linux artifact needs manual selection.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Linux installer/archive from Fortra and verify supported distributions."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Linux installer/archive from Fortra and verify supported distributions."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Linux installer/archive from Fortra and verify supported distributions."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Linux installer/archive from Fortra and verify supported distributions."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Linux installer/archive from Fortra and verify supported distributions."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Linux installer/archive from Fortra and verify supported distributions."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Linux installer/archive from Fortra and verify supported distributions."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the current Linux installer/archive from Fortra and verify supported distributions."
+        }
+      },
+      "evidence": [
+        {
+          "label": "GoAnywhere OpenPGP Studio",
+          "url": "https://www.goanywhere.com/products/openpgp-studio"
+        }
+      ]
+    },
+    {
+      "id": "winget:DoublOneStudios.Glucose",
+      "name": "Glucose",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "Health web app",
+        "LibreOffice Calc",
+        "GNU Health"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "health",
+      "notes": "Could not confirm current Linux package availability.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:AmarBego.GitTop",
+      "name": "GitTop",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "lazygit",
+        "tig",
+        "GitUI"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Could not confirm current distro package names or Linux artifact for this GitTop package.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:GitMastery.GitMastery",
+      "name": "GitMastery",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "GitHub Skills",
+        "Learn Git Branching",
+        "Pro Git book"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "education",
+      "notes": "Could not confirm a Linux desktop package.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:GitKraken.cli",
+      "name": "GitKraken CLI",
+      "compatibility": "native",
+      "alternatives": [
+        "GitKraken CLI",
+        "GitHub CLI",
+        "git"
+      ],
+      "source_hint": "web",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "GitKraken tooling is cross-platform, but exact CLI Linux package channel should be verified from current GitKraken docs.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use current GitKraken CLI Linux installation instructions; verify package format before installing."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use current GitKraken CLI Linux installation instructions; verify package format before installing."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use current GitKraken CLI Linux installation instructions; verify package format before installing."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use current GitKraken CLI Linux installation instructions; verify package format before installing."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use current GitKraken CLI Linux installation instructions; verify package format before installing."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use current GitKraken CLI Linux installation instructions; verify package format before installing."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use current GitKraken CLI Linux installation instructions; verify package format before installing."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use current GitKraken CLI Linux installation instructions; verify package format before installing."
+        }
+      },
+      "evidence": [
+        {
+          "label": "GitKraken downloads",
+          "url": "https://www.gitkraken.com/download"
+        }
+      ]
+    },
+    {
+      "id": "winget:Axosoft.GitKraken",
+      "name": "GitKraken",
+      "compatibility": "native",
+      "alternatives": [
+        "GitKraken",
+        "GitButler",
+        "Git Cola"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "GitKraken provides Linux .deb, .rpm, tar.gz, and Snap downloads for supported distributions.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the GitKraken tar.gz or Snap where compatible."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Download and install the GitKraken .deb for Debian/Ubuntu."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Download and install the GitKraken .deb for Debian/Ubuntu."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Download and install the GitKraken .rpm for Fedora/RHEL-like systems."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Download and install the GitKraken .rpm for Fedora/RHEL-like systems."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the GitKraken tar.gz or Snap where compatible."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the GitKraken tar.gz or Snap where compatible."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the GitKraken tar.gz or Snap where compatible."
+        }
+      },
+      "evidence": [
+        {
+          "label": "GitKraken Linux download",
+          "url": "https://www.gitkraken.com/download"
+        }
+      ]
+    },
+    {
+      "id": "winget:GitHub.cli",
+      "name": "GitHub CLI",
+      "compatibility": "native",
+      "alternatives": [
+        "GitHub CLI",
+        "hub",
+        "git"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "development",
+      "notes": "GitHub documents apt/dnf repositories and community packages including Arch pacman.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "github-cli"
+          ],
+          "notes": "Install from Arch repositories."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [
+            "gh"
+          ],
+          "notes": "Use the GitHub CLI apt repository."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [
+            "gh"
+          ],
+          "notes": "Use the GitHub CLI apt repository."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [
+            "gh"
+          ],
+          "notes": "Use the GitHub CLI dnf repository."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current openSUSE package or use official binary."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current Alpine package or use official binary."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current Void package or use official binary."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current Gentoo package or use official binary."
+        }
+      },
+      "evidence": [
+        {
+          "label": "GitHub CLI Linux install docs",
+          "url": "https://github.com/cli/cli/blob/trunk/docs/install_linux.md"
+        }
+      ]
+    },
+    {
+      "id": "winget:GitButler.GitButler",
+      "name": "GitButler",
+      "compatibility": "native",
+      "alternatives": [
+        "GitButler",
+        "GitKraken",
+        "Git Cola"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "GitButler release docs list Linux x86_64 deb, rpm, and AppImage builds.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the GitButler AppImage or build from source after checking WebKitGTK requirements."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Download and install the GitButler .deb; verify WebKitGTK dependency version."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Download and install the GitButler .deb; verify WebKitGTK dependency version."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Download and install the GitButler .rpm; verify WebKitGTK dependency version."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Download and install the GitButler .rpm; verify WebKitGTK dependency version."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the GitButler AppImage or build from source after checking WebKitGTK requirements."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the GitButler AppImage or build from source after checking WebKitGTK requirements."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the GitButler AppImage or build from source after checking WebKitGTK requirements."
+        }
+      },
+      "evidence": [
+        {
+          "label": "GitButler release platforms",
+          "url": "https://docs.gitbutler.com/releases"
+        }
+      ]
+    },
+    {
+      "id": "winget:GitAhead.GitAhead",
+      "name": "GitAhead",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "Git Cola",
+        "Gitg",
+        "GitKraken"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Upstream releases state newer versions no longer provide pre-built Linux binaries.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Build from source or choose a maintained Linux Git GUI alternative."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Build from source or choose a maintained Linux Git GUI alternative."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Build from source or choose a maintained Linux Git GUI alternative."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Build from source or choose a maintained Linux Git GUI alternative."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Build from source or choose a maintained Linux Git GUI alternative."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Build from source or choose a maintained Linux Git GUI alternative."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Build from source or choose a maintained Linux Git GUI alternative."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Build from source or choose a maintained Linux Git GUI alternative."
+        }
+      },
+      "evidence": [
+        {
+          "label": "GitAhead releases",
+          "url": "https://github.com/gitahead/gitahead/releases"
+        }
+      ]
+    },
+    {
+      "id": "winget:GiMeSpace.RAMTempFolder",
+      "name": "GiMeSpace RAM Temp Folder",
+      "compatibility": "alternative",
+      "alternatives": [
+        "tmpfs",
+        "systemd tmp.mount",
+        "ramfs"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "Windows RAM-disk utility; Linux provides tmpfs/ramfs natively.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native tmpfs/ramfs configuration instead of the Windows utility."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native tmpfs/ramfs configuration instead of the Windows utility."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native tmpfs/ramfs configuration instead of the Windows utility."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native tmpfs/ramfs configuration instead of the Windows utility."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native tmpfs/ramfs configuration instead of the Windows utility."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native tmpfs/ramfs configuration instead of the Windows utility."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native tmpfs/ramfs configuration instead of the Windows utility."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native tmpfs/ramfs configuration instead of the Windows utility."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:GiMeSpace.RAMTempFolderPro",
+      "name": "GiMeSpace RAM Folder Pro",
+      "compatibility": "alternative",
+      "alternatives": [
+        "tmpfs",
+        "systemd tmp.mount",
+        "ramfs"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "Windows RAM-disk utility; Linux provides tmpfs/ramfs natively.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native tmpfs/ramfs configuration instead of the Windows utility."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native tmpfs/ramfs configuration instead of the Windows utility."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native tmpfs/ramfs configuration instead of the Windows utility."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native tmpfs/ramfs configuration instead of the Windows utility."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native tmpfs/ramfs configuration instead of the Windows utility."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native tmpfs/ramfs configuration instead of the Windows utility."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native tmpfs/ramfs configuration instead of the Windows utility."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native tmpfs/ramfs configuration instead of the Windows utility."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:GardenGnome.GGPKGViewer",
+      "name": "GGPKG Viewer",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "Garden Gnome package tools",
+        "vendor support"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Package appears vendor-specific; Linux support/package format needs manual verification.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:GEOSLOPE.GeoStudio",
+      "name": "GeoStudio",
+      "compatibility": "none",
+      "alternatives": [
+        "QGIS",
+        "OpenGeoSys",
+        "PLAXIS alternatives"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "engineering",
+      "notes": "GeoStudio is a Windows geotechnical engineering suite; no native Linux package identified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Genesys.GenesysCloud",
+      "name": "GenesysCloud",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Genesys Cloud web app",
+        "Chromium",
+        "Firefox"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "communication",
+      "notes": "Genesys documents the desktop app as available for Windows and Mac; Linux users should use the web app.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Genesys Cloud desktop app overview",
+          "url": "https://help.genesys.cloud/articles/desktop-app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Genesys.GenesysCloudBackgroundAssistant",
+      "name": "Genesys Cloud Background Assistant",
+      "compatibility": "none",
+      "alternatives": [
+        "Genesys Cloud web app",
+        "supported Windows/macOS helper"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "communication",
+      "notes": "Background Assistant is tied to Genesys desktop/browser workflows; no Linux package confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Genesys Cloud desktop app overview",
+          "url": "https://help.genesys.cloud/articles/desktop-app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:GCStudio.DemonstrationsPack",
+      "name": "GC Studio Demonstrations Pack",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "GC Studio web/resources",
+        "Manual sample downloads"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "education",
+      "notes": "Could not confirm Linux package availability for this demonstrations pack.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:GPower.GPower",
+      "name": "G*Power",
+      "compatibility": "none",
+      "alternatives": [
+        "R pwr package",
+        "jamovi",
+        "JASP"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "science",
+      "notes": "G*Power desktop builds are Windows/macOS-focused; Linux users typically use alternatives or Wine.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use statistical alternatives such as R, jamovi, or JASP on Linux."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use statistical alternatives such as R, jamovi, or JASP on Linux."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use statistical alternatives such as R, jamovi, or JASP on Linux."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use statistical alternatives such as R, jamovi, or JASP on Linux."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use statistical alternatives such as R, jamovi, or JASP on Linux."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use statistical alternatives such as R, jamovi, or JASP on Linux."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use statistical alternatives such as R, jamovi, or JASP on Linux."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use statistical alternatives such as R, jamovi, or JASP on Linux."
+        }
+      },
+      "evidence": [
+        {
+          "label": "G*Power download page",
+          "url": "https://www.psychologie.hhu.de/arbeitsgruppen/allgemeine-psychologie-und-arbeitspsychologie/gpower"
+        }
+      ]
+    },
+    {
+      "id": "winget:CartamundiDigital.Fundels",
+      "name": "Fundels",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "Fundels web/mobile",
+        "Browser access"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "education",
+      "notes": "Could not confirm a Linux desktop build.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DeskShare.FTPManagerLite",
+      "name": "FTP Manager Lite",
+      "compatibility": "alternative",
+      "alternatives": [
+        "FileZilla",
+        "lftp",
+        "GNOME Files"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "network",
+      "notes": "DeskShare FTP Manager Lite is Windows-focused; Linux has mature FTP/SFTP clients.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro FTP/SFTP clients instead."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro FTP/SFTP clients instead."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro FTP/SFTP clients instead."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro FTP/SFTP clients instead."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro FTP/SFTP clients instead."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro FTP/SFTP clients instead."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro FTP/SFTP clients instead."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro FTP/SFTP clients instead."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:FortranLang.fpm",
+      "name": "Fortran Package Manager",
+      "compatibility": "native",
+      "alternatives": [
+        "fpm",
+        "CMake",
+        "Meson"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "development",
+      "notes": "Fortran-lang documents Linux binaries, AUR packages, pipx, Conda, Spack, and source builds.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use AUR fortran-fpm/fortran-fpm-bin or upstream binary after verification."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux binary, pipx, Conda, Spack, or build from source."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux binary, pipx, Conda, Spack, or build from source."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux binary, pipx, Conda, Spack, or build from source."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux binary, pipx, Conda, Spack, or build from source."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream/source build; verify libc compatibility."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux binary, pipx, Conda, Spack, or build from source."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream/source build or Spack after verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Fortran fpm install docs",
+          "url": "https://fpm.fortran-lang.org/install/index.html"
+        }
+      ]
+    },
+    {
+      "id": "winget:FlutterGitUI.FlutterGitUI",
+      "name": "Flutter GitUI",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "GitUI",
+        "lazygit",
+        "Git Cola"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Could not confirm maintained Linux release artifacts for this specific Flutter GitUI app.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Firezone.Client.GUI",
+      "name": "Firezone",
+      "compatibility": "native",
+      "alternatives": [
+        "Firezone",
+        "WireGuard",
+        "Tailscale"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "network",
+      "notes": "Firezone documents a Linux GUI client with Ubuntu apt repository and CentOS/RPM package flow.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Not officially supported; verify from upstream releases or use headless/manual setup."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Only Ubuntu is officially documented for apt; verify Debian compatibility."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [
+            "firezone-client-gui"
+          ],
+          "notes": "Use the Firezone apt repository."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the upstream RPM only if dependencies match; docs target CentOS 10."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify RPM compatibility and systemd-resolved requirements."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Not officially supported; systemd-resolved requirement is likely blocking."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Not officially supported; verify systemd-resolved requirements."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Not officially supported; verify systemd-resolved requirements."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Firezone Linux GUI client docs",
+          "url": "https://www.firezone.dev/kb/client-apps/linux-gui-client"
+        }
+      ]
+    },
+    {
+      "id": "winget:FEITIAN.SKManager",
+      "name": "FEITIAN SK Manager",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "OpenSC",
+        "pcsc-tools",
+        "YubiKey Manager"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Security-key manager package needs vendor Linux support verification before suggesting packages.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:AxelRietschin.FastPictureViewer.Professional",
+      "name": "FastPictureViewer Professional",
+      "compatibility": "none",
+      "alternatives": [
+        "Geeqie",
+        "nomacs",
+        "digiKam"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "media",
+      "notes": "FastPictureViewer Professional is a Windows image viewer/workflow application.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:CoolPlayLin.FastGithub",
+      "name": "FastGithub",
+      "compatibility": "none",
+      "alternatives": [
+        "git over SSH",
+        "GitHub CLI",
+        "Proxy configuration"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "network",
+      "notes": "FastGithub winget package is Windows-targeted; no native Linux package confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:FarManager.FarManager",
+      "name": "Far Manager 3",
+      "compatibility": "alternative",
+      "alternatives": [
+        "far2l",
+        "Midnight Commander",
+        "Double Commander"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "Far Manager is Windows-first; Linux users can use the far2l port or terminal file managers.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use far2l from AUR or Midnight Commander from repos."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use far2l if available for the Debian release, otherwise Midnight Commander."
+        },
+        "ubuntu": {
+          "source": "repo",
+          "packages": [
+            "far2l"
+          ],
+          "notes": "Ubuntu 24.04 and newer include far2l."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify far2l package availability or use Midnight Commander."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify far2l package availability or use Midnight Commander."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Midnight Commander or build far2l if needed."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify far2l package availability or use Midnight Commander."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify far2l ebuild or use Midnight Commander."
+        }
+      },
+      "evidence": [
+        {
+          "label": "far2l project",
+          "url": "https://github.com/elfmz/far2l"
+        }
+      ]
+    },
+    {
+      "id": "winget:BleuBleu.FamiStudio",
+      "name": "FamiStudio",
+      "compatibility": "native",
+      "alternatives": [
+        "FamiStudio",
+        "Furnace",
+        "MilkyTracker"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "high",
+      "category": "media",
+      "notes": "FamiStudio is available on Flathub for Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "flatpak",
+          "packages": [
+            "org.famistudio.FamiStudio"
+          ],
+          "notes": "Install from Flathub if Flatpak is enabled for the distro."
+        },
+        "debian": {
+          "source": "flatpak",
+          "packages": [
+            "org.famistudio.FamiStudio"
+          ],
+          "notes": "Install from Flathub if Flatpak is enabled for the distro."
+        },
+        "ubuntu": {
+          "source": "flatpak",
+          "packages": [
+            "org.famistudio.FamiStudio"
+          ],
+          "notes": "Install from Flathub if Flatpak is enabled for the distro."
+        },
+        "fedora": {
+          "source": "flatpak",
+          "packages": [
+            "org.famistudio.FamiStudio"
+          ],
+          "notes": "Install from Flathub if Flatpak is enabled for the distro."
+        },
+        "opensuse": {
+          "source": "flatpak",
+          "packages": [
+            "org.famistudio.FamiStudio"
+          ],
+          "notes": "Install from Flathub if Flatpak is enabled for the distro."
+        },
+        "alpine": {
+          "source": "flatpak",
+          "packages": [
+            "org.famistudio.FamiStudio"
+          ],
+          "notes": "Install from Flathub if Flatpak is enabled for the distro."
+        },
+        "void": {
+          "source": "flatpak",
+          "packages": [
+            "org.famistudio.FamiStudio"
+          ],
+          "notes": "Install from Flathub if Flatpak is enabled for the distro."
+        },
+        "gentoo": {
+          "source": "flatpak",
+          "packages": [
+            "org.famistudio.FamiStudio"
+          ],
+          "notes": "Install from Flathub if Flatpak is enabled for the distro."
+        }
+      },
+      "evidence": [
+        {
+          "label": "FamiStudio on Flathub",
+          "url": "https://flathub.org/apps/org.famistudio.FamiStudio"
+        }
+      ]
+    },
+    {
+      "id": "winget:FoldingAtHome.FoldingAtHome",
+      "name": "FAHClient",
+      "compatibility": "native",
+      "alternatives": [
+        "FAHClient",
+        "BOINC"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "science",
+      "notes": "Folding@home publishes Linux client packages/instructions for Debian-family and Red Hat/Fedora-family systems.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream manual install/build instructions; verify current client generation supports this distro."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Download and install the Folding@home Debian/Ubuntu package."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Download and install the Folding@home Debian/Ubuntu package."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Use the Red Hat/CentOS/Fedora package/instructions if available for the selected client version."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Use the Red Hat/CentOS/Fedora package/instructions if available for the selected client version."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream manual install/build instructions; verify current client generation supports this distro."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream manual install/build instructions; verify current client generation supports this distro."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream manual install/build instructions; verify current client generation supports this distro."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Folding@home Linux documentation",
+          "url": "https://foldinghome-client-documentation.readthedocs.io/"
+        }
+      ]
+    },
+    {
+      "id": "winget:FajoX1.FAgramDesktop",
+      "name": "FAgram",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "Telegram Desktop",
+        "Signal Desktop",
+        "Element"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Could not confirm Linux support for this specific client.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:ExacqTechnologies.exacqVisionClient",
+      "name": "exacqVision Client",
+      "compatibility": "native",
+      "alternatives": [
+        "exacqVision Client",
+        "DW Spectrum Client",
+        "VLC"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "medium",
+      "category": "security",
+      "notes": "exacqVision has Linux/Ubuntu client and server documentation, but current exact packages require vendor download verification.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor downloads only after checking supported Linux versions."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Download the current exacqVision Linux/Ubuntu client package from the vendor portal."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Download the current exacqVision Linux/Ubuntu client package from the vendor portal."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Verify whether a current RPM is available from the vendor for this release."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Verify whether a current RPM is available from the vendor for this release."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor downloads only after checking supported Linux versions."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor downloads only after checking supported Linux versions."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor downloads only after checking supported Linux versions."
+        }
+      },
+      "evidence": [
+        {
+          "label": "exacqVision Linux client/server documentation",
+          "url": "https://cdn.exacq.com/auto/manspec/files_2/exacqvision_user_manuals/active_directory/exacqVision_ServerClient_OS_Linux_Active_Directory_%28Server%20version%207.0%20or%20lower%29.pdf"
+        }
+      ]
+    },
+    {
+      "id": "winget:Evoluent.EvoluentMouseManager",
+      "name": "Evoluent Mouse Manager",
+      "compatibility": "none",
+      "alternatives": [
+        "input-remapper",
+        "Piper",
+        "ratbagd"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "Evoluent Mouse Manager is a vendor Windows/macOS utility; Linux package support was not confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Embarcadero.Dev-C++",
+      "name": "Embarcadero Dev-C++",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Code::Blocks",
+        "Qt Creator",
+        "VSCodium"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "development",
+      "notes": "Embarcadero Dev-C++ is a Windows IDE; Linux has native C/C++ IDE alternatives.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Install a Linux-native C/C++ IDE instead."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Install a Linux-native C/C++ IDE instead."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Install a Linux-native C/C++ IDE instead."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Install a Linux-native C/C++ IDE instead."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Install a Linux-native C/C++ IDE instead."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Install a Linux-native C/C++ IDE instead."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Install a Linux-native C/C++ IDE instead."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Install a Linux-native C/C++ IDE instead."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:1.1.0",
+      "name": "Ellosoft AWS Credentials Manager CLI Ellosoft.AWSCredentialsManager",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "AWS CLI",
+        "aws-vault",
+        "Granted"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Malformed winget id/name; exact upstream and Linux package availability need manual verification.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Elgato.Studio",
+      "name": "Elgato Studio",
+      "compatibility": "none",
+      "alternatives": [
+        "OBS Studio",
+        "Kdenlive",
+        "DaVinci Resolve"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "media",
+      "notes": "Elgato Studio package is Windows-focused; no native Linux package was confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Egnyte.EgnyteDesktopApp",
+      "name": "Egnyte Desktop App",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Egnyte web app",
+        "rclone",
+        "WebDAV workflows"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "cloud",
+      "notes": "Egnyte desktop installer documentation lists Windows and Mac downloads, not Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Egnyte web access or manually verified sync/WebDAV tooling."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Egnyte web access or manually verified sync/WebDAV tooling."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Egnyte web access or manually verified sync/WebDAV tooling."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Egnyte web access or manually verified sync/WebDAV tooling."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Egnyte web access or manually verified sync/WebDAV tooling."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Egnyte web access or manually verified sync/WebDAV tooling."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Egnyte web access or manually verified sync/WebDAV tooling."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Egnyte web access or manually verified sync/WebDAV tooling."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Egnyte Desktop App installers",
+          "url": "https://helpdesk.egnyte.com/hc/en-us/articles/205237150-Desktop-App-Installers"
+        }
+      ]
+    },
+    {
+      "id": "winget:EdrawSoft.ViewerComponent.Diagram",
+      "name": "Edraw Diagram Component",
+      "compatibility": "none",
+      "alternatives": [
+        "LibreOffice Draw",
+        "diagrams.net",
+        "yEd"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "office",
+      "notes": "Edraw diagram component appears to be a Windows viewer/control component, not a Linux desktop package.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:CraftEdge.EasyCutStudio",
+      "name": "Easy Cut Studio",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "Inkscape",
+        "Ink/Stitch",
+        "Vinyl cutter plugins"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "design",
+      "notes": "Vinyl cutter software Linux support/package status could not be confirmed reliably.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Autodesk.EAGLE",
+      "name": "EAGLE",
+      "compatibility": "native",
+      "alternatives": [
+        "KiCad",
+        "Autodesk Fusion electronics",
+        "LibrePCB"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "engineering",
+      "notes": "Legacy Autodesk EAGLE had Linux tarball installers, but product status/support is outdated and requires manual verification.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use a legacy Autodesk EAGLE Linux tarball only after verifying license/support status, or migrate to KiCad."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use a legacy Autodesk EAGLE Linux tarball only after verifying license/support status, or migrate to KiCad."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use a legacy Autodesk EAGLE Linux tarball only after verifying license/support status, or migrate to KiCad."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use a legacy Autodesk EAGLE Linux tarball only after verifying license/support status, or migrate to KiCad."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use a legacy Autodesk EAGLE Linux tarball only after verifying license/support status, or migrate to KiCad."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use a legacy Autodesk EAGLE Linux tarball only after verifying license/support status, or migrate to KiCad."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use a legacy Autodesk EAGLE Linux tarball only after verifying license/support status, or migrate to KiCad."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use a legacy Autodesk EAGLE Linux tarball only after verifying license/support status, or migrate to KiCad."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Autodesk EAGLE Linux installation article",
+          "url": "https://www.autodesk.com/products/fusion-360/blog/how-to-install-autodesk-eagle-on-windows-mac-and-linux/"
+        }
+      ]
+    },
+    {
+      "id": "winget:AutoDWG.DWGSeeCAD",
+      "name": "DWGSee CAD 2026",
+      "compatibility": "none",
+      "alternatives": [
+        "LibreCAD",
+        "FreeCAD",
+        "ODA File Converter"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "engineering",
+      "notes": "DWGSee CAD is Windows-focused; no native Linux package identified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DW.Spectrum.Server",
+      "name": "DW Spectrum Server",
+      "compatibility": "native",
+      "alternatives": [
+        "DW Spectrum Server",
+        "Frigate",
+        "ZoneMinder"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "security",
+      "notes": "Digital Watchdog documents DW Spectrum Media Server installation on Ubuntu Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Vendor docs target Ubuntu; verify unsupported distro use manually."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Vendor docs target Ubuntu; verify Debian compatibility before installing."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Download the DW Spectrum Linux server .deb and install with apt."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "No current Fedora package confirmed; use vendor-supported Ubuntu where possible."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "No current openSUSE package confirmed; use vendor-supported Ubuntu where possible."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Unsupported; verify with vendor."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Unsupported; verify with vendor."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Unsupported; verify with vendor."
+        }
+      },
+      "evidence": [
+        {
+          "label": "DW Spectrum Ubuntu installation",
+          "url": "https://support.digital-watchdog.com/hc/en-us/articles/43283544629908-DW-Spectrum-Installing-DW-Spectrum-for-Ubuntu"
+        }
+      ]
+    },
+    {
+      "id": "winget:DW.Spectrum.Client",
+      "name": "DW Spectrum Client",
+      "compatibility": "native",
+      "alternatives": [
+        "DW Spectrum Client",
+        "VLC",
+        "Frigate UI"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "security",
+      "notes": "Digital Watchdog documents DW Spectrum Client installation on Ubuntu Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Vendor docs target Ubuntu; verify unsupported distro use manually."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Vendor docs target Ubuntu; verify Debian compatibility before installing."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Download the DW Spectrum Linux client .deb and install with apt."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "No current Fedora package confirmed; use vendor-supported Ubuntu where possible."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "No current openSUSE package confirmed; use vendor-supported Ubuntu where possible."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Unsupported; verify with vendor."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Unsupported; verify with vendor."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Unsupported; verify with vendor."
+        }
+      },
+      "evidence": [
+        {
+          "label": "DW Spectrum Ubuntu installation",
+          "url": "https://support.digital-watchdog.com/hc/en-us/articles/43283544629908-DW-Spectrum-Installing-DW-Spectrum-for-Ubuntu"
+        }
+      ]
+    },
+    {
+      "id": "winget:DigitalVolcanoSoftware.DuplicateCleaner.5",
+      "name": "Duplicate Cleaner Pro 5",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Czkawka",
+        "dupeGuru",
+        "rmlint"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "Duplicate Cleaner Pro is a Windows duplicate-file utility; use Linux-native alternatives.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DigitalVolcanoSoftware.DuplicateCleaner.4.Pro",
+      "name": "Duplicate Cleaner Pro 4",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Czkawka",
+        "dupeGuru",
+        "rmlint"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "Duplicate Cleaner Pro is a Windows duplicate-file utility; use Linux-native alternatives.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DigitalVolcanoSoftware.DuplicateCleaner.4.Free",
+      "name": "Duplicate Cleaner Free 4",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Czkawka",
+        "dupeGuru",
+        "rmlint"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "Duplicate Cleaner Free is a Windows duplicate-file utility; use Linux-native alternatives.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux duplicate-file tools such as Czkawka, dupeGuru, or rmlint."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Cybelsoft.DriversCloud",
+      "name": "Drivers Cloud",
+      "compatibility": "none",
+      "alternatives": [
+        "fwupd",
+        "linux-firmware",
+        "distro driver manager"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "DriversCloud desktop tooling is Windows driver-oriented; Linux firmware/driver management is distro-specific.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro firmware/driver tools instead."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro firmware/driver tools instead."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro firmware/driver tools instead."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro firmware/driver tools instead."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro firmware/driver tools instead."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro firmware/driver tools instead."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro firmware/driver tools instead."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro firmware/driver tools instead."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DigitalOcean.Doctl",
+      "name": "doctl",
+      "compatibility": "native",
+      "alternatives": [
+        "doctl",
+        "Terraform DigitalOcean provider",
+        "DigitalOcean web console"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "high",
+      "category": "development",
+      "notes": "DigitalOcean publishes Linux release tarballs and documents snap installation; distro package names vary.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install from the official GitHub Linux tarball or snap where available; verify package-manager channel for the distro."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install from the official GitHub Linux tarball or snap where available; verify package-manager channel for the distro."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install from the official GitHub Linux tarball or snap where available; verify package-manager channel for the distro."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install from the official GitHub Linux tarball or snap where available; verify package-manager channel for the distro."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install from the official GitHub Linux tarball or snap where available; verify package-manager channel for the distro."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install from the official GitHub Linux tarball or snap where available; verify package-manager channel for the distro."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install from the official GitHub Linux tarball or snap where available; verify package-manager channel for the distro."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install from the official GitHub Linux tarball or snap where available; verify package-manager channel for the distro."
+        }
+      },
+      "evidence": [
+        {
+          "label": "doctl GitHub project",
+          "url": "https://github.com/digitalocean/doctl"
+        }
+      ]
+    },
+    {
+      "id": "winget:DNAGenics.DNAKitStudio",
+      "name": "DNA Kit Studio",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "PLINK",
+        "OpenSNP tools",
+        "Galaxy"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "science",
+      "notes": "Could not confirm native Linux desktop package availability.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BinaryFortress.DisplayFusion",
+      "name": "DisplayFusion",
+      "compatibility": "alternative",
+      "alternatives": [
+        "KDE display settings",
+        "GNOME display settings",
+        "autorandr"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "DisplayFusion is a Windows multi-monitor management app; Linux has desktop/display-manager alternatives.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux desktop display settings or autorandr equivalents."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux desktop display settings or autorandr equivalents."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux desktop display settings or autorandr equivalents."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux desktop display settings or autorandr equivalents."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux desktop display settings or autorandr equivalents."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux desktop display settings or autorandr equivalents."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux desktop display settings or autorandr equivalents."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux desktop display settings or autorandr equivalents."
+        }
+      },
+      "evidence": [
+        {
+          "label": "DisplayFusion download",
+          "url": "https://www.displayfusion.com/Download/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DiskInternals.MySQLRecovery",
+      "name": "DiskInternals MySQL Recovery",
+      "compatibility": "none",
+      "alternatives": [
+        "mysqlcheck",
+        "Percona Toolkit",
+        "MariaDB recovery workflows"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "DiskInternals recovery tools are Windows desktop utilities; no native Linux package identified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DiskInternals.MSSQLRecovery",
+      "name": "DiskInternals MSSQL Recovery",
+      "compatibility": "none",
+      "alternatives": [
+        "SQL Server tools",
+        "mssql-tools",
+        "database backups"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "DiskInternals recovery tools are Windows desktop utilities; no native Linux package identified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Discloud.CLI",
+      "name": "Discloud CLI",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "Discloud CLI",
+        "Node.js deployment tools",
+        "Docker"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "development",
+      "notes": "CLI may be installable cross-platform, but current npm/package name should be verified before suggesting.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DiRoots.AppManager",
+      "name": "DiRoots.AppManager",
+      "compatibility": "none",
+      "alternatives": [
+        "Revit add-in manager on supported OS",
+        "FreeCAD Addon Manager"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "engineering",
+      "notes": "DiRoots AppManager is for Autodesk/Revit add-ins and is Windows ecosystem software.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Dioss.DiosseIDMiddleware.Server",
+      "name": "Dioss eID Middleware - Server",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "OpenSC",
+        "pcscd",
+        "vendor middleware"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "security",
+      "notes": "eID middleware may have platform-specific server components; Linux package availability needs vendor verification.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DimonSmart.NugetMcpServer",
+      "name": "DimonSmart.NugetMcpServer",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "NuGet CLI",
+        "dotnet tools",
+        "MCP server from source"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Likely .NET/MCP-related, but exact Linux install method and package name need verification.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Gadwin.DiagramStudio",
+      "name": "DiagramStudio",
+      "compatibility": "alternative",
+      "alternatives": [
+        "LibreOffice Draw",
+        "diagrams.net",
+        "Dia"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "office",
+      "notes": "Gadwin DiagramStudio is Windows diagramming software; use Linux-native diagramming alternatives.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux diagramming alternatives instead."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux diagramming alternatives instead."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux diagramming alternatives instead."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux diagramming alternatives instead."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux diagramming alternatives instead."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux diagramming alternatives instead."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux diagramming alternatives instead."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Linux diagramming alternatives instead."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Devolutions.ServerConsole",
+      "name": "Devolutions Server Console",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Devolutions Server web console",
+        "Devolutions Server on Linux",
+        "Remote Desktop Manager"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "admin",
+      "notes": "Devolutions Server can run on Linux, but this Server Console package is a Windows management console for IIS/web-server administration.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the Devolutions Server web interface or Linux server install documentation where appropriate."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the Devolutions Server web interface or Linux server install documentation where appropriate."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the Devolutions Server web interface or Linux server install documentation where appropriate."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the Devolutions Server web interface or Linux server install documentation where appropriate."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the Devolutions Server web interface or Linux server install documentation where appropriate."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the Devolutions Server web interface or Linux server install documentation where appropriate."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the Devolutions Server web interface or Linux server install documentation where appropriate."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the Devolutions Server web interface or Linux server install documentation where appropriate."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Devolutions Server Console docs",
+          "url": "https://docs.devolutions.net/server/devolutions-server-console/"
+        }
+      ]
+    },
+    {
+      "id": "winget:FujitsuClientComputingLimited.DeskUpdate",
+      "name": "DeskUpdate",
+      "compatibility": "none",
+      "alternatives": [
+        "fwupd",
+        "LVFS",
+        "distro firmware tools"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "Fujitsu DeskUpdate is a Windows driver/BIOS update utility; Linux firmware updates should use fwupd/LVFS when supported.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use fwupd/LVFS or vendor Linux firmware instructions if available."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use fwupd/LVFS or vendor Linux firmware instructions if available."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use fwupd/LVFS or vendor Linux firmware instructions if available."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use fwupd/LVFS or vendor Linux firmware instructions if available."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use fwupd/LVFS or vendor Linux firmware instructions if available."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use fwupd/LVFS or vendor Linux firmware instructions if available."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use fwupd/LVFS or vendor Linux firmware instructions if available."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use fwupd/LVFS or vendor Linux firmware instructions if available."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:G0rocks.DesktopShortcutRemover",
+      "name": "DesktopShortcutRemover",
+      "compatibility": "none",
+      "alternatives": [
+        "Desktop file cleanup scripts",
+        "xdg-user-dirs",
+        "KDE/GNOME settings"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "Windows desktop shortcut cleanup utility; no native Linux package identified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1652 @@
+{
+  "schema": 1,
+  "purpose": "100 unknown catalog entries for distro-family support research, batch 002 split into 5 parts",
+  "batch": "002",
+  "part": 2,
+  "entries": [
+    {
+      "id": "winget:ACROSSecurity.0patch",
+      "name": "0patch Agent",
+      "match_names": [
+        "0patch Agent",
+        "ACROSSecurity.0patch"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "0patch Agent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ElgibeSolutions.MarkdownViewer",
+      "name": "Markdown Viewer",
+      "match_names": [
+        "Markdown Viewer",
+        "ElgibeSolutions.MarkdownViewer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Markdown Viewer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DataHammer.HammerPDF",
+      "name": "Hammer PDF",
+      "match_names": [
+        "Hammer PDF",
+        "DataHammer.HammerPDF"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Hammer PDF"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Egnyte.Addin",
+      "name": "Egnyte Office Add-in",
+      "match_names": [
+        "Egnyte Office Add-in",
+        "Egnyte.Addin"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Egnyte Office Add-in"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DimonSmart.PdfCropper",
+      "name": "DimonSmart.PdfCropper.Cli",
+      "match_names": [
+        "DimonSmart.PdfCropper.Cli",
+        "DimonSmart.PdfCropper"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DimonSmart.PdfCropper.Cli"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AcroSoftware.CutePDFWriter",
+      "name": "CutePDF Writer",
+      "match_names": [
+        "CutePDF Writer",
+        "AcroSoftware.CutePDFWriter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CutePDF Writer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CubeSoft.CubePDF",
+      "name": "CubePDF",
+      "match_names": [
+        "CubePDF",
+        "CubeSoft.CubePDF"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CubePDF"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bullzip.PDFPrinter",
+      "name": "Bullzip PDF Printer",
+      "match_names": [
+        "Bullzip PDF Printer",
+        "Bullzip.PDFPrinter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bullzip PDF Printer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Box.BoxForOffice",
+      "name": "Box for Office",
+      "match_names": [
+        "Box for Office",
+        "Box.BoxForOffice"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Box for Office"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AMustInEveryOffice.ASAPUtilities.Business",
+      "name": "ASAP Utilities (Business edition)",
+      "match_names": [
+        "ASAP Utilities (Business edition)",
+        "AMustInEveryOffice.ASAPUtilities.Business"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ASAP Utilities (Business edition)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Acronis.CyberProtectHomeOffice",
+      "name": "Acronis Cyber Protect Home Office",
+      "match_names": [
+        "Acronis Cyber Protect Home Office",
+        "Acronis.CyberProtectHomeOffice"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Acronis Cyber Protect Home Office"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ability.AbilityOffice.8.Standard",
+      "name": "Ability Office 8 Standard",
+      "match_names": [
+        "Ability Office 8 Standard",
+        "Ability.AbilityOffice.8.Standard"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ability Office 8 Standard"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ability.AbilityOffice.8.Professional",
+      "name": "Ability Office 8 Professional",
+      "match_names": [
+        "Ability Office 8 Professional",
+        "Ability.AbilityOffice.8.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ability Office 8 Professional"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ability.AbilityOffice.10.Standard",
+      "name": "Ability Office 10 Standard",
+      "match_names": [
+        "Ability Office 10 Standard",
+        "Ability.AbilityOffice.10.Standard"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ability Office 10 Standard"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ability.AbilityOffice.10.Professional",
+      "name": "Ability Office 10 Professional",
+      "match_names": [
+        "Ability Office 10 Professional",
+        "Ability.AbilityOffice.10.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ability Office 10 Professional"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ByteDance.StreamingTool",
+      "name": "直播伴侣",
+      "match_names": [
+        "直播伴侣",
+        "360.PalmInput",
+        "ABC.ABCEBankAssistant",
+        "ABC.PowerExtension",
+        "Abnerla.AI_paper",
+        "Alibaba.AliIM",
+        "Alibaba.AliWorkbench",
+        "Alibaba.AlipayKeyTool",
+        "Alibaba.MiniProgramStudio",
+        "Alibaba.Qianwen",
+        "Alibaba.Quark",
+        "Alibaba.QuarkCloudDrive",
+        "Alibaba.Taobao",
+        "Alibaba.Yuque",
+        "Alibaba.aDrive",
+        "Appest.Dida",
+        "Baidu.BaiduNetdisk",
+        "Baidu.BaiduPinyin",
+        "Baidu.BaiduSpeechInput",
+        "Baidu.BaiduTranslate",
+        "Baidu.BaiduWenku",
+        "Baidu.SwanIDE",
+        "Bilibili.Bcut",
+        "ByteDance.Doubao",
+        "ByteDance.Douyin",
+        "ByteDance.DouyinIDE",
+        "ByteDance.DouyinIM",
+        "ByteDance.JianyingPro",
+        "ByteDance.SodaMusic",
+        "ByteDance.StreamingTool",
+        "ByteDance.XiguaVideo",
+        "CISDI.Qingtui",
+        "360.360DesktopLite",
+        "Codemao.Lessons",
+        "Codemao.SmartEditor",
+        "Codemao.TurtleEditor.1",
+        "Codemao.kitten.3",
+        "Bilibili.Livehime",
+        "Comix.FastMeeting",
+        "Comix.FastMeetingLauncher",
+        "GamePP.GamePP",
+        "GamePP.GamePPLite",
+        "Gaoding.Gaoding",
+        "Bilibili.Bilibili",
+        "Biyi.Biyi",
+        "ChinaMobile.CMCCProxy",
+        "Cube.CubePlatform",
+        "1sj.rrysj"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "方块游戏平台"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:COWON.jetAudio",
+      "name": "jetAudio Basic",
+      "match_names": [
+        "jetAudio Basic",
+        "COWON.jetAudio"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "jetAudio Basic"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DigiDNA.iMazingProfileEditor",
+      "name": "iMazing Profile Editor",
+      "match_names": [
+        "iMazing Profile Editor",
+        "DigiDNA.iMazingProfileEditor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "iMazing Profile Editor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FocusriteAudioEngineeringLtd.FocusriteControl2",
+      "name": "Focusrite Control 2",
+      "match_names": [
+        "Focusrite Control 2",
+        "FocusriteAudioEngineeringLtd.FocusriteControl2"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Focusrite Control 2"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FocusriteAudioEngineeringLtd.FocusriteControl",
+      "name": "Focusrite Control",
+      "match_names": [
+        "Focusrite Control",
+        "FocusriteAudioEngineeringLtd.FocusriteControl"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Focusrite Control"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Blueberry.FlashbackVideoConverter",
+      "name": "Flashback Video Converter",
+      "match_names": [
+        "Flashback Video Converter",
+        "Blueberry.FlashbackVideoConverter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Flashback Video Converter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AndreWiethoff.ExactAudioCopy",
+      "name": "Exact Audio Copy",
+      "match_names": [
+        "Exact Audio Copy",
+        "AndreWiethoff.ExactAudioCopy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Exact Audio Copy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EditorConfig-Checker.EditorConfig-Checker",
+      "name": "EditorConfig-Checker",
+      "match_names": [
+        "EditorConfig-Checker",
+        "EditorConfig-Checker.EditorConfig-Checker"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EditorConfig-Checker"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AshleyStone.DefaultAudio",
+      "name": "DefaultAudio",
+      "match_names": [
+        "DefaultAudio",
+        "AshleyStone.DefaultAudio"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DefaultAudio"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FactorMystic.DefaultProgramsEditor",
+      "name": "Default Programs Editor",
+      "match_names": [
+        "Default Programs Editor",
+        "FactorMystic.DefaultProgramsEditor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Default Programs Editor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cyotek.ColorPaletteEditor",
+      "name": "Cyotek Color Palette Editor",
+      "match_names": [
+        "Cyotek Color Palette Editor",
+        "Cyotek.ColorPaletteEditor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cyotek Color Palette Editor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CPEditor.CPEditor",
+      "name": "CP Editor",
+      "match_names": [
+        "CP Editor",
+        "CPEditor.CPEditor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CP Editor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AudioCodes.ConfigurationBuilder",
+      "name": "Configuration Builder",
+      "match_names": [
+        "Configuration Builder",
+        "AudioCodes.ConfigurationBuilder"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Configuration Builder"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BonnieBoni.CliMusic",
+      "name": "CLI Music",
+      "match_names": [
+        "CLI Music",
+        "BonnieBoni.CliMusic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CLI Music"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Chromatix.Chromatix",
+      "name": "Chromatix Music Player",
+      "match_names": [
+        "Chromatix Music Player",
+        "Chromatix.Chromatix"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Chromatix Music Player"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Brinno.BrinnoVideoPlayer",
+      "name": "Brinno Video Player",
+      "match_names": [
+        "Brinno Video Player",
+        "Brinno.BrinnoVideoPlayer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Brinno Video Player"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Airsquared.Blobsaver",
+      "name": "blobsaver",
+      "match_names": [
+        "blobsaver",
+        "Airsquared.Blobsaver"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "blobsaver"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BeagleSoftware.BeagleEditor",
+      "name": "BeagleEditor",
+      "match_names": [
+        "BeagleEditor",
+        "BeagleSoftware.BeagleEditor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BeagleEditor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchTextFileEditor",
+      "name": "Batch Text File Editor Free Edition",
+      "match_names": [
+        "Batch Text File Editor Free Edition",
+        "BinaryMark.BatchTextFileEditor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch Text File Editor Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchHexEditor",
+      "name": "Batch Hex Editor Free Edition",
+      "match_names": [
+        "Batch Hex Editor Free Edition",
+        "BinaryMark.BatchHexEditor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch Hex Editor Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ascensio.AVSVideoReMaker",
+      "name": "AVS Video ReMaker",
+      "match_names": [
+        "AVS Video ReMaker",
+        "Ascensio.AVSVideoReMaker"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AVS Video ReMaker"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ascensio.AVSVideoConverter",
+      "name": "AVS Video Converter",
+      "match_names": [
+        "AVS Video Converter",
+        "Ascensio.AVSVideoConverter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AVS Video Converter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ascensio.AVSAudioConverter",
+      "name": "AVS Audio Converter",
+      "match_names": [
+        "AVS Audio Converter",
+        "Ascensio.AVSAudioConverter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AVS Audio Converter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Auslogics.VideoGrabber",
+      "name": "Auslogics Video Grabber",
+      "match_names": [
+        "Auslogics Video Grabber",
+        "Auslogics.VideoGrabber"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Auslogics Video Grabber"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cleobury.AudioWindowTracker",
+      "name": "AudioWindowTracker",
+      "match_names": [
+        "AudioWindowTracker",
+        "Cleobury.AudioWindowTracker"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AudioWindowTracker"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AsaphaHalifa.AudioRelay",
+      "name": "AudioRelay",
+      "match_names": [
+        "AudioRelay",
+        "AsaphaHalifa.AudioRelay"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AudioRelay"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BBC.audiowaveform",
+      "name": "Audio Waveform Image Generator",
+      "match_names": [
+        "Audio Waveform Image Generator",
+        "BBC.audiowaveform"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Audio Waveform Image Generator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Apollo.Music",
+      "name": "Apollo Music",
+      "match_names": [
+        "Apollo Music"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Apollo Music"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AlexanderGorishnyak.APKIconEditor",
+      "name": "APK Icon Editor",
+      "match_names": [
+        "APK Icon Editor",
+        "AlexanderGorishnyak.APKIconEditor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "APK Icon Editor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Music",
+      "name": "Amazon Music",
+      "match_names": [
+        "Amazon Music"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Music"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.AppStream",
+      "name": "Amazon AppStream Client",
+      "match_names": [
+        "Amazon AppStream Client",
+        "Amazon.AppStream"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon AppStream Client"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Extension.AudioOutput",
+      "name": "ADInstruments Audio Output",
+      "match_names": [
+        "ADInstruments Audio Output",
+        "ADInstruments.LabChart.Extension.AudioOutput"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Audio Output"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:15.0.0.1449",
+      "name": "ACDSee Gemstone Photo Editor 15 ACDSystems.ACDSeeGemstone",
+      "match_names": [
+        "ACDSee Gemstone Photo Editor 15 ACDSystems.ACDSeeGemstone",
+        "15.0.0.1449"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ACDSee Gemstone Photo Editor 15 ACDSystems.ACDSeeGemstone"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ACDSystems.ACDSeeGemstone",
+      "name": "ACDSee Gemstone Photo Editor 15",
+      "match_names": [
+        "ACDSee Gemstone Photo Editor 15",
+        "ACDSystems.ACDSeeGemstone"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ACDSee Gemstone Photo Editor 15"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EasternGraphics.pCon-planner.Plugin.VR-Viewer",
+      "name": "pCon.planner Plugin - VR-Viewer",
+      "match_names": [
+        "pCon.planner Plugin - VR-Viewer",
+        "EasternGraphics.pCon-planner.Plugin.VR-Viewer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "pCon.planner Plugin - VR-Viewer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CoherentGraphics.Cpdf",
+      "name": "Cpdf",
+      "match_names": [
+        "Cpdf",
+        "CoherentGraphics.Cpdf"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cpdf"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Celsys.ClipStudioPaint",
+      "name": "CLIP STUDIO PAINT",
+      "match_names": [
+        "CLIP STUDIO PAINT",
+        "Celsys.ClipStudioPaint"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CLIP STUDIO PAINT"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchImageSplitter",
+      "name": "Batch Image Splitter Free Edition",
+      "match_names": [
+        "Batch Image Splitter Free Edition",
+        "BinaryMark.BatchImageSplitter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch Image Splitter Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AstuteGraphics.AstuteManager",
+      "name": "AstuteManager",
+      "match_names": [
+        "AstuteManager",
+        "AstuteGraphics.AstuteManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AstuteManager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ACDSystems.ACDSeePhotoStudio.Ultimate",
+      "name": "ACDSee Photo Studio Ultimate 2026",
+      "match_names": [
+        "ACDSee Photo Studio Ultimate 2026",
+        "ACDSystems.ACDSeePhotoStudio.Ultimate"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ACDSee Photo Studio Ultimate 2026"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:19.0.0.3354",
+      "name": "ACDSee Photo Studio Professional 2026 ACDSystems.ACDSeePhotoStudio.Professional",
+      "match_names": [
+        "ACDSee Photo Studio Professional 2026 ACDSystems.ACDSeePhotoStudio.Professional",
+        "19.0.0.3354"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ACDSee Photo Studio Professional 2026 ACDSystems.ACDSeePhotoStudio.Professional"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ACDSystems.ACDSeePhotoStudio.Professional",
+      "name": "ACDSee Photo Studio Professional 2026",
+      "match_names": [
+        "ACDSee Photo Studio Professional 2026",
+        "ACDSystems.ACDSeePhotoStudio.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ACDSee Photo Studio Professional 2026"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ACDSystems.ACDSeePhotoStudio.Home",
+      "name": "ACDSee Photo Studio Home 2026",
+      "match_names": [
+        "ACDSee Photo Studio Home 2026",
+        "ACDSystems.ACDSeePhotoStudio.Home"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ACDSee Photo Studio Home 2026"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "graphics",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gibbed.SteamAchievementManager",
+      "name": "Steam Achievement Manager (SAM)",
+      "match_names": [
+        "Steam Achievement Manager (SAM)",
+        "Gibbed.SteamAchievementManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Steam Achievement Manager (SAM)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CloudImperiumGames.RSILauncher",
+      "name": "RSI Launcher",
+      "match_names": [
+        "RSI Launcher",
+        "CloudImperiumGames.RSILauncher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "RSI Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Elgato.GameCapture.HD60S",
+      "name": "Game Capture HD60 S",
+      "match_names": [
+        "Game Capture HD60 S",
+        "Elgato.GameCapture.HD60S"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Game Capture HD60 S"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Elgato.GameCapture.4K60ProMK2",
+      "name": "Game Capture 4K60 Pro MK.2",
+      "match_names": [
+        "Game Capture 4K60 Pro MK.2",
+        "Elgato.GameCapture.4K60ProMK2"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Game Capture 4K60 Pro MK.2"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Elgato.GameCapture.HD",
+      "name": "Elgato Game Capture HD",
+      "match_names": [
+        "Elgato Game Capture HD",
+        "Elgato.GameCapture.HD"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Elgato Game Capture HD"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryFortress.CloudShow",
+      "name": "CloudShow Launcher",
+      "match_names": [
+        "CloudShow Launcher",
+        "BinaryFortress.CloudShow"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CloudShow Launcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AGSProjectTeam.AdventureGameStudio",
+      "name": "Adventure Game Studio",
+      "match_names": [
+        "Adventure Game Studio",
+        "AGSProjectTeam.AdventureGameStudio"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Adventure Game Studio"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.22",
+      "name": "Liberica JRE 22",
+      "match_names": [
+        "Liberica JRE 22",
+        "BellSoft.LibericaJRE.22"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 22"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.21.Full",
+      "name": "Liberica JRE 21 Full",
+      "match_names": [
+        "Liberica JRE 21 Full",
+        "BellSoft.LibericaJRE.21.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 21 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.21",
+      "name": "Liberica JRE 21",
+      "match_names": [
+        "Liberica JRE 21",
+        "BellSoft.LibericaJRE.21"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 21"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.20.Full",
+      "name": "Liberica JRE 20 Full",
+      "match_names": [
+        "Liberica JRE 20 Full",
+        "BellSoft.LibericaJRE.20.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 20 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.20",
+      "name": "Liberica JRE 20",
+      "match_names": [
+        "Liberica JRE 20",
+        "BellSoft.LibericaJRE.20"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 20"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.19.Full",
+      "name": "Liberica JRE 19 Full",
+      "match_names": [
+        "Liberica JRE 19 Full",
+        "BellSoft.LibericaJRE.19.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 19 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.19",
+      "name": "Liberica JRE 19",
+      "match_names": [
+        "Liberica JRE 19",
+        "BellSoft.LibericaJRE.19"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 19"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.18.Full",
+      "name": "Liberica JRE 18 Full",
+      "match_names": [
+        "Liberica JRE 18 Full",
+        "BellSoft.LibericaJRE.18.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 18 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.18",
+      "name": "Liberica JRE 18",
+      "match_names": [
+        "Liberica JRE 18",
+        "BellSoft.LibericaJRE.18"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 18"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.17.Full",
+      "name": "Liberica JRE 17 Full",
+      "match_names": [
+        "Liberica JRE 17 Full",
+        "BellSoft.LibericaJRE.17.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 17 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.17",
+      "name": "Liberica JRE 17",
+      "match_names": [
+        "Liberica JRE 17",
+        "BellSoft.LibericaJRE.17"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 17"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.16.Full",
+      "name": "Liberica JRE 16 Full",
+      "match_names": [
+        "Liberica JRE 16 Full",
+        "BellSoft.LibericaJRE.16.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 16 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.16",
+      "name": "Liberica JRE 16",
+      "match_names": [
+        "Liberica JRE 16",
+        "BellSoft.LibericaJRE.16"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 16"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.15.Full",
+      "name": "Liberica JRE 15 Full",
+      "match_names": [
+        "Liberica JRE 15 Full",
+        "BellSoft.LibericaJRE.15.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 15 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.15",
+      "name": "Liberica JRE 15",
+      "match_names": [
+        "Liberica JRE 15",
+        "BellSoft.LibericaJRE.15"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 15"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.14.Full",
+      "name": "Liberica JRE 14 Full",
+      "match_names": [
+        "Liberica JRE 14 Full",
+        "BellSoft.LibericaJRE.14.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 14 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.14",
+      "name": "Liberica JRE 14",
+      "match_names": [
+        "Liberica JRE 14",
+        "BellSoft.LibericaJRE.14"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 14"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.13.Full",
+      "name": "Liberica JRE 13 Full",
+      "match_names": [
+        "Liberica JRE 13 Full",
+        "BellSoft.LibericaJRE.13.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 13 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.13",
+      "name": "Liberica JRE 13",
+      "match_names": [
+        "Liberica JRE 13",
+        "BellSoft.LibericaJRE.13"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 13"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.11.Full",
+      "name": "Liberica JRE 11 Full",
+      "match_names": [
+        "Liberica JRE 11 Full",
+        "BellSoft.LibericaJRE.11.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 11 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.11",
+      "name": "Liberica JRE 11",
+      "match_names": [
+        "Liberica JRE 11",
+        "BellSoft.LibericaJRE.11"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JRE 11"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.8.Lite",
+      "name": "Liberica JDK 8 Lite",
+      "match_names": [
+        "Liberica JDK 8 Lite",
+        "BellSoft.LibericaJDK.8.Lite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 8 Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.8.Full",
+      "name": "Liberica JDK 8 Full",
+      "match_names": [
+        "Liberica JDK 8 Full",
+        "BellSoft.LibericaJDK.8.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 8 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.8",
+      "name": "Liberica JDK 8",
+      "match_names": [
+        "Liberica JDK 8",
+        "BellSoft.LibericaJDK.8"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 8"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.26.Full",
+      "name": "Liberica JDK 26 Full",
+      "match_names": [
+        "Liberica JDK 26 Full",
+        "BellSoft.LibericaJDK.26.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 26 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.26",
+      "name": "Liberica JDK 26",
+      "match_names": [
+        "Liberica JDK 26",
+        "BellSoft.LibericaJDK.26"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 26"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.25.Lite",
+      "name": "Liberica JDK 25 Lite",
+      "match_names": [
+        "Liberica JDK 25 Lite",
+        "BellSoft.LibericaJDK.25.Lite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 25 Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.25.Full",
+      "name": "Liberica JDK 25 Full",
+      "match_names": [
+        "Liberica JDK 25 Full",
+        "BellSoft.LibericaJDK.25.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 25 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.25",
+      "name": "Liberica JDK 25",
+      "match_names": [
+        "Liberica JDK 25",
+        "BellSoft.LibericaJDK.25"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 25"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.24.Lite",
+      "name": "Liberica JDK 24 Lite",
+      "match_names": [
+        "Liberica JDK 24 Lite",
+        "BellSoft.LibericaJDK.24.Lite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 24 Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.24.Full",
+      "name": "Liberica JDK 24 Full",
+      "match_names": [
+        "Liberica JDK 24 Full",
+        "BellSoft.LibericaJDK.24.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 24 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.24",
+      "name": "Liberica JDK 24",
+      "match_names": [
+        "Liberica JDK 24",
+        "BellSoft.LibericaJDK.24"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 24"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.23.Lite",
+      "name": "Liberica JDK 23 Lite",
+      "match_names": [
+        "Liberica JDK 23 Lite",
+        "BellSoft.LibericaJDK.23.Lite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 23 Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.23.Full",
+      "name": "Liberica JDK 23 Full",
+      "match_names": [
+        "Liberica JDK 23 Full",
+        "BellSoft.LibericaJDK.23.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 23 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.23",
+      "name": "Liberica JDK 23",
+      "match_names": [
+        "Liberica JDK 23",
+        "BellSoft.LibericaJDK.23"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 23"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}

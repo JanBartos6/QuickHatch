@@ -1,0 +1,1608 @@
+{
+  "schema": 1,
+  "purpose": "100 unknown catalog entries for distro-family support research, batch 002 split into 5 parts",
+  "batch": "002",
+  "part": 3,
+  "entries": [
+    {
+      "id": "winget:BellSoft.LibericaJDK.22.Lite",
+      "name": "Liberica JDK 22 Lite",
+      "match_names": [
+        "Liberica JDK 22 Lite",
+        "BellSoft.LibericaJDK.22.Lite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 22 Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.22.Full",
+      "name": "Liberica JDK 22 Full",
+      "match_names": [
+        "Liberica JDK 22 Full",
+        "BellSoft.LibericaJDK.22.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 22 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.22",
+      "name": "Liberica JDK 22",
+      "match_names": [
+        "Liberica JDK 22",
+        "BellSoft.LibericaJDK.22"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 22"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.21.Lite",
+      "name": "Liberica JDK 21 Lite",
+      "match_names": [
+        "Liberica JDK 21 Lite",
+        "BellSoft.LibericaJDK.21.Lite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 21 Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.21.Full",
+      "name": "Liberica JDK 21 Full",
+      "match_names": [
+        "Liberica JDK 21 Full",
+        "BellSoft.LibericaJDK.21.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 21 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.21",
+      "name": "Liberica JDK 21",
+      "match_names": [
+        "Liberica JDK 21",
+        "BellSoft.LibericaJDK.21"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 21"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.20.Lite",
+      "name": "Liberica JDK 20 Lite",
+      "match_names": [
+        "Liberica JDK 20 Lite",
+        "BellSoft.LibericaJDK.20.Lite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 20 Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.20.Full",
+      "name": "Liberica JDK 20 Full",
+      "match_names": [
+        "Liberica JDK 20 Full",
+        "BellSoft.LibericaJDK.20.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 20 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.20",
+      "name": "Liberica JDK 20",
+      "match_names": [
+        "Liberica JDK 20",
+        "BellSoft.LibericaJDK.20"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 20"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.19.Lite",
+      "name": "Liberica JDK 19 Lite",
+      "match_names": [
+        "Liberica JDK 19 Lite",
+        "BellSoft.LibericaJDK.19.Lite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 19 Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.19.Full",
+      "name": "Liberica JDK 19 Full",
+      "match_names": [
+        "Liberica JDK 19 Full",
+        "BellSoft.LibericaJDK.19.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 19 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.19",
+      "name": "Liberica JDK 19",
+      "match_names": [
+        "Liberica JDK 19",
+        "BellSoft.LibericaJDK.19"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 19"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.18.Lite",
+      "name": "Liberica JDK 18 Lite",
+      "match_names": [
+        "Liberica JDK 18 Lite",
+        "BellSoft.LibericaJDK.18.Lite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 18 Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.18.Full",
+      "name": "Liberica JDK 18 Full",
+      "match_names": [
+        "Liberica JDK 18 Full",
+        "BellSoft.LibericaJDK.18.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 18 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.18",
+      "name": "Liberica JDK 18",
+      "match_names": [
+        "Liberica JDK 18",
+        "BellSoft.LibericaJDK.18"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 18"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.17.Lite",
+      "name": "Liberica JDK 17 Lite",
+      "match_names": [
+        "Liberica JDK 17 Lite",
+        "BellSoft.LibericaJDK.17.Lite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 17 Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.17.Full",
+      "name": "Liberica JDK 17 Full",
+      "match_names": [
+        "Liberica JDK 17 Full",
+        "BellSoft.LibericaJDK.17.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 17 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.17",
+      "name": "Liberica JDK 17",
+      "match_names": [
+        "Liberica JDK 17",
+        "BellSoft.LibericaJDK.17"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 17"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.16.Lite",
+      "name": "Liberica JDK 16 Lite",
+      "match_names": [
+        "Liberica JDK 16 Lite",
+        "BellSoft.LibericaJDK.16.Lite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 16 Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.16.Full",
+      "name": "Liberica JDK 16 Full",
+      "match_names": [
+        "Liberica JDK 16 Full",
+        "BellSoft.LibericaJDK.16.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 16 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.16",
+      "name": "Liberica JDK 16",
+      "match_names": [
+        "Liberica JDK 16",
+        "BellSoft.LibericaJDK.16"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 16"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.15.Lite",
+      "name": "Liberica JDK 15 Lite",
+      "match_names": [
+        "Liberica JDK 15 Lite",
+        "BellSoft.LibericaJDK.15.Lite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 15 Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.15.Full",
+      "name": "Liberica JDK 15 Full",
+      "match_names": [
+        "Liberica JDK 15 Full",
+        "BellSoft.LibericaJDK.15.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 15 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.15",
+      "name": "Liberica JDK 15",
+      "match_names": [
+        "Liberica JDK 15",
+        "BellSoft.LibericaJDK.15"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 15"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.14.Lite",
+      "name": "Liberica JDK 14 Lite",
+      "match_names": [
+        "Liberica JDK 14 Lite",
+        "BellSoft.LibericaJDK.14.Lite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 14 Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.14.Full",
+      "name": "Liberica JDK 14 Full",
+      "match_names": [
+        "Liberica JDK 14 Full",
+        "BellSoft.LibericaJDK.14.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 14 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.14",
+      "name": "Liberica JDK 14",
+      "match_names": [
+        "Liberica JDK 14",
+        "BellSoft.LibericaJDK.14"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 14"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.13.Lite",
+      "name": "Liberica JDK 13 Lite",
+      "match_names": [
+        "Liberica JDK 13 Lite",
+        "BellSoft.LibericaJDK.13.Lite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 13 Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.13.Full",
+      "name": "Liberica JDK 13 Full",
+      "match_names": [
+        "Liberica JDK 13 Full",
+        "BellSoft.LibericaJDK.13.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 13 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.13",
+      "name": "Liberica JDK 13",
+      "match_names": [
+        "Liberica JDK 13",
+        "BellSoft.LibericaJDK.13"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 13"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.12.Lite",
+      "name": "Liberica JDK 12 Lite",
+      "match_names": [
+        "Liberica JDK 12 Lite",
+        "BellSoft.LibericaJDK.12.Lite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 12 Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.12",
+      "name": "Liberica JDK 12",
+      "match_names": [
+        "Liberica JDK 12",
+        "BellSoft.LibericaJDK.12"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 12"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.11.Lite",
+      "name": "Liberica JDK 11 Lite",
+      "match_names": [
+        "Liberica JDK 11 Lite",
+        "BellSoft.LibericaJDK.11.Lite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 11 Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.11.Full",
+      "name": "Liberica JDK 11 Full",
+      "match_names": [
+        "Liberica JDK 11 Full",
+        "BellSoft.LibericaJDK.11.Full"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 11 Full"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BellSoft.LibericaJDK.11",
+      "name": "Liberica JDK 11",
+      "match_names": [
+        "Liberica JDK 11",
+        "BellSoft.LibericaJDK.11"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Liberica JDK 11"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GitHub.git-sizer",
+      "name": "git-sizer",
+      "match_names": [
+        "git-sizer",
+        "GitHub.git-sizer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "git-sizer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ammaar.git-recall",
+      "name": "git-recall",
+      "match_names": [
+        "git-recall",
+        "Ammaar.git-recall"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "git-recall"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GitHub.GitLFS",
+      "name": "Git LFS",
+      "match_names": [
+        "Git LFS",
+        "GitHub.GitLFS"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Git LFS"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Git.SDK",
+      "name": "Git for Windows SDK",
+      "match_names": [
+        "Git for Windows SDK",
+        "Git.SDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Git for Windows SDK"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GitExtensionsTeam.GitExtensions",
+      "name": "Git Extensions",
+      "match_names": [
+        "Git Extensions",
+        "GitExtensionsTeam.GitExtensions"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Git Extensions"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Git.Git.PreRelease",
+      "name": "Git",
+      "match_names": [
+        "Git",
+        "DuckStudio.ChineseGit",
+        "Git.Git",
+        "Git.Git.PreRelease"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Git"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Docker.DockerCompose",
+      "name": "Docker Compose",
+      "match_names": [
+        "Docker Compose",
+        "Docker.DockerCompose"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Docker Compose"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Docker.Buildx",
+      "name": "Docker Buildx",
+      "match_names": [
+        "Docker Buildx"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Docker Buildx"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CodeBlocks.CodeBlocks.MinGW",
+      "name": "Code::Blocks with MinGW",
+      "match_names": [
+        "Code::Blocks with MinGW",
+        "CodeBlocks.CodeBlocks.MinGW"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Code::Blocks with MinGW"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CodeBlocks.CodeBlocks",
+      "name": "Code::Blocks",
+      "match_names": [
+        "Code::Blocks",
+        "CodeBlocks.CodeBlocks"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Code::Blocks"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Git.MinGit.BusyBox",
+      "name": "BusyBox-based MinGit",
+      "match_names": [
+        "BusyBox-based MinGit",
+        "Git.MinGit.BusyBox"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BusyBox-based MinGit"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bloomberg.BloombergTerminal",
+      "name": "Bloomberg Terminal",
+      "match_names": [
+        "Bloomberg Terminal",
+        "Bloomberg.BloombergTerminal"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bloomberg Terminal"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.ZuluFX.25.JRE",
+      "name": "Azul ZuluFX JRE 25",
+      "match_names": [
+        "Azul ZuluFX JRE 25",
+        "Azul.ZuluFX.25.JRE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul ZuluFX JRE 25"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.ZuluFX.21.JRE",
+      "name": "Azul ZuluFX JRE 21",
+      "match_names": [
+        "Azul ZuluFX JRE 21",
+        "Azul.ZuluFX.21.JRE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul ZuluFX JRE 21"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.ZuluFX.17.JRE",
+      "name": "Azul ZuluFX JRE 17",
+      "match_names": [
+        "Azul ZuluFX JRE 17",
+        "Azul.ZuluFX.17.JRE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul ZuluFX JRE 17"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.ZuluFX.8.JDK",
+      "name": "Azul ZuluFX JDK 8",
+      "match_names": [
+        "Azul ZuluFX JDK 8",
+        "Azul.ZuluFX.8.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul ZuluFX JDK 8"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.ZuluFX.26.JDK",
+      "name": "Azul ZuluFX JDK 26",
+      "match_names": [
+        "Azul ZuluFX JDK 26",
+        "Azul.ZuluFX.26.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul ZuluFX JDK 26"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.ZuluFX.25.JDK",
+      "name": "Azul ZuluFX JDK 25",
+      "match_names": [
+        "Azul ZuluFX JDK 25",
+        "Azul.ZuluFX.25.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul ZuluFX JDK 25"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.ZuluFX.24.JDK",
+      "name": "Azul ZuluFX JDK 24",
+      "match_names": [
+        "Azul ZuluFX JDK 24",
+        "Azul.ZuluFX.24.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul ZuluFX JDK 24"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.ZuluFX.23.JDK",
+      "name": "Azul ZuluFX JDK 23",
+      "match_names": [
+        "Azul ZuluFX JDK 23",
+        "Azul.ZuluFX.23.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul ZuluFX JDK 23"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.ZuluFX.22.JDK",
+      "name": "Azul ZuluFX JDK 22",
+      "match_names": [
+        "Azul ZuluFX JDK 22",
+        "Azul.ZuluFX.22.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul ZuluFX JDK 22"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.ZuluFX.21.JDK",
+      "name": "Azul ZuluFX JDK 21",
+      "match_names": [
+        "Azul ZuluFX JDK 21",
+        "Azul.ZuluFX.21.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul ZuluFX JDK 21"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.ZuluFX.20.JDK",
+      "name": "Azul ZuluFX JDK 20",
+      "match_names": [
+        "Azul ZuluFX JDK 20",
+        "Azul.ZuluFX.20.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul ZuluFX JDK 20"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.ZuluFX.19.JDK",
+      "name": "Azul ZuluFX JDK 19",
+      "match_names": [
+        "Azul ZuluFX JDK 19",
+        "Azul.ZuluFX.19.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul ZuluFX JDK 19"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.ZuluFX.18.JDK",
+      "name": "Azul ZuluFX JDK 18",
+      "match_names": [
+        "Azul ZuluFX JDK 18",
+        "Azul.ZuluFX.18.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul ZuluFX JDK 18"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.ZuluFX.17.JDK",
+      "name": "Azul ZuluFX JDK 17",
+      "match_names": [
+        "Azul ZuluFX JDK 17",
+        "Azul.ZuluFX.17.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul ZuluFX JDK 17"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.ZuluFX.15.JDK",
+      "name": "Azul ZuluFX JDK 15",
+      "match_names": [
+        "Azul ZuluFX JDK 15",
+        "Azul.ZuluFX.15.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul ZuluFX JDK 15"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.ZuluFX.11.JDK",
+      "name": "Azul ZuluFX JDK 11",
+      "match_names": [
+        "Azul ZuluFX JDK 11",
+        "Azul.ZuluFX.11.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul ZuluFX JDK 11"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.9.JRE",
+      "name": "Azul Zulu JRE 9",
+      "match_names": [
+        "Azul Zulu JRE 9",
+        "Azul.Zulu.9.JRE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JRE 9"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.8.JRE",
+      "name": "Azul Zulu JRE 8",
+      "match_names": [
+        "Azul Zulu JRE 8",
+        "Azul.Zulu.8.JRE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JRE 8"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.7.JRE",
+      "name": "Azul Zulu JRE 7",
+      "match_names": [
+        "Azul Zulu JRE 7",
+        "Azul.Zulu.7.JRE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JRE 7"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.25.JRE",
+      "name": "Azul Zulu JRE 25",
+      "match_names": [
+        "Azul Zulu JRE 25",
+        "Azul.Zulu.25.JRE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JRE 25"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.21.JRE",
+      "name": "Azul Zulu JRE 21",
+      "match_names": [
+        "Azul Zulu JRE 21",
+        "Azul.Zulu.21.JRE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JRE 21"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.18.JRE",
+      "name": "Azul Zulu JRE 18",
+      "match_names": [
+        "Azul Zulu JRE 18",
+        "Azul.Zulu.18.JRE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JRE 18"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.17.JRE",
+      "name": "Azul Zulu JRE 17",
+      "match_names": [
+        "Azul Zulu JRE 17",
+        "Azul.Zulu.17.JRE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JRE 17"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.16.JRE",
+      "name": "Azul Zulu JRE 16",
+      "match_names": [
+        "Azul Zulu JRE 16",
+        "Azul.Zulu.16.JRE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JRE 16"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.15.JRE",
+      "name": "Azul Zulu JRE 15",
+      "match_names": [
+        "Azul Zulu JRE 15",
+        "Azul.Zulu.15.JRE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JRE 15"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.13.JRE",
+      "name": "Azul Zulu JRE 13",
+      "match_names": [
+        "Azul Zulu JRE 13",
+        "Azul.Zulu.13.JRE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JRE 13"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.12.JRE",
+      "name": "Azul Zulu JRE 12",
+      "match_names": [
+        "Azul Zulu JRE 12",
+        "Azul.Zulu.12.JRE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JRE 12"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.11.JRE",
+      "name": "Azul Zulu JRE 11",
+      "match_names": [
+        "Azul Zulu JRE 11",
+        "Azul.Zulu.11.JRE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JRE 11"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.9.JDK",
+      "name": "Azul Zulu JDK 9",
+      "match_names": [
+        "Azul Zulu JDK 9",
+        "Azul.Zulu.9.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 9"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.8.JDK",
+      "name": "Azul Zulu JDK 8",
+      "match_names": [
+        "Azul Zulu JDK 8",
+        "Azul.Zulu.8.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 8"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.7.JDK",
+      "name": "Azul Zulu JDK 7",
+      "match_names": [
+        "Azul Zulu JDK 7",
+        "Azul.Zulu.7.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 7"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.6.JDK",
+      "name": "Azul Zulu JDK 6",
+      "match_names": [
+        "Azul Zulu JDK 6",
+        "Azul.Zulu.6.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 6"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.26.JDK",
+      "name": "Azul Zulu JDK 26",
+      "match_names": [
+        "Azul Zulu JDK 26",
+        "Azul.Zulu.26.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 26"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.25.JDK",
+      "name": "Azul Zulu JDK 25",
+      "match_names": [
+        "Azul Zulu JDK 25",
+        "Azul.Zulu.25.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 25"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.24.JDK",
+      "name": "Azul Zulu JDK 24",
+      "match_names": [
+        "Azul Zulu JDK 24",
+        "Azul.Zulu.24.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 24"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.23.JDK",
+      "name": "Azul Zulu JDK 23",
+      "match_names": [
+        "Azul Zulu JDK 23",
+        "Azul.Zulu.23.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 23"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.22.JDK",
+      "name": "Azul Zulu JDK 22",
+      "match_names": [
+        "Azul Zulu JDK 22",
+        "Azul.Zulu.22.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 22"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.21.JDK",
+      "name": "Azul Zulu JDK 21",
+      "match_names": [
+        "Azul Zulu JDK 21",
+        "Azul.Zulu.21.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 21"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.20.JDK",
+      "name": "Azul Zulu JDK 20",
+      "match_names": [
+        "Azul Zulu JDK 20",
+        "Azul.Zulu.20.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 20"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.19.JDK",
+      "name": "Azul Zulu JDK 19",
+      "match_names": [
+        "Azul Zulu JDK 19",
+        "Azul.Zulu.19.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 19"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.18.JDK",
+      "name": "Azul Zulu JDK 18",
+      "match_names": [
+        "Azul Zulu JDK 18",
+        "Azul.Zulu.18.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 18"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.17.JDK",
+      "name": "Azul Zulu JDK 17",
+      "match_names": [
+        "Azul Zulu JDK 17",
+        "Azul.Zulu.17.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 17"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.16.JDK",
+      "name": "Azul Zulu JDK 16",
+      "match_names": [
+        "Azul Zulu JDK 16",
+        "Azul.Zulu.16.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 16"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.15.JDK",
+      "name": "Azul Zulu JDK 15",
+      "match_names": [
+        "Azul Zulu JDK 15",
+        "Azul.Zulu.15.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 15"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.14.JDK",
+      "name": "Azul Zulu JDK 14",
+      "match_names": [
+        "Azul Zulu JDK 14",
+        "Azul.Zulu.14.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 14"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.13.JDK",
+      "name": "Azul Zulu JDK 13",
+      "match_names": [
+        "Azul Zulu JDK 13",
+        "Azul.Zulu.13.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 13"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.12.JDK",
+      "name": "Azul Zulu JDK 12",
+      "match_names": [
+        "Azul Zulu JDK 12",
+        "Azul.Zulu.12.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 12"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.11.JDK",
+      "name": "Azul Zulu JDK 11",
+      "match_names": [
+        "Azul Zulu JDK 11",
+        "Azul.Zulu.11.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 11"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Azul.Zulu.10.JDK",
+      "name": "Azul Zulu JDK 10",
+      "match_names": [
+        "Azul Zulu JDK 10",
+        "Azul.Zulu.10.JDK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azul Zulu JDK 10"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ArduinoSA.IDE.rc",
+      "name": "Arduino IDE RC",
+      "match_names": [
+        "Arduino IDE RC",
+        "ArduinoSA.IDE.rc"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Arduino IDE RC"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ArduinoSA.IDE.beta",
+      "name": "Arduino IDE Beta",
+      "match_names": [
+        "Arduino IDE Beta",
+        "ArduinoSA.IDE.beta"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Arduino IDE Beta"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ArduinoSA.IDE.stable",
+      "name": "Arduino IDE",
+      "match_names": [
+        "Arduino IDE",
+        "ArduinoSA.IDE.stable"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Arduino IDE"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Apache.NetBeans",
+      "name": "Apache NetBeans",
+      "match_names": [
+        "Apache NetBeans"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Apache NetBeans"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}

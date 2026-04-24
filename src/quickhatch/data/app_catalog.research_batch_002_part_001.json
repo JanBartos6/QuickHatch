@@ -1,0 +1,1605 @@
+{
+  "schema": 1,
+  "purpose": "100 unknown catalog entries for distro-family support research, batch 002 split into 5 parts",
+  "batch": "002",
+  "part": 1,
+  "entries": [
+    {
+      "id": "winget:DigitalVolcanoSoftware.HashTool",
+      "name": "Hash Tool",
+      "match_names": [
+        "Hash Tool",
+        "DigitalVolcanoSoftware.HashTool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Hash Tool"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GitTools.GitVersion",
+      "name": "GitTools GitVersion",
+      "match_names": [
+        "GitTools GitVersion"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GitTools GitVersion"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Elgato.4KCaptureUtility",
+      "name": "Elgato 4K Capture Utility",
+      "match_names": [
+        "Elgato 4K Capture Utility",
+        "Elgato.4KCaptureUtility"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Elgato 4K Capture Utility"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CleverCloud.CleverTools",
+      "name": "CleverTools",
+      "match_names": [
+        "CleverTools",
+        "CleverCloud.CleverTools"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CleverTools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BRAK.beAClientSecurity",
+      "name": "beA Client Security",
+      "match_names": [
+        "beA Client Security",
+        "BRAK.beAClientSecurity"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "beA Client Security"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.AWSVPNClient",
+      "name": "AWS VPN Client",
+      "match_names": [
+        "AWS VPN Client",
+        "Amazon.AWSVPNClient"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AWS VPN Client"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CubeSoft.CubePDFUtility",
+      "name": "CubePDF Utility",
+      "match_names": [
+        "CubePDF Utility",
+        "CubeSoft.CubePDFUtility"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CubePDF Utility"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BeagleSoftware.BeTL",
+      "name": "BeagleEditor Toolchain (BeTL)",
+      "match_names": [
+        "BeagleEditor Toolchain (BeTL)",
+        "BeagleSoftware.BeTL"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BeagleEditor Toolchain (BeTL)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Git.GCM",
+      "name": "Git Credential Manager (User)",
+      "match_names": [
+        "Git Credential Manager (User)",
+        "Git.GCM"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Git Credential Manager (User)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CloudMosaInc.PuffinSecureBrowser",
+      "name": "Puffin Secure Browser",
+      "match_names": [
+        "Puffin Secure Browser",
+        "CloudMosaInc.PuffinSecureBrowser"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Puffin Secure Browser"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DuckDuckGo.DesktopBrowser.Preview",
+      "name": "DuckDuckGo Preview",
+      "match_names": [
+        "DuckDuckGo Preview",
+        "DuckDuckGo.DesktopBrowser.Preview"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DuckDuckGo Preview"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DuckDuckGo.DesktopBrowser",
+      "name": "DuckDuckGo",
+      "match_names": [
+        "DuckDuckGo",
+        "DuckDuckGo.DesktopBrowser"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DuckDuckGo"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CentStudio.CentBrowser",
+      "name": "Cent Browser",
+      "match_names": [
+        "Cent Browser",
+        "CentStudio.CentBrowser"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cent Browser"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "browsers",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Datronicsoft.SpacedeskViewer.Client.Beta",
+      "name": "spacedesk Windows VIEWER",
+      "match_names": [
+        "spacedesk Windows VIEWER",
+        "Datronicsoft.SpacedeskViewer.Client.Beta"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "spacedesk Windows VIEWER"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ArturKharin.ProcessesPriorityManager",
+      "name": "Processes Priority Manager",
+      "match_names": [
+        "Processes Priority Manager",
+        "ArturKharin.ProcessesPriorityManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Processes Priority Manager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AprelTech.PowerManager",
+      "name": "Power Manager",
+      "match_names": [
+        "Power Manager",
+        "AprelTech.PowerManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Power Manager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.kuraCloudDesktop",
+      "name": "kuraCloud Desktop",
+      "match_names": [
+        "kuraCloud Desktop",
+        "ADInstruments.kuraCloudDesktop"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "kuraCloud Desktop"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CloudOpsSL.K8Studio",
+      "name": "K8Studio",
+      "match_names": [
+        "K8Studio",
+        "CloudOpsSL.K8Studio"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "K8Studio"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DigiteqAutomotive.DQViewer",
+      "name": "DQViewer",
+      "match_names": [
+        "DQViewer",
+        "DigiteqAutomotive.DQViewer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DQViewer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Chaoleme.ClipCascadeGo.Server",
+      "name": "ClipCascade Go (Server)",
+      "match_names": [
+        "ClipCascade Go (Server)",
+        "Chaoleme.ClipCascadeGo.Server"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ClipCascade Go (Server)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CaddyServer.Caddy",
+      "name": "Caddy",
+      "match_names": [
+        "Caddy",
+        "CaddyServer.Caddy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Caddy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AirDroid.AirDroidBusinessDesktopClient",
+      "name": "AirDroid Business Desktop Client",
+      "match_names": [
+        "AirDroid Business Desktop Client",
+        "AirDroid.AirDroidBusinessDesktopClient"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AirDroid Business Desktop Client"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrystalIDEASoftware.UninstallTool",
+      "name": "Uninstall Tool",
+      "match_names": [
+        "Uninstall Tool",
+        "CrystalIDEASoftware.UninstallTool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Uninstall Tool"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Danfoss.TTServiceMonitoringTools",
+      "name": "TT Service Monitoring Tools",
+      "match_names": [
+        "TT Service Monitoring Tools",
+        "Danfoss.TTServiceMonitoringTools"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "TT Service Monitoring Tools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aakash.Swiss",
+      "name": "Swiss CLI Tools",
+      "match_names": [
+        "Swiss CLI Tools",
+        "Aakash.Swiss"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Swiss CLI Tools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DimitarRadenkov.SnippingTool",
+      "name": "SnippingTool",
+      "match_names": [
+        "SnippingTool",
+        "DimitarRadenkov.SnippingTool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "SnippingTool"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Akaere.whois",
+      "name": "Simple Whois Tools",
+      "match_names": [
+        "Simple Whois Tools",
+        "Akaere.whois"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Simple Whois Tools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AlekseyHoffman.Sigma-File-Manager",
+      "name": "Sigma file manager",
+      "match_names": [
+        "Sigma file manager",
+        "AlekseyHoffman.Sigma-File-Manager",
+        "AlekseyHoffman.SigmaFileManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Sigma File Manager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:RProject.Rtools",
+      "name": "Rtools",
+      "match_names": [
+        "Rtools",
+        "RProject.Rtools"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Rtools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CorbinDavenport.NexusTools",
+      "name": "Nexus Tools",
+      "match_names": [
+        "Nexus Tools",
+        "CorbinDavenport.NexusTools"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Nexus Tools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ArtifexSoftware.mutool",
+      "name": "mutool",
+      "match_names": [
+        "mutool",
+        "ArtifexSoftware.mutool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "mutool"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Flowscripter.mpeg-sdl-tool",
+      "name": "MPEG SDL Tool",
+      "match_names": [
+        "MPEG SDL Tool",
+        "Flowscripter.mpeg-sdl-tool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "MPEG SDL Tool"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ClassicDIY.ModbusTool",
+      "name": "ModbusTool",
+      "match_names": [
+        "ModbusTool",
+        "ClassicDIY.ModbusTool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ModbusTool"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BartoszCichecki.LenovoLegionToolkit",
+      "name": "Lenovo Legion Toolkit",
+      "match_names": [
+        "Lenovo Legion Toolkit",
+        "BartoszCichecki.LenovoLegionToolkit"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Lenovo Legion Toolkit"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ABB.i-busTool",
+      "name": "i-bus Tool",
+      "match_names": [
+        "i-bus Tool",
+        "ABB.i-busTool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "i-bus Tool"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryFortress.HashTools",
+      "name": "HashTools",
+      "match_names": [
+        "HashTools",
+        "BinaryFortress.HashTools"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "HashTools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GDRETools.gdsdecomp",
+      "name": "Godot RE Tools",
+      "match_names": [
+        "Godot RE Tools",
+        "GDRETools.gdsdecomp"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Godot RE Tools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Arm.GnuArmEmbeddedToolchain",
+      "name": "GNU Arm Embedded Toolchain",
+      "match_names": [
+        "GNU Arm Embedded Toolchain",
+        "Arm.GnuArmEmbeddedToolchain"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GNU Arm Embedded Toolchain"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GenericMappingTools.gmt",
+      "name": "GMT6",
+      "match_names": [
+        "GMT6",
+        "GenericMappingTools.gmt"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GMT6"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GIGABYTE.DRMFixTool",
+      "name": "GIGABYTE DRM Fix Tool",
+      "match_names": [
+        "GIGABYTE DRM Fix Tool",
+        "GIGABYTE.DRMFixTool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "GIGABYTE DRM Fix Tool"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GIGABYTE.BIOS",
+      "name": "Gigabyte atBIOS utility",
+      "match_names": [
+        "Gigabyte atBIOS utility",
+        "GIGABYTE.BIOS"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Gigabyte atBIOS utility"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GAI.FileTools",
+      "name": "FileTools",
+      "match_names": [
+        "FileTools",
+        "GAI.FileTools"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FileTools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AllanBoll.FilesRemote",
+      "name": "FilesRemote",
+      "match_names": [
+        "FilesRemote",
+        "AllanBoll.FilesRemote"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "FilesRemote"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ByteDance.Feishu.MSI",
+      "name": "Feishu Deployment Tool",
+      "match_names": [
+        "Feishu Deployment Tool",
+        "ByteDance.Feishu.MSI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Feishu Deployment Tool"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gainward.EXPERTool",
+      "name": "EXPERTool",
+      "match_names": [
+        "EXPERTool",
+        "Gainward.EXPERTool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "EXPERTool"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FrankBijnen.ExifToolGUI",
+      "name": "ExifToolGUI",
+      "match_names": [
+        "ExifToolGUI",
+        "FrankBijnen.ExifToolGUI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ExifToolGUI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:EclipseFoundation.Eclipse.Modeling",
+      "name": "Eclipse Modeling Tools",
+      "match_names": [
+        "Eclipse Modeling Tools",
+        "EclipseFoundation.Eclipse.Modeling"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Eclipse Modeling Tools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GNE.DualMonitorTools",
+      "name": "Dual Monitor Tools",
+      "match_names": [
+        "Dual Monitor Tools",
+        "GNE.DualMonitorTools"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Dual Monitor Tools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DZEDSystems.DragonframeLicenseManager",
+      "name": "DragonframeLicenseManager",
+      "match_names": [
+        "DragonframeLicenseManager",
+        "DZEDSystems.DragonframeLicenseManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DragonframeLicenseManager"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:C-PartnerSystemhausGmbH.DocuToolbox",
+      "name": "DocuToolbox",
+      "match_names": [
+        "DocuToolbox",
+        "C-PartnerSystemhausGmbH.DocuToolbox"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DocuToolbox"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CodingWondersSoftware.DISMTools.Preview",
+      "name": "DISMTools Preview",
+      "match_names": [
+        "DISMTools Preview",
+        "CodingWondersSoftware.DISMTools.Preview"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DISMTools Preview"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CodingWondersSoftware.DISMTools.Stable",
+      "name": "DISMTools",
+      "match_names": [
+        "DISMTools",
+        "CodingWondersSoftware.DISMTools.Stable"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DISMTools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Boxstar.DeepVocalToolBox",
+      "name": "DeepVocal ToolBox",
+      "match_names": [
+        "DeepVocal ToolBox",
+        "Boxstar.DeepVocalToolBox"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DeepVocal ToolBox"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cyotek.CopyTools",
+      "name": "Cyotek CopyTools",
+      "match_names": [
+        "Cyotek CopyTools"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cyotek CopyTools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CyberPowerSystemsInc.PowerPanelPersonal",
+      "name": "CyberPower PowerPanel Personal",
+      "match_names": [
+        "CyberPower PowerPanel Personal",
+        "CyberPowerSystemsInc.PowerPanelPersonal"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CyberPower PowerPanel Personal"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Chadsoft.CTools",
+      "name": "CTools",
+      "match_names": [
+        "CTools",
+        "Chadsoft.CTools"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CTools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Crucial.PortableSSDUtilitySoftware",
+      "name": "Crucial Portable SSD Utility Software",
+      "match_names": [
+        "Crucial Portable SSD Utility Software",
+        "Crucial.PortableSSDUtilitySoftware"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Crucial Portable SSD Utility Software"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Concept2.Utility",
+      "name": "Concept2 Utility",
+      "match_names": [
+        "Concept2 Utility"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Concept2 Utility"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryFortress.ClipboardFusion",
+      "name": "ClipboardFusion",
+      "match_names": [
+        "ClipboardFusion",
+        "BinaryFortress.ClipboardFusion"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ClipboardFusion"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CHERRY.UTILITY",
+      "name": "CHERRY Utility Software",
+      "match_names": [
+        "CHERRY Utility Software",
+        "CHERRY.UTILITY"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CHERRY Utility Software"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CBackup.CBackup",
+      "name": "CBackup",
+      "match_names": [
+        "CBackup",
+        "CBackup.CBackup"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CBackup"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Brotje.ServiceTool",
+      "name": "Brötje Service Tool (PCST)",
+      "match_names": [
+        "Brötje Service Tool (PCST)",
+        "Brotje.ServiceTool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Brötje Service Tool (PCST)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BRÖTJE.ProfiTool",
+      "name": "BRÖTJE ProfiTool",
+      "match_names": [
+        "BRÖTJE ProfiTool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BRÖTJE ProfiTool"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Box.BoxTools",
+      "name": "Box Tools",
+      "match_names": [
+        "Box Tools",
+        "Box.BoxTools"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Box Tools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Box.BoxSync",
+      "name": "Box Sync",
+      "match_names": [
+        "Box Sync",
+        "Box.BoxSync"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Box Sync"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:7.4.21.0",
+      "name": "BDR Thermea Service Tool (PCST) BDRThermea.ServiceTool",
+      "match_names": [
+        "BDR Thermea Service Tool (PCST) BDRThermea.ServiceTool",
+        "7.4.21.0"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BDR Thermea Service Tool (PCST) BDRThermea.ServiceTool"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BDRThermea.ServiceTool",
+      "name": "BDR Thermea Service Tool (PCST)",
+      "match_names": [
+        "BDR Thermea Service Tool (PCST)",
+        "BDRThermea.ServiceTool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BDR Thermea Service Tool (PCST)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Baxi.ServiceTool",
+      "name": "Baxi Service Tool (PCST)",
+      "match_names": [
+        "Baxi Service Tool (PCST)",
+        "Baxi.ServiceTool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Baxi Service Tool (PCST)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchFileSplitJoin",
+      "name": "Batch File Split & Join Free Edition",
+      "match_names": [
+        "Batch File Split & Join Free Edition",
+        "BinaryMark.BatchFileSplitJoin"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch File Split & Join Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchFileManager",
+      "name": "Batch File Manager Free Edition",
+      "match_names": [
+        "Batch File Manager Free Edition",
+        "BinaryMark.BatchFileManager"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch File Manager Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BarryCarlyon.BarryCarlyonExtensionTools",
+      "name": "BarryCarlyon Extension Tools",
+      "match_names": [
+        "BarryCarlyon Extension Tools",
+        "BarryCarlyon.BarryCarlyonExtensionTools"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BarryCarlyon Extension Tools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AXIS.AxisIPUtility",
+      "name": "AXIS IP Utility",
+      "match_names": [
+        "AXIS IP Utility",
+        "AXIS.AxisIPUtility"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AXIS IP Utility"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AXIS.AxisDeviceCompatibilityTool",
+      "name": "AXIS Camera Station Device Compatibility Tool",
+      "match_names": [
+        "AXIS Camera Station Device Compatibility Tool",
+        "AXIS.AxisDeviceCompatibilityTool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AXIS Camera Station Device Compatibility Tool"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Giancan.AutoGRToolkit",
+      "name": "AutoGR Toolkit",
+      "match_names": [
+        "AutoGR Toolkit",
+        "Giancan.AutoGRToolkit"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AutoGR Toolkit"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Arm.ArmGnuToolchain",
+      "name": "Arm GNU Toolchain",
+      "match_names": [
+        "Arm GNU Toolchain",
+        "Arm.ArmGnuToolchain"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Arm GNU Toolchain"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AOMEI.Backupper.Standard",
+      "name": "AOMEI Backupper",
+      "match_names": [
+        "AOMEI Backupper",
+        "AOMEI.Backupper.Standard"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AOMEI Backupper"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Botkind.AllwaySync",
+      "name": "Allway Sync",
+      "match_names": [
+        "Allway Sync",
+        "Botkind.AllwaySync"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Allway Sync"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Apple.AirPort",
+      "name": "AirPort Utility",
+      "match_names": [
+        "AirPort Utility",
+        "Apple.AirPort"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AirPort Utility"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADATA.SSDToolbox",
+      "name": "ADATA SSD Toolbox",
+      "match_names": [
+        "ADATA SSD Toolbox",
+        "ADATA.SSDToolbox"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADATA SSD Toolbox"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ActiveDirectoryPro.ADProToolkit",
+      "name": "AD Pro Toolkit",
+      "match_names": [
+        "AD Pro Toolkit",
+        "ActiveDirectoryPro.ADProToolkit"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AD Pro Toolkit"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cjwdev.ADAccountResetTool",
+      "name": "AD Account Reset Tool",
+      "match_names": [
+        "AD Account Reset Tool",
+        "Cjwdev.ADAccountResetTool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AD Account Reset Tool"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AcFun.AcFunVirtualTool",
+      "name": "AcFun面捕助手",
+      "match_names": [
+        "AcFun面捕助手",
+        "AcFun.AcFunVirtualTool"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AcFun面捕助手"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ActiveDirectoryPro.365ProToolkit",
+      "name": "365 Pro Toolkit",
+      "match_names": [
+        "365 Pro Toolkit",
+        "ActiveDirectoryPro.365ProToolkit"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "365 Pro Toolkit"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AquaSecurity.Trivy",
+      "name": "Trivy",
+      "match_names": [
+        "Trivy",
+        "AquaSecurity.Trivy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Trivy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Delinea.ThycoticLocalSecurityAgent",
+      "name": "Thycotic Local Security Agent",
+      "match_names": [
+        "Thycotic Local Security Agent",
+        "Delinea.ThycoticLocalSecurityAgent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Thycotic Local Security Agent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CGSecurity.TestDisk",
+      "name": "TestDisk",
+      "match_names": [
+        "TestDisk",
+        "CGSecurity.TestDisk"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "TestDisk"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BiniSoft.WindowsFirewallControl",
+      "name": "Malwarebytes Windows Firewall Control",
+      "match_names": [
+        "Malwarebytes Windows Firewall Control",
+        "BiniSoft.WindowsFirewallControl"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Malwarebytes Windows Firewall Control"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Elcomsoft.PasswordDigger",
+      "name": "Elcomsoft Password Digger",
+      "match_names": [
+        "Elcomsoft Password Digger",
+        "Elcomsoft.PasswordDigger"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Elcomsoft Password Digger"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AirVPN.Eddie",
+      "name": "Eddie - VPN Tunnel",
+      "match_names": [
+        "Eddie - VPN Tunnel",
+        "AirVPN.Eddie"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Eddie - VPN Tunnel"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DaMtech.PasswordGenerator",
+      "name": "DaMtech Password Generator",
+      "match_names": [
+        "DaMtech Password Generator",
+        "DaMtech.PasswordGenerator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "DaMtech Password Generator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrowdSecurity.CrowdSecWindowsFirewallBouncer",
+      "name": "CrowdSec Windows Firewall Bouncer",
+      "match_names": [
+        "CrowdSec Windows Firewall Bouncer",
+        "CrowdSecurity.CrowdSecWindowsFirewallBouncer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CrowdSec Windows Firewall Bouncer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrowdSecurity.CrowdSec",
+      "name": "CrowdSec",
+      "match_names": [
+        "CrowdSec",
+        "CrowdSecurity.CrowdSec"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "CrowdSec"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AmneziaVPN.AmneziaVPN",
+      "name": "AmneziaVPN",
+      "match_names": [
+        "AmneziaVPN",
+        "AmneziaVPN.AmneziaVPN"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AmneziaVPN"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Elcomsoft.SagePassword",
+      "name": "Advanced Sage Password Recovery",
+      "match_names": [
+        "Advanced Sage Password Recovery",
+        "Elcomsoft.SagePassword"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Advanced Sage Password Recovery"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdGuard.AdGuardVPN.Beta",
+      "name": "AdGuard VPN Beta",
+      "match_names": [
+        "AdGuard VPN Beta",
+        "AdGuard.AdGuardVPN.Beta"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdGuard VPN Beta"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdGuard.AdGuardVPN",
+      "name": "AdGuard VPN",
+      "match_names": [
+        "AdGuard VPN",
+        "AdGuard.AdGuardVPN"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdGuard VPN"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BitRecover.AadhaarCardPasswordRemover",
+      "name": "Aadhaar Card Password Remover",
+      "match_names": [
+        "Aadhaar Card Password Remover",
+        "BitRecover.AadhaarCardPasswordRemover"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Aadhaar Card Password Remover"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AgileBits.1Password.CLI",
+      "name": "1Password CLI",
+      "match_names": [
+        "1Password CLI",
+        "AgileBits.1Password.CLI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "1Password CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AgileBits.1Password.Beta",
+      "name": "1Password Beta",
+      "match_names": [
+        "1Password Beta",
+        "AgileBits.1Password.Beta"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "1Password Beta"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AgileBits.1Password",
+      "name": "1Password",
+      "match_names": [
+        "1Password",
+        "AgileBits.1Password"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "1Password"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}
