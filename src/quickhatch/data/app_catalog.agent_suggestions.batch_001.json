@@ -1,0 +1,6299 @@
+{
+  "schema": 1,
+  "batch": "001",
+  "source_batch": "src/quickhatch/data/app_catalog.research_batch_001.json",
+  "generated_on": "2026-04-24",
+  "entries": [
+    {
+      "id": "winget:Apryse.XodoPDFStudio",
+      "name": "Xodo PDF Studio",
+      "compatibility": "native",
+      "alternatives": [
+        "Xodo PDF Studio",
+        "Okular",
+        "LibreOffice Draw"
+      ],
+      "source_hint": "web",
+      "confidence": "high",
+      "category": "office",
+      "notes": "Vendor provides a Linux 64-bit shell installer, not distro packages.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download and run the vendor Linux .sh installer."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download and run the vendor Linux .sh installer."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download and run the vendor Linux .sh installer."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download and run the vendor Linux .sh installer."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download and run the vendor Linux .sh installer."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download and run the vendor Linux .sh installer."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download and run the vendor Linux .sh installer."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download and run the vendor Linux .sh installer."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Apryse Xodo PDF Studio Linux installer",
+          "url": "https://support.apryse.com/support/solutions/articles/35000251387-installation-instructions"
+        }
+      ]
+    },
+    {
+      "id": "winget:Avanquest.SodaPDFDesktop",
+      "name": "Soda PDF Desktop 14",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Soda PDF Online",
+        "Xodo PDF Studio",
+        "Okular"
+      ],
+      "source_hint": "web",
+      "confidence": "medium",
+      "category": "office",
+      "notes": "Desktop app is Windows-focused; Linux use is via web tools or alternatives.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Soda PDF desktop/web plans",
+          "url": "https://www.sodapdf.com/media/business/premium-plan.pdf"
+        }
+      ]
+    },
+    {
+      "id": "winget:AudioCodes.INIViewerEditor",
+      "name": "INI Viewer & Editor",
+      "compatibility": "native",
+      "alternatives": [
+        "INI Viewer & Editor",
+        "Kate",
+        "gedit"
+      ],
+      "source_hint": "web",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "AudioCodes lists a Linux download for INI Viewer & Editor.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux build from AudioCodes utilities page."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux build from AudioCodes utilities page."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux build from AudioCodes utilities page."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux build from AudioCodes utilities page."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux build from AudioCodes utilities page."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux build from AudioCodes utilities page."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux build from AudioCodes utilities page."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux build from AudioCodes utilities page."
+        }
+      },
+      "evidence": [
+        {
+          "label": "AudioCodes utilities",
+          "url": "https://tools.audiocodes.com/install/"
+        }
+      ]
+    },
+    {
+      "id": "winget:ArobasMusic.GuitarPro.8",
+      "name": "Guitar Pro 8",
+      "compatibility": "none",
+      "alternatives": [
+        "TuxGuitar",
+        "MuseScore"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "media",
+      "notes": "Official Guitar Pro 8 requirements list Windows and macOS only.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Guitar Pro 8 requirements",
+          "url": "https://support.guitar-pro.com/hc/en-us/articles/5703223630109-GP8-Guitar-Pro-8-system-requirements"
+        }
+      ]
+    },
+    {
+      "id": "winget:ArobasMusic.GuitarPro.7.Soundbanks",
+      "name": "Guitar Pro 7 - Soundbanks",
+      "compatibility": "none",
+      "alternatives": [
+        "TuxGuitar",
+        "MuseScore"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "media",
+      "notes": "Soundbanks are an add-on for Guitar Pro 7, which has no official Linux build.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Guitar Pro 7 announcement",
+          "url": "https://www.guitar-pro.com/blog/p/13257-guitar-pro-7-available"
+        }
+      ]
+    },
+    {
+      "id": "winget:ArobasMusic.GuitarPro.7",
+      "name": "Guitar Pro 7",
+      "compatibility": "none",
+      "alternatives": [
+        "TuxGuitar",
+        "MuseScore"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "media",
+      "notes": "Guitar Pro 7 was announced for Windows and Mac.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Guitar Pro 7 announcement",
+          "url": "https://www.guitar-pro.com/blog/p/13257-guitar-pro-7-available"
+        }
+      ]
+    },
+    {
+      "id": "winget:ArobasMusic.GuitarPro.6",
+      "name": "Guitar Pro 6",
+      "compatibility": "native",
+      "alternatives": [
+        "Guitar Pro 6",
+        "TuxGuitar",
+        "MuseScore"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Legacy unsupported Linux build exists for old 32-bit Ubuntu-era systems.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Legacy Linux download requires old 32-bit dependencies; verify before use."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Legacy Linux download requires old 32-bit dependencies; verify before use."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Legacy Linux download requires old 32-bit dependencies; verify before use."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Legacy Linux download requires old 32-bit dependencies; verify before use."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Legacy Linux download requires old 32-bit dependencies; verify before use."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Legacy Linux download requires old 32-bit dependencies; verify before use."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Legacy Linux download requires old 32-bit dependencies; verify before use."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Legacy Linux download requires old 32-bit dependencies; verify before use."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Guitar Pro 6 Linux download note",
+          "url": "https://support.guitar-pro.com/hc/en-us/articles/115001720809-Download-Guitar-Pro-6-Tablature-Editor-Software"
+        }
+      ]
+    },
+    {
+      "id": "winget:DuckStudio.GitHubView.Nightly",
+      "name": "GitHubView (Nightly)",
+      "compatibility": "unknown",
+      "alternatives": [
+        "GitHub web",
+        "GitHub Desktop for Linux fork",
+        "Git CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Nightly winget package appears Windows-targeted; Linux artifacts need verification.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:ActiveDatabaseSoftware.FlySpeedSQLQuery",
+      "name": "FlySpeed SQL Query",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "DBeaver",
+        "DataGrip",
+        "Beekeeper Studio"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Vendor FAQ mentions Linux question but distro-ready support was not confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Docker.DockerDesktopEdge",
+      "name": "Docker Desktop Edge",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Docker Engine",
+        "Podman",
+        "Docker Compose"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "development",
+      "notes": "Use native Docker Engine or Podman on Linux; Desktop Edge channel is not a distro baseline.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "docker"
+          ],
+          "notes": "Use Docker Engine or Podman on Linux."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [
+            "docker-ce",
+            "docker-ce-cli",
+            "containerd.io",
+            "docker-compose-plugin"
+          ],
+          "notes": "Use Docker Engine from Docker apt repository."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [
+            "docker-ce",
+            "docker-ce-cli",
+            "containerd.io",
+            "docker-compose-plugin"
+          ],
+          "notes": "Use Docker Engine from Docker apt repository."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [
+            "docker-ce",
+            "docker-ce-cli",
+            "containerd.io",
+            "docker-compose-plugin"
+          ],
+          "notes": "Use Docker Engine from Docker dnf repository."
+        },
+        "opensuse": {
+          "source": "repo",
+          "packages": [
+            "docker"
+          ],
+          "notes": "Use Docker Engine or Podman on Linux."
+        },
+        "alpine": {
+          "source": "repo",
+          "packages": [
+            "docker"
+          ],
+          "notes": "Use Docker Engine or Podman on Linux."
+        },
+        "void": {
+          "source": "repo",
+          "packages": [
+            "docker"
+          ],
+          "notes": "Use Docker Engine or Podman on Linux."
+        },
+        "gentoo": {
+          "source": "repo",
+          "packages": [
+            "app-containers/docker"
+          ],
+          "notes": "Use distro Docker Engine."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Docker Engine Fedora docs",
+          "url": "https://docs.docker.com/engine/install/fedora/"
+        }
+      ]
+    },
+    {
+      "id": "winget:CMI.LehrerOfficeDesktop",
+      "name": "CMI LehrerOffice",
+      "compatibility": "native",
+      "alternatives": [
+        "CMI LehrerOffice Desktop"
+      ],
+      "source_hint": "web",
+      "confidence": "high",
+      "category": "office",
+      "notes": "Vendor download page includes Linux downloads and install instructions.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux installer from CMI and follow vendor instructions."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux installer from CMI and follow vendor instructions."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux installer from CMI and follow vendor instructions."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux installer from CMI and follow vendor instructions."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux installer from CMI and follow vendor instructions."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux installer from CMI and follow vendor instructions."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux installer from CMI and follow vendor instructions."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux installer from CMI and follow vendor instructions."
+        }
+      },
+      "evidence": [
+        {
+          "label": "CMI LehrerOffice downloads",
+          "url": "https://cmi-bildung.ch/beratung-und-unterstuetzung/download/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BlobstStudios.bVald",
+      "name": "bVald",
+      "compatibility": "unknown",
+      "alternatives": [],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Could not confirm credible Linux support from primary sources.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Bullzip.BullzipPDFStudio",
+      "name": "Bullzip PDF Studio",
+      "compatibility": "none",
+      "alternatives": [
+        "Okular",
+        "Evince",
+        "LibreOffice Draw",
+        "Xournal++"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "office",
+      "notes": "Bullzip PDF Studio requirements list Windows and .NET Framework.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Bullzip PDF Studio requirements",
+          "url": "https://www.bullzip.com/products/stu/index.php"
+        }
+      ]
+    },
+    {
+      "id": "winget:Ascensio.AVSVideoEditor",
+      "name": "AVS Video Editor",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Kdenlive",
+        "Shotcut",
+        "OpenShot",
+        "DaVinci Resolve"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "media",
+      "notes": "AVS desktop editors are Windows-oriented; use native Linux video editors.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "AVS Video Editor help",
+          "url": "https://onlinehelp.avs4you.com/avs-video-editor/index.aspx"
+        }
+      ]
+    },
+    {
+      "id": "winget:Ascensio.AVSAudioEditor",
+      "name": "AVS Audio Editor",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Audacity",
+        "Tenacity",
+        "Ardour"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "media",
+      "notes": "Official AVS Audio Editor page states no Mac OS/Linux support.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "AVS Audio Editor requirements",
+          "url": "https://www.avs4you.com/AVS-Audio-Editor.aspx"
+        }
+      ]
+    },
+    {
+      "id": "winget:Avaya.CloudOfficeForTeamsDesktopPlugin",
+      "name": "Avaya Cloud Office for Teams Desktop Plugin",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "Microsoft Teams web",
+        "Avaya Cloud Office web integration"
+      ],
+      "source_hint": "web",
+      "confidence": "medium",
+      "category": "communication",
+      "notes": "Teams integration is service/web-centered; Linux desktop plugin package was not confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Avaya Cloud Office Teams integration",
+          "url": "https://www.avaya.com/en/products/cloud-office/calling-integrations/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Audio_Arcade.Audio_Arcade",
+      "name": "Audio_Arcade",
+      "compatibility": "unknown",
+      "alternatives": [],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Primary Linux packaging or platform support could not be confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:AlexanderGorishnyak.APKEditorStudio",
+      "name": "APK Editor Studio",
+      "compatibility": "native",
+      "alternatives": [
+        "APK Editor Studio",
+        "apktool",
+        "JADX"
+      ],
+      "source_hint": "vendor_appimage",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Open-source project provides cross-platform releases; use AppImage/manual install on Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux AppImage or archive from upstream releases."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux AppImage or archive from upstream releases."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux AppImage or archive from upstream releases."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux AppImage or archive from upstream releases."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux AppImage or archive from upstream releases."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux AppImage or archive from upstream releases."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux AppImage or archive from upstream releases."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux AppImage or archive from upstream releases."
+        }
+      },
+      "evidence": [
+        {
+          "label": "APK Editor Studio GitHub",
+          "url": "https://github.com/kefir500/apk-editor-studio"
+        }
+      ]
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Module.VideoCapture",
+      "name": "ADInstruments VideoCapture",
+      "compatibility": "none",
+      "alternatives": [
+        "OBS Studio",
+        "ffmpeg",
+        "Cheese"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "media",
+      "notes": "LabChart module is tied to ADInstruments desktop workflows; Linux package not found.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:AppSolves.TikArcade-Studio",
+      "name": "TikArcade Studio",
+      "compatibility": "unknown",
+      "alternatives": [],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Primary Linux support could not be verified.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:ColonyLabs.ScribeDesktopCapture",
+      "name": "Scribe",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Scribe web",
+        "OBS Studio",
+        "Kazam"
+      ],
+      "source_hint": "web",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "Scribe is primarily a browser/cloud workflow; Linux desktop capture app was not confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Donkz.RemoteDesktopPlus",
+      "name": "Remote Desktop Plus",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Remmina",
+        "FreeRDP",
+        "KRDC"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "Windows RDP helper; Linux has native RDP clients.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Devolutions.RemoteDesktopManagerAgent",
+      "name": "Remote Desktop Manager Agent",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "Devolutions Agent",
+        "Remmina",
+        "FreeRDP"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "Devolutions has Linux products, but this agent role needs product-specific verification.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor Linux package for supported distributions."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Use vendor Linux package for supported distributions."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Use vendor Linux package for supported distributions."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Use vendor Linux package for supported distributions."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Use vendor Linux package for supported distributions."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor Linux package for supported distributions."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor Linux package for supported distributions."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor Linux package for supported distributions."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Devolutions Linux lifecycle policy",
+          "url": "https://docs.devolutions.net/portal/kb/general-knowledge/life-cycle-policies/remote-desktop-manager/rdm-linux-life-cycle-policy/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Devolutions.RemoteDesktopManager",
+      "name": "Remote Desktop Manager",
+      "compatibility": "native",
+      "alternatives": [
+        "Remote Desktop Manager",
+        "Remmina",
+        "FreeRDP"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "Devolutions documents Remote Desktop Manager for Linux on tested distributions.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor Linux package for supported distributions."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Use vendor Linux package for supported distributions."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Use vendor Linux package for supported distributions."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Use vendor Linux package for supported distributions."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Use vendor Linux package for supported distributions."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor Linux package for supported distributions."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor Linux package for supported distributions."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor Linux package for supported distributions."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Devolutions Linux lifecycle policy",
+          "url": "https://docs.devolutions.net/portal/kb/general-knowledge/life-cycle-policies/remote-desktop-manager/rdm-linux-life-cycle-policy/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DuckStudio.GitHubView",
+      "name": "GitHubView",
+      "compatibility": "unknown",
+      "alternatives": [
+        "GitHub web",
+        "GitHub Desktop for Linux fork",
+        "Git CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Linux release assets were not confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DuckStudio.GitHubLabelsManager",
+      "name": "GitHub 标签管理器",
+      "compatibility": "unknown",
+      "alternatives": [
+        "GitHub web labels UI",
+        "GitHub CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Winget metadata indicates a Windows installer; Linux package was not confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:GitHub.GitHubDesktop.Beta",
+      "name": "GitHub Desktop Beta",
+      "compatibility": "alternative",
+      "alternatives": [
+        "GitHub Desktop for Linux fork",
+        "Git CLI",
+        "GitKraken"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "high",
+      "category": "development",
+      "notes": "Official beta is not Linux, but the maintained Linux fork is on Flathub.",
+      "install_hints": {
+        "arch": {
+          "source": "flatpak",
+          "packages": [
+            "io.github.shiftey.Desktop"
+          ],
+          "notes": "Install community Linux fork from Flathub."
+        },
+        "debian": {
+          "source": "flatpak",
+          "packages": [
+            "io.github.shiftey.Desktop"
+          ],
+          "notes": "Install community Linux fork from Flathub."
+        },
+        "ubuntu": {
+          "source": "flatpak",
+          "packages": [
+            "io.github.shiftey.Desktop"
+          ],
+          "notes": "Install community Linux fork from Flathub."
+        },
+        "fedora": {
+          "source": "flatpak",
+          "packages": [
+            "io.github.shiftey.Desktop"
+          ],
+          "notes": "Install community Linux fork from Flathub."
+        },
+        "opensuse": {
+          "source": "flatpak",
+          "packages": [
+            "io.github.shiftey.Desktop"
+          ],
+          "notes": "Install community Linux fork from Flathub."
+        },
+        "alpine": {
+          "source": "flatpak",
+          "packages": [
+            "io.github.shiftey.Desktop"
+          ],
+          "notes": "Install community Linux fork from Flathub."
+        },
+        "void": {
+          "source": "flatpak",
+          "packages": [
+            "io.github.shiftey.Desktop"
+          ],
+          "notes": "Install community Linux fork from Flathub."
+        },
+        "gentoo": {
+          "source": "flatpak",
+          "packages": [
+            "io.github.shiftey.Desktop"
+          ],
+          "notes": "Install community Linux fork from Flathub."
+        }
+      },
+      "evidence": [
+        {
+          "label": "GitHub Desktop Linux fork on Flathub",
+          "url": "https://flathub.org/apps/details/io.github.shiftey.Desktop"
+        }
+      ]
+    },
+    {
+      "id": "winget:Chaoleme.ClipCascadeGo.Desktop",
+      "name": "ClipCascade Go (Desktop)",
+      "compatibility": "native",
+      "alternatives": [
+        "ClipCascade",
+        "KDE Connect",
+        "LocalSend"
+      ],
+      "source_hint": "web",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "Project reports desktop Linux support, but packaging should be verified per release.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Autodesk.DesktopConnector",
+      "name": "Autodesk Desktop Connector",
+      "compatibility": "none",
+      "alternatives": [
+        "Autodesk Docs web",
+        "rclone/manual upload where supported"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "Autodesk Desktop Connector system requirements list Windows 10/11.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Autodesk Desktop Connector requirements",
+          "url": "https://help.autodesk.com/view/CONNECT/ENU/?guid=System_Requirements_Desktop_Connector"
+        }
+      ]
+    },
+    {
+      "id": "winget:Autodesk.DesktopApp",
+      "name": "Autodesk Desktop App",
+      "compatibility": "none",
+      "alternatives": [
+        "Autodesk web account",
+        "distro package managers"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "Autodesk desktop management app is Windows-centric and not a Linux package manager.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Autodesk Desktop Connector requirements",
+          "url": "https://help.autodesk.com/view/CONNECT/ENU/?guid=System_Requirements_Desktop_Connector"
+        }
+      ]
+    },
+    {
+      "id": "winget:Codemao.TurtleEditor.2",
+      "name": "海龟编辑器 2.0",
+      "compatibility": "unknown",
+      "alternatives": [
+        "Scratch",
+        "TurtleBlocks",
+        "Python turtle"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Linux support for this Codemao desktop editor was not confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Apryse.XodoPDFReader",
+      "name": "Xodo PDF Reader",
+      "compatibility": "native",
+      "alternatives": [
+        "Xodo PDF Reader",
+        "Okular",
+        "Evince"
+      ],
+      "source_hint": "web",
+      "confidence": "high",
+      "category": "office",
+      "notes": "Xodo states PDF Reader is available for Windows, macOS, and Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Xodo PDF Reader Linux page",
+          "url": "https://xodo.com/pdf-studio/free-pdf-reader"
+        }
+      ]
+    },
+    {
+      "id": "winget:1.26.0.0",
+      "name": "Visual Studio / Code for Command Palette 15722UsefulApp.WorkspaceLauncherForVSCode",
+      "compatibility": "none",
+      "alternatives": [
+        "Visual Studio Code",
+        "VS Code extensions"
+      ],
+      "source_hint": "none",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Malformed winget entry appears to describe a Windows Command Palette extension.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:visual-studio-code-for-command-palette",
+      "name": "Visual Studio / Code for Command Palette",
+      "compatibility": "none",
+      "alternatives": [
+        "Visual Studio Code",
+        "VS Code extensions"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Command Palette package is Windows-specific; VS Code itself runs natively on Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "VS Code Linux setup",
+          "url": "https://code.visualstudio.com/docs/setup/linux"
+        }
+      ]
+    },
+    {
+      "id": "winget:GianlucaPernigotto.Videomass",
+      "name": "Videomass",
+      "compatibility": "native",
+      "alternatives": [
+        "Videomass",
+        "HandBrake",
+        "FFmpeg"
+      ],
+      "source_hint": "web",
+      "confidence": "high",
+      "category": "media",
+      "notes": "Videomass is documented as cross-platform and works on Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Videomass Linux support",
+          "url": "https://jeanslack.github.io/Videomass/about.html"
+        }
+      ]
+    },
+    {
+      "id": "winget:0.0.9.0",
+      "name": "Video Downloader for Command Palette DevLG.CmdPalVideoDownloader",
+      "compatibility": "none",
+      "alternatives": [
+        "yt-dlp",
+        "Tartube",
+        "Video Downloader GUI"
+      ],
+      "source_hint": "none",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Malformed Command Palette video downloader entry; Linux package not confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DevLG.CmdPalVideoDownloader",
+      "name": "Video Downloader for Command Palette",
+      "compatibility": "none",
+      "alternatives": [
+        "yt-dlp",
+        "Tartube",
+        "Video Downloader GUI"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "media",
+      "notes": "Windows Command Palette extension; use native video-download tools on Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:EditoraGloboSA.ValorPRO",
+      "name": "Valor PRO",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Valor PRO web",
+        "browser shortcut"
+      ],
+      "source_hint": "web",
+      "confidence": "medium",
+      "category": "media",
+      "notes": "Business/news service is best treated as a web app on Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use the web application in a supported browser."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:CodeSystems.Turbo",
+      "name": "Turbo.net Desktop",
+      "compatibility": "none",
+      "alternatives": [
+        "Docker",
+        "Podman",
+        "Flatpak",
+        "Distrobox"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "Turbo.net Desktop is Windows app-virtualization tooling; no Linux desktop package confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Turbo.net overview",
+          "url": "https://turbo.net/"
+        }
+      ]
+    },
+    {
+      "id": "winget:CodeSystems.TurboStudio",
+      "name": "Turbo Studio",
+      "compatibility": "none",
+      "alternatives": [
+        "Docker",
+        "Podman",
+        "Flatpak Builder"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "Turbo Studio targets Windows application packaging and virtualization workflows.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Turbo.net overview",
+          "url": "https://turbo.net/"
+        }
+      ]
+    },
+    {
+      "id": "winget:AnchorFree.TouchVPN",
+      "name": "TouchVPN",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Proton VPN",
+        "Mullvad VPN",
+        "OpenVPN",
+        "WireGuard"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "security",
+      "notes": "Touch VPN support site has no Linux desktop baseline.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Touch VPN support",
+          "url": "https://support.touchvpn.net/hc/en-us"
+        }
+      ]
+    },
+    {
+      "id": "winget:GermanCoding.SyncTrayzor",
+      "name": "SyncTrayzor (x64)",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Syncthing",
+        "Syncthing Tray"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "SyncTrayzor is Windows-specific; use Syncthing plus Syncthing Tray on Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "flatpak",
+          "packages": [
+            "io.github.martchus.syncthingtray"
+          ],
+          "notes": "Install Syncthing Tray from Flathub; install Syncthing separately if needed."
+        },
+        "debian": {
+          "source": "flatpak",
+          "packages": [
+            "io.github.martchus.syncthingtray"
+          ],
+          "notes": "Install Syncthing Tray from Flathub; install Syncthing separately if needed."
+        },
+        "ubuntu": {
+          "source": "flatpak",
+          "packages": [
+            "io.github.martchus.syncthingtray"
+          ],
+          "notes": "Install Syncthing Tray from Flathub; install Syncthing separately if needed."
+        },
+        "fedora": {
+          "source": "flatpak",
+          "packages": [
+            "io.github.martchus.syncthingtray"
+          ],
+          "notes": "Install Syncthing Tray from Flathub; install Syncthing separately if needed."
+        },
+        "opensuse": {
+          "source": "flatpak",
+          "packages": [
+            "io.github.martchus.syncthingtray"
+          ],
+          "notes": "Install Syncthing Tray from Flathub; install Syncthing separately if needed."
+        },
+        "alpine": {
+          "source": "flatpak",
+          "packages": [
+            "io.github.martchus.syncthingtray"
+          ],
+          "notes": "Install Syncthing Tray from Flathub; install Syncthing separately if needed."
+        },
+        "void": {
+          "source": "flatpak",
+          "packages": [
+            "io.github.martchus.syncthingtray"
+          ],
+          "notes": "Install Syncthing Tray from Flathub; install Syncthing separately if needed."
+        },
+        "gentoo": {
+          "source": "flatpak",
+          "packages": [
+            "io.github.martchus.syncthingtray"
+          ],
+          "notes": "Install Syncthing Tray from Flathub; install Syncthing separately if needed."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Arch Syncthing package",
+          "url": "https://archlinux.org/packages/extra/x86_64/syncthing/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BillStewart.SyncthingWindowsSetup",
+      "name": "Syncthing",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Syncthing"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "Windows installer wrapper is not needed; Syncthing is packaged natively on Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "syncthing"
+          ],
+          "notes": "Native Syncthing package is available."
+        },
+        "debian": {
+          "source": "repo",
+          "packages": [
+            "syncthing"
+          ],
+          "notes": "Native Syncthing package is available."
+        },
+        "ubuntu": {
+          "source": "repo",
+          "packages": [
+            "syncthing"
+          ],
+          "notes": "Native Syncthing package is available."
+        },
+        "fedora": {
+          "source": "repo",
+          "packages": [
+            "syncthing"
+          ],
+          "notes": "Native Syncthing package is available."
+        },
+        "opensuse": {
+          "source": "repo",
+          "packages": [
+            "syncthing"
+          ],
+          "notes": "Native Syncthing package is available."
+        },
+        "alpine": {
+          "source": "repo",
+          "packages": [
+            "syncthing"
+          ],
+          "notes": "Native Syncthing package is available."
+        },
+        "void": {
+          "source": "repo",
+          "packages": [
+            "syncthing"
+          ],
+          "notes": "Native Syncthing package is available."
+        },
+        "gentoo": {
+          "source": "repo",
+          "packages": [
+            "net-p2p/syncthing"
+          ],
+          "notes": "Native Syncthing package is available."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Arch Syncthing package",
+          "url": "https://archlinux.org/packages/extra/x86_64/syncthing/"
+        }
+      ]
+    },
+    {
+      "id": "winget:2BrightSparks.SyncBackSE",
+      "name": "SyncBackSE",
+      "compatibility": "alternative",
+      "alternatives": [
+        "rsync",
+        "Deja Dup",
+        "Restic",
+        "Syncthing"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "SyncBackSE is Windows-only; only SyncBack Touch has Linux support as a helper.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "2BrightSparks Linux support note",
+          "url": "https://help.2brightsparks.com/support/solutions/articles/43000335730-linux-unix-or-mac-operating-system-support"
+        }
+      ]
+    },
+    {
+      "id": "winget:2BrightSparks.SyncBackPro",
+      "name": "SyncBackPro",
+      "compatibility": "alternative",
+      "alternatives": [
+        "rsync",
+        "Deja Dup",
+        "Restic",
+        "Syncthing"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "SyncBackPro is Windows-only; only SyncBack Touch has Linux support as a helper.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "2BrightSparks Linux support note",
+          "url": "https://help.2brightsparks.com/support/solutions/articles/43000335730-linux-unix-or-mac-operating-system-support"
+        }
+      ]
+    },
+    {
+      "id": "winget:2BrightSparks.SyncBackFree",
+      "name": "SyncBackFree",
+      "compatibility": "alternative",
+      "alternatives": [
+        "rsync",
+        "Deja Dup",
+        "Restic",
+        "Syncthing"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "SyncBackFree is Windows-only; only SyncBack Touch has Linux support as a helper.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "2BrightSparks Linux support note",
+          "url": "https://help.2brightsparks.com/support/solutions/articles/43000335730-linux-unix-or-mac-operating-system-support"
+        }
+      ]
+    },
+    {
+      "id": "winget:7.0",
+      "name": "Streaming Video Downloader Lite BinaryMark.StreamingVideoDownloader",
+      "compatibility": "none",
+      "alternatives": [
+        "yt-dlp",
+        "Tartube",
+        "Video Downloader GUI"
+      ],
+      "source_hint": "none",
+      "confidence": "low",
+      "category": "media",
+      "notes": "Malformed BinaryMark downloader entry; Linux package not confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BinaryMark.StreamingVideoDownloader",
+      "name": "Streaming Video Downloader Lite",
+      "compatibility": "none",
+      "alternatives": [
+        "yt-dlp",
+        "Tartube",
+        "Video Downloader GUI"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "media",
+      "notes": "BinaryMark product is a Windows desktop downloader; no Linux package confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DigitalExtremes.Soulframe",
+      "name": "Soulframe",
+      "compatibility": "wine",
+      "alternatives": [
+        "Steam Proton",
+        "Bottles",
+        "Lutris"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "gaming-tools",
+      "notes": "No native Linux build confirmed; verify Proton/Bottles behavior per release.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:ChrisLong.SimpleDataBackup",
+      "name": "Simple Data Backup",
+      "compatibility": "unknown",
+      "alternatives": [
+        "Deja Dup",
+        "rsync",
+        "Restic"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "Could not confirm upstream Linux support.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:GeneralArcade.SDL2GamepadTool",
+      "name": "SDL2 Gamepad Tool",
+      "compatibility": "native",
+      "alternatives": [
+        "SDL2 Gamepad Tool",
+        "Steam Input",
+        "AntiMicroX"
+      ],
+      "source_hint": "web",
+      "confidence": "high",
+      "category": "gaming-tools",
+      "notes": "Vendor page lists Linux deb/zip/snap builds, though older Linux builds may be outdated.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        }
+      },
+      "evidence": [
+        {
+          "label": "SDL2 Gamepad Tool Linux download note",
+          "url": "https://generalarcade.com/gamepadtool/"
+        }
+      ]
+    },
+    {
+      "id": "winget:AudioCodes.SyslogViewer",
+      "name": "SBC Configuration Wizard",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "AudioCodes Syslog Viewer",
+        "Wireshark",
+        "journalctl"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "Winget id says Syslog Viewer but name says SBC Configuration Wizard; Linux availability differs by tool.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux build from AudioCodes utilities page."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux build from AudioCodes utilities page."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux build from AudioCodes utilities page."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux build from AudioCodes utilities page."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux build from AudioCodes utilities page."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux build from AudioCodes utilities page."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux build from AudioCodes utilities page."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux build from AudioCodes utilities page."
+        }
+      },
+      "evidence": [
+        {
+          "label": "AudioCodes utilities",
+          "url": "https://tools.audiocodes.com/install/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Appeon.PowerServerToolkit2022R3-MR03",
+      "name": "PowerServer Toolkit 2022R3",
+      "compatibility": "none",
+      "alternatives": [
+        "Docker",
+        "native deployment tooling"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "PowerServer Toolkit is tied to Appeon/PowerBuilder Windows development workflows.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:ConeXware.PowerArchiver.2022",
+      "name": "PowerArchiver 2022",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Ark",
+        "File Roller",
+        "p7zip",
+        "PeaZip"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "PowerArchiver is proprietary Windows/macOS archiver; use native archive tools on Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:ChristianWade.PowerBIALMToolkit",
+      "name": "Power BI ALM Toolkit",
+      "compatibility": "none",
+      "alternatives": [
+        "Power BI web",
+        "Tabular Editor where supported",
+        "ALM Toolkit on Windows VM"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Power BI ALM Toolkit is a Windows-oriented external tool for Microsoft BI workflows.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:AllroundAutomations.PLSQLDeveloper",
+      "name": "PL/SQL Developer",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Plyxon",
+        "DBeaver",
+        "DataGrip",
+        "SQL Developer"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "development",
+      "notes": "PL/SQL Developer is Windows-oriented; vendor offers Plyxon for Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "PL/SQL Developer product page",
+          "url": "https://www.allroundautomations.com/products/pl-sql-developer/"
+        }
+      ]
+    },
+    {
+      "id": "winget:ConselhoNacionaldeJustica-CNJ.pje-office",
+      "name": "pje-office",
+      "compatibility": "native",
+      "alternatives": [
+        "PJeOffice"
+      ],
+      "source_hint": "web",
+      "confidence": "medium",
+      "category": "office",
+      "notes": "PJeOffice has Linux documentation/packages, but exact court-system package should be verified.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:AuthorMore.PenpotDesktop",
+      "name": "Penpot Desktop",
+      "compatibility": "native",
+      "alternatives": [
+        "Penpot Desktop",
+        "Penpot web",
+        "Figma web"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "high",
+      "category": "creative",
+      "notes": "Unofficial Penpot desktop app supports Linux and is available via Flathub.",
+      "install_hints": {
+        "arch": {
+          "source": "flatpak",
+          "packages": [
+            "com.authormore.penpotdesktop"
+          ],
+          "notes": "Install Penpot Desktop from Flathub."
+        },
+        "debian": {
+          "source": "flatpak",
+          "packages": [
+            "com.authormore.penpotdesktop"
+          ],
+          "notes": "Install Penpot Desktop from Flathub."
+        },
+        "ubuntu": {
+          "source": "flatpak",
+          "packages": [
+            "com.authormore.penpotdesktop"
+          ],
+          "notes": "Install Penpot Desktop from Flathub."
+        },
+        "fedora": {
+          "source": "flatpak",
+          "packages": [
+            "com.authormore.penpotdesktop"
+          ],
+          "notes": "Install Penpot Desktop from Flathub."
+        },
+        "opensuse": {
+          "source": "flatpak",
+          "packages": [
+            "com.authormore.penpotdesktop"
+          ],
+          "notes": "Install Penpot Desktop from Flathub."
+        },
+        "alpine": {
+          "source": "flatpak",
+          "packages": [
+            "com.authormore.penpotdesktop"
+          ],
+          "notes": "Install Penpot Desktop from Flathub."
+        },
+        "void": {
+          "source": "flatpak",
+          "packages": [
+            "com.authormore.penpotdesktop"
+          ],
+          "notes": "Install Penpot Desktop from Flathub."
+        },
+        "gentoo": {
+          "source": "flatpak",
+          "packages": [
+            "com.authormore.penpotdesktop"
+          ],
+          "notes": "Install Penpot Desktop from Flathub."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Penpot Desktop GitHub",
+          "url": "https://github.com/author-more/penpot-desktop"
+        }
+      ]
+    },
+    {
+      "id": "winget:AngusJohnson.PDFTKBuilder",
+      "name": "PDFTKBuilder",
+      "compatibility": "alternative",
+      "alternatives": [
+        "pdftk-java",
+        "qpdf",
+        "PDF Arranger"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "office",
+      "notes": "PDFTKBuilder is a Windows GUI; the underlying PDF tasks have Linux-native tools.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:CoenFin.PDFinvoice2UBL",
+      "name": "PDFinvoice2UBL",
+      "compatibility": "unknown",
+      "alternatives": [
+        "invoice2data",
+        "manual UBL tools"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "office",
+      "notes": "Linux support could not be verified from primary sources.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Avanquestpdfforge.PDFCreator-Terminal-Server",
+      "name": "PDFCreator Terminal Server",
+      "compatibility": "none",
+      "alternatives": [
+        "CUPS PDF",
+        "cups-pdf",
+        "Ghostscript",
+        "qpdf"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "office",
+      "notes": "PDFCreator Terminal Server supported operating systems are Windows/Windows Server only.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "PDFCreator operating systems",
+          "url": "https://support.pdfforge.org/operating-systems"
+        }
+      ]
+    },
+    {
+      "id": "winget:Avanquestpdfforge.PDFCreator-Server",
+      "name": "PDFCreator Server",
+      "compatibility": "none",
+      "alternatives": [
+        "CUPS PDF",
+        "cups-pdf",
+        "Ghostscript",
+        "qpdf"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "office",
+      "notes": "PDFCreator Server supported operating systems are Windows/Windows Server only.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "PDFCreator operating systems",
+          "url": "https://support.pdfforge.org/operating-systems"
+        }
+      ]
+    },
+    {
+      "id": "winget:Avanquestpdfforge.PDFCreator-Professional",
+      "name": "PDFCreator Professional",
+      "compatibility": "none",
+      "alternatives": [
+        "CUPS PDF",
+        "cups-pdf",
+        "Ghostscript",
+        "qpdf"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "office",
+      "notes": "PDFCreator Professional supported operating systems are Windows only.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "PDFCreator operating systems",
+          "url": "https://support.pdfforge.org/operating-systems"
+        }
+      ]
+    },
+    {
+      "id": "winget:Avanquestpdfforge.PDFCreator-Free",
+      "name": "PDFCreator Free",
+      "compatibility": "none",
+      "alternatives": [
+        "CUPS PDF",
+        "cups-pdf",
+        "Ghostscript",
+        "qpdf"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "office",
+      "notes": "PDFCreator Free supported operating systems are Windows only.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "PDFCreator operating systems",
+          "url": "https://support.pdfforge.org/operating-systems"
+        }
+      ]
+    },
+    {
+      "id": "winget:A-SIT.PDF-Over",
+      "name": "PDF-Over",
+      "compatibility": "native",
+      "alternatives": [
+        "PDF-Over",
+        "Okular signing features"
+      ],
+      "source_hint": "web",
+      "confidence": "high",
+      "category": "office",
+      "notes": "A-SIT provides a Linux JAR download for PDF-Over.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        }
+      },
+      "evidence": [
+        {
+          "label": "PDF-Over Linux download",
+          "url": "https://technology.a-sit.at/en/pdf-over/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Burnaware.PDFShaper.Ultimate",
+      "name": "PDF Shaper Ultimate",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Okular",
+        "Evince",
+        "LibreOffice Draw",
+        "Xournal++",
+        "qpdf",
+        "PDF Arranger"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "office",
+      "notes": "PDF Shaper Ultimate is Windows-oriented; Linux package not confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "PDF Shaper FAQ",
+          "url": "https://www.pdfshaper.com/faq.html"
+        }
+      ]
+    },
+    {
+      "id": "winget:Burnaware.PDFShaper.Premium",
+      "name": "PDF Shaper Premium",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Okular",
+        "Evince",
+        "LibreOffice Draw",
+        "Xournal++",
+        "qpdf",
+        "PDF Arranger"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "office",
+      "notes": "PDF Shaper Premium is Windows-oriented; Linux package not confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "PDF Shaper FAQ",
+          "url": "https://www.pdfshaper.com/faq.html"
+        }
+      ]
+    },
+    {
+      "id": "winget:Burnaware.PDFShaper.Free",
+      "name": "PDF Shaper Free",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Okular",
+        "Evince",
+        "LibreOffice Draw",
+        "Xournal++",
+        "qpdf",
+        "PDF Arranger"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "office",
+      "notes": "PDF Shaper Free is Windows-oriented; Linux package not confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "PDF Shaper FAQ",
+          "url": "https://www.pdfshaper.com/faq.html"
+        }
+      ]
+    },
+    {
+      "id": "winget:Avanquestpdfforge.PDFArchitect",
+      "name": "PDF Architect 9",
+      "compatibility": "none",
+      "alternatives": [
+        "Xodo PDF Studio",
+        "Okular",
+        "LibreOffice Draw"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "office",
+      "notes": "PDF Architect download/deployment is Windows/MSI-focused.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "PDF Architect download",
+          "url": "https://www.pdfforge.org/pdfarchitect/download"
+        }
+      ]
+    },
+    {
+      "id": "winget:ChristianThoeing.PasswordTech",
+      "name": "Password Tech",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "KeePassXC password generator",
+        "pwgen",
+        "Bitwarden generator"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "medium",
+      "category": "security",
+      "notes": "Open-source Password Tech releases exist, but Linux binary packaging needs verification.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Password Tech downloads",
+          "url": "https://pwgen-win.sourceforge.io/download/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BinaryMark.PasswordGenerator",
+      "name": "Password Generator 2020 Pro Trial",
+      "compatibility": "none",
+      "alternatives": [
+        "KeePassXC password generator",
+        "pwgen",
+        "Bitwarden generator"
+      ],
+      "source_hint": "none",
+      "confidence": "medium",
+      "category": "security",
+      "notes": "BinaryMark password generator is a Windows desktop product; no Linux package confirmed.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:AceBIT.PasswordDepotEnterpriseServer.18",
+      "name": "Password Depot Enterprise Server 18",
+      "compatibility": "manual_followup",
+      "alternatives": [
+        "Bitwarden self-hosted",
+        "Vaultwarden",
+        "1Password Business"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Password Depot has Linux clients, but Enterprise Server Linux support needs separate verification.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Password Depot Linux download",
+          "url": "https://www.password-depot.de/en/download/download.htm"
+        }
+      ]
+    },
+    {
+      "id": "winget:AceBIT.PasswordDepot.18.Corporate",
+      "name": "Password Depot 18 (Corporate Edition)",
+      "compatibility": "native",
+      "alternatives": [
+        "Password Depot Linux",
+        "KeePassXC",
+        "Bitwarden"
+      ],
+      "source_hint": "web",
+      "confidence": "high",
+      "category": "security",
+      "notes": "Vendor provides a Linux edition of Password Depot.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Password Depot Linux download",
+          "url": "https://www.password-depot.de/en/download/download.htm"
+        }
+      ]
+    },
+    {
+      "id": "winget:AceBIT.PasswordDepot.18",
+      "name": "Password Depot 18",
+      "compatibility": "native",
+      "alternatives": [
+        "Password Depot Linux",
+        "KeePassXC",
+        "Bitwarden"
+      ],
+      "source_hint": "web",
+      "confidence": "high",
+      "category": "security",
+      "notes": "Vendor provides a Linux edition of Password Depot.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Password Depot Linux download",
+          "url": "https://www.password-depot.de/en/download/download.htm"
+        }
+      ]
+    },
+    {
+      "id": "winget:Ahlyab.PasswordChecker",
+      "name": "Password Checker",
+      "compatibility": "unknown",
+      "alternatives": [
+        "KeePassXC",
+        "Bitwarden security report",
+        "Have I Been Pwned web"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Linux support and upstream identity need verification.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Package availability needs verification."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Apache.OpenOffice",
+      "name": "OpenOffice",
+      "compatibility": "native",
+      "alternatives": [
+        "Apache OpenOffice",
+        "LibreOffice",
+        "ONLYOFFICE Desktop Editors"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "office",
+      "notes": "Apache OpenOffice supports Linux and provides generic DEB/RPM downloads.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Apache OpenOffice vendor Linux tarball; prefer LibreOffice for distro packages."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Apache provides generic DEB tarballs."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Apache provides generic DEB tarballs."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Apache provides generic RPM tarballs."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Apache provides generic RPM tarballs."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Apache OpenOffice vendor Linux tarball; prefer LibreOffice for distro packages."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Apache OpenOffice vendor Linux tarball; prefer LibreOffice for distro packages."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Apache OpenOffice vendor Linux tarball; prefer LibreOffice for distro packages."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Apache OpenOffice for Linux",
+          "url": "https://www.openoffice.org/product/linux.html"
+        }
+      ]
+    },
+    {
+      "id": "winget:AMD.OCAT",
+      "name": "Open Capture and Analytics Tool (OCAT)",
+      "compatibility": "alternative",
+      "alternatives": [
+        "MangoHud",
+        "vkBasalt",
+        "Mesa tools",
+        "Radeon GPU Profiler where applicable"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "AMD OCAT page describes Windows API support; use Linux performance overlays/tools instead.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "AMD OCAT Windows API support",
+          "url": "https://gpuopen.com/ocat/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Andersama.obs-asio",
+      "name": "obs-asio",
+      "compatibility": "none",
+      "alternatives": [
+        "OBS Studio PipeWire/JACK audio",
+        "ALSA/PulseAudio sources"
+      ],
+      "source_hint": "none",
+      "confidence": "high",
+      "category": "media",
+      "notes": "obs-asio README says the plugin is designed and tested for Windows.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux package identified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "obs-asio GitHub",
+          "url": "https://github.com/Andersama/obs-asio"
+        }
+      ]
+    },
+    {
+      "id": "winget:Git.MinGit",
+      "name": "MinGit",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Git"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "development",
+      "notes": "MinGit is a minimal Git for Windows distribution; install native Git on Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "git"
+          ],
+          "notes": "Use distro Git instead of Windows MinGit."
+        },
+        "debian": {
+          "source": "repo",
+          "packages": [
+            "git"
+          ],
+          "notes": "Use distro Git instead of Windows MinGit."
+        },
+        "ubuntu": {
+          "source": "repo",
+          "packages": [
+            "git"
+          ],
+          "notes": "Use distro Git instead of Windows MinGit."
+        },
+        "fedora": {
+          "source": "repo",
+          "packages": [
+            "git"
+          ],
+          "notes": "Use distro Git instead of Windows MinGit."
+        },
+        "opensuse": {
+          "source": "repo",
+          "packages": [
+            "git"
+          ],
+          "notes": "Use distro Git instead of Windows MinGit."
+        },
+        "alpine": {
+          "source": "repo",
+          "packages": [
+            "git"
+          ],
+          "notes": "Use distro Git instead of Windows MinGit."
+        },
+        "void": {
+          "source": "repo",
+          "packages": [
+            "git"
+          ],
+          "notes": "Use distro Git instead of Windows MinGit."
+        },
+        "gentoo": {
+          "source": "repo",
+          "packages": [
+            "dev-vcs/git"
+          ],
+          "notes": "Use distro Git instead of Windows MinGit."
+        }
+      },
+      "evidence": [
+        {
+          "label": "MinGit for Windows",
+          "url": "https://gitforwindows.org/mingit"
+        }
+      ]
+    },
+    {
+      "id": "winget:Aardappel.lobster",
+      "name": "lobster",
+      "compatibility": "native",
+      "alternatives": [
+        "Lobster"
+      ],
+      "source_hint": "web",
+      "confidence": "high",
+      "category": "development",
+      "notes": "Lobster project documents pre-built binaries for Windows, Mac, and Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download from upstream and verify current Linux artifact."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Lobster getting started",
+          "url": "https://aardappel.github.io/lobster/getting_started.html"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaNIK.23.JDK21.Core",
+      "name": "Liberica NIK Core 23 (JDK 21)",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica NIK Core 23 (JDK 21)",
+        "GraalVM",
+        "OpenJDK"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft Liberica Native Image Kit provides Linux downloads/packages; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaNIK.23.JDK17.Core",
+      "name": "Liberica NIK Core 23 (JDK 17)",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica NIK Core 23 (JDK 17)",
+        "GraalVM",
+        "OpenJDK"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft Liberica Native Image Kit provides Linux downloads/packages; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaNIK.22.JDK11.Core",
+      "name": "Liberica NIK Core 22 (JDK 11)",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica NIK Core 22 (JDK 11)",
+        "GraalVM",
+        "OpenJDK"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft Liberica Native Image Kit provides Linux downloads/packages; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaNIK.24.JDK22.Full",
+      "name": "Liberica NIK 24 Full (JDK 22)",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica NIK 24 Full (JDK 22)",
+        "GraalVM",
+        "OpenJDK"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft Liberica Native Image Kit provides Linux downloads/packages; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaNIK.24.JDK22",
+      "name": "Liberica NIK 24 (JDK 22)",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica NIK 24 (JDK 22)",
+        "GraalVM",
+        "OpenJDK"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft Liberica Native Image Kit provides Linux downloads/packages; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaNIK.23.JDK21.Full",
+      "name": "Liberica NIK 23 Full (JDK 21)",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica NIK 23 Full (JDK 21)",
+        "GraalVM",
+        "OpenJDK"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft Liberica Native Image Kit provides Linux downloads/packages; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaNIK.23.JDK17.Full",
+      "name": "Liberica NIK 23 Full (JDK 17)",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica NIK 23 Full (JDK 17)",
+        "GraalVM",
+        "OpenJDK"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft Liberica Native Image Kit provides Linux downloads/packages; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaNIK.23.JDK21",
+      "name": "Liberica NIK 23 (JDK 21)",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica NIK 23 (JDK 21)",
+        "GraalVM",
+        "OpenJDK"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft Liberica Native Image Kit provides Linux downloads/packages; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaNIK.23.JDK17",
+      "name": "Liberica NIK 23 (JDK 17)",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica NIK 23 (JDK 17)",
+        "GraalVM",
+        "OpenJDK"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft Liberica Native Image Kit provides Linux downloads/packages; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaNIK.22.JDK11.Full",
+      "name": "Liberica NIK 22 Full (JDK 11)",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica NIK 22 Full (JDK 11)",
+        "GraalVM",
+        "OpenJDK"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft Liberica Native Image Kit provides Linux downloads/packages; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaNIK.22.JDK11",
+      "name": "Liberica NIK 22 (JDK 11)",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica NIK 22 (JDK 11)",
+        "GraalVM",
+        "OpenJDK"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft Liberica Native Image Kit provides Linux downloads/packages; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.8.Full",
+      "name": "Liberica JRE 8 Full",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica JRE 8 Full",
+        "OpenJDK JRE",
+        "Eclipse Temurin"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft provides Liberica JRE Linux packages/downloads; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.8",
+      "name": "Liberica JRE 8",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica JRE 8",
+        "OpenJDK JRE",
+        "Eclipse Temurin"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft provides Liberica JRE Linux packages/downloads; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.25.Full",
+      "name": "Liberica JRE 25 Full",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica JRE 25 Full",
+        "OpenJDK JRE",
+        "Eclipse Temurin"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft provides Liberica JRE Linux packages/downloads; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.25",
+      "name": "Liberica JRE 25",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica JRE 25",
+        "OpenJDK JRE",
+        "Eclipse Temurin"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft provides Liberica JRE Linux packages/downloads; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.24.Full",
+      "name": "Liberica JRE 24 Full",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica JRE 24 Full",
+        "OpenJDK JRE",
+        "Eclipse Temurin"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft provides Liberica JRE Linux packages/downloads; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.24",
+      "name": "Liberica JRE 24",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica JRE 24",
+        "OpenJDK JRE",
+        "Eclipse Temurin"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft provides Liberica JRE Linux packages/downloads; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.23.Full",
+      "name": "Liberica JRE 23 Full",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica JRE 23 Full",
+        "OpenJDK JRE",
+        "Eclipse Temurin"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft provides Liberica JRE Linux packages/downloads; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.23",
+      "name": "Liberica JRE 23",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica JRE 23",
+        "OpenJDK JRE",
+        "Eclipse Temurin"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft provides Liberica JRE Linux packages/downloads; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BellSoft.LibericaJRE.22.Full",
+      "name": "Liberica JRE 22 Full",
+      "compatibility": "native",
+      "alternatives": [
+        "Liberica JRE 22 Full",
+        "OpenJDK JRE",
+        "Eclipse Temurin"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BellSoft provides Liberica JRE Linux packages/downloads; choose exact version/build.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "BellSoft provides DEB packages and apt repository options."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "BellSoft provides RPM packages; verify distro compatibility."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "BellSoft publishes musl/APK builds for some versions; verify exact artifact."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Select the matching BellSoft Linux archive/package for this version."
+        }
+      },
+      "evidence": [
+        {
+          "label": "winget package metadata",
+          "url": "https://winstall.app/"
+        }
+      ]
+    }
+  ]
+}
