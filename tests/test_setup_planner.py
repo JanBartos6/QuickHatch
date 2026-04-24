@@ -4,9 +4,13 @@ import json
 
 import pytest
 
-from quickhatch.config import UserProfile
-from quickhatch.setup.planner import ResearchPlanValidationError, extract_research_plan
-from quickhatch.setup.types import PlanItemStatus, SetupStage
+from quickhatch.config import AppInfo, UserProfile
+from quickhatch.setup.planner import (
+    ResearchPlanValidationError,
+    build_research_prompt,
+    extract_research_plan,
+)
+from quickhatch.setup.types import PlanItemStatus, SetupFacts, SetupStage
 
 
 def _base_plan_payload() -> dict:
@@ -108,3 +112,24 @@ def test_extract_research_plan_backfills_unresolved_requested_apps_as_manual_fol
 
     assert states["Brave"] == PlanItemStatus.PENDING
     assert states["LocalSend"] == PlanItemStatus.MANUAL_FOLLOWUP
+
+
+def test_build_research_prompt_includes_selected_app_catalog():
+    profile = UserProfile()
+    profile.apps_to_install = ["GitHub Desktop"]
+    profile.apps = [AppInfo(name="GitHub Desktop", source="winget")]
+
+    prompt = build_research_prompt(
+        profile,
+        SetupFacts(distro_family="arch", package_manager="pacman"),
+        system_info="Linux target",
+        migration_plan_md="Install selected apps.",
+        distro_primer_md="Arch primer",
+        native_search_active=False,
+    )
+
+    assert "selected_app_catalog" in prompt
+    assert "GitHub Desktop" in prompt
+    assert "catalog_id" in prompt
+    assert "source_hint" in prompt
+    assert "Use selected_app_catalog as curated prior knowledge" in prompt

@@ -2318,6 +2318,14 @@ def _analysis_context_profile(
     if profile.apps_to_install:
         picks = {name.lower() for name in profile.apps_to_install}
         app_rows = [row for row in app_rows if (row.get("name") or "").lower() in picks]
+    from quickhatch.analysis.app_catalog import selected_app_catalog_context
+
+    selected_app_catalog = selected_app_catalog_context(
+        list(profile.apps_to_install or []),
+        list(profile.apps or []),
+    )
+    if selected_app_catalog:
+        base["selected_app_catalog"] = selected_app_catalog
 
     if section == "distro":
         base["hardware"] = asdict(profile.hardware)
@@ -2551,6 +2559,12 @@ def _build_section_prompt(
             "It is FAR better to output a correct row from a 5-second lookup than\n"
             "an incorrect row the setup agent then spends 10 minutes failing on.\n"
             "Package names change; your training data is stale. Search.\n\n"
+            "SELECTED APP CATALOG: The profile may include `selected_app_catalog`.\n"
+            "Treat those rows as curated prior knowledge for the user's selected\n"
+            "apps: catalog_id, compatibility, source_hint, confidence, category,\n"
+            "and notes. Prefer high-confidence catalog hints. If confidence is\n"
+            "medium/low or the exact distro package is unclear, search before\n"
+            "writing the install command. Do not expand beyond the selected apps.\n\n"
             "CALL OUT SLOW INSTALLS: For any row with Est Time ≥ 10 min (big AUR\n"
             "source builds), add a 🐌 emoji to the app name and in Notes write:\n"
             "'Slow install — consider AppImage/flatpak alternative: <link>'. This\n"
@@ -6073,6 +6087,14 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
                 for a in profile_dict.get("apps", [])
                 if (a.get("name") or "").lower() in pick_names
             ]
+        from quickhatch.analysis.app_catalog import selected_app_catalog_context
+
+        selected_app_catalog = selected_app_catalog_context(
+            list(gui_state.profile.apps_to_install or []),
+            list(gui_state.profile.apps or []),
+        )
+        if selected_app_catalog:
+            profile_dict["selected_app_catalog"] = selected_app_catalog
         profile_json = json.dumps(profile_dict, indent=2, default=str)
 
         endpoint = config.endpoint or ""

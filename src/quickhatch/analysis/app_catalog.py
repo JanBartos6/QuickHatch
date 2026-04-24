@@ -189,3 +189,80 @@ def filter_migration_apps(apps: list[Any]) -> list[Any]:
     """Remove individual game titles from the migration app picker."""
 
     return [app for app in apps if not is_individual_game(getattr(app, "name", ""))]
+
+
+def selected_app_catalog_context(
+    app_names: list[str],
+    scanned_apps: list[Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Build compact catalog rows for selected apps.
+
+    This is the payload given to planning prompts. It is intentionally
+    selected-app-only so a 500-entry catalog never bloats every model call.
+    """
+
+    scanned_by_name: dict[str, Any] = {}
+    for app in scanned_apps or []:
+        name = getattr(app, "name", None)
+        if isinstance(app, dict):
+            name = app.get("name")
+        norm = _normalize_name(str(name or ""))
+        if norm:
+            scanned_by_name[norm] = app
+
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw_name in app_names or []:
+        name = str(raw_name or "").strip()
+        norm = _normalize_name(name)
+        if not name or norm in seen:
+            continue
+        seen.add(norm)
+        entry = match_catalog_entry(name)
+        scanned = scanned_by_name.get(norm)
+        if entry is None:
+            row: dict[str, Any] = {
+                "name": name,
+                "catalog_id": "",
+                "canonical_name": name,
+                "compatibility": "unknown",
+                "alternatives": [],
+                "source_hint": "needs_research",
+                "confidence": "low",
+                "category": "unknown",
+                "notes": "No curated catalog match; research before installing.",
+            }
+        else:
+            row = {
+                "name": name,
+                "catalog_id": entry.id,
+                "canonical_name": entry.name,
+                "compatibility": entry.compatibility,
+                "alternatives": list(entry.alternatives),
+                "source_hint": entry.source_hint,
+                "confidence": entry.confidence,
+                "category": entry.category,
+                "notes": entry.notes,
+            }
+        if scanned is not None:
+            if isinstance(scanned, dict):
+                scanned_source = scanned.get("source")
+                scanned_version = scanned.get("version")
+                scanned_compatibility = scanned.get("compatibility")
+                scanned_linux_alternative = scanned.get("linux_alternative")
+                scanned_notes = scanned.get("notes")
+            else:
+                scanned_source = getattr(scanned, "source", None)
+                scanned_version = getattr(scanned, "version", None)
+                scanned_compatibility = getattr(scanned, "compatibility", None)
+                scanned_linux_alternative = getattr(scanned, "linux_alternative", None)
+                scanned_notes = getattr(scanned, "notes", None)
+            row["scanned"] = {
+                "source": scanned_source,
+                "version": scanned_version,
+                "compatibility": scanned_compatibility,
+                "linux_alternative": scanned_linux_alternative,
+                "notes": scanned_notes,
+            }
+        rows.append(row)
+    return rows

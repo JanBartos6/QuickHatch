@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from quickhatch.config import Preferences, UserProfile
+from quickhatch.config import AppInfo, Preferences, UserProfile
 from quickhatch.gui.server import _build_section_prompt
 
 
@@ -47,6 +47,16 @@ class TestBuildSectionPrompt:
         assert "apps_to_install" in lower
         assert "do not expand" in lower
         assert "three apps" in lower or "three rows" in lower
+
+    def test_apps_section_includes_selected_catalog_rows(self, profile):
+        profile.apps_to_install = ["GitHub Desktop"]
+        profile.apps = [AppInfo(name="GitHub Desktop", source="winget")]
+        prompt = _build_section_prompt(profile, "apps", "")
+        assert "selected_app_catalog" in prompt
+        assert "GitHub Desktop" in prompt
+        assert "catalog_id" in prompt
+        assert "source_hint" in prompt
+        assert "SELECTED APP CATALOG" in prompt
 
     def test_desktop_section_mentions_activation(self, profile):
         """Desktop must tell the agent to ACTIVATE themes, not just install."""

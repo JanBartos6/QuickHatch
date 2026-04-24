@@ -6,6 +6,7 @@ import json
 from dataclasses import asdict
 from typing import Any
 
+from quickhatch.analysis.app_catalog import selected_app_catalog_context
 from quickhatch.config import UserProfile
 
 from .types import (
@@ -222,6 +223,12 @@ def build_research_prompt(
     profile_payload = asdict(profile)
     if profile_payload.get("ai_config", {}).get("api_key"):
         profile_payload["ai_config"]["api_key"] = "***REDACTED***"
+    selected_app_catalog = selected_app_catalog_context(
+        list(profile.apps_to_install or []),
+        list(getattr(profile, "apps", []) or []),
+    )
+    if selected_app_catalog:
+        profile_payload["selected_app_catalog"] = selected_app_catalog
     display_preferences = [
         asdict(display)
         for display in getattr(getattr(profile, "hardware", None), "displays", []) or []
@@ -266,6 +273,7 @@ def build_research_prompt(
         "- No mutating work can happen before research_and_plan finishes.\n"
         "- Use official repos by default; only use community sources when needed and explicit.\n"
         "- Classify slow desktop wrappers (ChatGPT/Claude/Codex desktop wrappers, Electron bundle wrappers, etc.) as optional_slow.\n"
+        "- Use selected_app_catalog as curated prior knowledge for selected apps. Prefer high-confidence source_hint values; search or mark manual_followup when confidence is low or distro package names are unclear.\n"
         "- If an app is unresolved, mark it manual_followup or ask a blocking question; do not hallucinate a package.\n"
         "- Use the scanned display info only as preference input; remote runtime facts are truth.\n"
         "- Do not mark the run as complete. This is planning only.\n\n"
