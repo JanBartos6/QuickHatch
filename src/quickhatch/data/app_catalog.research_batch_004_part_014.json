@@ -1,0 +1,1679 @@
+{
+  "schema": 1,
+  "purpose": "Remaining unknown catalog entries for distro-family support research, batch 004 split into parts",
+  "batch": "004",
+  "part": 14,
+  "entries": [
+    {
+      "id": "winget:AnyTXT.AnyTXTSearcher",
+      "name": "AnyTXT Searcher",
+      "match_names": [
+        "AnyTXT Searcher",
+        "AnyTXT.AnyTXTSearcher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AnyTXT Searcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AnyLogic.AnyLogic.University",
+      "name": "Anylogic University",
+      "match_names": [
+        "Anylogic University",
+        "AnyLogic.AnyLogic.University"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Anylogic University"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AnyLogic.AnyLogic.Professional",
+      "name": "Anylogic Professional",
+      "match_names": [
+        "Anylogic Professional",
+        "AnyLogic.AnyLogic.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Anylogic Professional"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AnyLogic.AnyLogic.Personal",
+      "name": "Anylogic Personal Learning Edition",
+      "match_names": [
+        "Anylogic Personal Learning Edition",
+        "AnyLogic.AnyLogic.Personal"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Anylogic Personal Learning Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Anydo.Anydo",
+      "name": "Anydo",
+      "match_names": [
+        "Anydo",
+        "Anydo.Anydo"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Anydo"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AnyDesk.AnyDesk",
+      "name": "AnyDesk",
+      "match_names": [
+        "AnyDesk",
+        "AnyDesk.AnyDesk"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AnyDesk"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Anxcye.AnxReader",
+      "name": "AnxReader",
+      "match_names": [
+        "AnxReader",
+        "Anxcye.AnxReader"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AnxReader"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Antutu.AntutuBenchmark",
+      "name": "Antutu Benchmark",
+      "match_names": [
+        "Antutu Benchmark",
+        "Antutu.AntutuBenchmark"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Antutu Benchmark"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AntiMicroX.antimicroxPortable",
+      "name": "AntiMicroX",
+      "match_names": [
+        "AntiMicroX",
+        "AntiMicroX.antimicrox",
+        "AntiMicroX.antimicroxPortable"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AntiMicroX"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AntiMicro.AntiMicro",
+      "name": "AntiMicro",
+      "match_names": [
+        "AntiMicro",
+        "AntiMicro.AntiMicro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AntiMicro"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aidex.AntiTwin.Portable",
+      "name": "Anti-Twin",
+      "match_names": [
+        "Anti-Twin",
+        "Aidex.AntiTwin.Portable"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Anti-Twin"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AntLab.AntConc",
+      "name": "AntConc",
+      "match_names": [
+        "AntConc",
+        "AntLab.AntConc"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AntConc"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AntSoftware.AntRenamer",
+      "name": "Ant Renamer",
+      "match_names": [
+        "Ant Renamer",
+        "AntSoftware.AntRenamer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ant Renamer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Anki.Anki",
+      "name": "Anki",
+      "match_names": [
+        "Anki",
+        "Anki.Anki"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Anki"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Anim8or.Anim8or",
+      "name": "Anim8or",
+      "match_names": [
+        "Anim8or",
+        "Anim8or.Anim8or"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Anim8or"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Andromeda.Andromeda",
+      "name": "Andromeda",
+      "match_names": [
+        "Andromeda",
+        "Andromeda.Andromeda"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Andromeda"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Anaconda.Anaconda3",
+      "name": "Anaconda3",
+      "match_names": [
+        "Anaconda3",
+        "Anaconda.Anaconda3"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Anaconda3"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amulet.Amulet",
+      "name": "Amulet",
+      "match_names": [
+        "Amulet",
+        "Amulet.Amulet"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amulet"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Geoxor.Amethyst",
+      "name": "Amethyst",
+      "match_names": [
+        "Amethyst",
+        "Geoxor.Amethyst"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amethyst"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amebis.ALicPos",
+      "name": "Amebis Licence Proxy",
+      "match_names": [
+        "Amebis Licence Proxy",
+        "Amebis.ALicPos"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amebis Licence Proxy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amebis.Hipsis",
+      "name": "Amebis Hipsis",
+      "match_names": [
+        "Amebis Hipsis"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amebis Hipsis"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amebis.Besana",
+      "name": "Amebis Besana",
+      "match_names": [
+        "Amebis Besana"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amebis Besana"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.SSMAgent",
+      "name": "Amazon SSM Agent",
+      "match_names": [
+        "Amazon SSM Agent",
+        "Amazon.SSMAgent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon SSM Agent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.SendToKindle",
+      "name": "Amazon Send to Kindle",
+      "match_names": [
+        "Amazon Send to Kindle",
+        "Amazon.SendToKindle"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Send to Kindle"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Redshift.ODBC.v2",
+      "name": "Amazon Redshift ODBC Driver 64-bit",
+      "match_names": [
+        "Amazon Redshift ODBC Driver 64-bit",
+        "Amazon.Redshift.ODBC.v2"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Redshift ODBC Driver 64-bit"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Redshift.ODBC.v1",
+      "name": "Amazon Redshift ODBC Driver",
+      "match_names": [
+        "Amazon Redshift ODBC Driver",
+        "Amazon.Redshift.ODBC.v1"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Redshift ODBC Driver"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Kindle",
+      "name": "Amazon Kindle",
+      "match_names": [
+        "Amazon Kindle"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Kindle"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.EC2Launch",
+      "name": "Amazon EC2Launch",
+      "match_names": [
+        "Amazon EC2Launch"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon EC2Launch"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.Chime",
+      "name": "Amazon Chime",
+      "match_names": [
+        "Amazon Chime"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Chime"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.AthenaODBCDriver.2",
+      "name": "Amazon Athena ODBC Driver",
+      "match_names": [
+        "Amazon Athena ODBC Driver",
+        "Amazon.AthenaODBCDriver.2"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Amazon Athena ODBC Driver"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AngryMiao.AMMaster",
+      "name": "AM_Master",
+      "match_names": [
+        "AM_Master",
+        "AngryMiao.AMMaster"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AM_Master"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aignesberger.DeadLink",
+      "name": "AM-DeadLink",
+      "match_names": [
+        "AM-DeadLink",
+        "Aignesberger.DeadLink"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AM-DeadLink"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AmanHarwara.Altus",
+      "name": "Altus",
+      "match_names": [
+        "Altus",
+        "AmanHarwara.Altus"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altus"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AltSnap.AltSnap",
+      "name": "AltSnap",
+      "match_names": [
+        "AltSnap",
+        "AltSnap.AltSnap"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AltSnap"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.XMLSpy.2026.Professional",
+      "name": "Altova XMLSpy 2026 Professional Edition",
+      "match_names": [
+        "Altova XMLSpy 2026 Professional Edition",
+        "Altova.XMLSpy.2026.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova XMLSpy 2026 Professional Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.XMLSpy.2026.Enterprise",
+      "name": "Altova XMLSpy 2026 Enterprise Edition",
+      "match_names": [
+        "Altova XMLSpy 2026 Enterprise Edition",
+        "Altova.XMLSpy.2026.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova XMLSpy 2026 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.XMLSpy.2025.Professional",
+      "name": "Altova XMLSpy 2025 Professional Edition",
+      "match_names": [
+        "Altova XMLSpy 2025 Professional Edition",
+        "Altova.XMLSpy.2025.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova XMLSpy 2025 Professional Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.XMLSpy.2025.Enterprise",
+      "name": "Altova XMLSpy 2025 Enterprise Edition",
+      "match_names": [
+        "Altova XMLSpy 2025 Enterprise Edition",
+        "Altova.XMLSpy.2025.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova XMLSpy 2025 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.XMLSpy.2024.Professional",
+      "name": "Altova XMLSpy 2024 Professional Edition",
+      "match_names": [
+        "Altova XMLSpy 2024 Professional Edition",
+        "Altova.XMLSpy.2024.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova XMLSpy 2024 Professional Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.XMLSpy.2024.Enterprise",
+      "name": "Altova XMLSpy 2024 Enterprise Edition",
+      "match_names": [
+        "Altova XMLSpy 2024 Enterprise Edition",
+        "Altova.XMLSpy.2024.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova XMLSpy 2024 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.XMLSpy.2023.Professional",
+      "name": "Altova XMLSpy 2023 Professional Edition",
+      "match_names": [
+        "Altova XMLSpy 2023 Professional Edition",
+        "Altova.XMLSpy.2023.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova XMLSpy 2023 Professional Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.XMLSpy.2023.Enterprise",
+      "name": "Altova XMLSpy 2023 Enterprise Edition",
+      "match_names": [
+        "Altova XMLSpy 2023 Enterprise Edition",
+        "Altova.XMLSpy.2023.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova XMLSpy 2023 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.UModel.2026.Professional",
+      "name": "Altova UModel 2026 Professional Edition",
+      "match_names": [
+        "Altova UModel 2026 Professional Edition",
+        "Altova.UModel.2026.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova UModel 2026 Professional Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.UModel.2026.Enterprise",
+      "name": "Altova UModel 2026 Enterprise Edition",
+      "match_names": [
+        "Altova UModel 2026 Enterprise Edition",
+        "Altova.UModel.2026.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova UModel 2026 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.UModel.2026.Basic",
+      "name": "Altova UModel 2026 Basic Edition",
+      "match_names": [
+        "Altova UModel 2026 Basic Edition",
+        "Altova.UModel.2026.Basic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova UModel 2026 Basic Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.UModel.2025.Professional",
+      "name": "Altova UModel 2025 Professional Edition",
+      "match_names": [
+        "Altova UModel 2025 Professional Edition",
+        "Altova.UModel.2025.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova UModel 2025 Professional Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.UModel.2025.Enterprise",
+      "name": "Altova UModel 2025 Enterprise Edition",
+      "match_names": [
+        "Altova UModel 2025 Enterprise Edition",
+        "Altova.UModel.2025.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova UModel 2025 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.UModel.2025.Basic",
+      "name": "Altova UModel 2025 Basic Edition",
+      "match_names": [
+        "Altova UModel 2025 Basic Edition",
+        "Altova.UModel.2025.Basic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova UModel 2025 Basic Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.UModel.2024.Professional",
+      "name": "Altova UModel 2024 Professional Edition",
+      "match_names": [
+        "Altova UModel 2024 Professional Edition",
+        "Altova.UModel.2024.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova UModel 2024 Professional Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.UModel.2024.Enterprise",
+      "name": "Altova UModel 2024 Enterprise Edition",
+      "match_names": [
+        "Altova UModel 2024 Enterprise Edition",
+        "Altova.UModel.2024.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova UModel 2024 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.UModel.2024.Basic",
+      "name": "Altova UModel 2024 Basic Edition",
+      "match_names": [
+        "Altova UModel 2024 Basic Edition",
+        "Altova.UModel.2024.Basic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova UModel 2024 Basic Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.UModel.2023.Professional",
+      "name": "Altova UModel 2023 Professional Edition",
+      "match_names": [
+        "Altova UModel 2023 Professional Edition",
+        "Altova.UModel.2023.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova UModel 2023 Professional Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.UModel.2023.Enterprise",
+      "name": "Altova UModel 2023 Enterprise Edition",
+      "match_names": [
+        "Altova UModel 2023 Enterprise Edition",
+        "Altova.UModel.2023.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova UModel 2023 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.UModel.2023.Basic",
+      "name": "Altova UModel 2023 Basic Edition",
+      "match_names": [
+        "Altova UModel 2023 Basic Edition",
+        "Altova.UModel.2023.Basic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova UModel 2023 Basic Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.StyleVision.2026.Basic",
+      "name": "Altova StyleVision 2026 Basic Edition",
+      "match_names": [
+        "Altova StyleVision 2026 Basic Edition",
+        "Altova.StyleVision.2026.Basic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova StyleVision 2026 Basic Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.StyleVision.2025.Basic",
+      "name": "Altova StyleVision 2025 Basic Edition",
+      "match_names": [
+        "Altova StyleVision 2025 Basic Edition",
+        "Altova.StyleVision.2025.Basic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova StyleVision 2025 Basic Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.StyleVision.2024.Basic",
+      "name": "Altova StyleVision 2024 Basic Edition",
+      "match_names": [
+        "Altova StyleVision 2024 Basic Edition",
+        "Altova.StyleVision.2024.Basic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova StyleVision 2024 Basic Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.StyleVision.2023.Basic",
+      "name": "Altova StyleVision 2023 Basic Edition",
+      "match_names": [
+        "Altova StyleVision 2023 Basic Edition",
+        "Altova.StyleVision.2023.Basic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova StyleVision 2023 Basic Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.MapForce.2026.Professional",
+      "name": "Altova MapForce 2026 Professional Edition",
+      "match_names": [
+        "Altova MapForce 2026 Professional Edition",
+        "Altova.MapForce.2026.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova MapForce 2026 Professional Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.MapForce.2026.Enterprise",
+      "name": "Altova MapForce 2026 Enterprise Edition",
+      "match_names": [
+        "Altova MapForce 2026 Enterprise Edition",
+        "Altova.MapForce.2026.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova MapForce 2026 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.MapForce.2026.Basic",
+      "name": "Altova MapForce 2026 Basic Edition",
+      "match_names": [
+        "Altova MapForce 2026 Basic Edition",
+        "Altova.MapForce.2026.Basic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova MapForce 2026 Basic Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.MapForce.2025.Professional",
+      "name": "Altova MapForce 2025 Professional Edition",
+      "match_names": [
+        "Altova MapForce 2025 Professional Edition",
+        "Altova.MapForce.2025.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova MapForce 2025 Professional Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.MapForce.2025.Enterprise",
+      "name": "Altova MapForce 2025 Enterprise Edition",
+      "match_names": [
+        "Altova MapForce 2025 Enterprise Edition",
+        "Altova.MapForce.2025.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova MapForce 2025 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.MapForce.2025.Basic",
+      "name": "Altova MapForce 2025 Basic Edition",
+      "match_names": [
+        "Altova MapForce 2025 Basic Edition",
+        "Altova.MapForce.2025.Basic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova MapForce 2025 Basic Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.MapForce.2024.Professional",
+      "name": "Altova MapForce 2024 Professional Edition",
+      "match_names": [
+        "Altova MapForce 2024 Professional Edition",
+        "Altova.MapForce.2024.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova MapForce 2024 Professional Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.MapForce.2024.Enterprise",
+      "name": "Altova MapForce 2024 Enterprise Edition",
+      "match_names": [
+        "Altova MapForce 2024 Enterprise Edition",
+        "Altova.MapForce.2024.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova MapForce 2024 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.MapForce.2024.Basic",
+      "name": "Altova MapForce 2024 Basic Edition",
+      "match_names": [
+        "Altova MapForce 2024 Basic Edition",
+        "Altova.MapForce.2024.Basic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova MapForce 2024 Basic Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.MapForce.2023.Professional",
+      "name": "Altova MapForce 2023 Professional Edition",
+      "match_names": [
+        "Altova MapForce 2023 Professional Edition",
+        "Altova.MapForce.2023.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova MapForce 2023 Professional Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.MapForce.2023.Enterprise",
+      "name": "Altova MapForce 2023 Enterprise Edition",
+      "match_names": [
+        "Altova MapForce 2023 Enterprise Edition",
+        "Altova.MapForce.2023.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova MapForce 2023 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.MapForce.2023.Basic",
+      "name": "Altova MapForce 2023 Basic Edition",
+      "match_names": [
+        "Altova MapForce 2023 Basic Edition",
+        "Altova.MapForce.2023.Basic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova MapForce 2023 Basic Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.DiffDog.2026.Enterprise",
+      "name": "Altova DiffDog 2026 Enterprise Edition",
+      "match_names": [
+        "Altova DiffDog 2026 Enterprise Edition",
+        "Altova.DiffDog.2026.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova DiffDog 2026 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.DiffDog.2025.Enterprise",
+      "name": "Altova DiffDog 2025 Enterprise Edition",
+      "match_names": [
+        "Altova DiffDog 2025 Enterprise Edition",
+        "Altova.DiffDog.2025.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova DiffDog 2025 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:2024.02.01",
+      "name": "Altova DiffDog 2024 Professional Edition Altova.DiffDog.2024.Professional",
+      "match_names": [
+        "Altova DiffDog 2024 Professional Edition Altova.DiffDog.2024.Professional",
+        "Altova Authentic 2024 Integration Packa… Altova.Authentic.Integration.2024",
+        "Altova Authentic 2024 Enterprise Edition Altova.Authentic.2024.Enterprise",
+        "2024.02.01",
+        "Altova DatabaseSpy 2024 Enterprise Edit… Altova.DatabaseSpy.2024.Enterprise",
+        "Altova DatabaseSpy 2024 Professional Ed… Altova.DatabaseSpy.2024.Professional",
+        "Altova MapForce 2024 Professional Editi… Altova.MapForce.2024.Professional",
+        "Altova MissionKit 2024 Enterprise Editi… Altova.MissionKit.2024.Enterprise",
+        "Altova MissionKit 2024 Professional Edi… Altova.MissionKit.2024.Professional",
+        "Altova StyleVision 2024 Enterprise Edit… Altova.StyleVision.2024.Enterprise",
+        "Altova StyleVision 2024 Professional Ed… Altova.StyleVision.2024.Professional",
+        "Altova Authentic 2024 Integration P… Altova.Authentic.Integration.2024",
+        "Altova DiffDog 2024 Enterprise Edit… Altova.DiffDog.2024.Enterprise",
+        "Altova DiffDog 2024 Professional Ed… Altova.DiffDog.2024.Professional",
+        "Altova Authentic 2024 Enterpri… Altova.Authentic.2024.Enterprise",
+        "Altova Authentic 2024 Integrat… Altova.Authentic.Integration.2024",
+        "Altova DiffDog 2024 Enterprise… Altova.DiffDog.2024.Enterprise",
+        "Altova DiffDog 2024 Profession… Altova.DiffDog.2024.Professional",
+        "Altova MapForce 2024 Basic Edi… Altova.MapForce.2024.Basic",
+        "Altova MapForce 2024 Enterpris… Altova.MapForce.2024.Enterprise",
+        "Altova MapForce 2024 Professio… Altova.MapForce.2024.Professional",
+        "Altova MissionKit 2024 Enterpr… Altova.MissionKit.2024.Enterprise",
+        "Altova StyleVision 2024 Basic … Altova.StyleVision.2024.Basic",
+        "Altova UModel 2024 Basic Editi… Altova.UModel.2024.Basic",
+        "Altova UModel 2024 Enterprise … Altova.UModel.2024.Enterprise",
+        "Altova UModel 2024 Professiona… Altova.UModel.2024.Professional",
+        "Altova XMLSpy 2024 Enterprise … Altova.XMLSpy.2024.Enterprise",
+        "Altova XMLSpy 2024 Professiona… Altova.XMLSpy.2024.Professional",
+        "Altova MapForce 2024 Enterprise Edit… Altova.MapForce.2024.Enterprise",
+        "Altova MapForce 2024 Professional Ed… Altova.MapForce.2024.Professional",
+        "Altova MissionKit 2024 Enterprise Ed… Altova.MissionKit.2024.Enterprise",
+        "Altova MissionKit 2024 Professional … Altova.MissionKit.2024.Professional",
+        "Altova UModel 2024 Enterprise Edition Altova.UModel.2024.Enterprise",
+        "Altova UModel 2024 Professional Edit… Altova.UModel.2024.Professional",
+        "Altova XMLSpy 2024 Enterprise Edition Altova.XMLSpy.2024.Enterprise",
+        "Altova XMLSpy 2024 Professional Edit… Altova.XMLSpy.2024.Professional",
+        "Altova DatabaseSpy 2024 Enterp… Altova.DatabaseSpy.2024.Enterprise",
+        "Altova MissionKit 2024 Profess… Altova.MissionKit.2024.Professional",
+        "Altova StyleVision 2024 Enterp… Altova.StyleVision.2024.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova Authentic 2024 Integration Packa… Altova.Authentic.Integration.2024"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.DiffDog.2024.Enterprise",
+      "name": "Altova DiffDog 2024 Enterprise Edition",
+      "match_names": [
+        "Altova DiffDog 2024 Enterprise Edition",
+        "Altova.DiffDog.2024.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova DiffDog 2024 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:2023.02.00.02",
+      "name": "Altova DiffDog 2023 Professional Edition Altova.DiffDog.2023.Professional",
+      "match_names": [
+        "Altova DiffDog 2023 Professional Edition Altova.DiffDog.2023.Professional",
+        "Altova Authentic 2023 Integration Packa… Altova.Authentic.Integration.2023",
+        "Altova Authentic 2023 Enterprise Edition Altova.Authentic.2023.Enterprise",
+        "2023.02.00…",
+        "Altova DatabaseSpy 2023 Enterprise Edit… Altova.DatabaseSpy.2023.Enterprise",
+        "Altova DatabaseSpy 2023 Professional Ed… Altova.DatabaseSpy.2023.Professional",
+        "Altova MapForce 2023 Professional Editi… Altova.MapForce.2023.Professional",
+        "Altova MissionKit 2023 Enterprise Editi… Altova.MissionKit.2023.Enterprise",
+        "Altova MissionKit 2023 Professional Edi… Altova.MissionKit.2023.Professional",
+        "Altova StyleVision 2023 Enterprise Edit… Altova.StyleVision.2023.Enterprise",
+        "Altova StyleVision 2023 Professional Ed… Altova.StyleVision.2023.Professional",
+        "2023.02.00.04",
+        "2023.02.00.02",
+        "2023.02.00.05",
+        "Altova Authentic 2023 Integration P… Altova.Authentic.Integration.2023",
+        "Altova DiffDog 2023 Enterprise Edit… Altova.DiffDog.2023.Enterprise",
+        "Altova DiffDog 2023 Professional Ed… Altova.DiffDog.2023.Professional",
+        "Altova Authentic 2023 Enterpri… Altova.Authentic.2023.Enterprise",
+        "Altova Authentic 2023 Integrat… Altova.Authentic.Integration.2023",
+        "Altova DiffDog 2023 Enterprise… Altova.DiffDog.2023.Enterprise",
+        "Altova DiffDog 2023 Profession… Altova.DiffDog.2023.Professional",
+        "Altova MapForce 2023 Basic Edi… Altova.MapForce.2023.Basic",
+        "Altova MapForce 2023 Enterpris… Altova.MapForce.2023.Enterprise",
+        "Altova MapForce 2023 Professio… Altova.MapForce.2023.Professional",
+        "Altova MissionKit 2023 Enterpr… Altova.MissionKit.2023.Enterprise",
+        "Altova StyleVision 2023 Basic … Altova.StyleVision.2023.Basic",
+        "Altova UModel 2023 Basic Editi… Altova.UModel.2023.Basic",
+        "Altova UModel 2023 Enterprise … Altova.UModel.2023.Enterprise",
+        "Altova UModel 2023 Professiona… Altova.UModel.2023.Professional",
+        "Altova XMLSpy 2023 Enterprise … Altova.XMLSpy.2023.Enterprise",
+        "Altova XMLSpy 2023 Professiona… Altova.XMLSpy.2023.Professional",
+        "Altova MapForce 2023 Enterprise Edit… Altova.MapForce.2023.Enterprise",
+        "Altova MapForce 2023 Professional Ed… Altova.MapForce.2023.Professional",
+        "Altova MissionKit 2023 Enterprise Ed… Altova.MissionKit.2023.Enterprise",
+        "Altova MissionKit 2023 Professional … Altova.MissionKit.2023.Professional",
+        "Altova UModel 2023 Enterprise Edition Altova.UModel.2023.Enterprise",
+        "Altova UModel 2023 Professional Edit… Altova.UModel.2023.Professional",
+        "Altova XMLSpy 2023 Enterprise Edition Altova.XMLSpy.2023.Enterprise",
+        "Altova XMLSpy 2023 Professional Edit… Altova.XMLSpy.2023.Professional",
+        "Altova DatabaseSpy 2023 Enterp… Altova.DatabaseSpy.2023.Enterprise",
+        "Altova MissionKit 2023 Profess… Altova.MissionKit.2023.Professional",
+        "Altova StyleVision 2023 Enterp… Altova.StyleVision.2023.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova Authentic 2023 Integration Packa… Altova.Authentic.Integration.2023"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altova.DiffDog.2023.Enterprise",
+      "name": "Altova DiffDog 2023 Enterprise Edition",
+      "match_names": [
+        "Altova DiffDog 2023 Enterprise Edition",
+        "Altova.DiffDog.2023.Enterprise"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altova DiffDog 2023 Enterprise Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ALTEC.AltecDataPrint",
+      "name": "Altec DataPrint",
+      "match_names": [
+        "Altec DataPrint",
+        "ALTEC.AltecDataPrint"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altec DataPrint"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AltDrag.AltDrag",
+      "name": "AltDrag",
+      "match_names": [
+        "AltDrag",
+        "AltDrag.AltDrag"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AltDrag"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Altap.Salamander",
+      "name": "Altap Salamander",
+      "match_names": [
+        "Altap Salamander"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Altap Salamander"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Allusion.Allusion",
+      "name": "Allusion",
+      "match_names": [
+        "Allusion",
+        "Allusion.Allusion"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Allusion"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BasileBruneau.AllToMP3",
+      "name": "AllToMP3",
+      "match_names": [
+        "AllToMP3",
+        "BasileBruneau.AllToMP3"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AllToMP3"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AList.AList",
+      "name": "Alist",
+      "match_names": [
+        "Alist",
+        "AList.AList"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Alist"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdaLang.Alire.Portable",
+      "name": "Alire",
+      "match_names": [
+        "Alire",
+        "AdaLang.Alire",
+        "AdaLang.Alire.Portable"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Alire"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CMU.Alice.3",
+      "name": "Alice 3",
+      "match_names": [
+        "Alice 3",
+        "CMU.Alice.3"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Alice 3"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Gary-zy.AliasGUI",
+      "name": "AliasGUI",
+      "match_names": [
+        "AliasGUI",
+        "Gary-zy.AliasGUI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AliasGUI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AlgorandFoundation.AlgoKit",
+      "name": "AlgoKit",
+      "match_names": [
+        "AlgoKit",
+        "AlgorandFoundation.AlgoKit"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AlgoKit"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Algoryx.Algodoo",
+      "name": "Algodoo",
+      "match_names": [
+        "Algodoo",
+        "Algoryx.Algodoo"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Algodoo"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Albion.Online",
+      "name": "Albion Online",
+      "match_names": [
+        "Albion Online"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Albion Online"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aladin.eBook",
+      "name": "Aladin eBook",
+      "match_names": [
+        "Aladin eBook"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Aladin eBook"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Alacritty.Alacritty",
+      "name": "Alacritty",
+      "match_names": [
+        "Alacritty",
+        "Alacritty.Alacritty"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Alacritty"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Akka.Cli",
+      "name": "Akka CLI",
+      "match_names": [
+        "Akka CLI",
+        "Akka.AkkaCli"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Akka CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Akiflow.Akiflow",
+      "name": "Akiflow",
+      "match_names": [
+        "Akiflow",
+        "Akiflow.Akiflow"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Akiflow"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AkelPad.AkelPad",
+      "name": "AkelPad",
+      "match_names": [
+        "AkelPad",
+        "AkelPad.AkelPad"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AkelPad"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AJA.RetailInstaller",
+      "name": "AJA Retail Installer",
+      "match_names": [
+        "AJA Retail Installer",
+        "AJA.RetailInstaller"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AJA Retail Installer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DSoundSoft.AISingers",
+      "name": "AISingers",
+      "match_names": [
+        "AISingers",
+        "DSoundSoft.AISingers"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AISingers"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Airytec.SwitchOff",
+      "name": "Airytec Switch Off",
+      "match_names": [
+        "Airytec Switch Off",
+        "Airytec.SwitchOff"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Airytec Switch Off"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Airtame.Airtame",
+      "name": "Airtame",
+      "match_names": [
+        "Airtame",
+        "Airtame.Airtame"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Airtame"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Formagrid.Airtable",
+      "name": "Airtable",
+      "match_names": [
+        "Airtable",
+        "Formagrid.Airtable"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Airtable"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AirMyPC.AirMyPC",
+      "name": "AirMyPC",
+      "match_names": [
+        "AirMyPC",
+        "AirMyPC.AirMyPC"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AirMyPC"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AirDroid.AirDroid",
+      "name": "AirDroid",
+      "match_names": [
+        "AirDroid",
+        "AirDroid.AirDroid"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AirDroid"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}

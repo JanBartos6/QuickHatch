@@ -1,0 +1,6322 @@
+{
+  "schema": 1,
+  "batch": "004",
+  "part": 11,
+  "source_batch": "src/quickhatch/data/app_catalog.research_batch_004_part_011.json",
+  "generated_on": "2026-04-25",
+  "entries": [
+    {
+      "id": "winget:Catch22.HexEdit",
+      "name": "Catch22 HexEdit",
+      "compatibility": "alternative",
+      "alternatives": [
+        "GHex",
+        "Bless",
+        "Okteta"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "Catch22 HexEdit is a legacy Windows hex editor; use a native Linux hex editor instead.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Catch22 HexEdit is a legacy Windows hex editor; use a native Linux hex editor instead."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Catch22 HexEdit is a legacy Windows hex editor; use a native Linux hex editor instead."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Catch22 HexEdit is a legacy Windows hex editor; use a native Linux hex editor instead."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Catch22 HexEdit is a legacy Windows hex editor; use a native Linux hex editor instead."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Catch22 HexEdit is a legacy Windows hex editor; use a native Linux hex editor instead."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Catch22 HexEdit is a legacy Windows hex editor; use a native Linux hex editor instead."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Catch22 HexEdit is a legacy Windows hex editor; use a native Linux hex editor instead."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Catch22 HexEdit is a legacy Windows hex editor; use a native Linux hex editor instead."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Catch22 HexEdit",
+          "url": "https://www.catch22.net/software/hexedit/"
+        }
+      ]
+    },
+    {
+      "id": "winget:CleverRaven.CataclysmDarkDaysAhead",
+      "name": "Cataclysm: Dark Days Ahead",
+      "compatibility": "native",
+      "alternatives": [
+        "Cataclysm: Dark Days Ahead"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "games",
+      "notes": "Open-source game with Linux builds and packages in several distro repositories; package names vary by interface.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "cataclysm-dda",
+            "cataclysm-dda-tiles"
+          ],
+          "notes": "Use Arch extra packages for curses or tiles builds."
+        },
+        "debian": {
+          "source": "repo",
+          "packages": [
+            "cataclysm-dda-curses",
+            "cataclysm-dda-sdl"
+          ],
+          "notes": "Debian packages split curses and SDL builds."
+        },
+        "ubuntu": {
+          "source": "repo",
+          "packages": [
+            "cataclysm-dda-curses",
+            "cataclysm-dda-sdl"
+          ],
+          "notes": "Ubuntu follows Debian package naming where available."
+        },
+        "fedora": {
+          "source": "repo",
+          "packages": [
+            "cataclysm-dda",
+            "cataclysm-dda-tiles"
+          ],
+          "notes": "Fedora provides cataclysm-dda subpackages."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux releases or verify openSUSE package availability."
+        },
+        "alpine": {
+          "source": "repo",
+          "packages": [
+            "cataclysm-dda",
+            "cataclysm-dda-tiles"
+          ],
+          "notes": "Available in Alpine edge/community; verify branch for stable Alpine releases."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux releases if no Void package is available."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current ebuild availability before suggesting a package."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Arch package",
+          "url": "https://archlinux.org/packages/extra/x86_64/cataclysm-dda/"
+        },
+        {
+          "label": "Debian package",
+          "url": "https://packages.debian.org/en/cataclysm-dda-curses"
+        },
+        {
+          "label": "Fedora packages",
+          "url": "https://packages.fedoraproject.org/pkgs/cataclysm-dda"
+        }
+      ]
+    },
+    {
+      "id": "winget:Castr.Castr",
+      "name": "Castr",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Castr web app",
+        "OBS Studio"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "media",
+      "notes": "Castr desktop package is distributed for Windows/macOS; use the web service or native streaming tools on Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Castr desktop package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Castr desktop package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Castr desktop package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Castr desktop package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Castr desktop package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Castr desktop package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Castr desktop package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Castr desktop package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Castr downloads",
+          "url": "https://castr.com/download/"
+        }
+      ]
+    },
+    {
+      "id": "winget:DaniRodríguez.Cartero",
+      "name": "Cartero",
+      "compatibility": "native",
+      "alternatives": [
+        "Cartero",
+        "Insomnia",
+        "Postman"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "high",
+      "category": "development",
+      "notes": "Cartero is available for Linux on Flathub.",
+      "install_hints": {
+        "arch": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: es.danirod.Cartero."
+        },
+        "debian": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: es.danirod.Cartero."
+        },
+        "ubuntu": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: es.danirod.Cartero."
+        },
+        "fedora": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: es.danirod.Cartero."
+        },
+        "opensuse": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: es.danirod.Cartero."
+        },
+        "alpine": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub if Flatpak is configured."
+        },
+        "void": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: es.danirod.Cartero."
+        },
+        "gentoo": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: es.danirod.Cartero."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Cartero on Flathub",
+          "url": "https://flathub.org/apps/es.danirod.Cartero"
+        }
+      ]
+    },
+    {
+      "id": "winget:DeepCarryAI.CarryCode",
+      "name": "CarryCode",
+      "compatibility": "unknown",
+      "alternatives": [
+        "CarryCode"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Linux support was not verified; needs manual follow-up.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/DeepCarryAI/CarryCode"
+        }
+      ]
+    },
+    {
+      "id": "winget:Carrier.PLVPro",
+      "name": "Carrier PLV Pro",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Carrier web tools",
+        "HVAC design tools"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "engineering",
+      "notes": "Carrier PLV Pro is distributed as Windows HVAC software; no native Linux package was verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Carrier PLV Pro is Windows HVAC software; no native Linux package was verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Carrier PLV Pro is Windows HVAC software; no native Linux package was verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Carrier PLV Pro is Windows HVAC software; no native Linux package was verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Carrier PLV Pro is Windows HVAC software; no native Linux package was verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Carrier PLV Pro is Windows HVAC software; no native Linux package was verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Carrier PLV Pro is Windows HVAC software; no native Linux package was verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Carrier PLV Pro is Windows HVAC software; no native Linux package was verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Carrier PLV Pro is Windows HVAC software; no native Linux package was verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/Carrier/PLVPro"
+        }
+      ]
+    },
+    {
+      "id": "winget:CargoLambda.CargoLambda",
+      "name": "CargoLambda",
+      "compatibility": "native",
+      "alternatives": [
+        "cargo-lambda"
+      ],
+      "source_hint": "web",
+      "confidence": "high",
+      "category": "development",
+      "notes": "Cargo Lambda documents cross-platform installation through Homebrew, cargo-binstall, npm, pipx, and source builds.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install using upstream cargo-binstall, cargo, npm, pipx, or source instructions."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install using upstream cargo-binstall, cargo, npm, pipx, or source instructions."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install using upstream cargo-binstall, cargo, npm, pipx, or source instructions."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install using upstream cargo-binstall, cargo, npm, pipx, or source instructions."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install using upstream cargo-binstall, cargo, npm, pipx, or source instructions."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install using upstream cargo-binstall, cargo, npm, pipx, or source instructions."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install using upstream cargo-binstall, cargo, npm, pipx, or source instructions."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install using upstream cargo-binstall, cargo, npm, pipx, or source instructions."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Cargo Lambda installation",
+          "url": "https://www.cargo-lambda.info/guide/installation.html"
+        }
+      ]
+    },
+    {
+      "id": "winget:Caret.CaretBeta",
+      "name": "Caret Beta",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Visual Studio Code",
+        "Kate",
+        "GNOME Text Editor"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Caret Beta is an old Chrome-app/editor distribution; use a maintained native Linux editor.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use a maintained native Linux editor instead."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use a maintained native Linux editor instead."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use a maintained native Linux editor instead."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use a maintained native Linux editor instead."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use a maintained native Linux editor instead."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use a maintained native Linux editor instead."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use a maintained native Linux editor instead."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use a maintained native Linux editor instead."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Caret package index",
+          "url": "https://winget.run/pkg/Caret/CaretBeta"
+        }
+      ]
+    },
+    {
+      "id": "winget:Caret.Caret",
+      "name": "Caret",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Visual Studio Code",
+        "Kate",
+        "GNOME Text Editor"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Caret is an old Chrome-app/editor distribution; use a maintained native Linux editor.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use a maintained native Linux editor instead."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use a maintained native Linux editor instead."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use a maintained native Linux editor instead."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use a maintained native Linux editor instead."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use a maintained native Linux editor instead."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use a maintained native Linux editor instead."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use a maintained native Linux editor instead."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use a maintained native Linux editor instead."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Caret package index",
+          "url": "https://winget.run/pkg/Caret/Caret"
+        }
+      ]
+    },
+    {
+      "id": "winget:CaprineLogic.CarePackage",
+      "name": "CarePackage",
+      "compatibility": "unknown",
+      "alternatives": [
+        "CarePackage"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Linux support was not verified; needs manual follow-up.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/CaprineLogic/CarePackage"
+        }
+      ]
+    },
+    {
+      "id": "winget:Carbide3D.CarbideCreate",
+      "name": "Carbide Create",
+      "compatibility": "alternative",
+      "alternatives": [
+        "FreeCAD",
+        "Kiri:Moto web",
+        "Carbide Create on supported OS"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "engineering",
+      "notes": "Current Carbide 3D downloads list Windows and macOS builds, not Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No current native Linux Carbide Create package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No current native Linux Carbide Create package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No current native Linux Carbide Create package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No current native Linux Carbide Create package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No current native Linux Carbide Create package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No current native Linux Carbide Create package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No current native Linux Carbide Create package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No current native Linux Carbide Create package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Carbide 3D downloads",
+          "url": "https://carbide3d.com/downloads/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Captura.Captura",
+      "name": "Captura",
+      "compatibility": "alternative",
+      "alternatives": [
+        "OBS Studio",
+        "Kooha",
+        "SimpleScreenRecorder"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "media",
+      "notes": "Captura was a Windows screen capture app and is no longer maintained; use native Linux screen recorders.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Captura was Windows-only; use a native Linux screen recorder."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Captura was Windows-only; use a native Linux screen recorder."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Captura was Windows-only; use a native Linux screen recorder."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Captura was Windows-only; use a native Linux screen recorder."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Captura was Windows-only; use a native Linux screen recorder."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Captura was Windows-only; use a native Linux screen recorder."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Captura was Windows-only; use a native Linux screen recorder."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Captura was Windows-only; use a native Linux screen recorder."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Captura status",
+          "url": "https://mathewsachin.github.io/blog/2023/04/09/captura-unmaintained.html"
+        }
+      ]
+    },
+    {
+      "id": "winget:CareScribe.CaptionEd",
+      "name": "Caption.Ed",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Caption.Ed web",
+        "Live Captions",
+        "Buzz"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "accessibility",
+      "notes": "Caption.Ed desktop support is Windows/macOS oriented; use web captioning or native Linux caption/transcription tools.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Caption.Ed desktop package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Caption.Ed desktop package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Caption.Ed desktop package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Caption.Ed desktop package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Caption.Ed desktop package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Caption.Ed desktop package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Caption.Ed desktop package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Caption.Ed desktop package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Caption.Ed downloads",
+          "url": "https://caption-ed.com/download/"
+        }
+      ]
+    },
+    {
+      "id": "winget:GielCobben.Caption",
+      "name": "Caption",
+      "compatibility": "native",
+      "alternatives": [
+        "Caption",
+        "SubDownloader",
+        "GNOME Subtitles"
+      ],
+      "source_hint": "vendor_appimage",
+      "confidence": "medium",
+      "category": "media",
+      "notes": "Caption is an Electron subtitle app with historical Linux/AppImage releases; verify current upstream status before relying on it.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux/AppImage release if still available."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux/AppImage release if still available."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux/AppImage release if still available."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux/AppImage release if still available."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux/AppImage release if still available."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux/AppImage release if still available."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux/AppImage release if still available."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux/AppImage release if still available."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Caption releases",
+          "url": "https://github.com/gielcobben/caption/releases"
+        }
+      ]
+    },
+    {
+      "id": "winget:Caprine.Caprine",
+      "name": "Caprine",
+      "compatibility": "native",
+      "alternatives": [
+        "Caprine",
+        "Messenger web"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "high",
+      "category": "communication",
+      "notes": "Caprine is available for Linux on Flathub.",
+      "install_hints": {
+        "arch": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: com.sindresorhus.Caprine."
+        },
+        "debian": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: com.sindresorhus.Caprine."
+        },
+        "ubuntu": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: com.sindresorhus.Caprine."
+        },
+        "fedora": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: com.sindresorhus.Caprine."
+        },
+        "opensuse": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: com.sindresorhus.Caprine."
+        },
+        "alpine": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub if Flatpak is configured."
+        },
+        "void": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: com.sindresorhus.Caprine."
+        },
+        "gentoo": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: com.sindresorhus.Caprine."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Caprine on Flathub",
+          "url": "https://flathub.org/apps/com.sindresorhus.Caprine"
+        }
+      ]
+    },
+    {
+      "id": "winget:CXWorld.CapFrameX.Beta",
+      "name": "CapFrameX Beta",
+      "compatibility": "alternative",
+      "alternatives": [
+        "MangoHud",
+        "FrameView",
+        "vkBasalt"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "games",
+      "notes": "CapFrameX is a Windows frame-time capture and analysis tool; use Linux gaming telemetry alternatives.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "CapFrameX is Windows-oriented; use Linux frame-time tools."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "CapFrameX is Windows-oriented; use Linux frame-time tools."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "CapFrameX is Windows-oriented; use Linux frame-time tools."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "CapFrameX is Windows-oriented; use Linux frame-time tools."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "CapFrameX is Windows-oriented; use Linux frame-time tools."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "CapFrameX is Windows-oriented; use Linux frame-time tools."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "CapFrameX is Windows-oriented; use Linux frame-time tools."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "CapFrameX is Windows-oriented; use Linux frame-time tools."
+        }
+      },
+      "evidence": [
+        {
+          "label": "CapFrameX",
+          "url": "https://www.capframex.com/"
+        }
+      ]
+    },
+    {
+      "id": "winget:CXWorld.CapFrameX",
+      "name": "CapFrameX",
+      "compatibility": "alternative",
+      "alternatives": [
+        "MangoHud",
+        "FrameView",
+        "vkBasalt"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "games",
+      "notes": "CapFrameX is a Windows frame-time capture and analysis tool; use Linux gaming telemetry alternatives.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "CapFrameX is Windows-oriented; use Linux frame-time tools."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "CapFrameX is Windows-oriented; use Linux frame-time tools."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "CapFrameX is Windows-oriented; use Linux frame-time tools."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "CapFrameX is Windows-oriented; use Linux frame-time tools."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "CapFrameX is Windows-oriented; use Linux frame-time tools."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "CapFrameX is Windows-oriented; use Linux frame-time tools."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "CapFrameX is Windows-oriented; use Linux frame-time tools."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "CapFrameX is Windows-oriented; use Linux frame-time tools."
+        }
+      },
+      "evidence": [
+        {
+          "label": "CapFrameX",
+          "url": "https://www.capframex.com/"
+        }
+      ]
+    },
+    {
+      "id": "winget:ByteDance.CapCut",
+      "name": "CapCut",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Kdenlive",
+        "Shotcut",
+        "DaVinci Resolve",
+        "CapCut web"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "media",
+      "notes": "Official CapCut desktop support is Windows/macOS; no native Linux desktop build was verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux CapCut desktop package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux CapCut desktop package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux CapCut desktop package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux CapCut desktop package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux CapCut desktop package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux CapCut desktop package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux CapCut desktop package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux CapCut desktop package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "CapCut desktop download",
+          "url": "https://www.capcut.com/resource/capcut-desktop-download"
+        }
+      ]
+    },
+    {
+      "id": "winget:CapSoftware.Cap",
+      "name": "Cap",
+      "compatibility": "alternative",
+      "alternatives": [
+        "OBS Studio",
+        "Kooha",
+        "Cap web"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "media",
+      "notes": "Cap desktop docs list macOS and Windows requirements; Linux users can use the web/self-hosted service or native recorders.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Cap desktop package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Cap desktop package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Cap desktop package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Cap desktop package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Cap desktop package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Cap desktop package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Cap desktop package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Cap desktop package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Cap desktop installation",
+          "url": "https://www.mintlify.com/CapSoftware/Cap/installation/desktop"
+        },
+        {
+          "label": "Cap GitHub",
+          "url": "https://github.com/CapSoftware/Cap"
+        }
+      ]
+    },
+    {
+      "id": "winget:Canva.Canva.CN",
+      "name": "Canva",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Canva web",
+        "Penpot",
+        "Inkscape"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "graphics",
+      "notes": "Canva desktop app downloads are for Windows and macOS; Linux users can use Canva in a browser.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Canva web; no native Linux desktop app verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Canva web; no native Linux desktop app verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Canva web; no native Linux desktop app verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Canva web; no native Linux desktop app verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Canva web; no native Linux desktop app verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Canva web; no native Linux desktop app verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Canva web; no native Linux desktop app verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Canva web; no native Linux desktop app verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Canva desktop app",
+          "url": "https://www.canva.com/app/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Canon.i-SENSYS.MF4010-MF4018",
+      "name": "Canon i-SENSYS MF4010/MF4018 MFDrivers",
+      "compatibility": "native",
+      "alternatives": [
+        "Canon UFR II Linux driver",
+        "CUPS"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "medium",
+      "category": "drivers",
+      "notes": "Canon provides Linux printer drivers for many i-SENSYS devices; verify exact MF4010/MF4018 model support before installing.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Canon Linux driver package if the exact model is supported."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Use Canon's Debian/Ubuntu driver package if the exact model is supported."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Use Canon's Debian/Ubuntu driver package if the exact model is supported."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Use Canon's RPM driver package if the exact model is supported."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Use Canon's RPM driver package if the exact model is supported."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Canon vendor packages target deb/rpm systems; verify CUPS compatibility manually."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Canon vendor packages target deb/rpm systems; verify CUPS compatibility manually."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Canon vendor packages target deb/rpm systems; verify CUPS compatibility manually."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Canon Linux drivers",
+          "url": "https://www.canon-europe.com/support/consumer/products/printers/i-sensys/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Camunda.Modeler",
+      "name": "Camunda Modeler",
+      "compatibility": "native",
+      "alternatives": [
+        "Camunda Modeler",
+        "bpmn.io"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "high",
+      "category": "development",
+      "notes": "Camunda Modeler publishes Linux x64 builds on GitHub releases.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux x64 archive from Camunda Modeler releases."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux x64 archive from Camunda Modeler releases."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux x64 archive from Camunda Modeler releases."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux x64 archive from Camunda Modeler releases."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux x64 archive from Camunda Modeler releases."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Linux binary may require glibc; verify on Alpine."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux x64 archive from Camunda Modeler releases."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download the Linux x64 archive from Camunda Modeler releases."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Camunda Modeler releases",
+          "url": "https://github.com/camunda/camunda-modeler/releases"
+        }
+      ]
+    },
+    {
+      "id": "winget:COMPELSONLaboratories.CameraBallistics",
+      "name": "Camera Ballistics",
+      "compatibility": "alternative",
+      "alternatives": [
+        "ExifTool",
+        "mat2",
+        "forensic imaging tools"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "security",
+      "notes": "Camera Ballistics is specialist Windows forensic software; no native Linux package was verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Camera Ballistics package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Camera Ballistics package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Camera Ballistics package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Camera Ballistics package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Camera Ballistics package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Camera Ballistics package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Camera Ballistics package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Camera Ballistics package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "COMPELSON Camera Ballistics",
+          "url": "https://www.compelson.com/camera-ballistics"
+        }
+      ]
+    },
+    {
+      "id": "winget:CambridgeUniversityPress.CambridgeReader",
+      "name": "Cambridge Reader",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Cambridge Reader web",
+        "Thorium Reader",
+        "Calibre"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "education",
+      "notes": "Cambridge Reader desktop support is Windows/macOS oriented; Linux users can use web reader or native ebook readers.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Cambridge Reader desktop package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Cambridge Reader desktop package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Cambridge Reader desktop package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Cambridge Reader desktop package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Cambridge Reader desktop package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Cambridge Reader desktop package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Cambridge Reader desktop package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Cambridge Reader desktop package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Cambridge Reader",
+          "url": "https://www.cambridge.org/highereducation/services/instructors/digital-products/cambridge-reader"
+        }
+      ]
+    },
+    {
+      "id": "winget:Cal.Cal",
+      "name": "Cal",
+      "compatibility": "native",
+      "alternatives": [
+        "Cal.com desktop",
+        "Cal.com web"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "high",
+      "category": "productivity",
+      "notes": "Cal.com lists a Linux desktop download alongside macOS and Windows.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux desktop build from Cal.com."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux desktop build from Cal.com."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux desktop build from Cal.com."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux desktop build from Cal.com."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux desktop build from Cal.com."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify Linux binary compatibility on Alpine."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux desktop build from Cal.com."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Download Linux desktop build from Cal.com."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Cal.com app",
+          "url": "https://cal.com/app"
+        }
+      ]
+    },
+    {
+      "id": "winget:BandLab.Cakewalk",
+      "name": "Cakewalk by BandLab",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Ardour",
+        "REAPER",
+        "LMMS"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "media",
+      "notes": "Cakewalk by BandLab is Windows DAW software; use Linux-native DAWs or cross-platform alternatives.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Cakewalk by BandLab is Windows software."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Cakewalk by BandLab is Windows software."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Cakewalk by BandLab is Windows software."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Cakewalk by BandLab is Windows software."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Cakewalk by BandLab is Windows software."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Cakewalk by BandLab is Windows software."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Cakewalk by BandLab is Windows software."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Cakewalk by BandLab is Windows software."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Cakewalk by BandLab",
+          "url": "https://www.bandlab.com/products/cakewalk"
+        }
+      ]
+    },
+    {
+      "id": "winget:BrunoVergastaPaiva.CabInstaller",
+      "name": "CabInstaller",
+      "compatibility": "alternative",
+      "alternatives": [
+        "cabextract",
+        "libarchive",
+        "p7zip"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "CabInstaller is a Windows CAB installer utility; Linux can extract CAB files with native archive tools.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native archive tools such as cabextract instead."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native archive tools such as cabextract instead."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native archive tools such as cabextract instead."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native archive tools such as cabextract instead."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native archive tools such as cabextract instead."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native archive tools such as cabextract instead."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native archive tools such as cabextract instead."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native archive tools such as cabextract instead."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/BrunoVergastaPaiva/CabInstaller"
+        }
+      ]
+    },
+    {
+      "id": "winget:G0rocks.Cab",
+      "name": "Cab",
+      "compatibility": "unknown",
+      "alternatives": [
+        "Cab"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Linux support was not verified; needs manual follow-up.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/G0rocks/Cab"
+        }
+      ]
+    },
+    {
+      "id": "winget:CongusBongus.CDogsSDL",
+      "name": "C-Dogs SDL",
+      "compatibility": "native",
+      "alternatives": [
+        "C-Dogs SDL"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "games",
+      "notes": "C-Dogs SDL is open source and packaged by several Linux distributions.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify AUR package availability; no official Arch package confirmed."
+        },
+        "debian": {
+          "source": "repo",
+          "packages": [
+            "cdogs-sdl"
+          ],
+          "notes": "Install from Debian repositories where available."
+        },
+        "ubuntu": {
+          "source": "repo",
+          "packages": [
+            "cdogs-sdl"
+          ],
+          "notes": "Install from Ubuntu repositories where available."
+        },
+        "fedora": {
+          "source": "repo",
+          "packages": [
+            "cdogs-sdl"
+          ],
+          "notes": "Install from Fedora repositories."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify openSUSE package availability or build from source."
+        },
+        "alpine": {
+          "source": "repo",
+          "packages": [
+            "cdogs-sdl"
+          ],
+          "notes": "Available in Alpine edge/community; verify branch for stable Alpine releases."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify Void package availability or build from source."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current ebuild availability before suggesting a package."
+        }
+      },
+      "evidence": [
+        {
+          "label": "C-Dogs SDL GitHub",
+          "url": "https://github.com/cxong/cdogs-sdl"
+        },
+        {
+          "label": "Repology C-Dogs SDL",
+          "url": "https://repology.org/project/cdogs-sdl/versions"
+        }
+      ]
+    },
+    {
+      "id": "winget:Bililive.BililiveRecorder",
+      "name": "B站录播姬",
+      "compatibility": "native",
+      "alternatives": [
+        "BililiveRecorder",
+        "yt-dlp",
+        "streamlink"
+      ],
+      "source_hint": "web",
+      "confidence": "medium",
+      "category": "media",
+      "notes": "BililiveRecorder is open source and can be run on Linux via .NET/self-contained builds, but distro packages were not verified.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux/.NET instructions; no distro package verified."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux/.NET instructions; no distro package verified."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux/.NET instructions; no distro package verified."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux/.NET instructions; no distro package verified."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux/.NET instructions; no distro package verified."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux/.NET instructions; verify musl compatibility."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux/.NET instructions; no distro package verified."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux/.NET instructions; no distro package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BililiveRecorder GitHub",
+          "url": "https://github.com/BililiveRecorder/BililiveRecorder"
+        }
+      ]
+    },
+    {
+      "id": "winget:BZFlag.BZFlag",
+      "name": "BZFlag",
+      "compatibility": "native",
+      "alternatives": [
+        "BZFlag"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "games",
+      "notes": "BZFlag is a native open-source game packaged by major Linux distributions.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "bzflag"
+          ],
+          "notes": "Install from distro repository."
+        },
+        "debian": {
+          "source": "repo",
+          "packages": [
+            "bzflag"
+          ],
+          "notes": "Install from distro repository."
+        },
+        "ubuntu": {
+          "source": "repo",
+          "packages": [
+            "bzflag"
+          ],
+          "notes": "Install from distro repository."
+        },
+        "fedora": {
+          "source": "repo",
+          "packages": [
+            "bzflag"
+          ],
+          "notes": "Install from distro repository."
+        },
+        "opensuse": {
+          "source": "repo",
+          "packages": [
+            "bzflag"
+          ],
+          "notes": "Install from distro repository."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current Alpine package availability."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current Void package availability."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current ebuild availability."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Debian BZFlag",
+          "url": "https://wiki.debian.org/Games/BZFlag"
+        },
+        {
+          "label": "Repology BZFlag",
+          "url": "https://repology.org/project/bzflag/versions"
+        }
+      ]
+    },
+    {
+      "id": "winget:Bytello.BytelloShare",
+      "name": "Bytello Share",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Bytello Share web",
+        "MiracleCast",
+        "GNOME Network Displays"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "Bytello Share desktop downloads are Windows/macOS/mobile oriented; no Linux package was verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Bytello Share package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Bytello Share package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Bytello Share package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Bytello Share package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Bytello Share package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Bytello Share package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Bytello Share package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Bytello Share package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Bytello Share downloads",
+          "url": "https://share.bytello.com/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BYOND.BYOND",
+      "name": "BYOND",
+      "compatibility": "alternative",
+      "alternatives": [
+        "BYOND via Wine",
+        "native open-source game engines"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "games",
+      "notes": "BYOND client is Windows-oriented; Linux use generally requires Wine and is not a native package.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BYOND client package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BYOND client package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BYOND client package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BYOND client package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BYOND client package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BYOND client package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BYOND client package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BYOND client package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BYOND download",
+          "url": "https://www.byond.com/download/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Berkeley.BYOB",
+      "name": "BYOB",
+      "compatibility": "unknown",
+      "alternatives": [
+        "Snap!",
+        "Scratch"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "education",
+      "notes": "BYOB is legacy educational software; current Linux desktop support was not verified.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BYOB/Snap history",
+          "url": "https://snap.berkeley.edu/"
+        }
+      ]
+    },
+    {
+      "id": "winget:ChidiWilliams.Buzz",
+      "name": "Buzz",
+      "compatibility": "native",
+      "alternatives": [
+        "Buzz",
+        "Whisper.cpp",
+        "Subtitle Edit"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "high",
+      "category": "media",
+      "notes": "Buzz is available for Linux on Flathub.",
+      "install_hints": {
+        "arch": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: io.github.chidiwilliams.Buzz."
+        },
+        "debian": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: io.github.chidiwilliams.Buzz."
+        },
+        "ubuntu": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: io.github.chidiwilliams.Buzz."
+        },
+        "fedora": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: io.github.chidiwilliams.Buzz."
+        },
+        "opensuse": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: io.github.chidiwilliams.Buzz."
+        },
+        "alpine": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub if Flatpak is configured."
+        },
+        "void": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: io.github.chidiwilliams.Buzz."
+        },
+        "gentoo": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: io.github.chidiwilliams.Buzz."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Buzz on Flathub",
+          "url": "https://flathub.org/apps/io.github.chidiwilliams.Buzz"
+        }
+      ]
+    },
+    {
+      "id": "winget:Buttercup.Buttercup",
+      "name": "Buttercup",
+      "compatibility": "native",
+      "alternatives": [
+        "Buttercup",
+        "Bitwarden",
+        "KeePassXC"
+      ],
+      "source_hint": "vendor_appimage",
+      "confidence": "medium",
+      "category": "security",
+      "notes": "Buttercup has Linux AppImage/deb/rpm history; verify current upstream maintenance before relying on it.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream AppImage if current releases remain available."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Use upstream .deb/AppImage if current releases remain available."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Use upstream .deb/AppImage if current releases remain available."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Use upstream .rpm/AppImage if current releases remain available."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Use upstream .rpm/AppImage if current releases remain available."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "AppImage may require extra compatibility libraries; verify on Alpine."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream AppImage if current releases remain available."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream AppImage if current releases remain available."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Buttercup AppImage",
+          "url": "https://appimage.github.io/buttercup/"
+        }
+      ]
+    },
+    {
+      "id": "winget:AMSSoftware.BusinessCardMaker",
+      "name": "Business Card Maker",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Scribus",
+        "Inkscape",
+        "LibreOffice Draw"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "graphics",
+      "notes": "AMS Business Card Maker is Windows design software; use native Linux layout/vector tools.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "AMS Business Card Maker is Windows software."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "AMS Business Card Maker is Windows software."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "AMS Business Card Maker is Windows software."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "AMS Business Card Maker is Windows software."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "AMS Business Card Maker is Windows software."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "AMS Business Card Maker is Windows software."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "AMS Business Card Maker is Windows software."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "AMS Business Card Maker is Windows software."
+        }
+      },
+      "evidence": [
+        {
+          "label": "AMS Business Card Maker",
+          "url": "https://ams-photo-software.com/business-card-maker/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Burnaware.BurnAwarePro",
+      "name": "BurnAware Professional",
+      "compatibility": "alternative",
+      "alternatives": [
+        "K3b",
+        "Brasero",
+        "Xfburn"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "BurnAware is Windows disc-burning software; use native Linux burning tools.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BurnAware",
+          "url": "https://www.burnaware.com/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Burnaware.BurnAwarePremium",
+      "name": "BurnAware Premium",
+      "compatibility": "alternative",
+      "alternatives": [
+        "K3b",
+        "Brasero",
+        "Xfburn"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "BurnAware is Windows disc-burning software; use native Linux burning tools.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BurnAware",
+          "url": "https://www.burnaware.com/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Burnaware.BurnAwareFree",
+      "name": "BurnAware Free",
+      "compatibility": "alternative",
+      "alternatives": [
+        "K3b",
+        "Brasero",
+        "Xfburn"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "BurnAware is Windows disc-burning software; use native Linux burning tools.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "BurnAware is Windows software."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BurnAware",
+          "url": "https://www.burnaware.com/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Bunker.Bunker",
+      "name": "Bunker",
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bunker"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Linux support was not verified; needs manual follow-up.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/Bunker/Bunker"
+        }
+      ]
+    },
+    {
+      "id": "winget:BumpTechnologies.BumpTop",
+      "name": "BumpTop",
+      "compatibility": "alternative",
+      "alternatives": [
+        "KDE Plasma widgets",
+        "GNOME Shell extensions"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "BumpTop was Windows/macOS desktop shell software and is discontinued; no native Linux package was verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "BumpTop is discontinued Windows/macOS software."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "BumpTop is discontinued Windows/macOS software."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "BumpTop is discontinued Windows/macOS software."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "BumpTop is discontinued Windows/macOS software."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "BumpTop is discontinued Windows/macOS software."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "BumpTop is discontinued Windows/macOS software."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "BumpTop is discontinued Windows/macOS software."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "BumpTop is discontinued Windows/macOS software."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BumpTop source archive",
+          "url": "https://github.com/bumptop/BumpTop"
+        }
+      ]
+    },
+    {
+      "id": "winget:BuildIso.BuildIso",
+      "name": "BuildIso",
+      "compatibility": "unknown",
+      "alternatives": [
+        "mkisofs",
+        "xorriso",
+        "genisoimage"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "utilities",
+      "notes": "The specific WinGet BuildIso application could not be matched to a verified Linux project; needs manual follow-up.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/BuildIso/BuildIso"
+        }
+      ]
+    },
+    {
+      "id": "winget:build2.build2.MinGW",
+      "name": "build2",
+      "compatibility": "native",
+      "alternatives": [
+        "build2",
+        "CMake",
+        "Meson"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "development",
+      "notes": "build2 is a native cross-platform build tool available through some distro repositories and upstream installers.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify official/AUR package availability or use upstream install instructions."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify distro package availability or use upstream install instructions."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify distro package availability or use upstream install instructions."
+        },
+        "fedora": {
+          "source": "repo",
+          "packages": [
+            "build2"
+          ],
+          "notes": "Install from Fedora repositories where available."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify openSUSE package availability or use upstream install instructions."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify Alpine package availability or use upstream install instructions."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify Void package availability or use upstream install instructions."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current ebuild availability or use upstream install instructions."
+        }
+      },
+      "evidence": [
+        {
+          "label": "build2 install",
+          "url": "https://build2.org/install.xhtml"
+        },
+        {
+          "label": "Repology build2",
+          "url": "https://repology.org/project/build2/versions"
+        }
+      ]
+    },
+    {
+      "id": "winget:CDESoftware.BTM-2026",
+      "name": "BTM-2026",
+      "compatibility": "alternative",
+      "alternatives": [
+        "CDE web/e-file workflows",
+        "tax software web portals"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "finance",
+      "notes": "CDE BTM software is designed for supported Windows versions; no native Linux package was verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BTM is Windows software."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BTM is Windows software."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BTM is Windows software."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BTM is Windows software."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BTM is Windows software."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BTM is Windows software."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BTM is Windows software."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BTM is Windows software."
+        }
+      },
+      "evidence": [
+        {
+          "label": "CDE BTM requirements",
+          "url": "https://support.cdesoftware.com/kb/a2993/btm-2023-operating-system-requirements.aspx"
+        }
+      ]
+    },
+    {
+      "id": "winget:CDESoftware.BTM-2023",
+      "name": "BTM-2023",
+      "compatibility": "alternative",
+      "alternatives": [
+        "CDE web/e-file workflows",
+        "tax software web portals"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "finance",
+      "notes": "CDE BTM-2023 operating-system requirements list Windows releases; no native Linux package was verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BTM-2023 is Windows software."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BTM-2023 is Windows software."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BTM-2023 is Windows software."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BTM-2023 is Windows software."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BTM-2023 is Windows software."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BTM-2023 is Windows software."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BTM-2023 is Windows software."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BTM-2023 is Windows software."
+        }
+      },
+      "evidence": [
+        {
+          "label": "CDE BTM-2023 requirements",
+          "url": "https://support.cdesoftware.com/kb/a2993/btm-2023-operating-system-requirements.aspx"
+        }
+      ]
+    },
+    {
+      "id": "winget:BrutalChess.BrutalChess",
+      "name": "Brutal Chess",
+      "compatibility": "native",
+      "alternatives": [
+        "Brutal Chess",
+        "GNOME Chess",
+        "DreamChess"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "games",
+      "notes": "Brutal Chess is packaged by several Linux distributions.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify AUR/package availability before suggesting a package."
+        },
+        "debian": {
+          "source": "repo",
+          "packages": [
+            "brutalchess"
+          ],
+          "notes": "Install from Debian repositories."
+        },
+        "ubuntu": {
+          "source": "repo",
+          "packages": [
+            "brutalchess"
+          ],
+          "notes": "Install from Ubuntu repositories where available."
+        },
+        "fedora": {
+          "source": "repo",
+          "packages": [
+            "brutalchess"
+          ],
+          "notes": "Install from Fedora repositories."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify openSUSE package availability."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify Alpine package availability."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify Void package availability."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current ebuild availability."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Repology Brutal Chess",
+          "url": "https://repology.org/project/brutalchess/versions"
+        }
+      ]
+    },
+    {
+      "id": "winget:Bruno.Bruno",
+      "name": "Bruno",
+      "compatibility": "native",
+      "alternatives": [
+        "Bruno",
+        "Insomnia",
+        "Postman"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "Bruno publishes Linux packages and universal formats including deb, rpm, AppImage, Snap, and Flatpak.",
+      "install_hints": {
+        "arch": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Use Flathub, AppImage, or upstream packages."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Use upstream .deb or apt repository instructions."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Use upstream .deb, Snap, Flatpak, or apt repository instructions."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Use upstream .rpm or Flatpak."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Use upstream .rpm or Flatpak."
+        },
+        "alpine": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Use Flatpak/AppImage if compatible."
+        },
+        "void": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Use Flatpak/AppImage if compatible."
+        },
+        "gentoo": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Use Flatpak/AppImage if compatible."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Bruno download",
+          "url": "https://www.usebruno.com/downloads"
+        },
+        {
+          "label": "Bruno on Flathub",
+          "url": "https://flathub.org/apps/com.usebruno.Bruno"
+        }
+      ]
+    },
+    {
+      "id": "winget:Brows3Team.Brows3",
+      "name": "Brows3",
+      "compatibility": "unknown",
+      "alternatives": [
+        "Brows3"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Linux support was not verified; needs manual follow-up.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/Brows3Team/Brows3"
+        }
+      ]
+    },
+    {
+      "id": "winget:Brows.App",
+      "name": "Brows",
+      "compatibility": "unknown",
+      "alternatives": [
+        "Brows"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Linux support was not verified; needs manual follow-up.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/Brows/App"
+        }
+      ]
+    },
+    {
+      "id": "winget:Brosix.Brosix",
+      "name": "Brosix",
+      "compatibility": "native",
+      "alternatives": [
+        "Brosix",
+        "Element",
+        "Slack"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "communication",
+      "notes": "Brosix provides Linux .deb, .rpm, and .tar.gz downloads.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Brosix Linux tar.gz package."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Use Brosix .deb package."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Use Brosix .deb package."
+        },
+        "fedora": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Use Brosix .rpm package."
+        },
+        "opensuse": {
+          "source": "vendor_rpm",
+          "packages": [],
+          "notes": "Use Brosix .rpm package."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Vendor packages target deb/rpm/tar.gz; verify dependencies on Alpine."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Brosix Linux tar.gz package if dependencies are available."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Brosix Linux tar.gz package if dependencies are available."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Brosix download",
+          "url": "https://www.brosix.com/download/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Brinno.BrinnoConnect",
+      "name": "Brinno Connect",
+      "compatibility": "alternative",
+      "alternatives": [
+        "USB mass storage import",
+        "camera web/mobile workflows"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "media",
+      "notes": "Brinno Connect is vendor camera utility software; no native Linux package was verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Brinno Connect package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Brinno Connect package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Brinno Connect package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Brinno Connect package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Brinno Connect package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Brinno Connect package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Brinno Connect package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Brinno Connect package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Brinno support downloads",
+          "url": "https://brinno.com/pages/support"
+        }
+      ]
+    },
+    {
+      "id": "winget:Geomitron.Bridge",
+      "name": "Bridge",
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bridge"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Linux support was not verified; needs manual follow-up.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/Geomitron/Bridge"
+        }
+      ]
+    },
+    {
+      "id": "winget:Bria.Bria",
+      "name": "Bria",
+      "compatibility": "unknown",
+      "alternatives": [
+        "Linphone",
+        "Jami",
+        "Twinkle"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "communication",
+      "notes": "Historical Bria for Linux exists, but current desktop Linux availability was not verified; needs manual follow-up.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Current Linux support was not verified; needs manual follow-up."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Current Linux support was not verified; needs manual follow-up."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Current Linux support was not verified; needs manual follow-up."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Current Linux support was not verified; needs manual follow-up."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Current Linux support was not verified; needs manual follow-up."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Current Linux support was not verified; needs manual follow-up."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Current Linux support was not verified; needs manual follow-up."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Current Linux support was not verified; needs manual follow-up."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Bria downloads",
+          "url": "https://support.counterpath.com/hc/download-bria"
+        },
+        {
+          "label": "CounterPath Linux announcement",
+          "url": "https://www.counterpath.com/?p=12776"
+        }
+      ]
+    },
+    {
+      "id": "winget:BranchBlocks.Branch",
+      "name": "Branch",
+      "compatibility": "unknown",
+      "alternatives": [
+        "Branch"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Linux support was not verified; needs manual follow-up.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/BranchBlocks/Branch"
+        }
+      ]
+    },
+    {
+      "id": "winget:ChenQingYu.BF",
+      "name": "Brainf**k interpreter",
+      "compatibility": "native",
+      "alternatives": [
+        "bf",
+        "beef",
+        "brainfuck interpreters"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Brainfuck interpreters are readily available on Linux, but this exact package was not matched to distro packages.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use a distro Brainfuck interpreter package or build this exact upstream manually."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use a distro Brainfuck interpreter package or build this exact upstream manually."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use a distro Brainfuck interpreter package or build this exact upstream manually."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use a distro Brainfuck interpreter package or build this exact upstream manually."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use a distro Brainfuck interpreter package or build this exact upstream manually."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use a distro Brainfuck interpreter package or build this exact upstream manually."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use a distro Brainfuck interpreter package or build this exact upstream manually."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use a distro Brainfuck interpreter package or build this exact upstream manually."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/ChenQingYu/BF"
+        }
+      ]
+    },
+    {
+      "id": "winget:Braillify.Braillify",
+      "name": "Braillify",
+      "compatibility": "unknown",
+      "alternatives": [
+        "Braillify",
+        "liblouis"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "accessibility",
+      "notes": "Linux support for this exact Braillify app was not verified; needs manual follow-up.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/Braillify/Braillify"
+        }
+      ]
+    },
+    {
+      "id": "winget:BPBible.BPBible",
+      "name": "BPBible",
+      "compatibility": "native",
+      "alternatives": [
+        "BPBible",
+        "Xiphos",
+        "BibleTime"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "medium",
+      "category": "education",
+      "notes": "BPBible is open source with Linux/source history, but current distro package availability was not verified.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current package availability or build from source."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current package availability or build from source."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current package availability or build from source."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current package availability or build from source."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current package availability or build from source."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current package availability or build from source."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current package availability or build from source."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current package availability or build from source."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BPBible",
+          "url": "https://github.com/bpbible/bpbible"
+        }
+      ]
+    },
+    {
+      "id": "winget:BoxHero.BoxHero",
+      "name": "BoxHero",
+      "compatibility": "alternative",
+      "alternatives": [
+        "BoxHero web",
+        "ERPNext",
+        "Inventree"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "business",
+      "notes": "BoxHero desktop app support is Windows/macOS oriented; Linux users can use the web app.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use BoxHero web; no native Linux desktop package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use BoxHero web; no native Linux desktop package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use BoxHero web; no native Linux desktop package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use BoxHero web; no native Linux desktop package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use BoxHero web; no native Linux desktop package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use BoxHero web; no native Linux desktop package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use BoxHero web; no native Linux desktop package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use BoxHero web; no native Linux desktop package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BoxHero download",
+          "url": "https://www.boxhero-app.com/en/download"
+        }
+      ]
+    },
+    {
+      "id": "winget:Box.Box",
+      "name": "Box",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Box web",
+        "rclone",
+        "GNOME Online Accounts"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "productivity",
+      "notes": "Box desktop applications do not support Linux; use the web app or third-party sync/mount tooling.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Box desktop apps do not support Linux."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Box desktop apps do not support Linux."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Box desktop apps do not support Linux."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Box desktop apps do not support Linux."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Box desktop apps do not support Linux."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Box desktop apps do not support Linux."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Box desktop apps do not support Linux."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Box desktop apps do not support Linux."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Box Linux support",
+          "url": "https://support.box.com/hc/en-us/community/posts/4406805524371-Is-there-any-linux-based-Box-App"
+        }
+      ]
+    },
+    {
+      "id": "winget:Clement.bottom",
+      "name": "bottom",
+      "compatibility": "native",
+      "alternatives": [
+        "bottom",
+        "btop",
+        "htop"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "system",
+      "notes": "bottom is a cross-platform terminal process/system monitor with Linux packages and upstream install methods.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "bottom"
+          ],
+          "notes": "Install from Arch repositories."
+        },
+        "debian": {
+          "source": "repo",
+          "packages": [
+            "bottom"
+          ],
+          "notes": "Install from Debian repositories where available, or use upstream cargo install."
+        },
+        "ubuntu": {
+          "source": "repo",
+          "packages": [
+            "bottom"
+          ],
+          "notes": "Install from Ubuntu repositories where available, or use upstream cargo install."
+        },
+        "fedora": {
+          "source": "repo",
+          "packages": [
+            "bottom"
+          ],
+          "notes": "Install from Fedora repositories."
+        },
+        "opensuse": {
+          "source": "repo",
+          "packages": [
+            "bottom"
+          ],
+          "notes": "Install from openSUSE repositories where available."
+        },
+        "alpine": {
+          "source": "repo",
+          "packages": [
+            "bottom"
+          ],
+          "notes": "Install from Alpine repositories where available."
+        },
+        "void": {
+          "source": "repo",
+          "packages": [
+            "bottom"
+          ],
+          "notes": "Install from Void repositories where available."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify ebuild availability or use upstream cargo install."
+        }
+      },
+      "evidence": [
+        {
+          "label": "bottom GitHub",
+          "url": "https://github.com/ClementTsang/bottom"
+        },
+        {
+          "label": "Repology bottom",
+          "url": "https://repology.org/project/bottom/versions"
+        }
+      ]
+    },
+    {
+      "id": "winget:Algento.Botim",
+      "name": "Botim",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Botim web",
+        "Signal",
+        "Telegram"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "communication",
+      "notes": "Botim desktop distribution is Windows/macOS oriented; no native Linux package was verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Botim desktop package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Botim desktop package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Botim desktop package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Botim desktop package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Botim desktop package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Botim desktop package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Botim desktop package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Botim desktop package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Botim",
+          "url": "https://botim.me/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Bose.Updater",
+      "name": "Bose Updater",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Bose web updater on supported OS",
+        "Bose mobile apps"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "Bose Updater desktop support is Windows/macOS oriented; no native Linux updater package was verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Bose Updater package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Bose Updater package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Bose Updater package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Bose Updater package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Bose Updater package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Bose Updater package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Bose Updater package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Bose Updater package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Bose Updater",
+          "url": "https://btu.bose.com/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BookxSoftware.BookxNotePro",
+      "name": "BookxNote Pro",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Xournal++",
+        "Okular",
+        "Zotero"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "productivity",
+      "notes": "BookxNote Pro desktop downloads are Windows-focused; no native Linux package was verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BookxNote Pro package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BookxNote Pro package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BookxNote Pro package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BookxNote Pro package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BookxNote Pro package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BookxNote Pro package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BookxNote Pro package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BookxNote Pro package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BookxNote",
+          "url": "https://www.bookxnote.com/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BookStairs.bookhunter",
+      "name": "bookhunter",
+      "compatibility": "unknown",
+      "alternatives": [
+        "bookhunter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Linux support was not verified; needs manual follow-up.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/BookStairs/bookhunter"
+        }
+      ]
+    },
+    {
+      "id": "winget:FNPrg.BookCAT",
+      "name": "BookCAT",
+      "compatibility": "alternative",
+      "alternatives": [
+        "GCstar",
+        "Tellico",
+        "Calibre"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "productivity",
+      "notes": "BookCAT is legacy Windows book-catalog software; use native Linux catalog/library tools.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "BookCAT is Windows software."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "BookCAT is Windows software."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "BookCAT is Windows software."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "BookCAT is Windows software."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "BookCAT is Windows software."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "BookCAT is Windows software."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "BookCAT is Windows software."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "BookCAT is Windows software."
+        }
+      },
+      "evidence": [
+        {
+          "label": "FNProgramvare BookCAT",
+          "url": "https://www.fnprg.com/bookcat/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BonsaiFoundation.Bonsai",
+      "name": "Bonsai",
+      "compatibility": "native",
+      "alternatives": [
+        "Bonsai",
+        "Node-RED",
+        "LabVIEW alternatives"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "medium",
+      "category": "science",
+      "notes": "Bonsai has Linux installation documentation, but support is not as straightforward as Windows and is tested on limited Ubuntu versions.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Follow upstream Linux build/install docs; distro package not verified."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Follow upstream Linux build/install docs; distro package not verified."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Follow upstream Linux guide, currently focused on Ubuntu."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Follow upstream Linux build/install docs; distro package not verified."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Follow upstream Linux build/install docs; distro package not verified."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Follow upstream Linux build/install docs; verify dependencies manually."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Follow upstream Linux build/install docs; distro package not verified."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Follow upstream Linux build/install docs; distro package not verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Bonsai Linux installation guide",
+          "url": "https://bonsai-rx.org/machinelearning/articles/LinearDynamicalSystems/lds-installation-guide-linux.html"
+        }
+      ]
+    },
+    {
+      "id": "winget:Apple.BonjourPrintServices",
+      "name": "Bonjour Print Services",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Avahi",
+        "CUPS"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "system",
+      "notes": "Bonjour Print Services is Apple's Windows package; Linux uses Avahi/mDNS and CUPS for similar functionality.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro Avahi/CUPS packages instead."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro Avahi/CUPS packages instead."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro Avahi/CUPS packages instead."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro Avahi/CUPS packages instead."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro Avahi/CUPS packages instead."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro Avahi/CUPS packages instead."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro Avahi/CUPS packages instead."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro Avahi/CUPS packages instead."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Bonjour Print Services for Windows",
+          "url": "https://support.apple.com/kb/DL999"
+        },
+        {
+          "label": "Avahi",
+          "url": "https://www.avahi.org/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Apple.Bonjour",
+      "name": "Bonjour",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Avahi",
+        "systemd-resolved mDNS"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "system",
+      "notes": "Bonjour is Apple's Windows mDNS package; Linux uses Avahi or system mDNS services.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro Avahi/system mDNS packages instead."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro Avahi/system mDNS packages instead."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro Avahi/system mDNS packages instead."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro Avahi/system mDNS packages instead."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro Avahi/system mDNS packages instead."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro Avahi/system mDNS packages instead."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro Avahi/system mDNS packages instead."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use distro Avahi/system mDNS packages instead."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Bonjour Print Services for Windows",
+          "url": "https://support.apple.com/kb/DL999"
+        },
+        {
+          "label": "Avahi",
+          "url": "https://www.avahi.org/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BOMIST.BOMIST",
+      "name": "BOMIST",
+      "compatibility": "native",
+      "alternatives": [
+        "BOMIST",
+        "InvenTree",
+        "PartKeepr"
+      ],
+      "source_hint": "vendor_appimage",
+      "confidence": "high",
+      "category": "business",
+      "notes": "BOMIST provides a Linux AppImage download.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use BOMIST AppImage."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use BOMIST AppImage."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use BOMIST AppImage."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use BOMIST AppImage."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use BOMIST AppImage."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "AppImage may require extra compatibility libraries; verify on Alpine."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use BOMIST AppImage."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use BOMIST AppImage."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BOMIST downloads",
+          "url": "https://bomist.com/downloads"
+        }
+      ]
+    },
+    {
+      "id": "winget:Bome.SendSX",
+      "name": "Bome SendSX",
+      "compatibility": "alternative",
+      "alternatives": [
+        "amidi",
+        "SysEx utilities",
+        "MIDI-OX via Wine"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "media",
+      "notes": "Bome SendSX is a Windows MIDI SysEx utility; use ALSA MIDI tools or other native SysEx utilities on Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bome SendSX is Windows software."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bome SendSX is Windows software."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bome SendSX is Windows software."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bome SendSX is Windows software."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bome SendSX is Windows software."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bome SendSX is Windows software."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bome SendSX is Windows software."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bome SendSX is Windows software."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Bome SendSX",
+          "url": "https://www.bome.com/products/sendsx"
+        }
+      ]
+    },
+    {
+      "id": "winget:Bochs.Bochs",
+      "name": "Bochs",
+      "compatibility": "native",
+      "alternatives": [
+        "Bochs",
+        "QEMU",
+        "VirtualBox"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "system",
+      "notes": "Bochs is a portable x86 emulator packaged by major Linux distributions.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current Arch/AUR package availability."
+        },
+        "debian": {
+          "source": "repo",
+          "packages": [
+            "bochs"
+          ],
+          "notes": "Install from Debian repositories."
+        },
+        "ubuntu": {
+          "source": "repo",
+          "packages": [
+            "bochs"
+          ],
+          "notes": "Install from Ubuntu repositories."
+        },
+        "fedora": {
+          "source": "repo",
+          "packages": [
+            "bochs"
+          ],
+          "notes": "Install from Fedora repositories."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify openSUSE package availability."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Available in Alpine edge; verify branch before suggesting."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify Void package availability."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current ebuild availability."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Debian bochs",
+          "url": "https://packages.debian.org/bochs"
+        },
+        {
+          "label": "Fedora bochs",
+          "url": "https://packages.fedoraproject.org/pkgs/bochs/bochs"
+        }
+      ]
+    },
+    {
+      "id": "winget:Bosyun.BoardMix.CN",
+      "name": "boardmix",
+      "compatibility": "alternative",
+      "alternatives": [
+        "boardmix web",
+        "Excalidraw",
+        "OpenBoard"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "productivity",
+      "notes": "Boardmix downloads list Windows and macOS desktop apps plus online use; no Linux desktop package verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use boardmix online; no native Linux desktop package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use boardmix online; no native Linux desktop package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use boardmix online; no native Linux desktop package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use boardmix online; no native Linux desktop package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use boardmix online; no native Linux desktop package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use boardmix online; no native Linux desktop package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use boardmix online; no native Linux desktop package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use boardmix online; no native Linux desktop package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "boardmix download center",
+          "url": "https://boardmix.com/download/"
+        }
+      ]
+    },
+    {
+      "id": "winget:D2L.BMX",
+      "name": "BMX",
+      "compatibility": "unknown",
+      "alternatives": [
+        "BMX"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Linux support was not verified; needs manual follow-up.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/D2L/BMX"
+        }
+      ]
+    },
+    {
+      "id": "winget:Blur009.BlurAutoClicker",
+      "name": "Blur-AutoClicker",
+      "compatibility": "alternative",
+      "alternatives": [
+        "xdotool",
+        "ydotool",
+        "AutoKey"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "Blur-AutoClicker is a Windows auto-clicker package; use native Linux automation tools.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native Linux automation tools instead."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native Linux automation tools instead."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native Linux automation tools instead."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native Linux automation tools instead."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native Linux automation tools instead."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native Linux automation tools instead."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native Linux automation tools instead."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native Linux automation tools instead."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/Blur009/BlurAutoClicker"
+        }
+      ]
+    },
+    {
+      "id": "winget:BlueStack.BlueStacks",
+      "name": "BlueStacks",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Waydroid",
+        "Android Studio Emulator",
+        "Genymotion"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "games",
+      "notes": "BlueStacks desktop emulator is available for Windows/macOS, not native Linux.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BlueStacks package; use Linux Android alternatives."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BlueStacks package; use Linux Android alternatives."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BlueStacks package; use Linux Android alternatives."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BlueStacks package; use Linux Android alternatives."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BlueStacks package; use Linux Android alternatives."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BlueStacks package; use Linux Android alternatives."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BlueStacks package; use Linux Android alternatives."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BlueStacks package; use Linux Android alternatives."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BlueStacks",
+          "url": "https://www.bluestacks.com/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BlueJTeam.BlueJ",
+      "name": "BlueJ",
+      "compatibility": "native",
+      "alternatives": [
+        "BlueJ",
+        "IntelliJ IDEA Community",
+        "Eclipse"
+      ],
+      "source_hint": "vendor_deb_rpm",
+      "confidence": "high",
+      "category": "development",
+      "notes": "BlueJ provides Linux installation instructions and a Debian/Ubuntu package.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream generic installer or verify package availability."
+        },
+        "debian": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Use BlueJ Linux .deb package."
+        },
+        "ubuntu": {
+          "source": "vendor_deb_rpm",
+          "packages": [],
+          "notes": "Use BlueJ Linux .deb package."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream generic installer or verify RPM/package availability."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream generic installer or verify RPM/package availability."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream generic installer and verify Java dependencies."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream generic installer and verify Java dependencies."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream generic installer and verify Java dependencies."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BlueJ Linux installation",
+          "url": "https://bluej.org/debian-ubuntu-oracle-java.html"
+        }
+      ]
+    },
+    {
+      "id": "winget:DisruptiveInnovations.BlueGriffon",
+      "name": "BlueGriffon",
+      "compatibility": "native",
+      "alternatives": [
+        "BlueGriffon",
+        "Bluefish",
+        "SeaMonkey Composer"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "BlueGriffon historically provided Linux builds, but the project is old; verify current downloads before relying on it.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux archive if still available."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux archive if still available."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux archive if still available."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux archive if still available."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux archive if still available."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux archive if still available; verify compatibility."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux archive if still available."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux archive if still available."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BlueGriffon",
+          "url": "http://bluegriffon.org/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Bluefish.Bluefish",
+      "name": "Bluefish",
+      "compatibility": "native",
+      "alternatives": [
+        "Bluefish",
+        "Kate",
+        "Geany"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "development",
+      "notes": "Bluefish is a native GTK editor packaged by major Linux distributions.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "bluefish"
+          ],
+          "notes": "Install from Arch extra."
+        },
+        "debian": {
+          "source": "repo",
+          "packages": [
+            "bluefish"
+          ],
+          "notes": "Install from Debian repositories."
+        },
+        "ubuntu": {
+          "source": "repo",
+          "packages": [
+            "bluefish"
+          ],
+          "notes": "Install from Ubuntu repositories."
+        },
+        "fedora": {
+          "source": "repo",
+          "packages": [
+            "bluefish"
+          ],
+          "notes": "Install from Fedora repositories."
+        },
+        "opensuse": {
+          "source": "repo",
+          "packages": [
+            "bluefish"
+          ],
+          "notes": "Install from openSUSE repositories where available."
+        },
+        "alpine": {
+          "source": "repo",
+          "packages": [
+            "bluefish"
+          ],
+          "notes": "Available in Alpine community/edge; verify branch for stable Alpine releases."
+        },
+        "void": {
+          "source": "repo",
+          "packages": [
+            "bluefish"
+          ],
+          "notes": "Install from Void repositories where available."
+        },
+        "gentoo": {
+          "source": "repo",
+          "packages": [
+            "bluefish"
+          ],
+          "notes": "Install from Gentoo repositories where available."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Arch Bluefish",
+          "url": "https://archlinux.org/packages/extra/x86_64/bluefish/"
+        },
+        {
+          "label": "Alpine Bluefish",
+          "url": "https://pkgs.alpinelinux.org/package/edge/community/x86/bluefish"
+        },
+        {
+          "label": "openSUSE Bluefish",
+          "url": "https://software.opensuse.org/package/bluefish"
+        }
+      ]
+    },
+    {
+      "id": "winget:bluecfd.bluecfd",
+      "name": "blueCFD-Core",
+      "compatibility": "alternative",
+      "alternatives": [
+        "OpenFOAM",
+        "SU2",
+        "Code_Saturne"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "science",
+      "notes": "blueCFD-Core is a Windows port of OpenFOAM; Linux users should use native OpenFOAM distributions.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native OpenFOAM instead of the Windows blueCFD port."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native OpenFOAM instead of the Windows blueCFD port."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native OpenFOAM instead of the Windows blueCFD port."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native OpenFOAM instead of the Windows blueCFD port."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native OpenFOAM instead of the Windows blueCFD port."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native OpenFOAM instead of the Windows blueCFD port."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native OpenFOAM instead of the Windows blueCFD port."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use native OpenFOAM instead of the Windows blueCFD port."
+        }
+      },
+      "evidence": [
+        {
+          "label": "blueCFD-Core",
+          "url": "https://bluecfd.github.io/Core/"
+        },
+        {
+          "label": "OpenFOAM Linux",
+          "url": "https://openfoam.org/download/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BlueBubbles.BlueBubbles",
+      "name": "BlueBubbles",
+      "compatibility": "native",
+      "alternatives": [
+        "BlueBubbles",
+        "KDE Connect",
+        "Element"
+      ],
+      "source_hint": "flatpak",
+      "confidence": "high",
+      "category": "communication",
+      "notes": "BlueBubbles provides Linux desktop packages through Flathub, Snap, and zip releases.",
+      "install_hints": {
+        "arch": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub: app.bluebubbles.BlueBubbles."
+        },
+        "debian": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub or Snap."
+        },
+        "ubuntu": {
+          "source": "snap",
+          "packages": [],
+          "notes": "Install via Snap or Flathub."
+        },
+        "fedora": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub or Snap."
+        },
+        "opensuse": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub or Snap."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream zip or Flatpak if configured; verify dependencies."
+        },
+        "void": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub or upstream zip."
+        },
+        "gentoo": {
+          "source": "flatpak",
+          "packages": [],
+          "notes": "Install via Flathub or upstream zip."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BlueBubbles desktop downloads",
+          "url": "https://bluebubbles.app/downloads/desktop/"
+        },
+        {
+          "label": "BlueBubbles Snap",
+          "url": "https://snapcraft.io/bluebubbles"
+        }
+      ]
+    },
+    {
+      "id": "winget:CollegeBoard.Bluebook",
+      "name": "Bluebook",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Bluebook on approved Windows/macOS/iPad/managed Chromebook device"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "education",
+      "notes": "College Board Bluebook supports Windows, macOS, iPad, and school-managed Chromebooks; Linux is not an approved platform.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Linux is not an approved Bluebook testing platform."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Linux is not an approved Bluebook testing platform."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Linux is not an approved Bluebook testing platform."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Linux is not an approved Bluebook testing platform."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Linux is not an approved Bluebook testing platform."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Linux is not an approved Bluebook testing platform."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Linux is not an approved Bluebook testing platform."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Linux is not an approved Bluebook testing platform."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Bluebook device requirements",
+          "url": "https://bluebook.collegeboard.org/technology/devices/requirements/overview"
+        }
+      ]
+    },
+    {
+      "id": "winget:BirdBrain.BlueBirdConnector",
+      "name": "BlueBird Connector",
+      "compatibility": "alternative",
+      "alternatives": [
+        "BirdBrain web apps",
+        "Chromebook workflows"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "education",
+      "notes": "BlueBird Connector is hardware/education companion software; no native Linux desktop package was verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BlueBird Connector package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BlueBird Connector package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BlueBird Connector package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BlueBird Connector package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BlueBird Connector package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BlueBird Connector package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BlueBird Connector package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux BlueBird Connector package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BirdBrain Technologies downloads",
+          "url": "https://www.birdbraintechnologies.com/downloads/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Bluebeam.BluebeamOCR.21",
+      "name": "BluebeamOCR 21",
+      "compatibility": "alternative",
+      "alternatives": [
+        "OCRmyPDF",
+        "Tesseract OCR",
+        "Okular"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "productivity",
+      "notes": "Bluebeam Revu/OCR system requirements are Windows-only; use Linux PDF/OCR tools.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "BluebeamOCR 21 is Windows software."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "BluebeamOCR 21 is Windows software."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "BluebeamOCR 21 is Windows software."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "BluebeamOCR 21 is Windows software."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "BluebeamOCR 21 is Windows software."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "BluebeamOCR 21 is Windows software."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "BluebeamOCR 21 is Windows software."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "BluebeamOCR 21 is Windows software."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Bluebeam Revu requirements",
+          "url": "https://support.bluebeam.com/articles/compatibility-system-requirements/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Bluebeam.Revu.21",
+      "name": "Bluebeam Revu 21",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Okular",
+        "Master PDF Editor",
+        "PDF Arranger"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "productivity",
+      "notes": "Bluebeam Revu 21 system requirements list Windows 10/11; use Linux PDF markup alternatives.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bluebeam Revu 21 is Windows software."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bluebeam Revu 21 is Windows software."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bluebeam Revu 21 is Windows software."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bluebeam Revu 21 is Windows software."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bluebeam Revu 21 is Windows software."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bluebeam Revu 21 is Windows software."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bluebeam Revu 21 is Windows software."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bluebeam Revu 21 is Windows software."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Bluebeam Revu requirements",
+          "url": "https://support.bluebeam.com/articles/compatibility-system-requirements/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Bluebeam.Revu.20",
+      "name": "Bluebeam Revu 20",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Okular",
+        "Master PDF Editor",
+        "PDF Arranger"
+      ],
+      "source_hint": "alternative",
+      "confidence": "high",
+      "category": "productivity",
+      "notes": "Bluebeam Revu is Windows software; use Linux PDF markup alternatives.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bluebeam Revu 20 is Windows software."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bluebeam Revu 20 is Windows software."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bluebeam Revu 20 is Windows software."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bluebeam Revu 20 is Windows software."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bluebeam Revu 20 is Windows software."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bluebeam Revu 20 is Windows software."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bluebeam Revu 20 is Windows software."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Bluebeam Revu 20 is Windows software."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Bluebeam Revu requirements",
+          "url": "https://support.bluebeam.com/articles/compatibility-system-requirements/"
+        }
+      ]
+    },
+    {
+      "id": "winget:CDESoftware.BLS-2026",
+      "name": "BLS-2026",
+      "compatibility": "alternative",
+      "alternatives": [
+        "CDE web/e-file workflows",
+        "tax software web portals"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "finance",
+      "notes": "CDE BLS software is CDE Windows tax/business software; no native Linux package was verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BLS is Windows software."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BLS is Windows software."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BLS is Windows software."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BLS is Windows software."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BLS is Windows software."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BLS is Windows software."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BLS is Windows software."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BLS is Windows software."
+        }
+      },
+      "evidence": [
+        {
+          "label": "CDE compatibility knowledge base",
+          "url": "https://support.cdesoftware.com/kb/c603/compatability.aspx"
+        }
+      ]
+    },
+    {
+      "id": "winget:CDESoftware.BLS-2025",
+      "name": "BLS-2025",
+      "compatibility": "alternative",
+      "alternatives": [
+        "CDE web/e-file workflows",
+        "tax software web portals"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "finance",
+      "notes": "CDE BLS software is CDE Windows tax/business software; no native Linux package was verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BLS is Windows software."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BLS is Windows software."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BLS is Windows software."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BLS is Windows software."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BLS is Windows software."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BLS is Windows software."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BLS is Windows software."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "CDE BLS is Windows software."
+        }
+      },
+      "evidence": [
+        {
+          "label": "CDE compatibility knowledge base",
+          "url": "https://support.cdesoftware.com/kb/c603/compatability.aspx"
+        }
+      ]
+    },
+    {
+      "id": "winget:DelphiBlocks.Blocks",
+      "name": "Blocks",
+      "compatibility": "unknown",
+      "alternatives": [
+        "Blocks"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "development",
+      "notes": "Linux support was not verified; needs manual follow-up.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/DelphiBlocks/Blocks"
+        }
+      ]
+    },
+    {
+      "id": "winget:Blocknetproject.Blocknet",
+      "name": "Blocknet",
+      "compatibility": "native",
+      "alternatives": [
+        "Blocknet",
+        "Electrum",
+        "Bitcoin Core"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "medium",
+      "category": "finance",
+      "notes": "Blocknet project publishes cross-platform wallet/source releases; distro packages were not verified.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux wallet/source release if available; verify project status."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux wallet/source release if available; verify project status."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux wallet/source release if available; verify project status."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux wallet/source release if available; verify project status."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux wallet/source release if available; verify project status."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux wallet/source release if available; verify compatibility."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux wallet/source release if available; verify project status."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux wallet/source release if available; verify project status."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Blocknet GitHub",
+          "url": "https://github.com/blocknetdx/blocknet"
+        }
+      ]
+    },
+    {
+      "id": "winget:Carrier.BlockLoad",
+      "name": "Block Load",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Carrier web tools",
+        "HVAC design tools"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "engineering",
+      "notes": "Carrier Block Load is Windows HVAC software; no native Linux package was verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Carrier Block Load is Windows software."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Carrier Block Load is Windows software."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Carrier Block Load is Windows software."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Carrier Block Load is Windows software."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Carrier Block Load is Windows software."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Carrier Block Load is Windows software."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Carrier Block Load is Windows software."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Carrier Block Load is Windows software."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/Carrier/BlockLoad"
+        }
+      ]
+    },
+    {
+      "id": "winget:Blitz.Blitz",
+      "name": "Blitz",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Lutris",
+        "Heroic Games Launcher",
+        "MangoHud"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "games",
+      "notes": "Blitz gaming companion app desktop support is Windows/macOS oriented; no native Linux package was verified.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Blitz desktop package verified."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Blitz desktop package verified."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Blitz desktop package verified."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Blitz desktop package verified."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Blitz desktop package verified."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Blitz desktop package verified."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Blitz desktop package verified."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "No native Linux Blitz desktop package verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Blitz download",
+          "url": "https://blitz.gg/download"
+        }
+      ]
+    },
+    {
+      "id": "winget:AGProjects.Blink",
+      "name": "Blink",
+      "compatibility": "native",
+      "alternatives": [
+        "Blink",
+        "Linphone",
+        "Jami"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "medium",
+      "category": "communication",
+      "notes": "AG Projects Blink has Linux package/source history; current package availability needs distro-specific verification.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current package or upstream install instructions."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current package or upstream install instructions."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current package or upstream install instructions."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current package or upstream install instructions."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current package or upstream install instructions."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current package or upstream install instructions."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current package or upstream install instructions."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify current package or upstream install instructions."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Blink SIP client",
+          "url": "https://icanblink.com/"
+        }
+      ]
+    },
+    {
+      "id": "winget:BleachBit.BleachBit",
+      "name": "BleachBit",
+      "compatibility": "native",
+      "alternatives": [
+        "BleachBit",
+        "Stacer",
+        "duperemove"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "system",
+      "notes": "BleachBit is a native Linux cleaner available through distro packages and upstream downloads.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "bleachbit"
+          ],
+          "notes": "Install from distro repository."
+        },
+        "debian": {
+          "source": "repo",
+          "packages": [
+            "bleachbit"
+          ],
+          "notes": "Install from distro repository."
+        },
+        "ubuntu": {
+          "source": "repo",
+          "packages": [
+            "bleachbit"
+          ],
+          "notes": "Install from distro repository or upstream package."
+        },
+        "fedora": {
+          "source": "repo",
+          "packages": [
+            "bleachbit"
+          ],
+          "notes": "Install from distro repository."
+        },
+        "opensuse": {
+          "source": "repo",
+          "packages": [
+            "bleachbit"
+          ],
+          "notes": "Install from distro repository where available."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify Alpine package availability."
+        },
+        "void": {
+          "source": "repo",
+          "packages": [
+            "bleachbit"
+          ],
+          "notes": "Install from Void repositories where available."
+        },
+        "gentoo": {
+          "source": "repo",
+          "packages": [
+            "bleachbit"
+          ],
+          "notes": "Install from Gentoo repositories where available."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BleachBit downloads",
+          "url": "https://www.bleachbit.org/download"
+        },
+        {
+          "label": "Repology BleachBit",
+          "url": "https://repology.org/project/bleachbit/versions"
+        }
+      ]
+    },
+    {
+      "id": "winget:BlastWave.BlastShield",
+      "name": "BlastShield",
+      "compatibility": "unknown",
+      "alternatives": [
+        "BlastShield"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "security",
+      "notes": "Linux support was not verified; needs manual follow-up.",
+      "install_hints": {
+        "arch": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "debian": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "ubuntu": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "fedora": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "opensuse": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "alpine": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "void": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        },
+        "gentoo": {
+          "source": "unknown",
+          "packages": [],
+          "notes": "Linux support was not verified; needs manual follow-up."
+        }
+      },
+      "evidence": [
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/BlastWave/BlastShield"
+        }
+      ]
+    },
+    {
+      "id": "winget:BedaKosata.BKChem",
+      "name": "BKChem",
+      "compatibility": "native",
+      "alternatives": [
+        "BKChem",
+        "Avogadro",
+        "XDrawChem"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "medium",
+      "category": "science",
+      "notes": "BKChem is open-source chemical drawing software with Linux/source history, but current package availability needs verification.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify package availability or build from source."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify package availability or build from source."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify package availability or build from source."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify package availability or build from source."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify package availability or build from source."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify package availability or build from source."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify package availability or build from source."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Verify package availability or build from source."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BKChem",
+          "url": "http://bkchem.zirael.org/"
+        }
+      ]
+    },
+    {
+      "id": "winget:Codebox.BitMeterOS",
+      "name": "BitMeter OS",
+      "compatibility": "native",
+      "alternatives": [
+        "BitMeter OS",
+        "vnStat",
+        "Nethogs"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "medium",
+      "category": "network",
+      "notes": "BitMeter OS has Linux builds, but the project is old; verify current compatibility before relying on it.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux build if compatible; distro package not verified."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux build if compatible; distro package not verified."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux build if compatible; distro package not verified."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux build if compatible; distro package not verified."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux build if compatible; distro package not verified."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux build if compatible; verify dependencies."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux build if compatible; distro package not verified."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream Linux build if compatible; distro package not verified."
+        }
+      },
+      "evidence": [
+        {
+          "label": "BitMeter OS",
+          "url": "https://codebox.org.uk/pages/bitmeteros"
+        }
+      ]
+    },
+    {
+      "id": "winget:Bitdefender.Bitdefender",
+      "name": "BitDefender Agent",
+      "compatibility": "alternative",
+      "alternatives": [
+        "Bitdefender GravityZone Linux agent",
+        "ClamAV"
+      ],
+      "source_hint": "alternative",
+      "confidence": "medium",
+      "category": "security",
+      "notes": "The WinGet BitDefender Agent is a Windows consumer component; Bitdefender's Linux support is through separate endpoint/server products.",
+      "install_hints": {
+        "arch": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Bitdefender's Linux endpoint product if licensed; this package is Windows-specific."
+        },
+        "debian": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Bitdefender's Linux endpoint product if licensed; this package is Windows-specific."
+        },
+        "ubuntu": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Bitdefender's Linux endpoint product if licensed; this package is Windows-specific."
+        },
+        "fedora": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Bitdefender's Linux endpoint product if licensed; this package is Windows-specific."
+        },
+        "opensuse": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Bitdefender's Linux endpoint product if licensed; this package is Windows-specific."
+        },
+        "alpine": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Bitdefender's Linux endpoint product if licensed; this package is Windows-specific."
+        },
+        "void": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Bitdefender's Linux endpoint product if licensed; this package is Windows-specific."
+        },
+        "gentoo": {
+          "source": "none",
+          "packages": [],
+          "notes": "Use Bitdefender's Linux endpoint product if licensed; this package is Windows-specific."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Bitdefender GravityZone Linux",
+          "url": "https://www.bitdefender.com/business/support/en/77209-80157-security-for-linux.html"
+        },
+        {
+          "label": "WinGet package index",
+          "url": "https://winget.run/pkg/Bitdefender/Bitdefender"
+        }
+      ]
+    },
+    {
+      "id": "winget:Gildas.Bitbucket-CLI",
+      "name": "Bitbucket-CLI",
+      "compatibility": "native",
+      "alternatives": [
+        "Bitbucket-CLI",
+        "git",
+        "Atlassian web UI"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Gildas Bitbucket CLI provides release binaries; verify current Linux asset names before packaging.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream release binary if Linux asset is published."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream release binary if Linux asset is published."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream release binary if Linux asset is published."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream release binary if Linux asset is published."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream release binary if Linux asset is published."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream release binary if Linux asset is published; verify musl/glibc."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream release binary if Linux asset is published."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use upstream release binary if Linux asset is published."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Gildas Bitbucket CLI",
+          "url": "https://github.com/gildas/bitbucket-cli"
+        }
+      ]
+    },
+    {
+      "id": "winget:Bit4id.Firma4ng.InfoCamere",
+      "name": "Bit4id - Firma4ng-InfoCamere",
+      "compatibility": "native",
+      "alternatives": [
+        "Firma4NG",
+        "InfoCamere Sign Desktop",
+        "OpenSC"
+      ],
+      "source_hint": "manual_followup",
+      "confidence": "high",
+      "category": "security",
+      "notes": "Bit4id firma4ng is documented as compatible with Linux; InfoCamere also provides Linux downloads.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor Linux installer and verify smart-card middleware dependencies."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor Linux installer and verify smart-card middleware dependencies."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor Linux installer and verify smart-card middleware dependencies."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor Linux installer and verify smart-card middleware dependencies."
+        },
+        "opensuse": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor Linux installer and verify smart-card middleware dependencies."
+        },
+        "alpine": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Vendor Linux installer may require glibc and PC/SC dependencies; verify manually."
+        },
+        "void": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor Linux installer and verify smart-card middleware dependencies."
+        },
+        "gentoo": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use vendor Linux installer and verify smart-card middleware dependencies."
+        }
+      },
+      "evidence": [
+        {
+          "label": "Bit4id firma4ng",
+          "url": "https://www.bit4id.com/en/solutions/digital-signature-application/"
+        },
+        {
+          "label": "InfoCamere signature software",
+          "url": "https://id.infocamere.it/documentazione/en/software_di_firma.html"
+        }
+      ]
+    }
+  ]
+}

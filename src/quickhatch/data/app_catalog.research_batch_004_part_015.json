@@ -1,0 +1,1606 @@
+{
+  "schema": 1,
+  "purpose": "Remaining unknown catalog entries for distro-family support research, batch 004 split into parts",
+  "batch": "004",
+  "part": 15,
+  "entries": [
+    {
+      "id": "winget:Aircall.AircallWorkspace",
+      "name": "Aircall Workspace",
+      "match_names": [
+        "Aircall Workspace",
+        "Aircall.AircallWorkspace"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Aircall Workspace"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aircall.Aircall",
+      "name": "Aircall",
+      "match_names": [
+        "Aircall",
+        "Aircall.Aircall"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Aircall"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AirExplorer.AirExplorer",
+      "name": "Air Explorer",
+      "match_names": [
+        "Air Explorer",
+        "AirExplorer.AirExplorer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Air Explorer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Posit.Air",
+      "name": "Air",
+      "match_names": [
+        "Air",
+        "Posit.Air"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Air"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Baota.AingDesk",
+      "name": "AingDesk",
+      "match_names": [
+        "AingDesk",
+        "Baota.AingDesk"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AingDesk"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AIMP.AIMP",
+      "name": "AIMP",
+      "match_names": [
+        "AIMP",
+        "AIMP.AIMP"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AIMP"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AILight.AILZ80ASM",
+      "name": "AILZ80ASM",
+      "match_names": [
+        "AILZ80ASM",
+        "AILight.AILZ80ASM"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AILZ80ASM"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FinalWire.AIDA64.Engineer",
+      "name": "AIDA64 Engineer",
+      "match_names": [
+        "AIDA64 Engineer",
+        "FinalWire.AIDA64.Engineer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AIDA64 Engineer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AlexanderBrandt.AIConsumptionTracker",
+      "name": "AI Consumption Tracker",
+      "match_names": [
+        "AI Consumption Tracker",
+        "AlexanderBrandt.AIConsumptionTracker"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AI Consumption Tracker"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ahoy.Ahoy",
+      "name": "Ahoy",
+      "match_names": [
+        "Ahoy",
+        "Ahoy.Ahoy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ahoy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AGTEK.UndergroundSA",
+      "name": "AGTEK Underground SA (Stand-Alone)",
+      "match_names": [
+        "AGTEK Underground SA (Stand-Alone)",
+        "AGTEK.UndergroundSA"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AGTEK Underground SA (Stand-Alone)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AGTEK.Trackwork",
+      "name": "AGTEK Trackwork 4D",
+      "match_names": [
+        "AGTEK Trackwork 4D",
+        "AGTEK.Trackwork"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AGTEK Trackwork 4D"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AGTEK.MaterialsSA",
+      "name": "AGTEK Materials SA (Stand-Alone)",
+      "match_names": [
+        "AGTEK Materials SA (Stand-Alone)",
+        "AGTEK.MaterialsSA"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AGTEK Materials SA (Stand-Alone)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AGTEK.Gradework",
+      "name": "AGTEK Gradework",
+      "match_names": [
+        "AGTEK Gradework"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AGTEK Gradework"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Agilent.LabAdvisor",
+      "name": "Agilent Lab Advisor",
+      "match_names": [
+        "Agilent Lab Advisor",
+        "Agilent.LabAdvisor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Agilent Lab Advisor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AGFEO.AGFEODashboard",
+      "name": "AGFEO Dashboard",
+      "match_names": [
+        "AGFEO Dashboard",
+        "AGFEO.AGFEODashboard"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AGFEO Dashboard"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Convectiva.AgentWatcher",
+      "name": "AgentWatcher",
+      "match_names": [
+        "AgentWatcher",
+        "Convectiva.AgentWatcher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AgentWatcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AgentClash.AgentClash",
+      "name": "AgentClash",
+      "match_names": [
+        "AgentClash",
+        "AgentClash.AgentClash"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AgentClash"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:FiloSottile.age",
+      "name": "age",
+      "match_names": [
+        "age",
+        "FiloSottile.age"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "age"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AderitoNeto.AfterLife",
+      "name": "AfterLife",
+      "match_names": [
+        "AfterLife",
+        "AderitoNeto.AfterLife"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AfterLife"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Canva.Affinity",
+      "name": "Affinity",
+      "match_names": [
+        "Affinity",
+        "Canva.Affinity"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Affinity"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aerosoft.One",
+      "name": "Aerosoft One",
+      "match_names": [
+        "Aerosoft One"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Aerosoft One"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aegisub.Aegisub",
+      "name": "Aegisub",
+      "match_names": [
+        "Aegisub",
+        "Aegisub.Aegisub"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Aegisub"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Caphyon.AdvancedInstaller",
+      "name": "Advanced Installer",
+      "match_names": [
+        "Advanced Installer",
+        "Caphyon.AdvancedInstaller"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Advanced Installer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Airspy.AdsbSpy",
+      "name": "ADS-B Spy",
+      "match_names": [
+        "ADS-B Spy",
+        "Airspy.AdsbSpy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADS-B Spy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdaptiveML.adpt",
+      "name": "adpt",
+      "match_names": [
+        "adpt",
+        "AdaptiveML.adpt"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "adpt"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AppDeployNews.SilentSwitchFinder",
+      "name": "ADN Silent Switch Finder",
+      "match_names": [
+        "ADN Silent Switch Finder",
+        "AppDeployNews.SilentSwitchFinder"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADN Silent Switch Finder"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Admobilize.admprovider",
+      "name": "admprovider",
+      "match_names": [
+        "admprovider",
+        "Admobilize.admprovider"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "admprovider"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Admobilize.AdMobilize.VisionService",
+      "name": "AdMobilizeVisionService",
+      "match_names": [
+        "AdMobilizeVisionService",
+        "Admobilize.AdMobilize.VisionService"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdMobilizeVisionService"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdLock.AdLock",
+      "name": "AdLock",
+      "match_names": [
+        "AdLock",
+        "AdLock.AdLock"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdLock"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.DeviceEnabler.WiiBalanceBoard",
+      "name": "ADInstruments Wii Balance Board",
+      "match_names": [
+        "ADInstruments Wii Balance Board",
+        "ADInstruments.LabChart.DeviceEnabler.WiiBalanceBoard"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Wii Balance Board"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.DeviceEnabler.TrignoWireless",
+      "name": "ADInstruments Trigno Wireless",
+      "match_names": [
+        "ADInstruments Trigno Wireless",
+        "ADInstruments.LabChart.DeviceEnabler.TrignoWireless"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Trigno Wireless"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Extension.Telegraph",
+      "name": "ADInstruments Telegraph",
+      "match_names": [
+        "ADInstruments Telegraph",
+        "ADInstruments.LabChart.Extension.Telegraph"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Telegraph"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Extension.Spirometry",
+      "name": "ADInstruments Spirometry",
+      "match_names": [
+        "ADInstruments Spirometry",
+        "ADInstruments.LabChart.Extension.Spirometry"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Spirometry"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Module.SpikeHistogram",
+      "name": "ADInstruments SpikeHistogram",
+      "match_names": [
+        "ADInstruments SpikeHistogram",
+        "ADInstruments.LabChart.Module.SpikeHistogram"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments SpikeHistogram"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Extension.Scheduler",
+      "name": "ADInstruments Scheduler",
+      "match_names": [
+        "ADInstruments Scheduler",
+        "ADInstruments.LabChart.Extension.Scheduler"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Scheduler"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Module.PVLoop",
+      "name": "ADInstruments PVLoop",
+      "match_names": [
+        "ADInstruments PVLoop",
+        "ADInstruments.LabChart.Module.PVLoop"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments PVLoop"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:adinstruments-physiotel-connect",
+      "name": "ADInstruments PhysioTel Connect",
+      "match_names": [
+        "ADInstruments PhysioTel Connect",
+        "ADInstruments.LabChart.DeviceEnabler.PhysioTelConnect"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments PhysioTel Connect"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Module.PeakAnalysis",
+      "name": "ADInstruments Peak Analysis",
+      "match_names": [
+        "ADInstruments Peak Analysis",
+        "ADInstruments.LabChart.Module.PeakAnalysis"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Peak Analysis"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Extension.NICO",
+      "name": "ADInstruments Non-Invasive Cardiac Output",
+      "match_names": [
+        "ADInstruments Non-Invasive Cardiac Output",
+        "ADInstruments.LabChart.Extension.NICO"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Non-Invasive Cardiac Output"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:adinstruments-multipoint-calibration",
+      "name": "ADInstruments Multipoint Calibration",
+      "match_names": [
+        "ADInstruments Multipoint Calibration"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Multipoint Calibration"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Module.Metabolic",
+      "name": "ADInstruments Metabolic",
+      "match_names": [
+        "ADInstruments Metabolic",
+        "ADInstruments.LabChart.Module.Metabolic"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Metabolic"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChartReader",
+      "name": "ADInstruments LabChart Reader",
+      "match_names": [
+        "ADInstruments LabChart Reader",
+        "ADInstruments.LabChartReader"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments LabChart Reader"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChartLightning",
+      "name": "ADInstruments LabChart Lightning",
+      "match_names": [
+        "ADInstruments LabChart Lightning",
+        "ADInstruments.LabChartLightning"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments LabChart Lightning"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart",
+      "name": "ADInstruments LabChart",
+      "match_names": [
+        "ADInstruments LabChart"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments LabChart"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.DeviceEnabler.Kent",
+      "name": "ADInstruments Kent",
+      "match_names": [
+        "ADInstruments Kent",
+        "ADInstruments.LabChart.DeviceEnabler.Kent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Kent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.DeviceEnabler.HumanNIBP",
+      "name": "ADInstruments Human NIBP",
+      "match_names": [
+        "ADInstruments Human NIBP",
+        "ADInstruments.LabChart.DeviceEnabler.HumanNIBP"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Human NIBP"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Module.HRV",
+      "name": "ADInstruments HRV",
+      "match_names": [
+        "ADInstruments HRV",
+        "ADInstruments.LabChart.Module.HRV"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments HRV"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Extension.GlucoseCalibration",
+      "name": "ADInstruments Glucose Calibration",
+      "match_names": [
+        "ADInstruments Glucose Calibration",
+        "ADInstruments.LabChart.Extension.GlucoseCalibration"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Glucose Calibration"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Extension.ExportQuickTime",
+      "name": "ADInstruments Export QuickTime",
+      "match_names": [
+        "ADInstruments Export QuickTime",
+        "ADInstruments.LabChart.Extension.ExportQuickTime"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Export QuickTime"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.DeviceEnabler.Equivital",
+      "name": "ADInstruments Equivital",
+      "match_names": [
+        "ADInstruments Equivital",
+        "ADInstruments.LabChart.DeviceEnabler.Equivital"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Equivital"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Module.ECGAnalysis",
+      "name": "ADInstruments ECG Analysis",
+      "match_names": [
+        "ADInstruments ECG Analysis",
+        "ADInstruments.LabChart.Module.ECGAnalysis"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments ECG Analysis"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Module.DMTNormalization",
+      "name": "ADInstruments DMT Normalization",
+      "match_names": [
+        "ADInstruments DMT Normalization",
+        "ADInstruments.LabChart.Module.DMTNormalization"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments DMT Normalization"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.DeviceEnabler.CODA",
+      "name": "ADInstruments CODA",
+      "match_names": [
+        "ADInstruments CODA",
+        "ADInstruments.LabChart.DeviceEnabler.CODA"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments CODA"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Module.CardiacOutput",
+      "name": "ADInstruments Cardiac Output",
+      "match_names": [
+        "ADInstruments Cardiac Output",
+        "ADInstruments.LabChart.Module.CardiacOutput"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Cardiac Output"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Extension.CardiacAxis",
+      "name": "ADInstruments Cardiac Axis",
+      "match_names": [
+        "ADInstruments Cardiac Axis",
+        "ADInstruments.LabChart.Extension.CardiacAxis"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Cardiac Axis"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.Module.BloodPressure",
+      "name": "ADInstruments Blood Pressure",
+      "match_names": [
+        "ADInstruments Blood Pressure",
+        "ADInstruments.LabChart.Module.BloodPressure"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Blood Pressure"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ADInstruments.LabChart.DeviceEnabler.BloodFlowMeter",
+      "name": "ADInstruments Blood FlowMeter",
+      "match_names": [
+        "ADInstruments Blood FlowMeter",
+        "ADInstruments.LabChart.DeviceEnabler.BloodFlowMeter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADInstruments Blood FlowMeter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdGuard.AdGuardHome.Beta",
+      "name": "AdGuardHome",
+      "match_names": [
+        "AdGuardHome",
+        "AdGuard.AdGuardHome.Beta"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdGuardHome"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdGuard.AdGuardHome",
+      "name": "AdGuard Home",
+      "match_names": [
+        "AdGuard Home",
+        "AdGuard.AdGuardHome"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdGuard Home"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdGuard.AdGuard.Beta",
+      "name": "AdGuard Beta",
+      "match_names": [
+        "AdGuard Beta",
+        "AdGuard.AdGuard.Beta"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdGuard Beta"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AdGuard.AdGuard",
+      "name": "AdGuard",
+      "match_names": [
+        "AdGuard",
+        "AdGuard.AdGuard"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AdGuard"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CostaFotiadis.ADBExtensionforCommandPalette",
+      "name": "ADB Extension for Command Palette",
+      "match_names": [
+        "ADB Extension for Command Palette",
+        "CostaFotiadis.ADBExtensionforCommandPalette"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADB Extension for Command Palette"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CyberCat.ADBAppControl",
+      "name": "ADB AppControl",
+      "match_names": [
+        "ADB AppControl",
+        "CyberCat.ADBAppControl"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADB AppControl"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Adamant.Messenger",
+      "name": "ADAMANT Messenger",
+      "match_names": [
+        "ADAMANT Messenger"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ADAMANT Messenger"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cjwdev.ADTidy.Free",
+      "name": "AD Tidy Free Edition",
+      "match_names": [
+        "AD Tidy Free Edition",
+        "Cjwdev.ADTidy.Free"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AD Tidy Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cjwdev.ADPermissionsReporter.Free",
+      "name": "AD Permissions Reporter",
+      "match_names": [
+        "AD Permissions Reporter",
+        "Cjwdev.ADPermissionsReporter.Free"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AD Permissions Reporter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cjwdev.ADInfo.Free",
+      "name": "AD Info",
+      "match_names": [
+        "AD Info",
+        "Cjwdev.ADInfo.Free"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AD Info"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ActualBudget.ActualBudget",
+      "name": "Actual Budget",
+      "match_names": [
+        "Actual Budget",
+        "ActualBudget.ActualBudget"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Actual Budget"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ActivityWatch.ActivityWatch",
+      "name": "ActivityWatch",
+      "match_names": [
+        "ActivityWatch",
+        "ActivityWatch.ActivityWatch"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ActivityWatch"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ActiveState.KomodoEdit",
+      "name": "ActiveState Komodo Edit",
+      "match_names": [
+        "ActiveState Komodo Edit",
+        "ActiveState.KomodoEdit"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ActiveState Komodo Edit"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Atomi.ActivePresenter",
+      "name": "ActivePresenter",
+      "match_names": [
+        "ActivePresenter",
+        "Atomi.ActivePresenter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ActivePresenter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Futureglobe.ActiveChart",
+      "name": "ActiveChart",
+      "match_names": [
+        "ActiveChart",
+        "Futureglobe.ActiveChart"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ActiveChart"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ACS.UnifiedPCSCDriver",
+      "name": "ACS Unified PC/SC Driver",
+      "match_names": [
+        "ACS Unified PC/SC Driver",
+        "ACS.UnifiedPCSCDriver"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ACS Unified PC/SC Driver"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ACS.CCIDPCSCDriver",
+      "name": "ACS CCID PC/SC Driver",
+      "match_names": [
+        "ACS CCID PC/SC Driver",
+        "ACS.CCIDPCSCDriver"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ACS CCID PC/SC Driver"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AcornLabs.Acorn",
+      "name": "Acorn",
+      "match_names": [
+        "Acorn",
+        "AcornLabs.Acorn"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Acorn"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Cuyler.ACNESCreator",
+      "name": "ACNESCreator",
+      "match_names": [
+        "ACNESCreator",
+        "Cuyler.ACNESCreator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ACNESCreator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AnthonyBeaumont.AchievementWatcher",
+      "name": "Achievement Watcher",
+      "match_names": [
+        "Achievement Watcher",
+        "AnthonyBeaumont.AchievementWatcher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Achievement Watcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DirSoft.ARPro",
+      "name": "Accident Reconstruction Professional",
+      "match_names": [
+        "Accident Reconstruction Professional",
+        "DirSoft.ARPro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Accident Reconstruction Professional"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Abyss.AbyssOverlay",
+      "name": "Abyss Overlay",
+      "match_names": [
+        "Abyss Overlay",
+        "Abyss.AbyssOverlay"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Abyss Overlay"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AbleWord.AbleWord",
+      "name": "AbleWord",
+      "match_names": [
+        "AbleWord",
+        "AbleWord.AbleWord"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AbleWord"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ableton.AbletonLive10Suite",
+      "name": "Ableton Live 10 Suite",
+      "match_names": [
+        "Ableton Live 10 Suite",
+        "Ableton.AbletonLive10Suite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ableton Live 10 Suite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Apryse.Able2Extract.Professional",
+      "name": "Able2Extract Professional",
+      "match_names": [
+        "Able2Extract Professional",
+        "Apryse.Able2Extract.Professional"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Able2Extract Professional"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ablaze.Floorp",
+      "name": "Ablaze Floorp",
+      "match_names": [
+        "Ablaze Floorp"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ablaze Floorp"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Abelfubu.WindowsConfigBuilder",
+      "name": "Abelfubu.WindowsConfigBuilder",
+      "match_names": [
+        "Abelfubu.WindowsConfigBuilder"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Abelfubu.WindowsConfigBuilder"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AAS.WorldWideTelescope",
+      "name": "AAS WorldWide Telescope",
+      "match_names": [
+        "AAS WorldWide Telescope",
+        "AAS.WorldWideTelescope"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AAS WorldWide Telescope"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AIVOICE.KURITA",
+      "name": "A.I.VOICE 栗田 まろん",
+      "match_names": [
+        "A.I.VOICE 栗田 まろん",
+        "AIVOICE.BENISHOGA",
+        "AIVOICE.KURITA"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "A.I.VOICE 栗田 まろん"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:8x8.Work",
+      "name": "8x8 Work",
+      "match_names": [
+        "8x8 Work"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "8x8 Work"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:8x8.QualityManagement",
+      "name": "8x8 Quality Management",
+      "match_names": [
+        "8x8 Quality Management",
+        "8x8.QualityManagement"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "8x8 Quality Management"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:8BitDo.UltimateSoftwareV2",
+      "name": "8BitDo Ultimate Software V2",
+      "match_names": [
+        "8BitDo Ultimate Software V2",
+        "8BitDo.UltimateSoftwareV2"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "8BitDo Ultimate Software V2"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:86Box.86Box",
+      "name": "86Box",
+      "match_names": [
+        "86Box",
+        "86Box.86Box"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "86Box"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:7zip.7zr",
+      "name": "7zr",
+      "match_names": [
+        "7zr",
+        "7zip.7zr"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "7zr"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:7zip.7zip",
+      "name": "7-Zip",
+      "match_names": [
+        "7-Zip",
+        "7zip.7zip"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "7-Zip"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:4tNiagaraSoftware.4tTrayMinimizer",
+      "name": "4t Tray Minimizer Free",
+      "match_names": [
+        "4t Tray Minimizer Free",
+        "4tNiagaraSoftware.4tTrayMinimizer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "4t Tray Minimizer Free"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:3DVista.VirtualTour",
+      "name": "3DVista Virtual Tour",
+      "match_names": [
+        "3DVista Virtual Tour",
+        "3DVista.VirtualTour"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "3DVista Virtual Tour"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:3Dflow.3DFZephyr.Free",
+      "name": "3DF Zephyr Free",
+      "match_names": [
+        "3DF Zephyr Free",
+        "3Dflow.3DFZephyr.Free"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "3DF Zephyr Free"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:3Dconnexion.3DxWare.10",
+      "name": "3Dconnexion 3DxWare 10",
+      "match_names": [
+        "3Dconnexion 3DxWare 10"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "3Dconnexion 3DxWare 10"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:3d-io.Exr-IO",
+      "name": "3d-io Exr-IO",
+      "match_names": [
+        "3d-io Exr-IO"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "3d-io Exr-IO"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:360.NamiClaw",
+      "name": "360安全龙虾",
+      "match_names": [
+        "360安全龙虾",
+        "360.360AlbumViewer",
+        "360.360CleanMaster",
+        "360.NamiClaw",
+        "360.360Chrome",
+        "360.360Ent",
+        "360.360File",
+        "360.360SE",
+        "360.360GT"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "360看图"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:360.360Zip",
+      "name": "360 Zip",
+      "match_names": [
+        "360 Zip",
+        "360.360Zip"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "360 Zip"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}

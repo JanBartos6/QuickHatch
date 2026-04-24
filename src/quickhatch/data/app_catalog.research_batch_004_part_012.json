@@ -1,0 +1,1604 @@
+{
+  "schema": 1,
+  "purpose": "Remaining unknown catalog entries for distro-family support research, batch 004 split into parts",
+  "batch": "004",
+  "part": 12,
+  "entries": [
+    {
+      "id": "winget:BitGuardian.BitDriverUpdater",
+      "name": "Bit Driver Updater",
+      "match_names": [
+        "Bit Driver Updater",
+        "BitGuardian.BitDriverUpdater"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bit Driver Updater"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:B-trust.BISS",
+      "name": "BISS",
+      "match_names": [
+        "BISS",
+        "B-trust.BISS"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BISS"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bisq.Bisq",
+      "name": "Bisq",
+      "match_names": [
+        "Bisq",
+        "Bisq.Bisq"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bisq"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Biscuit.Biscuit",
+      "name": "Biscuit",
+      "match_names": [
+        "Biscuit",
+        "Biscuit.Biscuit"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Biscuit"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BiorhythmsCalculator",
+      "name": "Biorhythms Calculator Free Edition",
+      "match_names": [
+        "Biorhythms Calculator Free Edition",
+        "BinaryMark.BiorhythmsCalculator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Biorhythms Calculator Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BiomeJS.Biome",
+      "name": "Biome",
+      "match_names": [
+        "Biome",
+        "BiomeJS.Biome"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Biome"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:8051Enthusiast.biodiff",
+      "name": "biodiff",
+      "match_names": [
+        "biodiff",
+        "8051Enthusiast.biodiff"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "biodiff"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinanceTech.Binance",
+      "name": "Binance",
+      "match_names": [
+        "Binance",
+        "BinanceTech.Binance"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Binance"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Billfish.Billfish",
+      "name": "Billfish",
+      "match_names": [
+        "Billfish",
+        "Billfish.Billfish"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Billfish"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ForgQi.biliup-rs",
+      "name": "biliup-rs",
+      "match_names": [
+        "biliup-rs",
+        "ForgQi.biliup-rs"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "biliup-rs"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ForgQi.biliup-app",
+      "name": "biliup-app",
+      "match_names": [
+        "biliup-app",
+        "ForgQi.biliup-app"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "biliup-app"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BiglySoftware.BiglyBT",
+      "name": "BiglyBT",
+      "match_names": [
+        "BiglyBT",
+        "BiglySoftware.BiglyBT"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BiglyBT"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BibleTime.BibleTime",
+      "name": "BibleTime",
+      "match_names": [
+        "BibleTime",
+        "BibleTime.BibleTime"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BibleTime"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bforartists.Bforartists",
+      "name": "Bforartists 4",
+      "match_names": [
+        "Bforartists 4",
+        "Bforartists.Bforartists"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bforartists 4"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BeyondATC.TrafficMap",
+      "name": "BeyondATC Traffic Map",
+      "match_names": [
+        "BeyondATC Traffic Map",
+        "BeyondATC.TrafficMap"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BeyondATC Traffic Map"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Beyond-All-Reason.Beyond-All-Reason",
+      "name": "Beyond-All-Reason",
+      "match_names": [
+        "Beyond-All-Reason",
+        "Beyond-All-Reason.Beyond-All-Reason"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Beyond All Reason"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Betterbird.Betterbird",
+      "name": "Betterbird",
+      "match_names": [
+        "Betterbird",
+        "Betterbird.Betterbird"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Betterbird"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BetterCrewLink.BetterCrewLink",
+      "name": "Better-CrewLink",
+      "match_names": [
+        "Better-CrewLink",
+        "BetterCrewLink.BetterCrewLink"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Better-CrewLink"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Betaflight.Betaflight-Configurator",
+      "name": "Betaflight Configurator",
+      "match_names": [
+        "Betaflight Configurator",
+        "Betaflight.Betaflight-Configurator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Betaflight Configurator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BenthicSoftware.PLEdit.7",
+      "name": "Benthic Software: PLEdit 7.x",
+      "match_names": [
+        "Benthic Software: PLEdit 7.x",
+        "BenthicSoftware.PLEdit.7"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Benthic Software: PLEdit 7.x"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BenthicSoftware.PLEdit.6",
+      "name": "Benthic Software: PLEdit 6.x",
+      "match_names": [
+        "Benthic Software: PLEdit 6.x",
+        "BenthicSoftware.PLEdit.6"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Benthic Software: PLEdit 6.x"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:1.1.0.22",
+      "name": "Benthic Software: ImpExpPro 1.x BenthicSoftware.ImpExpPro.1",
+      "match_names": [
+        "Benthic Software: ImpExpPro 1.x BenthicSoftware.ImpExpPro.1",
+        "1.1.0.22"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Benthic Software: ImpExpPro 1.x BenthicSoftware.ImpExpPro.1"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BenthicSoftware.ImpExpPro.1",
+      "name": "Benthic Software: ImpExpPro 1.x",
+      "match_names": [
+        "Benthic Software: ImpExpPro 1.x",
+        "BenthicSoftware.ImpExpPro.1"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Benthic Software: ImpExpPro 1.x"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BenthicSoftware.Goldview.4",
+      "name": "Benthic Software: Goldview 4.x",
+      "match_names": [
+        "Benthic Software: Goldview 4.x",
+        "BenthicSoftware.Goldview.4"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Benthic Software: Goldview 4.x"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:2.4.0.240",
+      "name": "Benthic Software: GoldSqall 2.x BenthicSoftware.GoldSqall.2",
+      "match_names": [
+        "Benthic Software: GoldSqall 2.x BenthicSoftware.GoldSqall.2",
+        "2.4.0.240"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Benthic Software: GoldSqall 2.x BenthicSoftware.GoldSqall.2"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BenthicSoftware.GoldSqall.2",
+      "name": "Benthic Software: GoldSqall 2.x",
+      "match_names": [
+        "Benthic Software: GoldSqall 2.x",
+        "BenthicSoftware.GoldSqall.2"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Benthic Software: GoldSqall 2.x"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:1.5.0.130",
+      "name": "Benthic Software: GoldSqall 1.x BenthicSoftware.GoldSqall.1",
+      "match_names": [
+        "Benthic Software: GoldSqall 1.x BenthicSoftware.GoldSqall.1",
+        "1.5.0.130"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Benthic Software: GoldSqall 1.x BenthicSoftware.GoldSqall.1"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BenthicSoftware.GoldSqall.1",
+      "name": "Benthic Software: GoldSqall 1.x",
+      "match_names": [
+        "Benthic Software: GoldSqall 1.x",
+        "BenthicSoftware.GoldSqall.1"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Benthic Software: GoldSqall 1.x"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BenthicSoftware.Golden.8",
+      "name": "Benthic Software: Golden 8.x",
+      "match_names": [
+        "Benthic Software: Golden 8.x",
+        "BenthicSoftware.Golden.8"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Benthic Software: Golden 8.x"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BenthicSoftware.Golden.7",
+      "name": "Benthic Software: Golden 7.x",
+      "match_names": [
+        "Benthic Software: Golden 7.x",
+        "BenthicSoftware.Golden.7"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Benthic Software: Golden 7.x"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BenthicSoftware.Golden.6",
+      "name": "Benthic Software: Golden 6.x",
+      "match_names": [
+        "Benthic Software: Golden 6.x",
+        "BenthicSoftware.Golden.6"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Benthic Software: Golden 6.x"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BenQ.InstaShare",
+      "name": "BenQ InstaShare",
+      "match_names": [
+        "BenQ InstaShare"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BenQ InstaShare"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BelgianGovernment.eIDmiddleware",
+      "name": "Belgium e-ID middleware",
+      "match_names": [
+        "Belgium e-ID middleware",
+        "BelgianGovernment.eIDmiddleware"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Belgium e-ID middleware"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Belfius.BelfiusConnector",
+      "name": "BelfiusConnector",
+      "match_names": [
+        "BelfiusConnector",
+        "Belfius.BelfiusConnector"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BelfiusConnector"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Belarc.Advisor",
+      "name": "Belarc Advisor",
+      "match_names": [
+        "Belarc Advisor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Belarc Advisor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CHMS.Behindyou",
+      "name": "Behind you",
+      "match_names": [
+        "Behind you",
+        "CHMS.Behindyou"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Behind you"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Beeper.Beeper",
+      "name": "Beeper",
+      "match_names": [
+        "Beeper",
+        "Beeper.Beeper"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Beeper"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Beeftext.Beeftext",
+      "name": "Beeftext",
+      "match_names": [
+        "Beeftext",
+        "Beeftext.Beeftext"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Beeftext"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BeeBEEP.BeeBEEP",
+      "name": "BeeBEEP",
+      "match_names": [
+        "BeeBEEP",
+        "BeeBEEP.BeeBEEP"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BeeBEEP"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Elastic.Winlogbeat",
+      "name": "Beats winlogbeat",
+      "match_names": [
+        "Beats winlogbeat",
+        "Elastic.Winlogbeat"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Beats winlogbeat"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Deep-Symmetry.beat-link-trigger.Preview",
+      "name": "Beat Link Trigger Preview",
+      "match_names": [
+        "Beat Link Trigger Preview",
+        "Deep-Symmetry.beat-link-trigger.Preview"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Beat Link Trigger Preview"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Deep-Symmetry.beat-link-trigger",
+      "name": "Beat Link Trigger",
+      "match_names": [
+        "Beat Link Trigger",
+        "Deep-Symmetry.beat-link-trigger"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Beat Link Trigger"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:GasTownHall.Beads",
+      "name": "Beads",
+      "match_names": [
+        "Beads",
+        "GasTownHall.Beads"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Beads"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bazel.Bazelisk",
+      "name": "Bazelisk",
+      "match_names": [
+        "Bazelisk",
+        "Bazel.Bazelisk"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bazelisk"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bazel.Bazel",
+      "name": "Bazel",
+      "match_names": [
+        "Bazel",
+        "Bazel.Bazel"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bazel"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DygmaLabs.Bazecor",
+      "name": "Bazecor",
+      "match_names": [
+        "Bazecor",
+        "DygmaLabs.Bazecor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bazecor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Baulk.Baulk",
+      "name": "Baulk",
+      "match_names": [
+        "Baulk",
+        "Baulk.Baulk"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Baulk"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Blizzard.BattleNet",
+      "name": "Battle.net Setup",
+      "match_names": [
+        "Battle.net Setup",
+        "Blizzard.BattleNet"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Battle.net Setup"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BatchyAndFriends.Batchy",
+      "name": "Batchy",
+      "match_names": [
+        "Batchy",
+        "BatchyAndFriends.Batchy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batchy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchWordReplace",
+      "name": "Batch Word Replace Free Edition",
+      "match_names": [
+        "Batch Word Replace Free Edition",
+        "BinaryMark.BatchWordReplace"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch Word Replace Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchRegEx",
+      "name": "Batch RegEx Free Edition",
+      "match_names": [
+        "Batch RegEx Free Edition",
+        "BinaryMark.BatchRegEx"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch RegEx Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchEncodingConverter",
+      "name": "Batch Encoding Converter Free Edition",
+      "match_names": [
+        "Batch Encoding Converter Free Edition",
+        "BinaryMark.BatchEncodingConverter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch Encoding Converter Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BinaryMark.BatchDocs",
+      "name": "Batch Docs Free Edition",
+      "match_names": [
+        "Batch Docs Free Edition",
+        "BinaryMark.BatchDocs"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Batch Docs Free Edition"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aptivi.BassBoom",
+      "name": "BassBoom",
+      "match_names": [
+        "BassBoom",
+        "Aptivi.BassBoom"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BassBoom"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Basilisk.Basilisk",
+      "name": "Basilisk",
+      "match_names": [
+        "Basilisk",
+        "Basilisk.Basilisk"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Basilisk"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Basedash.Basedash",
+      "name": "Basedash",
+      "match_names": [
+        "Basedash",
+        "Basedash.Basedash"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Basedash"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BasecampLLC.Basecamp3",
+      "name": "Basecamp 3",
+      "match_names": [
+        "Basecamp 3",
+        "BasecampLLC.Basecamp3"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Basecamp 3"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DebaucheeOpenSourceGroup.Barrier",
+      "name": "Barrier",
+      "match_names": [
+        "Barrier",
+        "DebaucheeOpenSourceGroup.Barrier"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Barrier"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CoenFin.BankStatementAnalyser",
+      "name": "BankStatement Analyser",
+      "match_names": [
+        "BankStatement Analyser",
+        "CoenFin.BankStatementAnalyser"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BankStatement Analyser"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BryanCandi.BandwidthCalculator",
+      "name": "Bandwidth Calculator",
+      "match_names": [
+        "Bandwidth Calculator",
+        "BryanCandi.BandwidthCalculator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bandwidth Calculator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bandisoft.Bandizip",
+      "name": "Bandizip",
+      "match_names": [
+        "Bandizip",
+        "Bandisoft.Bandizip"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bandizip"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Bandisoft.BandiView",
+      "name": "BandiView",
+      "match_names": [
+        "BandiView",
+        "Bandisoft.BandiView"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BandiView"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BandicamCompany.Bandicut",
+      "name": "Bandicut",
+      "match_names": [
+        "Bandicut",
+        "BandicamCompany.Bandicut"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bandicut"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BandicamCompany.BandicamMPEG-1Decoder",
+      "name": "Bandicam MPEG-1 Decoder",
+      "match_names": [
+        "Bandicam MPEG-1 Decoder",
+        "BandicamCompany.BandicamMPEG-1Decoder"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bandicam MPEG-1 Decoder"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BandicamCompany.Bandicam",
+      "name": "Bandicam",
+      "match_names": [
+        "Bandicam",
+        "BandicamCompany.Bandicam"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Bandicam"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ChilliCream.BananaCakePop",
+      "name": "Banana Cake Pop",
+      "match_names": [
+        "Banana Cake Pop",
+        "ChilliCream.BananaCakePop"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Banana Cake Pop"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Balsamiq.Wireframes",
+      "name": "Balsamiq Wireframes",
+      "match_names": [
+        "Balsamiq Wireframes"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Balsamiq Wireframes"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Balena.Etcher",
+      "name": "balenaEtcher",
+      "match_names": [
+        "balenaEtcher",
+        "Balena.Etcher"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "balenaEtcher"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Balena.BalenaCLI",
+      "name": "balena-cli",
+      "match_names": [
+        "balena-cli",
+        "Balena.BalenaCLI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "balena-cli"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CrossPlusA.Balabolka",
+      "name": "Balabolka",
+      "match_names": [
+        "Balabolka",
+        "CrossPlusA.Balabolka"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Balabolka"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BakaXL.BakaXL",
+      "name": "BakaXL",
+      "match_names": [
+        "BakaXL",
+        "BakaXL.BakaXL"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BakaXL"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AhoyLabs.BackyardAI",
+      "name": "Backyard AI",
+      "match_names": [
+        "Backyard AI",
+        "AhoyLabs.BackyardAI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Backyard AI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Babashka.Babashka",
+      "name": "Babashka",
+      "match_names": [
+        "Babashka",
+        "Babashka.Babashka"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Babashka"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BrightSign.BAconnected",
+      "name": "BA connected",
+      "match_names": [
+        "BA connected",
+        "BrightSign.BAconnected"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "BA connected"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:B4CK.B4CK",
+      "name": "B4CK",
+      "match_names": [
+        "B4CK",
+        "B4CK.B4CK"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "B4CK"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CosX.AzurePimTui",
+      "name": "Azure PIM TUI",
+      "match_names": [
+        "Azure PIM TUI",
+        "CosX.AzurePimTui"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azure PIM TUI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DevOps.BulkRepoDownloader",
+      "name": "Azure DevOps Project Repo Downloader",
+      "match_names": [
+        "Azure DevOps Project Repo Downloader",
+        "DevOps.BulkRepoDownloader"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azure DevOps Project Repo Downloader"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AbdelrahmanBayoumi.Azkar",
+      "name": "Azkar",
+      "match_names": [
+        "Azkar",
+        "AbdelrahmanBayoumi.Azkar"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azkar"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AzaharPlus.AzaharPlus",
+      "name": "AzaharPlus",
+      "match_names": [
+        "AzaharPlus",
+        "AzaharPlus.AzaharPlus"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AzaharPlus"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AzaharEmu.Azahar.MSYS2",
+      "name": "Azahar",
+      "match_names": [
+        "Azahar",
+        "AzaharEmu.Azahar",
+        "AzaharEmu.Azahar.MSYS2"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Azahar"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:7room.Aya",
+      "name": "Aya",
+      "match_names": [
+        "Aya",
+        "7room.Aya"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Aya"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Axure.AxureRP.9",
+      "name": "Axure RP 9",
+      "match_names": [
+        "Axure RP 9",
+        "Axure.AxureRP.9"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Axure RP 9"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Axure.AxureRP.11",
+      "name": "Axure RP 11",
+      "match_names": [
+        "Axure RP 11",
+        "Axure.AxureRP.11"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Axure RP 11"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Axure.AxureRP.10",
+      "name": "Axure RP 10",
+      "match_names": [
+        "Axure RP 10",
+        "Axure.AxureRP.10"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Axure RP 10"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AxonHub.Axon",
+      "name": "axon",
+      "match_names": [
+        "axon",
+        "AxonHub.Axon"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "axon"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AmyXun.AxMath",
+      "name": "AxMath",
+      "match_names": [
+        "AxMath",
+        "AmyXun.AxMath"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AxMath"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Axialis.ScreensaverProducer",
+      "name": "Axialis Screensaver Producer",
+      "match_names": [
+        "Axialis Screensaver Producer",
+        "Axialis.ScreensaverProducer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Axialis Screensaver Producer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Axialis.IconWorkshop",
+      "name": "Axialis IconWorkshop",
+      "match_names": [
+        "Axialis IconWorkshop"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Axialis IconWorkshop"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Axialis.IconGenerator",
+      "name": "Axialis IconGenerator",
+      "match_names": [
+        "Axialis IconGenerator"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Axialis IconGenerator"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Axialis.CursorWorkshop",
+      "name": "Axialis CursorWorkshop",
+      "match_names": [
+        "Axialis CursorWorkshop"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Axialis CursorWorkshop"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AmyXun.AxGlyph",
+      "name": "AxGlyph",
+      "match_names": [
+        "AxGlyph",
+        "AmyXun.AxGlyph"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AxGlyph"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AxCrypt.AxCrypt",
+      "name": "AxCrypt",
+      "match_names": [
+        "AxCrypt",
+        "AxCrypt.AxCrypt"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AxCrypt"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ByteNess.AWSVault",
+      "name": "AWS Vault",
+      "match_names": [
+        "AWS Vault",
+        "99designs.aws-vault",
+        "ByteNess.AWSVault"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AWS Vault"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.SAM-CLI",
+      "name": "AWS SAM Command Line Interface",
+      "match_names": [
+        "AWS SAM Command Line Interface",
+        "Amazon.SAM-CLI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AWS SAM Command Line Interface"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.CopilotCLI",
+      "name": "AWS Copilot CLI",
+      "match_names": [
+        "AWS Copilot CLI",
+        "Amazon.CopilotCLI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AWS Copilot CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Amazon.AWSCLI",
+      "name": "AWS Command Line Interface",
+      "match_names": [
+        "AWS Command Line Interface",
+        "Amazon.AWSCLI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AWS Command Line Interface"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ascensio.AVSInstallPack",
+      "name": "AVS4YOU Programs Installation",
+      "match_names": [
+        "AVS4YOU Programs Installation",
+        "Ascensio.AVSInstallPack"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AVS4YOU Programs Installation"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AVRDudes.AVRDUDE",
+      "name": "AVRDUDE",
+      "match_names": [
+        "AVRDUDE",
+        "AVRDudes.AVRDUDE"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AVRDUDE"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Comix.FastMeetingAVPlugins",
+      "name": "AVPlugins",
+      "match_names": [
+        "AVPlugins",
+        "Comix.FastMeetingAVPlugins"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AVPlugins"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Avogadro.Avogadro.2",
+      "name": "Avogadro2",
+      "match_names": [
+        "Avogadro2",
+        "Avogadro.Avogadro.2"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Avogadro2"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}

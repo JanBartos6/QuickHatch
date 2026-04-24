@@ -1,0 +1,1600 @@
+{
+  "schema": 1,
+  "purpose": "Remaining unknown catalog entries for distro-family support research, batch 004 split into parts",
+  "batch": "004",
+  "part": 13,
+  "entries": [
+    {
+      "id": "winget:Avogadro.Avogadro",
+      "name": "Avogadro",
+      "match_names": [
+        "Avogadro",
+        "Avogadro.Avogadro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Avogadro"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Avocode.Avocode",
+      "name": "Avocode",
+      "match_names": [
+        "Avocode",
+        "Avocode.Avocode"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Avocode"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AviSynth.AviSynthPlus",
+      "name": "AviSynth+",
+      "match_names": [
+        "AviSynth+",
+        "AviSynth.AviSynth",
+        "AviSynth.AviSynthPlus"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AviSynth+"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Avidemux.Avidemux",
+      "name": "Avidemux",
+      "match_names": [
+        "Avidemux",
+        "Avidemux.Avidemux"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Avidemux"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AVer.AVerTouch",
+      "name": "AVerTouch",
+      "match_names": [
+        "AVerTouch",
+        "AVer.AVerTouch"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AVerTouch"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Avaya.AvayaWorkplace",
+      "name": "Avaya Workplace",
+      "match_names": [
+        "Avaya Workplace",
+        "Avaya.AvayaWorkplace"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Avaya Workplace"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Avatar.avtr",
+      "name": "Avatar (JK)",
+      "match_names": [
+        "Avatar (JK)",
+        "Avatar.avtr"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Avatar (JK)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Allen&Heath.AvantisDirector",
+      "name": "Avantis Director",
+      "match_names": [
+        "Avantis Director",
+        "Allen&Heath.AvantisDirector"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Avantis Director"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AutoVer.AutoVer",
+      "name": "AutoVer",
+      "match_names": [
+        "AutoVer",
+        "AutoVer.AutoVer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AutoVer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AlexanderLitvinov.AutoText",
+      "name": "AutoText",
+      "match_names": [
+        "AutoText",
+        "AlexanderLitvinov.AutoText"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AutoText"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ChemTableSoftware.AutorunOrganizer",
+      "name": "Autorun Organizer",
+      "match_names": [
+        "Autorun Organizer",
+        "ChemTableSoftware.AutorunOrganizer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Autorun Organizer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Automox.AutomoxAgent",
+      "name": "Automox Agent",
+      "match_names": [
+        "Automox Agent",
+        "Automox.AutomoxAgent"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Automox Agent"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AutomatedLab.AutomatedLab",
+      "name": "AutomatedLab",
+      "match_names": [
+        "AutomatedLab",
+        "AutomatedLab.AutomatedLab"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AutomatedLab"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AutoIt.AutoIt",
+      "name": "AutoIt",
+      "match_names": [
+        "AutoIt",
+        "AutoIt.AutoIt"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AutoIt"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AutoHotkey.AutoHotkey",
+      "name": "AutoHotkey",
+      "match_names": [
+        "AutoHotkey",
+        "AutoHotkey.AutoHotkey"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AutoHotkey"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Acer.AutoDetectSerialNumber",
+      "name": "AutoDetectSerialNumber",
+      "match_names": [
+        "AutoDetectSerialNumber",
+        "Acer.AutoDetectSerialNumber"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AutoDetectSerialNumber"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Codectory.AutoActions",
+      "name": "AutoActions",
+      "match_names": [
+        "AutoActions",
+        "Codectory.AutoActions"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AutoActions"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ChristianGalla.AutoStartConfirm",
+      "name": "Auto Start Confirm",
+      "match_names": [
+        "Auto Start Confirm",
+        "ChristianGalla.AutoStartConfirm"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Auto Start Confirm"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ArminOsaj.AutoDarkMode",
+      "name": "Auto Dark Mode",
+      "match_names": [
+        "Auto Dark Mode",
+        "ArminOsaj.AutoDarkMode"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Auto Dark Mode"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Auslogics.WindowsSlimmer",
+      "name": "Auslogics Windows Slimmer",
+      "match_names": [
+        "Auslogics Windows Slimmer",
+        "Auslogics.WindowsSlimmer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Auslogics Windows Slimmer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Auslogics.SSDOptimizer",
+      "name": "Auslogics SSD Optimizer",
+      "match_names": [
+        "Auslogics SSD Optimizer",
+        "Auslogics.SSDOptimizer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Auslogics SSD Optimizer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Auslogics.RegistryDefrag",
+      "name": "Auslogics Registry Defrag",
+      "match_names": [
+        "Auslogics Registry Defrag",
+        "Auslogics.RegistryDefrag"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Auslogics Registry Defrag"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Auslogics.RegistryCleaner",
+      "name": "Auslogics Registry Cleaner",
+      "match_names": [
+        "Auslogics Registry Cleaner",
+        "Auslogics.RegistryCleaner"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Auslogics Registry Cleaner"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Auslogics.DriverUpdater",
+      "name": "Auslogics Driver Updater",
+      "match_names": [
+        "Auslogics Driver Updater",
+        "Auslogics.DriverUpdater"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Auslogics Driver Updater"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Auslogics.DiskDefrag",
+      "name": "Auslogics Disk Defrag",
+      "match_names": [
+        "Auslogics Disk Defrag",
+        "Auslogics.DiskDefrag"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Auslogics Disk Defrag"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Auslogics.ChillMate",
+      "name": "Auslogics ChillMate",
+      "match_names": [
+        "Auslogics ChillMate"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Auslogics ChillMate"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Auslogics.BoostSpeed",
+      "name": "Auslogics BoostSpeed",
+      "match_names": [
+        "Auslogics BoostSpeed"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Auslogics BoostSpeed"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Auslogics.BitReplica",
+      "name": "Auslogics BitReplica",
+      "match_names": [
+        "Auslogics BitReplica"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Auslogics BitReplica"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BasDriessen.Aurora",
+      "name": "Aurora 5e Character Builder",
+      "match_names": [
+        "Aurora 5e Character Builder",
+        "BasDriessen.Aurora"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Aurora 5e Character Builder"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aurora.Aurora",
+      "name": "Aurora",
+      "match_names": [
+        "Aurora",
+        "Aurora.Aurora"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Aurora"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Audius.Audius",
+      "name": "Audius",
+      "match_names": [
+        "Audius",
+        "Audius.Audius"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Audius"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Audacity.Audacity",
+      "name": "Audacity",
+      "match_names": [
+        "Audacity",
+        "Audacity.Audacity"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Audacity"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Atuinsh.Atuin",
+      "name": "Atuin",
+      "match_names": [
+        "Atuin",
+        "Atuinsh.Atuin"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Atuin"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Atlassian.AtlassianCLI",
+      "name": "Atlassian CLI",
+      "match_names": [
+        "Atlassian CLI",
+        "Atlassian.AtlassianCLI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Atlassian CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AWP.AtlantisWordProcessorLite",
+      "name": "Atlantis Word Processor Lite",
+      "match_names": [
+        "Atlantis Word Processor Lite",
+        "AWP.AtlantisWordProcessorLite"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Atlantis Word Processor Lite"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AWP.AtlantisWordProcessor",
+      "name": "Atlantis Word Processor",
+      "match_names": [
+        "Atlantis Word Processor",
+        "AWP.AtlantisWordProcessor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Atlantis Word Processor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Atari800Win.PLus",
+      "name": "Atari800Win PLus",
+      "match_names": [
+        "Atari800Win PLus"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Atari800Win PLus"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AstroComma.AstroGrep",
+      "name": "AstroGrep",
+      "match_names": [
+        "AstroGrep",
+        "AstroComma.AstroGrep"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AstroGrep"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Astronomer.Astro",
+      "name": "Astro CLI",
+      "match_names": [
+        "Astro CLI",
+        "Astronomer.Astro"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Astro CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ElstenSoftware.Astiga",
+      "name": "astiga",
+      "match_names": [
+        "astiga",
+        "ElstenSoftware.Astiga"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "astiga"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AssetRipper.AssetRipper",
+      "name": "AssetRipper",
+      "match_names": [
+        "AssetRipper",
+        "AssetRipper.AssetRipper"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AssetRipper"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:BrightlySoftware.AsseticPredictor",
+      "name": "Assetic Predictor",
+      "match_names": [
+        "Assetic Predictor",
+        "BrightlySoftware.AsseticPredictor"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Assetic Predictor"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DmitryChapyshev.AspiaHost",
+      "name": "Aspia Host",
+      "match_names": [
+        "Aspia Host",
+        "DmitryChapyshev.AspiaHost"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Aspia Host"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DmitryChapyshev.AspiaConsole",
+      "name": "Aspia Console",
+      "match_names": [
+        "Aspia Console",
+        "DmitryChapyshev.AspiaConsole"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Aspia Console"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ASGARDEXMaintainers.ASGARDEX",
+      "name": "ASGARDEX",
+      "match_names": [
+        "ASGARDEX",
+        "ASGARDEXMaintainers.ASGARDEX"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ASGARDEX"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Aserto.CLI",
+      "name": "Aserto CLI",
+      "match_names": [
+        "Aserto CLI"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Aserto CLI"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ANTOrg-Inc.ASCIIEngine",
+      "name": "ASCIIEngine",
+      "match_names": [
+        "ASCIIEngine",
+        "ANTOrg-Inc.ASCIIEngine"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ASCIIEngine"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AsciidocFX.AsciidocFX",
+      "name": "AsciidocFX",
+      "match_names": [
+        "AsciidocFX",
+        "AsciidocFX.AsciidocFX"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AsciidocFX"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:asap-utilities-home-and-student-edition",
+      "name": "ASAP Utilities (Home and Student edition)",
+      "match_names": [
+        "ASAP Utilities (Home and Student edition)"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ASAP Utilities (Home and Student edition)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Asana.Asana",
+      "name": "Asana",
+      "match_names": [
+        "Asana",
+        "Asana.Asana"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Asana"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Besware.Artweaver.8.Plus",
+      "name": "Artweaver Plus 8",
+      "match_names": [
+        "Artweaver Plus 8",
+        "Besware.Artweaver.8.Plus"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Artweaver Plus 8"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Besware.Artweaver.7.Plus",
+      "name": "Artweaver Plus 7",
+      "match_names": [
+        "Artweaver Plus 7",
+        "Besware.Artweaver.7.Plus"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Artweaver Plus 7"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Besware.Artweaver.8.Free",
+      "name": "Artweaver Free 8",
+      "match_names": [
+        "Artweaver Free 8",
+        "Besware.Artweaver.8.Free"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Artweaver Free 8"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Besware.Artweaver.7.Free",
+      "name": "Artweaver Free 7",
+      "match_names": [
+        "Artweaver Free 7",
+        "Besware.Artweaver.7.Free"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Artweaver Free 7"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ArturoLang.Arturo",
+      "name": "Arturo",
+      "match_names": [
+        "Arturo",
+        "ArturoLang.Arturo"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Arturo"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ArtisticStyle.ArtisticStyle",
+      "name": "Artistic Style",
+      "match_names": [
+        "Artistic Style",
+        "ArtisticStyle.ArtisticStyle"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Artistic Style"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Articulate.Articulate360",
+      "name": "Articulate 360",
+      "match_names": [
+        "Articulate 360",
+        "Articulate.Articulate360"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Articulate 360"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Artha.Artha",
+      "name": "Artha",
+      "match_names": [
+        "Artha",
+        "Artha.Artha"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Artha"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AresValley.Artemis",
+      "name": "Artemis",
+      "match_names": [
+        "Artemis",
+        "AresValley.Artemis"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Artemis"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ART.ART",
+      "name": "ART",
+      "match_names": [
+        "ART",
+        "ART.ART"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ART"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ArrayFire.ArrayFire",
+      "name": "ArrayFire",
+      "match_names": [
+        "ArrayFire",
+        "ArrayFire.ArrayFire"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ArrayFire"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Asus.ArmouryCrate",
+      "name": "ArmouryCrate",
+      "match_names": [
+        "ArmouryCrate",
+        "Asus.ArmouryCrate"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ArmouryCrate"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Armaria.Armaria",
+      "name": "Armaria",
+      "match_names": [
+        "Armaria",
+        "Armaria.Armaria"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Armaria"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ArmagetronAdvanced.ArmagetronAdvanced",
+      "name": "Armagetron Advanced",
+      "match_names": [
+        "Armagetron Advanced",
+        "ArmagetronAdvanced.ArmagetronAdvanced"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Armagetron Advanced"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Arm.ArmPerformanceLibraries",
+      "name": "Arm Performance Libraries",
+      "match_names": [
+        "Arm Performance Libraries",
+        "Arm.ArmPerformanceLibraries"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Arm Performance Libraries"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AcFun.ARLiveForAcfunLive",
+      "name": "ARLiveForAcfunLive",
+      "match_names": [
+        "ARLiveForAcfunLive",
+        "AcFun.ARLiveForAcfunLive"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ARLiveForAcfunLive"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Posit.Ark",
+      "name": "Ark",
+      "match_names": [
+        "Ark",
+        "Posit.Ark"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ark"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Arixcel.ArixcelExplorer",
+      "name": "Arixcel Explorer",
+      "match_names": [
+        "Arixcel Explorer",
+        "Arixcel.ArixcelExplorer"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Arixcel Explorer"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ArianesLine.Ariane",
+      "name": "Ariane",
+      "match_names": [
+        "Ariane",
+        "ArianesLine.Ariane"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ariane"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Argente.Utilities",
+      "name": "Argente Utilities",
+      "match_names": [
+        "Argente Utilities"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Argente Utilities"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Argente.SoftwareUpdater",
+      "name": "Argente Software Updater",
+      "match_names": [
+        "Argente Software Updater",
+        "Argente.SoftwareUpdater"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Argente Software Updater"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Argente.RegistryCleaner",
+      "name": "Argente Registry Cleaner",
+      "match_names": [
+        "Argente Registry Cleaner",
+        "Argente.RegistryCleaner"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Argente Registry Cleaner"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Argente.DuplicateFinder",
+      "name": "Argente Duplicate Finder",
+      "match_names": [
+        "Argente Duplicate Finder",
+        "Argente.DuplicateFinder"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Argente Duplicate Finder"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Argente.DriveCleaner",
+      "name": "Argente Drive Cleaner",
+      "match_names": [
+        "Argente Drive Cleaner",
+        "Argente.DriveCleaner"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Argente Drive Cleaner"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Argente.DataShredder",
+      "name": "Argente Data Shredder",
+      "match_names": [
+        "Argente Data Shredder",
+        "Argente.DataShredder"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Argente Data Shredder"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:eitsupi.arf",
+      "name": "arf console",
+      "match_names": [
+        "arf console",
+        "eitsupi.arf"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "arf console"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Ares.Ares",
+      "name": "Ares",
+      "match_names": [
+        "Ares",
+        "Ares.Ares"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Ares"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Arelle.Arelle",
+      "name": "Arelle",
+      "match_names": [
+        "Arelle",
+        "Arelle.Arelle"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Arelle"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Arctype.Arctype",
+      "name": "Arctype",
+      "match_names": [
+        "Arctype",
+        "Arctype.Arctype"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Arctype"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Archi.Archi",
+      "name": "Archi",
+      "match_names": [
+        "Archi",
+        "Archi.Archi"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Archi"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DataPLANT.ArcCommander",
+      "name": "ArcCommander",
+      "match_names": [
+        "ArcCommander",
+        "DataPLANT.ArcCommander"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ArcCommander"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Araxis.Merge",
+      "name": "Araxis Merge",
+      "match_names": [
+        "Araxis Merge"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Araxis Merge"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AptosCore.aptos",
+      "name": "Aptos",
+      "match_names": [
+        "Aptos",
+        "AptosCore.aptos"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Aptos"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ApSIC.Xbench",
+      "name": "ApSIC Xbench",
+      "match_names": [
+        "ApSIC Xbench"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "ApSIC Xbench"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AppLocate.AppLocate",
+      "name": "AppLocate",
+      "match_names": [
+        "AppLocate",
+        "AppLocate.AppLocate"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AppLocate"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AppleWin.AppleWin",
+      "name": "AppleWin",
+      "match_names": [
+        "AppleWin",
+        "AppleWin.AppleWin"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AppleWin"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Apple.AppleSoftwareUpdate",
+      "name": "Apple Software Update",
+      "match_names": [
+        "Apple Software Update",
+        "Apple.AppleSoftwareUpdate"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Apple Software Update"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Apple.AppleMobileDeviceSupport",
+      "name": "Apple Mobile Device Support",
+      "match_names": [
+        "Apple Mobile Device Support",
+        "Apple.AppleMobileDeviceSupport"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Apple Mobile Device Support"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Apple.AppleApplicationSupport.x64",
+      "name": "Apple Application Support (64-bit)",
+      "match_names": [
+        "Apple Application Support (64-bit)",
+        "Apple.AppleApplicationSupport.x64"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Apple Application Support (64-bit)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Apple.AppleApplicationSupport.x86",
+      "name": "Apple Application Support (32-bit)",
+      "match_names": [
+        "Apple Application Support (32-bit)",
+        "Apple.AppleApplicationSupport.x86"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Apple Application Support (32-bit)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AppFlowy.AppFlowy",
+      "name": "AppFlowy",
+      "match_names": [
+        "AppFlowy",
+        "AppFlowy.AppFlowy"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AppFlowy"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:Builtbybel.Appcopier",
+      "name": "Appcopier",
+      "match_names": [
+        "Appcopier",
+        "Builtbybel.Appcopier"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Appcopier"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AppControl.AppControl",
+      "name": "AppControl",
+      "match_names": [
+        "AppControl",
+        "AppControl.AppControl"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AppControl"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:CheckMAL.AppCheck",
+      "name": "AppCheck",
+      "match_names": [
+        "AppCheck",
+        "CheckMAL.AppCheck"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AppCheck"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ClassicOldSong.Apollo",
+      "name": "Apollo",
+      "match_names": [
+        "Apollo",
+        "ClassicOldSong.Apollo"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Apollo"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:ApacheLounge.httpd",
+      "name": "Apache Lounge httpd",
+      "match_names": [
+        "Apache Lounge httpd",
+        "ApacheLounge.httpd"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Apache Lounge httpd"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:DEVCOM.JMeter",
+      "name": "Apache JMeter",
+      "match_names": [
+        "Apache JMeter",
+        "DEVCOM.JMeter"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Apache JMeter"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AOMEI.PartitionAssistant.ARM64",
+      "name": "AOMEI Partition Assistant (ARM64)",
+      "match_names": [
+        "AOMEI Partition Assistant (ARM64)",
+        "AOMEI.PartitionAssistant.ARM64"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AOMEI Partition Assistant (ARM64)"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AOMEI.PartitionAssistant",
+      "name": "AOMEI Partition Assistant",
+      "match_names": [
+        "AOMEI Partition Assistant",
+        "AOMEI.PartitionAssistant"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "AOMEI Partition Assistant"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    },
+    {
+      "id": "winget:AnyAssociation.Anytype",
+      "name": "Anytype",
+      "match_names": [
+        "Anytype",
+        "AnyAssociation.Anytype"
+      ],
+      "compatibility": "unknown",
+      "alternatives": [
+        "Anytype"
+      ],
+      "source_hint": "needs_research",
+      "confidence": "low",
+      "category": "other",
+      "notes": "Discovered from winget list; add a curated override before relying on it."
+    }
+  ]
+}
