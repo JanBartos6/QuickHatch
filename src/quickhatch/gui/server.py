@@ -82,6 +82,43 @@ def _resolve_ssh_private_key_path(profile: UserProfile) -> str | None:
     return None
 
 
+def _ssh_key_status(profile: UserProfile) -> dict[str, Any]:
+    """Return whether the profile's SSH key reference is usable end-to-end."""
+    raw = (getattr(profile, "ssh_public_key_path", None) or "").strip()
+    if not raw:
+        return {
+            "path": None,
+            "ready": False,
+            "public_exists": False,
+            "private_exists": False,
+            "message": "No SSH public key path is saved.",
+        }
+
+    pub_path = Path(raw)
+    private_path = _ssh_public_to_private_key_path(raw)
+    public_exists = pub_path.exists()
+    private_exists = bool(private_path and private_path.exists())
+    ready = public_exists and private_exists
+
+    if ready:
+        message = "SSH keypair is ready."
+    elif not public_exists and not private_exists:
+        message = "Saved SSH key path points to files that no longer exist. Generate a new key or choose a valid .pub key."
+    elif not public_exists:
+        message = "Saved SSH public key file no longer exists. Generate a new key or choose a valid .pub key."
+    else:
+        message = "Matching SSH private key file is missing. QuickHatch can export the public key, but cannot connect with it."
+
+    return {
+        "path": str(pub_path),
+        "private_path": str(private_path) if private_path else None,
+        "ready": ready,
+        "public_exists": public_exists,
+        "private_exists": private_exists,
+        "message": message,
+    }
+
+
 # ── Tool schemas for function-calling ──
 
 _TOOLS_OPENAI = [
@@ -502,6 +539,7 @@ def _profile_response_dict(profile: UserProfile) -> dict[str, Any]:
     profile_dict = asdict(profile)
     if profile_dict.get("ai_config", {}).get("api_key"):
         profile_dict["ai_config"]["api_key"] = "***SET***"
+    profile_dict["ssh_key_status"] = _ssh_key_status(profile)
     return profile_dict
 
 
@@ -973,7 +1011,7 @@ def make_gui_server(
         def _handle_bridge_get(self):
             if self.path == "/api/profile":
                 bridge_state.agent_connected = True
-                profile_dict = asdict(bridge_state.profile)
+                profile_dict = _profile_response_dict(bridge_state.profile)
                 if profile_dict.get("ai_config", {}).get("api_key"):
                     profile_dict["ai_config"]["api_key"] = "***REDACTED***"
                 self._send_json({"status": "ok", "profile": profile_dict})
@@ -7608,6 +7646,18 @@ def _generate_ssh_key(gui_state: GUIState) -> dict:
     key_path = Path.home() / ".ssh" / "quickhatch_ed25519"
     pub_path = key_path.with_suffix(".pub")
 
+    if pub_path.exists() and not key_path.exists():
+        try:
+            pub_path.unlink()
+        except OSError:
+            return {
+                "status": "error",
+                "message": (
+                    f"Saved public key exists but the private key is missing: {key_path}. "
+                    "Delete the public key or choose a valid keypair."
+                ),
+            }
+
     if pub_path.exists():
         # MED-8: if the private key exists, verify it's 0600 — a world-
         # readable key means ssh will refuse to use it and the whole
@@ -7955,6 +8005,18 @@ def _run_export(gui_state: GUIState) -> dict:
     files = []
 
     try:
+        key_status = _ssh_key_status(gui_state.profile)
+        if gui_state.profile.ssh_public_key_path and not key_status["ready"]:
+            return {
+                "status": "error",
+                "message": (
+                    f"{key_status['message']} The bundle was not exported because "
+                    "quickstart.sh would not be able to install a key that this wizard can use. "
+                    "Generate a new SSH key or choose a valid public key with its matching private key."
+                ),
+                "ssh_key_status": key_status,
+            }
+
         for name in GENERATED_EXPORT_FILES:
             generated = output_dir / name
             if generated.exists():
@@ -8002,10 +8064,9 @@ def _run_export(gui_state: GUIState) -> dict:
         # SSH public key
         if gui_state.profile.ssh_public_key_path:
             ssh_pub = Path(gui_state.profile.ssh_public_key_path)
-            if ssh_pub.exists():
-                dest = output_dir / ssh_pub.name
-                dest.write_text(ssh_pub.read_text())
-                files.append(dest.name)
+            dest = output_dir / ssh_pub.name
+            dest.write_text(ssh_pub.read_text(encoding="utf-8"), encoding="utf-8")
+            files.append(dest.name)
 
         # Quickstart script — write with explicit LF line endings so
         # the Linux kernel can parse the shebang on Windows-exported

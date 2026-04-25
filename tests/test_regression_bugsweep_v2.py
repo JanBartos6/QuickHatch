@@ -411,6 +411,15 @@ class TestFrontendProfileSync:
         assert 'id="sshSkipBtn"' not in html
         assert 'class="btn btn-ghost" onclick="toggleOwnKeyInput()" id="sshOwnKeyBtn"' in html
 
+    def test_ssh_step_uses_backend_key_readiness_not_stale_path(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "const sshKeyStatus=state.profile.ssh_key_status||{};" in html
+        assert "const hasKey=!!sshKeyStatus.ready;" in html
+        assert "Saved SSH key is missing locally." in html
+
     def test_offline_done_screen_no_longer_claims_remote_setup_finished(self):
         from pathlib import Path
 

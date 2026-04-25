@@ -2219,7 +2219,12 @@ const stepRenderers={
   },
 
   ssh(){
-    const hasKey=!!state.profile.ssh_public_key_path;
+    const sshKeyStatus=state.profile.ssh_key_status||{};
+    const hasSavedKey=!!state.profile.ssh_public_key_path;
+    const hasKey=!!sshKeyStatus.ready;
+    const staleKeyWarning=hasSavedKey&&!hasKey
+      ? `<div class="info-box info-warn" style="margin-top:var(--s3)"><strong>Saved SSH key is missing locally.</strong><p style="margin:var(--s2) 0 0 0">${escHtml(sshKeyStatus.message||'Generate a new SSH key or choose a valid .pub key before exporting.')}</p></div>`
+      : '';
     const provider=state.profile.ai_config?.provider||'';
     const isLocal=['local_ollama','local_lmstudio','codex'].includes(provider);
     // Hosted-API providers keep their specific label so downstream code
@@ -2299,7 +2304,7 @@ const stepRenderers={
           <p style="margin:0"><strong>Can't keep this PC running, or don't want to?</strong> Skip the agent. The export bundle also includes the full migration plan as a Markdown document — you can follow it yourself on Linux, step by step. You'll still get a good setup; you'll just do the clicking. In that case, you can skip this SSH step entirely.</p>
         </div>
 
-        <div id="sshResult">${hasKey?'<div class="info-box info-success" style="margin-top:var(--s3)"><strong>Existing key found — ready to go.</strong></div>':''}</div>
+        <div id="sshResult">${hasKey?'<div class="info-box info-success" style="margin-top:var(--s3)"><strong>Existing key found — ready to go.</strong></div>':staleKeyWarning}</div>
         <div class="stack-h" style="flex-wrap:wrap;margin-top:var(--s3)">
           <button class="btn btn-primary" id="sshGenBtn" onclick="generateSSH()">${hasKey?'Regenerate key':'Generate key'}</button>
           <button class="btn btn-ghost" onclick="toggleOwnKeyInput()" id="sshOwnKeyBtn">${hasKey?'Use a different public key':'I already have my own key'}</button>

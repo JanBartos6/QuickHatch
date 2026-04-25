@@ -15,6 +15,8 @@ def test_run_export_cleans_generated_outputs_and_writes_start_here(monkeypatch, 
 
     ssh_dir = tmp_path / "ssh"
     ssh_dir.mkdir()
+    ssh_key = ssh_dir / "quickhatch_ed25519"
+    ssh_key.write_text("private-key-placeholder\n", encoding="utf-8")
     ssh_pub = ssh_dir / "quickhatch_ed25519.pub"
     ssh_pub.write_text("ssh-ed25519 AAAATEST quickhatch\n", encoding="utf-8")
     profile.ssh_public_key_path = str(ssh_pub)
@@ -63,3 +65,22 @@ def test_run_export_cleans_generated_outputs_and_writes_start_here(monkeypatch, 
     assert "install.sh" in names
     assert ssh_pub.name in names
     assert "old-key.pub" not in names
+
+
+def test_run_export_rejects_stale_saved_ssh_key(monkeypatch, tmp_path):
+    profile = UserProfile()
+    profile.preferences.another_machine = "yes"
+    profile.ssh_public_key_path = str(tmp_path / "missing" / "quickhatch_ed25519.pub")
+
+    bridge = BridgeState(profile, persist_path=None)
+    gui_state = GUIState(profile, bridge)
+    output_dir = tmp_path / "export"
+
+    monkeypatch.setattr(gui_server_mod, "_export_output_dir", lambda: output_dir)
+
+    result = _run_export(gui_state)
+
+    assert result["status"] == "error"
+    assert "Saved SSH key path points to files that no longer exist" in result["message"]
+    assert result["ssh_key_status"]["ready"] is False
+    assert not (output_dir / "quickstart.sh").exists()
