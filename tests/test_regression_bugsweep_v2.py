@@ -420,6 +420,18 @@ class TestFrontendProfileSync:
         assert "const hasKey=!!sshKeyStatus.ready;" in html
         assert "Saved SSH key is missing locally." in html
 
+    def test_analysis_chat_composer_is_above_recommendations(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        question_idx = html.index('<div id="questionArea"></div>')
+        chat_idx = html.index('<div class="chat-composer" id="chatComposer">')
+        suggestions_idx = html.index(
+            '<div class="suggestions-section hidden" id="suggestionsSection">'
+        )
+        assert question_idx < chat_idx < suggestions_idx
+
     def test_offline_done_screen_no_longer_claims_remote_setup_finished(self):
         from pathlib import Path
 
