@@ -101,6 +101,35 @@ def test_extract_research_plan_rejects_blank_command_group_commands():
         extract_research_plan(json.dumps(payload), profile)
 
 
+def test_extract_research_plan_normalizes_common_install_substages():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["command_groups"] = [
+        {
+            "id": "disk",
+            "stage": "disk_prepare",
+            "title": "Prepare disk",
+            "commands": ["parted -s /dev/sda print"],
+        },
+        {
+            "id": "base",
+            "stage": "base_install",
+            "title": "Install base system",
+            "commands": ["pacstrap -K /mnt base linux"],
+        },
+        {
+            "id": "boot",
+            "stage": "bootloader",
+            "title": "Install bootloader",
+            "commands": ["arch-chroot /mnt grub-install --target=x86_64-efi"],
+        },
+    ]
+
+    plan = extract_research_plan(json.dumps(payload), profile)
+
+    assert {group.stage for group in plan.command_groups} == {SetupStage.INSTALL_OR_SKIP}
+
+
 def test_extract_research_plan_backfills_unresolved_requested_apps_as_manual_followup():
     profile = UserProfile()
     profile.apps_to_install = ["Brave", "LocalSend"]
@@ -134,6 +163,7 @@ def test_build_research_prompt_includes_selected_app_catalog():
     assert "source_hint" in prompt
     assert "Use selected_app_catalog as curated prior knowledge" in prompt
     assert "active_install_hint" in prompt
+    assert "Do not invent stages such as disk_prepare" in prompt
 
 
 def test_build_research_prompt_uses_target_distro_over_live_facts(monkeypatch):

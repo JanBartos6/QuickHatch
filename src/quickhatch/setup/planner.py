@@ -28,6 +28,50 @@ _OPTIONAL_SLOW_PACKAGES = {
     "codex-desktop-bin",
 }
 
+_STAGE_ALIASES = {
+    "probe": SetupStage.CONNECT_AND_PROBE,
+    "connect": SetupStage.CONNECT_AND_PROBE,
+    "detect": SetupStage.CONNECT_AND_PROBE,
+    "planning": SetupStage.RESEARCH_AND_PLAN,
+    "research": SetupStage.RESEARCH_AND_PLAN,
+    "plan": SetupStage.RESEARCH_AND_PLAN,
+    "disk": SetupStage.INSTALL_OR_SKIP,
+    "disk_prepare": SetupStage.INSTALL_OR_SKIP,
+    "partition": SetupStage.INSTALL_OR_SKIP,
+    "partitioning": SetupStage.INSTALL_OR_SKIP,
+    "format": SetupStage.INSTALL_OR_SKIP,
+    "formatting": SetupStage.INSTALL_OR_SKIP,
+    "mount": SetupStage.INSTALL_OR_SKIP,
+    "mounting": SetupStage.INSTALL_OR_SKIP,
+    "base_install": SetupStage.INSTALL_OR_SKIP,
+    "bootstrap": SetupStage.INSTALL_OR_SKIP,
+    "pacstrap": SetupStage.INSTALL_OR_SKIP,
+    "debootstrap": SetupStage.INSTALL_OR_SKIP,
+    "chroot": SetupStage.INSTALL_OR_SKIP,
+    "bootloader": SetupStage.INSTALL_OR_SKIP,
+    "boot_loader": SetupStage.INSTALL_OR_SKIP,
+    "initramfs": SetupStage.INSTALL_OR_SKIP,
+    "reboot": SetupStage.INSTALL_OR_SKIP,
+    "driver": SetupStage.POSTBOOT_DRIVER,
+    "drivers": SetupStage.POSTBOOT_DRIVER,
+    "gpu": SetupStage.POSTBOOT_DRIVER,
+    "graphics": SetupStage.POSTBOOT_DRIVER,
+    "nvidia": SetupStage.POSTBOOT_DRIVER,
+    "postboot_drivers": SetupStage.POSTBOOT_DRIVER,
+    "desktop_environment": SetupStage.DESKTOP,
+    "display": SetupStage.DESKTOP,
+    "display_manager": SetupStage.DESKTOP,
+    "theme": SetupStage.DESKTOP,
+    "theming": SetupStage.DESKTOP,
+    "applications": SetupStage.APPS,
+    "packages": SetupStage.APPS,
+    "app_install": SetupStage.APPS,
+    "final": SetupStage.FINAL_AUDIT,
+    "audit": SetupStage.FINAL_AUDIT,
+    "verify": SetupStage.FINAL_AUDIT,
+    "verification": SetupStage.FINAL_AUDIT,
+}
+
 
 class ResearchPlanValidationError(ValueError):
     """Raised when planner output is malformed or incomplete."""
@@ -38,8 +82,11 @@ class RepairActionValidationError(ValueError):
 
 
 def _coerce_stage(value: str) -> SetupStage:
+    normalized = (value or "").strip().lower().replace("-", "_").replace(" ", "_")
+    if normalized in _STAGE_ALIASES:
+        return _STAGE_ALIASES[normalized]
     try:
-        return SetupStage(value)
+        return SetupStage(normalized)
     except ValueError as exc:
         raise ResearchPlanValidationError(f"Unknown setup stage: {value}") from exc
 
@@ -271,7 +318,9 @@ def build_research_prompt(
         "- optional_items (list)\n"
         "- planner_revision (integer)\n\n"
         "Rules:\n"
-        "- Every command group MUST belong to exactly one stage.\n"
+        "- Every command group MUST belong to exactly one canonical stage: connect_and_probe, research_and_plan, install_or_skip, postboot_driver, desktop, apps, or final_audit.\n"
+        "- Put disk partitioning, formatting, mounting, base install, chroot configuration, initramfs, bootloader, and install reboot work under install_or_skip. Do not invent stages such as disk_prepare, partitioning, chroot, bootloader, or base_install.\n"
+        "- Put driver/GPU work under postboot_driver, display manager/theme/runtime desktop work under desktop, and requested application installs under apps.\n"
         "- No mutating work can happen before research_and_plan finishes.\n"
         "- Use official repos by default; only use community sources when needed and explicit.\n"
         "- Classify slow desktop wrappers (ChatGPT/Claude/Codex desktop wrappers, Electron bundle wrappers, etc.) as optional_slow.\n"
