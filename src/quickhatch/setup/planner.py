@@ -219,6 +219,7 @@ def build_research_prompt(
     migration_plan_md: str,
     distro_primer_md: str,
     native_search_active: bool,
+    target_distro_family: str = "",
 ) -> str:
     profile_payload = asdict(profile)
     if profile_payload.get("ai_config", {}).get("api_key"):
@@ -226,7 +227,7 @@ def build_research_prompt(
     selected_app_catalog = selected_app_catalog_context(
         list(profile.apps_to_install or []),
         list(getattr(profile, "apps", []) or []),
-        distro_family=facts.distro_family,
+        distro_family=target_distro_family or facts.distro_family,
     )
     if selected_app_catalog:
         profile_payload["selected_app_catalog"] = selected_app_catalog

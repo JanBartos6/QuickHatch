@@ -189,3 +189,54 @@ def test_catalog_builder_preserves_curated_install_hints_and_evidence(tmp_path):
     entry = payload["entries"][0]
     assert entry["install_hints"]["arch"]["packages"] == ["org.example.HintedApp"]
     assert entry["evidence"][0]["label"] == "Flathub"
+
+
+def test_low_confidence_winget_row_does_not_replace_stronger_existing_row(tmp_path):
+    builder = _load_builder()
+    existing = tmp_path / "existing.json"
+    overrides = tmp_path / "overrides.json"
+    winget_list = tmp_path / "winget-list.txt"
+
+    existing.write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "entries": [
+                    {
+                        "id": "org.mozilla.firefox",
+                        "name": "Firefox",
+                        "match_names": ["Mozilla Firefox"],
+                        "compatibility": "native",
+                        "alternatives": ["Firefox"],
+                        "source_hint": "flatpak",
+                        "confidence": "medium",
+                        "category": "browsers",
+                        "notes": "Known app.",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    overrides.write_text(json.dumps({"schema": 1, "entries": []}), encoding="utf-8")
+    winget_list.write_text(
+        "Name                Id                      Version\n"
+        "--------------------------------------------------\n"
+        "Firefox             Mozilla.Firefox         1.2.3\n",
+        encoding="utf-8",
+    )
+
+    payload = builder.build_catalog(
+        existing_path=existing,
+        overrides_path=overrides,
+        winget_lists=[winget_list],
+        winget_searches=[],
+        fetch_flathub=False,
+        flathub_limit=10,
+    )
+
+    entry = payload["entries"][0]
+    assert entry["compatibility"] == "native"
+    assert entry["confidence"] == "medium"
+    assert entry["source_hint"] == "flatpak"
+    assert "Mozilla Firefox" in entry["match_names"]

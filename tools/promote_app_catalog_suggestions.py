@@ -18,6 +18,8 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "src" / "quickhatch" / "data"
 DEFAULT_OVERRIDES = DATA_DIR / "app_catalog.overrides.json"
+DEFAULT_GENERATED = DATA_DIR / "app_catalog.generated.json"
+DEFAULT_LEGACY = DATA_DIR / "app_alternatives.json"
 DEFAULT_SUGGESTIONS = "app_catalog.agent_suggestions*.json"
 
 ALLOWED_COMPATIBILITY = {"native", "alternative", "wine", "none", "manual_followup"}
@@ -49,6 +51,15 @@ INSTALL_SOURCES = {
     "manual_followup",
     "none",
 }
+INSTALLABLE_SOURCE_HINTS = {
+    "repo",
+    "flatpak",
+    "snap",
+    "aur",
+    "vendor_deb_rpm",
+    "vendor_appimage",
+    "vendor_repo",
+}
 
 
 @dataclass
@@ -70,14 +81,43 @@ def _load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _existing_aliases(entries: list[dict[str, Any]]) -> set[str]:
+def _entry_blocks_promotion(entry: dict[str, Any], *, authoritative: bool = False) -> bool:
+    if authoritative:
+        return True
+    compatibility = str(entry.get("compatibility", "unknown") or "unknown")
+    source_hint = str(entry.get("source_hint", "unknown") or "unknown")
+    confidence = str(entry.get("confidence", "low") or "low")
+    return (
+        compatibility != "unknown"
+        and source_hint != "needs_research"
+        and CONFIDENCE_ORDER.get(confidence, 0) >= CONFIDENCE_ORDER["medium"]
+    )
+
+
+def _existing_aliases(entries: list[dict[str, Any]], *, authoritative: bool = False) -> set[str]:
     aliases: set[str] = set()
     for entry in entries:
+        if not _entry_blocks_promotion(entry, authoritative=authoritative):
+            continue
         for value in [entry.get("name", ""), *(entry.get("match_names", []) or [])]:
             norm = _normalize(str(value or ""))
             if norm:
                 aliases.add(norm)
     return aliases
+
+
+def _legacy_aliases(path: Path) -> set[str]:
+    if not path.exists():
+        return set()
+    payload = _load_json(path)
+    return {_normalize(str(key)) for key in payload if _normalize(str(key))}
+
+
+def _catalog_aliases(path: Path) -> set[str]:
+    if not path.exists():
+        return set()
+    payload = _load_json(path)
+    return _existing_aliases(list(payload.get("entries", []) or []))
 
 
 def _clean_string_list(raw: Any) -> list[str]:
@@ -175,17 +215,37 @@ def _candidate_from_suggestion(raw: dict[str, Any]) -> dict[str, Any] | None:
     return entry
 
 
+def _has_installable_hint(candidate: dict[str, Any]) -> bool:
+    if candidate.get("source_hint") not in INSTALLABLE_SOURCE_HINTS:
+        return True
+    hints = candidate.get("install_hints")
+    if not isinstance(hints, dict):
+        return False
+    for hint in hints.values():
+        if not isinstance(hint, dict):
+            continue
+        if hint.get("source") in INSTALLABLE_SOURCE_HINTS and hint.get("packages"):
+            return True
+    return False
+
+
 def promote_suggestions(
     *,
     overrides_path: Path,
     suggestion_paths: list[Path],
     min_confidence: str = "high",
     require_evidence: bool = True,
+    existing_catalog_paths: list[Path] | None = None,
+    legacy_path: Path | None = DEFAULT_LEGACY,
     dry_run: bool = False,
 ) -> tuple[dict[str, Any], PromotionStats]:
     payload = _load_json(overrides_path)
     entries = list(payload.get("entries", []) or [])
-    aliases = _existing_aliases(entries)
+    aliases = _existing_aliases(entries, authoritative=True)
+    for path in existing_catalog_paths or []:
+        aliases.update(_catalog_aliases(path))
+    if legacy_path is not None:
+        aliases.update(_legacy_aliases(legacy_path))
     stats = PromotionStats()
     min_score = CONFIDENCE_ORDER[min_confidence]
     promoted: list[dict[str, Any]] = []
@@ -204,7 +264,10 @@ def promote_suggestions(
             if CONFIDENCE_ORDER.get(confidence, -1) < min_score:
                 stats.skipped_confidence += 1
                 continue
-            if candidate["compatibility"] == "unknown" or candidate["source_hint"] == "needs_research":
+            if (
+                candidate["compatibility"] == "unknown"
+                or candidate["source_hint"] == "needs_research"
+            ):
                 stats.skipped_unknown += 1
                 continue
             if require_evidence and not candidate.get("evidence"):
@@ -213,6 +276,9 @@ def promote_suggestions(
             names = [candidate["name"], *(candidate.get("match_names", []) or [])]
             if any(_normalize(name) in aliases for name in names):
                 stats.skipped_existing += 1
+                continue
+            if not _has_installable_hint(candidate):
+                stats.skipped_invalid += 1
                 continue
             candidate["promoted_from_agent_suggestions"] = True
             promoted.append(candidate)
@@ -244,6 +310,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--overrides", type=Path, default=DEFAULT_OVERRIDES)
     parser.add_argument("--suggestions-dir", type=Path, default=DATA_DIR)
     parser.add_argument("--pattern", default=DEFAULT_SUGGESTIONS)
+    parser.add_argument(
+        "--existing-catalog", type=Path, action="append", default=[DEFAULT_GENERATED]
+    )
+    parser.add_argument("--legacy", type=Path, default=DEFAULT_LEGACY)
     parser.add_argument("--min-confidence", choices=["low", "medium", "high"], default="high")
     parser.add_argument("--allow-missing-evidence", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
@@ -255,6 +325,8 @@ def main(argv: list[str] | None = None) -> int:
         suggestion_paths=suggestion_paths,
         min_confidence=args.min_confidence,
         require_evidence=not args.allow_missing_evidence,
+        existing_catalog_paths=list(args.existing_catalog or []),
+        legacy_path=args.legacy,
         dry_run=args.dry_run,
     )
     mode = "Would promote" if args.dry_run else "Promoted"

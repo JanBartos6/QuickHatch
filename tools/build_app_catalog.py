@@ -129,11 +129,7 @@ def _row_from_mapping(raw: dict[str, Any]) -> CatalogRow | None:
         install_hints={
             str(family): {
                 "source": str(hint.get("source", "manual_followup")),
-                "packages": [
-                    str(pkg)
-                    for pkg in hint.get("packages", [])
-                    if str(pkg).strip()
-                ],
+                "packages": [str(pkg) for pkg in hint.get("packages", []) if str(pkg).strip()],
                 "notes": str(hint.get("notes", "") or ""),
             }
             for family, hint in install_hints.items()
@@ -258,6 +254,13 @@ def run_winget_search(query: str, count: int = 1000) -> list[CatalogRow]:
     return parse_winget_table_text(text)
 
 
+def _row_strength(row: CatalogRow) -> int:
+    confidence_score = {"low": 0, "medium": 1, "high": 2}.get(row.confidence, 0)
+    if row.compatibility == "unknown" or row.source_hint == "needs_research":
+        return confidence_score
+    return confidence_score + 2
+
+
 def merge_rows(groups: list[list[CatalogRow]]) -> list[CatalogRow]:
     merged: dict[str, CatalogRow] = {}
     aliases: dict[str, str] = {}
@@ -278,8 +281,18 @@ def merge_rows(groups: list[list[CatalogRow]]) -> list[CatalogRow]:
                     aliases[_normalize(name)] = key
                 continue
 
-            # Later groups are more authoritative. Preserve aliases learned
-            # from earlier sources while replacing the compatibility decision.
+            # Later groups are usually more authoritative, but low-confidence
+            # discovery rows must not erase stronger generated/curated data.
+            if _row_strength(row) < _row_strength(existing):
+                existing.match_names = _dedupe(
+                    [*existing.match_names, existing.name, *row.match_names]
+                )
+                if not existing.alternatives:
+                    existing.alternatives = row.alternatives
+                for name in [existing.name, *existing.match_names]:
+                    aliases[_normalize(name)] = key
+                continue
+
             row.match_names = _dedupe([*existing.match_names, existing.name, *row.match_names])
             if not row.alternatives:
                 row.alternatives = existing.alternatives
@@ -388,7 +401,9 @@ def main(argv: list[str] | None = None) -> int:
         flathub_limit=args.flathub_limit,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    args.output.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     print(f"Wrote {len(payload['entries'])} catalog entries to {args.output}")
     return 0
 

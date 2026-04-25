@@ -270,6 +270,25 @@ class TestCuratedCatalog:
         assert rows[0]["active_install_hint"]["packages"] == ["org.example.HintedApp"]
         assert "install_hints" not in rows[0]
 
+    def test_catalog_phrase_fallback_rejects_generic_single_token_aliases(self, monkeypatch):
+        from quickhatch.analysis import app_catalog
+
+        entries = (
+            app_catalog.AppCatalogEntry(id="app:git", name="Git", compatibility="native"),
+            app_catalog.AppCatalogEntry(
+                id="app:office",
+                name="Microsoft Office",
+                match_names=("Office",),
+                compatibility="alternative",
+            ),
+            app_catalog.AppCatalogEntry(id="app:python", name="Python", compatibility="native"),
+        )
+        monkeypatch.setattr(app_catalog, "load_catalog", lambda: entries)
+
+        assert app_catalog.match_catalog_entry("Office Tool") is None
+        assert app_catalog.match_catalog_entry("Git Credential Manager") is None
+        assert app_catalog.match_catalog_entry("Python Launcher") is None
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

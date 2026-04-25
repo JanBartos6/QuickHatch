@@ -134,3 +134,69 @@ def test_build_research_prompt_includes_selected_app_catalog():
     assert "source_hint" in prompt
     assert "Use selected_app_catalog as curated prior knowledge" in prompt
     assert "active_install_hint" in prompt
+
+
+def test_build_research_prompt_uses_target_distro_over_live_facts(monkeypatch):
+    from quickhatch.analysis import app_catalog
+
+    profile = UserProfile()
+    profile.apps_to_install = ["Hinted App"]
+    entry = app_catalog.AppCatalogEntry(
+        id="override:hinted",
+        name="Hinted App",
+        compatibility="native",
+        alternatives=("Hinted App",),
+        source_hint="repo",
+        confidence="high",
+        install_hints={
+            "arch": {"source": "repo", "packages": ["arch-pkg"], "notes": ""},
+            "ubuntu": {"source": "repo", "packages": ["ubuntu-pkg"], "notes": ""},
+        },
+    )
+    monkeypatch.setattr(app_catalog, "load_catalog", lambda: (entry,))
+
+    prompt = build_research_prompt(
+        profile,
+        SetupFacts(distro_family="arch", package_manager="pacman", is_live=True),
+        system_info="Arch live ISO",
+        migration_plan_md="Install Ubuntu.",
+        distro_primer_md="Ubuntu primer",
+        native_search_active=False,
+        target_distro_family="Ubuntu LTS",
+    )
+
+    assert "ubuntu-pkg" in prompt
+    assert "arch-pkg" not in prompt
+
+
+def test_build_research_prompt_includes_all_hints_when_distro_unknown(monkeypatch):
+    from quickhatch.analysis import app_catalog
+
+    profile = UserProfile()
+    profile.apps_to_install = ["Hinted App"]
+    entry = app_catalog.AppCatalogEntry(
+        id="override:hinted",
+        name="Hinted App",
+        compatibility="native",
+        alternatives=("Hinted App",),
+        source_hint="repo",
+        confidence="high",
+        install_hints={
+            "arch": {"source": "repo", "packages": ["arch-pkg"], "notes": ""},
+            "fedora": {"source": "repo", "packages": ["fedora-pkg"], "notes": ""},
+        },
+    )
+    monkeypatch.setattr(app_catalog, "load_catalog", lambda: (entry,))
+
+    prompt = build_research_prompt(
+        profile,
+        SetupFacts(distro_family="unknown", package_manager="unknown"),
+        system_info="unknown target",
+        migration_plan_md="Install selected apps.",
+        distro_primer_md="",
+        native_search_active=False,
+    )
+
+    assert "install_hints" in prompt
+    assert "arch-pkg" in prompt
+    assert "fedora-pkg" in prompt

@@ -157,3 +157,96 @@ def test_promotion_skips_existing_override_aliases(tmp_path):
     assert stats.promoted == 0
     assert stats.skipped_existing == 1
     assert [entry["name"] for entry in payload["entries"]] == ["Existing App"]
+
+
+def test_promotion_skips_strong_existing_generated_catalog_aliases(tmp_path):
+    promoter = _load_promoter()
+    overrides = tmp_path / "overrides.json"
+    generated = tmp_path / "generated.json"
+    suggestions = tmp_path / "app_catalog.agent_suggestions.test.json"
+
+    _write_json(overrides, {"schema": 1, "entries": []})
+    _write_json(
+        generated,
+        {
+            "schema": 1,
+            "entries": [
+                {
+                    "id": "org.mozilla.firefox",
+                    "name": "Firefox",
+                    "match_names": ["Mozilla Firefox"],
+                    "compatibility": "native",
+                    "alternatives": ["Firefox"],
+                    "source_hint": "flatpak",
+                    "confidence": "medium",
+                }
+            ],
+        },
+    )
+    _write_json(
+        suggestions,
+        {
+            "schema": 1,
+            "entries": [
+                {
+                    "id": "winget:Mozilla.Firefox",
+                    "name": "Mozilla Firefox",
+                    "compatibility": "native",
+                    "alternatives": ["Firefox"],
+                    "source_hint": "repo",
+                    "confidence": "high",
+                    "install_hints": {
+                        "arch": {"source": "repo", "packages": ["firefox"], "notes": ""}
+                    },
+                    "evidence": [{"label": "Repo", "url": "https://example.com/firefox"}],
+                }
+            ],
+        },
+    )
+
+    payload, stats = promoter.promote_suggestions(
+        overrides_path=overrides,
+        suggestion_paths=[suggestions],
+        existing_catalog_paths=[generated],
+        legacy_path=None,
+    )
+
+    assert stats.promoted == 0
+    assert stats.skipped_existing == 1
+    assert payload["entries"] == []
+
+
+def test_promotion_requires_install_hints_for_installable_sources(tmp_path):
+    promoter = _load_promoter()
+    overrides = tmp_path / "overrides.json"
+    suggestions = tmp_path / "app_catalog.agent_suggestions.test.json"
+
+    _write_json(overrides, {"schema": 1, "entries": []})
+    _write_json(
+        suggestions,
+        {
+            "schema": 1,
+            "entries": [
+                {
+                    "id": "winget:Vendor.NoHint",
+                    "name": "No Hint App",
+                    "compatibility": "native",
+                    "alternatives": ["No Hint App"],
+                    "source_hint": "repo",
+                    "confidence": "high",
+                    "evidence": [{"label": "Repo", "url": "https://example.com/nohint"}],
+                }
+            ],
+        },
+    )
+
+    payload, stats = promoter.promote_suggestions(
+        overrides_path=overrides,
+        suggestion_paths=[suggestions],
+        existing_catalog_paths=[],
+        legacy_path=None,
+    )
+
+    assert stats.promoted == 0
+    assert stats.skipped_invalid == 1
+    assert payload["entries"] == []

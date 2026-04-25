@@ -58,6 +58,13 @@ class TestBuildSectionPrompt:
         assert "source_hint" in prompt
         assert "SELECTED APP CATALOG" in prompt
 
+    def test_apps_section_catalog_falls_back_to_scanned_apps_when_no_picks(self, profile):
+        profile.apps_to_install = []
+        profile.apps = [AppInfo(name="Firefox", source="winget")]
+        prompt = _build_section_prompt(profile, "apps", "")
+        assert "selected_app_catalog" in prompt
+        assert "Firefox" in prompt
+
     def test_desktop_section_mentions_activation(self, profile):
         """Desktop must tell the agent to ACTIVATE themes, not just install."""
         prompt = _build_section_prompt(profile, "desktop", "")

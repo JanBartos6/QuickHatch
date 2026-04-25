@@ -61,6 +61,7 @@ class SetupRuntime:
     runtime_prompt_block: Callable[[SetupFacts, bool], str]
     migration_plan_md: str = ""
     distro_primer_md: str = ""
+    target_distro_family: str = ""
     native_search_active: bool = False
     results_log_limit: int = 100
 
@@ -244,6 +245,7 @@ class SetupOrchestrator:
                 )
             ),
             native_search_active=self.runtime.native_search_active,
+            target_distro_family=self.runtime.target_distro_family,
         )
         self.runlog.record(
             "planner_prompt", stage=SetupStage.RESEARCH_AND_PLAN.value, prompt=prompt

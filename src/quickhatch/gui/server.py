@@ -2320,8 +2320,11 @@ def _analysis_context_profile(
         app_rows = [row for row in app_rows if (row.get("name") or "").lower() in picks]
     from quickhatch.analysis.app_catalog import selected_app_catalog_context
 
+    catalog_names = list(profile.apps_to_install or [])
+    if not catalog_names and section in {"apps", "plan"}:
+        catalog_names = [str(row.get("name") or "") for row in app_rows[:80]]
     selected_app_catalog = selected_app_catalog_context(
-        list(profile.apps_to_install or []),
+        catalog_names,
         list(profile.apps or []),
         distro_family=chosen_distro or prefs.distro_preference or "",
     )
@@ -5941,6 +5944,7 @@ def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = ""
         migration_plan_md=migration_plan_md
         + (f"\n\n== USER FEEDBACK ==\n{user_feedback.strip()}" if user_feedback.strip() else ""),
         distro_primer_md=distro_primer_md,
+        target_distro_family=distro_hint,
         native_search_active=native_search_active,
     )
 
@@ -6076,6 +6080,25 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
             setup_facts, is_live, native_search_active=native_search_active
         )
 
+        # Step 2b: Resolve the target distro before building any app-catalog
+        # context. Runtime facts can describe the live ISO, not the distro we
+        # are about to install.
+        from quickhatch.ai.install_primer import primer_prompt_block, resolve_primer
+
+        distro_hint = (profile.preferences.distro_preference or "").strip()
+        if not distro_hint and bridge.suggestions:
+            for s in bridge.snapshot_suggestions():
+                if getattr(s, "category", "") == "distro" or "distribut" in (s.title or "").lower():
+                    match = resolve_primer(s.content or "")
+                    if match is not None:
+                        distro_hint = match["canonical"]
+                        bridge.add_message(
+                            "agent",
+                            f"Using distro recommendation from analysis: {distro_hint}",
+                        )
+                        break
+        distro_primer_md = primer_prompt_block(distro_hint)
+
         # Step 3: Build profile context
         profile_dict = asdict(profile)
         if profile_dict.get("ai_config", {}).get("api_key"):
@@ -6097,7 +6120,7 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
         selected_app_catalog = selected_app_catalog_context(
             list(gui_state.profile.apps_to_install or []),
             list(gui_state.profile.apps or []),
-            distro_family=getattr(setup_facts, "distro_family", "") or distro_hint,
+            distro_family=distro_hint or getattr(setup_facts, "distro_family", ""),
         )
         if selected_app_catalog:
             profile_dict["selected_app_catalog"] = selected_app_catalog
@@ -6106,32 +6129,6 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
         endpoint = config.endpoint or ""
         model = config.model_name or ""
         api_key = config.api_key
-
-        # Step 4a: Load the distro-specific install primer.
-        #
-        # Priority for which distro's primer to load:
-        #   1. User's explicitly stated preference (preferences.distro_preference)
-        #   2. The distro section output from the analysis phase — if the
-        #      user left their preference blank, the agent recommended a
-        #      distro during analysis and that recommendation is what the
-        #      remote-setup agent should align with.
-        from quickhatch.ai.install_primer import primer_prompt_block, resolve_primer
-
-        distro_hint = (profile.preferences.distro_preference or "").strip()
-        if not distro_hint and bridge.suggestions:
-            # Look for the distro-category suggestion first, then any
-            # suggestion whose title hints at a distro recommendation.
-            for s in bridge.snapshot_suggestions():
-                if getattr(s, "category", "") == "distro" or "distribut" in (s.title or "").lower():
-                    match = resolve_primer(s.content or "")
-                    if match is not None:
-                        distro_hint = match["canonical"]
-                        bridge.add_message(
-                            "agent",
-                            f"Using distro recommendation from analysis: {distro_hint}",
-                        )
-                        break
-        distro_primer_md = primer_prompt_block(distro_hint)
 
         # Cross-distro pre-reboot rules. Always inject this — applies to
         # every install regardless of distro family. Documents the seven

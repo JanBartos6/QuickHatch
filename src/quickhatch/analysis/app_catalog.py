@@ -59,6 +59,20 @@ _INDIVIDUAL_GAME_RE = re.compile(
     re.IGNORECASE,
 )
 
+_GENERIC_SINGLE_TOKEN_ALIASES = {
+    "app",
+    "code",
+    "codec",
+    "git",
+    "launcher",
+    "manager",
+    "office",
+    "pack",
+    "python",
+    "studio",
+    "tool",
+}
+
 
 def _data_dir() -> Path:
     return Path(__file__).resolve().parent.parent / "data"
@@ -105,6 +119,13 @@ def _active_install_hint(
         if hint:
             return {"family": candidate, **hint}
     return {}
+
+
+def _phrase_fallback_allowed(alias_norm: str) -> bool:
+    if len(alias_norm) < 3:
+        return False
+    tokens = alias_norm.split()
+    return len(tokens) > 1 or alias_norm not in _GENERIC_SINGLE_TOKEN_ALIASES
 
 
 def _entry_from_mapping(raw: dict[str, Any]) -> AppCatalogEntry | None:
@@ -237,7 +258,7 @@ def match_catalog_entry(app_name: str) -> AppCatalogEntry | None:
     for entry in load_catalog():
         for alias in (entry.name, *entry.match_names):
             alias_norm = _normalize_name(alias)
-            if len(alias_norm) < 3:
+            if not _phrase_fallback_allowed(alias_norm):
                 continue
             pattern = rf"(?<![a-z0-9]){re.escape(alias_norm)}(?![a-z0-9])"
             if re.search(pattern, normalized):
@@ -330,7 +351,7 @@ def selected_app_catalog_context(
             }
             if active_hint:
                 row["active_install_hint"] = active_hint
-            elif not distro_family:
+            elif not _distro_family_candidates(distro_family):
                 row["install_hints"] = entry.install_hints
         if scanned is not None:
             if isinstance(scanned, dict):
