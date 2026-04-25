@@ -399,6 +399,18 @@ class TestFrontendProfileSync:
         assert "await saveProfile({ssh_public_key_path:keyPath});" in html
         assert "state._showOwnKeyInput" in html
 
+    def test_ssh_step_existing_key_still_shows_navigation_and_alternatives(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "Use a different public key" in html
+        assert "Skip — I'll follow the Markdown plan manually" in html
+        assert 'id="sshContinue"' in html
+        assert "onclick=\"completeStep('ssh')\"" in html
+        assert 'id="sshSkipBtn"' not in html
+        assert 'class="btn btn-ghost" onclick="toggleOwnKeyInput()" id="sshOwnKeyBtn"' in html
+
     def test_offline_done_screen_no_longer_claims_remote_setup_finished(self):
         from pathlib import Path
 

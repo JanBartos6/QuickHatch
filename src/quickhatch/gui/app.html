@@ -2232,6 +2232,7 @@ const stepRenderers={
     const guide=getDistroUsbGuide(distro);
     const sshContinueEnabled=hasKey||state._sshSkipped;
     const sshContinueLabel=hasKey||state._sshSkipped?'Continue':'Generate a key, save your own .pub path, or pick manual mode';
+    const ownKeyStyle=hasKey&&!state._showOwnKeyInput?'none':(state._showOwnKeyInput?'block':'none');
 
     // Offline single-machine mode: the user has no second device, so the
     // analysis phase generated install.sh instead. Skip SSH key generation
@@ -2301,18 +2302,17 @@ const stepRenderers={
         <div id="sshResult">${hasKey?'<div class="info-box info-success" style="margin-top:var(--s3)"><strong>Existing key found — ready to go.</strong></div>':''}</div>
         <div class="stack-h" style="flex-wrap:wrap;margin-top:var(--s3)">
           <button class="btn btn-primary" id="sshGenBtn" onclick="generateSSH()">${hasKey?'Regenerate key':'Generate key'}</button>
-          <button class="btn btn-ghost" onclick="toggleOwnKeyInput()" id="sshSkipBtn"${hasKey?' class="hidden"':''}>I already have my own key</button>
-          <button class="btn btn-ghost" onclick="enableManualSshMode()" id="sshManualBtn"${hasKey?' class="hidden"':''}>Skip — I'll follow the Markdown plan manually</button>
+          <button class="btn btn-ghost" onclick="toggleOwnKeyInput()" id="sshOwnKeyBtn">${hasKey?'Use a different public key':'I already have my own key'}</button>
+          <button class="btn btn-ghost" onclick="enableManualSshMode()" id="sshManualBtn">Skip — I'll follow the Markdown plan manually</button>
         </div>
-        ${!hasKey?`
-        <div class="field" style="margin-top:var(--s3);display:${state._showOwnKeyInput?'block':'none'}" id="sshOwnKeyField">
+        <div class="field" style="margin-top:var(--s3);display:${ownKeyStyle}" id="sshOwnKeyField">
           <label>Path to your existing <code>.pub</code> key on this PC</label>
           <input type="text" id="sshExistingKeyPath" placeholder="e.g. C:\\Users\\you\\.ssh\\id_ed25519.pub" value="${escHtml(state.profile.ssh_public_key_path||'')}">
           <div class="stack-h" style="gap:var(--s2);margin-top:var(--s2)">
             <button class="btn btn-ghost btn-sm" onclick="useExistingSshKey()">Save key path</button>
             <span class="muted" style="font-size:var(--t-xs)">QuickHatch will copy this public key into the export bundle.</span>
           </div>
-        </div>`:''}
+        </div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
           <button class="btn btn-primary" id="sshContinue" onclick="completeStep('ssh')" ${sshContinueEnabled?'':'disabled'}>${sshContinueLabel}</button>
