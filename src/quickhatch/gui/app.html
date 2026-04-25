@@ -1047,7 +1047,7 @@ function clearClientWizardPersistence(){
 function sanitizeProfileShadow(profile){
   const clean=cloneJson(profile);
   if(!clean||typeof clean!=='object')return null;
-  if(clean.ai_config&&clean.ai_config.api_key==='***SET***'){
+  if(clean.ai_config){
     clean.ai_config.api_key=null;
   }
   return clean;
@@ -1168,7 +1168,6 @@ function buildProfileFromDraft(baseProfile){
     if(ai.provider!==undefined)profile.ai_config.provider=ai.provider||'';
     if(ai.model_name!==undefined)profile.ai_config.model_name=ai.model_name||null;
     if(ai.endpoint!==undefined)profile.ai_config.endpoint=ai.endpoint||null;
-    if(ai.api_key!==undefined)profile.ai_config.api_key=ai.api_key||null;
     if(ai.native_search!==undefined)profile.ai_config.native_search=!!ai.native_search;
   }
   const wizard=(draft._wizard&&typeof draft._wizard==='object')?draft._wizard:{};
@@ -1195,8 +1194,6 @@ function persistAIDraft(){
   if(modelEl)setDraftValue('ai_config.model_name', modelEl.value||'');
   const endpointEl=document.getElementById('aiCustomEndpoint');
   if(endpointEl)setDraftValue('ai_config.endpoint', (endpointEl.value||'').trim());
-  const keyEl=document.getElementById('aiApiKey');
-  if(keyEl)setDraftValue('ai_config.api_key', keyEl.value||'');
   const nativeSearchEl=document.getElementById('aiNativeSearch');
   if(nativeSearchEl)setDraftValue('ai_config.native_search', !!nativeSearchEl.checked);
 }
@@ -2780,6 +2777,11 @@ function providerSupportsNativeSearch(provider){
   return ['api_openai','api_anthropic','api_gemini','api_grok'].includes(provider);
 }
 
+function hasStoredAIKey(provider, endpoint){
+  const ai=state.profile?.ai_config||{};
+  return !!(ai.api_key==='***SET***'&&ai.provider===provider&&(ai.endpoint||'')===(endpoint||''));
+}
+
 async function showAIExtra(provider){
   const box=document.getElementById('aiExtra');
   if(!box)return;
@@ -2796,10 +2798,19 @@ async function showAIExtra(provider){
   // then a model-fetch area that starts empty and populates on Fetch.
   let html='';
   if(spec.custom){
-    html+='<div class="field"><label>Base URL</label><input type="text" id="aiCustomEndpoint" placeholder="https://openrouter.ai/api/v1" value="https://openrouter.ai/api/v1"><div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Must expose /models and /chat/completions. Works with OpenRouter, Together, DeepInfra, self-hosted vLLM, etc.</div></div>';
+    const endpointValue=state._draft?.ai_config?.endpoint||state.profile?.ai_config?.endpoint||'https://openrouter.ai/api/v1';
+    html+='<div class="field"><label>Base URL</label><input type="text" id="aiCustomEndpoint" placeholder="https://openrouter.ai/api/v1" value="'+escHtml(endpointValue)+'"><div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Must expose /models and /chat/completions. Works with OpenRouter, Together, DeepInfra, self-hosted vLLM, etc.</div></div>';
   }
   if(spec.keyLabel){
-    html+='<div class="field"><label>'+escHtml(spec.keyLabel)+'</label><input type="password" id="aiApiKey" placeholder="'+escHtml(spec.keyPlaceholder||'')+'" oninput="invalidateAIModels()"></div>';
+    const endpoint=spec.custom?(state._draft?.ai_config?.endpoint||state.profile?.ai_config?.endpoint||'https://openrouter.ai/api/v1'):spec.endpoint;
+    const stored=hasStoredAIKey(provider, endpoint);
+    const placeholder=stored?'Stored key available; leave blank to keep using it':(spec.keyPlaceholder||'');
+    html+='<div class="field"><label>'+escHtml(spec.keyLabel)+'</label><input type="password" id="aiApiKey" placeholder="'+escHtml(placeholder)+'" oninput="invalidateAIModels()"></div>'+
+      '<label class="check" style="margin-top:var(--s2)"><input type="checkbox" id="aiRememberKey"> <span>Remember API key on this PC</span></label>'+
+      '<div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Optional. Stores the key in your OS credential store, never in the export bundle, checkpoint JSON, or browser localStorage.</div>';
+    if(stored){
+      html+='<button class="btn btn-ghost btn-sm" onclick="forgetStoredAIKey()" style="margin-top:var(--s2)">Forget saved key</button>';
+    }
   }
   html+='<div class="field"><label>Model</label><div id="aiModelArea"><button class="btn btn-ghost btn-sm" onclick="fetchAIModels()">Fetch available models</button></div></div>';
   if(providerSupportsNativeSearch(provider)){
@@ -2817,6 +2828,29 @@ async function showAIExtra(provider){
   // without a key. Same for reachability checks on first load.
   if(!spec.keyLabel){
     fetchAIModels();
+  }
+}
+
+async function forgetStoredAIKey(){
+  const provider=window._aiProvider;
+  const spec=AI_PROVIDER_SPEC[provider];
+  if(!spec)return;
+  let endpoint=spec.endpoint;
+  if(spec.custom){
+    endpoint=((document.getElementById('aiCustomEndpoint')||{}).value||'').trim();
+  }
+  try{
+    const r=await fetch('/wizard/api-key-delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider,endpoint})});
+    const d=await r.json();
+    if(d.status==='ok'){
+      state.profile=d.profile||state.profile;
+      toast('Stored API key deleted.');
+      await showAIExtra(provider);
+    }else{
+      toast(d.message||'Could not delete stored key.','error');
+    }
+  }catch(e){
+    toast(e.message||'Could not delete stored key.','error');
   }
 }
 
@@ -2845,7 +2879,8 @@ async function fetchAIModels(){
   }
   const keyEl=document.getElementById('aiApiKey');
   const api_key=keyEl?keyEl.value:'';
-  if(spec.keyLabel&&!api_key){
+  const storedKey=hasStoredAIKey(provider, endpoint);
+  if(spec.keyLabel&&!api_key&&!storedKey){
     area.innerHTML='<div class="info-box info-warn">Enter your API key first, then click Fetch.</div>'+
       '<button class="btn btn-ghost btn-sm" onclick="fetchAIModels()" style="margin-top:var(--s2)">Retry</button>';
     return;
@@ -2853,7 +2888,7 @@ async function fetchAIModels(){
   let models=[];
   let errMsg='';
   try{
-    const r=await fetch('/wizard/fetch-models',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:spec.kind,endpoint:endpoint,api_key:api_key})});
+    const r=await fetch('/wizard/fetch-models',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:provider,kind:spec.kind,endpoint:endpoint,api_key:api_key})});
     const d=await r.json();
     if(d.status==='ok'){
       // For OpenAI-compat endpoints, drop embedding-only models from the
@@ -2966,15 +3001,16 @@ async function submitAI(){
   }
   const keyEl=document.getElementById('aiApiKey');
   const api_key=keyEl?keyEl.value:'';
-  if(spec.keyLabel&&!api_key){
-    toast('Enter your API key.','error');
-    return;
-  }
   let endpoint=spec.endpoint;
   if(spec.custom){
     const e=(document.getElementById('aiCustomEndpoint')||{}).value||'';
     endpoint=e.trim();
     if(!endpoint){toast('Enter the base URL.','error');return;}
+  }
+  const storedKey=hasStoredAIKey(p, endpoint);
+  if(spec.keyLabel&&!api_key&&!storedKey){
+    toast('Enter your API key, or use a saved key for this provider.','error');
+    return;
   }
   // Keep the specific provider label end-to-end. Collapsing every
   // hosted-API provider to 'api' forced downstream code to identify
@@ -2988,6 +3024,7 @@ async function submitAI(){
     model_name:model,
     endpoint:endpoint,
     api_key:api_key||null,
+    remember_api_key:!!((document.getElementById('aiRememberKey')||{}).checked),
     native_search:providerSupportsNativeSearch(p)
       ?((document.getElementById('aiNativeSearch')||{}).checked!==false)
       :true,

@@ -192,16 +192,12 @@ class UserProfile:
         if path is None:
             path = _checkpoint_path()
         data = asdict(self)
-        # Previous versions redacted api_key to "***REDACTED***" in the
-        # checkpoint. Sounded responsible, but it broke every
-        # bridge-restart scenario: on reload, the redacted literal got
-        # sent to the provider as a bogus API key, which then returned
-        # HTTP 400 Missing or invalid Authorization header and the
-        # whole analysis failed. Threat model: the checkpoint lives in
-        # $HOME alongside ~/.ssh/ private keys — anyone who can read
-        # one can read the other. Redacting here is security theatre.
-        # Instead: write plaintext and chmod 600 so only the user can
-        # read. Matches how ssh-keygen stores ed25519 private keys.
+        # API keys are kept only in session memory or, if the user opted
+        # in, the OS credential store. Never persist them to checkpoint
+        # JSON: checkpoints are intentionally recoverable/debuggable, and
+        # they should stay safe to inspect or share during bug reports.
+        if isinstance(data.get("ai_config"), dict):
+            data["ai_config"]["api_key"] = None
         serialized = json.dumps(data, indent=2)
         tmp = path.with_suffix(path.suffix + ".tmp")
         try:
@@ -260,7 +256,21 @@ class UserProfile:
             )
             return None
 
-        return cls.from_dict(data)
+        if isinstance(data.get("ai_config"), dict):
+            # Old checkpoints may contain plaintext keys from earlier builds.
+            # Do not rehydrate secrets from JSON; use the OS credential store
+            # instead so the checkpoint file can be inspected safely.
+            data["ai_config"]["api_key"] = None
+
+        profile = cls.from_dict(data)
+        if profile is not None and not profile.ai_config.api_key:
+            try:
+                from quickhatch.secrets import load_api_key_for_config
+
+                profile.ai_config.api_key = load_api_key_for_config(profile.ai_config)
+            except Exception:
+                pass
+        return profile
 
     @classmethod
     def from_dict(cls, data: dict | None) -> UserProfile | None:

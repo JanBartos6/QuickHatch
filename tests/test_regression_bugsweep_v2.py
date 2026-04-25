@@ -182,6 +182,19 @@ class TestAnalysisRerunUiGating:
         assert "if(resp&&resp.status==='ok'){" in html
 
 
+class TestApiKeyClientStorage:
+    def test_app_html_never_persists_api_key_to_browser_storage(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+
+        assert "setDraftValue('ai_config.api_key'" not in html
+        assert "profile.ai_config.api_key=ai.api_key" not in html
+        assert "clean.ai_config.api_key=null" in html
+        assert "Remember API key on this PC" in html
+
+
 class TestBridgeWrapperPaths:
     """Regression: helper scripts must live in a writable home
     directory and the printed commands must target those files."""

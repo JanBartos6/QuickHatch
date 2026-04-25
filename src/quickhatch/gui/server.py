@@ -25,6 +25,13 @@ from quickhatch.gallery.library import (
     gallery_asset_path,
     load_gallery_entries,
 )
+from quickhatch.secrets import (
+    delete_api_key,
+    has_api_key,
+    keyring_available,
+    load_api_key,
+    store_api_key,
+)
 from quickhatch.setup import (
     SetupFacts,
     SetupOrchestrator,
@@ -496,6 +503,51 @@ def _profile_response_dict(profile: UserProfile) -> dict[str, Any]:
     if profile_dict.get("ai_config", {}).get("api_key"):
         profile_dict["ai_config"]["api_key"] = "***SET***"
     return profile_dict
+
+
+def _prepare_ai_secret_update(gui_state: GUIState, updates: dict[str, Any]) -> dict[str, Any]:
+    """Normalize API-key updates before GUIState applies them.
+
+    Raw keys may enter through /wizard/update, but they must not be stored in
+    checkpoints. If requested, save them to OS credential storage and keep the
+    runtime profile hydrated so the current server session can make API calls.
+    """
+    if not isinstance(updates, dict) or not isinstance(updates.get("ai_config"), dict):
+        return {"stored": False, "message": ""}
+
+    ai = dict(updates["ai_config"])
+    remember = bool(ai.pop("remember_api_key", False))
+    provider = (ai.get("provider") or gui_state.profile.ai_config.provider or "").strip()
+    endpoint = (ai.get("endpoint") or gui_state.profile.ai_config.endpoint or "").strip()
+    raw_key = ai.get("api_key")
+    key = raw_key.strip() if isinstance(raw_key, str) else ""
+    stored = False
+    message = ""
+
+    if key in {"***SET***", "***REDACTED***"}:
+        key = ""
+        ai["api_key"] = None
+
+    if key:
+        if remember:
+            result = store_api_key(provider, endpoint, key)
+            stored = result.ok
+            message = result.message
+        ai["api_key"] = key
+    elif raw_key is None:
+        # Keep an existing in-memory key when the provider/endpoint did not
+        # change, otherwise try the OS store for the selected provider. This
+        # lets users leave the input blank after opting in to local storage.
+        existing = gui_state.profile.ai_config
+        same_target = provider == existing.provider and endpoint == (existing.endpoint or "")
+        if same_target and existing.api_key:
+            ai.pop("api_key", None)
+        else:
+            loaded = load_api_key(provider, endpoint)
+            ai["api_key"] = loaded
+
+    updates["ai_config"] = ai
+    return {"stored": stored, "message": message}
 
 
 def _remote_setup_mode_block(profile: UserProfile) -> str:
@@ -1158,6 +1210,7 @@ def make_gui_server(
         def do_POST(self):
             if self.path == "/wizard/update":
                 data = self._read_json()
+                secret_result = _prepare_ai_secret_update(gui_state, data)
                 changed = gui_state.update_profile(data)
                 if changed:
                     gui_state.profile.save_checkpoint()
@@ -1165,8 +1218,61 @@ def make_gui_server(
                     {
                         "status": "ok",
                         "changed": changed,
+                        "api_key_stored": secret_result["stored"],
+                        "api_key_storage_message": secret_result["message"],
                         "profile": _profile_response_dict(gui_state.profile),
                     }
+                )
+
+            elif self.path == "/wizard/api-key-status":
+                data = self._read_json()
+                provider = (
+                    data.get("provider") or gui_state.profile.ai_config.provider or ""
+                ).strip()
+                endpoint = (
+                    data.get("endpoint") or gui_state.profile.ai_config.endpoint or ""
+                ).strip()
+                in_session = bool(
+                    gui_state.profile.ai_config.api_key
+                    and provider == gui_state.profile.ai_config.provider
+                    and endpoint == (gui_state.profile.ai_config.endpoint or "")
+                )
+                self._send_json(
+                    {
+                        "status": "ok",
+                        "available": bool(in_session or has_api_key(provider, endpoint)),
+                        "keyring_available": keyring_available(),
+                    }
+                )
+
+            elif self.path == "/wizard/api-key-delete":
+                data = self._read_json()
+                provider = (
+                    data.get("provider") or gui_state.profile.ai_config.provider or ""
+                ).strip()
+                endpoint = (
+                    data.get("endpoint") or gui_state.profile.ai_config.endpoint or ""
+                ).strip()
+                result = delete_api_key(provider, endpoint)
+                changed = False
+                with gui_state.lock:
+                    if (
+                        provider == gui_state.profile.ai_config.provider
+                        and endpoint == (gui_state.profile.ai_config.endpoint or "")
+                        and gui_state.profile.ai_config.api_key
+                    ):
+                        gui_state.profile.ai_config.api_key = None
+                        changed = True
+                if changed:
+                    gui_state.profile.save_checkpoint()
+                self._send_json(
+                    {
+                        "status": "ok" if result.ok else "error",
+                        "deleted": result.ok,
+                        "message": result.message,
+                        "profile": _profile_response_dict(gui_state.profile),
+                    },
+                    200 if result.ok else 500,
                 )
 
             elif self.path == "/wizard/restore-profile":
@@ -1230,6 +1336,17 @@ def make_gui_server(
                 kind = (data.get("kind") or "").strip()
                 endpoint = (data.get("endpoint") or "").strip()
                 api_key = (data.get("api_key") or "").strip()
+                provider = (
+                    data.get("provider") or gui_state.profile.ai_config.provider or ""
+                ).strip()
+                if not api_key:
+                    same_target = provider == gui_state.profile.ai_config.provider and endpoint == (
+                        gui_state.profile.ai_config.endpoint or ""
+                    )
+                    if same_target and gui_state.profile.ai_config.api_key:
+                        api_key = gui_state.profile.ai_config.api_key
+                    else:
+                        api_key = load_api_key(provider, endpoint) or ""
                 if not kind or not endpoint:
                     self._send_json(
                         {"status": "error", "message": "kind and endpoint required"}, 400

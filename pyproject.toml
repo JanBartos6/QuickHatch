@@ -38,6 +38,7 @@ dependencies = [
     "ddgs>=7.0",
     "Pillow>=10.0",
     "imagehash>=4.3",
+    "keyring>=25.0",
 ]
 
 [project.optional-dependencies]

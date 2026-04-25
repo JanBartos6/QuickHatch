@@ -149,6 +149,51 @@ class TestCheckpointPath:
         assert loaded is not None
         assert loaded.ai_config.api_key is None
 
+    def test_save_checkpoint_never_persists_api_key(self, fake_home):
+        profile = UserProfile()
+        profile.ai_config.provider = "api_openai"
+        profile.ai_config.endpoint = "https://api.openai.com/v1"
+        profile.ai_config.api_key = "sk-secret-xyz"
+
+        path = profile.save_checkpoint()
+        raw = path.read_text(encoding="utf-8")
+        data = json.loads(raw)
+
+        assert "sk-secret-xyz" not in raw
+        assert data["ai_config"]["api_key"] is None
+
+    def test_load_checkpoint_uses_keyring_instead_of_plaintext_json(self, fake_home, monkeypatch):
+        path = fake_home / ".quickhatch-checkpoint.json"
+        payload = {
+            "preferences": {},
+            "ai_config": {
+                "provider": "api_openai",
+                "endpoint": "https://api.openai.com/v1",
+                "api_key": "old-plaintext-key",
+            },
+            "hardware": {},
+            "apps": [],
+            "files_summary": {},
+            "windows_settings": {},
+            "ssh_public_key_path": None,
+            "additional_info": "",
+            "apps_to_install": [],
+            "data_description": "",
+            "data_transfer_method": "",
+            "linux_ip": "",
+            "linux_user": "",
+            "completed_steps": [],
+        }
+        path.write_text(json.dumps(payload), encoding="utf-8")
+
+        from quickhatch import secrets as secrets_mod
+
+        monkeypatch.setattr(secrets_mod, "load_api_key_for_config", lambda config: "stored-key")
+
+        loaded = UserProfile.load_checkpoint()
+        assert loaded is not None
+        assert loaded.ai_config.api_key == "stored-key"
+
 
 class TestLegacyMigration:
     def test_legacy_cwd_file_migrates_on_load(self, fake_home, tmp_path, monkeypatch):

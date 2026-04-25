@@ -17,6 +17,7 @@ import pytest
 
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import UserProfile
+from quickhatch.gui import server as server_mod
 from quickhatch.gui.server import GUIState, _resolve_ssh_private_key_path, make_gui_server
 
 
@@ -199,6 +200,76 @@ class TestProfileEndpoint:
         assert server["gui_state"].profile.additional_info == "restored"
         assert server["bridge"].profile.linux_user == "jan"
         assert server["gui_state"].profile.ai_config.api_key == "sk-secret-xyz"
+
+    def test_update_can_store_api_key_in_os_keyring_without_response_leak(
+        self, server, monkeypatch
+    ):
+        stored = {}
+
+        class Result:
+            ok = True
+            message = "saved"
+
+        def fake_store(provider, endpoint, api_key):
+            stored["args"] = (provider, endpoint, api_key)
+            return Result()
+
+        monkeypatch.setattr(server_mod, "store_api_key", fake_store)
+
+        status, body = _post(
+            server["port"],
+            "/wizard/update",
+            {
+                "ai_config": {
+                    "provider": "api_openai",
+                    "endpoint": "https://api.openai.com/v1",
+                    "model_name": "gpt-test",
+                    "api_key": "sk-secret-xyz",
+                    "remember_api_key": True,
+                }
+            },
+        )
+        data = json.loads(body)
+
+        assert status == 200
+        assert stored["args"] == (
+            "api_openai",
+            "https://api.openai.com/v1",
+            "sk-secret-xyz",
+        )
+        assert "sk-secret-xyz" not in body
+        assert data["api_key_stored"] is True
+        assert data["profile"]["ai_config"]["api_key"] == "***SET***"
+
+    def test_fetch_models_uses_session_api_key_when_body_key_is_blank(self, server, monkeypatch):
+        seen = {}
+
+        def fake_fetch(kind, endpoint, api_key):
+            seen["args"] = (kind, endpoint, api_key)
+            return ["gpt-test"]
+
+        from quickhatch.ai import model_list
+
+        monkeypatch.setattr(model_list, "fetch", fake_fetch)
+        server["gui_state"].profile.ai_config.provider = "api_openai"
+        server["gui_state"].profile.ai_config.endpoint = "https://api.openai.com/v1"
+        server["gui_state"].profile.ai_config.api_key = "sk-session-key"
+
+        status, body = _post(
+            server["port"],
+            "/wizard/fetch-models",
+            {
+                "provider": "api_openai",
+                "kind": "openai-compat",
+                "endpoint": "https://api.openai.com/v1",
+                "api_key": "",
+            },
+        )
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["models"] == ["gpt-test"]
+        assert seen["args"] == ("openai-compat", "https://api.openai.com/v1", "sk-session-key")
 
     def test_restore_profile_reloads_persisted_bridge_state_for_restored_profile(self, tmp_path):
         wanted = UserProfile()
