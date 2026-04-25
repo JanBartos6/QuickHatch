@@ -29,6 +29,7 @@ def run(profile: UserProfile) -> None:
     native_count = 0
     alt_count = 0
     wine_count = 0
+    unsupported_count = 0
     unknown_count = 0
 
     for app in profile.apps:
@@ -49,6 +50,8 @@ def run(profile: UserProfile) -> None:
             alt_count += 1
         elif app.compatibility == "wine":
             wine_count += 1
+        elif app.compatibility == "none":
+            unsupported_count += 1
 
         table.add_row(
             app.name,
@@ -63,7 +66,7 @@ def run(profile: UserProfile) -> None:
     print_success(
         f"Compatibility summary: {native_count} native, "
         f"{alt_count} alternatives, {wine_count} via Wine, "
-        f"{unknown_count} unknown"
+        f"{unsupported_count} unsupported, {unknown_count} unknown"
     )
 
     # Driver compatibility

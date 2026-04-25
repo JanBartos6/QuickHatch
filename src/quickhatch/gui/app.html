@@ -608,6 +608,7 @@ select{cursor:pointer;appearance:none;padding-right:var(--s7);background-image:u
 }
 .compat-native{color:var(--success);background:var(--success-soft);border-color:transparent}
 .compat-alt{color:#b45309;background:#fef3c7;border-color:transparent}
+.compat-none{color:#b91c1c;background:#fee2e2;border-color:transparent}
 .compat-unknown{color:var(--text-dim)}
 
 input[type="search"]{
@@ -2024,7 +2025,8 @@ const stepRenderers={
           <div class="apps-legend">
             <span class="compat-badge compat-native"><span class="compat-dot"></span>Runs on Linux natively</span>
             <span class="compat-badge compat-alt"><span class="compat-dot"></span>Has a good alternative</span>
-            <span class="compat-badge compat-unknown"><span class="compat-dot"></span>Agent will figure it out</span>
+            <span class="compat-badge compat-none"><span class="compat-dot"></span>Doesn't run on Linux</span>
+            <span class="compat-badge compat-unknown"><span class="compat-dot"></span>Needs research</span>
           </div>
           <div class="info-box" style="margin-bottom:var(--s3)">
             <strong>Games are handled through launchers.</strong>
@@ -3204,7 +3206,7 @@ function compatClass(a){
   const c=(a.compatibility||'unknown').toLowerCase();
   if(c==='native')return'native';
   if(c==='alternative'||c==='alt'||c==='wine')return'alt';
-  if(c==='none')return'unknown';
+  if(['none','unsupported','does_not_run','doesnt_run','no_linux','incompatible'].includes(c))return'none';
   return'unknown';
 }
 
@@ -3212,9 +3214,9 @@ function compatLabel(a){
   const c=(a.compatibility||'unknown').toLowerCase();
   if(c==='native')return'Native';
   if(c==='alternative'||c==='alt')return'Alt';
-  if(c==='wine')return'Wine';
-  if(c==='none')return'No Linux';
-  return'?';
+  if(c==='wine')return'Wine/Proton';
+  if(['none','unsupported','does_not_run','doesnt_run','no_linux','incompatible'].includes(c))return"Doesn't run";
+  return'Needs research';
 }
 
 function renderAppsList(apps){

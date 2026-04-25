@@ -200,6 +200,25 @@ class TestCuratedCatalog:
         assert by_name["Microsoft OneDrive"].compatibility == "alternative"
         assert "confidence=high" in by_name["Adobe Creative Cloud"].notes
 
+    def test_windows_platform_components_are_explicitly_unsupported(self):
+        apps = [
+            AppInfo(name="Microsoft Store", source="winget"),
+            AppInfo(name="Xbox Game Bar Plugin", source="winget"),
+            AppInfo(name="Microsoft Edge WebView2 Runtime", source="winget"),
+            AppInfo(name="Microsoft Visual C++ 2015-2022 Redistributable", source="registry"),
+        ]
+
+        mapped = map_apps(apps)
+
+        assert {app.compatibility for app in mapped} == {"none"}
+        assert all(app.linux_alternative == "Do not migrate" for app in mapped)
+        assert all(app.notes for app in mapped)
+
+    def test_unknown_app_stays_unknown_not_unsupported(self):
+        mapped = map_apps([AppInfo(name="SignalRGB", source="winget")])
+
+        assert mapped[0].compatibility == "unknown"
+
     def test_catalog_keeps_launchers_but_filters_individual_games(self):
         from quickhatch.analysis.app_catalog import filter_migration_apps
 
@@ -226,6 +245,17 @@ class TestCuratedCatalog:
         html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
         assert "Games are handled through launchers." in html
         assert "Launchers & gaming tools" in html
+
+    def test_scan_ui_separates_unsupported_from_unknown_apps(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert ".compat-none" in html
+        assert "Doesn't run on Linux" in html
+        assert "Needs research" in html
+        assert "return'none'" in html
+        assert "return'Needs research'" in html
 
     def test_app_bulk_select_button_can_toggle_to_unselect(self):
         from pathlib import Path

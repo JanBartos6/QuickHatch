@@ -58,6 +58,46 @@ def _contains_native_app(app_name: str, native_linux: set[str]) -> bool:
     return False
 
 
+def _windows_only_component_reason(app_name: str) -> str | None:
+    """Identify Windows platform components that should not be migrated.
+
+    These are not "unknown apps" where an agent should research a Linux
+    package. They are OS runtimes, shell integrations, or vendor control
+    panels that only make sense on Windows.
+    """
+    app_lower = app_name.lower().strip()
+    if not app_lower:
+        return None
+
+    exact_or_phrase = {
+        "microsoft store": "Windows app store; use distro repositories, Flatpak, or Snap on Linux.",
+        "phone link": "Windows phone integration; use KDE Connect or GSConnect on Linux.",
+        "xbox game bar": "Windows gaming overlay; does not run on Linux.",
+        "xbox identity provider": "Windows/Xbox account component; does not run on Linux.",
+        "xbox tcui": "Windows/Xbox shell component; does not run on Linux.",
+        "windows app runtime": "Windows application runtime; not needed on Linux.",
+        "windows package manager source": "Winget metadata source; not needed on Linux.",
+        "windows subsystem for linux": "Windows compatibility layer; not installed inside Linux.",
+        "windows web experience pack": "Windows shell component; does not run on Linux.",
+        "microsoft edge webview2 runtime": "Windows WebView runtime; Linux apps bundle or depend on native web runtimes.",
+        "directx": "Windows graphics runtime; Linux uses Vulkan/OpenGL and Proton for games.",
+        "game speech window": "Windows gaming component; does not run on Linux.",
+        "mail and calendar": "Retired Windows app; use a native Linux mail/calendar client instead.",
+    }
+    for phrase, reason in exact_or_phrase.items():
+        if phrase in app_lower:
+            return reason
+
+    if app_lower.startswith(("microsoft visual c++", "visual c++ redistributable")):
+        return "Windows C++ runtime; Linux packages declare their own native runtime dependencies."
+    if app_lower.startswith(("windows driver package", "driver package")):
+        return "Windows driver package; Linux needs native kernel drivers instead."
+    if "redistributable" in app_lower and "windows" in app_lower:
+        return "Windows runtime redistributable; not installed as a Linux application."
+
+    return None
+
+
 def map_apps(apps: list[AppInfo]) -> list[AppInfo]:
     """Annotate apps with Linux alternatives and compatibility info."""
     db = _load_db()
@@ -108,6 +148,13 @@ def map_apps(apps: list[AppInfo]) -> list[AppInfo]:
     mapped_count = 0
 
     for app in apps:
+        if reason := _windows_only_component_reason(app.name):
+            app.linux_alternative = "Do not migrate"
+            app.compatibility = "none"
+            app.notes = reason
+            mapped_count += 1
+            continue
+
         catalog_entry = match_catalog_entry(app.name)
         if catalog_entry is not None:
             app.linux_alternative = ", ".join(catalog_entry.alternatives)
