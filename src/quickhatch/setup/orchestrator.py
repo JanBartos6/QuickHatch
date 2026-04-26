@@ -10,6 +10,7 @@ import time
 import uuid
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
+from pathlib import Path
 from typing import Any
 
 from quickhatch.bridge.server import BridgeState
@@ -448,6 +449,7 @@ class SetupOrchestrator:
             self._record_stage_result(result)
             return
         self._run_stage_groups(SetupStage.INSTALL_OR_SKIP, audit_after=False)
+        self._ensure_reconnect_ssh_key()
         ok, failures, summary = self.runtime.run_pre_reboot_checks()
         self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})[
             "pre_reboot_checks_passed"
@@ -483,6 +485,69 @@ class SetupOrchestrator:
             stage_state=self.ctx.stage_state[SetupStage.INSTALL_OR_SKIP.value],
         )
         self._record_stage_result(result)
+
+    def _ensure_reconnect_ssh_key(self) -> None:
+        reconnect_user = self.ctx.created_user or self.runtime.user
+        if not reconnect_user or reconnect_user == "root":
+            return
+        public_key = self._resolve_public_key_text()
+        if not public_key:
+            raise RuntimeError(
+                "Cannot verify SSH continuity before reboot: QuickHatch public key is missing."
+            )
+
+        user_q = shlex.quote(reconnect_user)
+        key_q = shlex.quote(public_key)
+        command = (
+            f"set -e; "
+            f"test -d /mnt/home/{user_q}; "
+            f"install -d -m 700 -o {user_q} -g {user_q} /mnt/home/{user_q}/.ssh; "
+            f"touch /mnt/home/{user_q}/.ssh/authorized_keys; "
+            f"grep -qxF {key_q} /mnt/home/{user_q}/.ssh/authorized_keys "
+            f"|| printf '%s\\n' {key_q} >> /mnt/home/{user_q}/.ssh/authorized_keys; "
+            f"chown {user_q}:{user_q} /mnt/home/{user_q}/.ssh/authorized_keys; "
+            f"chmod 600 /mnt/home/{user_q}/.ssh/authorized_keys; "
+            f"grep -qxF {key_q} /mnt/home/{user_q}/.ssh/authorized_keys"
+        )
+        self.bridge.add_message("agent", f"`{command}` — ensure SSH reconnect key")
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 60)
+        self.ctx.results_log.append(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+        self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
+        self.runlog.record(
+            "ssh_continuity_key",
+            stage=SetupStage.INSTALL_OR_SKIP.value,
+            user=reconnect_user,
+            rc=rc,
+            stdout_tail=(stdout or "")[-500:],
+            stderr_tail=(stderr or "")[-500:],
+        )
+        if rc != 0:
+            raise RuntimeError(
+                "Cannot verify SSH continuity before reboot: failed to install "
+                f"QuickHatch public key for '{reconnect_user}'. "
+                f"{(stderr or stdout or '').strip()[:240]}"
+            )
+        self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})[
+            "ssh_continuity_key_installed"
+        ] = True
+
+    def _resolve_public_key_text(self) -> str:
+        candidates: list[Path] = []
+        raw_profile_path = getattr(self.runtime.profile, "ssh_public_key_path", "") or ""
+        if raw_profile_path:
+            candidates.append(Path(raw_profile_path))
+        if self.runtime.key_path:
+            candidates.append(Path(self.runtime.key_path).with_suffix(".pub"))
+        candidates.append(Path.home() / ".ssh" / "quickhatch_ed25519.pub")
+
+        for candidate in candidates:
+            try:
+                text = candidate.read_text(encoding="utf-8").strip()
+            except OSError:
+                continue
+            if text.startswith(("ssh-ed25519 ", "ssh-rsa ", "ecdsa-sha2-")):
+                return text
+        return ""
 
     def _issue_install_reboot(self) -> None:
         command = (

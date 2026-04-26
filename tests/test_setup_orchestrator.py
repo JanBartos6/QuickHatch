@@ -532,6 +532,133 @@ def test_live_install_passes_guard_then_reboots_and_reconnects_once():
     assert "Arch live install" in summary
 
 
+def test_live_install_installs_reconnect_key_before_reboot(tmp_path):
+    public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestQuickHatchKey quickhatch"
+    pub_path = tmp_path / "quickhatch_ed25519.pub"
+    pub_path.write_text(public_key, encoding="utf-8")
+    profile = UserProfile(ssh_public_key_path=str(pub_path))
+    bridge = BridgeState(profile, persist_path=None)
+    live_state = {"is_live": True}
+    commands: list[str] = []
+    plan_payload = {
+        "target_summary": "Arch live install.",
+        "distro_family": "arch",
+        "package_manager": "pacman",
+        "driver_strategy": {
+            "strategy": "no_special_driver",
+            "confidence": "resolved_official",
+            "source": "official",
+            "packages": [],
+            "services": [],
+            "notes": "",
+        },
+        "desktop_strategy": {
+            "strategy": "plasma",
+            "confidence": "resolved_official",
+            "source": "official",
+            "packages": ["plasma-desktop"],
+            "services": ["sddm"],
+            "notes": "",
+        },
+        "command_groups": [
+            {
+                "id": "install-1",
+                "stage": "install_or_skip",
+                "title": "Install base system",
+                "commands": [
+                    "arch-chroot /mnt /bin/bash <<'EOF'\nuseradd -m -G wheel -s /bin/bash jan\nEOF",
+                    "reboot",
+                ],
+                "verification": [],
+                "rationale": "",
+                "source": "repo",
+                "packages": [],
+            },
+            {
+                "id": "desktop-1",
+                "stage": "desktop",
+                "title": "Persist desktop config",
+                "commands": [
+                    "kwriteconfig6 --file kdeglobals --group Icons --key Theme candy-icons"
+                ],
+                "verification": [],
+                "rationale": "",
+                "source": "repo",
+                "packages": [],
+            },
+        ],
+        "apps": [],
+        "unresolved_questions": [],
+        "verification_commands": {},
+        "required_items": ["install", "desktop"],
+        "optional_items": [],
+        "planner_revision": 1,
+    }
+
+    def probe_facts(**kwargs):
+        is_live = bool(kwargs.get("is_live", live_state["is_live"]))
+        return SetupFacts(
+            distro_family="arch",
+            package_manager="pacman",
+            community_helper="none",
+            current_user="root" if is_live else "jan",
+            login_user="root" if is_live else "jan",
+            is_live=is_live,
+            live_marker="LIVE" if is_live else "INSTALLED",
+            session_type="" if is_live else "wayland",
+            desktop_runtime_state=(
+                DesktopRuntimeState.BLOCKED_NO_GUI_SESSION
+                if is_live
+                else DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
+            ),
+        )
+
+    def ssh_exec(command, _timeout):
+        commands.append(command)
+        return (0, "", "")
+
+    def wait_for_reconnect(reconnect_user):
+        live_state["is_live"] = False
+        return (True, "fresh info", reconnect_user)
+
+    runtime = SetupRuntime(
+        profile=profile,
+        bridge=bridge,
+        config=AIConfig(provider="api_openai", endpoint="http://example", model_name="test"),
+        host="127.0.0.1",
+        user="root",
+        ssh_port=22,
+        key_path=None,
+        system_info_fn=lambda: "system info",
+        call_model_text=lambda cfg, messages: json.dumps(plan_payload),
+        probe_facts=probe_facts,
+        detect_live_env=lambda: (
+            live_state["is_live"],
+            "LIVE" if live_state["is_live"] else "INSTALLED",
+        ),
+        ssh_exec=ssh_exec,
+        repo_search=lambda query: "",
+        community_search=lambda query: "",
+        web_search=lambda query, max_results: "",
+        wait_for_reconnect=wait_for_reconnect,
+        run_pre_reboot_checks=lambda: (True, [], "ok"),
+        smoke_test_preboot_script=lambda: None,
+        bootstrap_nopasswd_sudo=lambda current: current,
+        runtime_prompt_block=lambda current, is_live: "",
+        migration_plan_md="",
+        distro_primer_md="",
+        native_search_active=False,
+    )
+
+    summary = SetupOrchestrator(runtime).run()
+
+    key_command = next(command for command in commands if "authorized_keys" in command)
+    reboot_command = next(command for command in commands if "reboot" in command)
+    assert commands.index(key_command) < commands.index(reboot_command)
+    assert public_key in key_command
+    assert "Arch live install" in summary
+
+
 def test_live_install_injects_disk_cleanup_before_destructive_partitioning():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
