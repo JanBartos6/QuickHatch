@@ -3648,6 +3648,15 @@ def _launch_agent(
     # state reset associated with a rerun must happen only AFTER the new
     # slot is admitted.
     with gui_state.lock:
+        existing_thread = gui_state._agent_thread
+        if existing_thread is not None and not existing_thread.is_alive():
+            gui_state._agent_thread = None
+            with gui_state.bridge.lock:
+                gui_state.bridge.agent_connected = False
+                gui_state.bridge.stop_requested = False
+                gui_state.bridge.current_phase = ""
+                if gui_state.bridge.setup_run.get("status") == "stopping":
+                    gui_state.bridge.setup_run["status"] = "stopped"
         if gui_state._agent_thread is not None and gui_state._agent_thread.is_alive():
             return {
                 "status": "error",

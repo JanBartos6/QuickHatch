@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from unittest.mock import patch
 
 import pytest
@@ -135,3 +136,18 @@ class TestAgentLifecycle:
         assert ready_state._agent_thread is None
         assert ready_state.bridge.agent_connected is False
         assert ready_state.bridge.current_phase == ""
+
+    def test_launch_heals_dead_thread_reference_before_rejecting(self, ready_state):
+        dead_thread = threading.Thread(target=lambda: None)
+        dead_thread.start()
+        dead_thread.join(timeout=1)
+        ready_state._agent_thread = dead_thread
+
+        with patch("quickhatch.gui.server._run_setup_agent", return_value=None):
+            result = _launch_agent(ready_state, 8765, phase="setup")
+            launched_thread = ready_state._agent_thread
+
+        assert result["status"] != "error" or "already running" not in result["message"]
+        if launched_thread is not None:
+            launched_thread.join(timeout=1)
+        assert ready_state._agent_thread is None

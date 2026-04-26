@@ -94,8 +94,37 @@ def _coerce_stage(value: str) -> SetupStage:
 def _coerce_status(value: str | None) -> PlanItemStatus:
     if not value:
         return PlanItemStatus.PENDING
+    normalized = str(value).strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "ready": PlanItemStatus.PENDING,
+        "planned": PlanItemStatus.PENDING,
+        "plan": PlanItemStatus.PENDING,
+        "queued": PlanItemStatus.PENDING,
+        "todo": PlanItemStatus.PENDING,
+        "to_do": PlanItemStatus.PENDING,
+        "needed": PlanItemStatus.PENDING,
+        "required": PlanItemStatus.PENDING,
+        "ok": PlanItemStatus.COMPLETED,
+        "success": PlanItemStatus.COMPLETED,
+        "succeeded": PlanItemStatus.COMPLETED,
+        "done": PlanItemStatus.COMPLETED,
+        "complete": PlanItemStatus.COMPLETED,
+        "installed_successfully": PlanItemStatus.INSTALLED,
+        "skipped": PlanItemStatus.EXPLICITLY_SKIPPED,
+        "skip": PlanItemStatus.EXPLICITLY_SKIPPED,
+        "not_applicable": PlanItemStatus.EXPLICITLY_SKIPPED,
+        "n/a": PlanItemStatus.EXPLICITLY_SKIPPED,
+        "na": PlanItemStatus.EXPLICITLY_SKIPPED,
+        "manual": PlanItemStatus.MANUAL_FOLLOWUP,
+        "manual_follow_up": PlanItemStatus.MANUAL_FOLLOWUP,
+        "followup": PlanItemStatus.MANUAL_FOLLOWUP,
+        "follow_up": PlanItemStatus.MANUAL_FOLLOWUP,
+        "needs_user": PlanItemStatus.MANUAL_FOLLOWUP,
+    }
+    if normalized in aliases:
+        return aliases[normalized]
     try:
-        return PlanItemStatus(value)
+        return PlanItemStatus(normalized)
     except ValueError as exc:
         raise ResearchPlanValidationError(f"Unknown plan item status: {value}") from exc
 
