@@ -4111,6 +4111,42 @@ async function sendSetupChat(){
 }
 
 let setupPollTimer=null;
+function latestSetupTerminalText(messages){
+  const terminal=messages.slice().reverse().find(m=>/^(Finished:|Migration setup complete!|Stopped\.?$|Error:)/i.test(m.content||''));
+  return terminal?(terminal.content||''):'';
+}
+function isSetupFailureText(text){
+  return /setup blocked|agent stopped|stopped|error:/i.test(text||'');
+}
+function updateSetupTerminalUi({success=false, failed=false, label=''}={}){
+  const spinner=el('setupSpinner'); if(spinner)spinner.classList.add('hidden');
+  const stop=el('setupStopBtn'); if(stop)stop.classList.add('hidden');
+  const phase=el('setupPhase');
+  if(phase){
+    if(label)phase.textContent=label.replace(/^Finished:\s*/i,'').split('\n')[0];
+    phase.classList.toggle('done', !!success);
+    phase.classList.toggle('error', !!failed);
+  }
+  const panel=el('setupPanel');
+  if(panel){
+    panel.classList.toggle('done', !!success);
+    if(label)panel.classList.remove('hidden');
+  }
+  const launch=el('setupLaunch'); if(launch)launch.classList.remove('hidden');
+  const launchBtn=el('setupLaunchBtn');
+  if(launchBtn){
+    const hasConn=!!(state.profile.linux_ip&&state.profile.linux_user);
+    launchBtn.disabled=!(hasConn&&state._sshTestOk);
+    launchBtn.textContent='Start remote setup';
+  }
+  const doneBtn=el('setupDone');
+  if(doneBtn){
+    doneBtn.disabled=!success;
+    doneBtn.textContent=success?'Finish':'Agent stopped';
+  }
+  state._setupStarted=false;
+  state._setupDone=!!success;
+}
 async function pollSetup(){
   // Same rule as pollBridge: drop any pending reschedule up front
   // so re-entering the step doesn't stack parallel timers.
@@ -4129,6 +4165,17 @@ async function pollSetup(){
         return p === '' || p === 'setup';
       });
       renderAgentFeed('setup', setupMsgs, !!data.agent_done);
+      const setupRun=data.setup_run||{};
+      const runStatus=(setupRun.status||'').toLowerCase();
+      if(data.agent_connected||['running','waiting_for_input','stopping'].includes(runStatus)){
+        state._setupStarted=true;
+        state._setupDone=false;
+      }
+      const terminalText=latestSetupTerminalText(setupMsgs);
+      const terminalFailure=isSetupFailureText(terminalText);
+      const setupHasFeed=setupMsgs.length>0;
+      const setupThreadInactive=!data.agent_connected&&runStatus==='idle';
+      const setupStoppedOrBlocked=['blocked','failed','stopped','cancelled'].includes(runStatus);
 
       const sd=await api('/api/suggestions');
       if(sd.suggestions){
@@ -4164,15 +4211,20 @@ async function pollSetup(){
         if(qa2&&qa2.innerHTML)qa2.innerHTML='';
       }
 
-      if(state._setupStarted&&data.agent_done){
-        state._setupDone=true;
+      if((state._setupStarted||setupHasFeed)&&data.agent_done&&!terminalFailure){
+        updateSetupTerminalUi({success:true,label:terminalText||'Finished'});
         const btn=el('setupDone');
         if(btn&&btn.disabled){btn.disabled=false;btn.textContent='Finish'}
+      }else if((state._setupStarted||setupHasFeed)&&(terminalFailure||setupStoppedOrBlocked||setupThreadInactive)){
+        updateSetupTerminalUi({
+          failed:true,
+          label:terminalText||'Setup stopped.',
+        });
       }
     }
   }catch(e){}
   // Stop polling once the agent is done — matches pollBridge behavior.
-  if(STEPS[state.currentStep]?.id==='setup'&&!state._setupDone)setupPollTimer=setTimeout(pollSetup,2000);
+  if(STEPS[state.currentStep]?.id==='setup'&&state._setupStarted&&!state._setupDone)setupPollTimer=setTimeout(pollSetup,2000);
 }
 
 // ── Init ──

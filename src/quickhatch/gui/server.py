@@ -1657,6 +1657,7 @@ def make_gui_server(
             elif self.path == "/wizard/stop-agent":
                 self._read_json()  # drain request body so Windows doesn't RST
                 bridge_state.request_stop()
+                bridge_state.update_setup_run(status="stopping", waiting_for_input=False)
                 if not gui_state.agent_thread_running() and bridge_state.agent_connected:
                     gui_state.mark_agent_stopped()
                 bridge_state.add_message(

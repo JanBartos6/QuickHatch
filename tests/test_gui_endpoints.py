@@ -556,6 +556,7 @@ class TestStopEndpoint:
         assert server["bridge"].stop_requested is False
         _post(server["port"], "/wizard/stop-agent")
         assert server["bridge"].stop_requested is True
+        assert server["bridge"].snapshot_setup_run()["status"] == "stopping"
 
     def test_stop_adds_status_message(self, server):
         _post(server["port"], "/wizard/stop-agent")

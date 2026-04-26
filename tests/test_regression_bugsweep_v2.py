@@ -316,7 +316,22 @@ class TestFrontendProfileSync:
         assert "const canLaunch=!!(hasConn&&state._sshTestOk);" in html
         assert "state._sshTestOk=true;" in html
         assert "state._sshTestOk=false;" in html
-        assert "if(state._setupStarted&&data.agent_done){" in html
+        assert "if((state._setupStarted||setupHasFeed)&&data.agent_done&&!terminalFailure){" in html
+
+    def test_setup_poll_stops_spinner_on_failed_or_stopped_runs(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "function updateSetupTerminalUi" in html
+        assert "spinner.classList.add('hidden')" in html
+        assert "const setupHasFeed=setupMsgs.length>0;" in html
+        assert "const setupThreadInactive=!data.agent_connected&&runStatus==='idle';" in html
+        assert (
+            "(state._setupStarted||setupHasFeed)&&(terminalFailure||setupStoppedOrBlocked||setupThreadInactive)"
+            in html
+        )
+        assert "state._setupStarted=false;" in html
 
     def test_live_usb_copy_guidance_no_longer_promises_pre_ssh_scp(self):
         from pathlib import Path
