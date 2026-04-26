@@ -456,6 +456,18 @@ class TestFrontendProfileSync:
         )
         assert question_idx < chat_idx < suggestions_idx
 
+    def test_question_attention_clears_when_pending_questions_empty(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "function notifyAttention(reason, source='generic')" in html
+        assert "notifyAttention('Agent is asking a question', 'questions')" in html
+        assert "notifyAttention('Agent is asking a question (setup)', 'questions')" in html
+        assert "clearAttention('questions')" in html
+        assert "if(source){" in html
+        assert "_attentionSources.delete(source);" in html
+
     def test_offline_done_screen_no_longer_claims_remote_setup_finished(self):
         from pathlib import Path
 

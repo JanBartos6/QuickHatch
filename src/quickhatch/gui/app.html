@@ -3512,6 +3512,10 @@ async function answerQuestion(qid){
   // should NOT show a fake 'Answered' confirmation to the user.
   if(resp&&resp.status==='ok'){
     if(card)card.innerHTML=`<div style="color:var(--fg-dim);font-size:.82rem">Answered: ${escHtml(answer)}</div>`;
+    try{
+      const qd=await api('/api/pending-questions');
+      if(!(qd.questions&&qd.questions.length>0))clearAttention('questions');
+    }catch(_){}
   }else{
     inp.disabled=false;
     if(card){
@@ -3748,12 +3752,13 @@ async function pollBridge(){
           const newQs = qd.questions.filter(q=>!knownIds.has(q.id));
           if(newQs.length){
             newQs.forEach(q=>knownIds.add(q.id));
-            notifyAttention('Agent is asking a question');
+            notifyAttention('Agent is asking a question', 'questions');
           }
           renderQuestionCards(qa, qd.questions);
         }
       }else{
         if(qa&&qa.innerHTML)qa.innerHTML='';
+        clearAttention('questions');
       }
 
       if(data.agent_done){
@@ -4223,7 +4228,7 @@ async function pollSetup(){
           const newQs=qd.questions.filter(q=>!knownIds.has(q.id));
           if(newQs.length){
             newQs.forEach(q=>knownIds.add(q.id));
-            notifyAttention('Agent is asking a question (setup)');
+            notifyAttention('Agent is asking a question (setup)', 'questions');
           }
           renderQuestionCards(qa2, qd.questions);
         }
@@ -4233,6 +4238,7 @@ async function pollSetup(){
         // interactive and the user could fake an answer for a qid the
         // server already dropped.
         if(qa2&&qa2.innerHTML)qa2.innerHTML='';
+        clearAttention('questions');
       }
 
       if((state._setupStarted||setupHasFeed)&&runStatus==='done'&&!terminalFailure){
@@ -4269,6 +4275,8 @@ applyTheme(getTheme());
 let _attentionTimer = null;
 const _origTitle = document.title;
 let _audioCtx = null;
+let _attentionReason = '';
+const _attentionSources = new Set();
 
 function _beep(){
   try{
@@ -4298,8 +4306,10 @@ function _setFavicon(red){
   link.href='data:image/svg+xml,'+svg;
 }
 
-function notifyAttention(reason){
+function notifyAttention(reason, source='generic'){
   // reason is a short string shown in notifications + title
+  _attentionSources.add(source||'generic');
+  _attentionReason = reason || _attentionReason || 'needs input';
   document.body.classList.add('attention-flash');
   _beep();
   _setFavicon(true);
@@ -4307,7 +4317,7 @@ function notifyAttention(reason){
   if(_attentionTimer){clearInterval(_attentionTimer);}
   _attentionTimer=setInterval(()=>{
     alt=!alt;
-    document.title = alt ? `(!) ${reason||'needs input'} — QuickHatch` : _origTitle;
+    document.title = alt ? `(!) ${_attentionReason||'needs input'} — QuickHatch` : _origTitle;
   }, 1000);
   // Native notification — only useful when tab isn't focused.
   if(!document.hasFocus() && 'Notification' in window){
@@ -4323,10 +4333,17 @@ function notifyAttention(reason){
   }
 }
 
-function clearAttention(){
-  if(!_attentionTimer)return;
+function clearAttention(source=null){
+  if(source){
+    _attentionSources.delete(source);
+    if(_attentionSources.size>0)return;
+  }else{
+    _attentionSources.clear();
+  }
+  if(!_attentionTimer&&!document.body.classList.contains('attention-flash'))return;
   clearInterval(_attentionTimer);
   _attentionTimer=null;
+  _attentionReason='';
   document.title=_origTitle;
   document.body.classList.remove('attention-flash');
   _setFavicon(false);
