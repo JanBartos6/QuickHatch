@@ -46,6 +46,39 @@ _NETWORK_SECURITY_SERVICE_TOKENS = frozenset(
         "iptables",
     }
 )
+_ROOT_WRITE_PREFIXES = (
+    "/etc/",
+    "/boot/",
+    "/usr/",
+    "/var/lib/",
+    "/var/cache/pacman/",
+    "/opt/",
+)
+_ROOT_WRITE_EXACT_PATHS = {"/etc", "/boot", "/usr", "/opt"}
+_ROOT_WRITE_TOOLS = {
+    "chmod",
+    "chown",
+    "cp",
+    "install",
+    "ln",
+    "mkdir",
+    "mv",
+    "rm",
+    "rmdir",
+    "sed",
+    "tee",
+    "touch",
+}
+_ROOT_REQUIRED_PACKAGE_TOOLS = {
+    "pacman",
+    "apt",
+    "apt-get",
+    "dnf",
+    "zypper",
+    "apk",
+    "xbps-install",
+    "emerge",
+}
 
 
 def _split_command_segments(cmd: str) -> list[str]:
@@ -80,6 +113,62 @@ def _strip_wrappers(tokens: list[str]) -> list[str]:
             continue
         break
     return tokens[idx:]
+
+
+def _has_root_privilege(tokens: list[str], facts: SetupFacts) -> bool:
+    if facts.is_root or (facts.current_user or facts.login_user) == "root":
+        return True
+    idx = 0
+    while idx < len(tokens):
+        token = tokens[idx]
+        if "=" in token and not token.startswith("-") and token.split("=", 1)[0].isidentifier():
+            idx += 1
+            continue
+        if token == "env":
+            idx += 1
+            continue
+        break
+    if idx >= len(tokens):
+        return False
+    if tokens[idx] == "doas":
+        return True
+    if tokens[idx] != "sudo":
+        return False
+    idx += 1
+    while idx < len(tokens):
+        opt = tokens[idx]
+        if opt in {"-u", "--user"}:
+            return idx + 1 < len(tokens) and tokens[idx + 1] == "root"
+        if opt.startswith("--user="):
+            return opt == "--user=root"
+        if opt in {"-g", "-h", "-D", "-p", "-r", "-t", "-T", "-C", "-R"}:
+            idx += 2
+            continue
+        if opt.startswith("-"):
+            idx += 1
+            continue
+        return True
+    return True
+
+
+def _is_root_owned_path(token: str) -> bool:
+    path = token.strip().strip("'\"")
+    if not path:
+        return False
+    if path in _ROOT_WRITE_EXACT_PATHS:
+        return True
+    return any(path.startswith(prefix) for prefix in _ROOT_WRITE_PREFIXES)
+
+
+def _mutates_root_owned_path(tool: str, tokens: list[str]) -> bool:
+    if tool not in _ROOT_WRITE_TOOLS:
+        return False
+    if tool == "sed" and not any(arg.startswith("-i") for arg in tokens[1:]):
+        return False
+    if tool == "tee":
+        path_args = [arg for arg in tokens[1:] if not arg.startswith("-")]
+        return any(_is_root_owned_path(arg) for arg in path_args)
+    return any(_is_root_owned_path(arg) for arg in tokens[1:])
 
 
 def _extract_pacman_install_packages(tokens: list[str]) -> list[str]:
@@ -150,13 +239,26 @@ def preflight_setup_command(
 
     for segment in _split_command_segments(command):
         try:
-            tokens = shlex.split(segment, posix=True)
+            raw_tokens = shlex.split(segment, posix=True)
         except ValueError:
             continue
+        has_root_privilege = _has_root_privilege(raw_tokens, facts)
+        tokens = list(raw_tokens)
         tokens = _strip_wrappers(tokens)
         if not tokens:
             continue
         tool = _normalize_tool(tokens[0])
+        if _mutates_root_owned_path(tool, tokens) and not has_root_privilege:
+            return (
+                f"`{segment}` mutates a root-owned path but is not running as root. "
+                "Use `sudo` for root-owned config/system paths, or run the command inside the "
+                "installer chroot while the session is root."
+            )
+        if tool in _ROOT_REQUIRED_PACKAGE_TOOLS and not has_root_privilege:
+            return (
+                f"`{tool}` changes system packages and needs root privileges. "
+                "Use `sudo` unless the remote session is already root."
+            )
         if package_manager == "pacman":
             if tool in {"apt", "apt-get", "dnf", "zypper"}:
                 return (

@@ -46,3 +46,53 @@ def test_preflight_blocks_fake_plasma_dbus_session():
 
     assert error
     assert "dbus-run-session" in error
+
+
+def test_preflight_blocks_root_owned_config_edit_without_sudo():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+    )
+
+    error = preflight_setup_command(
+        r"sed -i '/\[multilib\]/,/Include = \/etc\/pacman.d\/mirrorlist/ s/^#//' /etc/pacman.conf",
+        facts,
+    )
+
+    assert error
+    assert "root-owned path" in error
+
+
+def test_preflight_allows_root_owned_config_edit_with_sudo():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+    )
+
+    error = preflight_setup_command(
+        r"sudo sed -i '/\[multilib\]/,/Include = \/etc\/pacman.d\/mirrorlist/ s/^#//' /etc/pacman.conf",
+        facts,
+    )
+
+    assert error is None
+
+
+def test_preflight_blocks_non_root_package_manager_mutation():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+    )
+
+    error = preflight_setup_command("pacman -S --noconfirm nvidia-open", facts)
+
+    assert error
+    assert "needs root privileges" in error
