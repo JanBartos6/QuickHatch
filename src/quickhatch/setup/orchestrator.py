@@ -71,6 +71,14 @@ _ARCH_NVIDIA_BOOT_CONFIG_COMMANDS = (
     "sudo mkinitcpio -P",
     "if command -v grub-mkconfig >/dev/null 2>&1; then sudo grub-mkconfig -o /boot/grub/grub.cfg; fi",
 )
+_ARCH_YAY_BOOTSTRAP_COMMAND = (
+    "sudo pacman -S --needed --noconfirm base-devel git && "
+    "rm -rf /tmp/quickhatch-yay-bin && "
+    "git clone https://aur.archlinux.org/yay-bin.git /tmp/quickhatch-yay-bin && "
+    "cd /tmp/quickhatch-yay-bin && "
+    "makepkg -s --noconfirm && "
+    "sudo pacman -U --noconfirm yay-bin-*.pkg.tar.zst"
+)
 
 
 @dataclass
@@ -960,6 +968,14 @@ class SetupOrchestrator:
         commands = list(group.commands)
         if self._is_arch_nvidia_driver_group(stage, group, commands):
             commands = self._normalize_arch_nvidia_commands(commands)
+        if self._needs_arch_aur_helper_bootstrap(commands):
+            commands = [_ARCH_YAY_BOOTSTRAP_COMMAND, *commands]
+            self.runlog.record(
+                "arch_aur_helper_bootstrap_injected",
+                stage=stage.value,
+                group_id=group.id,
+                command=_ARCH_YAY_BOOTSTRAP_COMMAND,
+            )
         if not self._needs_live_disk_prep(stage, commands):
             return commands
 
@@ -1025,6 +1041,35 @@ class SetupOrchestrator:
             if command not in normalized:
                 normalized.append(command)
         return normalized
+
+    def _needs_arch_aur_helper_bootstrap(self, commands: list[str]) -> bool:
+        facts = self.ctx.facts or SetupFacts()
+        if facts.package_manager != "pacman" or facts.community_helper in {"yay", "paru"}:
+            return False
+        return any(self._uses_arch_community_helper_command(command) for command in commands)
+
+    @staticmethod
+    def _uses_arch_community_helper_command(command: str) -> bool:
+        try:
+            segments = re.split(r"\s*(?:&&|\|\||;)\s*", command or "")
+            for segment in segments:
+                tokens = shlex.split(segment, posix=True)
+                if not tokens:
+                    continue
+                while tokens and tokens[0] in {"sudo", "env"}:
+                    if tokens[0] == "sudo":
+                        tokens = tokens[1:]
+                        while tokens and tokens[0].startswith("-"):
+                            opt = tokens.pop(0)
+                            if opt in {"-u", "-g", "-h", "-D", "-p", "-r", "-t", "-T", "-C", "-R"}:
+                                tokens = tokens[1:]
+                        continue
+                    tokens = tokens[1:]
+                if tokens and tokens[0].split("/")[-1] in {"yay", "paru"}:
+                    return True
+        except ValueError:
+            return bool(re.search(r"(^|[;&|]\s*)(?:sudo\s+)?(?:yay|paru)\s+", command or ""))
+        return False
 
     @staticmethod
     def _arch_nvidia_install_command() -> str:
@@ -1320,6 +1365,8 @@ class SetupOrchestrator:
             created_user = self._extract_created_user(command)
             if created_user:
                 self.ctx.created_user = created_user
+        if command == _ARCH_YAY_BOOTSTRAP_COMMAND and self.ctx.facts is not None:
+            self.ctx.facts.community_helper = "yay"
         if stage == SetupStage.DESKTOP:
             state = self.ctx.stage_state.setdefault(stage.value, {})
             if any(

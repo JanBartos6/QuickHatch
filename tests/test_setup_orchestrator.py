@@ -158,6 +158,71 @@ def test_arch_nvidia_stage_reboots_once_when_nouveau_is_bound_before_verificatio
     assert orchestrator.ctx.facts.nvidia_smi_state == "ok"
 
 
+def test_arch_aur_helper_bootstrap_is_injected_before_yay_when_missing():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="none",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="theme",
+        stage=SetupStage.DESKTOP,
+        title="Apply theme",
+        commands=["yay -S --noconfirm sweet-mars-kde-theme-git candy-icons-git"],
+        packages=["sweet-mars-kde-theme-git", "candy-icons-git"],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.DESKTOP, group)
+
+    assert "yay-bin.git" in commands[0]
+    assert "makepkg -s --noconfirm" in commands[0]
+    assert commands[1] == "yay -S --noconfirm sweet-mars-kde-theme-git candy-icons-git"
+
+
+def test_arch_aur_helper_bootstrap_updates_facts_after_success():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="none",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    bootstrap = orchestrator._commands_for_group(
+        SetupStage.DESKTOP,
+        CommandGroup(
+            id="theme",
+            stage=SetupStage.DESKTOP,
+            title="Apply theme",
+            commands=["yay -S --noconfirm candy-icons-git"],
+        ),
+    )[0]
+    orchestrator._update_from_command(bootstrap, "", "", stage=SetupStage.DESKTOP)
+
+    assert orchestrator.ctx.facts.community_helper == "yay"
+    assert orchestrator._commands_for_group(
+        SetupStage.DESKTOP,
+        CommandGroup(
+            id="theme",
+            stage=SetupStage.DESKTOP,
+            title="Apply theme",
+            commands=["yay -S --noconfirm candy-icons-git"],
+        ),
+    ) == ["yay -S --noconfirm candy-icons-git"]
+
+
 def test_orchestrator_blocks_on_required_planning_question():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
