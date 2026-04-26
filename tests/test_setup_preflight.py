@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from quickhatch.setup.preflight import preflight_setup_command
+from quickhatch.setup.preflight import arch_community_helpers_in_command, preflight_setup_command
 from quickhatch.setup.types import SetupFacts
 
 
@@ -20,6 +20,30 @@ def test_preflight_blocks_yay_before_helper_exists():
 
     assert error
     assert "no AUR helper" in error
+
+
+def test_preflight_detects_wrapped_aur_helper_before_helper_exists():
+    facts = SetupFacts(package_manager="pacman", community_helper="none")
+
+    error = preflight_setup_command(
+        "arch-chroot /mnt sudo -u jan bash -lc 'yay -S --noconfirm brave-bin'",
+        facts,
+    )
+
+    assert error
+    assert "no AUR helper" in error
+    assert arch_community_helpers_in_command(
+        "arch-chroot /mnt sudo -u jan bash -lc 'yay -S --noconfirm brave-bin'"
+    ) == {"yay"}
+
+
+def test_preflight_blocks_wrong_aur_helper_when_another_helper_is_detected():
+    facts = SetupFacts(package_manager="pacman", community_helper="yay")
+
+    error = preflight_setup_command("paru -S --noconfirm brave-bin", facts)
+
+    assert error
+    assert "detected AUR helper is `yay`" in error
 
 
 def test_preflight_blocks_vpn_firewall_activation():

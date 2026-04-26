@@ -26,7 +26,7 @@ from .planner import (
     extract_repair_action,
     extract_research_plan,
 )
-from .preflight import preflight_setup_command
+from .preflight import arch_community_helpers_in_command, preflight_setup_command
 from .runlog import SetupRunLogger
 from .types import (
     AuditResult,
@@ -857,6 +857,7 @@ class SetupOrchestrator:
         )
         commands = self._commands_for_group(stage, group)
         for command in commands:
+            command = self._rewrite_arch_community_helper_command(command, stage=stage, group=group)
             if stage == SetupStage.INSTALL_OR_SKIP and self._is_reboot_command(command):
                 stage_state["deferred_reboot_command"] = command
                 self.runlog.record(
@@ -868,24 +869,48 @@ class SetupOrchestrator:
                 continue
             lint_error = preflight_setup_command(command, self.ctx.facts or SetupFacts())
             if lint_error:
-                self.bridge.add_message(
-                    "agent",
-                    f"[harness] 🛑 Command blocked: `{command}`\n{lint_error}",
+                bootstrap_failure = self._try_bootstrap_arch_aur_helper_for_command(
+                    command,
+                    stage=stage,
+                    group=group,
+                    stage_state=stage_state,
                 )
-                self.runlog.record(
-                    "command_preflight_blocked",
-                    stage=stage.value,
-                    group_id=group.id,
-                    command=command,
-                    reason=lint_error,
+                if bootstrap_failure is not None:
+                    return bootstrap_failure
+                command = self._rewrite_arch_community_helper_command(
+                    command, stage=stage, group=group
                 )
-                return GroupFailure(
-                    failure_type="preflight",
-                    command=command,
-                    stdout="",
-                    stderr="",
-                    detail=lint_error,
-                )
+                if self._arch_aur_helper_available() and self._uses_arch_community_helper_command(
+                    command
+                ):
+                    lint_error = preflight_setup_command(command, self.ctx.facts or SetupFacts())
+                if not lint_error:
+                    self.runlog.record(
+                        "command_preflight_recovered",
+                        stage=stage.value,
+                        group_id=group.id,
+                        command=command,
+                        recovery="arch_aur_helper_bootstrap",
+                    )
+                else:
+                    self.bridge.add_message(
+                        "agent",
+                        f"[harness] 🛑 Command blocked: `{command}`\n{lint_error}",
+                    )
+                    self.runlog.record(
+                        "command_preflight_blocked",
+                        stage=stage.value,
+                        group_id=group.id,
+                        command=command,
+                        reason=lint_error,
+                    )
+                    return GroupFailure(
+                        failure_type="preflight",
+                        command=command,
+                        stdout="",
+                        stderr="",
+                        detail=lint_error,
+                    )
             self.bridge.add_message("agent", f"`{command}`")
             rc, stdout, stderr = self.runtime.ssh_exec(command, self._command_timeout(command))
             self.ctx.results_log.append(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
@@ -1044,28 +1069,121 @@ class SetupOrchestrator:
             return False
         return any(self._uses_arch_community_helper_command(command) for command in commands)
 
+    def _arch_aur_helper_available(self) -> bool:
+        facts = self.ctx.facts or SetupFacts()
+        return facts.package_manager == "pacman" and facts.community_helper in {"yay", "paru"}
+
+    def _rewrite_arch_community_helper_command(
+        self,
+        command: str,
+        *,
+        stage: SetupStage,
+        group: CommandGroup,
+    ) -> str:
+        facts = self.ctx.facts or SetupFacts()
+        helper = facts.community_helper
+        if facts.package_manager != "pacman" or helper not in {"yay", "paru"}:
+            return command
+        helpers = arch_community_helpers_in_command(command)
+        if not helpers or helpers == {helper}:
+            return command
+        rewritten = command
+        for other in {"yay", "paru"} - {helper}:
+            rewritten = re.sub(rf"(?<![\w/-]){other}(?=\s)", helper, rewritten)
+            rewritten = re.sub(
+                rf"(?<![\w-])/usr/bin/{other}(?=\s)", f"/usr/bin/{helper}", rewritten
+            )
+        if rewritten != command:
+            self.bridge.add_message(
+                "agent",
+                f"[harness] Rewriting AUR helper command to use detected `{helper}`.",
+            )
+            self.runlog.record(
+                "arch_aur_helper_command_rewritten",
+                stage=stage.value,
+                group_id=group.id,
+                original=command,
+                rewritten=rewritten,
+                helper=helper,
+            )
+        return rewritten
+
+    def _try_bootstrap_arch_aur_helper_for_command(
+        self,
+        command: str,
+        *,
+        stage: SetupStage,
+        group: CommandGroup,
+        stage_state: dict[str, Any],
+    ) -> GroupFailure | None:
+        facts = self.ctx.facts or SetupFacts()
+        if (
+            facts.package_manager != "pacman"
+            or facts.community_helper in {"yay", "paru"}
+            or not self._uses_arch_community_helper_command(command)
+        ):
+            return None
+        if stage_state.get("arch_aur_helper_bootstrap_attempted"):
+            return None
+        stage_state["arch_aur_helper_bootstrap_attempted"] = True
+        self.bridge.add_message(
+            "agent",
+            "AUR helper is missing; installing `yay` before retrying the planned community command.",
+        )
+        self.bridge.add_message("agent", f"`{_ARCH_YAY_BOOTSTRAP_COMMAND}`")
+        self.runlog.record(
+            "arch_aur_helper_bootstrap_started",
+            stage=stage.value,
+            group_id=group.id,
+            command=_ARCH_YAY_BOOTSTRAP_COMMAND,
+            blocked_command=command,
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(
+            _ARCH_YAY_BOOTSTRAP_COMMAND,
+            self._command_timeout(_ARCH_YAY_BOOTSTRAP_COMMAND),
+        )
+        self.ctx.results_log.append(
+            f"$ {_ARCH_YAY_BOOTSTRAP_COMMAND}\n[rc={rc}]\n{stdout}\n{stderr}".strip()
+        )
+        self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
+        self.runlog.record(
+            "arch_aur_helper_bootstrap_result",
+            stage=stage.value,
+            group_id=group.id,
+            rc=rc,
+            stdout_tail=(stdout or "")[-800:],
+            stderr_tail=(stderr or "")[-800:],
+        )
+        if rc != 0:
+            detail = stderr.strip() or stdout.strip() or "failed to install yay"
+            self.bridge.add_message(
+                "agent",
+                self._format_group_failure_message(
+                    group.title,
+                    "AUR helper bootstrap failed",
+                    _ARCH_YAY_BOOTSTRAP_COMMAND,
+                    rc,
+                    stdout,
+                    stderr,
+                ),
+            )
+            return GroupFailure(
+                failure_type="command",
+                command=_ARCH_YAY_BOOTSTRAP_COMMAND,
+                stdout=stdout,
+                stderr=stderr,
+                detail=detail,
+            )
+        self._update_from_command(_ARCH_YAY_BOOTSTRAP_COMMAND, stdout, stderr, stage=stage)
+        facts = self._refresh_facts(stage=stage)
+        if facts.package_manager == "pacman" and facts.community_helper not in {"yay", "paru"}:
+            facts.community_helper = "yay"
+        self.bridge.add_message("agent", "✓ AUR helper installed — retrying planned command.")
+        return None
+
     @staticmethod
     def _uses_arch_community_helper_command(command: str) -> bool:
-        try:
-            segments = re.split(r"\s*(?:&&|\|\||;)\s*", command or "")
-            for segment in segments:
-                tokens = shlex.split(segment, posix=True)
-                if not tokens:
-                    continue
-                while tokens and tokens[0] in {"sudo", "env"}:
-                    if tokens[0] == "sudo":
-                        tokens = tokens[1:]
-                        while tokens and tokens[0].startswith("-"):
-                            opt = tokens.pop(0)
-                            if opt in {"-u", "-g", "-h", "-D", "-p", "-r", "-t", "-T", "-C", "-R"}:
-                                tokens = tokens[1:]
-                        continue
-                    tokens = tokens[1:]
-                if tokens and tokens[0].split("/")[-1] in {"yay", "paru"}:
-                    return True
-        except ValueError:
-            return bool(re.search(r"(^|[;&|]\s*)(?:sudo\s+)?(?:yay|paru)\s+", command or ""))
-        return False
+        return bool(arch_community_helpers_in_command(command))
 
     @staticmethod
     def _arch_nvidia_install_command() -> str:

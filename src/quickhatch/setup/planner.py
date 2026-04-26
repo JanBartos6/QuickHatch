@@ -423,6 +423,7 @@ def build_research_prompt(
         "- No mutating work can happen before research_and_plan finishes.\n"
         "- `commands`, command-group `verification`, and `verification_commands` must contain executable shell commands only. Do not write prose like `lsblk should show ...`; use commands such as `mountpoint /mnt` or `lsblk /dev/sda | grep -q '/mnt'`.\n"
         "- Use official repos by default; only use community sources when needed and explicit.\n"
+        "- On Arch, do not ask the user solely because `yay`/`paru` is absent. Prefer `yay` for AUR packages when no helper is detected; the harness can bootstrap it before execution. Avoid `paru` unless facts show it is installed.\n"
         "- Classify slow desktop wrappers (ChatGPT/Claude/Codex desktop wrappers, Electron bundle wrappers, etc.) as optional_slow.\n"
         "- Use selected_app_catalog as curated prior knowledge for selected apps. Prefer high-confidence source_hint values and active_install_hint when its family matches the target distro.\n"
         "- Treat active_install_hint as advisory package-resolution data, not proof of installation success. Verify package names with repo/community search when confidence is not high, source is manual_followup/web/alternative, or packages are empty.\n"

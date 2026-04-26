@@ -164,6 +164,49 @@ def _strip_wrappers(tokens: list[str]) -> list[str]:
     return tokens[idx:]
 
 
+def _shell_c_payload(tokens: list[str]) -> str:
+    for idx, token in enumerate(tokens[1:], start=1):
+        if token == "-c":
+            return tokens[idx + 1] if idx + 1 < len(tokens) else ""
+        if token.startswith("-") and "c" in token and idx + 1 < len(tokens):
+            return tokens[idx + 1]
+    return ""
+
+
+def _arch_community_helpers_from_tokens(tokens: list[str]) -> set[str]:
+    tokens = _strip_wrappers(tokens)
+    if not tokens:
+        return set()
+    tool = _normalize_tool(tokens[0])
+    if tool in {"yay", "paru"}:
+        return {tool}
+    if tool in {"arch-chroot", "chroot"} and len(tokens) >= 3:
+        return _arch_community_helpers_from_tokens(tokens[2:])
+    if tool in {"bash", "sh", "zsh", "fish"}:
+        payload = _shell_c_payload(tokens)
+        return arch_community_helpers_in_command(payload) if payload else set()
+    if tool == "runuser":
+        if "--" in tokens:
+            return _arch_community_helpers_from_tokens(tokens[tokens.index("--") + 1 :])
+        payload = _shell_c_payload(tokens)
+        return arch_community_helpers_in_command(payload) if payload else set()
+    if tool == "su":
+        payload = _shell_c_payload(tokens)
+        return arch_community_helpers_in_command(payload) if payload else set()
+    return set()
+
+
+def arch_community_helpers_in_command(command: str) -> set[str]:
+    helpers: set[str] = set()
+    for segment in _split_command_segments(command):
+        try:
+            tokens = shlex.split(segment, posix=True)
+        except ValueError:
+            continue
+        helpers.update(_arch_community_helpers_from_tokens(tokens))
+    return helpers
+
+
 def _has_root_privilege(tokens: list[str], facts: SetupFacts) -> bool:
     if facts.is_root or (facts.current_user or facts.login_user) == "root":
         return True
@@ -385,10 +428,20 @@ def preflight_setup_command(
                     f"This target is Arch-family (`pacman`), so `{tool}` is the wrong package "
                     "manager. Use `pacman` for repo packages and the AUR helper only for AUR."
                 )
-            if tool in {"yay", "paru"} and community_helper == "none":
+            helper_tools = arch_community_helpers_in_command(segment)
+            if helper_tools and community_helper == "none":
+                helper = sorted(helper_tools)[0]
                 return (
-                    f"The command uses `{tool}` but no AUR helper is installed yet. Install "
+                    f"The command uses `{helper}` but no AUR helper is installed yet. Install "
                     "the helper first, or build manually with `makepkg -s` + `pacman -U`."
+                )
+            mismatched_helpers = sorted(
+                helper for helper in helper_tools if helper != community_helper
+            )
+            if mismatched_helpers and community_helper in {"yay", "paru"}:
+                return (
+                    f"The command uses `{mismatched_helpers[0]}`, but the detected AUR helper "
+                    f"is `{community_helper}`. Use `{community_helper}` for AUR packages."
                 )
             if tool == "pacman":
                 packages = _extract_pacman_install_packages(tokens)

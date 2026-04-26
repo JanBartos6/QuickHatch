@@ -224,6 +224,112 @@ def test_arch_aur_helper_bootstrap_updates_facts_after_success():
     ) == ["yay -S --noconfirm candy-icons-git"]
 
 
+def test_execute_group_bootstraps_yay_when_preflight_sees_raw_yay():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="none",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    commands_seen: list[str] = []
+
+    def ssh_exec(command, timeout):
+        commands_seen.append(command)
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    # Simulate a future code path/regression that reaches preflight without the
+    # normal _commands_for_group bootstrap injection. Preflight recovery must
+    # still turn this into bootstrap + retry, not a terminal setup block.
+    orchestrator._commands_for_group = lambda stage, group: list(group.commands)  # type: ignore[method-assign]
+    group = CommandGroup(
+        id="theme",
+        stage=SetupStage.DESKTOP,
+        title="Apply theme",
+        commands=["yay -S --noconfirm sweet-mars-kde-theme-git candy-icons-git"],
+        packages=["sweet-mars-kde-theme-git", "candy-icons-git"],
+    )
+
+    failure = orchestrator._execute_group(SetupStage.DESKTOP, group, {})
+
+    assert failure is None
+    assert "yay-bin.git" in commands_seen[0]
+    assert commands_seen[1] == "yay -S --noconfirm sweet-mars-kde-theme-git candy-icons-git"
+
+
+def test_execute_group_bootstraps_yay_and_rewrites_raw_paru():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="none",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    commands_seen: list[str] = []
+
+    def ssh_exec(command, timeout):
+        commands_seen.append(command)
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator._commands_for_group = lambda stage, group: list(group.commands)  # type: ignore[method-assign]
+    group = CommandGroup(
+        id="theme",
+        stage=SetupStage.DESKTOP,
+        title="Apply theme",
+        commands=["paru -S --noconfirm candy-icons-git"],
+        packages=["candy-icons-git"],
+    )
+
+    failure = orchestrator._execute_group(SetupStage.DESKTOP, group, {})
+
+    assert failure is None
+    assert "yay-bin.git" in commands_seen[0]
+    assert commands_seen[1] == "yay -S --noconfirm candy-icons-git"
+
+
+def test_orchestrator_rewrites_paru_to_detected_yay_helper():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="theme",
+        stage=SetupStage.DESKTOP,
+        title="Apply theme",
+        commands=["paru -S --noconfirm candy-icons-git"],
+    )
+
+    rewritten = orchestrator._rewrite_arch_community_helper_command(
+        "paru -S --noconfirm candy-icons-git",
+        stage=SetupStage.DESKTOP,
+        group=group,
+    )
+
+    assert rewritten == "yay -S --noconfirm candy-icons-git"
+
+
 def test_orchestrator_blocks_on_required_planning_question():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

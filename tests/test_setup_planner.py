@@ -262,6 +262,7 @@ def test_build_research_prompt_includes_selected_app_catalog():
     assert "Use selected_app_catalog as curated prior knowledge" in prompt
     assert "active_install_hint" in prompt
     assert "Do not invent stages such as disk_prepare" in prompt
+    assert "Prefer `yay` for AUR packages when no helper is detected" in prompt
 
 
 def test_build_research_prompt_uses_target_distro_over_live_facts(monkeypatch):
