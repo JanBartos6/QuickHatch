@@ -627,7 +627,7 @@ input[type="search"]::-webkit-search-cancel-button{cursor:pointer}
 .suggestion{
   --sug-accent: var(--cat-default);
   background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--r-md);padding:var(--s5);margin:var(--s3) 0;
+  border-radius:var(--r-md);padding:0;margin:var(--s3) 0;
   box-shadow:var(--shadow-1);
   position:relative;overflow:hidden;
 }
@@ -642,8 +642,23 @@ input[type="search"]::-webkit-search-cancel-button{cursor:pointer}
 .suggestion-plan{--sug-accent:var(--cat-plan)}
 .suggestion-summary{--sug-accent:var(--cat-summary)}
 
+.sug-summary{
+  display:flex;align-items:flex-start;gap:var(--s3);padding:var(--s5);
+  cursor:pointer;list-style:none;transition:background var(--dur) var(--ease);
+}
+.sug-summary::-webkit-details-marker{display:none}
+details.suggestion > summary:before{display:none}
+.sug-summary:hover{background:var(--surface-alt)}
+.sug-summary:after{
+  content:'';width:8px;height:8px;flex-shrink:0;margin:12px 2px 0 auto;
+  border-right:2px solid var(--text-dim);border-bottom:2px solid var(--text-dim);
+  transform:rotate(45deg);transition:transform var(--dur) var(--ease),border-color var(--dur) var(--ease);
+}
+.sug-summary:hover:after{border-color:var(--text-muted)}
+.suggestion[open] > .sug-summary{border-bottom:1px solid var(--border)}
+.suggestion[open] > .sug-summary:after{transform:rotate(225deg);margin-top:16px}
 .sug-head{
-  display:flex;align-items:flex-start;gap:var(--s3);margin-bottom:var(--s4);
+  display:flex;align-items:flex-start;gap:var(--s3);margin:0;flex:1;min-width:0;
 }
 .sug-icon{
   width:36px;height:36px;flex-shrink:0;border-radius:var(--r-sm);
@@ -655,7 +670,7 @@ input[type="search"]::-webkit-search-cancel-button{cursor:pointer}
 .sug-meta{flex:1;min-width:0;padding-top:2px}
 .suggestion .cat{font-size:var(--t-xs);text-transform:uppercase;font-weight:700;letter-spacing:.08em;color:var(--sug-accent);margin-bottom:2px}
 .suggestion .stitle{font-weight:700;font-size:var(--t-lg);color:var(--text);letter-spacing:-.01em;line-height:var(--leading-tight)}
-.suggestion .scontent{color:var(--text-muted);font-size:var(--t-sm);line-height:1.65}
+.suggestion .scontent{color:var(--text-muted);font-size:var(--t-sm);line-height:1.65;padding:var(--s4) var(--s5) var(--s5)}
 .suggestion .scontent pre{background:var(--surface-alt);padding:var(--s3);border-radius:var(--r-sm);overflow-x:auto;font-size:var(--t-xs);margin:var(--s2) 0;font-family:var(--font-mono);line-height:1.55}
 .suggestion .scontent table{margin:var(--s2) 0;width:100%;border-collapse:collapse}
 .suggestion .scontent img{margin:var(--s2) 0;max-width:100%;border-radius:var(--r-sm)}
@@ -973,6 +988,8 @@ let state={
   _exportResult:null,
   _lastMsgCount:-1,
   _lastSugCount:undefined,
+  _lastSugSignature:'',
+  _lastSetupSugSignature:'',
   galleryEntries:null,
   galleryError:'',
   galleryLoading:false,
@@ -986,6 +1003,7 @@ let state={
   _autosaveTimers:{},
   _draft:null,
   _resettingAllData:false,
+  _suggestionUi:{},
 };
 
 const WIZARD_DRAFT_KEY='qh-wizard-draft-v1';
@@ -1405,6 +1423,10 @@ async function resetAllData(){
     state._showOwnKeyInput=false;
     state._lastMsgCount=-1;
     state._lastSugCount=undefined;
+    state._lastSetupSugCount=undefined;
+    state._lastSugSignature='';
+    state._lastSetupSugSignature='';
+    state._suggestionUi={};
     refreshSteps();
     state.currentStep=0;
     render();
@@ -2582,22 +2604,90 @@ const CAT_ICONS = {
   check:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
   terminal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
 };
-function renderSuggestion(s){
+function suggestionKey(s,index){
+  return String(s.id||`${s.category||'unknown'}:${s.title||'untitled'}:${index}`);
+}
+function quickHash(s){
+  let h=2166136261;
+  for(let i=0;i<s.length;i++){
+    h^=s.charCodeAt(i);
+    h=Math.imul(h,16777619);
+  }
+  return (h>>>0).toString(36);
+}
+function suggestionSignature(list){
+  return (Array.isArray(list)?list:[]).map((s,i)=>{
+    const content = typeof s.content==='string' ? s.content : JSON.stringify(s.content||'');
+    return `${suggestionKey(s,i)}:${s.category||''}:${s.title||''}:${content.length}:${quickHash(content)}`;
+  }).join('|');
+}
+function suggestionUi(scope){
+  const key=scope||'default';
+  state._suggestionUi=state._suggestionUi||{};
+  if(!state._suggestionUi[key]){
+    state._suggestionUi[key]={manual:{},known:[],lastSignature:'',autoOpenKey:''};
+  }
+  return state._suggestionUi[key];
+}
+function isSuggestionOpen(scope,key){
+  const ui=suggestionUi(scope);
+  if(Object.prototype.hasOwnProperty.call(ui.manual,key))return !!ui.manual[key];
+  return key===ui.autoOpenKey;
+}
+function rememberSuggestionToggle(evt,scope){
+  const details=evt.currentTarget;
+  if(!details||details.dataset.ready!=='1')return;
+  const key=details.dataset.suggestionKey||'';
+  if(!key)return;
+  suggestionUi(scope).manual[key]=details.open;
+}
+function wireSuggestionToggles(container,scope){
+  if(!container)return;
+  container.querySelectorAll('details.suggestion[data-suggestion-key]').forEach(details=>{
+    details.dataset.ready='0';
+    details.addEventListener('toggle',evt=>rememberSuggestionToggle(evt,scope));
+    requestAnimationFrame(()=>{details.dataset.ready='1'});
+  });
+}
+function renderSuggestionList(suggestions,scope){
+  const list=Array.isArray(suggestions)?suggestions:[];
+  const ui=suggestionUi(scope);
+  const keys=list.map((s,i)=>suggestionKey(s,i));
+  const signature=keys.join('|');
+  if(signature!==ui.lastSignature){
+    const known=new Set(ui.known||[]);
+    const added=keys.filter(k=>!known.has(k));
+    if(added.length)ui.autoOpenKey=added[added.length-1];
+    else if(!keys.includes(ui.autoOpenKey))ui.autoOpenKey=keys[keys.length-1]||'';
+    ui.known=keys;
+    ui.lastSignature=signature;
+    Object.keys(ui.manual).forEach(k=>{if(!keys.includes(k))delete ui.manual[k]});
+  }
+  return list.map((s,i)=>{
+    const key=keys[i];
+    return renderSuggestion(s,{key,open:isSuggestionOpen(scope,key)});
+  }).join('');
+}
+function renderSuggestion(s,opts={}){
   const meta = CAT_META[s.category] || {icon:'list', label:s.category, color:'default'};
   const iconSvg = CAT_ICONS[meta.icon] || CAT_ICONS.list;
+  const key = opts.key || suggestionKey(s,0);
+  const open = !!opts.open;
   const content = typeof s.content==='string'
     ? renderMd(s.content)
     : '<pre>'+escHtml(JSON.stringify(s.content,null,2))+'</pre>';
-  return `<div class="suggestion suggestion-${meta.color}">
-    <div class="sug-head">
-      <div class="sug-icon">${iconSvg}</div>
-      <div class="sug-meta">
-        <div class="cat">${escHtml(meta.label)}</div>
-        <div class="stitle">${escHtml(s.title)}</div>
+  return `<details class="suggestion suggestion-${meta.color}" data-suggestion-key="${escHtml(key)}"${open?' open':''}>
+    <summary class="sug-summary">
+      <div class="sug-head">
+        <div class="sug-icon">${iconSvg}</div>
+        <div class="sug-meta">
+          <div class="cat">${escHtml(meta.label)}</div>
+          <div class="stitle">${escHtml(s.title)}</div>
+        </div>
       </div>
-    </div>
+    </summary>
     <div class="scontent">${content}</div>
-  </div>`;
+  </details>`;
 }
 
 function copyFrom(btn,targetId){
@@ -3436,6 +3526,8 @@ async function launchAgent(){
       const feed=el('agentFeed');
       if(feed)feed.innerHTML='';
       state._lastMsgCount=-1;state._lastSugCount=0;
+      state._lastSugSignature='';
+      if(state._suggestionUi)delete state._suggestionUi.analysis;
       state._agentDone=false;
     }else{
       msg.innerHTML=`<span class="muted" style="color:var(--danger);font-size:var(--t-sm)">${escHtml(data.message||'Failed')}</span>`;
@@ -3498,7 +3590,9 @@ function beginAnalysisRunUi(statusText){
   if(dot)dot.className='dot connected';
   state._agentDone=false;
   state._lastSugCount=0;
+  state._lastSugSignature='';
   state._lastMsgCount=-1;
+  if(state._suggestionUi)delete state._suggestionUi.analysis;
 }
 
 async function answerQuestion(qid){
@@ -3730,7 +3824,9 @@ async function pollBridge(){
       if(sd.suggestions){
         const feed=el('agentFeed');
         const section=el('suggestionsSection');
-        if(feed&&sd.suggestions.length!==state._lastSugCount){
+        const sig=suggestionSignature(sd.suggestions);
+        if(feed&&sig!==state._lastSugSignature){
+          state._lastSugSignature=sig;
           state._lastSugCount=sd.suggestions.length;
           if(section){
             // Toggle both ways — a rerun that empties the list should
@@ -3738,7 +3834,8 @@ async function pollBridge(){
             if(sd.suggestions.length)section.classList.remove('hidden');
             else section.classList.add('hidden');
           }
-          feed.innerHTML=sd.suggestions.map(renderSuggestion).join('');
+          feed.innerHTML=renderSuggestionList(sd.suggestions,'analysis');
+          wireSuggestionToggles(feed,'analysis');
         }
       }
 
@@ -4014,6 +4111,8 @@ async function launchSetupAgent(){
       const spinner=el('setupSpinner'); if(spinner)spinner.classList.remove('hidden');
       const phase=el('setupPhase'); if(phase){phase.textContent='Connecting…';phase.classList.remove('done','error');}
       state._lastSetupMsgCount=-1;state._lastSetupSugCount=0;
+      state._lastSetupSugSignature='';
+      if(state._suggestionUi)delete state._suggestionUi.setup;
       if(msg)msg.innerHTML='';
       pollSetup();
     }else{
@@ -4066,6 +4165,8 @@ async function clearSetupLog(){
     state._setupDone=false;
     state._lastSetupMsgCount=-1;
     state._lastSetupSugCount=0;
+    state._lastSetupSugSignature='';
+    if(state._suggestionUi)delete state._suggestionUi.setup;
     state._knownSetupQIds=new Set();
     const qa=el('setupQuestions'); if(qa) qa.innerHTML='';
     const feed=el('setupFeed'); if(feed) feed.innerHTML='';
@@ -4076,6 +4177,7 @@ async function clearSetupLog(){
     const logBody=el('setupLogBody'); if(logBody) logBody.innerHTML='';
     const logDetails=el('setupLogDetails'); if(logDetails) logDetails.classList.add('hidden');
     const section=el('setupSuggestionsSection'); if(section) section.classList.add('hidden');
+    if(state._suggestionUi)delete state._suggestionUi.setup;
     const launch=el('setupLaunch'); if(launch) launch.classList.remove('hidden');
     const panel=el('setupPanel'); if(panel) panel.classList.add('hidden');
     const stop=el('setupStopBtn'); if(stop) stop.classList.add('hidden');
@@ -4105,6 +4207,8 @@ async function resetRemoteSetup(){
     state._setupDone=false;
     state._lastSetupMsgCount=-1;
     state._lastSetupSugCount=0;
+    state._lastSetupSugSignature='';
+    if(state._suggestionUi)delete state._suggestionUi.setup;
     state._knownSetupQIds=new Set();
     stepRenderers.setup();
     toast('Remote setup reset','success');
@@ -4210,13 +4314,16 @@ async function pollSetup(){
       if(sd.suggestions){
         const feed=el('setupFeed');
         const section=el('setupSuggestionsSection');
-        if(feed&&sd.suggestions.length!==(state._lastSetupSugCount||0)){
+        const sig=suggestionSignature(sd.suggestions);
+        if(feed&&sig!==state._lastSetupSugSignature){
+          state._lastSetupSugSignature=sig;
           state._lastSetupSugCount=sd.suggestions.length;
           if(section){
             if(sd.suggestions.length)section.classList.remove('hidden');
             else section.classList.add('hidden');
           }
-          feed.innerHTML=sd.suggestions.map(renderSuggestion).join('');
+          feed.innerHTML=renderSuggestionList(sd.suggestions,'setup');
+          wireSuggestionToggles(feed,'setup');
         }
       }
 

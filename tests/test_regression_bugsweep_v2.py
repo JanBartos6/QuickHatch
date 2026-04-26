@@ -456,6 +456,21 @@ class TestFrontendProfileSync:
         )
         assert question_idx < chat_idx < suggestions_idx
 
+    def test_recommendation_cards_are_collapsible_and_auto_open_latest(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert 'return `<details class="suggestion suggestion-${meta.color}"' in html
+        assert "function quickHash(s)" in html
+        assert "${quickHash(content)}" in html
+        assert "function renderSuggestionList(suggestions,scope)" in html
+        assert "return key===ui.autoOpenKey;" in html
+        assert "wireSuggestionToggles(feed,'analysis')" in html
+        assert "wireSuggestionToggles(feed,'setup')" in html
+        assert "state._lastSugSignature=sig;" in html
+        assert "state._lastSetupSugSignature=sig;" in html
+
     def test_question_attention_clears_when_pending_questions_empty(self):
         from pathlib import Path
 
