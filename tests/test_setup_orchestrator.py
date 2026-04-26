@@ -680,6 +680,138 @@ def test_orchestrator_repairs_failed_command_group_with_search_and_retry():
     assert "Installed/configured: Brave" in summary
 
 
+def test_orchestrator_retries_malformed_repair_json():
+    profile = UserProfile(apps_to_install=["Brave"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        session_type="wayland",
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    )
+    commands_seen: list[str] = []
+    model_calls = {"count": 0}
+
+    def model_call(_cfg, _messages):
+        model_calls["count"] += 1
+        if model_calls["count"] == 1:
+            return json.dumps(
+                {
+                    "target_summary": "Arch workstation.",
+                    "distro_family": "arch",
+                    "package_manager": "pacman",
+                    "driver_strategy": {
+                        "strategy": "no_special_driver",
+                        "confidence": "resolved_official",
+                        "source": "official",
+                        "packages": [],
+                        "services": [],
+                        "notes": "",
+                    },
+                    "desktop_strategy": {
+                        "strategy": "plasma",
+                        "confidence": "resolved_official",
+                        "source": "official",
+                        "packages": ["plasma-desktop"],
+                        "services": ["sddm"],
+                        "notes": "",
+                    },
+                    "command_groups": [
+                        {
+                            "id": "desktop-1",
+                            "stage": "desktop",
+                            "title": "Persist desktop config",
+                            "commands": [
+                                "kwriteconfig6 --file kdeglobals --group Icons --key Theme candy-icons"
+                            ],
+                        },
+                        {
+                            "id": "apps-1",
+                            "stage": "apps",
+                            "title": "Install Brave",
+                            "commands": ["bad install brave"],
+                            "packages": ["brave-bin"],
+                        },
+                    ],
+                    "apps": [
+                        {
+                            "name": "Brave",
+                            "package_name": "brave-bin",
+                            "source": "community",
+                            "status": "pending",
+                            "required": True,
+                        }
+                    ],
+                    "unresolved_questions": [],
+                    "verification_commands": {},
+                    "required_items": ["desktop", "apps"],
+                    "optional_items": [],
+                    "planner_revision": 1,
+                }
+            )
+        if model_calls["count"] == 2:
+            return '{"action": "retry_group", "group": {"id": "broken", "commands": ["unterminated'
+        assert "invalid JSON" in _messages[-1]["content"]
+        return json.dumps(
+            {
+                "action": "retry_group",
+                "group": {
+                    "id": "apps-1-repair",
+                    "stage": "apps",
+                    "title": "Install Brave after malformed repair retry",
+                    "commands": ["echo repaired brave install"],
+                    "verification": [],
+                    "packages": ["brave-bin"],
+                },
+            }
+        )
+
+    def ssh_exec(command, _timeout):
+        commands_seen.append(command)
+        if command == "bad install brave":
+            return (1, "", "target not found: brave")
+        if command == "pacman -Qq":
+            return (0, "brave-bin\n", "")
+        return (0, "", "")
+
+    runtime = SetupRuntime(
+        profile=profile,
+        bridge=bridge,
+        config=AIConfig(
+            provider="local_lmstudio", endpoint="http://localhost:1234/v1", model_name="test"
+        ),
+        host="127.0.0.1",
+        user="jan",
+        ssh_port=22,
+        key_path=None,
+        system_info_fn=lambda: "system info",
+        call_model_text=model_call,
+        probe_facts=lambda **kwargs: facts,
+        detect_live_env=lambda: (False, "INSTALLED"),
+        ssh_exec=ssh_exec,
+        repo_search=lambda query: "",
+        community_search=lambda query: "",
+        web_search=lambda query, max_results: "",
+        wait_for_reconnect=lambda reconnect_user: (True, "fresh info", reconnect_user),
+        run_pre_reboot_checks=lambda: (True, [], ""),
+        smoke_test_preboot_script=lambda: None,
+        bootstrap_nopasswd_sudo=lambda current: current,
+        runtime_prompt_block=lambda current, is_live: "",
+        migration_plan_md="",
+        distro_primer_md="",
+        native_search_active=False,
+    )
+
+    summary = SetupOrchestrator(runtime).run()
+
+    assert model_calls["count"] == 3
+    assert "echo repaired brave install" in commands_seen
+    assert "Installed/configured: Brave" in summary
+
+
 def test_final_audit_blocks_when_completed_app_package_is_missing():
     profile = UserProfile(apps_to_install=["Brave"])
     bridge = BridgeState(profile, persist_path=None)

@@ -891,9 +891,29 @@ class SetupOrchestrator:
                     failed_group=failed_group,
                 )
             except RepairActionValidationError as exc:
-                raise RuntimeError(
-                    f"Repair planning failed for '{failed_group.title}': {exc}"
-                ) from exc
+                self.runlog.record(
+                    "repair_response_invalid",
+                    stage=stage.value,
+                    group_id=failed_group.id,
+                    repair_attempt=repair_attempt,
+                    repair_turn=turn,
+                    error=str(exc),
+                )
+                messages = [
+                    {"role": "user", "content": prompt},
+                    {"role": "assistant", "content": response_text},
+                    {
+                        "role": "user",
+                        "content": (
+                            "[quickhatch repair parser]\n"
+                            f"Your previous repair response was invalid JSON: {exc}\n"
+                            "Return exactly one complete JSON object. Do not use Markdown fences, "
+                            "comments, prose, or truncated strings. Use action retry_group, "
+                            "repo_search, community_search, web_search, question, or manual_followup."
+                        ),
+                    },
+                ]
+                continue
             self.runlog.record(
                 "repair_action",
                 stage=stage.value,
