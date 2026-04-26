@@ -250,7 +250,8 @@ class BridgeState:
             self.agent_done = False
             self.stop_requested = False
             self.current_phase = ""
-            self._persist_version = 0
+            self._persist_version += 1
+            reset_version = self._persist_version
             self.setup_run = {
                 "run_id": "",
                 "stage": "",
@@ -272,7 +273,7 @@ class BridgeState:
                 tmp.unlink(missing_ok=True)
             except OSError:
                 pass
-            self._persist_last_written = 0
+            self._persist_last_written = max(self._persist_last_written, reset_version)
 
     def _serialize_payload_locked(self) -> tuple[str, int] | None:
         """Build the JSON payload string + its version. MUST be called

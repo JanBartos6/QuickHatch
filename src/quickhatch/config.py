@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import threading
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
+
+_CHECKPOINT_WRITE_LOCK = threading.Lock()
 
 
 def _checkpoint_path() -> Path:
@@ -199,25 +202,26 @@ class UserProfile:
         if isinstance(data.get("ai_config"), dict):
             data["ai_config"]["api_key"] = None
         serialized = json.dumps(data, indent=2)
-        tmp = path.with_suffix(path.suffix + ".tmp")
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
-            try:
-                if path.exists() and path.read_text(encoding="utf-8") == serialized:
-                    return path
-            except OSError:
-                pass
-            tmp.write_text(serialized, encoding="utf-8")
-            import os as _os
+            with _CHECKPOINT_WRITE_LOCK:
+                try:
+                    if path.exists() and path.read_text(encoding="utf-8") == serialized:
+                        return path
+                except OSError:
+                    pass
+                tmp = path.with_suffix(path.suffix + f".{threading.get_ident()}.tmp")
+                tmp.write_text(serialized, encoding="utf-8")
+                import os as _os
 
-            _os.replace(tmp, path)
-            # Restrict to owner-only (0600). On Windows chmod is a
-            # best-effort no-op; there the NTFS ACLs inherited from
-            # the user's home dir already scope visibility.
-            try:
-                _os.chmod(path, 0o600)
-            except OSError:
-                pass
+                _os.replace(tmp, path)
+                # Restrict to owner-only (0600). On Windows chmod is a
+                # best-effort no-op; there the NTFS ACLs inherited from
+                # the user's home dir already scope visibility.
+                try:
+                    _os.chmod(path, 0o600)
+                except OSError:
+                    pass
         except OSError:
             # Best-effort — don't crash the wizard over a checkpoint write.
             pass

@@ -166,6 +166,7 @@ class TestProfileEndpoint:
         assert bridge.get_pending_questions() == []
 
     def test_restore_profile_rehydrates_sparse_state_and_preserves_live_api_key(self, server):
+        server["gui_state"].profile.ai_config.provider = "api"
         server["gui_state"].profile.ai_config.api_key = "sk-secret-xyz"
         status, body = _post(
             server["port"],
@@ -200,6 +201,30 @@ class TestProfileEndpoint:
         assert server["gui_state"].profile.additional_info == "restored"
         assert server["bridge"].profile.linux_user == "jan"
         assert server["gui_state"].profile.ai_config.api_key == "sk-secret-xyz"
+
+    def test_restore_profile_does_not_reuse_key_for_different_provider(self, server):
+        server["gui_state"].profile.ai_config.provider = "api_anthropic"
+        server["gui_state"].profile.ai_config.endpoint = "https://api.anthropic.com"
+        server["gui_state"].profile.ai_config.api_key = "anthropic-secret"
+        status, body = _post(
+            server["port"],
+            "/wizard/restore-profile",
+            {
+                "profile": {
+                    "ai_config": {"provider": "api_openai", "api_key": "***SET***"},
+                    "hardware": {},
+                    "apps": [],
+                    "files_summary": {},
+                    "windows_settings": {},
+                }
+            },
+        )
+
+        data = json.loads(body)
+        assert status == 200
+        assert data["status"] == "ok"
+        assert server["gui_state"].profile.ai_config.provider == "api_openai"
+        assert server["gui_state"].profile.ai_config.api_key is None
 
     def test_update_can_store_api_key_in_os_keyring_without_response_leak(
         self, server, monkeypatch

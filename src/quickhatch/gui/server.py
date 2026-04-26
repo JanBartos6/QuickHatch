@@ -272,7 +272,16 @@ class GUIState:
             self.bridge.agent_connected = False
             self.bridge.stop_requested = False
             self.bridge.current_phase = ""
-            self.bridge.setup_run["status"] = "idle"
+            if self.bridge.setup_run.get("status") == "stopping":
+                self.bridge.setup_run["status"] = "stopped"
+            elif self.bridge.setup_run.get("status") not in {
+                "done",
+                "blocked",
+                "failed",
+                "stopped",
+                "cancelled",
+            }:
+                self.bridge.setup_run["status"] = "idle"
         return False
 
     def mark_agent_running(self, phase: str) -> None:
@@ -293,7 +302,16 @@ class GUIState:
             self.bridge.agent_connected = False
             self.bridge.stop_requested = False
             self.bridge.current_phase = ""
-            self.bridge.setup_run["status"] = "idle"
+            if self.bridge.setup_run.get("status") == "stopping":
+                self.bridge.setup_run["status"] = "stopped"
+            elif self.bridge.setup_run.get("status") not in {
+                "done",
+                "blocked",
+                "failed",
+                "stopped",
+                "cancelled",
+            }:
+                self.bridge.setup_run["status"] = "idle"
 
     # Fields whose declared type is list[...] — null and non-iterable
     # values get coerced to [] instead of crashing every downstream
@@ -498,7 +516,12 @@ class GUIState:
         with self.lock:
             before = asdict(self.profile)
             existing_api_key = self.profile.ai_config.api_key
-            if not restored.ai_config.api_key and existing_api_key:
+            if restored.ai_config.api_key in {"***SET***", "***REDACTED***"}:
+                restored.ai_config.api_key = None
+            same_ai_target = restored.ai_config.provider == self.profile.ai_config.provider and (
+                restored.ai_config.endpoint or ""
+            ) == (self.profile.ai_config.endpoint or "")
+            if not restored.ai_config.api_key and existing_api_key and same_ai_target:
                 restored.ai_config.api_key = existing_api_key
             for field_def in fields(UserProfile):
                 setattr(self.profile, field_def.name, getattr(restored, field_def.name))
@@ -563,6 +586,7 @@ def _prepare_ai_secret_update(gui_state: GUIState, updates: dict[str, Any]) -> d
     message = ""
 
     if key in {"***SET***", "***REDACTED***"}:
+        raw_key = None
         key = ""
         ai["api_key"] = None
 
@@ -572,7 +596,7 @@ def _prepare_ai_secret_update(gui_state: GUIState, updates: dict[str, Any]) -> d
             stored = result.ok
             message = result.message
         ai["api_key"] = key
-    elif raw_key is None:
+    elif raw_key is None or (isinstance(raw_key, str) and not raw_key.strip()):
         # Keep an existing in-memory key when the provider/endpoint did not
         # change, otherwise try the OS store for the selected provider. This
         # lets users leave the input blank after opting in to local storage.

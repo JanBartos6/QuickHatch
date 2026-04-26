@@ -316,7 +316,9 @@ class TestFrontendProfileSync:
         assert "const canLaunch=!!(hasConn&&state._sshTestOk);" in html
         assert "state._sshTestOk=true;" in html
         assert "state._sshTestOk=false;" in html
-        assert "if((state._setupStarted||setupHasFeed)&&data.agent_done&&!terminalFailure){" in html
+        assert (
+            "if((state._setupStarted||setupHasFeed)&&runStatus==='done'&&!terminalFailure){" in html
+        )
 
     def test_setup_poll_stops_spinner_on_failed_or_stopped_runs(self):
         from pathlib import Path

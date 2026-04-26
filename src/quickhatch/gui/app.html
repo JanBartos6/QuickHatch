@@ -1293,7 +1293,7 @@ function applyServerProfile(profile, seq){
   state.profile=shouldRestore?mergedProfile:serverProfile;
   state.completedSteps=state.profile.completed_steps||[];
   const draftPicks=draftOr('preferences.gallery_picks', undefined);
-  state.galleryPinned=[...((Array.isArray(draftPicks)&&draftPicks.length)?draftPicks:(state.profile?.preferences?.gallery_picks||[]))];
+  state.galleryPinned=[...(Array.isArray(draftPicks)?draftPicks:(state.profile?.preferences?.gallery_picks||[]))];
   writeProfileShadow(state.profile);
   refreshSteps();
   return true;
@@ -1647,10 +1647,10 @@ function exportResultCard(data){
     <div class="info-box info-success">
       <strong style="font-size:1.05rem">Bundle exported</strong>
       <p style="margin:var(--s2) 0;font-size:.9rem">Saved to:</p>
-      <code style="display:block;padding:var(--s2);background:var(--bg-2);border-radius:var(--r1);word-break:break-all;font-size:.85rem;margin-bottom:var(--s2)">${escHtml(outDir)}</code>
+      <code style="display:block;padding:var(--s2);background:var(--surface-alt);border-radius:var(--r-sm);word-break:break-all;font-size:.85rem;margin-bottom:var(--s2)">${escHtml(outDir)}</code>
       <div class="stack-h" style="gap:var(--s2);margin-bottom:var(--s2)">
         <button class="btn btn-primary btn-sm" onclick="openExportFolder()">Open folder</button>
-        <button class="btn btn-ghost btn-sm" onclick="copyExportPath('${escHtml(outDir)}')">Copy path</button>
+        <button class="btn btn-ghost btn-sm" data-export-path="${escHtml(outDir)}" onclick="copyExportPath(this.dataset.exportPath||'')">Copy path</button>
       </div>
       <details><summary style="cursor:pointer;font-size:.82rem">Files (${(data.files||[]).length})</summary>
       <ul style="margin-top:var(--s1)">${fileList}</ul></details>
@@ -2258,7 +2258,7 @@ const stepRenderers={
           <div class="info-box" style="margin-top:var(--s3)">
             <strong>How to run it</strong>
             <ol>
-              <li>Flash your distro ISO with Rufus. ${liveBootLabel}. If the ISO offers "Try / Live", pick that instead of Install.</li>
+              <li>Flash your distro ISO with Rufus. ${guide.liveBootLabel}. If the ISO offers "Try / Live", pick that instead of Install.</li>
               <li>Plug in the QuickHatch bundle USB and extract it in the live env.</li>
               <li>Read <code>install.sh</code> if you want to double-check (it's plain bash, no magic).</li>
               <li>Run <code>sudo bash install.sh</code>. Follow its prompts — it asks you to type the target disk path to confirm before any partitioning.</li>
@@ -2380,10 +2380,10 @@ const stepRenderers={
 
         <div class="conn-grid">
           <div class="field"><label>IP address</label>
-            <input type="text" id="linuxIp" value="${escHtml(ip)}" placeholder="e.g. 192.168.1.42 or 127.0.0.1:2222">
+            <input type="text" id="linuxIp" value="${escHtml(ip)}" placeholder="e.g. 192.168.1.42 or 127.0.0.1:2222" oninput="invalidateSshTest()">
           </div>
           <div class="field"><label>Username</label>
-            <input type="text" id="linuxUser" value="${escHtml(user)}" placeholder="e.g. jan">
+            <input type="text" id="linuxUser" value="${escHtml(user)}" placeholder="e.g. jan" oninput="invalidateSshTest()">
           </div>
         </div>
 
@@ -3769,25 +3769,31 @@ async function pollBridge(){
 async function generateSSH(){
   const btn=el('sshGenBtn');
   btn.disabled=true;btn.textContent='Generating…';
-  const data=await api('/wizard/generate-ssh','POST');
   const box=el('sshResult');
-  if(data.status==='ok'){
-    box.innerHTML=`
-      <div class="info-box info-success">
-        <strong>${escHtml(data.message)}</strong>
-        <p>Path: <code>${escHtml(data.path)}</code></p>
-        <div class="code-block">${escHtml(data.public_key)}</div>
-        <p>This key is included in the export bundle. The quickstart script adds it to <code>authorized_keys</code> automatically.</p>
-      </div>`;
-    btn.textContent='Done';
-    state._sshSkipped=false;
-    state._showOwnKeyInput=false;
-    const cont=el('sshContinue');
-    if(cont){cont.disabled=false;cont.textContent='Continue'}
-    if(data.path)state.profile.ssh_public_key_path=data.path;
-    toast('SSH key ready','success');
-  }else{
-    box.innerHTML=errorCard(data.message||'Could not generate key', 'onclick="generateSSH()"');
+  try{
+    const data=await api('/wizard/generate-ssh','POST');
+    if(data.status==='ok'){
+      box.innerHTML=`
+        <div class="info-box info-success">
+          <strong>${escHtml(data.message)}</strong>
+          <p>Path: <code>${escHtml(data.path)}</code></p>
+          <div class="code-block">${escHtml(data.public_key)}</div>
+          <p>This key is included in the export bundle. The quickstart script adds it to <code>authorized_keys</code> automatically.</p>
+        </div>`;
+      btn.disabled=false;btn.textContent='Regenerate key';
+      state._sshSkipped=false;
+      state._showOwnKeyInput=false;
+      const cont=el('sshContinue');
+      if(cont){cont.disabled=false;cont.textContent='Continue'}
+      if(data.path)state.profile.ssh_public_key_path=data.path;
+      toast('SSH key ready','success');
+    }else{
+      box.innerHTML=errorCard(data.message||'Could not generate key', 'onclick="generateSSH()"');
+      btn.disabled=false;btn.textContent='Retry';
+      toast('Key generation failed','error');
+    }
+  }catch(e){
+    box.innerHTML=errorCard(e.message||'Could not generate key', 'onclick="generateSSH()"');
     btn.disabled=false;btn.textContent='Retry';
     toast('Key generation failed','error');
   }
@@ -3963,6 +3969,13 @@ function copyExportPath(path){
 }
 
 // ── Setup step functions ──
+function invalidateSshTest(){
+  if(!state._sshTestOk)return;
+  state._sshTestOk=false;
+  const launch=el('setupLaunchBtn'); if(launch)launch.disabled=true;
+  const status=el('connStatus'); if(status)status.textContent='Connection changed — test again.';
+}
+
 async function saveLinuxConn(){
   const ip=el('linuxIp').value.trim();
   const user=el('linuxUser').value.trim();
@@ -3992,7 +4005,10 @@ async function launchSetupAgent(){
       if(launch)launch.classList.add('hidden');
       if(panel)panel.classList.remove('hidden');
       if(stop)stop.classList.remove('hidden');
+      const spinner=el('setupSpinner'); if(spinner)spinner.classList.remove('hidden');
+      const phase=el('setupPhase'); if(phase){phase.textContent='Connecting…';phase.classList.remove('done','error');}
       state._lastSetupMsgCount=-1;state._lastSetupSugCount=0;
+      pollSetup();
     }else{
       state._setupStarted=false;
       msg.innerHTML=`<span class="muted" style="color:var(--danger);font-size:var(--t-sm)">${escHtml(data.message||'Failed')}</span>`;
@@ -4074,7 +4090,9 @@ async function resetRemoteSetup(){
       toast(r.message||'Could not reset Remote Setup','error');
       return;
     }
-    if(r.profile)state.profile=r.profile;
+    clearDraftValue('linux_ip');
+    clearDraftValue('linux_user');
+    if(r.profile)applyServerProfile(r.profile, ++state._profileRequestSeq);
     state._sshTestOk=false;
     state._setupStarted=false;
     state._setupDone=false;
@@ -4142,7 +4160,7 @@ function updateSetupTerminalUi({success=false, failed=false, label=''}={}){
   const doneBtn=el('setupDone');
   if(doneBtn){
     doneBtn.disabled=!success;
-    doneBtn.textContent=success?'Finish':'Agent stopped';
+    doneBtn.textContent=success?'Finish':'Setup stopped';
   }
   state._setupStarted=false;
   state._setupDone=!!success;
@@ -4170,6 +4188,10 @@ async function pollSetup(){
       if(data.agent_connected||['running','waiting_for_input','stopping'].includes(runStatus)){
         state._setupStarted=true;
         state._setupDone=false;
+        const launch=el('setupLaunch'); if(launch)launch.classList.add('hidden');
+        const panel=el('setupPanel'); if(panel)panel.classList.remove('hidden');
+        const stop=el('setupStopBtn'); if(stop)stop.classList.toggle('hidden', runStatus==='stopping');
+        const spinner=el('setupSpinner'); if(spinner)spinner.classList.remove('hidden');
       }
       const terminalText=latestSetupTerminalText(setupMsgs);
       const terminalFailure=isSetupFailureText(terminalText);
@@ -4211,7 +4233,7 @@ async function pollSetup(){
         if(qa2&&qa2.innerHTML)qa2.innerHTML='';
       }
 
-      if((state._setupStarted||setupHasFeed)&&data.agent_done&&!terminalFailure){
+      if((state._setupStarted||setupHasFeed)&&runStatus==='done'&&!terminalFailure){
         updateSetupTerminalUi({success:true,label:terminalText||'Finished'});
         const btn=el('setupDone');
         if(btn&&btn.disabled){btn.disabled=false;btn.textContent='Finish'}

@@ -119,11 +119,23 @@ class SetupOrchestrator:
                 self.bridge.add_message("agent", f"Finished: {summary}")
                 return summary
             except RuntimeError as exc:
-                summary = f"Setup blocked: {exc}"
-                self.bridge.add_message("agent", f"⚠️ {summary}")
+                stopped = self.bridge.stop_requested
+                summary = str(exc) if stopped else f"Setup blocked: {exc}"
+                if stopped and not summary:
+                    summary = "Agent stopped by user."
+                self.bridge.update_setup_run(
+                    status="stopped" if stopped else "blocked",
+                    waiting_for_input=False,
+                    active_question_id="",
+                    blockers=[] if stopped else [str(exc)],
+                )
+                self.bridge.add_message(
+                    "agent",
+                    f"{'Stopped.' if stopped else '⚠️ ' + summary}",
+                )
                 return summary
         finally:
-            self.bridge.update_setup_run(status="idle", waiting_for_input=False)
+            self.bridge.update_setup_run(waiting_for_input=False, active_question_id="")
 
     def _start_run_state(self) -> None:
         self.bridge.update_setup_run(
@@ -441,6 +453,10 @@ class SetupOrchestrator:
             self.runtime.user = new_user
         self.ctx.system_info = fresh_info
         self._refresh_facts(stage=SetupStage.INSTALL_OR_SKIP)
+        if self.ctx.facts and self.ctx.facts.is_live:
+            raise RuntimeError(
+                "Target reconnected, but it is still reporting a live environment after install reboot."
+            )
         result = audit_stage(
             SetupStage.INSTALL_OR_SKIP,
             self.ctx.facts,
@@ -679,22 +695,36 @@ class SetupOrchestrator:
                 break
             if self.bridge.stop_requested:
                 break
+        if self.bridge.stop_requested and not answered:
+            self.bridge.answer_question(pending.id, "[stopped before answer]")
+            self.bridge.update_setup_run(
+                waiting_for_input=False,
+                active_question_id="",
+                blockers=[],
+                status="stopped",
+            )
+            self.runlog.record(
+                "blocking_question_stopped", stage=stage.value, question_id=pending.id
+            )
+            raise RuntimeError("Agent stopped by user while waiting for an answer.")
+        if not answered:
+            self.bridge.answer_question(pending.id, "[timed out waiting for answer]")
+            self.bridge.update_setup_run(
+                waiting_for_input=False,
+                active_question_id="",
+                blockers=[],
+                status="running",
+            )
+            self.runlog.record(
+                "blocking_question_timeout", stage=stage.value, question_id=pending.id
+            )
+            return None
         self.bridge.update_setup_run(
             waiting_for_input=False,
             active_question_id="",
             blockers=[],
             status="running",
         )
-        if self.bridge.stop_requested and not answered:
-            self.runlog.record(
-                "blocking_question_stopped", stage=stage.value, question_id=pending.id
-            )
-            raise RuntimeError("Agent stopped by user while waiting for an answer.")
-        if not answered:
-            self.runlog.record(
-                "blocking_question_timeout", stage=stage.value, question_id=pending.id
-            )
-            return None
         self.runlog.record(
             "blocking_question_answer",
             stage=stage.value,
@@ -977,7 +1007,16 @@ class SetupOrchestrator:
 
     @staticmethod
     def _is_reboot_command(command: str) -> bool:
-        return bool(re.search(r"(^|[;&|]\s*)(?:sudo\s+)?(?:systemctl\s+)?reboot\b", command))
+        return bool(
+            re.search(
+                r"(^|[;&|]\s*)(?:sudo\s+)?(?:systemctl\s+)?reboot\b"
+                r"|(^|[;&|]\s*)(?:sudo\s+)?shutdown\s+-r\b"
+                r"|(^|[;&|]\s*)(?:sudo\s+)?(?:telinit|init)\s+6\b"
+                r"|(^|[;&|]\s*)(?:sudo\s+)?kexec\s+-e\b"
+                r"|(^|[;&|]\s*)(?:sudo\s+)?sh\s+-c\s+['\"]?echo\s+[a-z]*b\s*>\s*/proc/sysrq-trigger",
+                command,
+            )
+        )
 
     @staticmethod
     def _extract_created_user(command: str) -> str | None:

@@ -184,6 +184,15 @@ def _normalize_app_items(raw: Any, requested: list[str]) -> list[AppPlanItem]:
             bool(item.get("optional_slow", False)) or package_name in _OPTIONAL_SLOW_PACKAGES
         )
         status = _coerce_status(item.get("status"))
+        if status in {
+            PlanItemStatus.INSTALLED,
+            PlanItemStatus.COMPLETED,
+            PlanItemStatus.IN_PROGRESS,
+        }:
+            # The planner is a plan, not evidence. Execution/audit code
+            # must prove installed/completed state from commands or remote
+            # package verification before final success can rely on it.
+            status = PlanItemStatus.PENDING
         if optional_slow and status == PlanItemStatus.PENDING:
             status = PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION
         items.append(

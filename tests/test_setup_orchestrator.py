@@ -102,10 +102,9 @@ def test_orchestrator_blocks_on_required_planning_question():
 
     assert "unanswered required questions" in summary.lower()
     setup_run = bridge.snapshot_setup_run()
-    assert setup_run["status"] == "idle"
+    assert setup_run["status"] == "blocked"
     pending = bridge.get_pending_questions()
-    assert len(pending) == 1
-    assert pending[0].blocking is True
+    assert pending == []
 
 
 def test_orchestrator_continues_after_answered_required_planning_question():
@@ -1068,8 +1067,7 @@ def test_orchestrator_blocks_when_required_repair_question_times_out():
 
     assert "required item" in summary.lower()
     pending = bridge.get_pending_questions()
-    assert len(pending) == 1
-    assert pending[0].blocking is True
+    assert pending == []
 
 
 def test_orchestrator_stop_interrupts_blocking_repair_question():

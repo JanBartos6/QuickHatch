@@ -243,18 +243,32 @@ def match_catalog_entry(app_name: str) -> AppCatalogEntry | None:
     if not normalized:
         return None
 
+    def rank(entry: AppCatalogEntry) -> tuple[int, int, int]:
+        source_score = 0
+        if entry.id.startswith("legacy:") or entry.source_hint == "curated":
+            source_score = 30
+        elif entry.id.startswith("override:") or entry.source_hint == "override":
+            source_score = 40
+        confidence_score = {"high": 3, "medium": 2, "low": 1}.get(entry.confidence.lower(), 0)
+        compatibility_score = 10 if entry.compatibility != "unknown" else 0
+        return source_score, compatibility_score, confidence_score
+
     exact: dict[str, AppCatalogEntry] = {}
     for entry in load_catalog():
         for alias in (entry.name, *entry.match_names):
             alias_norm = _normalize_name(alias)
-            if alias_norm:
-                exact.setdefault(alias_norm, entry)
+            if not alias_norm:
+                continue
+            current = exact.get(alias_norm)
+            if current is None or rank(entry) > rank(current):
+                exact[alias_norm] = entry
     if normalized in exact:
         return exact[normalized]
 
     # Phrase-level fallback for scanned names like "Brave Browser" or
     # "Mozilla Firefox ESR". Avoid one/two-letter aliases and do not match
     # arbitrary substrings inside larger words ("git" in "LegitApp").
+    best: AppCatalogEntry | None = None
     for entry in load_catalog():
         for alias in (entry.name, *entry.match_names):
             alias_norm = _normalize_name(alias)
@@ -262,8 +276,9 @@ def match_catalog_entry(app_name: str) -> AppCatalogEntry | None:
                 continue
             pattern = rf"(?<![a-z0-9]){re.escape(alias_norm)}(?![a-z0-9])"
             if re.search(pattern, normalized):
-                return entry
-    return None
+                if best is None or rank(entry) > rank(best):
+                    best = entry
+    return best
 
 
 def is_gaming_launcher_or_tool(app_name: str) -> bool:

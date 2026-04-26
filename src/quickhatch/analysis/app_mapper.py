@@ -156,7 +156,7 @@ def map_apps(apps: list[AppInfo]) -> list[AppInfo]:
             continue
 
         catalog_entry = match_catalog_entry(app.name)
-        if catalog_entry is not None:
+        if catalog_entry is not None and catalog_entry.compatibility != "unknown":
             app.linux_alternative = ", ".join(catalog_entry.alternatives)
             app.compatibility = catalog_entry.compatibility
             details = [
