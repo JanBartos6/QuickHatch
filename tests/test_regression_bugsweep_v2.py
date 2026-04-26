@@ -456,6 +456,18 @@ class TestFrontendProfileSync:
         )
         assert question_idx < chat_idx < suggestions_idx
 
+    def test_setup_chat_composer_is_above_results(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        question_idx = html.index('<div id="setupQuestions"></div>')
+        chat_idx = html.index('<input type="text" id="setupChat" placeholder="Message the agent…"')
+        results_idx = html.index(
+            '<div class="suggestions-section hidden" id="setupSuggestionsSection">'
+        )
+        assert question_idx < chat_idx < results_idx
+
     def test_recommendation_cards_are_collapsible_and_auto_open_latest(self):
         from pathlib import Path
 

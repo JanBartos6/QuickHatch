@@ -2464,14 +2464,14 @@ const stepRenderers={
 
         <div id="setupQuestions"></div>
 
-        <div class="suggestions-section hidden" id="setupSuggestionsSection">
-          <h3 class="section-heading">Results</h3>
-          <div id="setupFeed"></div>
-        </div>
-
         <div class="chat-composer">
           <input type="text" id="setupChat" placeholder="Message the agent…" onkeydown="if(event.key==='Enter')sendSetupChat()">
           <button class="btn btn-ghost" onclick="sendSetupChat()">Send</button>
+        </div>
+
+        <div class="suggestions-section hidden" id="setupSuggestionsSection">
+          <h3 class="section-heading">Results</h3>
+          <div id="setupFeed"></div>
         </div>
 
         <div class="btn-row">
