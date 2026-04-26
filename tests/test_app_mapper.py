@@ -227,6 +227,9 @@ class TestCuratedCatalog:
             AppInfo(name="Heroic Games Launcher", source="winget"),
             AppInfo(name="Cyberpunk 2077", source="registry"),
             AppInfo(name="Elden Ring", source="registry"),
+            AppInfo(name="Dwarf Fortress Classic", source="winget"),
+            AppInfo(name="Etterna", source="winget"),
+            AppInfo(name="Enigma", source="winget"),
             AppInfo(name="Discord", source="winget"),
         ]
 
@@ -237,6 +240,9 @@ class TestCuratedCatalog:
         assert "Discord" in names
         assert "Cyberpunk 2077" not in names
         assert "Elden Ring" not in names
+        assert "Dwarf Fortress Classic" not in names
+        assert "Etterna" not in names
+        assert "Enigma" not in names
 
     def test_scan_ui_explains_game_filtering(self):
         from pathlib import Path

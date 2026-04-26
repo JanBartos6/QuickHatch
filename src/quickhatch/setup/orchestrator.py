@@ -25,6 +25,7 @@ from .planner import (
     extract_repair_action,
     extract_research_plan,
 )
+from .preflight import preflight_setup_command
 from .runlog import SetupRunLogger
 from .types import (
     AuditResult,
@@ -757,6 +758,26 @@ class SetupOrchestrator:
                     command=command,
                 )
                 continue
+            lint_error = preflight_setup_command(command, self.ctx.facts or SetupFacts())
+            if lint_error:
+                self.bridge.add_message(
+                    "agent",
+                    f"[harness] 🛑 Command blocked: `{command}`\n{lint_error}",
+                )
+                self.runlog.record(
+                    "command_preflight_blocked",
+                    stage=stage.value,
+                    group_id=group.id,
+                    command=command,
+                    reason=lint_error,
+                )
+                return GroupFailure(
+                    failure_type="preflight",
+                    command=command,
+                    stdout="",
+                    stderr="",
+                    detail=lint_error,
+                )
             rc, stdout, stderr = self.runtime.ssh_exec(command, self._command_timeout(command))
             self.ctx.results_log.append(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
             self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]

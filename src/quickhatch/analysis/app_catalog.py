@@ -287,17 +287,29 @@ def is_gaming_launcher_or_tool(app_name: str) -> bool:
     return bool(_GAMING_LAUNCHER_RE.search(app_name or ""))
 
 
+def _catalog_marks_individual_game(app_name: str) -> bool:
+    entry = match_catalog_entry(app_name)
+    if entry is None:
+        return False
+    if not (entry.category or "").lower().startswith("gaming"):
+        return False
+    names = [entry.name, *entry.match_names]
+    if any(is_gaming_launcher_or_tool(name) for name in names):
+        return False
+    return True
+
+
 def is_individual_game(app_name: str) -> bool:
     """Best-effort filter for game titles.
 
     QuickHatch should migrate launchers/tools, not individual Steam/Epic
-    libraries. This deliberately catches common titles only; unknowns stay
-    visible so users can decide.
+    libraries. Regex handles common titles; catalog metadata catches
+    generated game rows without hiding launchers/tools.
     """
 
     if not app_name or is_gaming_launcher_or_tool(app_name):
         return False
-    return bool(_INDIVIDUAL_GAME_RE.search(app_name))
+    return bool(_INDIVIDUAL_GAME_RE.search(app_name)) or _catalog_marks_individual_game(app_name)
 
 
 def filter_migration_apps(apps: list[Any]) -> list[Any]:

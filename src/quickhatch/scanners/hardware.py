@@ -5,6 +5,7 @@ from __future__ import annotations
 import ctypes
 import json
 import platform
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -625,14 +626,21 @@ def _get_displays() -> list[DisplayInfo]:
                 errors="replace",
                 timeout=10,
             )
+            current: DisplayInfo | None = None
             for line in (result.stdout or "").splitlines():
                 if " connected" not in line:
+                    if current is not None and "*" in line:
+                        match = re.search(r"(\d+(?:\.\d+)?)\*", line)
+                        if match:
+                            try:
+                                current.refresh_hz = float(match.group(1))
+                            except ValueError:
+                                pass
                     continue
                 parts = line.split()
                 name = parts[0]
                 primary = " primary " in f" {line} "
                 width = height = 0
-                refresh = None
                 for token in parts:
                     if "+" in token and "x" in token:
                         mode = token.split("+", 1)[0]
@@ -642,16 +650,15 @@ def _get_displays() -> list[DisplayInfo]:
                             except ValueError:
                                 width = height = 0
                         break
-                displays.append(
-                    DisplayInfo(
-                        name=name,
-                        width_px=width,
-                        height_px=height,
-                        refresh_hz=refresh,
-                        primary=primary,
-                        source_platform="linux",
-                    )
+                current = DisplayInfo(
+                    name=name,
+                    width_px=width,
+                    height_px=height,
+                    refresh_hz=None,
+                    primary=primary,
+                    source_platform="linux",
                 )
+                displays.append(current)
         except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
             pass
     return displays

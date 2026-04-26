@@ -223,6 +223,29 @@ class TestDisplayScanner:
         assert "d.refresh_hz" in html
         assert "d.scale_percent" in html
 
+    def test_linux_xrandr_parser_captures_active_refresh(self, monkeypatch):
+        from quickhatch.scanners import hardware as hardware_mod
+
+        output = """HDMI-A-1 connected primary 3840x2160+0+0 (normal left inverted right x axis y axis) 600mm x 340mm
+   3840x2160     60.00*+  30.00
+   2560x1440     59.95
+"""
+
+        def fake_run(*_args, **_kwargs):
+            return SimpleNamespace(stdout=output)
+
+        monkeypatch.setattr(sys, "platform", "linux")
+        monkeypatch.setattr(hardware_mod.subprocess, "run", fake_run)
+
+        displays = hardware_mod._get_displays()
+
+        assert len(displays) == 1
+        assert displays[0].name == "HDMI-A-1"
+        assert displays[0].width_px == 3840
+        assert displays[0].height_px == 2160
+        assert displays[0].refresh_hz == 60.0
+        assert displays[0].primary is True
+
 
 # ---------------------------------------------------------------------------
 # files scanner smoke test
