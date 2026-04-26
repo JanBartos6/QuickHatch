@@ -183,7 +183,9 @@ def _parse_strategy(raw: Any, field_name: str) -> StrategyDecision:
 def _clean_shell_commands(raw: Any, *, field_name: str) -> list[str]:
     if raw is None:
         return []
-    if not isinstance(raw, list):
+    if isinstance(raw, str):
+        raw = [raw]
+    elif not isinstance(raw, list):
         raise ResearchPlanValidationError(f"{field_name} must be a list of shell commands.")
     commands: list[str] = []
     for index, item in enumerate(raw):

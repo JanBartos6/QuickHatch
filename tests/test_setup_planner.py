@@ -133,6 +133,16 @@ def test_extract_research_plan_rejects_one_letter_group_verification():
         extract_research_plan(json.dumps(payload), profile)
 
 
+def test_extract_research_plan_accepts_single_string_group_verification():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["command_groups"][0]["verification"] = "nvidia-smi"
+
+    plan = extract_research_plan(json.dumps(payload), profile)
+
+    assert plan.command_groups[0].verification == ["nvidia-smi"]
+
+
 def test_extract_research_plan_rejects_one_letter_stage_verification():
     profile = UserProfile()
     payload = _base_plan_payload()
@@ -140,6 +150,16 @@ def test_extract_research_plan_rejects_one_letter_stage_verification():
 
     with pytest.raises(ResearchPlanValidationError, match="not a real shell command"):
         extract_research_plan(json.dumps(payload), profile)
+
+
+def test_extract_research_plan_accepts_single_string_stage_verification():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["verification_commands"] = {"postboot_driver": "nvidia-smi"}
+
+    plan = extract_research_plan(json.dumps(payload), profile)
+
+    assert plan.verification_commands["postboot_driver"] == ["nvidia-smi"]
 
 
 def test_extract_research_plan_normalizes_common_install_substages():
