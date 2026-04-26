@@ -27,6 +27,14 @@ def _base_plan_payload() -> dict:
             "packages": ["nvidia-open", "nvidia-utils"],
             "services": ["nvidia-persistenced"],
             "notes": "Use official packages.",
+            "evidence": [
+                {
+                    "source_type": "repo_search",
+                    "query": "pacman -Ss nvidia-open",
+                    "summary": "Arch repo exposes nvidia-open and nvidia-utils.",
+                    "confidence": "high",
+                }
+            ],
         },
         "desktop_strategy": {
             "strategy": "plasma",
@@ -35,6 +43,14 @@ def _base_plan_payload() -> dict:
             "packages": ["plasma-desktop", "sddm"],
             "services": ["sddm"],
             "notes": "Use KDE Plasma.",
+            "evidence": [
+                {
+                    "source_type": "repo_search",
+                    "query": "pacman -Ss plasma-desktop sddm",
+                    "summary": "Arch repo exposes Plasma and SDDM packages.",
+                    "confidence": "high",
+                }
+            ],
         },
         "command_groups": [
             {
@@ -46,6 +62,14 @@ def _base_plan_payload() -> dict:
                 "rationale": "Install current official driver stack.",
                 "source": "repo",
                 "packages": ["nvidia-open", "nvidia-utils"],
+                "evidence": [
+                    {
+                        "source_type": "repo_search",
+                        "query": "pacman -Ss nvidia-open",
+                        "summary": "nvidia-open is available in official repositories.",
+                        "confidence": "high",
+                    }
+                ],
             }
         ],
         "apps": [
@@ -56,6 +80,14 @@ def _base_plan_payload() -> dict:
                 "status": "pending",
                 "required": True,
                 "optional_slow": False,
+                "evidence": [
+                    {
+                        "source_type": "community_search",
+                        "query": "brave-bin",
+                        "summary": "Brave is packaged through the Arch user repository.",
+                        "confidence": "high",
+                    }
+                ],
             },
             {
                 "name": "ChatGPT",
@@ -64,6 +96,14 @@ def _base_plan_payload() -> dict:
                 "status": "pending",
                 "required": False,
                 "optional_slow": True,
+                "evidence": [
+                    {
+                        "source_type": "community_search",
+                        "query": "chatgpt desktop arch",
+                        "summary": "Desktop wrapper is community packaged and slow/optional.",
+                        "confidence": "medium",
+                    }
+                ],
             },
         ],
         "unresolved_questions": [],
@@ -81,7 +121,10 @@ def test_extract_research_plan_parses_valid_json():
 
     assert plan.distro_family == "arch"
     assert plan.command_groups[0].stage == SetupStage.POSTBOOT_DRIVER
+    assert plan.command_groups[0].evidence[0].source_type == "repo_search"
+    assert plan.driver_strategy.evidence[0].confidence == "high"
     assert plan.apps[0].name == "Brave"
+    assert plan.apps[0].evidence[0].source_type == "community_search"
     assert plan.apps[1].status == PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION
 
 
@@ -132,6 +175,15 @@ def test_extract_research_plan_rejects_one_letter_group_verification():
     payload["command_groups"][0]["verification"] = ["a"]
 
     with pytest.raises(ResearchPlanValidationError, match="not a real shell command"):
+        extract_research_plan(json.dumps(payload), profile)
+
+
+def test_extract_research_plan_rejects_malformed_group_evidence():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["command_groups"][0]["evidence"] = [{"source_type": "repo_search"}]
+
+    with pytest.raises(ResearchPlanValidationError, match="needs source_type and summary"):
         extract_research_plan(json.dumps(payload), profile)
 
 
@@ -263,6 +315,8 @@ def test_build_research_prompt_includes_selected_app_catalog():
     assert "active_install_hint" in prompt
     assert "Do not invent stages such as disk_prepare" in prompt
     assert "Prefer `yay` for AUR packages when no helper is detected" in prompt
+    assert "evidence entries are objects" in prompt
+    assert "provider_native_search" in prompt
 
 
 def test_build_research_prompt_uses_target_distro_over_live_facts(monkeypatch):

@@ -1403,6 +1403,86 @@ def test_repair_keeps_provider_native_search_enabled_when_available():
     assert "Harness search actions are still allowed" in seen_prompt[0]
 
 
+def test_repair_rejects_retry_without_search_or_evidence_for_package_failures():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+    )
+    model_calls = {"count": 0}
+    repo_searches: list[str] = []
+
+    def model_call(_cfg, messages):
+        model_calls["count"] += 1
+        if model_calls["count"] == 1:
+            return json.dumps(
+                {
+                    "action": "retry_group",
+                    "group": {
+                        "id": "apps-1-repair",
+                        "stage": "apps",
+                        "title": "Guess another package",
+                        "commands": ["yay -S --noconfirm brave-browser-bin"],
+                    },
+                }
+            )
+        if model_calls["count"] == 2:
+            assert "Do not retry this package/driver/desktop/app failure" in messages[-1]["content"]
+            return json.dumps(
+                {
+                    "action": "repo_search",
+                    "query": "brave arch package",
+                    "reason": "Need current package evidence before retry.",
+                }
+            )
+        assert "[repo_search]" in messages[-1]["content"]
+        return json.dumps(
+            {
+                "action": "retry_group",
+                "group": {
+                    "id": "apps-1-repair",
+                    "stage": "apps",
+                    "title": "Install Brave with evidence",
+                    "commands": ["yay -S --noconfirm brave-bin"],
+                },
+            }
+        )
+
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.call_model_text = model_call
+    runtime.repo_search = lambda query: repo_searches.append(query) or "brave-bin"
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+
+    action = orchestrator._repair_failed_group(
+        SetupStage.APPS,
+        CommandGroup(
+            id="apps-1",
+            stage=SetupStage.APPS,
+            title="Install Brave",
+            commands=["yay -S --noconfirm brave-browser-bin"],
+            packages=["brave-bin"],
+        ),
+        GroupFailure(
+            failure_type="command",
+            command="yay -S --noconfirm brave-browser-bin",
+            stdout="",
+            stderr="target not found: brave-browser-bin",
+            detail="target not found",
+        ),
+        repair_attempt=1,
+    )
+
+    assert action["action"] == "retry_group"
+    assert action["group"].commands == ["yay -S --noconfirm brave-bin"]
+    assert repo_searches == ["brave arch package"]
+    assert model_calls["count"] == 3
+
+
 def test_orchestrator_does_not_run_stage_verifications_per_group():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
@@ -1581,6 +1661,12 @@ def test_orchestrator_retries_malformed_repair_json():
                     "commands": ["echo repaired brave install"],
                     "verification": [],
                     "packages": ["brave-bin"],
+                    "evidence": [
+                        {
+                            "source_type": "local_facts",
+                            "summary": "This test exercises parser recovery, not package resolution.",
+                        }
+                    ],
                 },
             }
         )

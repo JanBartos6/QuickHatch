@@ -49,6 +49,16 @@ class DisplayRuntimeInfo:
 
 
 @dataclass
+class PlanEvidence:
+    source_type: str
+    summary: str
+    query: str = ""
+    url: str = ""
+    title: str = ""
+    confidence: str = "medium"
+
+
+@dataclass
 class StrategyDecision:
     strategy: str
     confidence: str = "manual_followup_required"
@@ -56,6 +66,7 @@ class StrategyDecision:
     packages: list[str] = field(default_factory=list)
     services: list[str] = field(default_factory=list)
     notes: str = ""
+    evidence: list[PlanEvidence] = field(default_factory=list)
 
 
 @dataclass
@@ -67,6 +78,7 @@ class AppPlanItem:
     required: bool = False
     optional_slow: bool = False
     reason: str = ""
+    evidence: list[PlanEvidence] = field(default_factory=list)
 
 
 @dataclass
@@ -82,6 +94,7 @@ class CommandGroup:
     optional: bool = False
     optional_slow: bool = False
     status: PlanItemStatus = PlanItemStatus.PENDING
+    evidence: list[PlanEvidence] = field(default_factory=list)
 
 
 @dataclass

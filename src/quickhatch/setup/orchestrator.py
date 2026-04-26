@@ -1325,6 +1325,7 @@ class SetupOrchestrator:
             prompt=prompt,
         )
         messages = [{"role": "user", "content": prompt}]
+        search_performed = False
         for turn in range(1, self.MAX_REPAIR_TURNS + 1):
             response_text = self._repair_model_call(messages)
             self.runlog.record(
@@ -1374,6 +1375,7 @@ class SetupOrchestrator:
                 action=action["action"],
             )
             if action["action"] in {"repo_search", "community_search", "web_search"}:
+                search_performed = True
                 result = self._repair_search_result(action)
                 messages = [
                     {"role": "user", "content": prompt},
@@ -1409,8 +1411,72 @@ class SetupOrchestrator:
                     {"role": "user", "content": answer_text},
                 ]
                 continue
+            if (
+                action["action"] == "retry_group"
+                and self._repair_requires_research(stage, failed_group, failure)
+                and not search_performed
+                and not action["group"].evidence
+            ):
+                self.runlog.record(
+                    "repair_retry_rejected_missing_evidence",
+                    stage=stage.value,
+                    group_id=failed_group.id,
+                    repair_attempt=repair_attempt,
+                    repair_turn=turn,
+                )
+                messages = [
+                    {"role": "user", "content": prompt},
+                    {"role": "assistant", "content": response_text},
+                    {
+                        "role": "user",
+                        "content": (
+                            "[quickhatch repair policy]\n"
+                            "Do not retry this package/driver/desktop/app failure without fresh evidence. "
+                            "First return repo_search, community_search, or web_search; or return retry_group "
+                            "with group.evidence explaining the current source-backed basis for each changed command."
+                        ),
+                    },
+                ]
+                continue
             return action
         raise RuntimeError(f"Repair loop exhausted for '{failed_group.title}'.")
+
+    @staticmethod
+    def _repair_requires_research(
+        stage: SetupStage, failed_group: CommandGroup, failure: GroupFailure
+    ) -> bool:
+        text = " ".join(
+            [
+                stage.value,
+                failed_group.title,
+                failed_group.source,
+                failure.command,
+                failure.detail,
+                " ".join(failed_group.packages),
+            ]
+        ).lower()
+        if stage in {SetupStage.POSTBOOT_DRIVER, SetupStage.DESKTOP, SetupStage.APPS}:
+            return True
+        return any(
+            marker in text
+            for marker in (
+                "pacman",
+                "apt",
+                "dnf",
+                "zypper",
+                "apk",
+                "xbps",
+                "emerge",
+                "package",
+                "driver",
+                "nvidia",
+                "theme",
+                "desktop",
+                "aur",
+                "yay",
+                "paru",
+            )
+        )
 
     def _mark_optional_apps_manual_followup(self, group: CommandGroup) -> None:
         if not self.ctx.plan:

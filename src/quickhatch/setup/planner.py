@@ -12,6 +12,7 @@ from quickhatch.config import UserProfile
 from .types import (
     AppPlanItem,
     CommandGroup,
+    PlanEvidence,
     PlanItemStatus,
     ResearchPlan,
     SetupFacts,
@@ -187,7 +188,40 @@ def _parse_strategy(raw: Any, field_name: str) -> StrategyDecision:
         packages=list(raw.get("packages", []) or []),
         services=list(raw.get("services", []) or []),
         notes=str(raw.get("notes", "") or ""),
+        evidence=_parse_evidence(raw.get("evidence", []), field_name=f"{field_name}.evidence"),
     )
+
+
+def _parse_evidence(raw: Any, *, field_name: str) -> list[PlanEvidence]:
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        raw = [{"source_type": "note", "summary": raw}]
+    if not isinstance(raw, list):
+        raise ResearchPlanValidationError(f"{field_name} must be a list of evidence objects.")
+    evidence: list[PlanEvidence] = []
+    for index, item in enumerate(raw):
+        if isinstance(item, str):
+            item = {"source_type": "note", "summary": item}
+        if not isinstance(item, dict):
+            raise ResearchPlanValidationError(f"{field_name}[{index}] must be an evidence object.")
+        source_type = str(item.get("source_type", item.get("type", "")) or "").strip()
+        summary = str(item.get("summary", item.get("result", "")) or "").strip()
+        if not source_type or not summary:
+            raise ResearchPlanValidationError(
+                f"{field_name}[{index}] needs source_type and summary."
+            )
+        evidence.append(
+            PlanEvidence(
+                source_type=source_type,
+                summary=summary,
+                query=str(item.get("query", "") or ""),
+                url=str(item.get("url", "") or ""),
+                title=str(item.get("title", "") or ""),
+                confidence=str(item.get("confidence", "medium") or "medium"),
+            )
+        )
+    return evidence
 
 
 def _clean_shell_commands(raw: Any, *, field_name: str) -> list[str]:
@@ -244,6 +278,10 @@ def _parse_command_group(item: Any) -> CommandGroup:
         optional=bool(item.get("optional", False)),
         optional_slow=bool(item.get("optional_slow", False)),
         status=_coerce_status(item.get("status")),
+        evidence=_parse_evidence(
+            item.get("evidence", []),
+            field_name=f"command_groups[{gid or title or '?'}].evidence",
+        ),
     )
 
 
@@ -294,6 +332,10 @@ def _normalize_app_items(raw: Any, requested: list[str]) -> list[AppPlanItem]:
                 required=bool(item.get("required", name in requested)),
                 optional_slow=optional_slow,
                 reason=str(item.get("reason", "") or ""),
+                evidence=_parse_evidence(
+                    item.get("evidence", []),
+                    field_name=f"apps[{name}].evidence",
+                ),
             )
         )
     requested_lower = {name.lower(): name for name in requested}
@@ -407,10 +449,11 @@ def build_research_prompt(
         "- target_summary (string)\n"
         "- distro_family (string)\n"
         "- package_manager (string)\n"
-        "- driver_strategy (object: strategy, confidence, source, packages, services, notes)\n"
-        "- desktop_strategy (object: strategy, confidence, source, packages, services, notes)\n"
-        "- command_groups (non-empty list; each item: id, stage, title, commands, verification, rationale, source, packages, optional, optional_slow)\n"
-        "- apps (list; each item: name, package_name, source, status, required, optional_slow, reason)\n"
+        "- driver_strategy (object: strategy, confidence, source, packages, services, notes, evidence)\n"
+        "- desktop_strategy (object: strategy, confidence, source, packages, services, notes, evidence)\n"
+        "- command_groups (non-empty list; each item: id, stage, title, commands, verification, rationale, source, packages, optional, optional_slow, evidence)\n"
+        "- apps (list; each item: name, package_name, source, status, required, optional_slow, reason, evidence)\n"
+        "- evidence entries are objects: {source_type, summary, query, url, title, confidence}. Use source_type values such as repo_search, community_search, web_search, provider_native_search, official_docs, distro_primer, selected_app_catalog, local_facts, or user_profile.\n"
         "- unresolved_questions (list of objects with question, required, choices)\n"
         "- verification_commands (object keyed by stage)\n"
         "- required_items (list)\n"
@@ -422,6 +465,8 @@ def build_research_prompt(
         "- Put driver/GPU work under postboot_driver, display manager/theme/runtime desktop work under desktop, and requested application installs under apps.\n"
         "- No mutating work can happen before research_and_plan finishes.\n"
         "- `commands`, command-group `verification`, and `verification_commands` must contain executable shell commands only. Do not write prose like `lsblk should show ...`; use commands such as `mountpoint /mnt` or `lsblk /dev/sda | grep -q '/mnt'`.\n"
+        "- Every driver_strategy, desktop_strategy, command group, and resolved app SHOULD include evidence. If you used provider-native search, cite it as provider_native_search with a query/summary. If you used harness search results, cite repo_search/community_search/web_search. If an item only comes from local facts/user preference/catalog, cite local_facts/user_profile/selected_app_catalog and keep confidence honest.\n"
+        "- Do not invent source URLs. If only native search was used and you do not have a URL, leave url empty and include query + summary.\n"
         "- Use official repos by default; only use community sources when needed and explicit.\n"
         "- On Arch, do not ask the user solely because `yay`/`paru` is absent. Prefer `yay` for AUR packages when no helper is detected; the harness can bootstrap it before execution. Avoid `paru` unless facts show it is installed.\n"
         "- Classify slow desktop wrappers (ChatGPT/Claude/Codex desktop wrappers, Electron bundle wrappers, etc.) as optional_slow.\n"
@@ -554,7 +599,9 @@ def build_repair_prompt(
         "Rules:\n"
         "- Repair only the current failed group; do not redesign the whole run.\n"
         f"- {search_mode}"
-        "- Prefer repo/community search over guessing package names.\n"
+        "- Search-first repair policy: for package, driver, desktop/theme, display, or app failures, your first repair action should normally be repo_search, community_search, or web_search. Do not guess another command until you have fresh evidence or the failure is obviously local state/permissions.\n"
+        "- Prefer repo/community/web search over guessing package names.\n"
+        "- If you emit retry_group, include evidence on the replacement group unless the failure was purely local state/permissions. Evidence entries use {source_type, summary, query, url, title, confidence}.\n"
         "- If a desktop wrapper or other slow optional app is the problem, prefer manual_followup unless truly necessary.\n"
         "- If you emit retry_group, keep it scoped to this stage and include at least one command.\n"
         "- Do not emit final success prose.\n\n"
