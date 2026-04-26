@@ -816,9 +816,7 @@ class SetupOrchestrator:
                     detail=detail,
                 )
             self._update_from_command(command, stdout, stderr, stage=stage)
-        for verification in list(group.verification) + list(
-            self.ctx.plan.verification_commands.get(stage.value, [])
-        ):
+        for verification in group.verification:
             rc, stdout, stderr = self.runtime.ssh_exec(verification, 120)
             self.runlog.record(
                 "verification",

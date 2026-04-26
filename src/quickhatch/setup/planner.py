@@ -86,6 +86,16 @@ _PLACEHOLDER_COMMANDS = {
     "pass",
 }
 
+_PROSE_COMMAND_MARKERS = (
+    " should ",
+    " must ",
+    " needs to ",
+    " verify that ",
+    " ensure that ",
+    " confirm that ",
+    " expected ",
+)
+
 
 class ResearchPlanValidationError(ValueError):
     """Raised when planner output is malformed or incomplete."""
@@ -197,6 +207,7 @@ def _clean_shell_commands(raw: Any, *, field_name: str) -> list[str]:
             len(command) < 3
             or (len(command) == 1 and command.isalpha())
             or normalized in _PLACEHOLDER_COMMANDS
+            or any(marker in f" {normalized} " for marker in _PROSE_COMMAND_MARKERS)
         ):
             raise ResearchPlanValidationError(
                 f"{field_name}[{index}] is not a real shell command: {command!r}."
@@ -417,6 +428,7 @@ def build_research_prompt(
         "- Put disk partitioning, formatting, mounting, base install, chroot configuration, initramfs, bootloader, and install reboot work under install_or_skip. Do not invent stages such as disk_prepare, partitioning, chroot, bootloader, or base_install.\n"
         "- Put driver/GPU work under postboot_driver, display manager/theme/runtime desktop work under desktop, and requested application installs under apps.\n"
         "- No mutating work can happen before research_and_plan finishes.\n"
+        "- `commands`, command-group `verification`, and `verification_commands` must contain executable shell commands only. Do not write prose like `lsblk should show ...`; use commands such as `mountpoint /mnt` or `lsblk /dev/sda | grep -q '/mnt'`.\n"
         "- Use official repos by default; only use community sources when needed and explicit.\n"
         "- Classify slow desktop wrappers (ChatGPT/Claude/Codex desktop wrappers, Electron bundle wrappers, etc.) as optional_slow.\n"
         "- Use selected_app_catalog as curated prior knowledge for selected apps. Prefer high-confidence source_hint values and active_install_hint when its family matches the target distro.\n"

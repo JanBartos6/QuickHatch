@@ -680,6 +680,99 @@ def test_orchestrator_repairs_failed_command_group_with_search_and_retry():
     assert "Installed/configured: Brave" in summary
 
 
+def test_orchestrator_does_not_run_stage_verifications_per_group():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        session_type="wayland",
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    )
+    commands_seen: list[str] = []
+    plan_payload = {
+        "target_summary": "Arch workstation.",
+        "distro_family": "arch",
+        "package_manager": "pacman",
+        "driver_strategy": {
+            "strategy": "no_special_driver",
+            "confidence": "resolved_official",
+            "source": "official",
+            "packages": [],
+            "services": [],
+            "notes": "",
+        },
+        "desktop_strategy": {
+            "strategy": "plasma",
+            "confidence": "resolved_official",
+            "source": "official",
+            "packages": ["plasma-desktop"],
+            "services": ["sddm"],
+            "notes": "",
+        },
+        "command_groups": [
+            {
+                "id": "desktop-1",
+                "stage": "desktop",
+                "title": "Persist desktop config",
+                "commands": [
+                    "kwriteconfig6 --file kdeglobals --group Icons --key Theme candy-icons"
+                ],
+                "verification": [],
+                "rationale": "",
+                "source": "repo",
+                "packages": [],
+            }
+        ],
+        "apps": [],
+        "unresolved_questions": [],
+        "verification_commands": {"desktop": ["bad global verifier"]},
+        "required_items": ["desktop"],
+        "optional_items": [],
+        "planner_revision": 1,
+    }
+
+    def ssh_exec(command, _timeout):
+        commands_seen.append(command)
+        if command == "bad global verifier":
+            return (1, "", "should not run per command group")
+        return (0, "", "")
+
+    runtime = SetupRuntime(
+        profile=profile,
+        bridge=bridge,
+        config=AIConfig(provider="api_openai", endpoint="http://example", model_name="test"),
+        host="127.0.0.1",
+        user="jan",
+        ssh_port=22,
+        key_path=None,
+        system_info_fn=lambda: "system info",
+        call_model_text=lambda cfg, messages: json.dumps(plan_payload),
+        probe_facts=lambda **kwargs: facts,
+        detect_live_env=lambda: (False, "INSTALLED"),
+        ssh_exec=ssh_exec,
+        repo_search=lambda query: "",
+        community_search=lambda query: "",
+        web_search=lambda query, max_results: "",
+        wait_for_reconnect=lambda reconnect_user: (True, "fresh info", reconnect_user),
+        run_pre_reboot_checks=lambda: (True, [], ""),
+        smoke_test_preboot_script=lambda: None,
+        bootstrap_nopasswd_sudo=lambda current: current,
+        runtime_prompt_block=lambda current, is_live: "",
+        migration_plan_md="",
+        distro_primer_md="",
+        native_search_active=False,
+    )
+
+    summary = SetupOrchestrator(runtime).run()
+
+    assert "bad global verifier" not in commands_seen
+    assert "Arch workstation" in summary
+
+
 def test_orchestrator_retries_malformed_repair_json():
     profile = UserProfile(apps_to_install=["Brave"])
     bridge = BridgeState(profile, persist_path=None)
