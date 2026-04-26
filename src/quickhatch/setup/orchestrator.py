@@ -797,6 +797,7 @@ class SetupOrchestrator:
                     stderr="",
                     detail=lint_error,
                 )
+            self.bridge.add_message("agent", f"`{command}`")
             rc, stdout, stderr = self.runtime.ssh_exec(command, self._command_timeout(command))
             self.ctx.results_log.append(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
             self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
@@ -832,6 +833,7 @@ class SetupOrchestrator:
                 )
             self._update_from_command(command, stdout, stderr, stage=stage)
         for verification in group.verification:
+            self.bridge.add_message("agent", f"`{verification}` — verify")
             rc, stdout, stderr = self.runtime.ssh_exec(verification, 120)
             self.runlog.record(
                 "verification",

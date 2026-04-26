@@ -649,6 +649,8 @@ def test_live_install_injects_disk_cleanup_before_destructive_partitioning():
     parted_index = commands.index("parted -s /dev/sda mklabel gpt")
     assert commands[parted_index - 2] == "mountpoint -q /mnt && umount -R /mnt || true"
     assert commands[parted_index - 1] == "swapoff -a || true"
+    messages = [message["content"] for message in bridge.messages]
+    assert "`parted -s /dev/sda mklabel gpt`" in messages
     assert "Arch live install" in summary
 
 
