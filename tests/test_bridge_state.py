@@ -284,6 +284,27 @@ class TestSetupRunState:
         assert setup_run["active_question_id"] == ""
         assert restored.get_pending_questions() == []
 
+    def test_clear_setup_log_resets_setup_run_state(self, state):
+        state.update_setup_run(
+            run_id="run123",
+            stage="research_and_plan",
+            status="blocked",
+            blockers=["old blocker"],
+            waiting_for_input=False,
+            active_question_id="",
+            planning_complete=False,
+        )
+        state.add_message("agent", "old setup line", phase="setup")
+
+        state.clear_phase_log("setup")
+        setup_run = state.snapshot_setup_run()
+
+        assert setup_run["run_id"] == ""
+        assert setup_run["stage"] == ""
+        assert setup_run["status"] == "idle"
+        assert setup_run["blockers"] == []
+        assert state.messages == []
+
 
 class TestThreadSafety:
     def test_concurrent_add_suggestion(self, state):

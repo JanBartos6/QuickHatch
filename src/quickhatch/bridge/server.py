@@ -419,6 +419,16 @@ class BridgeState:
             self.stop_requested = False
             if self.current_phase == target:
                 self.current_phase = ""
+            if target == "setup":
+                self.setup_run = {
+                    "run_id": "",
+                    "stage": "",
+                    "status": "idle",
+                    "blockers": [],
+                    "waiting_for_input": False,
+                    "active_question_id": "",
+                    "planning_complete": False,
+                }
             data = self._serialize_payload_locked()
         self._write_payload_unlocked(data)
 
