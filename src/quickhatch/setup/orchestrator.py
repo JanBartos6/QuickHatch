@@ -37,6 +37,20 @@ from .types import (
     SetupStage,
 )
 
+_LIVE_DISK_PREP_COMMANDS = (
+    "mountpoint -q /mnt && umount -R /mnt || true",
+    "swapoff -a || true",
+)
+
+_LIVE_DISK_DESTRUCTIVE_PATTERNS = (
+    re.compile(r"\bparted\b.*\bmklabel\b", re.IGNORECASE),
+    re.compile(r"\bparted\b.*\bmkpart\b", re.IGNORECASE),
+    re.compile(r"\bmkfs(?:\.[\w+-]+)?\b", re.IGNORECASE),
+    re.compile(r"\bwipefs\b", re.IGNORECASE),
+    re.compile(r"\bsgdisk\b", re.IGNORECASE),
+    re.compile(r"\bfdisk\b", re.IGNORECASE),
+)
+
 
 @dataclass
 class SetupRuntime:
@@ -752,7 +766,8 @@ class SetupOrchestrator:
             stage=stage.value,
             group=asdict(group),
         )
-        for command in group.commands:
+        commands = self._commands_for_group(stage, group)
+        for command in commands:
             if stage == SetupStage.INSTALL_OR_SKIP and self._is_reboot_command(command):
                 stage_state["deferred_reboot_command"] = command
                 self.runlog.record(
@@ -852,6 +867,48 @@ class SetupOrchestrator:
                     detail=detail,
                 )
         return None
+
+    def _commands_for_group(self, stage: SetupStage, group: CommandGroup) -> list[str]:
+        commands = list(group.commands)
+        if not self._needs_live_disk_prep(stage, commands):
+            return commands
+
+        first_destructive = self._first_live_disk_destructive_index(commands)
+        commands_before_destructive = [
+            command.strip().lower() for command in commands[:first_destructive]
+        ]
+        has_unmount = any(
+            "umount" in command and "/mnt" in command for command in commands_before_destructive
+        )
+        has_swapoff = any("swapoff" in command for command in commands_before_destructive)
+        if has_unmount and has_swapoff:
+            return commands
+
+        patched_commands = list(_LIVE_DISK_PREP_COMMANDS) + commands
+        self.runlog.record(
+            "live_disk_prep_injected",
+            stage=stage.value,
+            group_id=group.id,
+            commands=list(_LIVE_DISK_PREP_COMMANDS),
+        )
+        return patched_commands
+
+    def _needs_live_disk_prep(self, stage: SetupStage, commands: list[str]) -> bool:
+        facts = self.ctx.facts or SetupFacts()
+        if stage != SetupStage.INSTALL_OR_SKIP or not facts.is_live:
+            return False
+        return any(
+            pattern.search(command)
+            for command in commands
+            for pattern in _LIVE_DISK_DESTRUCTIVE_PATTERNS
+        )
+
+    @staticmethod
+    def _first_live_disk_destructive_index(commands: list[str]) -> int:
+        for index, command in enumerate(commands):
+            if any(pattern.search(command) for pattern in _LIVE_DISK_DESTRUCTIVE_PATTERNS):
+                return index
+        return len(commands)
 
     @staticmethod
     def _format_group_failure_message(
