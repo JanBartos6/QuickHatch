@@ -797,6 +797,17 @@ class SetupOrchestrator:
             if rc != 0:
                 stage_state.setdefault("failed_commands", []).append(command)
                 detail = stderr.strip() or stdout.strip() or "command failed"
+                self.bridge.add_message(
+                    "agent",
+                    self._format_group_failure_message(
+                        group.title,
+                        "Command failed",
+                        command,
+                        rc,
+                        stdout,
+                        stderr,
+                    ),
+                )
                 return GroupFailure(
                     failure_type="command",
                     command=command,
@@ -819,8 +830,22 @@ class SetupOrchestrator:
                 stderr_tail=(stderr or "")[-500:],
             )
             if rc != 0:
-                detail = f"Verification failed for {group.title}: {verification}"
+                detail = (
+                    f"Verification failed for {group.title}: {verification} "
+                    f"(rc={rc}; {(stderr or stdout or '').strip()[:200]})"
+                )
                 stage_state.setdefault("failed_verifications", []).append(detail)
+                self.bridge.add_message(
+                    "agent",
+                    self._format_group_failure_message(
+                        group.title,
+                        "Verification failed",
+                        verification,
+                        rc,
+                        stdout,
+                        stderr,
+                    ),
+                )
                 return GroupFailure(
                     failure_type="verification",
                     command=verification,
@@ -829,6 +854,22 @@ class SetupOrchestrator:
                     detail=detail,
                 )
         return None
+
+    @staticmethod
+    def _format_group_failure_message(
+        title: str,
+        label: str,
+        command: str,
+        rc: int,
+        stdout: str,
+        stderr: str,
+    ) -> str:
+        tail = (stderr or stdout or "").strip()
+        if len(tail) > 500:
+            tail = tail[-500:]
+        if not tail:
+            tail = "No output."
+        return f"⚠️ {label} in '{title}' (rc={rc}): `{command}`\n{tail}"
 
     def _repair_model_call(self, messages: list[dict[str, str]]) -> str:
         repair_config = copy.copy(self.runtime.config)

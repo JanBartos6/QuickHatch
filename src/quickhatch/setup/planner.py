@@ -72,6 +72,20 @@ _STAGE_ALIASES = {
     "verification": SetupStage.FINAL_AUDIT,
 }
 
+_PLACEHOLDER_COMMANDS = {
+    "check",
+    "verify",
+    "validate",
+    "test",
+    "todo",
+    "tbd",
+    "n/a",
+    "na",
+    "none",
+    "noop",
+    "pass",
+}
+
 
 class ResearchPlanValidationError(ValueError):
     """Raised when planner output is malformed or incomplete."""
@@ -166,14 +180,38 @@ def _parse_strategy(raw: Any, field_name: str) -> StrategyDecision:
     )
 
 
+def _clean_shell_commands(raw: Any, *, field_name: str) -> list[str]:
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise ResearchPlanValidationError(f"{field_name} must be a list of shell commands.")
+    commands: list[str] = []
+    for index, item in enumerate(raw):
+        command = str(item or "").strip()
+        if not command:
+            continue
+        normalized = command.lower()
+        if (
+            len(command) < 3
+            or (len(command) == 1 and command.isalpha())
+            or normalized in _PLACEHOLDER_COMMANDS
+        ):
+            raise ResearchPlanValidationError(
+                f"{field_name}[{index}] is not a real shell command: {command!r}."
+            )
+        commands.append(command)
+    return commands
+
+
 def _parse_command_group(item: Any) -> CommandGroup:
     if not isinstance(item, dict):
         raise ResearchPlanValidationError("Each command group must be an object.")
     gid = str(item.get("id", "")).strip()
     title = str(item.get("title", "")).strip()
     stage = _coerce_stage(str(item.get("stage", "")).strip())
-    commands = list(item.get("commands", []) or [])
-    cleaned_commands = [str(cmd) for cmd in commands if str(cmd).strip()]
+    cleaned_commands = _clean_shell_commands(
+        item.get("commands", []), field_name=f"command_groups[{gid or title or '?'}].commands"
+    )
     if not gid or not title or not cleaned_commands:
         raise ResearchPlanValidationError(
             "Each command group needs id, title, stage, and at least one command."
@@ -183,7 +221,10 @@ def _parse_command_group(item: Any) -> CommandGroup:
         stage=stage,
         title=title,
         commands=cleaned_commands,
-        verification=[str(cmd) for cmd in (item.get("verification", []) or []) if str(cmd).strip()],
+        verification=_clean_shell_commands(
+            item.get("verification", []),
+            field_name=f"command_groups[{gid or title or '?'}].verification",
+        ),
         rationale=str(item.get("rationale", "") or ""),
         source=str(item.get("source", "repo") or "repo"),
         packages=[str(pkg) for pkg in (item.get("packages", []) or []) if str(pkg).strip()],
@@ -280,6 +321,16 @@ def extract_research_plan(text: str, profile: UserProfile) -> ResearchPlan:
             )
         question.setdefault("required", True)
         question.setdefault("choices", None)
+    verification_payload = payload.get("verification_commands", {}) or {}
+    if not isinstance(verification_payload, dict):
+        raise ResearchPlanValidationError("verification_commands must be an object keyed by stage.")
+    verification_commands: dict[str, list[str]] = {}
+    for stage_name, commands in verification_payload.items():
+        stage = _coerce_stage(str(stage_name))
+        verification_commands[stage.value] = _clean_shell_commands(
+            commands,
+            field_name=f"verification_commands.{stage.value}",
+        )
     return ResearchPlan(
         target_summary=target_summary,
         distro_family=distro_family,
@@ -289,10 +340,7 @@ def extract_research_plan(text: str, profile: UserProfile) -> ResearchPlan:
         command_groups=command_groups,
         apps=apps,
         unresolved_questions=questions,
-        verification_commands={
-            str(k): [str(cmd) for cmd in (v or []) if str(cmd).strip()]
-            for k, v in (payload.get("verification_commands", {}) or {}).items()
-        },
+        verification_commands=verification_commands,
         required_items=[
             str(item) for item in (payload.get("required_items", []) or []) if str(item).strip()
         ],

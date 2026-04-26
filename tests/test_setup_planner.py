@@ -124,6 +124,24 @@ def test_extract_research_plan_rejects_blank_command_group_commands():
         extract_research_plan(json.dumps(payload), profile)
 
 
+def test_extract_research_plan_rejects_one_letter_group_verification():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["command_groups"][0]["verification"] = ["a"]
+
+    with pytest.raises(ResearchPlanValidationError, match="not a real shell command"):
+        extract_research_plan(json.dumps(payload), profile)
+
+
+def test_extract_research_plan_rejects_one_letter_stage_verification():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["verification_commands"] = {"postboot_driver": ["a"]}
+
+    with pytest.raises(ResearchPlanValidationError, match="not a real shell command"):
+        extract_research_plan(json.dumps(payload), profile)
+
+
 def test_extract_research_plan_normalizes_common_install_substages():
     profile = UserProfile()
     payload = _base_plan_payload()
