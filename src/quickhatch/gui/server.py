@@ -3365,7 +3365,6 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
         model = config.model_name or ""
         api_key = config.api_key
         native_search_active = _use_provider_native_search(config)
-        native_search_active = _use_provider_native_search(config)
 
         # Phase 2: Generate each section with its own model call
         section_titles = {
@@ -4104,7 +4103,7 @@ def _setup_runtime_prompt_block(
     )
     if package_manager == "pacman":
         package_lookup_line = (
-            "- If `pacman -S` says a target was not found, stop guessing. Search natively, then install the exact discovered package name."
+            "- If `pacman -S` says a target was not found, stop guessing. Search natively or use a harness lookup action, then install the exact discovered package name."
             if native_search_active
             else "- If `pacman -S` says a target was not found, stop guessing. Use the `repo_search`, `aur_search`, or `web_search` action next, then install the exact discovered package name."
         )
@@ -4168,7 +4167,8 @@ def _setup_runtime_prompt_block(
                 "SEARCH MODE:",
                 "- Provider-native web search is enabled for this run.",
                 "- Use the model provider's own search capability inside the model when package names or distro instructions are uncertain.",
-                "- Do NOT emit QuickHatch harness lookup actions (`repo_search`, `aur_search`, `web_search`) in this mode.",
+                "- Harness lookup actions remain allowed when you need auditable target-specific results fed back into the next turn.",
+                "- In typed staged setup use `repo_search`, `community_search`, or `web_search`; in legacy action mode use `repo_search`, `aur_search`, or `web_search`.",
             ]
         )
     else:
@@ -6128,7 +6128,7 @@ def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = ""
                 "sudo_nopasswd": "yes" if facts.sudo_nopasswd else "no",
             },
             is_live,
-            native_search_active=False,
+            native_search_active=native_search_active,
         ),
         migration_plan_md=migration_plan_md
         + (f"\n\n== USER FEEDBACK ==\n{user_feedback.strip()}" if user_feedback.strip() else ""),

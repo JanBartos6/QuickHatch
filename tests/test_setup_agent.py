@@ -33,7 +33,7 @@ def ready_state():
 
 
 class TestNativeSearchSetupContract:
-    def test_runtime_prompt_suppresses_harness_search_when_native_search_is_active(self):
+    def test_runtime_prompt_allows_harness_lookup_when_native_search_is_active(self):
         prompt = _setup_runtime_prompt_block(
             {
                 "package_manager": "pacman",
@@ -49,7 +49,8 @@ class TestNativeSearchSetupContract:
         assert "SEARCH MODE:" in prompt
         assert "provider-native web search is enabled" in prompt.lower()
         assert "LOOKUP ACTIONS:" not in prompt
-        assert "Do NOT emit QuickHatch harness lookup actions" in prompt
+        assert "Harness lookup actions remain allowed" in prompt
+        assert "community_search" in prompt
 
     def test_setup_model_uses_native_search_for_supported_provider(self):
         config = AIConfig(

@@ -7,7 +7,6 @@ resolution belongs to the planner/search phase.
 
 from __future__ import annotations
 
-import re
 import shlex
 
 from .types import SetupFacts
@@ -82,7 +81,57 @@ _ROOT_REQUIRED_PACKAGE_TOOLS = {
 
 
 def _split_command_segments(cmd: str) -> list[str]:
-    return [part.strip() for part in re.split(r"\s*(?:&&|\|\||;)\s*", cmd or "") if part.strip()]
+    """Split top-level shell command chains without entering quoted payloads."""
+
+    segments: list[str] = []
+    current: list[str] = []
+    quote: str | None = None
+    escaped = False
+    text = cmd or ""
+    idx = 0
+    while idx < len(text):
+        char = text[idx]
+        if escaped:
+            current.append(char)
+            escaped = False
+            idx += 1
+            continue
+        if char == "\\":
+            current.append(char)
+            escaped = True
+            idx += 1
+            continue
+        if quote:
+            current.append(char)
+            if char == quote:
+                quote = None
+            idx += 1
+            continue
+        if char in {"'", '"'}:
+            quote = char
+            current.append(char)
+            idx += 1
+            continue
+        if text.startswith("&&", idx) or text.startswith("||", idx):
+            segment = "".join(current).strip()
+            if segment:
+                segments.append(segment)
+            current = []
+            idx += 2
+            continue
+        if char == ";":
+            segment = "".join(current).strip()
+            if segment:
+                segments.append(segment)
+            current = []
+            idx += 1
+            continue
+        current.append(char)
+        idx += 1
+    segment = "".join(current).strip()
+    if segment:
+        segments.append(segment)
+    return segments
 
 
 def _normalize_tool(token: str) -> str:
@@ -180,6 +229,73 @@ def _extract_pacman_install_packages(tokens: list[str]) -> list[str]:
     return [arg for arg in args if arg and not arg.startswith("-")]
 
 
+def _package_tool_mutates_system(tool: str, tokens: list[str]) -> bool:
+    """Return True only for package-manager actions that write system state."""
+
+    args = [arg for arg in tokens[1:] if arg and arg != "--"]
+    if tool == "pacman":
+        for arg in args:
+            if not arg.startswith("-"):
+                continue
+            # Read-only sync/query probes are safe without root.
+            if arg in {"-Q", "-Qs", "-Qi", "-Ql", "-Qo", "-Qq", "-Ss", "-Si", "-Sl"}:
+                continue
+            if arg.startswith("-Q"):
+                continue
+            if arg in {"-S", "-Sy", "-Syu", "-Syyu", "-R", "-Rs", "-Rns", "-U"}:
+                return True
+            if arg.startswith(("-S", "-R", "-U")):
+                return True
+        return False
+    if tool in {"apt", "apt-get"}:
+        mutating_verbs = {
+            "autoremove",
+            "clean",
+            "dist-upgrade",
+            "full-upgrade",
+            "install",
+            "purge",
+            "remove",
+            "upgrade",
+            "update",
+        }
+        return any(arg.lower() in mutating_verbs for arg in args if not arg.startswith("-"))
+    if tool == "dnf":
+        mutating_verbs = {
+            "autoremove",
+            "distro-sync",
+            "groupinstall",
+            "install",
+            "makecache",
+            "remove",
+            "swap",
+            "update",
+            "upgrade",
+        }
+        return any(arg.lower() in mutating_verbs for arg in args if not arg.startswith("-"))
+    if tool == "zypper":
+        mutating_verbs = {
+            "addrepo",
+            "dup",
+            "in",
+            "install",
+            "modifyrepo",
+            "patch",
+            "refresh",
+            "remove",
+            "rm",
+            "up",
+            "update",
+        }
+        return any(arg.lower() in mutating_verbs for arg in args if not arg.startswith("-"))
+    if tool == "apk":
+        mutating_verbs = {"add", "del", "fix", "update", "upgrade"}
+        return any(arg.lower() in mutating_verbs for arg in args if not arg.startswith("-"))
+    if tool == "emerge":
+        return not any(arg in {"--search", "-s", "--info", "--pretend", "-p"} for arg in args)
+    return tool == "xbps-install"
+
+
 def _uses_fake_plasma_session_wrapper(cmd: str) -> bool:
     lower = (cmd or "").lower()
     return "dbus-run-session" in lower and (
@@ -254,7 +370,11 @@ def preflight_setup_command(
                 "Use `sudo` for root-owned config/system paths, or run the command inside the "
                 "installer chroot while the session is root."
             )
-        if tool in _ROOT_REQUIRED_PACKAGE_TOOLS and not has_root_privilege:
+        if (
+            tool in _ROOT_REQUIRED_PACKAGE_TOOLS
+            and _package_tool_mutates_system(tool, tokens)
+            and not has_root_privilege
+        ):
             return (
                 f"`{tool}` changes system packages and needs root privileges. "
                 "Use `sudo` unless the remote session is already root."

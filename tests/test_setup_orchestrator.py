@@ -522,6 +522,107 @@ def test_orchestrator_uses_harness_search_during_non_native_planning():
     assert "desktop runtime state is still unknown" in summary.lower()
 
 
+def test_orchestrator_keeps_harness_lookup_available_during_native_planning():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+    )
+    seen_native_flags: list[bool] = []
+    seen_searches: list[str] = []
+    model_calls = {"count": 0}
+
+    def model_call(cfg, _messages):
+        seen_native_flags.append(bool(cfg.native_search))
+        model_calls["count"] += 1
+        if model_calls["count"] == 1:
+            return json.dumps(
+                {"action": "repo_search", "query": "nvidia open", "reason": "resolve package"}
+            )
+        return json.dumps(
+            {
+                "action": "plan",
+                "plan": {
+                    "target_summary": "Arch workstation.",
+                    "distro_family": "arch",
+                    "package_manager": "pacman",
+                    "driver_strategy": {
+                        "strategy": "official_nvidia_open",
+                        "confidence": "resolved_official",
+                        "source": "official",
+                        "packages": ["nvidia-open"],
+                        "services": [],
+                        "notes": "",
+                    },
+                    "desktop_strategy": {
+                        "strategy": "plasma",
+                        "confidence": "resolved_official",
+                        "source": "official",
+                        "packages": ["plasma-desktop"],
+                        "services": ["sddm"],
+                        "notes": "",
+                    },
+                    "command_groups": [
+                        {
+                            "id": "desktop-1",
+                            "stage": "desktop",
+                            "title": "Persist desktop config",
+                            "commands": ["echo desktop"],
+                            "verification": [],
+                            "rationale": "",
+                            "source": "repo",
+                            "packages": [],
+                        }
+                    ],
+                    "apps": [],
+                    "unresolved_questions": [],
+                    "verification_commands": {},
+                    "required_items": ["desktop"],
+                    "optional_items": [],
+                    "planner_revision": 1,
+                },
+            }
+        )
+
+    runtime = SetupRuntime(
+        profile=profile,
+        bridge=bridge,
+        config=AIConfig(provider="api_openai", endpoint="http://example", model_name="test"),
+        host="127.0.0.1",
+        user="jan",
+        ssh_port=22,
+        key_path=None,
+        system_info_fn=lambda: "system info",
+        call_model_text=model_call,
+        probe_facts=lambda **kwargs: facts,
+        detect_live_env=lambda: (False, "INSTALLED"),
+        ssh_exec=lambda command, timeout: (0, "", ""),
+        repo_search=lambda query: (
+            seen_searches.append(query) or "[repo_search results]\nnvidia-open"
+        ),
+        community_search=lambda query: "",
+        web_search=lambda query, max_results: "",
+        wait_for_reconnect=lambda reconnect_user: (True, "fresh info", reconnect_user),
+        run_pre_reboot_checks=lambda: (True, [], ""),
+        smoke_test_preboot_script=lambda: None,
+        bootstrap_nopasswd_sudo=lambda current: current,
+        runtime_prompt_block=lambda current, is_live: "",
+        migration_plan_md="",
+        distro_primer_md="",
+        native_search_active=True,
+    )
+
+    summary = SetupOrchestrator(runtime).run()
+
+    assert seen_native_flags == [True, True]
+    assert seen_searches == ["nvidia open"]
+    assert "desktop runtime state is still unknown" in summary.lower()
+
+
 def test_live_install_failed_pre_reboot_checks_block_before_reconnect():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

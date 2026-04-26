@@ -6,11 +6,13 @@ import pytest
 
 from quickhatch.config import AppInfo, UserProfile
 from quickhatch.setup.planner import (
+    RepairActionValidationError,
     ResearchPlanValidationError,
     build_research_prompt,
+    extract_repair_action,
     extract_research_plan,
 )
-from quickhatch.setup.types import PlanItemStatus, SetupFacts, SetupStage
+from quickhatch.setup.types import CommandGroup, PlanItemStatus, SetupFacts, SetupStage
 
 
 def _base_plan_payload() -> dict:
@@ -171,6 +173,30 @@ def test_extract_research_plan_accepts_single_string_stage_verification():
     plan = extract_research_plan(json.dumps(payload), profile)
 
     assert plan.verification_commands["postboot_driver"] == ["nvidia-smi"]
+
+
+def test_extract_repair_action_rejects_stage_drift():
+    payload = {
+        "action": "retry_group",
+        "group": {
+            "id": "apps-repair",
+            "stage": "desktop",
+            "title": "Wrong stage repair",
+            "commands": ["echo wrong"],
+        },
+    }
+
+    with pytest.raises(RepairActionValidationError, match="stage must remain apps"):
+        extract_repair_action(
+            json.dumps(payload),
+            fallback_stage=SetupStage.APPS,
+            failed_group=CommandGroup(
+                id="apps",
+                stage=SetupStage.APPS,
+                title="Install app",
+                commands=["false"],
+            ),
+        )
 
 
 def test_extract_research_plan_normalizes_common_install_substages():

@@ -96,3 +96,43 @@ def test_preflight_blocks_non_root_package_manager_mutation():
 
     assert error
     assert "needs root privileges" in error
+
+
+def test_preflight_allows_non_root_package_manager_read_only_probes():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+    )
+
+    assert preflight_setup_command("pacman -Q nvidia-open", facts) is None
+    assert preflight_setup_command("pacman -Ss nvidia", facts) is None
+
+
+def test_preflight_still_blocks_pacman_database_refresh_without_root():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+    )
+
+    error = preflight_setup_command("pacman -Sy", facts)
+
+    assert error
+    assert "needs root privileges" in error
+
+
+def test_preflight_does_not_split_package_probe_inside_quoted_payload():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+    )
+
+    assert preflight_setup_command("bash -c 'pacman -Q nvidia-open && echo ok'", facts) is None

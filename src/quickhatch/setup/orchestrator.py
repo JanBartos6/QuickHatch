@@ -310,65 +310,61 @@ class SetupOrchestrator:
         self.runlog.record(
             "planner_prompt", stage=SetupStage.RESEARCH_AND_PLAN.value, prompt=prompt
         )
-        if self.runtime.native_search_active:
-            response_text = self._planner_model_call([{"role": "user", "content": prompt}])
+        messages = [{"role": "user", "content": prompt}]
+        self.ctx.plan = None
+        for _ in range(8):
+            response_text = self._planner_model_call(messages)
             self.runlog.record(
-                "planner_response", stage=SetupStage.RESEARCH_AND_PLAN.value, text=response_text
+                "planner_response",
+                stage=SetupStage.RESEARCH_AND_PLAN.value,
+                text=response_text,
             )
             try:
-                self.ctx.plan = extract_research_plan(response_text, self.profile)
-            except ResearchPlanValidationError as exc:
-                raise RuntimeError(f"Research plan validation failed: {exc}") from exc
-        else:
-            messages = [{"role": "user", "content": prompt}]
-            self.ctx.plan = None
-            for _ in range(8):
-                response_text = self._planner_model_call(messages)
-                self.runlog.record(
-                    "planner_response",
-                    stage=SetupStage.RESEARCH_AND_PLAN.value,
-                    text=response_text,
-                )
+                payload = self._parse_planner_json(response_text)
+            except json.JSONDecodeError as exc:
+                raise RuntimeError(f"Planner returned invalid JSON: {exc}") from exc
+            action = str(payload.get("action", "")).strip()
+            if not action:
                 try:
-                    payload = self._parse_planner_json(response_text)
-                except json.JSONDecodeError as exc:
-                    raise RuntimeError(f"Planner returned invalid JSON: {exc}") from exc
-                action = str(payload.get("action", "")).strip()
-                if not action:
                     self.ctx.plan = extract_research_plan(response_text, self.profile)
-                    break
-                if action == "plan":
+                except ResearchPlanValidationError as exc:
+                    raise RuntimeError(f"Research plan validation failed: {exc}") from exc
+                break
+            if action == "plan":
+                try:
                     self.ctx.plan = extract_research_plan(
                         json.dumps(payload.get("plan", {})), self.profile
                     )
-                    break
-                if action == "repo_search":
-                    result = self.runtime.repo_search(str(payload.get("query", "")).strip())
-                elif action == "community_search":
-                    result = self.runtime.community_search(str(payload.get("query", "")).strip())
-                elif action == "web_search":
-                    result = self.runtime.web_search(
-                        str(payload.get("query", "")).strip(),
-                        int(payload.get("max_results", 5) or 5),
-                    )
-                elif action == "question":
-                    answer = self._ask_blocking_question(
-                        str(payload.get("question", "")).strip(),
-                        choices=payload.get("choices"),
-                        stage=SetupStage.RESEARCH_AND_PLAN,
-                        context={"planner_question": True},
-                        timeout=float(payload.get("timeout_seconds", 600) or 600),
-                    )
-                    result = f"[question answer]\n{answer or 'no answer'}"
-                else:
-                    raise RuntimeError(f"Unsupported planner action: {action}")
-                messages = [
-                    {"role": "user", "content": prompt},
-                    {"role": "assistant", "content": response_text},
-                    {"role": "user", "content": result},
-                ]
-            if self.ctx.plan is None:
-                raise RuntimeError("Planner did not produce a final research plan.")
+                except ResearchPlanValidationError as exc:
+                    raise RuntimeError(f"Research plan validation failed: {exc}") from exc
+                break
+            if action == "repo_search":
+                result = self.runtime.repo_search(str(payload.get("query", "")).strip())
+            elif action == "community_search":
+                result = self.runtime.community_search(str(payload.get("query", "")).strip())
+            elif action == "web_search":
+                result = self.runtime.web_search(
+                    str(payload.get("query", "")).strip(),
+                    int(payload.get("max_results", 5) or 5),
+                )
+            elif action == "question":
+                answer = self._ask_blocking_question(
+                    str(payload.get("question", "")).strip(),
+                    choices=payload.get("choices"),
+                    stage=SetupStage.RESEARCH_AND_PLAN,
+                    context={"planner_question": True},
+                    timeout=float(payload.get("timeout_seconds", 600) or 600),
+                )
+                result = f"[question answer]\n{answer or 'no answer'}"
+            else:
+                raise RuntimeError(f"Unsupported planner action: {action}")
+            messages = [
+                {"role": "user", "content": prompt},
+                {"role": "assistant", "content": response_text},
+                {"role": "user", "content": result},
+            ]
+        if self.ctx.plan is None:
+            raise RuntimeError("Planner did not produce a final research plan.")
         self.bridge.update_setup_run(planning_complete=True)
         for question in self.ctx.plan.unresolved_questions:
             if not bool(question.get("required", True)):

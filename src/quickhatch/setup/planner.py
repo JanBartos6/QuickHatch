@@ -390,24 +390,17 @@ def build_research_prompt(
     ]
     search_block = (
         "Provider-native search is ENABLED for this planning pass. Use it heavily for current package names, driver families, and distro-specific instructions.\n"
-        "Do not mention harness lookup actions in the output.\n"
+        "Harness planning actions are also available for auditable target-specific repo/community/web lookups when exact package facts need to be fed back into the next turn.\n"
         if native_search_active
         else "Provider-native search is NOT available here. Use the harness planning actions when exact package names or distro-specific steps are uncertain.\n"
     )
     response_contract = (
-        (
-            "You are generating a STRICT remote-setup research plan. "
-            "Return ONE JSON object only, with no markdown fences or prose.\n\n"
-        )
-        if native_search_active
-        else (
-            "You are generating a staged remote-setup research plan. "
-            "Because native search is unavailable, you may use a small planning action loop.\n"
-            "Return JSON only. You may either:\n"
-            '- emit one action object: {"action":"repo_search"|"community_search"|"web_search","query":"...","reason":"..."}\n'
-            '- emit one action object: {"action":"question","question":"...","choices":[...],"required":true}\n'
-            '- or emit one final action object: {"action":"plan","plan":{...full plan schema below...}}\n\n'
-        )
+        "You are generating a staged remote-setup research plan. "
+        "Return JSON only, with no markdown fences or prose. You may either:\n"
+        '- emit one action object: {"action":"repo_search"|"community_search"|"web_search","query":"...","reason":"..."}\n'
+        '- emit one action object: {"action":"question","question":"...","choices":[...],"required":true}\n'
+        '- emit one final action object: {"action":"plan","plan":{...full plan schema below...}}\n'
+        "- or emit the full plan schema directly as one JSON object.\n\n"
     )
     return (
         response_contract + "The plan schema MUST contain:\n"
@@ -519,6 +512,10 @@ def extract_repair_action(
         group = _parse_command_group(normalized_group)
     except ResearchPlanValidationError as exc:
         raise RepairActionValidationError(str(exc)) from exc
+    if group.stage != fallback_stage:
+        raise RepairActionValidationError(
+            f"retry_group stage must remain {fallback_stage.value}, got {group.stage.value}."
+        )
     return {"action": action, "group": group}
 
 
