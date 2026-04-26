@@ -86,7 +86,7 @@ def test_extract_research_plan_parses_valid_json():
 def test_extract_research_plan_accepts_common_status_aliases():
     profile = UserProfile()
     payload = _base_plan_payload()
-    payload["apps"][0]["status"] = "ready"
+    payload["apps"][0]["status"] = "uninstalled"
     payload["apps"][1]["status"] = "manual follow up"
     payload["apps"][1]["optional_slow"] = False
 
@@ -94,6 +94,16 @@ def test_extract_research_plan_accepts_common_status_aliases():
 
     assert plan.apps[0].status == PlanItemStatus.PENDING
     assert plan.apps[1].status == PlanItemStatus.MANUAL_FOLLOWUP
+
+
+def test_extract_research_plan_accepts_ready_status_alias():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["apps"][0]["status"] = "ready"
+
+    plan = extract_research_plan(json.dumps(payload), profile)
+
+    assert plan.apps[0].status == PlanItemStatus.PENDING
 
 
 def test_extract_research_plan_rejects_incomplete_payload():

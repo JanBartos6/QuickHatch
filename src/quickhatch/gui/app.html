@@ -3994,6 +3994,7 @@ async function saveLinuxConn(){
 async function launchSetupAgent(){
   const btn=el('setupLaunchBtn'),msg=el('setupLaunchMsg');
   btn.disabled=true;btn.textContent='Starting…';
+  if(msg)msg.innerHTML='';
   try{
     const data=await api('/wizard/launch-agent','POST',{phase:'setup'});
     if(data.status==='ok'){
@@ -4008,6 +4009,7 @@ async function launchSetupAgent(){
       const spinner=el('setupSpinner'); if(spinner)spinner.classList.remove('hidden');
       const phase=el('setupPhase'); if(phase){phase.textContent='Connecting…';phase.classList.remove('done','error');}
       state._lastSetupMsgCount=-1;state._lastSetupSugCount=0;
+      if(msg)msg.innerHTML='';
       pollSetup();
     }else{
       state._setupStarted=false;

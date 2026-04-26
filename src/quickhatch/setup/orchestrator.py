@@ -242,6 +242,10 @@ class SetupOrchestrator:
 
     def _run_research_and_plan(self) -> None:
         self.bridge.update_setup_run(stage=SetupStage.RESEARCH_AND_PLAN.value, status="running")
+        self.bridge.add_message(
+            "agent",
+            "Researching package names, driver strategy, and stage plan before running commands…",
+        )
         facts = self.ctx.facts or SetupFacts()
         runtime_guardrails = self.runtime.runtime_prompt_block(facts, facts.is_live)
         prompt = build_research_prompt(

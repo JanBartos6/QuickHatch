@@ -335,6 +335,13 @@ class TestFrontendProfileSync:
         )
         assert "state._setupStarted=false;" in html
 
+    def test_setup_launch_clears_stale_error_message(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "if(msg)msg.innerHTML='';" in html
+
     def test_live_usb_copy_guidance_no_longer_promises_pre_ssh_scp(self):
         from pathlib import Path
 
