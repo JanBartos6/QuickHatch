@@ -256,6 +256,34 @@ class TestSetupRunState:
         assert snapshot["blockers"] == ["Need package resolution"]
         assert snapshot["waiting_for_input"] is True
 
+    def test_restored_setup_run_drops_stale_waiting_state(self, tmp_path):
+        persist_path = tmp_path / "bridge.json"
+        profile = UserProfile()
+        payload = {
+            "profile_fingerprint": BridgeState._fingerprint_for_profile(profile),
+            "suggestions": [],
+            "messages": [],
+            "questions": [],
+            "setup_run": {
+                "run_id": "run123",
+                "stage": "research_and_plan",
+                "status": "waiting_for_input",
+                "blockers": ["Question that no thread is waiting on"],
+                "waiting_for_input": True,
+                "active_question_id": "missing-q",
+                "planning_complete": True,
+            },
+        }
+        persist_path.write_text(json.dumps(payload), encoding="utf-8")
+
+        restored = BridgeState(profile, persist_path=persist_path)
+        setup_run = restored.snapshot_setup_run()
+
+        assert setup_run["status"] == "stopped"
+        assert setup_run["waiting_for_input"] is False
+        assert setup_run["active_question_id"] == ""
+        assert restored.get_pending_questions() == []
+
 
 class TestThreadSafety:
     def test_concurrent_add_suggestion(self, state):

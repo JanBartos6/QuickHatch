@@ -223,6 +223,7 @@ class BridgeState:
             self.messages.extend(loaded_messages)
             self.questions.update(loaded_questions)
             self.setup_run.update(dict(data.get("setup_run", {}) or {}))
+            self._normalize_restored_setup_run_locked()
 
     def reload_persisted_state(self) -> None:
         """Re-evaluate the persisted bridge payload for the CURRENT profile.
@@ -234,6 +235,22 @@ class BridgeState:
         analysis/messages from disk.
         """
         self._load_persisted(replace=True)
+
+    def _normalize_restored_setup_run_locked(self) -> None:
+        """Drop transient setup state that cannot survive process restart.
+
+        Pending setup questions are intentionally not restored because the
+        thread waiting on their Event is gone. Keep terminal run metadata, but
+        never restore an active/waiting state that has no live worker.
+        """
+        active_qid = str(self.setup_run.get("active_question_id") or "")
+        if active_qid and active_qid not in self.questions:
+            self.setup_run["active_question_id"] = ""
+            self.setup_run["waiting_for_input"] = False
+        if self.setup_run.get("waiting_for_input") and not self.setup_run.get("active_question_id"):
+            self.setup_run["waiting_for_input"] = False
+        if self.setup_run.get("status") in {"running", "waiting_for_input", "stopping"}:
+            self.setup_run["status"] = "stopped"
 
     def hard_reset(self, *, profile: UserProfile | None = None) -> None:
         """Wipe all in-memory bridge runtime state and delete the persisted file.
