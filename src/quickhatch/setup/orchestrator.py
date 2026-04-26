@@ -51,6 +51,26 @@ _LIVE_DISK_DESTRUCTIVE_PATTERNS = (
     re.compile(r"\bsgdisk\b", re.IGNORECASE),
     re.compile(r"\bfdisk\b", re.IGNORECASE),
 )
+_ARCH_NVIDIA_INSTALL_RE = re.compile(
+    r"\b(?:sudo\s+)?pacman\s+-S(?:y|u|yu|yyu)?\b.*\bnvidia\b",
+    re.IGNORECASE,
+)
+_ARCH_NVIDIA_PACKAGES = (
+    "linux-headers",
+    "nvidia-open",
+    "nvidia-utils",
+    "lib32-nvidia-utils",
+    "nvidia-settings",
+)
+_ARCH_NVIDIA_BOOT_CONFIG_COMMANDS = (
+    "printf '%s\\n' 'blacklist nouveau' 'options nouveau modeset=0' | sudo tee /etc/modprobe.d/blacklist-nouveau.conf >/dev/null",
+    "printf '%s\\n' 'options nvidia-drm modeset=1' | sudo tee /etc/modprobe.d/nvidia.conf >/dev/null",
+    "sudo sed -i 's/^MODULES=.*/MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf",
+    'if [ -f /etc/default/grub ] && ! grep -q \'nvidia-drm.modeset=1\' /etc/default/grub; then sudo sed -i \'s/GRUB_CMDLINE_LINUX_DEFAULT="\\([^"]*\\)"/GRUB_CMDLINE_LINUX_DEFAULT="\\1 nvidia-drm.modeset=1"/\' /etc/default/grub; fi',
+    'if [ -f /etc/default/grub ] && ! grep -q \'modprobe.blacklist=nouveau\' /etc/default/grub; then sudo sed -i \'s/GRUB_CMDLINE_LINUX_DEFAULT="\\([^"]*\\)"/GRUB_CMDLINE_LINUX_DEFAULT="\\1 modprobe.blacklist=nouveau"/\' /etc/default/grub; fi',
+    "sudo mkinitcpio -P",
+    "if command -v grub-mkconfig >/dev/null 2>&1; then sudo grub-mkconfig -o /boot/grub/grub.cfg; fi",
+)
 
 
 @dataclass
@@ -897,6 +917,7 @@ class SetupOrchestrator:
                     detail=detail,
                 )
             self._update_from_command(command, stdout, stderr, stage=stage)
+        self._maybe_reboot_for_nvidia_driver(stage, group, stage_state)
         for verification in group.verification:
             self.bridge.add_message("agent", f"`{verification}` — verify")
             rc, stdout, stderr = self.runtime.ssh_exec(verification, 120)
@@ -937,6 +958,8 @@ class SetupOrchestrator:
 
     def _commands_for_group(self, stage: SetupStage, group: CommandGroup) -> list[str]:
         commands = list(group.commands)
+        if self._is_arch_nvidia_driver_group(stage, group, commands):
+            commands = self._normalize_arch_nvidia_commands(commands)
         if not self._needs_live_disk_prep(stage, commands):
             return commands
 
@@ -959,6 +982,111 @@ class SetupOrchestrator:
             commands=list(_LIVE_DISK_PREP_COMMANDS),
         )
         return patched_commands
+
+    def _is_arch_nvidia_driver_group(
+        self, stage: SetupStage, group: CommandGroup, commands: list[str]
+    ) -> bool:
+        facts = self.ctx.facts or SetupFacts()
+        if stage != SetupStage.POSTBOOT_DRIVER:
+            return False
+        if facts.package_manager != "pacman" or "nvidia" not in facts.gpu_vendors:
+            return False
+        text = " ".join([group.title, *group.packages, *commands]).lower()
+        return "nvidia" in text or "nouveau" in text
+
+    def _normalize_arch_nvidia_commands(self, commands: list[str]) -> list[str]:
+        normalized: list[str] = []
+        inserted_install = False
+        for command in commands:
+            stripped = command.strip()
+            lower = stripped.lower()
+            if not stripped:
+                continue
+            if "export kernel_pkg" in lower or "export nv_pkg" in lower:
+                continue
+            if "$nv_pkg" in lower:
+                if not inserted_install:
+                    normalized.append(self._arch_nvidia_install_command())
+                    inserted_install = True
+                continue
+            if _ARCH_NVIDIA_INSTALL_RE.search(stripped):
+                if not inserted_install:
+                    normalized.append(self._arch_nvidia_install_command())
+                    inserted_install = True
+                continue
+            if "modprobe.d/nvidia.conf" in lower or "blacklist-nouveau" in lower:
+                continue
+            if "mkinitcpio" in lower and " -p" in lower:
+                continue
+            normalized.append(stripped)
+        if not inserted_install and any("nvidia" in command.lower() for command in commands):
+            normalized.insert(0, self._arch_nvidia_install_command())
+        for command in _ARCH_NVIDIA_BOOT_CONFIG_COMMANDS:
+            if command not in normalized:
+                normalized.append(command)
+        return normalized
+
+    @staticmethod
+    def _arch_nvidia_install_command() -> str:
+        packages = " ".join(_ARCH_NVIDIA_PACKAGES)
+        return f"sudo pacman -Syu --needed --noconfirm {packages}"
+
+    def _maybe_reboot_for_nvidia_driver(
+        self,
+        stage: SetupStage,
+        group: CommandGroup,
+        stage_state: dict[str, Any],
+    ) -> None:
+        commands = [*group.commands, *group.verification]
+        if not self._is_arch_nvidia_driver_group(stage, group, commands):
+            return
+        if stage_state.get("nvidia_reboot_attempted"):
+            return
+        facts = self._refresh_facts(stage=stage)
+        if facts.nvidia_smi_state == "ok" and not facts.nvidia_nouveau_bound:
+            return
+        if not facts.nvidia_nouveau_bound and facts.nvidia_smi_state not in {
+            "present_but_failing",
+            "missing",
+        }:
+            return
+        stage_state["nvidia_reboot_attempted"] = True
+        command = "sudo systemctl enable sshd NetworkManager || true; sudo reboot"
+        self.bridge.add_message(
+            "agent",
+            "NVIDIA driver changes need a controlled reboot before verification.",
+        )
+        self.bridge.add_message("agent", f"`{command}`")
+        self.runlog.record(
+            "nvidia_driver_reboot",
+            stage=stage.value,
+            group_id=group.id,
+            facts=asdict(facts),
+            command=command,
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 60)
+        self.ctx.results_log.append(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+        self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
+        if rc != 0:
+            raise RuntimeError(
+                "Failed to reboot after NVIDIA driver configuration: "
+                f"{(stderr or stdout or '').strip()[:240]}"
+            )
+        reconnected, fresh_info, new_user = self.runtime.wait_for_reconnect(self.runtime.user)
+        self.runlog.record(
+            "nvidia_driver_reconnect",
+            stage=stage.value,
+            group_id=group.id,
+            reconnected=reconnected,
+            fresh_info=fresh_info,
+            new_user=new_user,
+        )
+        if not reconnected:
+            raise RuntimeError(fresh_info or "Target did not reconnect after NVIDIA driver reboot.")
+        if new_user:
+            self.runtime.user = new_user
+        self.ctx.system_info = fresh_info or self.ctx.system_info
+        self._refresh_facts(stage=stage)
 
     def _needs_live_disk_prep(self, stage: SetupStage, commands: list[str]) -> bool:
         facts = self.ctx.facts or SetupFacts()

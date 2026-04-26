@@ -103,6 +103,8 @@ class SetupFacts:
     gpu_vendors: list[str] = field(default_factory=list)
     gpu_inventory: list[str] = field(default_factory=list)
     nvidia_smi_state: str = "unknown"
+    nvidia_kernel_driver: str = ""
+    nvidia_nouveau_bound: bool = False
     driver_modules: list[str] = field(default_factory=list)
     session_type: str = ""
     display_manager: str = ""

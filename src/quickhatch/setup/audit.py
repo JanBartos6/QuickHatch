@@ -55,8 +55,15 @@ def audit_stage(
         expected = (plan.driver_strategy.packages if plan else []) or []
         details["expected_driver_packages"] = expected
         details["nvidia_smi_state"] = facts.nvidia_smi_state
+        details["nvidia_kernel_driver"] = facts.nvidia_kernel_driver
+        details["nvidia_nouveau_bound"] = facts.nvidia_nouveau_bound
         if "nvidia" in facts.gpu_vendors and expected and facts.nvidia_smi_state != "ok":
             blockers.append("NVIDIA verification is incomplete: nvidia-smi is not healthy yet.")
+        if "nvidia" in facts.gpu_vendors and facts.nvidia_nouveau_bound:
+            blockers.append(
+                "NVIDIA GPU is still bound to nouveau; blacklist nouveau, regenerate initramfs, "
+                "reboot, then verify nvidia-smi."
+            )
         if state.get("failed_verifications"):
             blockers.extend(list(state["failed_verifications"]))
 

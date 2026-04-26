@@ -28,6 +28,8 @@ echo 'QH_DM_ENABLED='$(if command -v systemctl >/dev/null 2>&1 && systemctl is-e
 echo 'QH_GPU_VENDORS='$(lspci 2>/dev/null | awk 'BEGIN{IGNORECASE=1} /vga|3d|display/ { if ($0 ~ /nvidia/) print "nvidia"; else if ($0 ~ /amd|advanced micro devices|radeon/) print "amd"; else if ($0 ~ /intel/) print "intel"; }' | sort -u | paste -sd',' -)
 echo 'QH_GPU_INVENTORY='$(lspci 2>/dev/null | awk 'BEGIN{IGNORECASE=1} /vga|3d|display/ {sub(/^.*: /,""); gsub(/\|/, "/", $0); print $0}' | paste -sd'|' -)
 echo 'QH_NVIDIA_SMI='$(if command -v nvidia-smi >/dev/null 2>&1; then if nvidia-smi >/dev/null 2>&1; then echo ok; else echo present_but_failing; fi; else echo missing; fi)
+echo 'QH_NVIDIA_KERNEL_DRIVER='$(for d in /sys/bus/pci/devices/*; do class=$(cat "$d/class" 2>/dev/null || true); vendor=$(cat "$d/vendor" 2>/dev/null || true); if [ "$vendor" = "0x10de" ] && printf '%s' "$class" | grep -q '^0x03'; then basename "$(readlink -f "$d/driver" 2>/dev/null || echo none)"; fi; done | sort -u | paste -sd',' -)
+echo 'QH_NOUVEAU_BOUND='$(for d in /sys/bus/pci/devices/*; do class=$(cat "$d/class" 2>/dev/null || true); vendor=$(cat "$d/vendor" 2>/dev/null || true); driver=$(basename "$(readlink -f "$d/driver" 2>/dev/null || echo none)"); if [ "$vendor" = "0x10de" ] && printf '%s' "$class" | grep -q '^0x03' && [ "$driver" = "nouveau" ]; then echo yes; exit 0; fi; done; echo no)
 echo 'QH_DRIVER_MODULES='$(lsmod 2>/dev/null | awk '/^nvidia/ {print $1}' | paste -sd',' -)
 echo 'QH_DISPLAYS='$(if command -v xrandr >/dev/null 2>&1; then xrandr --query 2>/dev/null | awk '/ connected/ {name=$1; primary=($0 ~ / primary / ? "primary" : "secondary"); mode=""; if (match($0, /[0-9]+x[0-9]+\+[0-9]+\+[0-9]+/)) { mode=substr($0, RSTART, RLENGTH); sub(/\+.*/, "", mode); } print name ":" primary ":" mode}' | paste -sd'|' -; fi)
 """
@@ -72,6 +74,8 @@ def describe_fact_changes(before: SetupFacts | None, after: SetupFacts | None) -
         "current_user": "current user",
         "sudo_nopasswd": "sudo NOPASSWD",
         "nvidia_smi_state": "nvidia-smi",
+        "nvidia_kernel_driver": "NVIDIA kernel driver",
+        "nvidia_nouveau_bound": "nouveau-bound NVIDIA GPU",
         "session_type": "session type",
         "display_manager": "display manager",
     }
@@ -124,6 +128,8 @@ def probe_setup_facts(
         gpu_vendors=list(base.gpu_vendors),
         gpu_inventory=list(base.gpu_inventory),
         nvidia_smi_state=base.nvidia_smi_state,
+        nvidia_kernel_driver=base.nvidia_kernel_driver,
+        nvidia_nouveau_bound=base.nvidia_nouveau_bound,
         driver_modules=list(base.driver_modules),
         session_type=base.session_type,
         display_manager=base.display_manager,
@@ -164,6 +170,8 @@ def probe_setup_facts(
     facts.nvidia_smi_state = (
         raw.get("QH_NVIDIA_SMI", facts.nvidia_smi_state) or facts.nvidia_smi_state
     )
+    facts.nvidia_kernel_driver = raw.get("QH_NVIDIA_KERNEL_DRIVER", facts.nvidia_kernel_driver)
+    facts.nvidia_nouveau_bound = raw.get("QH_NOUVEAU_BOUND", "no") == "yes"
     facts.driver_modules = [p for p in raw.get("QH_DRIVER_MODULES", "").split(",") if p]
     facts.displays = [
         display

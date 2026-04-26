@@ -7,13 +7,155 @@ import time
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, UserProfile
 from quickhatch.setup.orchestrator import SetupOrchestrator, SetupRuntime
-from quickhatch.setup.types import DesktopRuntimeState, SetupFacts
+from quickhatch.setup.types import CommandGroup, DesktopRuntimeState, SetupFacts, SetupStage
 
 
 def test_extract_created_user_from_chrooted_useradd():
     command = "arch-chroot /mnt useradd -m -G wheel,video -s /bin/bash jan"
 
     assert SetupOrchestrator._extract_created_user(command) == "jan"
+
+
+def _dummy_setup_runtime(
+    profile: UserProfile,
+    bridge: BridgeState,
+    facts: SetupFacts,
+    *,
+    ssh_exec=None,
+    wait_for_reconnect=None,
+    probe_facts=None,
+) -> SetupRuntime:
+    return SetupRuntime(
+        profile=profile,
+        bridge=bridge,
+        config=AIConfig(provider="api_openai", endpoint="http://example", model_name="test"),
+        host="127.0.0.1",
+        user=facts.current_user or "jan",
+        ssh_port=22,
+        key_path=None,
+        system_info_fn=lambda: "system info",
+        call_model_text=lambda cfg, messages: "{}",
+        probe_facts=probe_facts or (lambda **kwargs: facts),
+        detect_live_env=lambda: (False, "INSTALLED"),
+        ssh_exec=ssh_exec or (lambda command, timeout: (0, "", "")),
+        repo_search=lambda query: "",
+        community_search=lambda query: "",
+        web_search=lambda query, max_results: "",
+        wait_for_reconnect=wait_for_reconnect
+        or (lambda reconnect_user: (True, "fresh info", reconnect_user)),
+        run_pre_reboot_checks=lambda: (True, [], ""),
+        smoke_test_preboot_script=lambda: None,
+        bootstrap_nopasswd_sudo=lambda current: current,
+        runtime_prompt_block=lambda current, is_live: "",
+        migration_plan_md="",
+        distro_primer_md="",
+        native_search_active=False,
+    )
+
+
+def test_arch_nvidia_group_rewrites_legacy_driver_install_and_adds_boot_config():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        gpu_vendors=["nvidia"],
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="driver",
+        stage=SetupStage.POSTBOOT_DRIVER,
+        title="NVIDIA Proprietary Driver Setup",
+        commands=[
+            "sudo pacman -Syu --noconfirm nvidia nvidia-utils lib32-nvidia-utils nvidia-settings",
+            "export KERNEL_PKG=$(pacman -Q linux | awk '{print $1}')",
+            'export NV_PKG=$([ "$KERNEL_PKG" = "linux" ] && echo "nvidia" || echo "nvidia-dkms")',
+            "sudo pacman -S --noconfirm $NV_PKG nvidia-utils",
+        ],
+        packages=["nvidia"],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.POSTBOOT_DRIVER, group)
+
+    assert commands[0] == (
+        "sudo pacman -Syu --needed --noconfirm "
+        "linux-headers nvidia-open nvidia-utils lib32-nvidia-utils nvidia-settings"
+    )
+    assert not any("$NV_PKG" in command for command in commands)
+    assert not any(" --noconfirm nvidia " in command for command in commands)
+    assert any("blacklist nouveau" in command for command in commands)
+    assert any("mkinitcpio -P" in command for command in commands)
+    assert any("grub-mkconfig" in command for command in commands)
+
+
+def test_arch_nvidia_stage_reboots_once_when_nouveau_is_bound_before_verification():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    fact_state = {
+        "facts": SetupFacts(
+            distro_family="arch",
+            package_manager="pacman",
+            gpu_vendors=["nvidia"],
+            current_user="jan",
+            login_user="jan",
+            sudo_nopasswd=True,
+            nvidia_smi_state="present_but_failing",
+            nvidia_kernel_driver="nouveau",
+            nvidia_nouveau_bound=True,
+        )
+    }
+    commands: list[str] = []
+
+    def ssh_exec(command, timeout):
+        commands.append(command)
+        return (0, "", "")
+
+    def wait_for_reconnect(reconnect_user):
+        fact_state["facts"] = SetupFacts(
+            distro_family="arch",
+            package_manager="pacman",
+            gpu_vendors=["nvidia"],
+            current_user=reconnect_user,
+            login_user=reconnect_user,
+            sudo_nopasswd=True,
+            nvidia_smi_state="ok",
+            nvidia_kernel_driver="nvidia",
+            nvidia_nouveau_bound=False,
+            driver_modules=["nvidia", "nvidia_drm"],
+        )
+        return (True, "fresh info", reconnect_user)
+
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        fact_state["facts"],
+        ssh_exec=ssh_exec,
+        wait_for_reconnect=wait_for_reconnect,
+        probe_facts=lambda **kwargs: fact_state["facts"],
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = fact_state["facts"]
+    stage_state: dict[str, object] = {}
+    group = CommandGroup(
+        id="driver",
+        stage=SetupStage.POSTBOOT_DRIVER,
+        title="NVIDIA Proprietary Driver Setup",
+        commands=["sudo pacman -S --noconfirm nvidia-open nvidia-utils"],
+        verification=["nvidia-smi"],
+        packages=["nvidia-open"],
+    )
+
+    orchestrator._maybe_reboot_for_nvidia_driver(SetupStage.POSTBOOT_DRIVER, group, stage_state)
+    orchestrator._maybe_reboot_for_nvidia_driver(SetupStage.POSTBOOT_DRIVER, group, stage_state)
+
+    reboot_commands = [command for command in commands if "reboot" in command]
+    assert reboot_commands == ["sudo systemctl enable sshd NetworkManager || true; sudo reboot"]
+    assert stage_state["nvidia_reboot_attempted"] is True
+    assert orchestrator.ctx.facts.nvidia_smi_state == "ok"
 
 
 def test_orchestrator_blocks_on_required_planning_question():
