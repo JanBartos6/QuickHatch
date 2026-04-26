@@ -6,7 +6,7 @@ import time
 
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, UserProfile
-from quickhatch.setup.orchestrator import SetupOrchestrator, SetupRuntime
+from quickhatch.setup.orchestrator import GroupFailure, SetupOrchestrator, SetupRuntime
 from quickhatch.setup.types import CommandGroup, DesktopRuntimeState, SetupFacts, SetupStage
 
 
@@ -24,6 +24,7 @@ def _dummy_setup_runtime(
     ssh_exec=None,
     wait_for_reconnect=None,
     probe_facts=None,
+    native_search_active: bool = False,
 ) -> SetupRuntime:
     return SetupRuntime(
         profile=profile,
@@ -49,7 +50,7 @@ def _dummy_setup_runtime(
         runtime_prompt_block=lambda current, is_live: "",
         migration_plan_md="",
         distro_primer_md="",
-        native_search_active=False,
+        native_search_active=native_search_active,
     )
 
 
@@ -1134,6 +1135,65 @@ def test_orchestrator_repairs_failed_command_group_with_search_and_retry():
     assert repo_searches == ["brave-bin arch package"]
     assert "echo repaired brave install" in commands_seen
     assert "Installed/configured: Brave" in summary
+
+
+def test_repair_keeps_provider_native_search_enabled_when_available():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+    )
+    seen_native_search: list[bool] = []
+    seen_prompt: list[str] = []
+
+    def model_call(cfg, messages):
+        seen_native_search.append(bool(cfg.native_search))
+        seen_prompt.append(messages[0]["content"])
+        return json.dumps(
+            {
+                "action": "manual_followup",
+                "reason": "Native search showed this wrapper is better handled manually.",
+                "app_names": ["Example"],
+            }
+        )
+
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        facts,
+        native_search_active=True,
+    )
+    runtime.call_model_text = model_call
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+
+    action = orchestrator._repair_failed_group(
+        SetupStage.APPS,
+        CommandGroup(
+            id="apps-1",
+            stage=SetupStage.APPS,
+            title="Install Example",
+            commands=["yay -S --noconfirm example-bin"],
+            packages=["example-bin"],
+        ),
+        GroupFailure(
+            failure_type="command",
+            command="yay -S --noconfirm example-bin",
+            stdout="",
+            stderr="target not found: example-bin",
+            detail="target not found",
+        ),
+        repair_attempt=1,
+    )
+
+    assert action["action"] == "manual_followup"
+    assert seen_native_search == [True]
+    assert "Provider-native search is ENABLED in repair mode" in seen_prompt[0]
+    assert "Harness search actions are still allowed" in seen_prompt[0]
 
 
 def test_orchestrator_does_not_run_stage_verifications_per_group():

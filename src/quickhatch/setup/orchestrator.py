@@ -1168,7 +1168,7 @@ class SetupOrchestrator:
 
     def _repair_model_call(self, messages: list[dict[str, str]]) -> str:
         repair_config = copy.copy(self.runtime.config)
-        repair_config.native_search = False
+        repair_config.native_search = self.runtime.native_search_active
         return self.runtime.call_model_text(repair_config, messages)
 
     def _repair_search_result(self, action: dict[str, Any]) -> str:
@@ -1201,6 +1201,7 @@ class SetupOrchestrator:
             stderr_tail=failure.stderr,
             facts=self.ctx.facts or SetupFacts(),
             recent_results=self.ctx.results_log,
+            native_search_active=self.runtime.native_search_active,
         )
         self.runlog.record(
             "repair_prompt",

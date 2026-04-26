@@ -532,8 +532,17 @@ def build_repair_prompt(
     stderr_tail: str,
     facts: SetupFacts,
     recent_results: list[str],
+    native_search_active: bool = False,
 ) -> str:
     recent_block = "\n\n".join(result.strip() for result in recent_results[-3:] if result.strip())
+    search_mode = (
+        "Provider-native search is ENABLED in repair mode. Use it when current package names, "
+        "driver instructions, distro docs, project pages, or compatibility information are uncertain. "
+        "Harness search actions are still allowed when you need auditable target-specific repo/AUR/web "
+        "results fed back into the next repair turn.\n"
+        if native_search_active
+        else "Provider-native search is NOT available in repair mode. Use harness search actions if needed.\n"
+    )
     return (
         "You are repairing ONE failed remote-setup command group.\n"
         "Return ONE JSON object only with no markdown fences or prose.\n\n"
@@ -546,7 +555,7 @@ def build_repair_prompt(
         '- {"action":"manual_followup","reason":"...","app_names":["..."]}\n\n'
         "Rules:\n"
         "- Repair only the current failed group; do not redesign the whole run.\n"
-        "- Provider-native search is NOT available in repair mode. Use harness search actions if needed.\n"
+        f"- {search_mode}"
         "- Prefer repo/community search over guessing package names.\n"
         "- If a desktop wrapper or other slow optional app is the problem, prefer manual_followup unless truly necessary.\n"
         "- If you emit retry_group, keep it scoped to this stage and include at least one command.\n"
