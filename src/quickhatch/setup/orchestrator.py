@@ -102,6 +102,26 @@ _ARCH_LIVE_VCONSOLE_PREP_COMMAND = (
 )
 _ARCH_PACSTRAP_MNT_RE = re.compile(r"\bpacstrap\b.*\s/mnt(?:\s|$)", re.IGNORECASE)
 
+_APP_PACKAGE_ALIASES: dict[str, set[str]] = {
+    "brave": {"brave", "brave-bin", "brave-browser", "brave-browser-bin"},
+    "brave browser": {"brave", "brave-bin", "brave-browser", "brave-browser-bin"},
+    "cursor": {"cursor", "cursor-bin", "visual-studio-code-bin"},
+    "github desktop": {"github-desktop", "github-desktop-bin"},
+    "lm studio": {"lm-studio", "lm-studio-bin", "lmstudio", "lmstudio-bin"},
+    "mullvad": {"mullvad", "mullvad-vpn", "mullvad-vpn-bin", "mullvad-vpn-daemon-bin"},
+    "mullvad vpn": {
+        "mullvad",
+        "mullvad-vpn",
+        "mullvad-vpn-bin",
+        "mullvad-vpn-daemon-bin",
+    },
+    "localsend": {"localsend", "localsend-bin"},
+    "local send": {"localsend", "localsend-bin"},
+    "chatgpt": {"chatgpt", "chatgpt-desktop-bin", "chatgpt-desktop-unix-git", "pake-chatgpt"},
+    "claude": {"claude", "claude-desktop-bin", "claude-desktop"},
+    "codex": {"codex", "openai-codex", "openai-codex-desktop", "codex-desktop-bin"},
+}
+
 _INSTALLED_NONROOT_PRIVILEGED_STAGES = {
     SetupStage.POSTBOOT_DRIVER,
     SetupStage.DESKTOP,
@@ -601,6 +621,8 @@ class SetupOrchestrator:
                     f"Unsupported repair outcome for {current_group.title}: {action}"
                 )
         if audit_after:
+            if stage == SetupStage.DESKTOP:
+                self._update_desktop_display_audit_state(stage_state)
             result = audit_stage(stage, self.ctx.facts, plan=self.ctx.plan, stage_state=stage_state)
             self._record_stage_result(result)
 
@@ -841,6 +863,87 @@ class SetupOrchestrator:
     def _run_desktop(self) -> None:
         self._run_stage_groups(SetupStage.DESKTOP)
 
+    def _update_desktop_display_audit_state(self, stage_state: dict[str, Any]) -> None:
+        prefs = self._source_display_preferences()
+        stage_state["display_preferences"] = prefs
+        stage_state["display_preference_blockers"] = self._display_preference_blockers(prefs)
+
+    def _source_display_preferences(self) -> list[dict[str, Any]]:
+        displays = getattr(getattr(self.profile, "hardware", None), "displays", []) or []
+        prefs: list[dict[str, Any]] = []
+        for display in displays:
+            width = int(getattr(display, "width_px", 0) or 0)
+            height = int(getattr(display, "height_px", 0) or 0)
+            if width <= 0 or height <= 0:
+                continue
+            prefs.append(
+                {
+                    "name": getattr(display, "name", "") or "display",
+                    "mode": f"{width}x{height}",
+                    "refresh_hz": getattr(display, "refresh_hz", None),
+                    "primary": bool(getattr(display, "primary", False)),
+                }
+            )
+        return prefs
+
+    def _display_preference_blockers(self, prefs: list[dict[str, Any]]) -> list[str]:
+        if not prefs or self.ctx.facts is None:
+            return []
+        preferred = next((pref for pref in prefs if pref.get("primary")), prefs[0])
+        preferred_mode = str(preferred.get("mode") or "")
+        preferred_refresh = self._as_float(preferred.get("refresh_hz"))
+        target_label = preferred_mode
+        if preferred_refresh is not None:
+            target_label += f"@{preferred_refresh:g}Hz"
+        displays = list(self.ctx.facts.displays or [])
+        if not displays:
+            return [
+                "Display preferences could not be runtime-verified"
+                + (f" ({target_label})" if target_label else "")
+                + "; no active target display facts were available. Log into the graphical session, "
+                "rerun desktop verification, or leave display tuning as manual follow-up."
+            ]
+        matching_mode = [
+            display
+            for display in displays
+            if not preferred_mode or display.current_mode == preferred_mode
+        ]
+        if preferred_mode and not matching_mode:
+            seen = ", ".join(
+                f"{display.name}:{display.current_mode or 'unknown'}" for display in displays
+            )
+            return [
+                f"Display mode mismatch: preferred {target_label}, target reports {seen}. "
+                "Adjust KDE/kscreen display configuration before declaring desktop complete."
+            ]
+        if preferred_refresh is not None and matching_mode:
+            known_refresh = [
+                display.refresh_hz for display in matching_mode if display.refresh_hz is not None
+            ]
+            if not known_refresh:
+                return [
+                    f"Display refresh could not be verified for preferred {target_label}. "
+                    "Verify the active monitor refresh rate before declaring desktop complete."
+                ]
+            if not any(
+                abs(float(refresh) - float(preferred_refresh)) <= 1.0 for refresh in known_refresh
+            ):
+                seen = ", ".join(f"{refresh:g}Hz" for refresh in known_refresh)
+                return [
+                    f"Display refresh mismatch: preferred {target_label}, target reports {seen}. "
+                    "Adjust KDE/kscreen refresh rate before declaring desktop complete."
+                ]
+        return []
+
+    @staticmethod
+    def _as_float(value: Any) -> float | None:
+        if value is None or value == "":
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
     def _run_apps(self) -> None:
         self._run_stage_groups(SetupStage.APPS)
 
@@ -962,7 +1065,18 @@ class SetupOrchestrator:
                     f"{dashed}-git",
                 }
             )
+        for key in {app_name.strip().lower(), package_name.strip().lower()}:
+            variants.update(_APP_PACKAGE_ALIASES.get(key, set()))
         return {variant for variant in variants if variant}
+
+    @staticmethod
+    def _variant_appears_in_command_text(variant: str, text: str) -> bool:
+        if not variant or not text:
+            return False
+        pattern = re.compile(
+            rf"(?<![A-Za-z0-9_.+-]){re.escape(variant.lower())}(?![A-Za-z0-9_.+-])"
+        )
+        return bool(pattern.search(text.lower()))
 
     def _verify_systemd_health(self) -> list[str]:
         if self.ctx.facts is None or self.ctx.facts.init_system != "systemd":
@@ -2155,9 +2269,15 @@ class SetupOrchestrator:
             return
         group_pkgs = {pkg.lower() for pkg in group.packages}
         title = group.title.lower()
+        command_text = " ".join([*group.commands, *group.verification, group.title]).lower()
         for app in self.ctx.plan.apps:
-            app_pkg = app.package_name.lower()
-            if app_pkg and app_pkg in group_pkgs:
+            variants = self._package_name_variants(app.name, app.package_name)
+            if variants and variants.intersection(group_pkgs):
+                app.status = PlanItemStatus.INSTALLED
+                continue
+            if any(
+                self._variant_appears_in_command_text(variant, command_text) for variant in variants
+            ):
                 app.status = PlanItemStatus.INSTALLED
                 continue
             if app.name.lower() in title and app.status == PlanItemStatus.PENDING:
@@ -2188,9 +2308,7 @@ class SetupOrchestrator:
             token in lowered
             for token in (
                 "kwriteconfig",
-                "plasma-apply",
                 "gsettings",
-                "wallpaper",
                 ".dmrc",
                 "/.config/",
                 "/etc/sddm.conf",

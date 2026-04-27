@@ -69,12 +69,24 @@ def audit_stage(
 
     elif stage == SetupStage.DESKTOP:
         details["desktop_runtime_state"] = facts.desktop_runtime_state.value
+        details["display_preferences"] = list(state.get("display_preferences", []) or [])
+        details["remote_displays"] = [
+            {
+                "name": display.name,
+                "current_mode": display.current_mode,
+                "refresh_hz": display.refresh_hz,
+                "scale_percent": display.scale_percent,
+                "primary": display.primary,
+            }
+            for display in facts.displays
+        ]
         if facts.desktop_runtime_state == DesktopRuntimeState.UNKNOWN:
             blockers.append("Desktop runtime state is still unknown.")
         if not state.get("persisted_config_written"):
             blockers.append("Desktop configuration was not persisted yet.")
         if facts.desktop_runtime_state == DesktopRuntimeState.BLOCKED_DRIVER_OR_DISPLAY_STACK:
             blockers.append("Desktop apply is blocked by the current driver or display stack.")
+        blockers.extend(str(item) for item in (state.get("display_preference_blockers") or []))
 
     elif stage == SetupStage.APPS:
         pending_slow = [

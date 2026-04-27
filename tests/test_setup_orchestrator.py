@@ -5,11 +5,15 @@ import threading
 import time
 
 from quickhatch.bridge.server import BridgeState
-from quickhatch.config import AIConfig, UserProfile
+from quickhatch.config import AIConfig, DisplayInfo, UserProfile
+from quickhatch.setup.audit import audit_stage
 from quickhatch.setup.orchestrator import GroupFailure, SetupOrchestrator, SetupRuntime
 from quickhatch.setup.types import (
+    AppPlanItem,
     CommandGroup,
     DesktopRuntimeState,
+    DisplayRuntimeInfo,
+    PlanItemStatus,
     ResearchPlan,
     SetupFacts,
     SetupStage,
@@ -476,6 +480,218 @@ def test_desktop_config_marker_counts_as_persisted_config():
     )
 
     assert orchestrator.ctx.stage_state[SetupStage.DESKTOP.value]["persisted_config_written"]
+
+
+def test_plasma_live_apply_without_config_write_does_not_count_as_persisted_config():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        current_user="jan",
+        login_user="jan",
+        session_type="wayland",
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    orchestrator._update_from_command(
+        "plasma-apply-lookandfeel -a com.github.eliverlara.sweet-mars",
+        "",
+        "",
+        stage=SetupStage.DESKTOP,
+    )
+
+    assert "persisted_config_written" not in orchestrator.ctx.stage_state[SetupStage.DESKTOP.value]
+    assert facts.desktop_runtime_state == DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
+
+
+def test_wallpaper_download_alone_does_not_count_as_persisted_desktop_config():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan", is_root=False)
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    orchestrator._update_from_command(
+        "wget -O /home/jan/wallpaper.jpg https://example.invalid/wallpaper.jpg",
+        "",
+        "",
+        stage=SetupStage.DESKTOP,
+    )
+
+    assert "persisted_config_written" not in orchestrator.ctx.stage_state[SetupStage.DESKTOP.value]
+
+
+def test_app_group_completion_reconciles_corrected_aur_aliases():
+    profile = UserProfile(apps_to_install=["Brave", "Mullvad VPN"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[
+            AppPlanItem(
+                name="Brave",
+                package_name="brave-browser",
+                source="community",
+                status=PlanItemStatus.PENDING,
+                required=True,
+            ),
+            AppPlanItem(
+                name="Mullvad VPN",
+                package_name="mullvad-vpn",
+                source="community",
+                status=PlanItemStatus.PENDING,
+                required=True,
+            ),
+        ],
+    )
+    group = CommandGroup(
+        id="aur-apps",
+        stage=SetupStage.APPS,
+        title="Install browsers and VPN",
+        commands=["yay -S --noconfirm brave-bin mullvad-vpn-bin"],
+        verification=["command -v brave", "command -v mullvad"],
+        packages=["brave-bin", "mullvad-vpn-bin"],
+    )
+
+    orchestrator._mark_group_completion(group, stage=SetupStage.APPS)
+
+    assert [app.status for app in orchestrator.ctx.plan.apps] == [
+        PlanItemStatus.INSTALLED,
+        PlanItemStatus.INSTALLED,
+    ]
+
+
+def test_final_package_verification_accepts_known_package_aliases():
+    profile = UserProfile(apps_to_install=["Brave", "Mullvad VPN"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+
+    def ssh_exec(command, timeout):
+        assert command == "pacman -Qq"
+        assert timeout == 45
+        return (0, "brave-bin\nmullvad-vpn-bin\n", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[
+            AppPlanItem(
+                name="Brave",
+                package_name="brave-browser",
+                source="community",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+            AppPlanItem(
+                name="Mullvad VPN",
+                package_name="mullvad-vpn",
+                source="community",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+        ],
+    )
+
+    assert orchestrator._verify_planned_packages_installed() == []
+
+
+def test_desktop_display_audit_blocks_resolution_mismatch():
+    profile = UserProfile()
+    profile.hardware.displays = [
+        DisplayInfo(
+            name="Primary 4K",
+            width_px=3840,
+            height_px=2160,
+            refresh_hz=60,
+            primary=True,
+        )
+    ]
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        current_user="jan",
+        login_user="jan",
+        displays=[DisplayRuntimeInfo(name="HDMI-A-1", current_mode="1920x1080", refresh_hz=60)],
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    state = {"persisted_config_written": True}
+
+    orchestrator._update_desktop_display_audit_state(state)
+    result = audit_stage(SetupStage.DESKTOP, facts, stage_state=state)
+
+    assert not result.passed
+    assert any("Display mode mismatch" in blocker for blocker in result.blockers)
+
+
+def test_desktop_display_audit_accepts_matching_resolution_and_refresh():
+    profile = UserProfile()
+    profile.hardware.displays = [
+        DisplayInfo(
+            name="Primary 4K",
+            width_px=3840,
+            height_px=2160,
+            refresh_hz=60,
+            primary=True,
+        )
+    ]
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        current_user="jan",
+        login_user="jan",
+        displays=[DisplayRuntimeInfo(name="HDMI-A-1", current_mode="3840x2160", refresh_hz=59.95)],
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    state = {"persisted_config_written": True}
+
+    orchestrator._update_desktop_display_audit_state(state)
+    result = audit_stage(SetupStage.DESKTOP, facts, stage_state=state)
+
+    assert result.passed
+    assert state["display_preference_blockers"] == []
+
+
+def test_desktop_display_audit_blocks_unverified_display_preferences():
+    profile = UserProfile()
+    profile.hardware.displays = [
+        DisplayInfo(
+            name="Primary 4K",
+            width_px=3840,
+            height_px=2160,
+            refresh_hz=60,
+            primary=True,
+        )
+    ]
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        current_user="jan",
+        login_user="jan",
+        display_manager_enabled=True,
+        desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    state = {"persisted_config_written": True}
+
+    orchestrator._update_desktop_display_audit_state(state)
+    result = audit_stage(SetupStage.DESKTOP, facts, stage_state=state)
+
+    assert not result.passed
+    assert any("could not be runtime-verified" in blocker for blocker in result.blockers)
 
 
 def test_pre_reboot_checks_retry_transient_ssh_disconnect(monkeypatch):

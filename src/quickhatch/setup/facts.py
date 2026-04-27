@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 
 from .types import DesktopRuntimeState, DisplayRuntimeInfo, SetupFacts
@@ -32,6 +33,12 @@ echo 'QH_NVIDIA_KERNEL_DRIVER='$(for d in /sys/bus/pci/devices/*; do class=$(cat
 echo 'QH_NOUVEAU_BOUND='$(for d in /sys/bus/pci/devices/*; do class=$(cat "$d/class" 2>/dev/null || true); vendor=$(cat "$d/vendor" 2>/dev/null || true); driver=$(basename "$(readlink -f "$d/driver" 2>/dev/null || echo none)"); if [ "$vendor" = "0x10de" ] && printf '%s' "$class" | grep -q '^0x03' && [ "$driver" = "nouveau" ]; then echo yes; exit 0; fi; done; echo no)
 echo 'QH_DRIVER_MODULES='$(lsmod 2>/dev/null | awk '/^nvidia/ {print $1}' | paste -sd',' -)
 echo 'QH_DISPLAYS='$(if command -v xrandr >/dev/null 2>&1; then xrandr --query 2>/dev/null | awk '/ connected/ {name=$1; primary=($0 ~ / primary / ? "primary" : "secondary"); mode=""; if (match($0, /[0-9]+x[0-9]+\+[0-9]+\+[0-9]+/)) { mode=substr($0, RSTART, RLENGTH); sub(/\+.*/, "", mode); } print name ":" primary ":" mode}' | paste -sd'|' -; fi)
+echo 'QH_KSCREEN_BEGIN'
+if command -v kscreen-doctor >/dev/null 2>&1; then uid=$(id -u 2>/dev/null || echo 1000); XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$uid} DBUS_SESSION_BUS_ADDRESS=${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$uid/bus} kscreen-doctor -o 2>/dev/null || true; fi
+echo 'QH_KSCREEN_END'
+echo 'QH_XRANDR_BEGIN'
+if command -v xrandr >/dev/null 2>&1; then DISPLAY=${DISPLAY:-:0} XAUTHORITY=${XAUTHORITY:-$HOME/.Xauthority} xrandr --query 2>/dev/null || true; fi
+echo 'QH_XRANDR_END'
 """
 
 
@@ -46,7 +53,124 @@ def _parse_display_entry(entry: str) -> DisplayRuntimeInfo | None:
     )
 
 
+def _collect_probe_block(output: str, name: str) -> str:
+    begin = f"QH_{name}_BEGIN"
+    end = f"QH_{name}_END"
+    collecting = False
+    lines: list[str] = []
+    for line in output.splitlines():
+        marker = line.strip()
+        if marker == begin:
+            collecting = True
+            continue
+        if marker == end:
+            break
+        if collecting:
+            lines.append(line)
+    return "\n".join(lines).strip()
+
+
+def _parse_kscreen_output(output: str) -> list[DisplayRuntimeInfo]:
+    displays: list[DisplayRuntimeInfo] = []
+    current: DisplayRuntimeInfo | None = None
+
+    def flush() -> None:
+        nonlocal current
+        if current and current.name:
+            displays.append(current)
+        current = None
+
+    for raw_line in (output or "").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line.startswith("Output:"):
+            flush()
+            parts = line.split()
+            name = parts[2] if len(parts) >= 3 else parts[-1].rstrip(":")
+            current = DisplayRuntimeInfo(name=name, primary=" primary" in f" {line.lower()} ")
+            continue
+        if current is None:
+            continue
+        geometry = re.search(r"\bGeometry:\s+\d+,\d+\s+(\d+x\d+)", line)
+        if geometry:
+            current.current_mode = geometry.group(1)
+        scale = re.search(r"\bScale:\s+([0-9.]+)", line)
+        if scale:
+            try:
+                current.scale_percent = round(float(scale.group(1)) * 100)
+            except ValueError:
+                pass
+        if "Modes:" in line:
+            for match in re.finditer(r"(\d+x\d+)@([0-9.]+)([!*+]*)", line):
+                mode, refresh, markers = match.groups()
+                current.advertised_modes.append(f"{mode}@{refresh}")
+                if "*" in markers or (
+                    current.current_mode == mode
+                    and current.refresh_hz is None
+                    and ("!" in markers or "+" in markers)
+                ):
+                    current.current_mode = mode
+                    try:
+                        current.refresh_hz = float(refresh)
+                    except ValueError:
+                        pass
+    flush()
+    return displays
+
+
+def _parse_xrandr_output(output: str) -> list[DisplayRuntimeInfo]:
+    displays: list[DisplayRuntimeInfo] = []
+    current: DisplayRuntimeInfo | None = None
+
+    def flush() -> None:
+        nonlocal current
+        if current and current.name:
+            displays.append(current)
+        current = None
+
+    for raw_line in (output or "").splitlines():
+        connected = re.match(
+            r"^(\S+)\s+connected(?:\s+(primary))?(?:\s+(\d+x\d+)\+\d+\+\d+)?",
+            raw_line,
+        )
+        disconnected = re.match(r"^\S+\s+disconnected\b", raw_line)
+        if connected:
+            flush()
+            current = DisplayRuntimeInfo(
+                name=connected.group(1),
+                primary=bool(connected.group(2)),
+                current_mode=connected.group(3) or "",
+            )
+            continue
+        if disconnected:
+            flush()
+            continue
+        if current is None:
+            continue
+        mode_line = re.match(r"^\s+(\d+x\d+)\s+(.+)$", raw_line)
+        if not mode_line:
+            continue
+        mode = mode_line.group(1)
+        for token in mode_line.group(2).split():
+            refresh_match = re.match(r"^([0-9]+(?:\.[0-9]+)?)([*+]*)$", token)
+            if not refresh_match:
+                continue
+            refresh, markers = refresh_match.groups()
+            current.advertised_modes.append(f"{mode}@{refresh}")
+            if "*" in markers:
+                current.current_mode = mode
+                try:
+                    current.refresh_hz = float(refresh)
+                except ValueError:
+                    pass
+    flush()
+    return displays
+
+
 def _desktop_runtime_state(facts: SetupFacts) -> DesktopRuntimeState:
+    if facts.displays:
+        return DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
     if facts.session_type:
         return DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
     if facts.display_manager_enabled:
@@ -173,12 +297,15 @@ def probe_setup_facts(
     facts.nvidia_kernel_driver = raw.get("QH_NVIDIA_KERNEL_DRIVER", facts.nvidia_kernel_driver)
     facts.nvidia_nouveau_bound = raw.get("QH_NOUVEAU_BOUND", "no") == "yes"
     facts.driver_modules = [p for p in raw.get("QH_DRIVER_MODULES", "").split(",") if p]
-    facts.displays = [
+    kscreen_displays = _parse_kscreen_output(_collect_probe_block(out, "KSCREEN"))
+    xrandr_displays = _parse_xrandr_output(_collect_probe_block(out, "XRANDR"))
+    fallback_displays = [
         display
         for display in (
             _parse_display_entry(entry) for entry in raw.get("QH_DISPLAYS", "").split("|")
         )
         if display
     ]
+    facts.displays = kscreen_displays or xrandr_displays or fallback_displays
     facts.desktop_runtime_state = _desktop_runtime_state(facts)
     return facts

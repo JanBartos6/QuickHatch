@@ -554,6 +554,11 @@ def build_research_prompt(
         "- Treat active_install_hint as advisory package-resolution data, not proof of installation success. Verify package names with repo/community search when confidence is not high, source is manual_followup/web/alternative, or packages are empty.\n"
         "- If an app is unresolved, mark it manual_followup or ask a blocking question; do not hallucinate a package.\n"
         "- Use the scanned display info only as preference input; remote runtime facts are truth.\n"
+        "- Desktop/theme groups must handle monitor reality, not just packages: write persistent "
+        "theme/wallpaper/display configuration, then verify active outputs, resolution, and refresh "
+        "with kscreen-doctor/xrandr when a GUI session is reachable. If no GUI session is reachable, "
+        "state pending_relogin/manual_followup instead of claiming live theme, wallpaper, resolution, "
+        "or refresh success.\n"
         "- Do not mark the run as complete. This is planning only.\n\n"
         + search_block
         + "\n== NORMALIZED SETUP FACTS ==\n"
