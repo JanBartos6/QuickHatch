@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict
 from typing import Any
 
@@ -96,6 +97,9 @@ _PROSE_COMMAND_MARKERS = (
     " confirm that ",
     " expected ",
 )
+
+_HEREDOC_OPERATOR_RE = re.compile(r"<<-?\s*['\"]?[A-Za-z_][A-Za-z0-9_]*['\"]?")
+_HEREDOC_TERMINATOR_RE = re.compile(r"(?:[A-Za-z_]*EOF[A-Za-z0-9_]*|CHROOT_EOF|INSTALL_EOF)")
 
 _EXECUTABLE_COMMAND_GROUP_STAGES = {
     SetupStage.INSTALL_OR_SKIP,
@@ -290,6 +294,14 @@ def _clean_shell_commands(raw: Any, *, field_name: str) -> list[str]:
         ):
             raise ResearchPlanValidationError(
                 f"{field_name}[{index}] is not a real shell command: {command!r}."
+            )
+        if _HEREDOC_OPERATOR_RE.search(command) or _HEREDOC_TERMINATOR_RE.fullmatch(
+            command.strip()
+        ):
+            raise ResearchPlanValidationError(
+                f"{field_name}[{index}] uses heredoc syntax: {command!r}. "
+                "Each command runs in a separate SSH session; use a single quoted "
+                "`bash -lc`/`sh -c` command or direct file edits instead."
             )
         commands.append(command)
     return commands
@@ -517,6 +529,7 @@ def build_research_prompt(
         "- Put driver/GPU work under postboot_driver, display manager/theme/runtime desktop work under desktop, and requested application installs under apps.\n"
         "- No mutating work can happen before research_and_plan finishes.\n"
         "- `commands`, command-group `verification`, and `verification_commands` must contain executable shell commands only. Do not write prose like `lsblk should show ...`; use commands such as `mountpoint /mnt` or `lsblk /dev/sda | grep -q '/mnt'`.\n"
+        "- Each command item runs as its own SSH execution. Do NOT use heredoc openers/terminators such as `<<EOF` and `EOF_CHROOT`; they will be split incorrectly. For chroot batches, use explicit commands like `arch-chroot /mnt sh -c 'cmd1; cmd2'`, or edit files under `/mnt` directly.\n"
         "- Every driver_strategy, desktop_strategy, command group, and resolved app SHOULD include evidence. If you used provider-native search, cite it as provider_native_search with a query/summary. If you used harness search results, cite repo_search/community_search/web_search. If an item only comes from local facts/user preference/catalog, cite local_facts/user_profile/selected_app_catalog and keep confidence honest.\n"
         "- Do not invent source URLs. If only native search was used and you do not have a URL, leave url empty and include query + summary.\n"
         "- Use official repos by default; only use community sources when needed and explicit.\n"
@@ -656,6 +669,7 @@ def build_repair_prompt(
         "- If you emit retry_group, include evidence on the replacement group unless the failure was purely local state/permissions. Evidence entries use {source_type, summary, query, url, title, confidence}.\n"
         "- If a desktop wrapper or other slow optional app is the problem, prefer manual_followup unless truly necessary.\n"
         "- If you emit retry_group, keep it scoped to this stage and include at least one command.\n"
+        "- Each retry command item runs as its own SSH execution. Do NOT emit heredoc syntax such as `<<EOF`/`EOF_CHROOT`; use explicit `arch-chroot /mnt sh -c '...'` commands or direct `/mnt` edits.\n"
         "- Do not emit final success prose.\n\n"
         f"== CURRENT STAGE ==\n{stage.value}\n\n"
         "== FAILED GROUP ==\n"

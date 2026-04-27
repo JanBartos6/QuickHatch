@@ -676,26 +676,65 @@ class SetupOrchestrator:
             f'grep -qxF {key_q} "$qh_home/.ssh/authorized_keys"'
         )
         self.bridge.add_message("agent", f"`{command}` — ensure SSH reconnect key")
-        rc, stdout, stderr = self.runtime.ssh_exec(command, 60)
-        self.ctx.results_log.append(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
-        self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
+        last_output = ""
+        for attempt in range(1, 4):
+            if attempt > 1:
+                delay = min(2 * attempt, 6)
+                self.bridge.add_message(
+                    "agent",
+                    f"Retrying SSH reconnect key verification ({attempt}/3) after {delay}s…",
+                )
+                time.sleep(delay)
+            rc, stdout, stderr = self.runtime.ssh_exec(command, 60)
+            last_output = (stderr or stdout or "").strip()
+            self.ctx.results_log.append(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+            self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
+            self.runlog.record(
+                "ssh_continuity_key",
+                stage=SetupStage.INSTALL_OR_SKIP.value,
+                user=reconnect_user,
+                attempt=attempt,
+                rc=rc,
+                stdout_tail=(stdout or "")[-500:],
+                stderr_tail=(stderr or "")[-500:],
+            )
+            if rc == 0:
+                break
+            if self._verify_reconnect_ssh_key(reconnect_user, public_key):
+                self.bridge.add_message(
+                    "agent",
+                    "SSH reconnect key is present despite a transient SSH command failure.",
+                )
+                break
+        else:
+            raise RuntimeError(
+                "Cannot verify SSH continuity before reboot: failed to install "
+                f"QuickHatch public key for '{reconnect_user}'. "
+                f"{last_output[:240]}"
+            )
+        self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})[
+            "ssh_continuity_key_installed"
+        ] = True
+
+    def _verify_reconnect_ssh_key(self, reconnect_user: str, public_key: str) -> bool:
+        user_q = shlex.quote(reconnect_user)
+        key_q = shlex.quote(public_key)
+        command = (
+            f"qh_home=/mnt/home/{user_q}; "
+            f'test -d "$qh_home" && '
+            f'test -f "$qh_home/.ssh/authorized_keys" && '
+            f'grep -qxF {key_q} "$qh_home/.ssh/authorized_keys"'
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 30)
         self.runlog.record(
-            "ssh_continuity_key",
+            "ssh_continuity_key_verify",
             stage=SetupStage.INSTALL_OR_SKIP.value,
             user=reconnect_user,
             rc=rc,
             stdout_tail=(stdout or "")[-500:],
             stderr_tail=(stderr or "")[-500:],
         )
-        if rc != 0:
-            raise RuntimeError(
-                "Cannot verify SSH continuity before reboot: failed to install "
-                f"QuickHatch public key for '{reconnect_user}'. "
-                f"{(stderr or stdout or '').strip()[:240]}"
-            )
-        self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})[
-            "ssh_continuity_key_installed"
-        ] = True
+        return rc == 0
 
     def _resolve_public_key_text(self) -> str:
         candidates: list[Path] = []

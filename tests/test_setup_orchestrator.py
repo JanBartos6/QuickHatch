@@ -259,6 +259,63 @@ def test_model_call_retries_transient_errors(monkeypatch):
     assert any("LLM call failed" in msg["content"] for msg in bridge.messages)
 
 
+def test_reconnect_key_accepts_verified_key_after_transient_failure(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="root", login_user="root", is_root=True)
+    calls: list[str] = []
+    monkeypatch.setattr("quickhatch.setup.orchestrator.time.sleep", lambda _seconds: None)
+
+    def ssh_exec(command, timeout):
+        calls.append(command)
+        if command.startswith("set -e;"):
+            return (255, "", "Connection closed by 127.0.0.1 port 2222")
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.created_user = "jan"
+    orchestrator._resolve_public_key_text = lambda: "ssh-ed25519 AAAATEST quickhatch"  # type: ignore[method-assign]
+
+    orchestrator._ensure_reconnect_ssh_key()
+
+    assert orchestrator.ctx.stage_state[SetupStage.INSTALL_OR_SKIP.value][
+        "ssh_continuity_key_installed"
+    ]
+    assert len(calls) == 2
+    assert calls[1].startswith("qh_home=/mnt/home/jan")
+
+
+def test_reconnect_key_retries_after_transient_disconnect(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="root", login_user="root", is_root=True)
+    install_attempts = {"count": 0}
+    monkeypatch.setattr("quickhatch.setup.orchestrator.time.sleep", lambda _seconds: None)
+
+    def ssh_exec(command, timeout):
+        if command.startswith("set -e;"):
+            install_attempts["count"] += 1
+            if install_attempts["count"] == 1:
+                return (255, "", "Connection closed by 127.0.0.1 port 2222")
+            return (0, "", "")
+        return (1, "", "not present yet")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.created_user = "jan"
+    orchestrator._resolve_public_key_text = lambda: "ssh-ed25519 AAAATEST quickhatch"  # type: ignore[method-assign]
+
+    orchestrator._ensure_reconnect_ssh_key()
+
+    assert install_attempts["count"] == 2
+    assert orchestrator.ctx.stage_state[SetupStage.INSTALL_OR_SKIP.value][
+        "ssh_continuity_key_installed"
+    ]
+
+
 def test_arch_nvidia_group_rewrites_legacy_driver_install_and_adds_boot_config():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
@@ -1475,7 +1532,7 @@ def test_live_install_installs_reconnect_key_before_reboot(tmp_path):
                 "stage": "install_or_skip",
                 "title": "Install base system",
                 "commands": [
-                    "arch-chroot /mnt /bin/bash <<'EOF'\nuseradd -m -G wheel -s /bin/bash jan\nEOF",
+                    "arch-chroot /mnt useradd -m -G wheel -s /bin/bash jan",
                     "reboot",
                 ],
                 "verification": [],

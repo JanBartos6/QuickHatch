@@ -252,6 +252,44 @@ def test_extract_research_plan_rejects_prose_group_verification():
         extract_research_plan(json.dumps(payload), profile)
 
 
+def test_extract_research_plan_rejects_heredoc_command_fragments():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["command_groups"][0]["commands"] = [
+        "arch-chroot /mnt /bin/bash <<'EOF_CHROOT'",
+        "locale-gen",
+        "EOF_CHROOT",
+    ]
+
+    with pytest.raises(ResearchPlanValidationError, match="heredoc syntax"):
+        extract_research_plan(json.dumps(payload), profile)
+
+
+def test_extract_repair_action_rejects_heredoc_retry_group():
+    failed_group = CommandGroup(
+        id="chroot",
+        stage=SetupStage.INSTALL_OR_SKIP,
+        title="Configure chroot",
+        commands=["true"],
+    )
+    payload = {
+        "action": "retry_group",
+        "group": {
+            "id": "chroot",
+            "stage": "install_or_skip",
+            "title": "Configure chroot",
+            "commands": ["arch-chroot /mnt sh <<EOF", "EOF"],
+        },
+    }
+
+    with pytest.raises(RepairActionValidationError, match="heredoc syntax"):
+        extract_repair_action(
+            json.dumps(payload),
+            fallback_stage=SetupStage.INSTALL_OR_SKIP,
+            failed_group=failed_group,
+        )
+
+
 def test_extract_research_plan_rejects_one_letter_stage_verification():
     profile = UserProfile()
     payload = _base_plan_payload()
