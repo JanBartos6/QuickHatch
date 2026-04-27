@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import threading
 import time
+from pathlib import Path
 
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, DisplayInfo, UserProfile
@@ -71,6 +72,110 @@ def _dummy_setup_runtime(
         migration_plan_md="",
         distro_primer_md="",
         native_search_active=native_search_active,
+    )
+
+
+def test_connect_probe_runs_keep_windows_transfer_smoke_test():
+    profile = UserProfile(data_transfer_method="keep_windows")
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+    )
+    copied: dict[str, str] = {}
+    commands_seen: list[str] = []
+
+    def ssh_exec(command, _timeout):
+        commands_seen.append(command)
+        if command.startswith("echo 'QuickHatch connected!'"):
+            return (0, "QuickHatch connected!\nLinux test\n", "")
+        if "quickhatch-transfer-smoke" in command and "grep -qxF" in command:
+            return (0, "", "")
+        return (0, "", "")
+
+    def copy_local_file_to_target(local_path: Path, remote_path: str, _timeout: int):
+        copied["remote_path"] = remote_path
+        copied["payload"] = local_path.read_text(encoding="utf-8").strip()
+        return (0, "", "")
+
+    runtime = _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    runtime.copy_local_file_to_target = copy_local_file_to_target
+    orchestrator = SetupOrchestrator(runtime)
+
+    orchestrator._start_run_state()
+    orchestrator._run_connect_and_probe()
+
+    assert copied["remote_path"].startswith("/tmp/quickhatch-transfer-smoke-")
+    assert copied["payload"].startswith("quickhatch-transfer-smoke ")
+    assert any("grep -qxF" in command for command in commands_seen)
+    state = orchestrator.ctx.stage_state[SetupStage.CONNECT_AND_PROBE.value]
+    assert state["transfer_smoke_test"]["status"] == "passed"
+
+
+def test_connect_probe_transfer_smoke_failure_does_not_block_setup():
+    profile = UserProfile(data_transfer_method="keep_windows")
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+    )
+
+    def ssh_exec(command, _timeout):
+        if command.startswith("echo 'QuickHatch connected!'"):
+            return (0, "QuickHatch connected!\nLinux test\n", "")
+        return (0, "", "")
+
+    runtime = _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    runtime.copy_local_file_to_target = lambda _local, _remote, _timeout: (
+        1,
+        "",
+        "permission denied",
+    )
+    orchestrator = SetupOrchestrator(runtime)
+
+    orchestrator._start_run_state()
+    orchestrator._run_connect_and_probe()
+
+    state = orchestrator.ctx.stage_state[SetupStage.CONNECT_AND_PROBE.value]
+    assert state["transfer_smoke_test"]["status"] == "failed"
+    assert any(
+        "Network file-transfer smoke test failed" in message.get("content", "")
+        for message in bridge.messages
+    )
+
+
+def test_connect_probe_skips_transfer_smoke_for_external_drive():
+    profile = UserProfile(data_transfer_method="external_drive")
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+    )
+    copied = {"called": False}
+
+    def ssh_exec(command, _timeout):
+        if command.startswith("echo 'QuickHatch connected!'"):
+            return (0, "QuickHatch connected!\nLinux test\n", "")
+        return (0, "", "")
+
+    runtime = _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    runtime.copy_local_file_to_target = lambda _local, _remote, _timeout: (
+        copied.update(called=True) or (0, "", "")
+    )
+    orchestrator = SetupOrchestrator(runtime)
+
+    orchestrator._start_run_state()
+    orchestrator._run_connect_and_probe()
+
+    assert copied["called"] is False
+    assert "transfer_smoke_test" not in orchestrator.ctx.stage_state.get(
+        SetupStage.CONNECT_AND_PROBE.value, {}
     )
 
 

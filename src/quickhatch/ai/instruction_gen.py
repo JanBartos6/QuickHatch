@@ -96,12 +96,13 @@ def _operating_rules(profile: UserProfile) -> str:
         "4. If `gallery_picks` is non-empty, those recipes are authoritative design references. Personalize within them instead of inventing a different desktop direction.",
         "5. QuickHatch does not automatically copy Windows files. Only claim Linux-side preparation and instructions for the user's chosen transfer method.",
         "6. If `target_hardware_override` is non-empty, treat it as authoritative over scanned hardware for driver and install decisions.",
+        "7. Remote setup commands run on the Linux target. They cannot read Windows-local paths unless Windows exposes them over SSH/SMB, the disk is mounted, or the user moved the files first.",
     ]
     if prefs.migration_type == "customize_linux":
-        rules.append("7. In customization mode, no distro recommendation is needed.")
+        rules.append("8. In customization mode, no distro recommendation is needed.")
     else:
         rules.append(
-            "7. In migration mode, plan around SSH access from Windows to the Linux target."
+            "8. In migration mode, plan around SSH access from Windows to the Linux target."
         )
     return "\n".join(rules) + "\n"
 

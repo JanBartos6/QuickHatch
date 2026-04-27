@@ -6,6 +6,7 @@ import copy
 import json
 import re
 import shlex
+import tempfile
 import time
 import uuid
 from collections.abc import Callable
@@ -186,6 +187,7 @@ class SetupRuntime:
     target_distro_family: str = ""
     native_search_active: bool = False
     results_log_limit: int = 100
+    copy_local_file_to_target: Callable[[Path, str, int], tuple[int, str, str]] | None = None
 
 
 @dataclass
@@ -343,8 +345,98 @@ class SetupOrchestrator:
             system_info=self.ctx.system_info,
             facts=asdict(self.ctx.facts),
         )
+        self._maybe_run_transfer_smoke_test()
         result = audit_stage(SetupStage.CONNECT_AND_PROBE, self.ctx.facts)
         self._record_stage_result(result)
+
+    def _maybe_run_transfer_smoke_test(self) -> None:
+        method = (self.profile.data_transfer_method or "").strip().lower()
+        if method != "keep_windows":
+            return
+        state = self.ctx.stage_state.setdefault(SetupStage.CONNECT_AND_PROBE.value, {})
+        target_path = f"/tmp/quickhatch-transfer-smoke-{self.ctx.run_id}.txt"
+        if self.runtime.copy_local_file_to_target is None:
+            reason = "host-side copy helper is unavailable"
+            state["transfer_smoke_test"] = {"status": "skipped", "reason": reason}
+            self.bridge.add_message(
+                "agent",
+                "⚠️ Network file-transfer smoke test skipped: "
+                f"{reason}. Data migration must stay manual follow-up.",
+            )
+            self.runlog.record(
+                "transfer_smoke_test",
+                stage=SetupStage.CONNECT_AND_PROBE.value,
+                status="skipped",
+                reason=reason,
+            )
+            return
+
+        payload = f"quickhatch-transfer-smoke {self.ctx.run_id}"
+        local_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                "w",
+                encoding="utf-8",
+                newline="\n",
+                prefix="quickhatch-transfer-smoke-",
+                suffix=".txt",
+                delete=False,
+            ) as handle:
+                handle.write(payload + "\n")
+                local_path = Path(handle.name)
+            rc, stdout, stderr = self.runtime.copy_local_file_to_target(local_path, target_path, 60)
+            self.runlog.record(
+                "transfer_smoke_copy",
+                stage=SetupStage.CONNECT_AND_PROBE.value,
+                target_path=target_path,
+                rc=rc,
+                stdout_tail=(stdout or "")[-500:],
+                stderr_tail=(stderr or "")[-500:],
+            )
+            if rc != 0:
+                detail = (stderr or stdout or "copy failed").strip()[:240]
+                state["transfer_smoke_test"] = {"status": "failed", "detail": detail}
+                self.bridge.add_message(
+                    "agent",
+                    "⚠️ Network file-transfer smoke test failed. "
+                    "The install can continue, but Windows data transfer should be manual "
+                    f"follow-up. {detail}",
+                )
+                return
+
+            verify = (
+                f"grep -qxF {shlex.quote(payload)} {shlex.quote(target_path)} "
+                f"&& rm -f {shlex.quote(target_path)}"
+            )
+            verify_rc, verify_out, verify_err = self.runtime.ssh_exec(verify, 30)
+            self.runlog.record(
+                "transfer_smoke_verify",
+                stage=SetupStage.CONNECT_AND_PROBE.value,
+                command=verify,
+                rc=verify_rc,
+                stdout_tail=(verify_out or "")[-500:],
+                stderr_tail=(verify_err or "")[-500:],
+            )
+            if verify_rc != 0:
+                detail = (verify_err or verify_out or "verification failed").strip()[:240]
+                state["transfer_smoke_test"] = {"status": "failed", "detail": detail}
+                self.bridge.add_message(
+                    "agent",
+                    "⚠️ Network file-transfer smoke test copied a file, but remote "
+                    f"verification failed. Treat data transfer as manual follow-up. {detail}",
+                )
+                return
+            state["transfer_smoke_test"] = {"status": "passed", "target_path": target_path}
+            self.bridge.add_message(
+                "agent",
+                "✓ Host-to-target file-transfer smoke test passed with a tiny dummy file.",
+            )
+        finally:
+            if local_path is not None:
+                try:
+                    local_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
 
     def _planner_model_call(self, messages: list[dict[str, str]]) -> str:
         planning_config = copy.copy(self.runtime.config)

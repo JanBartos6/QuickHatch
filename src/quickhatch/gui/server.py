@@ -2797,7 +2797,9 @@ def _build_section_prompt(
             "1. Data backup strategy — MATCH the user's chosen `data_transfer_method`:\n"
             "   - 'external_drive': Windows → USB → Linux. List the specific dirs to copy.\n"
             "   - 'cloud': install the Linux sync client / CLI, authenticate, sync.\n"
-            "   - 'keep_windows': give scp/rsync commands from Linux, or NTFS mount steps.\n"
+            "   - 'keep_windows': prefer host-initiated SSH/SCP/rsync from Windows to Linux, "
+            "or NTFS mount/network-share steps. Do not assume the Linux target can read "
+            "Windows-local paths unless Windows exposes them over SSH/SMB or the disk is mounted.\n"
             "   - 'nothing': skip this section entirely.\n"
             "2. Disk partitioning and encryption (specific partition sizes, filesystem choices)\n"
             "3. Installation steps (with EXACT commands where possible)\n"
@@ -3926,6 +3928,65 @@ def _ssh_exec(
         # broken pipes mid-handshake. Previously propagated and killed the
         # agent thread with no UI feedback.
         return -1, "", f"ssh invocation failed: {exc}"
+
+
+def _scp_copy_to_target(
+    host: str,
+    user: str,
+    local_path: Path,
+    remote_path: str,
+    key_path: str | None = None,
+    timeout: int = 120,
+    port: int = 22,
+) -> tuple[int, str, str]:
+    """Copy one local file to the remote target via host-side scp."""
+    import socket as _socket
+    import subprocess
+
+    try:
+        with _socket.create_connection((host, port), timeout=3):
+            pass
+    except OSError as exc:
+        return -1, "", f"cannot reach {host}:{port} ({exc.__class__.__name__})"
+
+    if not local_path.exists() or not local_path.is_file():
+        return -1, "", f"local file not found: {local_path}"
+    if not remote_path.startswith("/tmp/quickhatch-transfer-smoke-"):
+        return -1, "", "refusing to copy to an unmanaged remote path"
+
+    scp_args = [
+        "scp",
+        "-o",
+        "StrictHostKeyChecking=no",
+        "-o",
+        "UserKnownHostsFile=/dev/null",
+        "-o",
+        "ConnectTimeout=10",
+        "-o",
+        "BatchMode=yes",
+        "-P",
+        str(port),
+    ]
+    if key_path:
+        scp_args += ["-i", key_path]
+    scp_args += [str(local_path), f"{user}@{host}:{remote_path}"]
+
+    try:
+        result = subprocess.run(
+            scp_args,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+        )
+        return result.returncode, result.stdout, result.stderr
+    except subprocess.TimeoutExpired:
+        return -1, "", "Copy timed out"
+    except FileNotFoundError:
+        return -1, "", "scp not found — install OpenSSH"
+    except OSError as exc:
+        return -1, "", f"scp invocation failed: {exc}"
 
 
 _SETUP_CMD_DEFAULT_TIMEOUT = 1800
@@ -6170,6 +6231,15 @@ def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = ""
         ),
         ssh_exec=lambda command, timeout: _ssh_exec(
             host, session_user["value"], command, key_path, timeout=timeout, port=ssh_port
+        ),
+        copy_local_file_to_target=lambda local_path, remote_path, timeout: _scp_copy_to_target(
+            host,
+            session_user["value"],
+            local_path,
+            remote_path,
+            key_path,
+            timeout=timeout,
+            port=ssh_port,
         ),
         repo_search=_repo_search,
         community_search=_community_search,

@@ -555,6 +555,7 @@ def build_research_prompt(
         "- Use selected_app_catalog as curated prior knowledge for selected apps. Prefer high-confidence source_hint values and active_install_hint when its family matches the target distro.\n"
         "- Treat active_install_hint as advisory package-resolution data, not proof of installation success. Verify package names with repo/community search when confidence is not high, source is manual_followup/web/alternative, or packages are empty.\n"
         "- If an app is unresolved, mark it manual_followup or ask a blocking question; do not hallucinate a package.\n"
+        "- QuickHatch remote setup commands run on the Linux target, not on the Windows host. They cannot read arbitrary Windows-local paths. For data_transfer_method='keep_windows', QuickHatch performs a tiny host-to-target transfer smoke test during connect; use that only as evidence that SSH/scp transport works, not as evidence that user files were copied. For external_drive/cloud transfer methods, prepare Linux-side destinations/tools and write clear user instructions; do not claim Windows files were copied unless a command actually proves it on the target.\n"
         "- Use the scanned display info only as preference input; remote runtime facts are truth.\n"
         "- Split desktop work into separate groups: core desktop/display-manager package install, "
         "persistent user config writes, and live display/theme/wallpaper apply. Do not combine "

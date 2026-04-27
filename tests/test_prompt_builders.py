@@ -75,6 +75,14 @@ class TestBuildSectionPrompt:
         prompt = _build_section_prompt(profile, "plan", "")
         assert "wheel" in prompt.lower() or "user" in prompt.lower()
 
+    def test_plan_section_does_not_assume_linux_can_read_windows_paths(self, profile):
+        profile.data_transfer_method = "keep_windows"
+        profile.data_description = "Move one dummy file from Windows to Linux."
+        prompt = _build_section_prompt(profile, "plan", "")
+        lower = prompt.lower()
+        assert "host-initiated" in lower
+        assert "do not assume the linux target can read windows-local paths" in lower
+
     def test_summary_section_is_short(self, profile):
         prompt = _build_section_prompt(profile, "summary", "")
         # The instruction text itself should be compact

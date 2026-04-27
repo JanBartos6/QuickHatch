@@ -485,6 +485,8 @@ def test_build_research_prompt_includes_selected_app_catalog():
     assert "Never assume Arch, KDE, NVIDIA, AUR" in prompt
     assert "Treat desktop design as a contract" in prompt
     assert "Installing a theme/icon package is not the same as applying it" in prompt
+    assert "cannot read arbitrary Windows-local paths" in prompt
+    assert "transfer smoke test" in prompt
 
 
 def test_build_research_prompt_uses_target_distro_over_live_facts(monkeypatch):
