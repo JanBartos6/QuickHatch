@@ -661,7 +661,8 @@ class SetupOrchestrator:
 
     def _run_pre_reboot_checks_with_retries(self) -> tuple[bool, list[str], str]:
         last_result: tuple[bool, list[str], str] = (False, [], "")
-        for attempt in range(1, 4):
+        max_attempts = 8
+        for attempt in range(1, max_attempts + 1):
             ok, failures, summary = self.runtime.run_pre_reboot_checks()
             last_result = (ok, failures, summary)
             self.runlog.record(
@@ -674,10 +675,15 @@ class SetupOrchestrator:
             )
             if ok or not self._looks_like_transient_ssh_disconnect(summary, *failures):
                 return last_result
-            delay = min(2 * attempt, 6)
+            if attempt >= max_attempts:
+                return last_result
+            if self.bridge.stop_requested:
+                raise RuntimeError("Agent stopped by user.")
+            delay = min(3 * attempt, 20)
             self.bridge.add_message(
                 "agent",
-                f"Pre-reboot safety check hit a transient SSH disconnect; retrying ({attempt + 1}/3) after {delay}s…",
+                "Pre-reboot safety check hit a transient SSH disconnect; "
+                f"retrying ({attempt + 1}/{max_attempts}) after {delay}s…",
             )
             time.sleep(delay)
         return last_result

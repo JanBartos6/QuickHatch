@@ -506,6 +506,36 @@ def test_pre_reboot_checks_retry_transient_ssh_disconnect(monkeypatch):
     assert any("transient SSH disconnect" in msg["content"] for msg in bridge.messages)
 
 
+def test_pre_reboot_checks_tolerate_extended_transient_ssh_disconnects(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="root", login_user="root", is_root=True)
+    attempts = {"count": 0}
+    monkeypatch.setattr("quickhatch.setup.orchestrator.time.sleep", lambda _seconds: None)
+
+    def run_pre_reboot_checks():
+        attempts["count"] += 1
+        if attempts["count"] < 6:
+            return (
+                False,
+                ["pre-reboot check script failed to run"],
+                "FAIL pre-reboot check script failed to run (rc=255): Connection closed by 127.0.0.1 port 2222",
+            )
+        return (True, [], "ok")
+
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.run_pre_reboot_checks = run_pre_reboot_checks
+    orchestrator = SetupOrchestrator(runtime)
+
+    ok, failures, summary = orchestrator._run_pre_reboot_checks_with_retries()
+
+    assert ok is True
+    assert failures == []
+    assert summary == "ok"
+    assert attempts["count"] == 6
+    assert any("retrying (6/8)" in msg["content"] for msg in bridge.messages)
+
+
 def test_pre_reboot_checks_do_not_retry_real_boot_failures(monkeypatch):
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
