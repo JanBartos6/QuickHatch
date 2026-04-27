@@ -367,6 +367,8 @@ class TestVmAwarePromptBlock:
         assert "QUICKHATCH_VM_VERIFY" in block
         assert "exit_code=105" in block
         assert "hardware" in block.lower()
+        assert "Do not write a VM-only happy path" in block
+        assert "assumes Arch/KDE/NVIDIA" in block
 
     def test_disabled_returns_empty(self):
         assert vm_verify.vm_aware_prompt_block(False) == ""

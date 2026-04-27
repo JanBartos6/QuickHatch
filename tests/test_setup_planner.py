@@ -481,6 +481,8 @@ def test_build_research_prompt_includes_selected_app_catalog():
     assert "QuickHatch handles final key copying/validation" in prompt
     assert "verify active outputs, resolution, and refresh" in prompt
     assert "no GUI session is reachable" in prompt
+    assert "Do not optimize for or replay any prior QuickHatch run" in prompt
+    assert "Never assume Arch, KDE, NVIDIA, AUR" in prompt
 
 
 def test_build_research_prompt_uses_target_distro_over_live_facts(monkeypatch):

@@ -600,6 +600,10 @@ This means:
 - The VM's only disk is typically /dev/sda or /dev/vda. The script should
   auto-detect — don't hard-code /dev/nvme0n1 unless the user profile
   explicitly specifies it.
+- Do not write a VM-only happy path that assumes Arch/KDE/NVIDIA or replays
+  a previous successful run. Use the VM's actual distro/package manager and
+  keep the same generic decisions you would use on real hardware, with only
+  hardware-specific pieces guarded or skipped.
 
 Structure every potentially hardware-only command with the guard above so
 the VM run can complete end-to-end and report exit 0.
