@@ -124,6 +124,10 @@ _PRIVILEGED_PATH_WRITE_RE = re.compile(
     r")",
     re.IGNORECASE,
 )
+_INSTALLED_CHROOT_PREFIX_RE = re.compile(
+    r"^(?:sudo\s+)?(?:arch-chroot|chroot)\s+/(?:mnt|target)\s+(?P<inner>.+)$",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 @dataclass
@@ -316,7 +320,7 @@ class SetupOrchestrator:
     def _planner_model_call(self, messages: list[dict[str, str]]) -> str:
         planning_config = copy.copy(self.runtime.config)
         planning_config.native_search = self.runtime.native_search_active
-        return self.runtime.call_model_text(planning_config, messages)
+        return self._call_model_with_retries(planning_config, messages, context="planning")
 
     def _parse_planner_json(self, text: str) -> dict[str, Any]:
         raw = (text or "").strip()
@@ -1086,6 +1090,9 @@ class SetupOrchestrator:
             self._update_from_command(command, stdout, stderr, stage=stage)
         self._maybe_reboot_for_nvidia_driver(stage, group, stage_state)
         for verification in group.verification:
+            verification = self._normalize_installed_nonroot_privileged_command(
+                verification, stage=stage
+            )
             self.bridge.add_message("agent", f"`{verification}` — verify")
             rc, stdout, stderr = self.runtime.ssh_exec(verification, 120)
             self.runlog.record(
@@ -1170,13 +1177,24 @@ class SetupOrchestrator:
         self, command: str, *, stage: SetupStage
     ) -> str:
         facts = self.ctx.facts or SetupFacts()
-        if stage not in _INSTALLED_NONROOT_PRIVILEGED_STAGES or facts.is_live or facts.is_root:
+        if stage not in _INSTALLED_NONROOT_PRIVILEGED_STAGES or facts.is_live:
             return command
         stripped = command.strip()
+        chroot_stripped = self._strip_installed_chroot_prefix(stripped)
+        if chroot_stripped != stripped:
+            self.runlog.record(
+                "command_installed_chroot_stripped",
+                stage=stage.value,
+                original=command,
+                rewritten=chroot_stripped,
+            )
+            stripped = chroot_stripped
+        if facts.is_root:
+            return stripped if stripped != command.strip() else command
         if not stripped or self._has_privileged_command_wrapper(stripped):
-            return command
+            return stripped if stripped != command.strip() else command
         if self._uses_arch_community_helper_command(stripped):
-            return command
+            return stripped if stripped != command.strip() else command
 
         rewritten = self._sudo_tee_for_privileged_pipeline(stripped)
         if rewritten != stripped:
@@ -1199,7 +1217,17 @@ class SetupOrchestrator:
                 reason="installed non-root privileged command",
             )
             return rewritten
-        return command
+        return stripped if stripped != command.strip() else command
+
+    @staticmethod
+    def _strip_installed_chroot_prefix(command: str) -> str:
+        match = _INSTALLED_CHROOT_PREFIX_RE.match(command.strip())
+        if not match:
+            return command
+        inner = match.group("inner").strip()
+        if inner.startswith("/bin/bash "):
+            inner = "bash " + inner[len("/bin/bash ") :]
+        return inner
 
     @staticmethod
     def _has_privileged_command_wrapper(command: str) -> bool:
@@ -1553,7 +1581,37 @@ class SetupOrchestrator:
     def _repair_model_call(self, messages: list[dict[str, str]]) -> str:
         repair_config = copy.copy(self.runtime.config)
         repair_config.native_search = self.runtime.native_search_active
-        return self.runtime.call_model_text(repair_config, messages)
+        return self._call_model_with_retries(repair_config, messages, context="repair")
+
+    def _call_model_with_retries(
+        self,
+        model_config: AIConfig,
+        messages: list[dict[str, str]],
+        *,
+        context: str,
+    ) -> str:
+        last_error: Exception | None = None
+        for attempt in range(1, 4):
+            try:
+                return self.runtime.call_model_text(model_config, messages)
+            except Exception as exc:
+                last_error = exc
+                self.runlog.record(
+                    "model_call_failed",
+                    context=context,
+                    attempt=attempt,
+                    error=str(exc),
+                )
+                if attempt >= 3:
+                    break
+                delay = min(3 * attempt, 12)
+                self.bridge.add_message(
+                    "agent",
+                    f"⚠️ {context.capitalize()} LLM call failed ({attempt}/3): "
+                    f"{str(exc)[:240]}. Retrying in {delay}s…",
+                )
+                time.sleep(delay)
+        raise RuntimeError(f"{context.capitalize()} LLM call failed after 3 attempts: {last_error}")
 
     def _repair_search_result(self, action: dict[str, Any]) -> str:
         query = str(action.get("query", "")).strip()

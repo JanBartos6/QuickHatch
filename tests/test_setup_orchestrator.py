@@ -173,6 +173,92 @@ def test_installed_nonroot_privilege_normalization_sudoes_privileged_tee_pipelin
     ]
 
 
+def test_installed_stage_strips_stale_chroot_prefix_and_sudoes_inner_command():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="driver",
+        stage=SetupStage.POSTBOOT_DRIVER,
+        title="Install guest utilities",
+        commands=["arch-chroot /mnt pacman -S --noconfirm virtualbox-guest-utils"],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.POSTBOOT_DRIVER, group)
+
+    assert commands == ["sudo pacman -S --noconfirm virtualbox-guest-utils"]
+
+
+def test_installed_stage_strips_stale_chroot_prefix_from_verification():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+    commands_seen: list[str] = []
+
+    def ssh_exec(command, timeout):
+        commands_seen.append(command)
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="desktop",
+        stage=SetupStage.DESKTOP,
+        title="Verify SDDM",
+        commands=["true"],
+        verification=["arch-chroot /mnt systemctl is-enabled sddm"],
+    )
+
+    failure = orchestrator._execute_group(SetupStage.DESKTOP, group, {})
+
+    assert failure is None
+    assert commands_seen == ["true", "sudo systemctl is-enabled sddm"]
+
+
+def test_model_call_retries_transient_errors(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan")
+    attempts = {"count": 0}
+    monkeypatch.setattr("quickhatch.setup.orchestrator.time.sleep", lambda _seconds: None)
+
+    def model_call(_cfg, _messages):
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            raise RuntimeError("503 Service Unavailable")
+        return "ok"
+
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.call_model_text = model_call
+    orchestrator = SetupOrchestrator(runtime)
+
+    result = orchestrator._call_model_with_retries(
+        runtime.config, [{"role": "user", "content": "test"}], context="planning"
+    )
+
+    assert result == "ok"
+    assert attempts["count"] == 2
+    assert any("LLM call failed" in msg["content"] for msg in bridge.messages)
+
+
 def test_arch_nvidia_group_rewrites_legacy_driver_install_and_adds_boot_config():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
