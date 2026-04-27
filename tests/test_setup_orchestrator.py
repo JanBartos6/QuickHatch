@@ -354,6 +354,37 @@ def test_reconnect_key_tolerates_extended_transient_disconnect(monkeypatch):
     ]
 
 
+def test_group_command_retries_transient_ssh_transport_failure(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="root", login_user="root", is_root=True)
+    attempts = {"count": 0}
+    monkeypatch.setattr("quickhatch.setup.orchestrator.time.sleep", lambda _seconds: None)
+
+    def ssh_exec(command, timeout):
+        attempts["count"] += 1
+        if attempts["count"] <= 2:
+            return (255, "", "Connection closed by 127.0.0.1 port 2222")
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="chown-key",
+        stage=SetupStage.INSTALL_OR_SKIP,
+        title="Fix SSH key ownership",
+        commands=["arch-chroot /mnt chown -R jan:jan /home/jan/.ssh"],
+    )
+
+    failure = orchestrator._execute_group(SetupStage.INSTALL_OR_SKIP, group, {})
+
+    assert failure is None
+    assert attempts["count"] == 3
+    assert any("Transient SSH transport failure" in msg["content"] for msg in bridge.messages)
+
+
 def test_pre_reboot_checks_retry_transient_ssh_disconnect(monkeypatch):
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

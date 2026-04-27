@@ -1144,7 +1144,13 @@ class SetupOrchestrator:
                         detail=lint_error,
                     )
             self.bridge.add_message("agent", f"`{command}`")
-            rc, stdout, stderr = self.runtime.ssh_exec(command, self._command_timeout(command))
+            rc, stdout, stderr = self._ssh_exec_with_transient_retries(
+                command,
+                self._command_timeout(command),
+                stage=stage,
+                group_id=group.id,
+                label="command",
+            )
             self.ctx.results_log.append(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
             self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
             self.runlog.record(
@@ -1184,7 +1190,13 @@ class SetupOrchestrator:
                 verification, stage=stage
             )
             self.bridge.add_message("agent", f"`{verification}` — verify")
-            rc, stdout, stderr = self.runtime.ssh_exec(verification, 120)
+            rc, stdout, stderr = self._ssh_exec_with_transient_retries(
+                verification,
+                120,
+                stage=stage,
+                group_id=group.id,
+                label="verification",
+            )
             self.runlog.record(
                 "verification",
                 stage=stage.value,
@@ -1219,6 +1231,47 @@ class SetupOrchestrator:
                     detail=detail,
                 )
         return None
+
+    def _ssh_exec_with_transient_retries(
+        self,
+        command: str,
+        timeout: int,
+        *,
+        stage: SetupStage,
+        group_id: str,
+        label: str,
+    ) -> tuple[int, str, str]:
+        max_attempts = 5
+        last_result = (1, "", "command did not run")
+        for attempt in range(1, max_attempts + 1):
+            rc, stdout, stderr = self.runtime.ssh_exec(command, timeout)
+            last_result = (rc, stdout, stderr)
+            if rc == 0:
+                return last_result
+            if not self._looks_like_transient_ssh_disconnect(stdout, stderr):
+                return last_result
+            if attempt == max_attempts:
+                return last_result
+            delay = min(2 * attempt, 10)
+            self.bridge.add_message(
+                "agent",
+                "Transient SSH transport failure during "
+                f"{label}; retrying the same command "
+                f"({attempt + 1}/{max_attempts}) after {delay}s…",
+            )
+            self.runlog.record(
+                "ssh_transport_retry",
+                stage=stage.value,
+                group_id=group_id,
+                label=label,
+                command=command,
+                attempt=attempt,
+                rc=rc,
+                stdout_tail=(stdout or "")[-500:],
+                stderr_tail=(stderr or "")[-500:],
+            )
+            time.sleep(delay)
+        return last_result
 
     def _commands_for_group(self, stage: SetupStage, group: CommandGroup) -> list[str]:
         commands = self._drop_live_install_harness_owned_commands(stage, group)
