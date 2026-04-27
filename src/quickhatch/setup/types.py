@@ -49,6 +49,21 @@ class DisplayRuntimeInfo:
 
 
 @dataclass
+class DesktopDesignState:
+    environment: str = ""
+    kde_color_scheme: str = ""
+    kde_icon_theme: str = ""
+    kde_cursor_theme: str = ""
+    kde_wallpaper: str = ""
+    kde_wobbly_windows: str = ""
+    kde_magic_lamp: str = ""
+    gnome_gtk_theme: str = ""
+    gnome_icon_theme: str = ""
+    gnome_cursor_theme: str = ""
+    gnome_wallpaper: str = ""
+
+
+@dataclass
 class PlanEvidence:
     source_type: str
     summary: str
@@ -124,6 +139,7 @@ class SetupFacts:
     display_manager_enabled: bool = False
     desktop_runtime_state: DesktopRuntimeState = DesktopRuntimeState.UNKNOWN
     displays: list[DisplayRuntimeInfo] = field(default_factory=list)
+    desktop_design: DesktopDesignState = field(default_factory=DesktopDesignState)
     requested_app_states: dict[str, str] = field(default_factory=dict)
     pending_question_id: str = ""
     pending_question_blocking: bool = False

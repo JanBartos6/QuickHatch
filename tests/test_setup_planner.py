@@ -483,6 +483,8 @@ def test_build_research_prompt_includes_selected_app_catalog():
     assert "no GUI session is reachable" in prompt
     assert "Do not optimize for or replay any prior QuickHatch run" in prompt
     assert "Never assume Arch, KDE, NVIDIA, AUR" in prompt
+    assert "Treat desktop design as a contract" in prompt
+    assert "Installing a theme/icon package is not the same as applying it" in prompt
 
 
 def test_build_research_prompt_uses_target_distro_over_live_facts(monkeypatch):

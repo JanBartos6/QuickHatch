@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Any
 
 from .types import (
@@ -69,6 +70,7 @@ def audit_stage(
 
     elif stage == SetupStage.DESKTOP:
         details["desktop_runtime_state"] = facts.desktop_runtime_state.value
+        details["desktop_design"] = asdict(facts.desktop_design)
         details["display_manual_followup"] = bool(state.get("display_manual_followup"))
         if state.get("display_manual_followup_reason"):
             details["display_manual_followup_reason"] = state.get("display_manual_followup_reason")
@@ -87,6 +89,16 @@ def audit_stage(
             blockers.append("Desktop runtime state is still unknown.")
         if not state.get("persisted_config_written"):
             blockers.append("Desktop configuration was not persisted yet.")
+        if state.get("desktop_design_attempted") and not _has_desktop_design_signal(facts):
+            blockers.append(
+                "Desktop design config was attempted, but no configured theme/icon/"
+                "wallpaper state was detected in the target user session."
+            )
+        if state.get("wallpaper_attempted") and not _has_wallpaper_signal(facts):
+            blockers.append(
+                "Wallpaper apply/configuration was attempted, but no target wallpaper "
+                "state was detected."
+            )
         if facts.desktop_runtime_state == DesktopRuntimeState.BLOCKED_DRIVER_OR_DISPLAY_STACK:
             blockers.append("Desktop apply is blocked by the current driver or display stack.")
         blockers.extend(str(item) for item in (state.get("display_preference_blockers") or []))
@@ -129,6 +141,30 @@ def audit_stage(
         blockers = flattened
 
     return AuditResult(stage=stage, passed=not blockers, blockers=blockers, details=details)
+
+
+def _has_desktop_design_signal(facts: SetupFacts) -> bool:
+    design = facts.desktop_design
+    return any(
+        str(value or "").strip()
+        for value in (
+            design.kde_color_scheme,
+            design.kde_icon_theme,
+            design.kde_cursor_theme,
+            design.kde_wallpaper,
+            design.kde_wobbly_windows,
+            design.kde_magic_lamp,
+            design.gnome_gtk_theme,
+            design.gnome_icon_theme,
+            design.gnome_cursor_theme,
+            design.gnome_wallpaper,
+        )
+    )
+
+
+def _has_wallpaper_signal(facts: SetupFacts) -> bool:
+    design = facts.desktop_design
+    return bool(str(design.kde_wallpaper or design.gnome_wallpaper or "").strip())
 
 
 def final_audit(

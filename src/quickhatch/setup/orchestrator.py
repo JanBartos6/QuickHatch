@@ -2416,6 +2416,10 @@ class SetupOrchestrator:
             state = self.ctx.stage_state.setdefault(stage.value, {})
             if self._command_persists_desktop_config(command):
                 state["persisted_config_written"] = True
+            if self._command_attempts_desktop_design(command):
+                state["desktop_design_attempted"] = True
+            if self._command_attempts_wallpaper(command):
+                state["wallpaper_attempted"] = True
             if "plasma-apply" in command and stdout.strip() == "":
                 if self.ctx.facts and self.ctx.facts.displays:
                     self.ctx.facts.desktop_runtime_state = DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
@@ -2434,6 +2438,48 @@ class SetupOrchestrator:
                 "/etc/sddm.conf.d/",
                 "kscreen",
                 "kdeglobals",
+            )
+        )
+
+    @staticmethod
+    def _command_attempts_desktop_design(command: str) -> bool:
+        lowered = command.lower()
+        return any(
+            token in lowered
+            for token in (
+                "plasma-apply-lookandfeel",
+                "plasma-apply-colorscheme",
+                "plasma-apply-desktoptheme",
+                "plasma-apply-wallpaperimage",
+                "lookandfeeltool",
+                "gsettings set org.gnome.desktop.interface gtk-theme",
+                "gsettings set org.gnome.desktop.interface color-scheme",
+                "gsettings set org.gnome.desktop.background",
+                "dconf write",
+                "xfconf-query",
+                "swww ",
+                "hyprpaper",
+                "nitrogen",
+                "feh --bg",
+                "colorscheme",
+                "lookandfeel",
+                "wallpaper",
+            )
+        )
+
+    @staticmethod
+    def _command_attempts_wallpaper(command: str) -> bool:
+        lowered = command.lower()
+        return any(
+            token in lowered
+            for token in (
+                "wallpaper",
+                "picture-uri",
+                "plasma-apply-wallpaperimage",
+                "swww img",
+                "hyprpaper",
+                "nitrogen --set",
+                "feh --bg",
             )
         )
 

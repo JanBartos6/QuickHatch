@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 
-from .types import DesktopRuntimeState, DisplayRuntimeInfo, SetupFacts
+from .types import DesktopDesignState, DesktopRuntimeState, DisplayRuntimeInfo, SetupFacts
 
 _FACT_PREFIX = "QH_"
 _ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
@@ -61,6 +61,33 @@ qh_gui_dbus=$(qh_env_value DBUS_SESSION_BUS_ADDRESS)
 qh_gui_display=$(qh_env_value DISPLAY)
 qh_gui_wayland=$(qh_env_value WAYLAND_DISPLAY)
 qh_gui_xauth=$(qh_env_value XAUTHORITY)
+qh_gui_current_desktop=$(qh_env_value XDG_CURRENT_DESKTOP)
+qh_gui_home=$(getent passwd "$qh_gui_user" 2>/dev/null | cut -d: -f6)
+[ -n "$qh_gui_home" ] || qh_gui_home=$HOME
+qh_ini_value() {
+  qh_file=$1
+  qh_group=$2
+  qh_key=$3
+  awk -F= -v section="[$qh_group]" -v key="$qh_key" '
+    $0 == section { flag=1; next }
+    /^\[/ { flag=0 }
+    flag && $1 == key { sub(/^[^=]*=/, ""); print; exit }
+  ' "$qh_file" 2>/dev/null
+}
+qh_gui_run() {
+  if [ -n "$qh_gui_user" ] && [ "$(id -un 2>/dev/null)" != "$qh_gui_user" ] && command -v sudo >/dev/null 2>&1; then
+    sudo -u "$qh_gui_user" env XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$qh_gui_uid}" DBUS_SESSION_BUS_ADDRESS="${qh_gui_dbus:-unix:path=/run/user/$qh_gui_uid/bus}" WAYLAND_DISPLAY="$qh_gui_wayland" DISPLAY="$qh_gui_display" XAUTHORITY="$qh_gui_xauth" "$@"
+  else
+    env XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$qh_gui_uid}" DBUS_SESSION_BUS_ADDRESS="${qh_gui_dbus:-unix:path=/run/user/$qh_gui_uid/bus}" WAYLAND_DISPLAY="$qh_gui_wayland" DISPLAY="$qh_gui_display" XAUTHORITY="$qh_gui_xauth" "$@"
+  fi
+}
+qh_gsettings_value() {
+  qh_schema=$1
+  qh_key=$2
+  if command -v gsettings >/dev/null 2>&1; then
+    qh_gui_run gsettings get "$qh_schema" "$qh_key" 2>/dev/null | sed "s/^'//;s/'$//"
+  fi
+}
 echo 'QH_SSH_SESSION='$qh_ssh_session
 echo 'QH_GUI_SESSION_ID='$qh_gui_session
 echo 'QH_GUI_SESSION_TYPE='$qh_gui_type
@@ -73,6 +100,17 @@ echo 'QH_GUI_WAYLAND='$qh_gui_wayland
 echo 'QH_GUI_XAUTHORITY='$qh_gui_xauth
 echo 'QH_GUI_DBUS='$qh_gui_dbus
 echo 'QH_SESSION='$qh_gui_type
+echo 'QH_DESKTOP_ENV='$qh_gui_current_desktop
+echo 'QH_KDE_COLOR_SCHEME='$(qh_ini_value "$qh_gui_home/.config/kdeglobals" General ColorScheme)
+echo 'QH_KDE_ICON_THEME='$(qh_ini_value "$qh_gui_home/.config/kdeglobals" Icons Theme)
+echo 'QH_KDE_CURSOR_THEME='$(qh_ini_value "$qh_gui_home/.config/kcminputrc" Mouse cursorTheme)
+echo 'QH_KDE_WOBBLY='$(qh_ini_value "$qh_gui_home/.config/kwinrc" Plugins wobblywindowsEnabled)
+echo 'QH_KDE_MAGIC_LAMP='$(qh_ini_value "$qh_gui_home/.config/kwinrc" Plugins magiclampEnabled)
+echo 'QH_KDE_WALLPAPER='$(awk -F= '/^(Image|Wallpaper|wallpaper)=/ {print $2; exit}' "$qh_gui_home/.config/plasma-org.kde.plasma.desktop-appletsrc" 2>/dev/null)
+echo 'QH_GNOME_GTK_THEME='$(qh_gsettings_value org.gnome.desktop.interface gtk-theme)
+echo 'QH_GNOME_ICON_THEME='$(qh_gsettings_value org.gnome.desktop.interface icon-theme)
+echo 'QH_GNOME_CURSOR_THEME='$(qh_gsettings_value org.gnome.desktop.interface cursor-theme)
+echo 'QH_GNOME_WALLPAPER='$(qh_gsettings_value org.gnome.desktop.background picture-uri)
 echo 'QH_DM='$(basename "$(readlink /etc/systemd/system/display-manager.service 2>/dev/null)" 2>/dev/null | sed 's/\.service$//' || true)
 echo 'QH_DM_ENABLED='$(if command -v systemctl >/dev/null 2>&1 && systemctl is-enabled display-manager >/dev/null 2>&1; then echo yes; else echo no; fi)
 echo 'QH_GPU_VENDORS='$(lspci 2>/dev/null | awk 'BEGIN{IGNORECASE=1} /vga|3d|display/ { if ($0 ~ /nvidia/) print "nvidia"; else if ($0 ~ /amd|advanced micro devices|radeon/) print "amd"; else if ($0 ~ /intel/) print "intel"; }' | sort -u | paste -sd',' -)
@@ -313,6 +351,7 @@ def probe_setup_facts(
         display_manager_enabled=base.display_manager_enabled,
         desktop_runtime_state=base.desktop_runtime_state,
         displays=list(base.displays),
+        desktop_design=base.desktop_design,
         requested_app_states=dict(base.requested_app_states),
         pending_question_id=pending_question_id,
         pending_question_blocking=pending_question_blocking,
@@ -343,6 +382,19 @@ def probe_setup_facts(
     facts.session_type = session_type if session_type in {"wayland", "x11"} else ""
     facts.display_manager = raw.get("QH_DM", facts.display_manager) or ""
     facts.display_manager_enabled = raw.get("QH_DM_ENABLED", "no") == "yes"
+    facts.desktop_design = DesktopDesignState(
+        environment=raw.get("QH_DESKTOP_ENV", ""),
+        kde_color_scheme=raw.get("QH_KDE_COLOR_SCHEME", ""),
+        kde_icon_theme=raw.get("QH_KDE_ICON_THEME", ""),
+        kde_cursor_theme=raw.get("QH_KDE_CURSOR_THEME", ""),
+        kde_wallpaper=raw.get("QH_KDE_WALLPAPER", ""),
+        kde_wobbly_windows=raw.get("QH_KDE_WOBBLY", ""),
+        kde_magic_lamp=raw.get("QH_KDE_MAGIC_LAMP", ""),
+        gnome_gtk_theme=raw.get("QH_GNOME_GTK_THEME", ""),
+        gnome_icon_theme=raw.get("QH_GNOME_ICON_THEME", ""),
+        gnome_cursor_theme=raw.get("QH_GNOME_CURSOR_THEME", ""),
+        gnome_wallpaper=raw.get("QH_GNOME_WALLPAPER", ""),
+    )
     facts.gpu_vendors = [p for p in raw.get("QH_GPU_VENDORS", "").split(",") if p]
     facts.gpu_inventory = [p for p in raw.get("QH_GPU_INVENTORY", "").split("|") if p]
     facts.nvidia_smi_state = (

@@ -107,6 +107,60 @@ QH_XRANDR_END
     assert facts.displays[0].refresh_hz == 59.99
 
 
+def test_probe_setup_facts_parses_desktop_design_state():
+    output = """\
+QH_PM=pacman
+QH_AUR=yay
+QH_USER=jan
+QH_LOGIN_USER=jan
+QH_IS_ROOT=no
+QH_SUDO_NOPASSWD=yes
+QH_OS_ID=arch
+QH_OS_LIKE=
+QH_INIT=systemd
+QH_BOOT=efi
+QH_TARGET_ROOT=no
+QH_SESSION=wayland
+QH_DESKTOP_ENV=KDE
+QH_KDE_COLOR_SCHEME=SweetMars
+QH_KDE_ICON_THEME=candy-icons
+QH_KDE_CURSOR_THEME=Bibata-Modern-Ice
+QH_KDE_WOBBLY=true
+QH_KDE_MAGIC_LAMP=true
+QH_KDE_WALLPAPER=file:///home/jan/Pictures/masterpiece.png
+QH_GNOME_GTK_THEME=
+QH_GNOME_ICON_THEME=
+QH_GNOME_CURSOR_THEME=
+QH_GNOME_WALLPAPER=
+QH_DM=sddm
+QH_DM_ENABLED=yes
+QH_GPU_VENDORS=
+QH_GPU_INVENTORY=
+QH_NVIDIA_SMI=missing
+QH_NVIDIA_KERNEL_DRIVER=
+QH_NOUVEAU_BOUND=no
+QH_DRIVER_MODULES=
+QH_DISPLAYS=
+QH_KSCREEN_BEGIN
+QH_KSCREEN_END
+QH_XRANDR_BEGIN
+QH_XRANDR_END
+"""
+
+    def ssh_exec(_host, _user, _command, _key_path, _timeout, _port):
+        return (0, output, "")
+
+    facts = probe_setup_facts(ssh_exec, "192.0.2.10", "jan", None)
+
+    assert facts.desktop_design.environment == "KDE"
+    assert facts.desktop_design.kde_color_scheme == "SweetMars"
+    assert facts.desktop_design.kde_icon_theme == "candy-icons"
+    assert facts.desktop_design.kde_cursor_theme == "Bibata-Modern-Ice"
+    assert facts.desktop_design.kde_wallpaper == "file:///home/jan/Pictures/masterpiece.png"
+    assert facts.desktop_design.kde_wobbly_windows == "true"
+    assert facts.desktop_design.kde_magic_lamp == "true"
+
+
 def test_probe_setup_facts_does_not_treat_ssh_tty_as_live_desktop_success():
     output = """\
 QH_PM=pacman
