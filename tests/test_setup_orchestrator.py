@@ -413,7 +413,9 @@ def test_non_app_missing_repo_target_is_dropped_for_retry():
     assert repaired is not None
     assert repaired.commands == ["sudo pacman -S --noconfirm virtualbox-guest-utils"]
     assert repaired.packages == ["virtualbox-guest-utils"]
-    assert any("Removed unavailable non-app repo target" in msg["content"] for msg in bridge.messages)
+    assert any(
+        "Removed unavailable non-app repo target" in msg["content"] for msg in bridge.messages
+    )
 
 
 def test_apps_missing_repo_target_is_not_silently_dropped():

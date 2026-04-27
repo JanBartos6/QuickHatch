@@ -1297,9 +1297,7 @@ class SetupOrchestrator:
         return set(re.findall(r"target not found:\s*([A-Za-z0-9@._+:-]+)", text))
 
     @staticmethod
-    def _drop_missing_targets_from_install_command(
-        command: str, missing: set[str]
-    ) -> str | None:
+    def _drop_missing_targets_from_install_command(command: str, missing: set[str]) -> str | None:
         if any(token in command for token in ("&&", "||", ";", "|", "\n")):
             return None
         try:

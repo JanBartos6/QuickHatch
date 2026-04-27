@@ -6129,9 +6129,7 @@ def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = ""
         if ok and connected_user:
             session_user["value"] = connected_user
         fresh_info = (
-            _collect_remote_system_info(
-                host, session_user["value"], key_path, port=ssh_port
-            )
+            _collect_remote_system_info(host, session_user["value"], key_path, port=ssh_port)
             if ok
             else message
         )
