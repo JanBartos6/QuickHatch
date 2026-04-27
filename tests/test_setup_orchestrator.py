@@ -7,7 +7,14 @@ import time
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, UserProfile
 from quickhatch.setup.orchestrator import GroupFailure, SetupOrchestrator, SetupRuntime
-from quickhatch.setup.types import CommandGroup, DesktopRuntimeState, SetupFacts, SetupStage
+from quickhatch.setup.types import (
+    CommandGroup,
+    DesktopRuntimeState,
+    ResearchPlan,
+    SetupFacts,
+    SetupStage,
+    StrategyDecision,
+)
 
 
 def test_extract_created_user_from_chrooted_useradd():
@@ -159,6 +166,69 @@ def test_arch_nvidia_stage_reboots_once_when_nouveau_is_bound_before_verificatio
     assert orchestrator.ctx.facts.nvidia_smi_state == "ok"
 
 
+def test_live_install_bootstraps_nopasswd_sudo_after_reconnect(tmp_path):
+    profile = UserProfile()
+    pubkey = tmp_path / "quickhatch.pub"
+    pubkey.write_text("ssh-ed25519 AAAATEST quickhatch\n", encoding="utf-8")
+    profile.ssh_public_key_path = str(pubkey)
+    bridge = BridgeState(profile, persist_path=None)
+    initial_facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        login_user="root",
+        is_root=True,
+        is_live=True,
+        live_marker="LIVE:marker=/run/archiso",
+    )
+    installed_facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        init_system="systemd",
+        current_user="jan",
+        login_user="jan",
+        is_live=False,
+        sudo_nopasswd=False,
+    )
+    fact_state = {"facts": initial_facts}
+    bootstrap_calls: list[str] = []
+
+    def wait_for_reconnect(reconnect_user):
+        fact_state["facts"] = installed_facts
+        return True, "fresh installed system", reconnect_user
+
+    def bootstrap(facts):
+        bootstrap_calls.append(facts.current_user)
+        facts.sudo_nopasswd = True
+        return facts
+
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        initial_facts,
+        ssh_exec=lambda command, timeout: (0, "", ""),
+        wait_for_reconnect=wait_for_reconnect,
+        probe_facts=lambda **kwargs: fact_state["facts"],
+    )
+    runtime.bootstrap_nopasswd_sudo = bootstrap
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = initial_facts
+    orchestrator.ctx.created_user = "jan"
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch VM",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+    )
+
+    orchestrator._run_install_or_skip()
+
+    assert bootstrap_calls == ["jan"]
+    assert orchestrator.ctx.facts is not None
+    assert orchestrator.ctx.facts.sudo_nopasswd is True
+
+
 def test_arch_aur_helper_bootstrap_is_injected_before_yay_when_missing():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
@@ -264,6 +334,39 @@ def test_arch_aur_helper_bootstrap_is_root_safe_and_wraps_yay_commands():
     assert commands_seen[1] == (
         "sudo -u quickhatch-build bash -lc 'yay -S --noconfirm candy-icons-git'"
     )
+
+
+def test_reconnect_key_install_uses_target_home_numeric_owner(tmp_path):
+    profile = UserProfile()
+    pubkey = tmp_path / "quickhatch.pub"
+    pubkey.write_text("ssh-ed25519 AAAATEST quickhatch\n", encoding="utf-8")
+    profile.ssh_public_key_path = str(pubkey)
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        login_user="root",
+        is_root=True,
+    )
+    commands_seen: list[str] = []
+
+    def ssh_exec(command, timeout):
+        commands_seen.append(command)
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.created_user = "jan"
+
+    orchestrator._ensure_reconnect_ssh_key()
+
+    assert len(commands_seen) == 1
+    assert "stat -c '%u:%g' \"$qh_home\"" in commands_seen[0]
+    assert 'chown "$qh_owner"' in commands_seen[0]
+    assert "-o jan" not in commands_seen[0]
+    assert "-g jan" not in commands_seen[0]
 
 
 def test_execute_group_bootstraps_yay_when_preflight_sees_raw_yay():

@@ -606,6 +606,8 @@ class SetupOrchestrator:
             raise RuntimeError(
                 "Target reconnected, but it is still reporting a live environment after install reboot."
             )
+        if self.ctx.facts is not None:
+            self.ctx.facts = self.runtime.bootstrap_nopasswd_sudo(self.ctx.facts)
         result = audit_stage(
             SetupStage.INSTALL_OR_SKIP,
             self.ctx.facts,
@@ -628,14 +630,18 @@ class SetupOrchestrator:
         key_q = shlex.quote(public_key)
         command = (
             f"set -e; "
-            f"test -d /mnt/home/{user_q}; "
-            f"install -d -m 700 -o {user_q} -g {user_q} /mnt/home/{user_q}/.ssh; "
-            f"touch /mnt/home/{user_q}/.ssh/authorized_keys; "
-            f"grep -qxF {key_q} /mnt/home/{user_q}/.ssh/authorized_keys "
-            f"|| printf '%s\\n' {key_q} >> /mnt/home/{user_q}/.ssh/authorized_keys; "
-            f"chown {user_q}:{user_q} /mnt/home/{user_q}/.ssh/authorized_keys; "
-            f"chmod 600 /mnt/home/{user_q}/.ssh/authorized_keys; "
-            f"grep -qxF {key_q} /mnt/home/{user_q}/.ssh/authorized_keys"
+            f"qh_user={user_q}; "
+            f'qh_home="/mnt/home/$qh_user"; '
+            f'test -d "$qh_home"; '
+            f"qh_owner=$(stat -c '%u:%g' \"$qh_home\"); "
+            f'install -d -m 700 "$qh_home/.ssh"; '
+            f'touch "$qh_home/.ssh/authorized_keys"; '
+            f'grep -qxF {key_q} "$qh_home/.ssh/authorized_keys" '
+            f"|| printf '%s\\n' {key_q} >> \"$qh_home/.ssh/authorized_keys\"; "
+            f'chown "$qh_owner" "$qh_home/.ssh" "$qh_home/.ssh/authorized_keys"; '
+            f'chmod 700 "$qh_home/.ssh"; '
+            f'chmod 600 "$qh_home/.ssh/authorized_keys"; '
+            f'grep -qxF {key_q} "$qh_home/.ssh/authorized_keys"'
         )
         self.bridge.add_message("agent", f"`{command}` — ensure SSH reconnect key")
         rc, stdout, stderr = self.runtime.ssh_exec(command, 60)
