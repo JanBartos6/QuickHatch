@@ -442,6 +442,40 @@ def test_apps_missing_repo_target_is_not_silently_dropped():
     assert repaired is None
 
 
+def test_desktop_dmrc_write_counts_as_persisted_config():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan", is_root=False)
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    orchestrator._update_from_command(
+        "echo '[Desktop]\nSession=plasma' > /home/jan/.dmrc",
+        "",
+        "",
+        stage=SetupStage.DESKTOP,
+    )
+
+    assert orchestrator.ctx.stage_state[SetupStage.DESKTOP.value]["persisted_config_written"]
+
+
+def test_desktop_config_marker_counts_as_persisted_config():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan", is_root=False)
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    orchestrator._update_from_command(
+        "sudo -u jan touch /home/jan/.config/plasma-minimal-marker",
+        "",
+        "",
+        stage=SetupStage.DESKTOP,
+    )
+
+    assert orchestrator.ctx.stage_state[SetupStage.DESKTOP.value]["persisted_config_written"]
+
+
 def test_pre_reboot_checks_retry_transient_ssh_disconnect(monkeypatch):
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

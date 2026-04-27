@@ -490,6 +490,11 @@ def build_research_prompt(
     profile_payload = asdict(profile)
     if profile_payload.get("ai_config", {}).get("api_key"):
         profile_payload["ai_config"]["api_key"] = "***REDACTED***"
+    profile_payload["ssh_key_status"] = {
+        "public_key_path_configured": bool(getattr(profile, "ssh_public_key_path", None)),
+        "harness_owns_authorized_keys_continuity": True,
+        "planner_should_request_raw_key_material": False,
+    }
     selected_app_catalog = selected_app_catalog_context(
         list(profile.apps_to_install or []),
         list(getattr(profile, "apps", []) or []),
@@ -535,6 +540,7 @@ def build_research_prompt(
         "- connect_and_probe, research_and_plan, and final_audit are harness-owned stages. Do not create command groups for them; rely on normalized facts or place checks in the verification for the relevant executable stage.\n"
         "- Put disk partitioning, formatting, mounting, base install, chroot configuration, initramfs, bootloader, and install reboot work under install_or_skip. Do not invent stages such as disk_prepare, partitioning, chroot, bootloader, or base_install.\n"
         "- Do not include final `umount /mnt`, `umount /target`, or `reboot` commands in command_groups. QuickHatch owns the guarded pre-reboot checks, SSH key continuity, unmount, reboot, and reconnect sequence after install_or_skip succeeds.\n"
+        "- Do not ask the user for raw SSH key content. If ssh_key_status.public_key_path_configured is true, QuickHatch already has the public key path and will enforce authorized_keys continuity during guarded reboot. Your plan should create the target user and enable sshd, but QuickHatch handles final key copying/validation.\n"
         "- Put driver/GPU work under postboot_driver, display manager/theme/runtime desktop work under desktop, and requested application installs under apps.\n"
         "- No mutating work can happen before research_and_plan finishes.\n"
         "- `commands`, command-group `verification`, and `verification_commands` must contain executable shell commands only. Do not write prose like `lsblk should show ...`; use commands such as `mountpoint /mnt` or `lsblk /dev/sda | grep -q '/mnt'`.\n"

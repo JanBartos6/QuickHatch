@@ -2171,14 +2171,30 @@ class SetupOrchestrator:
             self.ctx.facts.community_helper = "yay"
         if stage == SetupStage.DESKTOP:
             state = self.ctx.stage_state.setdefault(stage.value, {})
-            if any(
-                token in command
-                for token in ("kwriteconfig", "plasma-apply", "gsettings", "wallpaper")
-            ):
+            if self._command_persists_desktop_config(command):
                 state["persisted_config_written"] = True
             if "plasma-apply" in command and stdout.strip() == "":
                 if self.ctx.facts and self.ctx.facts.session_type:
                     self.ctx.facts.desktop_runtime_state = DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
+
+    @staticmethod
+    def _command_persists_desktop_config(command: str) -> bool:
+        lowered = command.lower()
+        return any(
+            token in lowered
+            for token in (
+                "kwriteconfig",
+                "plasma-apply",
+                "gsettings",
+                "wallpaper",
+                ".dmrc",
+                "/.config/",
+                "/etc/sddm.conf",
+                "/etc/sddm.conf.d/",
+                "kscreen",
+                "kdeglobals",
+            )
+        )
 
     def _command_timeout(self, command: str) -> int:
         command_lower = command.lower()

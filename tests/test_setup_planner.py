@@ -434,6 +434,7 @@ def test_build_research_prompt_includes_selected_app_catalog():
     profile = UserProfile()
     profile.apps_to_install = ["GitHub Desktop"]
     profile.apps = [AppInfo(name="GitHub Desktop", source="winget")]
+    profile.ssh_public_key_path = "C:/Users/example/.ssh/id_ed25519.pub"
 
     prompt = build_research_prompt(
         profile,
@@ -456,6 +457,10 @@ def test_build_research_prompt_includes_selected_app_catalog():
     assert "Prefer `yay` for AUR packages when no helper is detected" in prompt
     assert "evidence entries are objects" in prompt
     assert "provider_native_search" in prompt
+    assert "ssh_key_status" in prompt
+    assert '"public_key_path_configured": true' in prompt
+    assert "Do not ask the user for raw SSH key content" in prompt
+    assert "QuickHatch handles final key copying/validation" in prompt
 
 
 def test_build_research_prompt_uses_target_distro_over_live_facts(monkeypatch):
