@@ -69,6 +69,9 @@ def audit_stage(
 
     elif stage == SetupStage.DESKTOP:
         details["desktop_runtime_state"] = facts.desktop_runtime_state.value
+        details["display_manual_followup"] = bool(state.get("display_manual_followup"))
+        if state.get("display_manual_followup_reason"):
+            details["display_manual_followup_reason"] = state.get("display_manual_followup_reason")
         details["display_preferences"] = list(state.get("display_preferences", []) or [])
         details["remote_displays"] = [
             {

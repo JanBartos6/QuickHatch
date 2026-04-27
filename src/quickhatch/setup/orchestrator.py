@@ -101,6 +101,10 @@ _ARCH_LIVE_VCONSOLE_PREP_COMMAND = (
     "printf 'KEYMAP=us\\n' > /mnt/etc/vconsole.conf; }"
 )
 _ARCH_PACSTRAP_MNT_RE = re.compile(r"\bpacstrap\b.*\s/mnt(?:\s|$)", re.IGNORECASE)
+_DESKTOP_RUNTIME_COMMAND_RE = re.compile(
+    r"\b(?:plasma-apply-[\w-]+|kscreen-doctor|xrandr|qdbus6?|gsettings|lookandfeeltool)\b",
+    re.IGNORECASE,
+)
 
 _APP_PACKAGE_ALIASES: dict[str, set[str]] = {
     "brave": {"brave", "brave-bin", "brave-browser", "brave-browser-bin"},
@@ -554,6 +558,27 @@ class SetupOrchestrator:
             current_group = group
             repair_attempts = 0
             while True:
+                if stage == SetupStage.DESKTOP and not self._desktop_runtime_ready_or_followup(
+                    current_group, stage_state
+                ):
+                    current_group.status = PlanItemStatus.MANUAL_FOLLOWUP
+                    reason = stage_state.get(
+                        "display_manual_followup_reason",
+                        "Display-dependent desktop work needs an active target monitor/session.",
+                    )
+                    self._mark_group_manual_followup(
+                        current_group,
+                        stage=stage,
+                        reason=str(reason),
+                        app_names=[],
+                    )
+                    self.runlog.record(
+                        "group_manual_followup",
+                        stage=stage.value,
+                        group_id=current_group.id,
+                        reason=reason,
+                    )
+                    break
                 if current_group.optional_slow:
                     answer = self._ask_optional_slow_confirmation(current_group)
                     if answer is None:
@@ -866,7 +891,56 @@ class SetupOrchestrator:
     def _update_desktop_display_audit_state(self, stage_state: dict[str, Any]) -> None:
         prefs = self._source_display_preferences()
         stage_state["display_preferences"] = prefs
-        stage_state["display_preference_blockers"] = self._display_preference_blockers(prefs)
+        if stage_state.get("display_manual_followup"):
+            stage_state["display_preference_blockers"] = []
+        else:
+            stage_state["display_preference_blockers"] = self._display_preference_blockers(prefs)
+
+    def _desktop_runtime_ready_or_followup(
+        self, group: CommandGroup, stage_state: dict[str, Any]
+    ) -> bool:
+        if not self._desktop_group_needs_runtime_display(group):
+            return True
+        if self.ctx.facts and self.ctx.facts.displays:
+            return True
+        self._refresh_facts(stage=SetupStage.DESKTOP)
+        if self.ctx.facts and self.ctx.facts.displays:
+            return True
+
+        answer = self._ask_blocking_question(
+            (
+                "QuickHatch cannot read an active target display before running "
+                f"desktop live-apply group '{group.title}'. If the monitor is asleep, "
+                "on another input, or not logged into Plasma/SDDM, switch it to this "
+                "Linux machine and choose retry. Otherwise leave wallpaper/resolution/"
+                "live theme apply as manual follow-up."
+            ),
+            choices=["retry display probe", "manual follow-up"],
+            stage=SetupStage.DESKTOP,
+            context={"group_id": group.id, "display_runtime_probe": True},
+            timeout=600,
+            return_qid=False,
+        )
+        if answer and answer.strip().lower().startswith("retry"):
+            self._refresh_facts(stage=SetupStage.DESKTOP)
+            if self.ctx.facts and self.ctx.facts.displays:
+                return True
+
+        reason = (
+            f"Skipped display-dependent desktop group '{group.title}' because no "
+            "active target display facts were available over the real GUI session."
+        )
+        stage_state["display_manual_followup"] = True
+        stage_state["display_manual_followup_reason"] = reason
+        self.bridge.add_message("agent", f"⚠️ {reason}")
+        return False
+
+    @staticmethod
+    def _desktop_group_needs_runtime_display(group: CommandGroup) -> bool:
+        return any(
+            SetupOrchestrator._command_needs_desktop_runtime_env(command)
+            for command in [*group.commands, *group.verification]
+        )
 
     def _source_display_preferences(self) -> list[dict[str, Any]]:
         displays = getattr(getattr(self.profile, "hardware", None), "displays", []) or []
@@ -1216,6 +1290,7 @@ class SetupOrchestrator:
         commands = self._commands_for_group(stage, group)
         for command in commands:
             command = self._rewrite_arch_community_helper_command(command, stage=stage, group=group)
+            visible_command = command
             if stage == SetupStage.INSTALL_OR_SKIP and self._is_reboot_command(command):
                 stage_state["deferred_reboot_command"] = command
                 self.runlog.record(
@@ -1264,12 +1339,19 @@ class SetupOrchestrator:
                     )
                     return GroupFailure(
                         failure_type="preflight",
-                        command=command,
+                        command=visible_command,
                         stdout="",
                         stderr="",
                         detail=lint_error,
                     )
-            self.bridge.add_message("agent", f"`{command}`")
+            command = self._wrap_desktop_runtime_command(command, stage=stage)
+            if command != visible_command:
+                self.bridge.add_message(
+                    "agent",
+                    f"`{visible_command}` — using active GUI session environment",
+                )
+            else:
+                self.bridge.add_message("agent", f"`{visible_command}`")
             rc, stdout, stderr = self._ssh_exec_with_transient_retries(
                 command,
                 self._command_timeout(command),
@@ -1284,6 +1366,7 @@ class SetupOrchestrator:
                 stage=stage.value,
                 group_id=group.id,
                 command=command,
+                visible_command=visible_command,
                 rc=rc,
                 stdout_tail=(stdout or "")[-800:],
                 stderr_tail=(stderr or "")[-800:],
@@ -1296,7 +1379,7 @@ class SetupOrchestrator:
                     self._format_group_failure_message(
                         group.title,
                         "Command failed",
-                        command,
+                        visible_command,
                         rc,
                         stdout,
                         stderr,
@@ -1304,12 +1387,12 @@ class SetupOrchestrator:
                 )
                 return GroupFailure(
                     failure_type="command",
-                    command=command,
+                    command=visible_command,
                     stdout=stdout,
                     stderr=stderr,
                     detail=detail,
                 )
-            self._update_from_command(command, stdout, stderr, stage=stage)
+            self._update_from_command(visible_command, stdout, stderr, stage=stage)
         self._maybe_reboot_for_nvidia_driver(stage, group, stage_state)
         for verification in group.verification:
             verification = self._normalize_installed_nonroot_privileged_command(
@@ -1531,6 +1614,42 @@ class SetupOrchestrator:
             self._normalize_installed_nonroot_privileged_command(command, stage=stage)
             for command in patched_commands
         ]
+
+    def _wrap_desktop_runtime_command(self, command: str, *, stage: SetupStage) -> str:
+        if stage != SetupStage.DESKTOP or not self._command_needs_desktop_runtime_env(command):
+            return command
+        facts = self.ctx.facts or SetupFacts()
+        gui_user = (
+            str(facts.raw.get("QH_GUI_USER", "") or "").strip()
+            or facts.login_user
+            or facts.current_user
+            or self.runtime.user
+        )
+        current_user = facts.current_user or self.runtime.user
+        user_q = shlex.quote(gui_user)
+        inner = (
+            f"qh_pid=$(pgrep -u {user_q} -n plasmashell 2>/dev/null "
+            f"|| pgrep -u {user_q} -n kwin_wayland 2>/dev/null "
+            f"|| pgrep -u {user_q} -n kwin_x11 2>/dev/null || true); "
+            'if [ -n "$qh_pid" ] && [ -r "/proc/$qh_pid/environ" ]; then '
+            'while IFS= read -r qh_env; do case "$qh_env" in '
+            "DISPLAY=*|WAYLAND_DISPLAY=*|XAUTHORITY=*|XDG_RUNTIME_DIR=*|"
+            "DBUS_SESSION_BUS_ADDRESS=*|XDG_CURRENT_DESKTOP=*|XDG_SESSION_TYPE=*) "
+            'export "$qh_env";; esac; done < <(tr "\\000" "\\n" < "/proc/$qh_pid/environ"); '
+            "fi; "
+            'export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland}"; '
+            f"{command}"
+        )
+        wrapped = f"bash -lc {shlex.quote(inner)}"
+        if current_user and gui_user and current_user != gui_user and not facts.is_root:
+            return wrapped
+        if facts.is_root and gui_user and gui_user != "root":
+            return f"sudo -u {user_q} {wrapped}"
+        return wrapped
+
+    @staticmethod
+    def _command_needs_desktop_runtime_env(command: str) -> bool:
+        return bool(_DESKTOP_RUNTIME_COMMAND_RE.search(command or ""))
 
     def _drop_live_install_harness_owned_commands(
         self, stage: SetupStage, group: CommandGroup
@@ -2298,7 +2417,7 @@ class SetupOrchestrator:
             if self._command_persists_desktop_config(command):
                 state["persisted_config_written"] = True
             if "plasma-apply" in command and stdout.strip() == "":
-                if self.ctx.facts and self.ctx.facts.session_type:
+                if self.ctx.facts and self.ctx.facts.displays:
                     self.ctx.facts.desktop_runtime_state = DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
 
     @staticmethod
@@ -2436,9 +2555,17 @@ class SetupOrchestrator:
             for app in apps
             if app.status in {PlanItemStatus.MANUAL_FOLLOWUP, PlanItemStatus.EXPLICITLY_SKIPPED}
         ]
+        stage_followup = []
+        for stage_state in self.ctx.stage_state.values():
+            for item in stage_state.get("manual_followups", []) or []:
+                reason = str(item.get("reason", "") or "").strip()
+                if reason:
+                    stage_followup.append(reason)
         parts = [plan.target_summary if plan else "Remote setup completed."]
         if installed:
             parts.append("Installed/configured: " + ", ".join(sorted(installed)))
         if followup:
             parts.append("Manual follow-up: " + ", ".join(sorted(followup)))
+        if stage_followup:
+            parts.append("Manual follow-up: " + " | ".join(sorted(set(stage_followup))))
         return ". ".join(part for part in parts if part).strip()

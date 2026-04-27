@@ -8,6 +8,7 @@ from collections.abc import Callable
 from .types import DesktopRuntimeState, DisplayRuntimeInfo, SetupFacts
 
 _FACT_PREFIX = "QH_"
+_ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 
 
 def setup_fact_probe_command() -> str:
@@ -23,7 +24,55 @@ echo 'QH_OS_LIKE='$(. /etc/os-release 2>/dev/null; echo ${ID_LIKE:-})
 echo 'QH_INIT='$(if command -v systemctl >/dev/null 2>&1; then echo systemd; elif command -v rc-service >/dev/null 2>&1; then echo openrc; elif command -v sv >/dev/null 2>&1; then echo runit; else echo unknown; fi)
 echo 'QH_BOOT='$(if [ -d /sys/firmware/efi/efivars ]; then echo efi; else echo bios; fi)
 echo 'QH_TARGET_ROOT='$(if mount | grep -Eq ' on /(mnt|target)( |$)'; then echo yes; else echo no; fi)
-echo 'QH_SESSION='${XDG_SESSION_TYPE:-}
+qh_ssh_session=${XDG_SESSION_TYPE:-}
+qh_gui_record=$(
+  if command -v loginctl >/dev/null 2>&1; then
+    for qh_sid in $(loginctl list-sessions --no-legend 2>/dev/null | awk '{print $1}'); do
+      qh_type=$(loginctl show-session "$qh_sid" -p Type --value 2>/dev/null || true)
+      qh_remote=$(loginctl show-session "$qh_sid" -p Remote --value 2>/dev/null || true)
+      if { [ "$qh_type" = "wayland" ] || [ "$qh_type" = "x11" ]; } && [ "$qh_remote" != "yes" ]; then
+        qh_name=$(loginctl show-session "$qh_sid" -p Name --value 2>/dev/null || true)
+        qh_state=$(loginctl show-session "$qh_sid" -p State --value 2>/dev/null || true)
+        qh_active=$(loginctl show-session "$qh_sid" -p Active --value 2>/dev/null || true)
+        printf '%s|%s|%s|%s|%s\n' "$qh_sid" "$qh_name" "$qh_type" "$qh_state" "$qh_active"
+        break
+      fi
+    done
+  fi
+)
+qh_gui_session=$(printf '%s' "$qh_gui_record" | cut -d'|' -f1)
+qh_gui_user=$(printf '%s' "$qh_gui_record" | cut -d'|' -f2)
+qh_gui_type=$(printf '%s' "$qh_gui_record" | cut -d'|' -f3)
+qh_gui_state=$(printf '%s' "$qh_gui_record" | cut -d'|' -f4)
+qh_gui_active=$(printf '%s' "$qh_gui_record" | cut -d'|' -f5)
+qh_gui_uid=$(id -u "$qh_gui_user" 2>/dev/null || id -u 2>/dev/null || echo 1000)
+qh_gui_pid=$(
+  if [ -n "$qh_gui_user" ]; then
+    pgrep -u "$qh_gui_user" -n plasmashell 2>/dev/null || pgrep -u "$qh_gui_user" -n kwin_wayland 2>/dev/null || pgrep -u "$qh_gui_user" -n kwin_x11 2>/dev/null || true
+  fi
+)
+qh_env_value() {
+  qh_key=$1
+  if [ -n "$qh_gui_pid" ] && [ -r "/proc/$qh_gui_pid/environ" ]; then
+    tr '\000' '\n' < "/proc/$qh_gui_pid/environ" | awk -F= -v key="$qh_key" '$1 == key { sub(/^[^=]*=/, ""); print; exit }'
+  fi
+}
+qh_gui_dbus=$(qh_env_value DBUS_SESSION_BUS_ADDRESS)
+qh_gui_display=$(qh_env_value DISPLAY)
+qh_gui_wayland=$(qh_env_value WAYLAND_DISPLAY)
+qh_gui_xauth=$(qh_env_value XAUTHORITY)
+echo 'QH_SSH_SESSION='$qh_ssh_session
+echo 'QH_GUI_SESSION_ID='$qh_gui_session
+echo 'QH_GUI_SESSION_TYPE='$qh_gui_type
+echo 'QH_GUI_SESSION_STATE='$qh_gui_state
+echo 'QH_GUI_SESSION_ACTIVE='$qh_gui_active
+echo 'QH_GUI_USER='$qh_gui_user
+echo 'QH_GUI_PID='$qh_gui_pid
+echo 'QH_GUI_DISPLAY='$qh_gui_display
+echo 'QH_GUI_WAYLAND='$qh_gui_wayland
+echo 'QH_GUI_XAUTHORITY='$qh_gui_xauth
+echo 'QH_GUI_DBUS='$qh_gui_dbus
+echo 'QH_SESSION='$qh_gui_type
 echo 'QH_DM='$(basename "$(readlink /etc/systemd/system/display-manager.service 2>/dev/null)" 2>/dev/null | sed 's/\.service$//' || true)
 echo 'QH_DM_ENABLED='$(if command -v systemctl >/dev/null 2>&1 && systemctl is-enabled display-manager >/dev/null 2>&1; then echo yes; else echo no; fi)
 echo 'QH_GPU_VENDORS='$(lspci 2>/dev/null | awk 'BEGIN{IGNORECASE=1} /vga|3d|display/ { if ($0 ~ /nvidia/) print "nvidia"; else if ($0 ~ /amd|advanced micro devices|radeon/) print "amd"; else if ($0 ~ /intel/) print "intel"; }' | sort -u | paste -sd',' -)
@@ -32,14 +81,18 @@ echo 'QH_NVIDIA_SMI='$(if command -v nvidia-smi >/dev/null 2>&1; then if nvidia-
 echo 'QH_NVIDIA_KERNEL_DRIVER='$(for d in /sys/bus/pci/devices/*; do class=$(cat "$d/class" 2>/dev/null || true); vendor=$(cat "$d/vendor" 2>/dev/null || true); if [ "$vendor" = "0x10de" ] && printf '%s' "$class" | grep -q '^0x03'; then basename "$(readlink -f "$d/driver" 2>/dev/null || echo none)"; fi; done | sort -u | paste -sd',' -)
 echo 'QH_NOUVEAU_BOUND='$(for d in /sys/bus/pci/devices/*; do class=$(cat "$d/class" 2>/dev/null || true); vendor=$(cat "$d/vendor" 2>/dev/null || true); driver=$(basename "$(readlink -f "$d/driver" 2>/dev/null || echo none)"); if [ "$vendor" = "0x10de" ] && printf '%s' "$class" | grep -q '^0x03' && [ "$driver" = "nouveau" ]; then echo yes; exit 0; fi; done; echo no)
 echo 'QH_DRIVER_MODULES='$(lsmod 2>/dev/null | awk '/^nvidia/ {print $1}' | paste -sd',' -)
-echo 'QH_DISPLAYS='$(if command -v xrandr >/dev/null 2>&1; then xrandr --query 2>/dev/null | awk '/ connected/ {name=$1; primary=($0 ~ / primary / ? "primary" : "secondary"); mode=""; if (match($0, /[0-9]+x[0-9]+\+[0-9]+\+[0-9]+/)) { mode=substr($0, RSTART, RLENGTH); sub(/\+.*/, "", mode); } print name ":" primary ":" mode}' | paste -sd'|' -; fi)
+echo 'QH_DISPLAYS='$(if command -v xrandr >/dev/null 2>&1; then DISPLAY=${qh_gui_display:-${DISPLAY:-:0}} XAUTHORITY=${qh_gui_xauth:-${XAUTHORITY:-$HOME/.Xauthority}} xrandr --query 2>/dev/null | awk '/ connected/ {name=$1; primary=($0 ~ / primary / ? "primary" : "secondary"); mode=""; if (match($0, /[0-9]+x[0-9]+\+[0-9]+\+[0-9]+/)) { mode=substr($0, RSTART, RLENGTH); sub(/\+.*/, "", mode); } print name ":" primary ":" mode}' | paste -sd'|' -; fi)
 echo 'QH_KSCREEN_BEGIN'
-if command -v kscreen-doctor >/dev/null 2>&1; then uid=$(id -u 2>/dev/null || echo 1000); XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$uid} DBUS_SESSION_BUS_ADDRESS=${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$uid/bus} kscreen-doctor -o 2>/dev/null || true; fi
+if command -v kscreen-doctor >/dev/null 2>&1; then XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$qh_gui_uid} DBUS_SESSION_BUS_ADDRESS=${qh_gui_dbus:-${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$qh_gui_uid/bus}} WAYLAND_DISPLAY=${qh_gui_wayland:-${WAYLAND_DISPLAY:-}} DISPLAY=${qh_gui_display:-${DISPLAY:-}} XAUTHORITY=${qh_gui_xauth:-${XAUTHORITY:-}} XDG_SESSION_TYPE=${qh_gui_type:-${XDG_SESSION_TYPE:-}} QT_QPA_PLATFORM=${QT_QPA_PLATFORM:-wayland} kscreen-doctor -o 2>/dev/null || true; fi
 echo 'QH_KSCREEN_END'
 echo 'QH_XRANDR_BEGIN'
-if command -v xrandr >/dev/null 2>&1; then DISPLAY=${DISPLAY:-:0} XAUTHORITY=${XAUTHORITY:-$HOME/.Xauthority} xrandr --query 2>/dev/null || true; fi
+if command -v xrandr >/dev/null 2>&1; then DISPLAY=${qh_gui_display:-${DISPLAY:-:0}} XAUTHORITY=${qh_gui_xauth:-${XAUTHORITY:-$HOME/.Xauthority}} xrandr --query 2>/dev/null || true; fi
 echo 'QH_XRANDR_END'
 """
+
+
+def _strip_ansi(text: str) -> str:
+    return _ANSI_RE.sub("", text or "")
 
 
 def _parse_display_entry(entry: str) -> DisplayRuntimeInfo | None:
@@ -80,7 +133,7 @@ def _parse_kscreen_output(output: str) -> list[DisplayRuntimeInfo]:
             displays.append(current)
         current = None
 
-    for raw_line in (output or "").splitlines():
+    for raw_line in _strip_ansi(output).splitlines():
         line = raw_line.strip()
         if not line:
             continue
@@ -95,6 +148,8 @@ def _parse_kscreen_output(output: str) -> list[DisplayRuntimeInfo]:
         geometry = re.search(r"\bGeometry:\s+\d+,\d+\s+(\d+x\d+)", line)
         if geometry:
             current.current_mode = geometry.group(1)
+        if re.search(r"\bpriority\s+1\b", line, re.IGNORECASE):
+            current.primary = True
         scale = re.search(r"\bScale:\s+([0-9.]+)", line)
         if scale:
             try:
@@ -129,7 +184,7 @@ def _parse_xrandr_output(output: str) -> list[DisplayRuntimeInfo]:
             displays.append(current)
         current = None
 
-    for raw_line in (output or "").splitlines():
+    for raw_line in _strip_ansi(output).splitlines():
         connected = re.match(
             r"^(\S+)\s+connected(?:\s+(primary))?(?:\s+(\d+x\d+)\+\d+\+\d+)?",
             raw_line,
@@ -170,8 +225,6 @@ def _parse_xrandr_output(output: str) -> list[DisplayRuntimeInfo]:
 
 def _desktop_runtime_state(facts: SetupFacts) -> DesktopRuntimeState:
     if facts.displays:
-        return DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
-    if facts.session_type:
         return DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
     if facts.display_manager_enabled:
         return DesktopRuntimeState.PENDING_RELOGIN
@@ -286,7 +339,8 @@ def probe_setup_facts(
     facts.init_system = raw.get("QH_INIT", facts.init_system) or facts.init_system
     facts.boot_mode = raw.get("QH_BOOT", facts.boot_mode) or facts.boot_mode
     facts.target_root_mounted = raw.get("QH_TARGET_ROOT", "no") == "yes"
-    facts.session_type = raw.get("QH_SESSION", facts.session_type) or ""
+    session_type = (raw.get("QH_SESSION", "") or "").strip().lower()
+    facts.session_type = session_type if session_type in {"wayland", "x11"} else ""
     facts.display_manager = raw.get("QH_DM", facts.display_manager) or ""
     facts.display_manager_enabled = raw.get("QH_DM_ENABLED", "no") == "yes"
     facts.gpu_vendors = [p for p in raw.get("QH_GPU_VENDORS", "").split(",") if p]

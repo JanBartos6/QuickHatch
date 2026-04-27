@@ -501,7 +501,7 @@ def test_plasma_live_apply_without_config_write_does_not_count_as_persisted_conf
     )
 
     assert "persisted_config_written" not in orchestrator.ctx.stage_state[SetupStage.DESKTOP.value]
-    assert facts.desktop_runtime_state == DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
+    assert facts.desktop_runtime_state != DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
 
 
 def test_wallpaper_download_alone_does_not_count_as_persisted_desktop_config():
@@ -692,6 +692,100 @@ def test_desktop_display_audit_blocks_unverified_display_preferences():
 
     assert not result.passed
     assert any("could not be runtime-verified" in blocker for blocker in result.blockers)
+
+
+def test_desktop_runtime_commands_are_wrapped_with_real_gui_environment():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        current_user="jan",
+        login_user="jan",
+        raw={"QH_GUI_USER": "jan"},
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    wrapped = orchestrator._wrap_desktop_runtime_command(
+        "plasma-apply-wallpaperimage /home/jan/wallpaper.jpg",
+        stage=SetupStage.DESKTOP,
+    )
+
+    assert wrapped.startswith("bash -lc ")
+    assert "plasmashell" in wrapped
+    assert "DBUS_SESSION_BUS_ADDRESS" in wrapped
+    assert "plasma-apply-wallpaperimage" in wrapped
+
+
+def test_desktop_runtime_group_prompts_then_manual_followup_when_no_display(monkeypatch):
+    profile = UserProfile()
+    profile.hardware.displays = [
+        DisplayInfo(
+            name="Primary 4K",
+            width_px=3840,
+            height_px=2160,
+            refresh_hz=60,
+            primary=True,
+        )
+    ]
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        current_user="jan",
+        login_user="jan",
+        display_manager_enabled=True,
+        desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    monkeypatch.setattr(orchestrator, "_refresh_facts", lambda stage: facts)
+    monkeypatch.setattr(
+        orchestrator,
+        "_ask_blocking_question",
+        lambda *args, **kwargs: "manual follow-up",
+    )
+    group = CommandGroup(
+        id="live-theme",
+        stage=SetupStage.DESKTOP,
+        title="Apply live wallpaper",
+        commands=["plasma-apply-wallpaperimage /home/jan/wallpaper.jpg"],
+    )
+    state = {"persisted_config_written": True}
+
+    assert not orchestrator._desktop_runtime_ready_or_followup(group, state)
+    orchestrator._update_desktop_display_audit_state(state)
+    result = audit_stage(SetupStage.DESKTOP, facts, stage_state=state)
+
+    assert state["display_manual_followup"]
+    assert state["display_preference_blockers"] == []
+    assert result.passed
+
+
+def test_desktop_package_group_does_not_require_runtime_display(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        current_user="jan",
+        login_user="jan",
+        display_manager_enabled=True,
+        desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    asked = {"value": False}
+    monkeypatch.setattr(orchestrator, "_refresh_facts", lambda stage: facts)
+    monkeypatch.setattr(
+        orchestrator,
+        "_ask_blocking_question",
+        lambda *args, **kwargs: asked.__setitem__("value", True),
+    )
+    group = CommandGroup(
+        id="desktop-packages",
+        stage=SetupStage.DESKTOP,
+        title="Install KDE Plasma",
+        commands=["sudo pacman -S --noconfirm plasma-desktop sddm"],
+    )
+
+    assert orchestrator._desktop_runtime_ready_or_followup(group, {})
+    assert asked["value"] is False
 
 
 def test_pre_reboot_checks_retry_transient_ssh_disconnect(monkeypatch):

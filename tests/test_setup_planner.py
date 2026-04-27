@@ -231,6 +231,24 @@ def test_extract_research_plan_accepts_object_group_verification():
     assert plan.command_groups[0].verification == ["nvidia-smi", "lsmod | grep nvidia"]
 
 
+def test_research_prompt_requires_split_desktop_live_apply_groups():
+    profile = UserProfile()
+    facts = SetupFacts(package_manager="pacman", distro_family="arch")
+
+    prompt = build_research_prompt(
+        profile,
+        facts,
+        system_info="",
+        migration_plan_md="",
+        distro_primer_md="",
+        native_search_active=False,
+    )
+
+    assert "Split desktop work into separate groups" in prompt
+    assert "plasma-apply-*" in prompt
+    assert "harness may skip live-apply groups" in prompt
+
+
 def test_extract_research_plan_normalizes_lsblk_mountpoint_verification():
     profile = UserProfile()
     payload = _base_plan_payload()
