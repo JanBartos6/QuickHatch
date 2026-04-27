@@ -534,6 +534,7 @@ def build_research_prompt(
         "- Executable command_groups may ONLY use these stages: install_or_skip, postboot_driver, desktop, or apps.\n"
         "- connect_and_probe, research_and_plan, and final_audit are harness-owned stages. Do not create command groups for them; rely on normalized facts or place checks in the verification for the relevant executable stage.\n"
         "- Put disk partitioning, formatting, mounting, base install, chroot configuration, initramfs, bootloader, and install reboot work under install_or_skip. Do not invent stages such as disk_prepare, partitioning, chroot, bootloader, or base_install.\n"
+        "- Do not include final `umount /mnt`, `umount /target`, or `reboot` commands in command_groups. QuickHatch owns the guarded pre-reboot checks, SSH key continuity, unmount, reboot, and reconnect sequence after install_or_skip succeeds.\n"
         "- Put driver/GPU work under postboot_driver, display manager/theme/runtime desktop work under desktop, and requested application installs under apps.\n"
         "- No mutating work can happen before research_and_plan finishes.\n"
         "- `commands`, command-group `verification`, and `verification_commands` must contain executable shell commands only. Do not write prose like `lsblk should show ...`; use commands such as `mountpoint /mnt` or `lsblk /dev/sda | grep -q '/mnt'`.\n"

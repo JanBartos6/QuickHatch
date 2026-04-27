@@ -1708,7 +1708,7 @@ def test_live_install_injects_disk_cleanup_before_destructive_partitioning():
                 "id": "install-1",
                 "stage": "install_or_skip",
                 "title": "Partition and install",
-                "commands": ["parted -s /dev/sda mklabel gpt", "reboot"],
+                "commands": ["parted -s /dev/sda mklabel gpt", "umount -R /mnt", "reboot"],
                 "verification": [],
                 "rationale": "",
                 "source": "repo",
@@ -1797,6 +1797,7 @@ def test_live_install_injects_disk_cleanup_before_destructive_partitioning():
     assert commands[parted_index - 2] == "mountpoint -q /mnt && umount -R /mnt || true"
     assert "lsblk -lnpo NAME /dev/sda" in commands[parted_index - 1]
     assert 'umount "$p"' in commands[parted_index - 1]
+    assert "umount -R /mnt" not in commands
     messages = [message["content"] for message in bridge.messages]
     assert "`parted -s /dev/sda mklabel gpt`" in messages
     assert "Arch live install" in summary

@@ -1207,7 +1207,7 @@ class SetupOrchestrator:
         return None
 
     def _commands_for_group(self, stage: SetupStage, group: CommandGroup) -> list[str]:
-        commands = list(group.commands)
+        commands = self._drop_live_install_harness_owned_commands(stage, group)
         if self._is_arch_nvidia_driver_group(stage, group, commands):
             commands = self._normalize_arch_nvidia_commands(commands)
         if self._needs_arch_aur_helper_bootstrap(commands):
@@ -1248,6 +1248,31 @@ class SetupOrchestrator:
             self._normalize_installed_nonroot_privileged_command(command, stage=stage)
             for command in patched_commands
         ]
+
+    def _drop_live_install_harness_owned_commands(
+        self, stage: SetupStage, group: CommandGroup
+    ) -> list[str]:
+        commands: list[str] = []
+        facts = self.ctx.facts or SetupFacts()
+        for command in group.commands:
+            if (
+                stage == SetupStage.INSTALL_OR_SKIP
+                and facts.is_live
+                and (
+                    self._is_reboot_command(command)
+                    or self._is_live_target_unmount_command(command)
+                )
+            ):
+                self.runlog.record(
+                    "command_deferred_until_guarded_reboot",
+                    stage=stage.value,
+                    group_id=group.id,
+                    command=command,
+                    reason="live install unmount/reboot is harness-owned",
+                )
+                continue
+            commands.append(command)
+        return commands
 
     def _normalize_installed_nonroot_privileged_command(
         self, command: str, *, stage: SetupStage
@@ -1982,6 +2007,15 @@ class SetupOrchestrator:
                 r"|(^|[;&|]\s*)(?:sudo\s+)?(?:telinit|init)\s+6\b"
                 r"|(^|[;&|]\s*)(?:sudo\s+)?kexec\s+-e\b"
                 r"|(^|[;&|]\s*)(?:sudo\s+)?sh\s+-c\s+['\"]?echo\s+[a-z]*b\s*>\s*/proc/sysrq-trigger",
+                command,
+            )
+        )
+
+    @staticmethod
+    def _is_live_target_unmount_command(command: str) -> bool:
+        return bool(
+            re.search(
+                r"(^|[;&|]\s*)(?:sudo\s+)?umount\s+(?:-[A-Za-z]+\s+)*(?:/mnt|/target)\b",
                 command,
             )
         )
