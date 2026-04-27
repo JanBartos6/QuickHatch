@@ -325,6 +325,35 @@ def test_reconnect_key_retries_after_transient_disconnect(monkeypatch):
     ]
 
 
+def test_reconnect_key_tolerates_extended_transient_disconnect(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="root", login_user="root", is_root=True)
+    install_attempts = {"count": 0}
+    monkeypatch.setattr("quickhatch.setup.orchestrator.time.sleep", lambda _seconds: None)
+
+    def ssh_exec(command, timeout):
+        if command.startswith("set -e;"):
+            install_attempts["count"] += 1
+            if install_attempts["count"] <= 5:
+                return (255, "", "Connection closed by 127.0.0.1 port 2222")
+            return (0, "", "")
+        return (255, "", "Connection closed by 127.0.0.1 port 2222")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.created_user = "jan"
+    orchestrator._resolve_public_key_text = lambda: "ssh-ed25519 AAAATEST quickhatch"  # type: ignore[method-assign]
+
+    orchestrator._ensure_reconnect_ssh_key()
+
+    assert install_attempts["count"] == 6
+    assert orchestrator.ctx.stage_state[SetupStage.INSTALL_OR_SKIP.value][
+        "ssh_continuity_key_installed"
+    ]
+
+
 def test_pre_reboot_checks_retry_transient_ssh_disconnect(monkeypatch):
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

@@ -705,12 +705,15 @@ class SetupOrchestrator:
         )
         self.bridge.add_message("agent", f"`{command}` — ensure SSH reconnect key")
         last_output = ""
-        for attempt in range(1, 4):
+        success = False
+        max_attempts = 8
+        for attempt in range(1, max_attempts + 1):
             if attempt > 1:
-                delay = min(2 * attempt, 6)
+                delay = min(2 * attempt, 15)
                 self.bridge.add_message(
                     "agent",
-                    f"Retrying SSH reconnect key verification ({attempt}/3) after {delay}s…",
+                    "Retrying SSH reconnect key verification "
+                    f"({attempt}/{max_attempts}) after {delay}s…",
                 )
                 time.sleep(delay)
             rc, stdout, stderr = self.runtime.ssh_exec(command, 60)
@@ -727,14 +730,20 @@ class SetupOrchestrator:
                 stderr_tail=(stderr or "")[-500:],
             )
             if rc == 0:
+                success = True
                 break
             if self._verify_reconnect_ssh_key(reconnect_user, public_key):
                 self.bridge.add_message(
                     "agent",
                     "SSH reconnect key is present despite a transient SSH command failure.",
                 )
+                success = True
                 break
-        else:
+            if attempt >= 3 and not self._looks_like_transient_ssh_disconnect(
+                stdout, stderr, last_output
+            ):
+                break
+        if not success:
             raise RuntimeError(
                 "Cannot verify SSH continuity before reboot: failed to install "
                 f"QuickHatch public key for '{reconnect_user}'. "
