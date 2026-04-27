@@ -7,6 +7,7 @@ from unittest.mock import patch
 from quickhatch.gui.server import (
     _detect_live_env,
     _is_reboot_command,
+    _wait_for_installed_ssh_reconnect,
     _wait_for_ssh_reconnect,
 )
 
@@ -98,6 +99,73 @@ class TestWaitForSshReconnect:
         with patch("quickhatch.gui.server._ssh_exec", return_value=(-1, "", "timeout")):
             ok = _wait_for_ssh_reconnect("1.2.3.4", "jan", None, timeout=2, interval=1)
         assert ok is False
+
+
+class TestWaitForInstalledSshReconnect:
+    def test_returns_new_user_when_installed_system_accepts_key(self):
+        def fake_ssh(_host, user, cmd, _key, timeout=120, port=22):
+            assert user == "jan"
+            assert cmd == "echo __reconnected__"
+            return (0, "__reconnected__\n", "")
+
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=fake_ssh):
+            ok, message, connected_user = _wait_for_installed_ssh_reconnect(
+                "1.2.3.4",
+                "jan",
+                None,
+                fallback_user="root",
+                timeout=5,
+                interval=0,
+            )
+        assert ok is True
+        assert message == ""
+        assert connected_user == "jan"
+
+    def test_fails_fast_when_target_boots_back_into_live_media(self):
+        calls: list[tuple[str, str]] = []
+
+        def fake_ssh(_host, user, cmd, _key, timeout=120, port=22):
+            calls.append((user, cmd))
+            if user == "jan":
+                return (255, "", "Permission denied")
+            assert user == "root"
+            return (0, "LIVE:marker=/run/archiso\n", "")
+
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=fake_ssh):
+            ok, message, connected_user = _wait_for_installed_ssh_reconnect(
+                "1.2.3.4",
+                "jan",
+                None,
+                fallback_user="root",
+                timeout=30,
+                interval=0,
+            )
+        assert ok is False
+        assert connected_user is None
+        assert "still booted into live media" in message
+        assert calls[0] == ("jan", "echo __reconnected__")
+        assert calls[1][0] == "root"
+        assert "/run/archiso" in calls[1][1]
+
+    def test_can_continue_with_fallback_user_if_installed_system_allows_it(self):
+        def fake_ssh(_host, user, cmd, _key, timeout=120, port=22):
+            if user == "jan":
+                return (255, "", "Permission denied")
+            assert user == "root"
+            return (0, "INSTALLED\n", "")
+
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=fake_ssh):
+            ok, message, connected_user = _wait_for_installed_ssh_reconnect(
+                "1.2.3.4",
+                "jan",
+                None,
+                fallback_user="root",
+                timeout=30,
+                interval=0,
+            )
+        assert ok is True
+        assert message == ""
+        assert connected_user == "root"
 
     def test_returns_false_when_stop_requested(self):
         stop = [False]

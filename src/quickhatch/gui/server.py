@@ -5131,6 +5131,75 @@ def _wait_for_ssh_reconnect(
         _time.sleep(interval)
 
 
+def _wait_for_installed_ssh_reconnect(
+    host: str,
+    reconnect_user: str,
+    key_path: str | None,
+    port: int = 22,
+    *,
+    fallback_user: str | None = None,
+    timeout: int | None = None,
+    interval: int = 5,
+    stop_flag_getter=None,
+) -> tuple[bool, str, str | None]:
+    """Poll for the installed system and fail fast if the target boots live media.
+
+    After a live install the expected SSH user often changes from the live ISO
+    account (usually root) to the created on-disk user. If the machine boots the
+    USB/ISO again, the new user will never authenticate, but the old live user
+    may still be reachable. Detect that case and return an actionable failure
+    instead of waiting forever on the wrong account.
+    """
+    import time as _time
+
+    deadline = None if timeout is None else (_time.time() + timeout)
+    last_error = ""
+    while True:
+        if stop_flag_getter is not None and stop_flag_getter():
+            return False, "Stop requested while waiting for SSH reconnect.", None
+        if deadline is not None and _time.time() >= deadline:
+            return False, last_error or "Timed out waiting for SSH reconnect.", None
+
+        rc, out, err = _ssh_exec(
+            host,
+            reconnect_user,
+            "echo __reconnected__",
+            key_path,
+            timeout=10,
+            port=port,
+        )
+        if rc == 0 and "__reconnected__" in out:
+            return True, "", reconnect_user
+        last_error = (err or out or "").strip()
+
+        if fallback_user and fallback_user != reconnect_user:
+            live_rc, live_out, live_err = _ssh_exec(
+                host,
+                fallback_user,
+                _LIVE_ENV_DETECTION_SCRIPT,
+                key_path,
+                timeout=20,
+                port=port,
+            )
+            if live_rc == 0:
+                marker = live_out.strip().splitlines()[-1] if live_out.strip() else ""
+                if marker.startswith("LIVE:"):
+                    return (
+                        False,
+                        "Target reconnected as the original live-session user, "
+                        f"but it is still booted into live media ({marker}). "
+                        "Remove the USB/ISO or change boot order to the installed "
+                        "disk, then start setup again to continue post-install "
+                        "configuration.",
+                        None,
+                    )
+                return True, "", fallback_user
+            if live_err or live_out:
+                last_error = (live_err or live_out).strip()
+
+        _time.sleep(interval)
+
+
 # Commands that trigger the reconnect-after-reboot dance. Matched
 # conservatively — the agent's "reboot" is distinct from other uses of
 # the word (e.g. config file contents mentioning reboot).
@@ -6047,22 +6116,26 @@ def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = ""
         )[1]
 
     def _wait_for_reconnect(reconnect_user: str) -> tuple[bool, str, str]:
-        ok = _wait_for_ssh_reconnect(
+        previous_user = session_user["value"]
+        ok, message, connected_user = _wait_for_installed_ssh_reconnect(
             host,
             reconnect_user,
             key_path,
             port=ssh_port,
+            fallback_user=previous_user,
             timeout=None,
             stop_flag_getter=lambda: bridge.stop_requested,
         )
-        if ok:
-            session_user["value"] = reconnect_user
+        if ok and connected_user:
+            session_user["value"] = connected_user
         fresh_info = (
-            _collect_remote_system_info(host, session_user["value"], key_path, port=ssh_port)
+            _collect_remote_system_info(
+                host, session_user["value"], key_path, port=ssh_port
+            )
             if ok
-            else ""
+            else message
         )
-        return ok, fresh_info, reconnect_user
+        return ok, fresh_info, connected_user or reconnect_user
 
     def _pre_reboot_result() -> tuple[bool, list[str], str]:
         failures, oks = _run_pre_reboot_checks(host, session_user["value"], key_path, port=ssh_port)
