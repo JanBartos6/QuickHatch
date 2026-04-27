@@ -385,6 +385,63 @@ def test_group_command_retries_transient_ssh_transport_failure(monkeypatch):
     assert any("Transient SSH transport failure" in msg["content"] for msg in bridge.messages)
 
 
+def test_non_app_missing_repo_target_is_dropped_for_retry():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan", is_root=False)
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    command = "sudo pacman -S --noconfirm virtualbox-guest-utils xf86-video-vmware"
+    group = CommandGroup(
+        id="vbox",
+        stage=SetupStage.POSTBOOT_DRIVER,
+        title="VirtualBox Guest Drivers",
+        commands=[command],
+        packages=["virtualbox-guest-utils", "xf86-video-vmware"],
+    )
+    failure = GroupFailure(
+        failure_type="command",
+        command=command,
+        stdout="",
+        stderr="error: target not found: xf86-video-vmware",
+        detail="target not found",
+    )
+
+    repaired = orchestrator._auto_repair_missing_repo_targets(
+        SetupStage.POSTBOOT_DRIVER, group, failure
+    )
+
+    assert repaired is not None
+    assert repaired.commands == ["sudo pacman -S --noconfirm virtualbox-guest-utils"]
+    assert repaired.packages == ["virtualbox-guest-utils"]
+    assert any("Removed unavailable non-app repo target" in msg["content"] for msg in bridge.messages)
+
+
+def test_apps_missing_repo_target_is_not_silently_dropped():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan", is_root=False)
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    command = "sudo pacman -S --noconfirm imaginary-app"
+    group = CommandGroup(
+        id="apps",
+        stage=SetupStage.APPS,
+        title="Install Apps",
+        commands=[command],
+        packages=["imaginary-app"],
+    )
+    failure = GroupFailure(
+        failure_type="command",
+        command=command,
+        stdout="",
+        stderr="error: target not found: imaginary-app",
+        detail="target not found",
+    )
+
+    repaired = orchestrator._auto_repair_missing_repo_targets(SetupStage.APPS, group, failure)
+
+    assert repaired is None
+
+
 def test_pre_reboot_checks_retry_transient_ssh_disconnect(monkeypatch):
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

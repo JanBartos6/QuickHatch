@@ -552,6 +552,12 @@ class SetupOrchestrator:
                     self._mark_group_completion(current_group, stage=stage)
                     self._refresh_facts(stage=stage)
                     break
+                auto_repaired = self._auto_repair_missing_repo_targets(
+                    stage, current_group, failure
+                )
+                if auto_repaired is not None:
+                    current_group = auto_repaired
+                    continue
                 repair_attempts += 1
                 if repair_attempts > self.MAX_GROUP_REPAIRS:
                     raise RuntimeError(
@@ -1231,6 +1237,97 @@ class SetupOrchestrator:
                     detail=detail,
                 )
         return None
+
+    def _auto_repair_missing_repo_targets(
+        self,
+        stage: SetupStage,
+        group: CommandGroup,
+        failure: GroupFailure,
+    ) -> CommandGroup | None:
+        if stage == SetupStage.APPS or failure.failure_type != "command":
+            return None
+        missing = self._missing_repo_targets_from_output(failure.stdout, failure.stderr)
+        if not missing:
+            return None
+        repaired_commands: list[str] = []
+        changed = False
+        for command in group.commands:
+            if command == failure.command:
+                repaired = self._drop_missing_targets_from_install_command(command, missing)
+                if repaired and repaired != command:
+                    repaired_commands.append(repaired)
+                    changed = True
+                    continue
+            repaired_commands.append(command)
+        if not changed:
+            return None
+        repaired_group = copy.deepcopy(group)
+        repaired_group.id = f"{group.id}-without-missing-targets"
+        repaired_group.title = f"{group.title} (without unavailable repo targets)"
+        repaired_group.commands = repaired_commands
+        repaired_group.packages = [pkg for pkg in group.packages if pkg not in missing]
+        repaired_group.rationale = (
+            f"{group.rationale}\nQuickHatch removed unavailable repository target(s) "
+            f"{', '.join(sorted(missing))} from this non-app stage so remaining "
+            "validated packages can continue."
+        ).strip()
+        self.bridge.add_message(
+            "agent",
+            "[harness] Removed unavailable non-app repo target(s) "
+            f"{', '.join(sorted(missing))} and will retry the group.",
+        )
+        self.runlog.record(
+            "auto_repair_missing_repo_targets",
+            stage=stage.value,
+            group_id=group.id,
+            missing=sorted(missing),
+            commands=repaired_commands,
+        )
+        return repaired_group
+
+    @staticmethod
+    def _missing_repo_targets_from_output(*texts: str) -> set[str]:
+        text = "\n".join(str(item or "") for item in texts)
+        return set(re.findall(r"target not found:\s*([A-Za-z0-9@._+:-]+)", text))
+
+    @staticmethod
+    def _drop_missing_targets_from_install_command(
+        command: str, missing: set[str]
+    ) -> str | None:
+        if any(token in command for token in ("&&", "||", ";", "|", "\n")):
+            return None
+        try:
+            tokens = shlex.split(command)
+        except ValueError:
+            return None
+        if not tokens or not any(tool in tokens for tool in ("pacman", "pacstrap")):
+            return None
+        filtered = [token for token in tokens if token not in missing]
+        if filtered == tokens:
+            return None
+        payload = SetupOrchestrator._install_payload_tokens(filtered)
+        if not payload:
+            return None
+        return shlex.join(filtered)
+
+    @staticmethod
+    def _install_payload_tokens(tokens: list[str]) -> list[str]:
+        if "pacman" in tokens:
+            for idx, token in enumerate(tokens):
+                if token == "-S" or token.startswith("-S"):
+                    return [item for item in tokens[idx + 1 :] if not item.startswith("-")]
+        if "pacstrap" in tokens:
+            mount_idx = next(
+                (idx for idx, token in enumerate(tokens) if token in {"/mnt", "/target"}),
+                -1,
+            )
+            if mount_idx >= 0:
+                return [
+                    item
+                    for item in tokens[mount_idx + 1 :]
+                    if not item.startswith("-") and not item.startswith("$")
+                ]
+        return []
 
     def _ssh_exec_with_transient_retries(
         self,
