@@ -2004,7 +2004,7 @@ class SetupOrchestrator:
         self, command: str, stdout: str, stderr: str, *, stage: SetupStage
     ) -> None:
         del stderr
-        if stage == SetupStage.INSTALL_OR_SKIP and "useradd " in command:
+        if stage == SetupStage.INSTALL_OR_SKIP and re.search(r"\b(?:useradd|adduser)\b", command):
             created_user = self._extract_created_user(command)
             if created_user:
                 self.ctx.created_user = created_user
@@ -2086,25 +2086,44 @@ class SetupOrchestrator:
             stripped = line.strip()
             if not stripped or stripped.startswith("#"):
                 continue
-            match = re.search(
+            matches = []
+            chroot_match = re.search(
                 r"(?:^|[;&|]\s*)(?:sudo\s+)?(?:(?:arch-chroot|chroot)\s+\S+\s+)?"
                 r"(?:useradd|adduser)\b(?P<tail>[^;&|]*)",
                 line,
             )
-            if not match:
+            if chroot_match:
+                matches.append(chroot_match.group("tail"))
+            matches.extend(
+                match.group("tail")
+                for match in re.finditer(
+                    r"(?:^|[;&|]\s*|['\"])(?:sudo\s+)?(?:useradd|adduser)\b(?P<tail>[^;&|'\"]*)",
+                    line,
+                )
+            )
+            for tail in matches:
+                user = SetupOrchestrator._extract_created_user_from_tail(
+                    tail,
+                    flags_with_values=flags_with_values,
+                )
+                if user:
+                    return user
+        return None
+
+    @staticmethod
+    def _extract_created_user_from_tail(tail: str, *, flags_with_values: set[str]) -> str | None:
+        try:
+            tokens = shlex.split(tail)
+        except ValueError:
+            tokens = tail.split()
+        for idx in range(len(tokens) - 1, -1, -1):
+            token = tokens[idx].strip("\"'`")
+            if not token or token.startswith("-"):
                 continue
-            try:
-                tokens = shlex.split(match.group("tail"))
-            except ValueError:
-                tokens = match.group("tail").split()
-            for idx in range(len(tokens) - 1, -1, -1):
-                token = tokens[idx].strip("\"'`")
-                if not token or token.startswith("-"):
-                    continue
-                if idx > 0 and tokens[idx - 1] in flags_with_values:
-                    continue
-                if re.fullmatch(r"[a-z_][a-z0-9_-]{0,31}", token):
-                    return token
+            if idx > 0 and tokens[idx - 1] in flags_with_values:
+                continue
+            if re.fullmatch(r"[a-z_][a-z0-9_-]{0,31}", token):
+                return token
         return None
 
     def _build_summary(self) -> str:

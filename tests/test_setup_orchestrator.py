@@ -23,6 +23,15 @@ def test_extract_created_user_from_chrooted_useradd():
     assert SetupOrchestrator._extract_created_user(command) == "jan"
 
 
+def test_extract_created_user_from_chrooted_shell_useradd():
+    command = (
+        'arch-chroot /mnt sh -c "useradd -m -G wheel -s /bin/bash jan; '
+        "echo 'jan:password' | chpasswd\""
+    )
+
+    assert SetupOrchestrator._extract_created_user(command) == "jan"
+
+
 def _dummy_setup_runtime(
     profile: UserProfile,
     bridge: BridgeState,
