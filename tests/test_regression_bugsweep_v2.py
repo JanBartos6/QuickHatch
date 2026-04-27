@@ -643,9 +643,9 @@ class TestLlmResponseExtractors:
 class TestSshExecErrorHandling:
     @staticmethod
     def _bypass_probe(monkeypatch):
-        """_ssh_exec runs a TCP probe before spawning ssh. For error-path
-        tests we don't want the probe to fail first — pretend it found
-        a valid SSH banner so control reaches the mocked subprocess.run."""
+        """_ssh_exec runs a TCP reachability probe before spawning ssh.
+        For error-path tests we don't want the probe to fail first, so
+        return a socket-like object and let control reach subprocess.run."""
         import socket
 
         class _FakeSock:
@@ -654,9 +654,6 @@ class TestSshExecErrorHandling:
 
             def __exit__(self, *a):
                 return False
-
-            def recv(self, n):
-                return b"SSH-2.0-Fake"
 
         monkeypatch.setattr(socket, "create_connection", lambda *a, **k: _FakeSock())
 
@@ -731,6 +728,37 @@ class TestSshExecErrorHandling:
         assert rc == -1
         assert "cannot reach" in err.lower()
         assert run_called["n"] == 0
+
+    def test_probe_does_not_parse_banner_before_real_ssh(self, monkeypatch):
+        """OpenSSH can emit MaxStartups/rate-limit text to extra raw TCP
+        probes during rapid setup loops. The harness should only use the
+        probe for reachability and let the real ssh client handle protocol
+        details."""
+        import socket
+        import subprocess
+
+        from quickhatch.gui.server import _ssh_exec
+
+        class _FakeSock:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def recv(self, _n):
+                raise AssertionError("banner should not be read by the probe")
+
+        monkeypatch.setattr(socket, "create_connection", lambda *a, **k: _FakeSock())
+
+        def good_run(*a, **k):
+            return subprocess.CompletedProcess(a[0], 0, "ok\n", "")
+
+        monkeypatch.setattr(subprocess, "run", good_run)
+        rc, out, err = _ssh_exec("127.0.0.1", "root", "true")
+        assert rc == 0
+        assert out == "ok\n"
+        assert err == ""
 
 
 if __name__ == "__main__":  # pragma: no cover

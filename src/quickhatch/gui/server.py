@@ -3874,22 +3874,14 @@ def _ssh_exec(
     import socket as _socket
     import subprocess
 
-    # Quick TCP probe before spawning ssh. Saves the 5–10s banner-wait
-    # when the target's sshd is clearly down (e.g. VM paused, port
-    # forward broken, machine still rebooting). Skipped on short cmds
-    # because ssh's own ConnectTimeout=10 is cheap enough.
+    # Quick TCP reachability probe before spawning ssh. Do not read and
+    # validate the SSH banner here: rapid setup command loops can trip
+    # sshd MaxStartups/rate-limiting text such as "Not allowed" on this
+    # extra probe connection, causing a false harness failure before the
+    # real ssh client even runs.
     try:
-        with _socket.create_connection((host, port), timeout=3) as probe:
-            banner = probe.recv(16)
-            if not banner.startswith(b"SSH-"):
-                return (
-                    -1,
-                    "",
-                    (
-                        f"port {port} is open but didn't speak SSH (got "
-                        f"{banner[:8]!r}); is the sshd running on the target?"
-                    ),
-                )
+        with _socket.create_connection((host, port), timeout=3):
+            pass
     except OSError as exc:
         return -1, "", f"cannot reach {host}:{port} ({exc.__class__.__name__})"
 
