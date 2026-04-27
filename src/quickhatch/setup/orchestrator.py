@@ -96,6 +96,11 @@ _ARCH_ROOT_YAY_BOOTSTRAP_COMMAND = (
     "cd /tmp/quickhatch-yay-bin && makepkg --noconfirm' && "
     "pacman -U --noconfirm /tmp/quickhatch-yay-bin/yay-bin-*.pkg.tar.zst"
 )
+_ARCH_LIVE_VCONSOLE_PREP_COMMAND = (
+    "mkdir -p /mnt/etc && { test -f /mnt/etc/vconsole.conf || "
+    "printf 'KEYMAP=us\\n' > /mnt/etc/vconsole.conf; }"
+)
+_ARCH_PACSTRAP_MNT_RE = re.compile(r"\bpacstrap\b.*\s/mnt(?:\s|$)", re.IGNORECASE)
 
 _INSTALLED_NONROOT_PRIVILEGED_STAGES = {
     SetupStage.POSTBOOT_DRIVER,
@@ -1208,6 +1213,7 @@ class SetupOrchestrator:
 
     def _commands_for_group(self, stage: SetupStage, group: CommandGroup) -> list[str]:
         commands = self._drop_live_install_harness_owned_commands(stage, group)
+        commands = self._inject_arch_live_vconsole_before_pacstrap(stage, group, commands)
         if self._is_arch_nvidia_driver_group(stage, group, commands):
             commands = self._normalize_arch_nvidia_commands(commands)
         if self._needs_arch_aur_helper_bootstrap(commands):
@@ -1273,6 +1279,33 @@ class SetupOrchestrator:
                 continue
             commands.append(command)
         return commands
+
+    def _inject_arch_live_vconsole_before_pacstrap(
+        self, stage: SetupStage, group: CommandGroup, commands: list[str]
+    ) -> list[str]:
+        facts = self.ctx.facts or SetupFacts()
+        if (
+            stage != SetupStage.INSTALL_OR_SKIP
+            or not facts.is_live
+            or facts.distro_family != "arch"
+            or any("vconsole.conf" in command for command in commands)
+        ):
+            return commands
+
+        patched: list[str] = []
+        injected = False
+        for command in commands:
+            if not injected and _ARCH_PACSTRAP_MNT_RE.search(command):
+                patched.append(_ARCH_LIVE_VCONSOLE_PREP_COMMAND)
+                injected = True
+                self.runlog.record(
+                    "arch_live_vconsole_prep_injected",
+                    stage=stage.value,
+                    group_id=group.id,
+                    command=_ARCH_LIVE_VCONSOLE_PREP_COMMAND,
+                )
+            patched.append(command)
+        return patched
 
     def _normalize_installed_nonroot_privileged_command(
         self, command: str, *, stage: SetupStage

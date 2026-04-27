@@ -1803,6 +1803,33 @@ def test_live_install_injects_disk_cleanup_before_destructive_partitioning():
     assert "Arch live install" in summary
 
 
+def test_live_arch_install_injects_vconsole_before_pacstrap():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        login_user="root",
+        is_root=True,
+        is_live=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="base",
+        stage=SetupStage.INSTALL_OR_SKIP,
+        title="Install base",
+        commands=["mount /dev/sda2 /mnt", "pacstrap -K /mnt base linux linux-firmware"],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
+
+    pacstrap_index = commands.index("pacstrap -K /mnt base linux linux-firmware")
+    assert "vconsole.conf" in commands[pacstrap_index - 1]
+    assert "KEYMAP=us" in commands[pacstrap_index - 1]
+
+
 def test_orchestrator_repairs_failed_command_group_with_search_and_retry():
     profile = UserProfile(apps_to_install=["Brave"])
     bridge = BridgeState(profile, persist_path=None)
