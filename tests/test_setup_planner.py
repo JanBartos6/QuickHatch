@@ -241,6 +241,30 @@ def test_extract_research_plan_normalizes_lsblk_mountpoint_verification():
     assert plan.command_groups[0].verification == ["mountpoint -q /mnt"]
 
 
+def test_extract_research_plan_normalizes_brittle_fstab_root_verification():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["command_groups"][0]["verification"] = "grep -q ' / ' /mnt/etc/fstab"
+
+    plan = extract_research_plan(json.dumps(payload), profile)
+
+    assert plan.command_groups[0].verification == [
+        "awk '$2 == \"/\" { found=1 } END { exit found ? 0 : 1 }' /mnt/etc/fstab"
+    ]
+
+
+def test_required_command_group_ignores_optional_slow_flag():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["command_groups"][0]["optional"] = False
+    payload["command_groups"][0]["optional_slow"] = True
+
+    plan = extract_research_plan(json.dumps(payload), profile)
+
+    assert plan.command_groups[0].optional is False
+    assert plan.command_groups[0].optional_slow is False
+
+
 def test_extract_research_plan_rejects_prose_group_verification():
     profile = UserProfile()
     payload = _base_plan_payload()

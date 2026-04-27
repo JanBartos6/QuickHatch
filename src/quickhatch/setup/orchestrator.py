@@ -610,7 +610,7 @@ class SetupOrchestrator:
             return
         self._run_stage_groups(SetupStage.INSTALL_OR_SKIP, audit_after=False)
         self._ensure_reconnect_ssh_key()
-        ok, failures, summary = self.runtime.run_pre_reboot_checks()
+        ok, failures, summary = self._run_pre_reboot_checks_with_retries()
         self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})[
             "pre_reboot_checks_passed"
         ] = ok
@@ -647,6 +647,29 @@ class SetupOrchestrator:
             stage_state=self.ctx.stage_state[SetupStage.INSTALL_OR_SKIP.value],
         )
         self._record_stage_result(result)
+
+    def _run_pre_reboot_checks_with_retries(self) -> tuple[bool, list[str], str]:
+        last_result: tuple[bool, list[str], str] = (False, [], "")
+        for attempt in range(1, 4):
+            ok, failures, summary = self.runtime.run_pre_reboot_checks()
+            last_result = (ok, failures, summary)
+            self.runlog.record(
+                "pre_reboot_check_attempt",
+                stage=SetupStage.INSTALL_OR_SKIP.value,
+                attempt=attempt,
+                passed=ok,
+                failures=failures,
+                summary=summary,
+            )
+            if ok or not self._looks_like_transient_ssh_disconnect(summary, *failures):
+                return last_result
+            delay = min(2 * attempt, 6)
+            self.bridge.add_message(
+                "agent",
+                f"Pre-reboot safety check hit a transient SSH disconnect; retrying ({attempt + 1}/3) after {delay}s…",
+            )
+            time.sleep(delay)
+        return last_result
 
     def _ensure_reconnect_ssh_key(self) -> None:
         reconnect_user = self.ctx.created_user or self.runtime.user
@@ -735,6 +758,20 @@ class SetupOrchestrator:
             stderr_tail=(stderr or "")[-500:],
         )
         return rc == 0
+
+    @staticmethod
+    def _looks_like_transient_ssh_disconnect(*texts: str) -> bool:
+        text = "\n".join(str(item or "") for item in texts).lower()
+        return any(
+            marker in text
+            for marker in (
+                "rc=255",
+                "connection closed",
+                "connection reset",
+                "kex_exchange_identification",
+                "connection timed out",
+            )
+        )
 
     def _resolve_public_key_text(self) -> str:
         candidates: list[Path] = []

@@ -100,6 +100,10 @@ _PROSE_COMMAND_MARKERS = (
 
 _HEREDOC_OPERATOR_RE = re.compile(r"<<-?\s*['\"]?[A-Za-z_][A-Za-z0-9_]*['\"]?")
 _HEREDOC_TERMINATOR_RE = re.compile(r"(?:[A-Za-z_]*EOF[A-Za-z0-9_]*|CHROOT_EOF|INSTALL_EOF)")
+_FSTAB_ROOT_GREP_RE = re.compile(
+    r"^grep\s+-q(?:e|E)?\s+['\"](?:\\s|\s)*/(?:\\s|\s)*['\"]\s+/mnt/etc/fstab$",
+    re.IGNORECASE,
+)
 
 _EXECUTABLE_COMMAND_GROUP_STAGES = {
     SetupStage.INSTALL_OR_SKIP,
@@ -275,6 +279,8 @@ def _normalize_shell_command(command: str) -> str:
         return "mountpoint -q /mnt"
     if normalized in {"lsblk /mnt/boot", "lsblk --fs /mnt/boot", "lsblk -f /mnt/boot"}:
         return "mountpoint -q /mnt/boot"
+    if _FSTAB_ROOT_GREP_RE.match(stripped):
+        return "awk '$2 == \"/\" { found=1 } END { exit found ? 0 : 1 }' /mnt/etc/fstab"
     return stripped
 
 
@@ -326,6 +332,8 @@ def _parse_command_group(item: Any) -> CommandGroup:
         raise ResearchPlanValidationError(
             "Each command group needs id, title, stage, and at least one command."
         )
+    optional = bool(item.get("optional", False))
+    optional_slow = bool(item.get("optional_slow", False)) and optional
     return CommandGroup(
         id=gid,
         stage=stage,
@@ -338,8 +346,8 @@ def _parse_command_group(item: Any) -> CommandGroup:
         rationale=str(item.get("rationale", "") or ""),
         source=str(item.get("source", "repo") or "repo"),
         packages=[str(pkg) for pkg in (item.get("packages", []) or []) if str(pkg).strip()],
-        optional=bool(item.get("optional", False)),
-        optional_slow=bool(item.get("optional_slow", False)),
+        optional=optional,
+        optional_slow=optional_slow,
         status=_coerce_status(item.get("status")),
         evidence=_parse_evidence(
             item.get("evidence", []),
@@ -534,7 +542,7 @@ def build_research_prompt(
         "- Do not invent source URLs. If only native search was used and you do not have a URL, leave url empty and include query + summary.\n"
         "- Use official repos by default; only use community sources when needed and explicit.\n"
         "- On Arch, do not ask the user solely because `yay`/`paru` is absent. Prefer `yay` for AUR packages when no helper is detected; the harness can bootstrap it before execution. Avoid `paru` unless facts show it is installed.\n"
-        "- Classify slow desktop wrappers (ChatGPT/Claude/Codex desktop wrappers, Electron bundle wrappers, etc.) as optional_slow.\n"
+        "- Classify slow desktop wrappers (ChatGPT/Claude/Codex desktop wrappers, Electron bundle wrappers, etc.) as optional_slow only when the command group is optional. Never mark required base install, bootloader, driver, or core desktop groups as optional_slow.\n"
         "- Use selected_app_catalog as curated prior knowledge for selected apps. Prefer high-confidence source_hint values and active_install_hint when its family matches the target distro.\n"
         "- Treat active_install_hint as advisory package-resolution data, not proof of installation success. Verify package names with repo/community search when confidence is not high, source is manual_followup/web/alternative, or packages are empty.\n"
         "- If an app is unresolved, mark it manual_followup or ask a blocking question; do not hallucinate a package.\n"

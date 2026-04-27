@@ -316,6 +316,59 @@ def test_reconnect_key_retries_after_transient_disconnect(monkeypatch):
     ]
 
 
+def test_pre_reboot_checks_retry_transient_ssh_disconnect(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="root", login_user="root", is_root=True)
+    attempts = {"count": 0}
+    monkeypatch.setattr("quickhatch.setup.orchestrator.time.sleep", lambda _seconds: None)
+
+    def run_pre_reboot_checks():
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            return (
+                False,
+                ["pre-reboot check script failed to run"],
+                "FAIL pre-reboot check script failed to run (rc=255): Connection closed by 127.0.0.1 port 2222",
+            )
+        return (True, [], "ok")
+
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.run_pre_reboot_checks = run_pre_reboot_checks
+    orchestrator = SetupOrchestrator(runtime)
+
+    ok, failures, summary = orchestrator._run_pre_reboot_checks_with_retries()
+
+    assert ok is True
+    assert failures == []
+    assert summary == "ok"
+    assert attempts["count"] == 2
+    assert any("transient SSH disconnect" in msg["content"] for msg in bridge.messages)
+
+
+def test_pre_reboot_checks_do_not_retry_real_boot_failures(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="root", login_user="root", is_root=True)
+    attempts = {"count": 0}
+    monkeypatch.setattr("quickhatch.setup.orchestrator.time.sleep", lambda _seconds: None)
+
+    def run_pre_reboot_checks():
+        attempts["count"] += 1
+        return (False, ["[kernel] missing"], "kernel missing")
+
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.run_pre_reboot_checks = run_pre_reboot_checks
+    orchestrator = SetupOrchestrator(runtime)
+
+    ok, failures, summary = orchestrator._run_pre_reboot_checks_with_retries()
+
+    assert ok is False
+    assert failures == ["[kernel] missing"]
+    assert summary == "kernel missing"
+    assert attempts["count"] == 1
+
+
 def test_arch_nvidia_group_rewrites_legacy_driver_install_and_adds_boot_config():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
