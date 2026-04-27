@@ -169,7 +169,17 @@ def _extract_json_payload(text: str) -> dict[str, Any]:
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise ResearchPlanValidationError(f"Planner did not return valid JSON: {exc}") from exc
+        start = raw.find("{")
+        end = raw.rfind("}")
+        if start >= 0 and end > start:
+            try:
+                data = json.loads(raw[start : end + 1])
+            except json.JSONDecodeError:
+                raise ResearchPlanValidationError(
+                    f"Planner did not return valid JSON: {exc}"
+                ) from exc
+        else:
+            raise ResearchPlanValidationError(f"Planner did not return valid JSON: {exc}") from exc
     if not isinstance(data, dict):
         raise ResearchPlanValidationError("Planner output must be a single JSON object.")
     return data
@@ -224,16 +234,42 @@ def _parse_evidence(raw: Any, *, field_name: str) -> list[PlanEvidence]:
     return evidence
 
 
-def _clean_shell_commands(raw: Any, *, field_name: str) -> list[str]:
+def _shell_command_items(raw: Any, *, field_name: str) -> list[Any]:
     if raw is None:
         return []
+    if isinstance(raw, dict):
+        for key in ("commands", "command", "checks", "check", "verification", "shell"):
+            if key in raw:
+                return _shell_command_items(raw[key], field_name=field_name)
+        raise ResearchPlanValidationError(f"{field_name} must contain shell command(s).")
     if isinstance(raw, str):
-        raw = [raw]
-    elif not isinstance(raw, list):
+        return [raw]
+    if not isinstance(raw, list):
         raise ResearchPlanValidationError(f"{field_name} must be a list of shell commands.")
+    items: list[Any] = []
+    for item in raw:
+        if isinstance(item, dict):
+            items.extend(_shell_command_items(item, field_name=field_name))
+        else:
+            items.append(item)
+    return items
+
+
+def _normalize_shell_command(command: str) -> str:
+    stripped = command.strip()
+    normalized = " ".join(stripped.lower().split())
+    if normalized in {"lsblk /mnt", "lsblk --fs /mnt", "lsblk -f /mnt"}:
+        return "mountpoint -q /mnt"
+    if normalized in {"lsblk /mnt/boot", "lsblk --fs /mnt/boot", "lsblk -f /mnt/boot"}:
+        return "mountpoint -q /mnt/boot"
+    return stripped
+
+
+def _clean_shell_commands(raw: Any, *, field_name: str) -> list[str]:
+    raw_items = _shell_command_items(raw, field_name=field_name)
     commands: list[str] = []
-    for index, item in enumerate(raw):
-        command = str(item or "").strip()
+    for index, item in enumerate(raw_items):
+        command = _normalize_shell_command(str(item or ""))
         if not command:
             continue
         normalized = command.lower()

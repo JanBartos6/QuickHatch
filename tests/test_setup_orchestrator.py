@@ -183,6 +183,7 @@ def test_arch_aur_helper_bootstrap_is_injected_before_yay_when_missing():
     commands = orchestrator._commands_for_group(SetupStage.DESKTOP, group)
 
     assert "yay-bin.git" in commands[0]
+    assert "timedatectl set-ntp true" in commands[0]
     assert "makepkg -s --noconfirm" in commands[0]
     assert commands[1] == "yay -S --noconfirm sweet-mars-kde-theme-git candy-icons-git"
 
@@ -222,6 +223,47 @@ def test_arch_aur_helper_bootstrap_updates_facts_after_success():
             commands=["yay -S --noconfirm candy-icons-git"],
         ),
     ) == ["yay -S --noconfirm candy-icons-git"]
+
+
+def test_arch_aur_helper_bootstrap_is_root_safe_and_wraps_yay_commands():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="none",
+        current_user="root",
+        login_user="root",
+        is_root=True,
+        sudo_nopasswd=True,
+    )
+    commands_seen: list[str] = []
+
+    def ssh_exec(command, timeout):
+        commands_seen.append(command)
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="theme",
+        stage=SetupStage.DESKTOP,
+        title="Apply theme",
+        commands=["yay -S --noconfirm candy-icons-git"],
+        packages=["candy-icons-git"],
+    )
+
+    failure = orchestrator._execute_group(SetupStage.DESKTOP, group, {})
+
+    assert failure is None
+    assert "timedatectl set-ntp true" in commands_seen[0]
+    assert "useradd -m -G wheel -s /bin/bash quickhatch-build" in commands_seen[0]
+    assert "makepkg --noconfirm" in commands_seen[0]
+    assert commands_seen[1] == (
+        "sudo -u quickhatch-build bash -lc 'yay -S --noconfirm candy-icons-git'"
+    )
 
 
 def test_execute_group_bootstraps_yay_when_preflight_sees_raw_yay():
@@ -525,6 +567,157 @@ def test_orchestrator_continues_after_answered_required_planning_question():
     finally:
         helper.join(timeout=2)
 
+    assert "Arch workstation" in summary
+
+
+def test_orchestrator_retries_invalid_planner_json_before_blocking():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        session_type="wayland",
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    )
+    model_calls = {"count": 0}
+    seen_messages: list[list[dict[str, str]]] = []
+
+    valid_plan = {
+        "target_summary": "Arch workstation.",
+        "distro_family": "arch",
+        "package_manager": "pacman",
+        "driver_strategy": {
+            "strategy": "no_special_driver",
+            "confidence": "resolved_official",
+            "source": "official",
+            "packages": [],
+            "services": [],
+            "notes": "",
+        },
+        "desktop_strategy": {
+            "strategy": "plasma",
+            "confidence": "resolved_official",
+            "source": "official",
+            "packages": ["plasma-desktop"],
+            "services": ["sddm"],
+            "notes": "",
+        },
+        "command_groups": [
+            {
+                "id": "desktop-1",
+                "stage": "desktop",
+                "title": "Persist desktop config",
+                "commands": [
+                    "kwriteconfig6 --file kdeglobals --group Icons --key Theme candy-icons"
+                ],
+                "verification": [],
+                "packages": [],
+            }
+        ],
+        "apps": [],
+        "unresolved_questions": [],
+        "verification_commands": {},
+        "required_items": ["desktop"],
+        "optional_items": [],
+        "planner_revision": 1,
+    }
+
+    def model_call(_cfg, messages):
+        seen_messages.append(messages)
+        model_calls["count"] += 1
+        if model_calls["count"] == 1:
+            return '{"target_summary": "unterminated'
+        assert "planner parser" in messages[-1]["content"]
+        return json.dumps(valid_plan)
+
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.call_model_text = model_call
+
+    summary = SetupOrchestrator(runtime).run()
+
+    assert model_calls["count"] == 2
+    assert "Arch workstation" in summary
+
+
+def test_orchestrator_retries_planner_validation_error_before_blocking():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        session_type="wayland",
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    )
+    model_calls = {"count": 0}
+
+    bad_plan = {
+        "target_summary": "Arch workstation.",
+        "distro_family": "arch",
+        "package_manager": "pacman",
+        "driver_strategy": {
+            "strategy": "no_special_driver",
+            "confidence": "resolved_official",
+            "source": "official",
+            "packages": [],
+            "services": [],
+            "notes": "",
+        },
+        "desktop_strategy": {
+            "strategy": "plasma",
+            "confidence": "resolved_official",
+            "source": "official",
+            "packages": ["plasma-desktop"],
+            "services": ["sddm"],
+            "notes": "",
+        },
+        "command_groups": [
+            {
+                "id": "desktop-1",
+                "stage": "desktop",
+                "title": "Persist desktop config",
+                "commands": [
+                    "kwriteconfig6 --file kdeglobals --group Icons --key Theme candy-icons"
+                ],
+                "verification": ["verify that KDE is configured"],
+            }
+        ],
+        "apps": [],
+        "unresolved_questions": [],
+        "verification_commands": {},
+        "required_items": ["desktop"],
+        "optional_items": [],
+        "planner_revision": 1,
+    }
+    fixed_plan = dict(bad_plan)
+    fixed_plan["command_groups"] = [
+        {
+            "id": "desktop-1",
+            "stage": "desktop",
+            "title": "Persist desktop config",
+            "commands": ["kwriteconfig6 --file kdeglobals --group Icons --key Theme candy-icons"],
+            "verification": [],
+        }
+    ]
+
+    def model_call(_cfg, messages):
+        model_calls["count"] += 1
+        if model_calls["count"] == 1:
+            return json.dumps(bad_plan)
+        assert "planner validator" in messages[-1]["content"]
+        return json.dumps(fixed_plan)
+
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.call_model_text = model_call
+
+    summary = SetupOrchestrator(runtime).run()
+
+    assert model_calls["count"] == 2
     assert "Arch workstation" in summary
 
 
@@ -1189,8 +1382,10 @@ def test_live_install_injects_disk_cleanup_before_destructive_partitioning():
     summary = SetupOrchestrator(runtime).run()
 
     parted_index = commands.index("parted -s /dev/sda mklabel gpt")
+    assert commands[parted_index - 3] == "swapoff -a || true"
     assert commands[parted_index - 2] == "mountpoint -q /mnt && umount -R /mnt || true"
-    assert commands[parted_index - 1] == "swapoff -a || true"
+    assert "lsblk -lnpo NAME /dev/sda" in commands[parted_index - 1]
+    assert 'umount "$p"' in commands[parted_index - 1]
     messages = [message["content"] for message in bridge.messages]
     assert "`parted -s /dev/sda mklabel gpt`" in messages
     assert "Arch live install" in summary

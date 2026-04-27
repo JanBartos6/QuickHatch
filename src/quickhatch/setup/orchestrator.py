@@ -38,9 +38,9 @@ from .types import (
     SetupStage,
 )
 
-_LIVE_DISK_PREP_COMMANDS = (
-    "mountpoint -q /mnt && umount -R /mnt || true",
+_LIVE_DISK_PREP_BASE_COMMANDS = (
     "swapoff -a || true",
+    "mountpoint -q /mnt && umount -R /mnt || true",
 )
 
 _LIVE_DISK_DESTRUCTIVE_PATTERNS = (
@@ -71,13 +71,30 @@ _ARCH_NVIDIA_BOOT_CONFIG_COMMANDS = (
     "sudo mkinitcpio -P",
     "if command -v grub-mkconfig >/dev/null 2>&1; then sudo grub-mkconfig -o /boot/grub/grub.cfg; fi",
 )
+_ARCH_AUR_BUILD_USER = "quickhatch-build"
 _ARCH_YAY_BOOTSTRAP_COMMAND = (
+    "(sudo timedatectl set-ntp true >/dev/null 2>&1 && sleep 5 || true) && "
     "sudo pacman -S --needed --noconfirm base-devel git && "
     "rm -rf /tmp/quickhatch-yay-bin && "
     "git clone https://aur.archlinux.org/yay-bin.git /tmp/quickhatch-yay-bin && "
     "cd /tmp/quickhatch-yay-bin && "
     "makepkg -s --noconfirm && "
     "sudo pacman -U --noconfirm yay-bin-*.pkg.tar.zst"
+)
+_ARCH_ROOT_YAY_BOOTSTRAP_COMMAND = (
+    "set -e; "
+    "(timedatectl set-ntp true >/dev/null 2>&1 && sleep 5 || true); "
+    "pacman -S --needed --noconfirm base-devel git sudo && "
+    f"id -u {_ARCH_AUR_BUILD_USER} >/dev/null 2>&1 || "
+    f"useradd -m -G wheel -s /bin/bash {_ARCH_AUR_BUILD_USER}; "
+    f"printf '%s\\n' '{_ARCH_AUR_BUILD_USER} ALL=(ALL:ALL) NOPASSWD: /usr/bin/pacman' "
+    f"> /etc/sudoers.d/99-quickhatch-aur-build && "
+    "chmod 440 /etc/sudoers.d/99-quickhatch-aur-build && "
+    "rm -rf /tmp/quickhatch-yay-bin && "
+    f"sudo -u {_ARCH_AUR_BUILD_USER} bash -lc "
+    "'git clone https://aur.archlinux.org/yay-bin.git /tmp/quickhatch-yay-bin && "
+    "cd /tmp/quickhatch-yay-bin && makepkg --noconfirm' && "
+    "pacman -U --noconfirm /tmp/quickhatch-yay-bin/yay-bin-*.pkg.tar.zst"
 )
 
 
@@ -278,7 +295,14 @@ class SetupOrchestrator:
         if raw.startswith("```"):
             lines = raw.splitlines()
             raw = "\n".join(lines[1:-1] if len(lines) >= 2 else lines)
-        data = json.loads(raw)
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            start = raw.find("{")
+            end = raw.rfind("}")
+            if start < 0 or end <= start:
+                raise
+            data = json.loads(raw[start : end + 1])
         if not isinstance(data, dict):
             raise RuntimeError("Planner response must be a single JSON object.")
         return data
@@ -312,6 +336,7 @@ class SetupOrchestrator:
         )
         messages = [{"role": "user", "content": prompt}]
         self.ctx.plan = None
+        last_planner_error = ""
         for _ in range(8):
             response_text = self._planner_model_call(messages)
             self.runlog.record(
@@ -322,13 +347,46 @@ class SetupOrchestrator:
             try:
                 payload = self._parse_planner_json(response_text)
             except json.JSONDecodeError as exc:
-                raise RuntimeError(f"Planner returned invalid JSON: {exc}") from exc
+                last_planner_error = f"Planner returned invalid JSON: {exc}"
+                self.runlog.record(
+                    "planner_response_invalid",
+                    stage=SetupStage.RESEARCH_AND_PLAN.value,
+                    error=last_planner_error,
+                )
+                messages = self._planner_retry_messages(
+                    prompt,
+                    response_text,
+                    (
+                        "[quickhatch planner parser]\n"
+                        f"{last_planner_error}\n"
+                        "Return exactly one complete JSON object. Do not use Markdown fences, "
+                        "comments, prose before/after JSON, or truncated strings."
+                    ),
+                )
+                continue
             action = str(payload.get("action", "")).strip()
             if not action:
                 try:
                     self.ctx.plan = extract_research_plan(response_text, self.profile)
                 except ResearchPlanValidationError as exc:
-                    raise RuntimeError(f"Research plan validation failed: {exc}") from exc
+                    last_planner_error = f"Research plan validation failed: {exc}"
+                    self.runlog.record(
+                        "planner_response_invalid",
+                        stage=SetupStage.RESEARCH_AND_PLAN.value,
+                        error=last_planner_error,
+                    )
+                    messages = self._planner_retry_messages(
+                        prompt,
+                        response_text,
+                        (
+                            "[quickhatch planner validator]\n"
+                            f"{last_planner_error}\n"
+                            "Fix the same plan and return JSON only. Keep all command groups "
+                            "inside canonical stages and make every command/verification field "
+                            "a shell command or list of shell commands."
+                        ),
+                    )
+                    continue
                 break
             if action == "plan":
                 try:
@@ -336,7 +394,23 @@ class SetupOrchestrator:
                         json.dumps(payload.get("plan", {})), self.profile
                     )
                 except ResearchPlanValidationError as exc:
-                    raise RuntimeError(f"Research plan validation failed: {exc}") from exc
+                    last_planner_error = f"Research plan validation failed: {exc}"
+                    self.runlog.record(
+                        "planner_response_invalid",
+                        stage=SetupStage.RESEARCH_AND_PLAN.value,
+                        error=last_planner_error,
+                    )
+                    messages = self._planner_retry_messages(
+                        prompt,
+                        response_text,
+                        (
+                            "[quickhatch planner validator]\n"
+                            f"{last_planner_error}\n"
+                            "Fix the plan object and return JSON only. Use action=plan with a "
+                            "valid plan, or return the valid plan object directly."
+                        ),
+                    )
+                    continue
                 break
             if action == "repo_search":
                 result = self.runtime.repo_search(str(payload.get("query", "")).strip())
@@ -357,14 +431,27 @@ class SetupOrchestrator:
                 )
                 result = f"[question answer]\n{answer or 'no answer'}"
             else:
-                raise RuntimeError(f"Unsupported planner action: {action}")
+                last_planner_error = f"Unsupported planner action: {action}"
+                messages = self._planner_retry_messages(
+                    prompt,
+                    response_text,
+                    (
+                        "[quickhatch planner parser]\n"
+                        f"{last_planner_error}\n"
+                        "Allowed actions are repo_search, community_search, web_search, "
+                        "question, or plan. Return one valid JSON object."
+                    ),
+                )
+                continue
             messages = [
                 {"role": "user", "content": prompt},
                 {"role": "assistant", "content": response_text},
                 {"role": "user", "content": result},
             ]
         if self.ctx.plan is None:
-            raise RuntimeError("Planner did not produce a final research plan.")
+            raise RuntimeError(
+                last_planner_error or "Planner did not produce a final research plan."
+            )
         self.bridge.update_setup_run(planning_complete=True)
         for question in self.ctx.plan.unresolved_questions:
             if not bool(question.get("required", True)):
@@ -383,6 +470,16 @@ class SetupOrchestrator:
             plan=self.ctx.plan,
         )
         self._record_stage_result(result)
+
+    @staticmethod
+    def _planner_retry_messages(
+        prompt: str, response_text: str, correction: str
+    ) -> list[dict[str, str]]:
+        return [
+            {"role": "user", "content": prompt},
+            {"role": "assistant", "content": response_text},
+            {"role": "user", "content": correction},
+        ]
 
     def _iter_stage_groups(self, stage: SetupStage) -> list[CommandGroup]:
         if not self.ctx.plan:
@@ -424,6 +521,13 @@ class SetupOrchestrator:
                         f"Stage {stage.value} exhausted repair attempts for '{current_group.title}': {failure.detail}"
                     )
                 current_group.status = PlanItemStatus.FAILED
+                self.bridge.add_message(
+                    "agent",
+                    (
+                        f"Repairing '{current_group.title}' after {failure.failure_type} "
+                        f"failure (attempt {repair_attempts}/{self.MAX_GROUP_REPAIRS})…"
+                    ),
+                )
                 repair_outcome = self._repair_failed_group(
                     stage,
                     current_group,
@@ -990,12 +1094,13 @@ class SetupOrchestrator:
         if self._is_arch_nvidia_driver_group(stage, group, commands):
             commands = self._normalize_arch_nvidia_commands(commands)
         if self._needs_arch_aur_helper_bootstrap(commands):
-            commands = [_ARCH_YAY_BOOTSTRAP_COMMAND, *commands]
+            bootstrap_command = self._arch_yay_bootstrap_command()
+            commands = [bootstrap_command, *commands]
             self.runlog.record(
                 "arch_aur_helper_bootstrap_injected",
                 stage=stage.value,
                 group_id=group.id,
-                command=_ARCH_YAY_BOOTSTRAP_COMMAND,
+                command=bootstrap_command,
             )
         if not self._needs_live_disk_prep(stage, commands):
             return commands
@@ -1011,12 +1116,13 @@ class SetupOrchestrator:
         if has_unmount and has_swapoff:
             return commands
 
-        patched_commands = list(_LIVE_DISK_PREP_COMMANDS) + commands
+        prep_commands = self._live_disk_prep_commands(commands)
+        patched_commands = prep_commands + commands
         self.runlog.record(
             "live_disk_prep_injected",
             stage=stage.value,
             group_id=group.id,
-            commands=list(_LIVE_DISK_PREP_COMMANDS),
+            commands=prep_commands,
         )
         return patched_commands
 
@@ -1069,6 +1175,15 @@ class SetupOrchestrator:
             return False
         return any(self._uses_arch_community_helper_command(command) for command in commands)
 
+    def _arch_yay_bootstrap_command(self) -> str:
+        facts = self.ctx.facts or SetupFacts()
+        return _ARCH_ROOT_YAY_BOOTSTRAP_COMMAND if facts.is_root else _ARCH_YAY_BOOTSTRAP_COMMAND
+
+    @staticmethod
+    def _is_arch_yay_bootstrap_command(command: str) -> bool:
+        lower = command.lower()
+        return "quickhatch-yay-bin" in lower and "yay-bin.git" in lower and "makepkg" in lower
+
     def _arch_aur_helper_available(self) -> bool:
         facts = self.ctx.facts or SetupFacts()
         return facts.package_manager == "pacman" and facts.community_helper in {"yay", "paru"}
@@ -1085,8 +1200,12 @@ class SetupOrchestrator:
         if facts.package_manager != "pacman" or helper not in {"yay", "paru"}:
             return command
         helpers = arch_community_helpers_in_command(command)
-        if not helpers or helpers == {helper}:
+        if not helpers:
             return command
+        if helpers == {helper}:
+            return (
+                self._wrap_root_arch_community_helper_command(command) if facts.is_root else command
+            )
         rewritten = command
         for other in {"yay", "paru"} - {helper}:
             rewritten = re.sub(rf"(?<![\w/-]){other}(?=\s)", helper, rewritten)
@@ -1106,7 +1225,32 @@ class SetupOrchestrator:
                 rewritten=rewritten,
                 helper=helper,
             )
+        if facts.is_root and self._uses_arch_community_helper_command(rewritten):
+            rewritten = self._wrap_root_arch_community_helper_command(rewritten)
         return rewritten
+
+    def _wrap_root_arch_community_helper_command(self, command: str) -> str:
+        if self._has_explicit_non_root_user_wrapper(command):
+            return command
+        wrapped = f"sudo -u {_ARCH_AUR_BUILD_USER} bash -lc {shlex.quote(command)}"
+        self.bridge.add_message(
+            "agent",
+            f"[harness] Running AUR helper as `{_ARCH_AUR_BUILD_USER}` because makepkg/yay must not run as root.",
+        )
+        self.runlog.record(
+            "arch_aur_helper_wrapped_root_command",
+            original=command,
+            rewritten=wrapped,
+            build_user=_ARCH_AUR_BUILD_USER,
+        )
+        return wrapped
+
+    @staticmethod
+    def _has_explicit_non_root_user_wrapper(command: str) -> bool:
+        return bool(
+            re.search(r"\b(?:sudo|runuser)\s+(?:-[^\s]+\s+)*-u\s+(?!root\b)\S+", command)
+            or re.search(r"\bsu\s+-?\s*(?!root\b)[A-Za-z_][A-Za-z0-9_-]*\b.*\s-c\b", command)
+        )
 
     def _try_bootstrap_arch_aur_helper_for_command(
         self,
@@ -1126,25 +1270,24 @@ class SetupOrchestrator:
         if stage_state.get("arch_aur_helper_bootstrap_attempted"):
             return None
         stage_state["arch_aur_helper_bootstrap_attempted"] = True
+        bootstrap_command = self._arch_yay_bootstrap_command()
         self.bridge.add_message(
             "agent",
             "AUR helper is missing; installing `yay` before retrying the planned community command.",
         )
-        self.bridge.add_message("agent", f"`{_ARCH_YAY_BOOTSTRAP_COMMAND}`")
+        self.bridge.add_message("agent", f"`{bootstrap_command}`")
         self.runlog.record(
             "arch_aur_helper_bootstrap_started",
             stage=stage.value,
             group_id=group.id,
-            command=_ARCH_YAY_BOOTSTRAP_COMMAND,
+            command=bootstrap_command,
             blocked_command=command,
         )
         rc, stdout, stderr = self.runtime.ssh_exec(
-            _ARCH_YAY_BOOTSTRAP_COMMAND,
-            self._command_timeout(_ARCH_YAY_BOOTSTRAP_COMMAND),
+            bootstrap_command,
+            self._command_timeout(bootstrap_command),
         )
-        self.ctx.results_log.append(
-            f"$ {_ARCH_YAY_BOOTSTRAP_COMMAND}\n[rc={rc}]\n{stdout}\n{stderr}".strip()
-        )
+        self.ctx.results_log.append(f"$ {bootstrap_command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
         self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
         self.runlog.record(
             "arch_aur_helper_bootstrap_result",
@@ -1161,7 +1304,7 @@ class SetupOrchestrator:
                 self._format_group_failure_message(
                     group.title,
                     "AUR helper bootstrap failed",
-                    _ARCH_YAY_BOOTSTRAP_COMMAND,
+                    bootstrap_command,
                     rc,
                     stdout,
                     stderr,
@@ -1169,12 +1312,12 @@ class SetupOrchestrator:
             )
             return GroupFailure(
                 failure_type="command",
-                command=_ARCH_YAY_BOOTSTRAP_COMMAND,
+                command=bootstrap_command,
                 stdout=stdout,
                 stderr=stderr,
                 detail=detail,
             )
-        self._update_from_command(_ARCH_YAY_BOOTSTRAP_COMMAND, stdout, stderr, stage=stage)
+        self._update_from_command(bootstrap_command, stdout, stderr, stage=stage)
         facts = self._refresh_facts(stage=stage)
         if facts.package_manager == "pacman" and facts.community_helper not in {"yay", "paru"}:
             facts.community_helper = "yay"
@@ -1256,6 +1399,34 @@ class SetupOrchestrator:
             for command in commands
             for pattern in _LIVE_DISK_DESTRUCTIVE_PATTERNS
         )
+
+    @staticmethod
+    def _live_disk_prep_commands(commands: list[str]) -> list[str]:
+        prep = list(_LIVE_DISK_PREP_BASE_COMMANDS)
+        for disk in SetupOrchestrator._extract_destructive_target_disks(commands):
+            disk_q = shlex.quote(disk)
+            prep.append(
+                f"for p in $(lsblk -lnpo NAME {disk_q} 2>/dev/null | tail -n +2 | tac); "
+                'do umount "$p" 2>/dev/null || true; done'
+            )
+        return prep
+
+    @staticmethod
+    def _extract_destructive_target_disks(commands: list[str]) -> list[str]:
+        disks: list[str] = []
+        seen: set[str] = set()
+        disk_re = re.compile(
+            r"(/dev/(?:nvme\d+n\d+|mmcblk\d+|sd[a-z]+|vd[a-z]+|xvd[a-z]+))(?:p?\d+)?\b"
+        )
+        for command in commands:
+            if not any(pattern.search(command) for pattern in _LIVE_DISK_DESTRUCTIVE_PATTERNS):
+                continue
+            for match in disk_re.finditer(command):
+                disk = match.group(1)
+                if disk not in seen:
+                    seen.add(disk)
+                    disks.append(disk)
+        return disks
 
     @staticmethod
     def _first_live_disk_destructive_index(commands: list[str]) -> int:
@@ -1546,7 +1717,7 @@ class SetupOrchestrator:
             created_user = self._extract_created_user(command)
             if created_user:
                 self.ctx.created_user = created_user
-        if command == _ARCH_YAY_BOOTSTRAP_COMMAND and self.ctx.facts is not None:
+        if self._is_arch_yay_bootstrap_command(command) and self.ctx.facts is not None:
             self.ctx.facts.community_helper = "yay"
         if stage == SetupStage.DESKTOP:
             state = self.ctx.stage_state.setdefault(stage.value, {})

@@ -197,6 +197,28 @@ def test_extract_research_plan_accepts_single_string_group_verification():
     assert plan.command_groups[0].verification == ["nvidia-smi"]
 
 
+def test_extract_research_plan_accepts_object_group_verification():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["command_groups"][0]["verification"] = {
+        "commands": ["nvidia-smi", {"command": "lsmod | grep nvidia"}]
+    }
+
+    plan = extract_research_plan(json.dumps(payload), profile)
+
+    assert plan.command_groups[0].verification == ["nvidia-smi", "lsmod | grep nvidia"]
+
+
+def test_extract_research_plan_normalizes_lsblk_mountpoint_verification():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["command_groups"][0]["verification"] = "lsblk /mnt"
+
+    plan = extract_research_plan(json.dumps(payload), profile)
+
+    assert plan.command_groups[0].verification == ["mountpoint -q /mnt"]
+
+
 def test_extract_research_plan_rejects_prose_group_verification():
     profile = UserProfile()
     payload = _base_plan_payload()
@@ -225,6 +247,28 @@ def test_extract_research_plan_accepts_single_string_stage_verification():
     plan = extract_research_plan(json.dumps(payload), profile)
 
     assert plan.verification_commands["postboot_driver"] == ["nvidia-smi"]
+
+
+def test_extract_research_plan_accepts_object_stage_verification():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["verification_commands"] = {"postboot_driver": {"checks": [{"command": "nvidia-smi"}]}}
+
+    plan = extract_research_plan(json.dumps(payload), profile)
+
+    assert plan.verification_commands["postboot_driver"] == ["nvidia-smi"]
+
+
+def test_extract_research_plan_tolerates_prose_around_json():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+
+    plan = extract_research_plan(
+        "Here is the plan:\n" + json.dumps(payload) + "\nDone.",
+        profile,
+    )
+
+    assert plan.distro_family == "arch"
 
 
 def test_extract_repair_action_rejects_stage_drift():
