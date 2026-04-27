@@ -97,6 +97,13 @@ _PROSE_COMMAND_MARKERS = (
     " expected ",
 )
 
+_EXECUTABLE_COMMAND_GROUP_STAGES = {
+    SetupStage.INSTALL_OR_SKIP,
+    SetupStage.POSTBOOT_DRIVER,
+    SetupStage.DESKTOP,
+    SetupStage.APPS,
+}
+
 
 class ResearchPlanValidationError(ValueError):
     """Raised when planner output is malformed or incomplete."""
@@ -207,6 +214,8 @@ def _parse_evidence(raw: Any, *, field_name: str) -> list[PlanEvidence]:
         return []
     if isinstance(raw, str):
         raw = [{"source_type": "note", "summary": raw}]
+    if isinstance(raw, dict):
+        raw = [raw]
     if not isinstance(raw, list):
         raise ResearchPlanValidationError(f"{field_name} must be a list of evidence objects.")
     evidence: list[PlanEvidence] = []
@@ -292,6 +301,12 @@ def _parse_command_group(item: Any) -> CommandGroup:
     gid = str(item.get("id", "")).strip()
     title = str(item.get("title", "")).strip()
     stage = _coerce_stage(str(item.get("stage", "")).strip())
+    if stage not in _EXECUTABLE_COMMAND_GROUP_STAGES:
+        raise ResearchPlanValidationError(
+            f"command_groups[{gid or title or '?'}] uses harness-owned stage "
+            f"{stage.value}; executable command groups must use install_or_skip, "
+            "postboot_driver, desktop, or apps."
+        )
     cleaned_commands = _clean_shell_commands(
         item.get("commands", []), field_name=f"command_groups[{gid or title or '?'}].commands"
     )
@@ -496,7 +511,8 @@ def build_research_prompt(
         "- optional_items (list)\n"
         "- planner_revision (integer)\n\n"
         "Rules:\n"
-        "- Every command group MUST belong to exactly one canonical stage: connect_and_probe, research_and_plan, install_or_skip, postboot_driver, desktop, apps, or final_audit.\n"
+        "- Executable command_groups may ONLY use these stages: install_or_skip, postboot_driver, desktop, or apps.\n"
+        "- connect_and_probe, research_and_plan, and final_audit are harness-owned stages. Do not create command groups for them; rely on normalized facts or place checks in the verification for the relevant executable stage.\n"
         "- Put disk partitioning, formatting, mounting, base install, chroot configuration, initramfs, bootloader, and install reboot work under install_or_skip. Do not invent stages such as disk_prepare, partitioning, chroot, bootloader, or base_install.\n"
         "- Put driver/GPU work under postboot_driver, display manager/theme/runtime desktop work under desktop, and requested application installs under apps.\n"
         "- No mutating work can happen before research_and_plan finishes.\n"

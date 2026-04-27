@@ -128,6 +128,28 @@ def test_extract_research_plan_parses_valid_json():
     assert plan.apps[1].status == PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION
 
 
+def test_extract_research_plan_accepts_single_evidence_objects():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["driver_strategy"]["evidence"] = {
+        "source_type": "provider_native_search",
+        "query": "Arch NVIDIA driver packages",
+        "summary": "Use the current official NVIDIA open module package.",
+        "confidence": "medium",
+    }
+    payload["command_groups"][0]["evidence"] = {
+        "source_type": "repo_search",
+        "query": "nvidia-open",
+        "summary": "Package is available in the official repository.",
+        "confidence": "high",
+    }
+
+    plan = extract_research_plan(json.dumps(payload), profile)
+
+    assert plan.driver_strategy.evidence[0].source_type == "provider_native_search"
+    assert plan.command_groups[0].evidence[0].source_type == "repo_search"
+
+
 def test_extract_research_plan_accepts_common_status_aliases():
     profile = UserProfile()
     payload = _base_plan_payload()
@@ -324,6 +346,15 @@ def test_extract_research_plan_normalizes_common_install_substages():
     assert {group.stage for group in plan.command_groups} == {SetupStage.INSTALL_OR_SKIP}
 
 
+def test_extract_research_plan_rejects_harness_owned_command_group_stages():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["command_groups"][0]["stage"] = "connect_and_probe"
+
+    with pytest.raises(ResearchPlanValidationError, match="harness-owned stage"):
+        extract_research_plan(json.dumps(payload), profile)
+
+
 def test_extract_research_plan_backfills_unresolved_requested_apps_as_manual_followup():
     profile = UserProfile()
     profile.apps_to_install = ["Brave", "LocalSend"]
@@ -357,6 +388,8 @@ def test_build_research_prompt_includes_selected_app_catalog():
     assert "source_hint" in prompt
     assert "Use selected_app_catalog as curated prior knowledge" in prompt
     assert "active_install_hint" in prompt
+    assert "Executable command_groups may ONLY use" in prompt
+    assert "connect_and_probe, research_and_plan, and final_audit are harness-owned" in prompt
     assert "Do not invent stages such as disk_prepare" in prompt
     assert "Prefer `yay` for AUR packages when no helper is detected" in prompt
     assert "evidence entries are objects" in prompt

@@ -61,6 +61,118 @@ def _dummy_setup_runtime(
     )
 
 
+def test_installed_nonroot_privileged_commands_are_sudo_normalized():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="desktop",
+        stage=SetupStage.DESKTOP,
+        title="Install desktop",
+        commands=[
+            "pacman -S --noconfirm plasma-desktop sddm",
+            "systemctl enable sddm",
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.DESKTOP, group)
+
+    assert commands == [
+        "sudo pacman -S --noconfirm plasma-desktop sddm",
+        "sudo systemctl enable sddm",
+    ]
+
+
+def test_installed_nonroot_privilege_normalization_preserves_user_commands():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="desktop",
+        stage=SetupStage.DESKTOP,
+        title="Apply user config",
+        commands=[
+            "kwriteconfig6 --file kdeglobals --group Icons --key Theme candy-icons",
+            "mkdir -p ~/.config/plasma-workspace",
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.DESKTOP, group)
+
+    assert commands == group.commands
+
+
+def test_installed_nonroot_privilege_normalization_preserves_root_sessions():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        login_user="root",
+        is_root=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="driver",
+        stage=SetupStage.POSTBOOT_DRIVER,
+        title="Install driver",
+        commands=["pacman -S --noconfirm nvidia-open nvidia-utils"],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.POSTBOOT_DRIVER, group)
+
+    assert commands == ["pacman -S --noconfirm nvidia-open nvidia-utils"]
+
+
+def test_installed_nonroot_privilege_normalization_sudoes_privileged_tee_pipeline():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="driver",
+        stage=SetupStage.POSTBOOT_DRIVER,
+        title="Write NVIDIA config",
+        commands=[
+            "printf '%s\\n' 'options nvidia-drm modeset=1' | tee /etc/modprobe.d/nvidia.conf >/dev/null"
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.POSTBOOT_DRIVER, group)
+
+    assert commands == [
+        "printf '%s\\n' 'options nvidia-drm modeset=1' | sudo tee /etc/modprobe.d/nvidia.conf >/dev/null"
+    ]
+
+
 def test_arch_nvidia_group_rewrites_legacy_driver_install_and_adds_boot_config():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

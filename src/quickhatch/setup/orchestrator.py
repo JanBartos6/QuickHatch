@@ -97,6 +97,34 @@ _ARCH_ROOT_YAY_BOOTSTRAP_COMMAND = (
     "pacman -U --noconfirm /tmp/quickhatch-yay-bin/yay-bin-*.pkg.tar.zst"
 )
 
+_INSTALLED_NONROOT_PRIVILEGED_STAGES = {
+    SetupStage.POSTBOOT_DRIVER,
+    SetupStage.DESKTOP,
+    SetupStage.APPS,
+}
+
+_PRIVILEGED_COMMAND_RE = re.compile(
+    r"^(?:env\s+)?(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s+)*"
+    r"(?:"
+    r"pacman|apt|apt-get|dnf|zypper|apk|xbps-install|emerge|"
+    r"systemctl|service|rc-update|rc-service|"
+    r"grub-mkconfig|grub2-mkconfig|grub-install|grub2-install|bootctl|"
+    r"mkinitcpio|dracut|update-initramfs|update-grub|"
+    r"modprobe|rmmod|depmod|"
+    r"useradd|adduser|usermod|groupadd|groupmod|chpasswd|passwd|"
+    r"timedatectl|hwclock"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_PRIVILEGED_PATH_RE = re.compile(r"(?:^|\s)/(?:etc|boot|usr|var|opt)(?:/|\s|$)")
+_PRIVILEGED_PATH_WRITE_RE = re.compile(
+    r"^(?:"
+    r"sed\s+-i|tee\b|install\b|mkdir\b|chmod\b|chown\b|ln\b|rm\b|cp\b|mv\b|touch\b"
+    r")",
+    re.IGNORECASE,
+)
+
 
 @dataclass
 class SetupRuntime:
@@ -1109,7 +1137,10 @@ class SetupOrchestrator:
                 command=bootstrap_command,
             )
         if not self._needs_live_disk_prep(stage, commands):
-            return commands
+            return [
+                self._normalize_installed_nonroot_privileged_command(command, stage=stage)
+                for command in commands
+            ]
 
         first_destructive = self._first_live_disk_destructive_index(commands)
         commands_before_destructive = [
@@ -1130,7 +1161,69 @@ class SetupOrchestrator:
             group_id=group.id,
             commands=prep_commands,
         )
-        return patched_commands
+        return [
+            self._normalize_installed_nonroot_privileged_command(command, stage=stage)
+            for command in patched_commands
+        ]
+
+    def _normalize_installed_nonroot_privileged_command(
+        self, command: str, *, stage: SetupStage
+    ) -> str:
+        facts = self.ctx.facts or SetupFacts()
+        if stage not in _INSTALLED_NONROOT_PRIVILEGED_STAGES or facts.is_live or facts.is_root:
+            return command
+        stripped = command.strip()
+        if not stripped or self._has_privileged_command_wrapper(stripped):
+            return command
+        if self._uses_arch_community_helper_command(stripped):
+            return command
+
+        rewritten = self._sudo_tee_for_privileged_pipeline(stripped)
+        if rewritten != stripped:
+            self.runlog.record(
+                "command_privilege_normalized",
+                stage=stage.value,
+                original=command,
+                rewritten=rewritten,
+                reason="privileged tee pipeline",
+            )
+            return rewritten
+
+        if _PRIVILEGED_COMMAND_RE.search(stripped) or self._writes_privileged_path(stripped):
+            rewritten = f"sudo {stripped}"
+            self.runlog.record(
+                "command_privilege_normalized",
+                stage=stage.value,
+                original=command,
+                rewritten=rewritten,
+                reason="installed non-root privileged command",
+            )
+            return rewritten
+        return command
+
+    @staticmethod
+    def _has_privileged_command_wrapper(command: str) -> bool:
+        return bool(
+            re.match(r"^(?:sudo|doas|su|runuser|arch-chroot|chroot)\b", command)
+            or re.search(r"(?:^|[;&|]\s*)(?:sudo|doas)\s+", command)
+        )
+
+    @staticmethod
+    def _writes_privileged_path(command: str) -> bool:
+        return bool(
+            _PRIVILEGED_PATH_WRITE_RE.search(command) and _PRIVILEGED_PATH_RE.search(command)
+        )
+
+    @staticmethod
+    def _sudo_tee_for_privileged_pipeline(command: str) -> str:
+        if re.search(r"\|\s*sudo\s+tee\b", command):
+            return command
+        if not re.search(
+            r"\|\s*tee\b(?:\s+-[A-Za-z]+)*\s+/(?:etc|boot|usr|var|opt)(?:/|\s|$)",
+            command,
+        ):
+            return command
+        return re.sub(r"\|\s*tee\b", "| sudo tee", command, count=1)
 
     def _is_arch_nvidia_driver_group(
         self, stage: SetupStage, group: CommandGroup, commands: list[str]
