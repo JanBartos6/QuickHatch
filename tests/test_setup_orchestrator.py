@@ -1137,6 +1137,19 @@ def test_fstab_boot_verification_uses_field_aware_check():
     assert '$2 == "/boot"' in command
 
 
+def test_standalone_assignment_combines_with_next_command():
+    commands = SetupOrchestrator._combine_standalone_assignments(
+        [
+            "UCODE=$(grep -qi intel /proc/cpuinfo && echo intel-ucode || echo amd-ucode)",
+            'pacstrap -K /mnt base linux "$UCODE"',
+        ]
+    )
+
+    assert commands == [
+        'UCODE=$(grep -qi intel /proc/cpuinfo && echo intel-ucode || echo amd-ucode) && pacstrap -K /mnt base linux "$UCODE"'
+    ]
+
+
 def test_pre_reboot_checks_retry_transient_ssh_disconnect(monkeypatch):
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

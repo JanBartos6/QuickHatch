@@ -108,6 +108,10 @@ _DESKTOP_RUNTIME_COMMAND_RE = re.compile(
     r"\b(?:plasma-apply-[\w-]+|kscreen-doctor|xrandr|qdbus6?|gsettings|lookandfeeltool)\b",
     re.IGNORECASE,
 )
+_STANDALONE_ASSIGNMENT_RE = re.compile(
+    r"^\s*(?:export\s+)?[A-Za-z_][A-Za-z0-9_]*=\$\(.+\)\s*$"
+    r"|^\s*(?:export\s+)?(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s*)+\s*$"
+)
 _PACMAN_QI_SINGLE_RE = re.compile(
     r"^(?:sudo\s+)?pacman\s+-Qi\s+(?P<name>[A-Za-z0-9@._+:-]+)\s*$",
     re.IGNORECASE,
@@ -2028,6 +2032,7 @@ class SetupOrchestrator:
                 command=bootstrap_command,
             )
         if not self._needs_live_disk_prep(stage, commands):
+            commands = self._combine_standalone_assignments(commands)
             return [
                 self._normalize_installed_nonroot_privileged_command(command, stage=stage)
                 for command in commands
@@ -2052,10 +2057,29 @@ class SetupOrchestrator:
             group_id=group.id,
             commands=prep_commands,
         )
+        patched_commands = self._combine_standalone_assignments(patched_commands)
         return [
             self._normalize_installed_nonroot_privileged_command(command, stage=stage)
             for command in patched_commands
         ]
+
+    @staticmethod
+    def _combine_standalone_assignments(commands: list[str]) -> list[str]:
+        combined: list[str] = []
+        pending_assignment = ""
+        for command in commands:
+            stripped = (command or "").strip()
+            if pending_assignment:
+                combined.append(f"{pending_assignment} && {stripped}")
+                pending_assignment = ""
+                continue
+            if _STANDALONE_ASSIGNMENT_RE.fullmatch(stripped):
+                pending_assignment = stripped
+                continue
+            combined.append(command)
+        if pending_assignment:
+            combined.append(pending_assignment)
+        return combined
 
     def _wrap_desktop_runtime_command(self, command: str, *, stage: SetupStage) -> str:
         if stage != SetupStage.DESKTOP or not self._command_needs_desktop_runtime_env(command):
