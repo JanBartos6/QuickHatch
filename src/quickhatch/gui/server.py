@@ -2010,6 +2010,7 @@ def _call_openai_responses_with_native_search(
     api_key: str | None,
     *,
     system_prompt: str = "",
+    timeout: int = 900,
 ) -> str:
     import requests
 
@@ -2022,7 +2023,7 @@ def _call_openai_responses_with_native_search(
         "input": _messages_to_openai_responses_input(messages, system_prompt),
         "tools": [{"type": "web_search"}],
     }
-    resp = requests.post(url, headers=headers, json=body, timeout=900)
+    resp = requests.post(url, headers=headers, json=body, timeout=timeout)
     resp.raise_for_status()
     return _extract_responses_output_text(resp.json())
 
@@ -2033,6 +2034,7 @@ def _call_anthropic_with_native_search(
     messages: list[dict[str, str]],
     *,
     system_prompt: str = "",
+    timeout: int = 900,
 ) -> str:
     import requests
 
@@ -2052,7 +2054,7 @@ def _call_anthropic_with_native_search(
         "https://api.anthropic.com/v1/messages",
         headers=headers,
         json=body,
-        timeout=900,
+        timeout=timeout,
     )
     resp.raise_for_status()
     data = resp.json()
@@ -2070,6 +2072,7 @@ def _call_gemini_with_native_search(
     api_key: str | None,
     *,
     system_prompt: str = "",
+    timeout: int = 900,
 ) -> str:
     import requests
 
@@ -2091,7 +2094,7 @@ def _call_gemini_with_native_search(
         _gemini_native_endpoint(endpoint, model),
         headers=headers,
         json=body,
-        timeout=900,
+        timeout=timeout,
     )
     resp.raise_for_status()
     return _extract_gemini_text(resp.json())
@@ -2105,6 +2108,7 @@ def _call_model_with_native_search(
     api_key: str | None,
     *,
     system_prompt: str = "",
+    timeout: int = 900,
 ) -> str:
     provider = provider or ""
     if provider == "api_anthropic":
@@ -2113,6 +2117,7 @@ def _call_model_with_native_search(
             model,
             messages,
             system_prompt=system_prompt,
+            timeout=timeout,
         )
     if provider == "api_gemini":
         return _call_gemini_with_native_search(
@@ -2121,6 +2126,7 @@ def _call_model_with_native_search(
             messages,
             api_key,
             system_prompt=system_prompt,
+            timeout=timeout,
         )
     if provider in {"api_openai", "api_grok"}:
         return _call_openai_responses_with_native_search(
@@ -2129,6 +2135,7 @@ def _call_model_with_native_search(
             messages,
             api_key,
             system_prompt=system_prompt,
+            timeout=timeout,
         )
     raise ValueError(f"Provider {provider!r} does not support native search")
 
@@ -2366,6 +2373,7 @@ def _call_setup_model_text(
     model: str,
     api_key: str | None,
     messages: list[dict[str, str]],
+    timeout_seconds: int = 900,
 ) -> str:
     from quickhatch.ai.model_list import chat_completions_url, is_anthropic
 
@@ -2381,6 +2389,7 @@ def _call_setup_model_text(
             conversation,
             api_key,
             system_prompt=system_prompt,
+            timeout=timeout_seconds,
         )
 
     if is_anthropic(config.provider):
@@ -2402,7 +2411,7 @@ def _call_setup_model_text(
                 merged[-1]["content"] = merged[-1]["content"] + "\n\n" + m["content"]
             else:
                 merged.append(dict(m))
-        return _post_anthropic(
+        return _post_anthropic_timeout(
             url=chat_completions_url(config.provider, endpoint),
             api_key=api_key or "",
             body={
@@ -2411,6 +2420,7 @@ def _call_setup_model_text(
                 "system": system_prompt,
                 "messages": merged,
             },
+            timeout=timeout_seconds,
         )
 
     body: dict[str, Any] = {"model": model, "messages": messages}
@@ -2419,10 +2429,11 @@ def _call_setup_model_text(
     else:
         body["temperature"] = 0.3
         body["max_tokens"] = 4096
-    return _post_openai_compat(
+    return _post_openai_compat_timeout(
         url=chat_completions_url(config.provider, endpoint),
         api_key=api_key,
         body=body,
+        timeout=timeout_seconds,
     )
 
 
@@ -3318,6 +3329,10 @@ def _http_post_with_retry(url: str, headers: dict, body: dict, timeout: int) -> 
 
 
 def _post_anthropic(url: str, api_key: str, body: dict) -> str:
+    return _post_anthropic_timeout(url, api_key, body, timeout=900)
+
+
+def _post_anthropic_timeout(url: str, api_key: str, body: dict, *, timeout: int) -> str:
     resp = _http_post_with_retry(
         url=url,
         headers={
@@ -3326,16 +3341,20 @@ def _post_anthropic(url: str, api_key: str, body: dict) -> str:
             "Content-Type": "application/json",
         },
         body=body,
-        timeout=900,
+        timeout=timeout,
     )
     return _extract_anthropic_text(resp.json())
 
 
 def _post_openai_compat(url: str, api_key: str | None, body: dict) -> str:
+    return _post_openai_compat_timeout(url, api_key, body, timeout=900)
+
+
+def _post_openai_compat_timeout(url: str, api_key: str | None, body: dict, *, timeout: int) -> str:
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
-    resp = _http_post_with_retry(url=url, headers=headers, body=body, timeout=900)
+    resp = _http_post_with_retry(url=url, headers=headers, body=body, timeout=timeout)
     # _extract_openai_text handles missing choices/message/content and
     # falls back to reasoning_content when content is empty.
     return _extract_openai_text(resp.json())
@@ -6212,12 +6231,13 @@ def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = ""
         system_info_fn=lambda: _collect_remote_system_info(
             host, session_user["value"], key_path, port=ssh_port
         ),
-        call_model_text=lambda model_config, messages: _call_setup_model_text(
+        call_model_text=lambda model_config, messages, timeout_seconds=900: _call_setup_model_text(
             model_config,
             model_config.endpoint or "",
             model_config.model_name or "",
             model_config.api_key,
             messages,
+            timeout_seconds=timeout_seconds,
         ),
         probe_facts=lambda **kwargs: _probe_setup_facts_typed(
             host,

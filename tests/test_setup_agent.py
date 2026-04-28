@@ -81,7 +81,60 @@ class TestNativeSearchSetupContract:
 
         assert result == '{"action":"done","summary":"ok"}'
         native_call.assert_called_once()
+        assert native_call.call_args.kwargs["timeout"] == 900
         compat_call.assert_not_called()
+
+    def test_setup_model_passes_custom_timeout_to_native_search(self):
+        config = AIConfig(
+            provider="api_gemini",
+            endpoint="https://generativelanguage.googleapis.com/v1beta/openai",
+            model_name="gemini-flash-latest",
+            api_key="secret",
+            native_search=True,
+        )
+        messages = [{"role": "user", "content": "Plan"}]
+
+        with patch(
+            "quickhatch.gui.server._call_model_with_native_search",
+            return_value='{"action":"done","summary":"ok"}',
+        ) as native_call:
+            result = _call_setup_model_text(
+                config,
+                config.endpoint or "",
+                config.model_name or "",
+                config.api_key,
+                messages,
+                timeout_seconds=45,
+            )
+
+        assert result == '{"action":"done","summary":"ok"}'
+        assert native_call.call_args.kwargs["timeout"] == 45
+
+    def test_setup_model_passes_custom_timeout_to_openai_compat(self):
+        config = AIConfig(
+            provider="local_lmstudio",
+            endpoint="http://localhost:1234/v1",
+            model_name="local-model",
+            api_key="",
+            native_search=False,
+        )
+        messages = [{"role": "user", "content": "Plan"}]
+
+        with patch(
+            "quickhatch.gui.server._post_openai_compat_timeout",
+            return_value='{"action":"done","summary":"ok"}',
+        ) as compat_call:
+            result = _call_setup_model_text(
+                config,
+                config.endpoint or "",
+                config.model_name or "",
+                config.api_key,
+                messages,
+                timeout_seconds=45,
+            )
+
+        assert result == '{"action":"done","summary":"ok"}'
+        assert compat_call.call_args.kwargs["timeout"] == 45
 
 
 class TestSetupAgentWrapper:

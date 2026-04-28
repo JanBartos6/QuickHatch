@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import re
 import shlex
 import tempfile
@@ -125,6 +126,9 @@ _ARCH_LIVE_VCONSOLE_PREP_COMMAND = (
     "printf 'KEYMAP=us\\n' > /mnt/etc/vconsole.conf; }"
 )
 _ARCH_PACSTRAP_MNT_RE = re.compile(r"\bpacstrap\b.*\s/mnt(?:\s|$)", re.IGNORECASE)
+_SETUP_MODEL_CALL_TIMEOUT_SECONDS = max(
+    30, int(os.environ.get("QUICKHATCH_SETUP_MODEL_TIMEOUT", "90") or "90")
+)
 _DESKTOP_RUNTIME_COMMAND_RE = re.compile(
     r"\b(?:plasma-apply-[\w-]+|kscreen-doctor|xrandr|qdbus6?|gsettings|lookandfeeltool)\b",
     re.IGNORECASE,
@@ -251,7 +255,7 @@ class SetupRuntime:
     ssh_port: int
     key_path: str | None
     system_info_fn: Callable[[], str]
-    call_model_text: Callable[[AIConfig, list[dict[str, str]]], str]
+    call_model_text: Callable[..., str]
     probe_facts: Callable[..., SetupFacts]
     detect_live_env: Callable[[], tuple[bool, str]]
     ssh_exec: Callable[[str, int], tuple[int, str, str]]
@@ -2856,26 +2860,57 @@ class SetupOrchestrator:
     ) -> str:
         last_error: Exception | None = None
         for attempt in range(1, 4):
+            started = time.monotonic()
             try:
-                return self.runtime.call_model_text(model_config, messages)
-            except Exception as exc:
-                last_error = exc
-                self.runlog.record(
-                    "model_call_failed",
-                    context=context,
-                    attempt=attempt,
-                    error=str(exc),
-                )
-                if attempt >= 3:
-                    break
-                delay = min(3 * attempt, 12)
-                self.bridge.add_message(
-                    "agent",
-                    f"⚠️ {context.capitalize()} LLM call failed ({attempt}/3): "
-                    f"{str(exc)[:240]}. Retrying in {delay}s…",
-                )
-                time.sleep(delay)
+                return self._call_runtime_model_text(model_config, messages)
+            except Exception as caught:
+                error = caught
+            elapsed = max(0.0, time.monotonic() - started)
+            last_error = error
+            self.runlog.record(
+                "model_call_failed",
+                context=context,
+                attempt=attempt,
+                elapsed_seconds=round(elapsed, 1),
+                timeout_seconds=_SETUP_MODEL_CALL_TIMEOUT_SECONDS,
+                error=str(error),
+            )
+            if attempt >= 3:
+                break
+            delay = min(3 * attempt, 12)
+            self.bridge.add_message(
+                "agent",
+                f"⚠️ {context.capitalize()} LLM call failed ({attempt}/3; "
+                f"attempt took {elapsed:.0f}s, timeout {_SETUP_MODEL_CALL_TIMEOUT_SECONDS}s): "
+                f"{str(error)[:220]}. Retrying in {delay}s…",
+            )
+            time.sleep(delay)
         raise RuntimeError(f"{context.capitalize()} LLM call failed after 3 attempts: {last_error}")
+
+    def _call_runtime_model_text(
+        self, model_config: AIConfig, messages: list[dict[str, str]]
+    ) -> str:
+        try:
+            return self.runtime.call_model_text(
+                model_config,
+                messages,
+                _SETUP_MODEL_CALL_TIMEOUT_SECONDS,
+            )
+        except TypeError as exc:
+            if not self._looks_like_timeout_callback_mismatch(exc):
+                raise
+            return self.runtime.call_model_text(model_config, messages)
+
+    @staticmethod
+    def _looks_like_timeout_callback_mismatch(exc: TypeError) -> bool:
+        message = str(exc)
+        return (
+            "positional" in message
+            or "required positional" in message
+            or "unexpected keyword" in message
+            or "takes" in message
+            or "argument" in message
+        )
 
     def _repair_search_result(self, action: dict[str, Any]) -> str:
         query = str(action.get("query", "")).strip()

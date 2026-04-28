@@ -479,7 +479,10 @@ def test_model_call_retries_transient_errors(monkeypatch):
     attempts = {"count": 0}
     monkeypatch.setattr("quickhatch.setup.orchestrator.time.sleep", lambda _seconds: None)
 
-    def model_call(_cfg, _messages):
+    timeouts: list[int] = []
+
+    def model_call(_cfg, _messages, timeout_seconds):
+        timeouts.append(timeout_seconds)
         attempts["count"] += 1
         if attempts["count"] == 1:
             raise RuntimeError("503 Service Unavailable")
@@ -495,7 +498,28 @@ def test_model_call_retries_transient_errors(monkeypatch):
 
     assert result == "ok"
     assert attempts["count"] == 2
+    assert timeouts == [90, 90]
     assert any("LLM call failed" in msg["content"] for msg in bridge.messages)
+    assert any("attempt took" in msg["content"] for msg in bridge.messages)
+
+
+def test_model_call_retry_keeps_legacy_test_callbacks_supported():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan")
+
+    def legacy_model_call(_cfg, _messages):
+        return "ok"
+
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.call_model_text = legacy_model_call
+    orchestrator = SetupOrchestrator(runtime)
+
+    result = orchestrator._call_model_with_retries(
+        runtime.config, [{"role": "user", "content": "test"}], context="planning"
+    )
+
+    assert result == "ok"
 
 
 def test_reconnect_key_accepts_verified_key_after_transient_failure(monkeypatch):
