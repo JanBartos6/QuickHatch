@@ -2021,6 +2021,7 @@ class SetupOrchestrator:
 
     def _commands_for_group(self, stage: SetupStage, group: CommandGroup) -> list[str]:
         commands = self._drop_live_install_harness_owned_commands(stage, group)
+        commands = self._combine_standalone_assignments(commands)
         commands = self._inject_arch_live_vconsole_before_pacstrap(stage, group, commands)
         if self._is_arch_nvidia_driver_group(stage, group, commands):
             commands = self._normalize_arch_nvidia_commands(commands)
@@ -2034,7 +2035,6 @@ class SetupOrchestrator:
                 command=bootstrap_command,
             )
         if not self._needs_live_disk_prep(stage, commands):
-            commands = self._combine_standalone_assignments(commands)
             return [
                 self._normalize_installed_nonroot_privileged_command(command, stage=stage)
                 for command in commands
@@ -2189,6 +2189,15 @@ class SetupOrchestrator:
             stripped = chroot_stripped
         if facts.is_root:
             return stripped if stripped != command.strip() else command
+        same_user_stripped = self._strip_same_user_execution_wrapper(stripped)
+        if same_user_stripped != stripped:
+            self.runlog.record(
+                "command_same_user_wrapper_stripped",
+                stage=stage.value,
+                original=command,
+                rewritten=same_user_stripped,
+            )
+            stripped = same_user_stripped
         rewritten = self._sudo_tee_for_privileged_redirection(stripped)
         if rewritten != stripped:
             self.runlog.record(
@@ -2243,6 +2252,62 @@ class SetupOrchestrator:
             re.match(r"^(?:sudo|doas|su|runuser|arch-chroot|chroot)\b", command)
             or re.search(r"(?:^|[;&|]\s*)(?:sudo|doas)\s+", command)
         )
+
+    def _strip_same_user_execution_wrapper(self, command: str) -> str:
+        facts = self.ctx.facts or SetupFacts()
+        current_user = (facts.current_user or facts.login_user or self.runtime.user or "").strip()
+        if not current_user:
+            return command
+        try:
+            tokens = shlex.split(command, posix=True)
+        except ValueError:
+            return command
+        if not tokens:
+            return command
+        tool = tokens[0]
+        if tool == "runuser":
+            idx = 1
+            target_user = ""
+            if idx < len(tokens) and tokens[idx] in {"-u", "--user"}:
+                if idx + 1 >= len(tokens):
+                    return command
+                target_user = tokens[idx + 1]
+                idx += 2
+            elif idx < len(tokens) and tokens[idx].startswith("--user="):
+                target_user = tokens[idx].split("=", 1)[1]
+                idx += 1
+            else:
+                return command
+            if idx < len(tokens) and tokens[idx] == "--":
+                idx += 1
+            if target_user == current_user and idx < len(tokens):
+                return shlex.join(tokens[idx:])
+            return command
+        if tool == "sudo":
+            idx = 1
+            target_user = "root"
+            while idx < len(tokens):
+                token = tokens[idx]
+                if token in {"-u", "--user"}:
+                    if idx + 1 >= len(tokens):
+                        return command
+                    target_user = tokens[idx + 1]
+                    idx += 2
+                    continue
+                if token.startswith("--user="):
+                    target_user = token.split("=", 1)[1]
+                    idx += 1
+                    continue
+                if token in {"-g", "-h", "-D", "-p", "-r", "-t", "-T", "-C", "-R"}:
+                    idx += 2
+                    continue
+                if token.startswith("-"):
+                    idx += 1
+                    continue
+                break
+            if target_user == current_user and idx < len(tokens):
+                return shlex.join(tokens[idx:])
+        return command
 
     @staticmethod
     def _writes_privileged_path(command: str) -> bool:

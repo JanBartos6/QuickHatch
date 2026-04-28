@@ -473,6 +473,13 @@ def preflight_setup_command(
         if not tokens:
             continue
         tool = _normalize_tool(tokens[0])
+        if tool in {"runuser", "su"} and not has_root_privilege:
+            return (
+                f"`{tool}` may not be used by a non-root setup session without an "
+                "interactive password prompt. If the target user is already the SSH user, "
+                "run the inner command directly; otherwise use `sudo -u ...` only when "
+                "NOPASSWD sudo is available."
+            )
         redirected_target = _root_owned_redirection_target(segment)
         if redirected_target and not has_root_privilege:
             return (

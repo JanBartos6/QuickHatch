@@ -359,6 +359,35 @@ def test_installed_nonroot_privilege_normalization_converts_echo_redirection_to_
     ]
 
 
+def test_installed_nonroot_privilege_normalization_strips_same_user_runuser_wrapper():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="linus",
+        login_user="linus",
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="desktop",
+        stage=SetupStage.DESKTOP,
+        title="Configure KDE",
+        commands=[
+            "runuser -u linus -- kwriteconfig6 --file kdeglobals --group General --key ColorScheme 'Breeze Dark'"
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.DESKTOP, group)
+
+    assert commands == [
+        "kwriteconfig6 --file kdeglobals --group General --key ColorScheme 'Breeze Dark'"
+    ]
+
+
 def test_installed_nonroot_privilege_normalization_preserves_root_redirection():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
@@ -2745,6 +2774,38 @@ def test_live_arch_install_injects_vconsole_before_pacstrap():
     pacstrap_index = commands.index("pacstrap -K /mnt base linux linux-firmware")
     assert "vconsole.conf" in commands[pacstrap_index - 1]
     assert "KEYMAP=us" in commands[pacstrap_index - 1]
+
+
+def test_live_arch_vconsole_injection_does_not_split_assignment_from_pacstrap():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        login_user="root",
+        is_root=True,
+        is_live=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="base",
+        stage=SetupStage.INSTALL_OR_SKIP,
+        title="Install base",
+        commands=[
+            "UCODE=$(grep -qi intel /proc/cpuinfo && echo intel-ucode || echo amd-ucode)",
+            'pacstrap -K /mnt base linux linux-firmware "$UCODE"',
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
+
+    pacstrap_command = next(command for command in commands if "pacstrap -K /mnt" in command)
+    assert pacstrap_command.startswith("UCODE=$(grep -qi intel")
+    assert "&& pacstrap -K /mnt" in pacstrap_command
+    assert commands.index(pacstrap_command) > 0
+    assert "vconsole.conf" in commands[commands.index(pacstrap_command) - 1]
 
 
 def test_orchestrator_repairs_failed_command_group_with_search_and_retry():

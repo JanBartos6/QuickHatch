@@ -204,6 +204,24 @@ def test_preflight_blocks_broad_arch_desktop_app_group():
     assert "broad Arch desktop application groups" in error
 
 
+def test_preflight_blocks_non_root_runuser_wrapper():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="linus",
+        login_user="linus",
+        is_root=False,
+    )
+
+    error = preflight_setup_command(
+        "runuser -u linus -- kwriteconfig6 --file kdeglobals --group Icons --key Theme Papirus",
+        facts,
+    )
+
+    assert error
+    assert "may not be used by a non-root setup session" in error
+
+
 def test_preflight_blocks_non_root_package_manager_mutation():
     facts = SetupFacts(
         package_manager="pacman",
