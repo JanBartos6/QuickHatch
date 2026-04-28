@@ -14,6 +14,9 @@ QH_IS_ROOT=no
 QH_SUDO_NOPASSWD=yes
 QH_OS_ID=arch
 QH_OS_LIKE=
+QH_VIRT=oracle
+QH_SYS_VENDOR=innotek GmbH
+QH_PRODUCT_NAME=VirtualBox
 QH_INIT=systemd
 QH_BOOT=efi
 QH_TARGET_ROOT=no
@@ -51,6 +54,9 @@ QH_XRANDR_END
     assert facts.displays[0].scale_percent == 175
     assert facts.displays[0].primary is True
     assert facts.desktop_runtime_state == DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
+    assert facts.virtualization == "oracle"
+    assert facts.system_vendor == "innotek GmbH"
+    assert facts.product_name == "VirtualBox"
 
 
 def test_probe_setup_facts_prefers_gui_session_over_ssh_tty_and_strips_ansi():

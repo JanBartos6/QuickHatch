@@ -9,6 +9,7 @@ from quickhatch.setup.planner import (
     RepairActionValidationError,
     ResearchPlanValidationError,
     build_research_prompt,
+    build_repair_prompt,
     extract_repair_action,
     extract_research_plan,
 )
@@ -553,10 +554,40 @@ def test_build_research_prompt_includes_selected_app_catalog():
     assert "no GUI session is reachable" in prompt
     assert "Do not optimize for or replay any prior QuickHatch run" in prompt
     assert "Never assume Arch, KDE, NVIDIA, AUR" in prompt
+    assert "VirtualBox with VMSVGA may report a `VMware SVGA` display adapter" in prompt
     assert "Treat desktop design as a contract" in prompt
     assert "Installing a theme/icon package is not the same as applying it" in prompt
     assert "cannot read arbitrary Windows-local paths" in prompt
     assert "transfer smoke test" in prompt
+
+
+def test_build_repair_prompt_warns_about_vm_gpu_label_mismatch():
+    prompt = build_repair_prompt(
+        stage=SetupStage.POSTBOOT_DRIVER,
+        failed_group=CommandGroup(
+            id="guest-tools",
+            stage=SetupStage.POSTBOOT_DRIVER,
+            title="Guest tools",
+            commands=["sudo systemctl is-active vmtoolsd.service"],
+        ),
+        failure_type="verification",
+        failed_command="sudo systemctl is-active vmtoolsd.service",
+        stdout_tail="inactive",
+        stderr_tail="",
+        facts=SetupFacts(
+            distro_family="arch",
+            package_manager="pacman",
+            virtualization="oracle",
+            system_vendor="innotek GmbH",
+            product_name="VirtualBox",
+            gpu_inventory=["VMware SVGA II Adapter"],
+        ),
+        recent_results=[],
+        native_search_active=True,
+    )
+
+    assert "VirtualBox with VMSVGA may report a `VMware SVGA` display adapter" in prompt
+    assert '"virtualization": "oracle"' in prompt
 
 
 def test_build_research_prompt_uses_target_distro_over_live_facts(monkeypatch):

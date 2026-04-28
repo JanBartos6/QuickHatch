@@ -124,6 +124,9 @@ class SetupFacts:
     init_system: str = "unknown"
     os_id: str = ""
     os_like: str = ""
+    virtualization: str = ""
+    system_vendor: str = ""
+    product_name: str = ""
     is_live: bool = False
     live_marker: str = ""
     boot_mode: str = "unknown"

@@ -21,6 +21,9 @@ echo 'QH_IS_ROOT='$(if [ "$(id -u 2>/dev/null)" = "0" ]; then echo yes; else ech
 echo 'QH_SUDO_NOPASSWD='$(if [ "$(id -u 2>/dev/null)" = "0" ]; then echo yes; elif command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then echo yes; else echo no; fi)
 echo 'QH_OS_ID='$(. /etc/os-release 2>/dev/null; echo ${ID:-unknown})
 echo 'QH_OS_LIKE='$(. /etc/os-release 2>/dev/null; echo ${ID_LIKE:-})
+echo 'QH_VIRT='$(systemd-detect-virt 2>/dev/null || true)
+echo 'QH_SYS_VENDOR='$(cat /sys/class/dmi/id/sys_vendor 2>/dev/null | tr '|' '/')
+echo 'QH_PRODUCT_NAME='$(cat /sys/class/dmi/id/product_name 2>/dev/null | tr '|' '/')
 echo 'QH_INIT='$(if command -v systemctl >/dev/null 2>&1; then echo systemd; elif command -v rc-service >/dev/null 2>&1; then echo openrc; elif command -v sv >/dev/null 2>&1; then echo runit; else echo unknown; fi)
 echo 'QH_BOOT='$(if [ -d /sys/firmware/efi/efivars ]; then echo efi; else echo bios; fi)
 echo 'QH_TARGET_ROOT='$(if mount | grep -Eq ' on /(mnt|target)( |$)'; then echo yes; else echo no; fi)
@@ -301,6 +304,9 @@ def describe_fact_changes(before: SetupFacts | None, after: SetupFacts | None) -
     tracked = {
         "package_manager": "package manager",
         "community_helper": "community helper",
+        "virtualization": "virtualization",
+        "system_vendor": "system vendor",
+        "product_name": "product name",
         "current_user": "current user",
         "sudo_nopasswd": "sudo NOPASSWD",
         "nvidia_smi_state": "nvidia-smi",
@@ -347,6 +353,9 @@ def probe_setup_facts(
         init_system=base.init_system,
         os_id=base.os_id,
         os_like=base.os_like,
+        virtualization=base.virtualization,
+        system_vendor=base.system_vendor,
+        product_name=base.product_name,
         is_live=is_live,
         live_marker=live_marker,
         boot_mode=base.boot_mode,
@@ -390,6 +399,9 @@ def probe_setup_facts(
     facts.sudo_nopasswd = raw.get("QH_SUDO_NOPASSWD", "no") == "yes"
     facts.os_id = raw.get("QH_OS_ID", facts.os_id) or facts.os_id
     facts.os_like = raw.get("QH_OS_LIKE", facts.os_like) or facts.os_like
+    facts.virtualization = raw.get("QH_VIRT", facts.virtualization) or facts.virtualization
+    facts.system_vendor = raw.get("QH_SYS_VENDOR", facts.system_vendor) or facts.system_vendor
+    facts.product_name = raw.get("QH_PRODUCT_NAME", facts.product_name) or facts.product_name
     facts.init_system = raw.get("QH_INIT", facts.init_system) or facts.init_system
     facts.boot_mode = raw.get("QH_BOOT", facts.boot_mode) or facts.boot_mode
     facts.target_root_mounted = raw.get("QH_TARGET_ROOT", "no") == "yes"
