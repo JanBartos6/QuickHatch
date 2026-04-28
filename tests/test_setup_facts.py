@@ -102,6 +102,103 @@ QH_XRANDR_END
     assert facts.boot_mode == "efi"
 
 
+def test_probe_setup_facts_parses_amd_intel_acceleration_state():
+    output = """\
+QH_PM=pacman
+QH_AUR=none
+QH_USER=jan
+QH_LOGIN_USER=jan
+QH_IS_ROOT=no
+QH_SUDO_NOPASSWD=yes
+QH_OS_ID=arch
+QH_OS_LIKE=
+QH_INIT=systemd
+QH_BOOT=efi
+QH_SECURE_BOOT=disabled
+QH_TARGET_ROOT=no
+QH_SESSION=
+QH_DM=sddm
+QH_DM_ENABLED=yes
+QH_DM_ACTIVE=yes
+QH_GPU_VENDORS=amd,intel
+QH_GPU_INVENTORY=AMD Radeon RX 7900 XTX|Intel Arc A770
+QH_NVIDIA_SMI=missing
+QH_NVIDIA_KERNEL_DRIVER=
+QH_NOUVEAU_BOUND=no
+QH_AMD_KERNEL_DRIVER=amdgpu
+QH_INTEL_KERNEL_DRIVER=xe
+QH_VULKAN_STATE=ok
+QH_VULKAN_DEVICES=AMD Radeon RX 7900 XTX|Intel Arc A770
+QH_VAAPI_STATE=ok
+QH_ROCM_STATE=missing
+QH_DRIVER_MODULES=amdgpu,xe
+QH_DISPLAYS=
+QH_KSCREEN_BEGIN
+QH_KSCREEN_END
+QH_XRANDR_BEGIN
+QH_XRANDR_END
+"""
+
+    def ssh_exec(_host, _user, _command, _key_path, _timeout, _port):
+        return (0, output, "")
+
+    facts = probe_setup_facts(ssh_exec, "192.0.2.10", "jan", None)
+
+    assert facts.gpu_vendors == ["amd", "intel"]
+    assert facts.amd_kernel_driver == "amdgpu"
+    assert facts.intel_kernel_driver == "xe"
+    assert facts.vulkan_state == "ok"
+    assert facts.vulkan_devices == ["AMD Radeon RX 7900 XTX", "Intel Arc A770"]
+    assert facts.vaapi_state == "ok"
+    assert facts.rocm_state == "missing"
+    assert facts.driver_modules == ["amdgpu", "xe"]
+    assert facts.desktop_runtime_state == DesktopRuntimeState.PENDING_RELOGIN
+
+
+def test_probe_setup_facts_marks_missing_amd_driver_as_display_stack_blocked():
+    output = """\
+QH_PM=pacman
+QH_AUR=none
+QH_USER=jan
+QH_LOGIN_USER=jan
+QH_IS_ROOT=no
+QH_SUDO_NOPASSWD=yes
+QH_OS_ID=arch
+QH_OS_LIKE=
+QH_INIT=systemd
+QH_BOOT=efi
+QH_TARGET_ROOT=no
+QH_SESSION=
+QH_DM=sddm
+QH_DM_ENABLED=yes
+QH_DM_ACTIVE=yes
+QH_GPU_VENDORS=amd
+QH_GPU_INVENTORY=AMD Radeon RX 6800 XT
+QH_NVIDIA_SMI=missing
+QH_NVIDIA_KERNEL_DRIVER=
+QH_NOUVEAU_BOUND=no
+QH_AMD_KERNEL_DRIVER=none
+QH_INTEL_KERNEL_DRIVER=
+QH_VULKAN_STATE=missing
+QH_VULKAN_DEVICES=
+QH_VAAPI_STATE=missing
+QH_ROCM_STATE=missing
+QH_DRIVER_MODULES=
+QH_DISPLAYS=
+QH_KSCREEN_BEGIN
+QH_KSCREEN_END
+QH_XRANDR_BEGIN
+QH_XRANDR_END
+"""
+
+    def ssh_exec(_host, _user, _command, _key_path, _timeout, _port):
+        return (0, output, "")
+
+    facts = probe_setup_facts(ssh_exec, "192.0.2.10", "jan", None)
+
+    assert facts.desktop_runtime_state == DesktopRuntimeState.BLOCKED_DRIVER_OR_DISPLAY_STACK
+
+
 def test_probe_setup_facts_prefers_gui_session_over_ssh_tty_and_strips_ansi():
     output = """\
 QH_PM=pacman

@@ -150,12 +150,53 @@ echo 'QH_XFCE_WALLPAPER='$(if command -v xfconf-query >/dev/null 2>&1 && command
 echo 'QH_DM='$(basename "$(readlink /etc/systemd/system/display-manager.service 2>/dev/null)" 2>/dev/null | sed 's/\.service$//' || true)
 echo 'QH_DM_ENABLED='$(if command -v systemctl >/dev/null 2>&1 && systemctl is-enabled display-manager >/dev/null 2>&1; then echo yes; else echo no; fi)
 echo 'QH_DM_ACTIVE='$(if command -v systemctl >/dev/null 2>&1 && systemctl is-active display-manager >/dev/null 2>&1; then echo yes; else echo no; fi)
-echo 'QH_GPU_VENDORS='$(lspci 2>/dev/null | awk 'BEGIN{IGNORECASE=1} /vga|3d|display/ { if ($0 ~ /nvidia/) print "nvidia"; else if ($0 ~ /amd|advanced micro devices|radeon/) print "amd"; else if ($0 ~ /intel/) print "intel"; }' | sort -u | paste -sd',' -)
-echo 'QH_GPU_INVENTORY='$(lspci 2>/dev/null | awk 'BEGIN{IGNORECASE=1} /vga|3d|display/ {sub(/^.*: /,""); gsub(/\|/, "/", $0); print $0}' | paste -sd'|' -)
-echo 'QH_NVIDIA_SMI='$(if command -v nvidia-smi >/dev/null 2>&1; then if nvidia-smi >/dev/null 2>&1; then echo ok; else echo present_but_failing; fi; else echo missing; fi)
+qh_probe_ok() {
+  if command -v timeout >/dev/null 2>&1; then
+    timeout 8s "$@" >/dev/null 2>&1
+  else
+    "$@" >/dev/null 2>&1
+  fi
+}
+qh_gpu_sysfs_vendors() {
+  for d in /sys/bus/pci/devices/*; do
+    class=$(cat "$d/class" 2>/dev/null || true)
+    vendor=$(cat "$d/vendor" 2>/dev/null || true)
+    printf '%s' "$class" | grep -q '^0x03' || continue
+    case "$vendor" in
+      0x10de) echo nvidia ;;
+      0x1002) echo amd ;;
+      0x8086) echo intel ;;
+    esac
+  done
+}
+qh_gpu_sysfs_inventory() {
+  for d in /sys/bus/pci/devices/*; do
+    class=$(cat "$d/class" 2>/dev/null || true)
+    vendor=$(cat "$d/vendor" 2>/dev/null || true)
+    device=$(cat "$d/device" 2>/dev/null || true)
+    driver=$(basename "$(readlink -f "$d/driver" 2>/dev/null || echo none)")
+    printf '%s' "$class" | grep -q '^0x03' || continue
+    case "$vendor" in
+      0x10de) vendor_name=NVIDIA ;;
+      0x1002) vendor_name=AMD ;;
+      0x8086) vendor_name=Intel ;;
+      *) vendor_name="PCI vendor $vendor" ;;
+    esac
+    printf '%s GPU device %s driver %s\n' "$vendor_name" "$device" "$driver"
+  done
+}
+echo 'QH_GPU_VENDORS='$({ lspci 2>/dev/null | awk 'BEGIN{IGNORECASE=1} /vga|3d|display/ { if ($0 ~ /nvidia/) print "nvidia"; else if ($0 ~ /amd|advanced micro devices|radeon/) print "amd"; else if ($0 ~ /intel/) print "intel"; }'; qh_gpu_sysfs_vendors; } | sort -u | paste -sd',' -)
+echo 'QH_GPU_INVENTORY='$(if command -v lspci >/dev/null 2>&1; then lspci 2>/dev/null | awk 'BEGIN{IGNORECASE=1} /vga|3d|display/ {sub(/^.*: /,""); gsub(/\|/, "/", $0); print $0}' | paste -sd'|' -; else qh_gpu_sysfs_inventory | paste -sd'|' -; fi)
+echo 'QH_NVIDIA_SMI='$(if command -v nvidia-smi >/dev/null 2>&1; then if qh_probe_ok nvidia-smi; then echo ok; else echo present_but_failing; fi; else echo missing; fi)
 echo 'QH_NVIDIA_KERNEL_DRIVER='$(for d in /sys/bus/pci/devices/*; do class=$(cat "$d/class" 2>/dev/null || true); vendor=$(cat "$d/vendor" 2>/dev/null || true); if [ "$vendor" = "0x10de" ] && printf '%s' "$class" | grep -q '^0x03'; then basename "$(readlink -f "$d/driver" 2>/dev/null || echo none)"; fi; done | sort -u | paste -sd',' -)
 echo 'QH_NOUVEAU_BOUND='$(for d in /sys/bus/pci/devices/*; do class=$(cat "$d/class" 2>/dev/null || true); vendor=$(cat "$d/vendor" 2>/dev/null || true); driver=$(basename "$(readlink -f "$d/driver" 2>/dev/null || echo none)"); if [ "$vendor" = "0x10de" ] && printf '%s' "$class" | grep -q '^0x03' && [ "$driver" = "nouveau" ]; then echo yes; exit 0; fi; done; echo no)
-echo 'QH_DRIVER_MODULES='$(lsmod 2>/dev/null | awk '/^nvidia/ {print $1}' | paste -sd',' -)
+echo 'QH_AMD_KERNEL_DRIVER='$(for d in /sys/bus/pci/devices/*; do class=$(cat "$d/class" 2>/dev/null || true); vendor=$(cat "$d/vendor" 2>/dev/null || true); if [ "$vendor" = "0x1002" ] && printf '%s' "$class" | grep -q '^0x03'; then basename "$(readlink -f "$d/driver" 2>/dev/null || echo none)"; fi; done | sort -u | paste -sd',' -)
+echo 'QH_INTEL_KERNEL_DRIVER='$(for d in /sys/bus/pci/devices/*; do class=$(cat "$d/class" 2>/dev/null || true); vendor=$(cat "$d/vendor" 2>/dev/null || true); if [ "$vendor" = "0x8086" ] && printf '%s' "$class" | grep -q '^0x03'; then basename "$(readlink -f "$d/driver" 2>/dev/null || echo none)"; fi; done | sort -u | paste -sd',' -)
+echo 'QH_VULKAN_STATE='$(if command -v vulkaninfo >/dev/null 2>&1; then if qh_probe_ok vulkaninfo --summary; then echo ok; else echo present_but_failing; fi; else echo missing; fi)
+echo 'QH_VULKAN_DEVICES='$(if command -v vulkaninfo >/dev/null 2>&1; then vulkaninfo --summary 2>/dev/null | awk -F= '/deviceName/ {value=$2; gsub(/^[ \t]+|[ \t]+$/, "", value); gsub(/\|/, "/", value); print value}' | paste -sd'|' -; fi)
+echo 'QH_VAAPI_STATE='$(if command -v vainfo >/dev/null 2>&1; then if qh_probe_ok vainfo; then echo ok; else echo present_but_failing; fi; else echo missing; fi)
+echo 'QH_ROCM_STATE='$(if command -v rocminfo >/dev/null 2>&1; then if qh_probe_ok rocminfo; then echo ok; else echo present_but_failing; fi; else echo missing; fi)
+echo 'QH_DRIVER_MODULES='$(lsmod 2>/dev/null | awk '/^(nvidia|amdgpu|radeon|i915|xe)/ {print $1}' | paste -sd',' -)
 echo 'QH_DISPLAYS='$(if command -v xrandr >/dev/null 2>&1; then DISPLAY=${qh_gui_display:-${DISPLAY:-:0}} XAUTHORITY=${qh_gui_xauth:-${XAUTHORITY:-$HOME/.Xauthority}} xrandr --query 2>/dev/null | awk '/ connected/ {name=$1; primary=($0 ~ / primary / ? "primary" : "secondary"); mode=""; if (match($0, /[0-9]+x[0-9]+\+[0-9]+\+[0-9]+/)) { mode=substr($0, RSTART, RLENGTH); sub(/\+.*/, "", mode); } print name ":" primary ":" mode}' | paste -sd'|' -; fi)
 echo 'QH_KSCREEN_BEGIN'
 if command -v kscreen-doctor >/dev/null 2>&1; then XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$qh_gui_uid} DBUS_SESSION_BUS_ADDRESS=${qh_gui_dbus:-${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$qh_gui_uid/bus}} WAYLAND_DISPLAY=${qh_gui_wayland:-${WAYLAND_DISPLAY:-}} DISPLAY=${qh_gui_display:-${DISPLAY:-}} XAUTHORITY=${qh_gui_xauth:-${XAUTHORITY:-}} XDG_SESSION_TYPE=${qh_gui_type:-${XDG_SESSION_TYPE:-}} QT_QPA_PLATFORM=${QT_QPA_PLATFORM:-wayland} kscreen-doctor -o 2>/dev/null || true; fi
@@ -301,8 +342,6 @@ def _parse_xrandr_output(output: str) -> list[DisplayRuntimeInfo]:
 def _desktop_runtime_state(facts: SetupFacts) -> DesktopRuntimeState:
     if facts.displays:
         return DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
-    if facts.display_manager_enabled and facts.display_manager_active:
-        return DesktopRuntimeState.PENDING_RELOGIN
     if (
         facts.gpu_vendors
         and "nvidia" in facts.gpu_vendors
@@ -313,7 +352,18 @@ def _desktop_runtime_state(facts: SetupFacts) -> DesktopRuntimeState:
         }
     ):
         return DesktopRuntimeState.BLOCKED_DRIVER_OR_DISPLAY_STACK
+    if "amd" in facts.gpu_vendors and _kernel_driver_missing(facts.amd_kernel_driver):
+        return DesktopRuntimeState.BLOCKED_DRIVER_OR_DISPLAY_STACK
+    if "intel" in facts.gpu_vendors and _kernel_driver_missing(facts.intel_kernel_driver):
+        return DesktopRuntimeState.BLOCKED_DRIVER_OR_DISPLAY_STACK
+    if facts.display_manager_enabled and facts.display_manager_active:
+        return DesktopRuntimeState.PENDING_RELOGIN
     return DesktopRuntimeState.BLOCKED_NO_GUI_SESSION
+
+
+def _kernel_driver_missing(driver: str) -> bool:
+    drivers = [item.strip().lower() for item in (driver or "").split(",") if item.strip()]
+    return not drivers or all(item in {"none", "unknown"} for item in drivers)
 
 
 def describe_fact_changes(before: SetupFacts | None, after: SetupFacts | None) -> str:
@@ -332,6 +382,11 @@ def describe_fact_changes(before: SetupFacts | None, after: SetupFacts | None) -
         "nvidia_smi_state": "nvidia-smi",
         "nvidia_kernel_driver": "NVIDIA kernel driver",
         "nvidia_nouveau_bound": "nouveau-bound NVIDIA GPU",
+        "amd_kernel_driver": "AMD kernel driver",
+        "intel_kernel_driver": "Intel kernel driver",
+        "vulkan_state": "Vulkan",
+        "vaapi_state": "VA-API",
+        "rocm_state": "ROCm",
         "session_type": "session type",
         "display_manager": "display manager",
         "display_manager_active": "display manager active",
@@ -391,6 +446,12 @@ def probe_setup_facts(
         nvidia_smi_state=base.nvidia_smi_state,
         nvidia_kernel_driver=base.nvidia_kernel_driver,
         nvidia_nouveau_bound=base.nvidia_nouveau_bound,
+        amd_kernel_driver=base.amd_kernel_driver,
+        intel_kernel_driver=base.intel_kernel_driver,
+        vulkan_state=base.vulkan_state,
+        vulkan_devices=list(base.vulkan_devices),
+        vaapi_state=base.vaapi_state,
+        rocm_state=base.rocm_state,
         driver_modules=list(base.driver_modules),
         session_type=base.session_type,
         display_manager=base.display_manager,
@@ -462,6 +523,12 @@ def probe_setup_facts(
     )
     facts.nvidia_kernel_driver = raw.get("QH_NVIDIA_KERNEL_DRIVER", facts.nvidia_kernel_driver)
     facts.nvidia_nouveau_bound = raw.get("QH_NOUVEAU_BOUND", "no") == "yes"
+    facts.amd_kernel_driver = raw.get("QH_AMD_KERNEL_DRIVER", facts.amd_kernel_driver)
+    facts.intel_kernel_driver = raw.get("QH_INTEL_KERNEL_DRIVER", facts.intel_kernel_driver)
+    facts.vulkan_state = raw.get("QH_VULKAN_STATE", facts.vulkan_state) or facts.vulkan_state
+    facts.vulkan_devices = [p for p in raw.get("QH_VULKAN_DEVICES", "").split("|") if p]
+    facts.vaapi_state = raw.get("QH_VAAPI_STATE", facts.vaapi_state) or facts.vaapi_state
+    facts.rocm_state = raw.get("QH_ROCM_STATE", facts.rocm_state) or facts.rocm_state
     facts.driver_modules = [p for p in raw.get("QH_DRIVER_MODULES", "").split(",") if p]
     kscreen_displays = _parse_kscreen_output(_collect_probe_block(out, "KSCREEN"))
     xrandr_displays = _parse_xrandr_output(_collect_probe_block(out, "XRANDR"))

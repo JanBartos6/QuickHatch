@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import asdict
 from typing import Any
 
@@ -59,6 +60,12 @@ def audit_stage(
         details["nvidia_kernel_driver"] = facts.nvidia_kernel_driver
         details["nvidia_nouveau_bound"] = facts.nvidia_nouveau_bound
         details["secure_boot_state"] = facts.secure_boot_state
+        details["amd_kernel_driver"] = facts.amd_kernel_driver
+        details["intel_kernel_driver"] = facts.intel_kernel_driver
+        details["vulkan_state"] = facts.vulkan_state
+        details["vulkan_devices"] = list(facts.vulkan_devices)
+        details["vaapi_state"] = facts.vaapi_state
+        details["rocm_state"] = facts.rocm_state
         if (
             "nvidia" in facts.gpu_vendors
             and plan is not None
@@ -83,6 +90,35 @@ def audit_stage(
                 "NVIDIA GPU is still bound to nouveau; blacklist nouveau, regenerate initramfs, "
                 "reboot, then verify nvidia-smi."
             )
+        if "amd" in facts.gpu_vendors:
+            if _kernel_driver_missing(facts.amd_kernel_driver):
+                blockers.append(
+                    "AMD GPU has no bound kernel driver; verify linux-firmware/Mesa stack "
+                    "and that the card is not reserved for passthrough."
+                )
+            if _modern_amd_gpu_should_use_amdgpu(facts) and _driver_names(
+                facts.amd_kernel_driver
+            ) == {"radeon"}:
+                blockers.append(
+                    "Modern Radeon hardware is bound to the legacy radeon driver; it should "
+                    "normally use amdgpu before desktop/display success is claimed."
+                )
+            if facts.vulkan_state == "present_but_failing":
+                blockers.append(
+                    "Vulkan tools are installed but the Vulkan probe fails; graphics/gaming "
+                    "acceleration is not verified."
+                )
+        if "intel" in facts.gpu_vendors:
+            if _kernel_driver_missing(facts.intel_kernel_driver):
+                blockers.append(
+                    "Intel GPU has no bound kernel driver; verify i915/xe driver state and "
+                    "firmware before claiming graphics setup success."
+                )
+            if facts.vulkan_state == "present_but_failing":
+                blockers.append(
+                    "Vulkan tools are installed but the Vulkan probe fails; Intel graphics "
+                    "acceleration is not verified."
+                )
         if state.get("failed_verifications"):
             blockers.extend(list(state["failed_verifications"]))
 
@@ -203,6 +239,26 @@ def _has_wallpaper_signal(facts: SetupFacts) -> bool:
     design = facts.desktop_design
     return bool(
         str(design.kde_wallpaper or design.gnome_wallpaper or design.xfce_wallpaper or "").strip()
+    )
+
+
+def _driver_names(driver: str) -> set[str]:
+    return {item.strip().lower() for item in (driver or "").split(",") if item.strip()}
+
+
+def _kernel_driver_missing(driver: str) -> bool:
+    drivers = _driver_names(driver)
+    return not drivers or drivers <= {"none", "unknown"}
+
+
+def _modern_amd_gpu_should_use_amdgpu(facts: SetupFacts) -> bool:
+    inventory = " ".join(facts.gpu_inventory or [])
+    return bool(
+        re.search(
+            r"\b(?:radeon\s+)?rx\s*\d{3,4}\b|\bvega\b|\bnavi\b|\brdna\b|\bmi\d{2,3}\b",
+            inventory,
+            re.IGNORECASE,
+        )
     )
 
 

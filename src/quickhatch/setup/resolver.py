@@ -182,7 +182,11 @@ def driver_strategy(profile: UserProfile, facts: SetupFacts) -> StrategyDecision
             confidence="resolved_official",
             source="official",
             packages=[],
-            notes="Modern AMD usually works with distro-default Mesa stack.",
+            notes=(
+                "Modern AMD usually works with distro-default Mesa and linux-firmware. "
+                "Verify amdgpu binding for modern Radeon cards; resolve Vulkan/ROCm packages "
+                "only when gaming or compute requirements need them."
+            ),
         )
     if "intel" in vendors:
         return StrategyDecision(
@@ -190,7 +194,11 @@ def driver_strategy(profile: UserProfile, facts: SetupFacts) -> StrategyDecision
             confidence="resolved_official",
             source="official",
             packages=[],
-            notes="Modern Intel usually works with distro-default Mesa stack.",
+            notes=(
+                "Modern Intel usually works with distro-default Mesa and firmware. Verify i915 "
+                "or xe binding, and resolve Vulkan/VA-API packages only when acceleration "
+                "requirements need them."
+            ),
         )
     return StrategyDecision(
         strategy="no_special_driver",

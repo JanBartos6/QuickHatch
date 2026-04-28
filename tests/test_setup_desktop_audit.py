@@ -190,6 +190,7 @@ def test_driver_audit_does_not_require_nvidia_for_amd_only_system():
         current_user="jan",
         gpu_vendors=["amd"],
         gpu_inventory=["AMD Radeon RX 7900 XTX"],
+        amd_kernel_driver="amdgpu",
         nvidia_smi_state="missing",
     )
     plan = ResearchPlan(
@@ -231,3 +232,124 @@ def test_driver_audit_blocks_unresolved_legacy_nvidia_strategy():
 
     assert not result.passed
     assert any("manual follow-up" in item for item in result.blockers)
+
+
+def test_driver_audit_blocks_modern_radeon_bound_to_legacy_driver():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        gpu_vendors=["amd"],
+        gpu_inventory=["AMD Radeon RX 6800 XT"],
+        amd_kernel_driver="radeon",
+        vulkan_state="missing",
+    )
+    plan = ResearchPlan(
+        target_summary="Arch AMD workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="mesa_default", packages=[]),
+        desktop_strategy=StrategyDecision(strategy="none"),
+    )
+
+    result = audit_stage(SetupStage.POSTBOOT_DRIVER, facts, plan=plan)
+
+    assert not result.passed
+    assert any("legacy radeon driver" in item for item in result.blockers)
+
+
+def test_driver_audit_accepts_amdgpu_without_optional_vulkan_tooling():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        gpu_vendors=["amd"],
+        gpu_inventory=["AMD Radeon RX 7900 XTX"],
+        amd_kernel_driver="amdgpu",
+        vulkan_state="missing",
+        vaapi_state="missing",
+        rocm_state="missing",
+    )
+    plan = ResearchPlan(
+        target_summary="Arch AMD workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="mesa_default", packages=[]),
+        desktop_strategy=StrategyDecision(strategy="none"),
+    )
+
+    result = audit_stage(SetupStage.POSTBOOT_DRIVER, facts, plan=plan)
+
+    assert result.passed
+
+
+def test_driver_audit_blocks_amd_vulkan_probe_failure():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        gpu_vendors=["amd"],
+        gpu_inventory=["AMD Radeon RX 7900 XTX"],
+        amd_kernel_driver="amdgpu",
+        vulkan_state="present_but_failing",
+    )
+    plan = ResearchPlan(
+        target_summary="Arch AMD workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="mesa_default", packages=[]),
+        desktop_strategy=StrategyDecision(strategy="none"),
+    )
+
+    result = audit_stage(SetupStage.POSTBOOT_DRIVER, facts, plan=plan)
+
+    assert not result.passed
+    assert any("Vulkan probe fails" in item for item in result.blockers)
+
+
+def test_driver_audit_blocks_intel_missing_kernel_driver():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        gpu_vendors=["intel"],
+        gpu_inventory=["Intel Arc A770"],
+        intel_kernel_driver="none",
+        vulkan_state="missing",
+    )
+    plan = ResearchPlan(
+        target_summary="Arch Intel workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="intel_default", packages=[]),
+        desktop_strategy=StrategyDecision(strategy="none"),
+    )
+
+    result = audit_stage(SetupStage.POSTBOOT_DRIVER, facts, plan=plan)
+
+    assert not result.passed
+    assert any("Intel GPU has no bound kernel driver" in item for item in result.blockers)
+
+
+def test_driver_audit_blocks_intel_vulkan_probe_failure():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        gpu_vendors=["intel"],
+        gpu_inventory=["Intel Iris Xe"],
+        intel_kernel_driver="i915",
+        vulkan_state="present_but_failing",
+    )
+    plan = ResearchPlan(
+        target_summary="Arch Intel workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="intel_default", packages=[]),
+        desktop_strategy=StrategyDecision(strategy="none"),
+    )
+
+    result = audit_stage(SetupStage.POSTBOOT_DRIVER, facts, plan=plan)
+
+    assert not result.passed
+    assert any("Intel graphics acceleration" in item for item in result.blockers)

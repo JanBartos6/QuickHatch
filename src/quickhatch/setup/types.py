@@ -141,6 +141,12 @@ class SetupFacts:
     nvidia_smi_state: str = "unknown"
     nvidia_kernel_driver: str = ""
     nvidia_nouveau_bound: bool = False
+    amd_kernel_driver: str = ""
+    intel_kernel_driver: str = ""
+    vulkan_state: str = "unknown"
+    vulkan_devices: list[str] = field(default_factory=list)
+    vaapi_state: str = "unknown"
+    rocm_state: str = "unknown"
     driver_modules: list[str] = field(default_factory=list)
     session_type: str = ""
     display_manager: str = ""
