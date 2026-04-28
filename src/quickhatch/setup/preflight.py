@@ -8,6 +8,7 @@ resolution belongs to the planner/search phase.
 from __future__ import annotations
 
 import shlex
+import re
 
 from .types import SetupFacts
 
@@ -78,6 +79,7 @@ _ROOT_REQUIRED_PACKAGE_TOOLS = {
     "xbps-install",
     "emerge",
 }
+_ASSIGNMENT_NAME = r"[A-Za-z_][A-Za-z0-9_]*"
 
 
 def _split_command_segments(cmd: str) -> list[str]:
@@ -346,6 +348,17 @@ def _uses_fake_plasma_session_wrapper(cmd: str) -> bool:
     )
 
 
+def _is_standalone_shell_assignment(command: str) -> bool:
+    stripped = (command or "").strip()
+    if not stripped:
+        return False
+    if re.fullmatch(rf"(?:export\s+)?{_ASSIGNMENT_NAME}=\$\(.+\)", stripped):
+        return True
+    if re.fullmatch(rf"(?:export\s+)?(?:{_ASSIGNMENT_NAME}=\S+\s*)+", stripped):
+        return True
+    return False
+
+
 def _activates_network_security_services(cmd: str) -> bool:
     for segment in _split_command_segments(cmd):
         lower_segment = segment.lower()
@@ -383,6 +396,13 @@ def preflight_setup_command(
 
     package_manager = facts.package_manager or "unknown"
     community_helper = facts.community_helper or "none"
+    if _is_standalone_shell_assignment(command):
+        return (
+            "This command only assigns shell variable(s). QuickHatch runs each command in a "
+            "fresh SSH shell, so variables do not persist to later commands. Combine the "
+            "assignment with the command that uses it, e.g. `UCODE=$(...) && pacstrap ... "
+            '"$UCODE"`.'
+        )
     if not allow_network_security_changes and _activates_network_security_services(command):
         return (
             "Do not enable/start VPN or firewall services automatically. Installing the package "
@@ -421,6 +441,12 @@ def preflight_setup_command(
             return (
                 f"`{tool}` changes system packages and needs root privileges. "
                 "Use `sudo` unless the remote session is already root."
+            )
+        if tool == "pacstrap" and "--noconfirm" in tokens:
+            return (
+                "`pacstrap` does not accept `--noconfirm`; that option fails before the "
+                "base install starts. Keep `pacstrap -K /mnt ...` and avoid ambiguous "
+                "provider prompts by naming concrete provider packages when needed."
             )
         if package_manager == "pacman":
             if tool in {"apt", "apt-get", "dnf", "zypper"}:

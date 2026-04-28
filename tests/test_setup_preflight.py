@@ -55,6 +55,38 @@ def test_preflight_blocks_vpn_firewall_activation():
     assert "VPN or firewall" in error
 
 
+def test_preflight_blocks_standalone_shell_variable_assignment():
+    facts = SetupFacts(package_manager="pacman", community_helper="none")
+
+    error = preflight_setup_command(
+        "UCODE=$(grep -qi intel /proc/cpuinfo && echo intel-ucode || echo amd-ucode)",
+        facts,
+    )
+
+    assert error
+    assert "variables do not persist" in error
+
+
+def test_preflight_allows_variable_assignment_combined_with_use():
+    facts = SetupFacts(package_manager="pacman", community_helper="none", is_root=True)
+
+    error = preflight_setup_command(
+        'UCODE=$(grep -qi intel /proc/cpuinfo && echo intel-ucode || echo amd-ucode) && pacstrap -K /mnt base "$UCODE"',
+        facts,
+    )
+
+    assert error is None
+
+
+def test_preflight_blocks_invalid_pacstrap_noconfirm_flag():
+    facts = SetupFacts(package_manager="pacman", community_helper="none", is_root=True)
+
+    error = preflight_setup_command("pacstrap -K --noconfirm /mnt base linux", facts)
+
+    assert error
+    assert "pacstrap` does not accept `--noconfirm" in error
+
+
 def test_preflight_allows_package_install_without_activation():
     facts = SetupFacts(package_manager="pacman", community_helper="yay")
 

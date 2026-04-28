@@ -555,6 +555,9 @@ def test_build_research_prompt_includes_selected_app_catalog():
     assert "Do not optimize for or replay any prior QuickHatch run" in prompt
     assert "Never assume Arch, KDE, NVIDIA, AUR" in prompt
     assert "VirtualBox with VMSVGA may report a `VMware SVGA` display adapter" in prompt
+    assert "Variables do not persist across SSH executions" in prompt
+    assert "do not add `--noconfirm` to `pacstrap`" in prompt
+    assert "avoid whitespace-sensitive checks like `grep -q ' / ' /mnt/etc/fstab`" in prompt
     assert "Treat desktop design as a contract" in prompt
     assert "Installing a theme/icon package is not the same as applying it" in prompt
     assert "cannot read arbitrary Windows-local paths" in prompt
@@ -588,6 +591,8 @@ def test_build_repair_prompt_warns_about_vm_gpu_label_mismatch():
 
     assert "VirtualBox with VMSVGA may report a `VMware SVGA` display adapter" in prompt
     assert '"virtualization": "oracle"' in prompt
+    assert "standalone shell variable assignments" in prompt
+    assert "adding `--noconfirm` to `pacstrap`" in prompt
 
 
 def test_build_research_prompt_uses_target_distro_over_live_facts(monkeypatch):
