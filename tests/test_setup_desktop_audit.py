@@ -30,6 +30,29 @@ def test_desktop_audit_blocks_design_attempt_without_observed_design_state():
     assert any("no configured theme/icon/wallpaper state" in item for item in result.blockers)
 
 
+def test_desktop_audit_accepts_stock_desktop_with_enabled_display_manager():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="linus",
+        display_manager="gdm",
+        display_manager_enabled=True,
+        desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
+        desktop_design=DesktopDesignState(
+            environment="GNOME",
+            gnome_gtk_theme="Adwaita",
+            gnome_icon_theme="Adwaita",
+            gnome_cursor_theme="Adwaita",
+            gnome_wallpaper="file:///usr/share/backgrounds/gnome/adwaita-l.jxl",
+        ),
+    )
+
+    result = audit_stage(SetupStage.DESKTOP, facts, stage_state={})
+
+    assert result.passed
+    assert result.details["desktop_runtime_state"] == "pending_relogin"
+
+
 def test_desktop_audit_accepts_observed_design_state():
     facts = SetupFacts(
         distro_family="arch",

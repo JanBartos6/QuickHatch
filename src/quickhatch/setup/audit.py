@@ -87,7 +87,7 @@ def audit_stage(
         ]
         if facts.desktop_runtime_state == DesktopRuntimeState.UNKNOWN:
             blockers.append("Desktop runtime state is still unknown.")
-        if not state.get("persisted_config_written"):
+        if not _desktop_persistence_satisfied(facts, state):
             blockers.append("Desktop configuration was not persisted yet.")
         if state.get("desktop_design_attempted") and not _has_desktop_design_signal(facts):
             blockers.append(
@@ -164,6 +164,16 @@ def _has_desktop_design_signal(facts: SetupFacts) -> bool:
             design.xfce_wallpaper,
         )
     )
+
+
+def _desktop_persistence_satisfied(facts: SetupFacts, state: dict[str, Any]) -> bool:
+    if state.get("persisted_config_written"):
+        return True
+    if state.get("desktop_design_attempted") or state.get("wallpaper_attempted"):
+        return False
+    # A stock desktop plan may intentionally keep DE defaults. In that case,
+    # enabling the display manager is the persistent configuration boundary.
+    return bool(facts.display_manager_enabled and facts.display_manager)
 
 
 def _has_wallpaper_signal(facts: SetupFacts) -> bool:

@@ -202,6 +202,8 @@ def _coerce_status(value: str | None) -> PlanItemStatus:
         "absent": PlanItemStatus.PENDING,
         "unresolved": PlanItemStatus.PENDING,
         "available": PlanItemStatus.PENDING,
+        "native": PlanItemStatus.PENDING,
+        "native_available": PlanItemStatus.PENDING,
         "ok": PlanItemStatus.COMPLETED,
         "success": PlanItemStatus.COMPLETED,
         "succeeded": PlanItemStatus.COMPLETED,

@@ -177,6 +177,20 @@ def test_extract_research_plan_accepts_install_status_aliases():
     assert plan.apps[1].status == PlanItemStatus.PENDING
 
 
+def test_extract_research_plan_accepts_native_status_alias():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["apps"][0]["status"] = "native"
+    payload["apps"][1]["package_name"] = "spotify"
+    payload["apps"][1]["status"] = "native available"
+    payload["apps"][1]["optional_slow"] = False
+
+    plan = extract_research_plan(json.dumps(payload), profile)
+
+    assert plan.apps[0].status == PlanItemStatus.PENDING
+    assert plan.apps[1].status == PlanItemStatus.PENDING
+
+
 def test_extract_research_plan_normalizes_package_manager_source_aliases():
     profile = UserProfile()
     payload = _base_plan_payload()
