@@ -8,7 +8,12 @@ from pathlib import Path
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, DisplayInfo, UserProfile
 from quickhatch.setup.audit import audit_stage
-from quickhatch.setup.orchestrator import GroupFailure, SetupOrchestrator, SetupRuntime
+from quickhatch.setup.orchestrator import (
+    GroupFailure,
+    SetupOrchestrator,
+    SetupRuntime,
+    is_non_blocking_failed_systemd_unit,
+)
 from quickhatch.setup.types import (
     AppPlanItem,
     CommandGroup,
@@ -73,6 +78,69 @@ def _dummy_setup_runtime(
         distro_primer_md="",
         native_search_active=native_search_active,
     )
+
+
+def test_systemd_health_ignores_transient_coredump_helpers():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan", init_system="systemd")
+
+    def ssh_exec(command: str, _timeout: int):
+        assert "systemctl --failed" in command
+        return (
+            0,
+            "\n".join(
+                [
+                    "drkonqi-coredump-processor@6-12290-90777_90778-0.service",
+                    "systemd-coredump@0-123-0.service",
+                ]
+            ),
+            "",
+        )
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+
+    assert orchestrator._verify_systemd_health() == []
+
+
+def test_systemd_health_still_blocks_real_failed_services():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan", init_system="systemd")
+
+    def ssh_exec(_command: str, _timeout: int):
+        return (
+            0,
+            "\n".join(
+                [
+                    "drkonqi-coredump-processor@6-12290-90777_90778-0.service",
+                    "NetworkManager.service",
+                ]
+            ),
+            "",
+        )
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+
+    failures = orchestrator._verify_systemd_health()
+
+    assert len(failures) == 1
+    assert "NetworkManager.service" in failures[0]
+    assert "drkonqi" not in failures[0]
+
+
+def test_non_blocking_failed_systemd_unit_classifier():
+    assert is_non_blocking_failed_systemd_unit(
+        "drkonqi-coredump-processor@6-12290-90777_90778-0.service"
+    )
+    assert is_non_blocking_failed_systemd_unit("systemd-coredump@0-123-0.service")
+    assert not is_non_blocking_failed_systemd_unit("sddm.service")
 
 
 def test_connect_probe_runs_keep_windows_transfer_smoke_test():

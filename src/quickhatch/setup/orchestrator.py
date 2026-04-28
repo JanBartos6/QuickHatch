@@ -129,10 +129,34 @@ _ARCH_PACSTRAP_MNT_RE = re.compile(r"\bpacstrap\b.*\s/mnt(?:\s|$)", re.IGNORECAS
 _SETUP_MODEL_CALL_TIMEOUT_SECONDS = max(
     30, int(os.environ.get("QUICKHATCH_SETUP_MODEL_TIMEOUT", "90") or "90")
 )
+_NON_BLOCKING_FAILED_SYSTEMD_UNITS = {
+    "systemd-modules-load.service",
+    "systemd-resolved.service",
+}
+_NON_BLOCKING_FAILED_SYSTEMD_UNIT_PREFIXES = (
+    "drkonqi-coredump-processor@",
+    "systemd-coredump@",
+)
 _DESKTOP_RUNTIME_COMMAND_RE = re.compile(
     r"\b(?:plasma-apply-[\w-]+|kscreen-doctor|xrandr|qdbus6?|gsettings|lookandfeeltool)\b",
     re.IGNORECASE,
 )
+
+
+def is_non_blocking_failed_systemd_unit(unit: str) -> bool:
+    """Return true for noisy/transient failed units that should not block setup.
+
+    Crash-report/coredump helpers can be left failed by a previous user-session
+    crash even when the installed OS is otherwise bootable and configured. Real
+    service failures still remain hard blockers.
+    """
+
+    normalized = (unit or "").strip()
+    return normalized in _NON_BLOCKING_FAILED_SYSTEMD_UNITS or normalized.startswith(
+        _NON_BLOCKING_FAILED_SYSTEMD_UNIT_PREFIXES
+    )
+
+
 _STANDALONE_ASSIGNMENT_RE = re.compile(
     r"^\s*(?:export\s+)?[A-Za-z_][A-Za-z0-9_]*=\$\(.+\)\s*$"
     r"|^\s*(?:export\s+)?(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s*)+\s*$"
@@ -1408,11 +1432,10 @@ class SetupOrchestrator:
         )
         if rc != 0:
             return []
-        ignore_failed = {"systemd-modules-load.service", "systemd-resolved.service"}
         failed_units = [
             line.strip()
             for line in (stdout or "").splitlines()
-            if line.strip() and line.strip() not in ignore_failed
+            if line.strip() and not is_non_blocking_failed_systemd_unit(line)
         ]
         if not failed_units:
             return []

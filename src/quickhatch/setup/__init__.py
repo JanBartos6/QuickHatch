@@ -2,7 +2,7 @@
 
 from .audit import audit_stage, final_audit
 from .facts import describe_fact_changes, probe_setup_facts
-from .orchestrator import SetupOrchestrator, SetupRuntime
+from .orchestrator import SetupOrchestrator, SetupRuntime, is_non_blocking_failed_systemd_unit
 from .planner import (
     ResearchPlanValidationError,
     build_research_prompt,
@@ -59,6 +59,7 @@ __all__ = [
     "driver_strategy",
     "extract_research_plan",
     "final_audit",
+    "is_non_blocking_failed_systemd_unit",
     "probe_setup_facts",
     "repo_search_command",
 ]

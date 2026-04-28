@@ -37,6 +37,7 @@ from quickhatch.setup import (
     SetupOrchestrator,
     SetupRuntime,
     detect_family,
+    is_non_blocking_failed_systemd_unit,
 )
 from quickhatch.setup import (
     probe_setup_facts as _probe_typed_setup_facts,
@@ -5007,9 +5008,9 @@ def _verify_setup_completion(
             dm_idx = user_idx = -1
         if dm_idx >= 0:
             failed_units = [line.strip() for line in lines[:dm_idx] if line.strip()]
-            # Whitelist non-critical "failures" that we don't want to hard-block on.
-            _ignore_failed = {"systemd-modules-load.service", "systemd-resolved.service"}
-            critical_failed = [u for u in failed_units if u not in _ignore_failed]
+            critical_failed = [
+                u for u in failed_units if not is_non_blocking_failed_systemd_unit(u)
+            ]
             if critical_failed:
                 failures.append(
                     "systemctl reports failed units: "
