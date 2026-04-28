@@ -121,6 +121,11 @@ _PARTED_PRE_FORMAT_FS_CHECK_RE = re.compile(
     r"(?P<quote>['\"])\^(?P<partition>\d+):\.\*:(?:fat32|ext[234]|btrfs|xfs):(?P=quote)",
     re.IGNORECASE,
 )
+_SYSFS_MODULE_PARAMETER_CAT_RE = re.compile(
+    r"^(?P<prefix>\s*)cat\s+(?P<path>/sys/module/[A-Za-z0-9_+-]+/parameters/[A-Za-z0-9_+-]+)"
+    r"(?P<rest>(?:\s|$).*)",
+    re.IGNORECASE | re.DOTALL,
+)
 
 _REPO_APP_SOURCES = {
     "repo",
@@ -1610,6 +1615,19 @@ class SetupOrchestrator:
                 verification, stage=stage
             )
             verification = self._normalize_package_verification_command(verification, stage=stage)
+            normalized_verification = self._normalize_sysfs_module_parameter_verification(
+                verification, stage=stage
+            )
+            if normalized_verification != verification:
+                self.runlog.record(
+                    "verification_normalized",
+                    stage=stage.value,
+                    group_id=group.id,
+                    original=verification,
+                    normalized=normalized_verification,
+                    reason="kernel module parameter files may be root-readable only",
+                )
+                verification = normalized_verification
             normalized_verification = self._normalize_pre_format_partition_verification(
                 verification, group=group
             )
@@ -1676,6 +1694,25 @@ class SetupOrchestrator:
                     detail=detail,
                 )
         return None
+
+    def _normalize_sysfs_module_parameter_verification(
+        self, command: str, *, stage: SetupStage
+    ) -> str:
+        facts = self.ctx.facts or SetupFacts()
+        if (
+            stage not in _INSTALLED_NONROOT_PRIVILEGED_STAGES
+            or facts.is_live
+            or facts.is_root
+            or self._has_privileged_command_wrapper(command.strip())
+        ):
+            return command
+        match = _SYSFS_MODULE_PARAMETER_CAT_RE.match(command or "")
+        if not match:
+            return command
+        return (
+            f"{match.group('prefix')}sudo cat "
+            f"{shlex.quote(match.group('path'))}{match.group('rest')}"
+        )
 
     @staticmethod
     def _normalize_pre_format_partition_verification(command: str, *, group: CommandGroup) -> str:

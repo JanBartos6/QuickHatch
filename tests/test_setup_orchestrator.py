@@ -2857,6 +2857,52 @@ def test_partition_verification_keeps_filesystem_check_after_mkfs():
     )
 
 
+def test_sysfs_module_parameter_verification_uses_sudo_for_non_root_installed_session():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+        is_live=False,
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    command = orchestrator._normalize_sysfs_module_parameter_verification(
+        "cat /sys/module/nvidia_drm/parameters/modeset | grep -iq y",
+        stage=SetupStage.POSTBOOT_DRIVER,
+    )
+
+    assert command == "sudo cat /sys/module/nvidia_drm/parameters/modeset | grep -iq y"
+
+
+def test_sysfs_module_parameter_verification_preserves_root_session():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        login_user="root",
+        is_root=True,
+        is_live=False,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    verification = "cat /sys/module/nvidia_drm/parameters/modeset | grep -iq y"
+
+    command = orchestrator._normalize_sysfs_module_parameter_verification(
+        verification,
+        stage=SetupStage.POSTBOOT_DRIVER,
+    )
+
+    assert command == verification
+
+
 def test_orchestrator_repairs_failed_command_group_with_search_and_retry():
     profile = UserProfile(apps_to_install=["Brave"])
     bridge = BridgeState(profile, persist_path=None)
