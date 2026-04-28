@@ -88,6 +88,17 @@ qh_gsettings_value() {
     qh_gui_run gsettings get "$qh_schema" "$qh_key" 2>/dev/null | sed "s/^'//;s/'$//"
   fi
 }
+qh_xfconf_value() {
+  qh_channel=$1
+  qh_property=$2
+  if command -v xfconf-query >/dev/null 2>&1; then
+    if command -v dbus-run-session >/dev/null 2>&1; then
+      dbus-run-session xfconf-query -c "$qh_channel" -p "$qh_property" 2>/dev/null
+    else
+      qh_gui_run xfconf-query -c "$qh_channel" -p "$qh_property" 2>/dev/null
+    fi
+  fi
+}
 echo 'QH_SSH_SESSION='$qh_ssh_session
 echo 'QH_GUI_SESSION_ID='$qh_gui_session
 echo 'QH_GUI_SESSION_TYPE='$qh_gui_type
@@ -111,6 +122,10 @@ echo 'QH_GNOME_GTK_THEME='$(qh_gsettings_value org.gnome.desktop.interface gtk-t
 echo 'QH_GNOME_ICON_THEME='$(qh_gsettings_value org.gnome.desktop.interface icon-theme)
 echo 'QH_GNOME_CURSOR_THEME='$(qh_gsettings_value org.gnome.desktop.interface cursor-theme)
 echo 'QH_GNOME_WALLPAPER='$(qh_gsettings_value org.gnome.desktop.background picture-uri)
+echo 'QH_XFCE_GTK_THEME='$(qh_xfconf_value xsettings /Net/ThemeName)
+echo 'QH_XFCE_ICON_THEME='$(qh_xfconf_value xsettings /Net/IconThemeName)
+echo 'QH_XFCE_WINDOW_THEME='$(qh_xfconf_value xfwm4 /general/theme)
+echo 'QH_XFCE_WALLPAPER='$(if command -v xfconf-query >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2>&1; then qh_wallpaper_prop=$(dbus-run-session xfconf-query -c xfce4-desktop -l 2>/dev/null | grep -E '/last-image$|/image-path$' | head -n 1); [ -n "$qh_wallpaper_prop" ] && dbus-run-session xfconf-query -c xfce4-desktop -p "$qh_wallpaper_prop" 2>/dev/null; fi)
 echo 'QH_DM='$(basename "$(readlink /etc/systemd/system/display-manager.service 2>/dev/null)" 2>/dev/null | sed 's/\.service$//' || true)
 echo 'QH_DM_ENABLED='$(if command -v systemctl >/dev/null 2>&1 && systemctl is-enabled display-manager >/dev/null 2>&1; then echo yes; else echo no; fi)
 echo 'QH_GPU_VENDORS='$(lspci 2>/dev/null | awk 'BEGIN{IGNORECASE=1} /vga|3d|display/ { if ($0 ~ /nvidia/) print "nvidia"; else if ($0 ~ /amd|advanced micro devices|radeon/) print "amd"; else if ($0 ~ /intel/) print "intel"; }' | sort -u | paste -sd',' -)
@@ -394,6 +409,10 @@ def probe_setup_facts(
         gnome_icon_theme=raw.get("QH_GNOME_ICON_THEME", ""),
         gnome_cursor_theme=raw.get("QH_GNOME_CURSOR_THEME", ""),
         gnome_wallpaper=raw.get("QH_GNOME_WALLPAPER", ""),
+        xfce_gtk_theme=raw.get("QH_XFCE_GTK_THEME", ""),
+        xfce_icon_theme=raw.get("QH_XFCE_ICON_THEME", ""),
+        xfce_window_theme=raw.get("QH_XFCE_WINDOW_THEME", ""),
+        xfce_wallpaper=raw.get("QH_XFCE_WALLPAPER", ""),
     )
     facts.gpu_vendors = [p for p in raw.get("QH_GPU_VENDORS", "").split(",") if p]
     facts.gpu_inventory = [p for p in raw.get("QH_GPU_INVENTORY", "").split("|") if p]

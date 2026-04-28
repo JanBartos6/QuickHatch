@@ -112,6 +112,51 @@ _EXECUTABLE_COMMAND_GROUP_STAGES = {
     SetupStage.APPS,
 }
 
+_REPO_SOURCE_ALIASES = {
+    "repo",
+    "repos",
+    "official",
+    "official_repo",
+    "official-repo",
+    "official_docs",
+    "repo_search",
+    "selected_app_catalog",
+    "distro_primer",
+    "distribution_repo",
+    "distribution-repo",
+    "distro_repo",
+    "distro-repo",
+    "package_manager",
+    "package-manager",
+    "pacman",
+    "apt",
+    "apt_get",
+    "apt-get",
+    "dnf",
+    "zypper",
+    "apk",
+    "xbps",
+    "xbps_install",
+    "xbps-install",
+    "emerge",
+    "portage",
+    "core",
+    "extra",
+    "multilib",
+}
+
+_COMMUNITY_SOURCE_ALIASES = {
+    "community",
+    "aur",
+    "aur_binary",
+    "aur-binary",
+    "aur_source",
+    "aur-source",
+    "community_search",
+    "yay",
+    "paru",
+}
+
 
 class ResearchPlanValidationError(ValueError):
     """Raised when planner output is malformed or incomplete."""
@@ -144,6 +189,12 @@ def _coerce_status(value: str | None) -> PlanItemStatus:
         "to_do": PlanItemStatus.PENDING,
         "needed": PlanItemStatus.PENDING,
         "required": PlanItemStatus.PENDING,
+        "install": PlanItemStatus.PENDING,
+        "to_install": PlanItemStatus.PENDING,
+        "install_required": PlanItemStatus.PENDING,
+        "needs_install": PlanItemStatus.PENDING,
+        "resolved": PlanItemStatus.PENDING,
+        "found": PlanItemStatus.PENDING,
         "uninstalled": PlanItemStatus.PENDING,
         "not_installed": PlanItemStatus.PENDING,
         "not_yet_installed": PlanItemStatus.PENDING,
@@ -174,6 +225,27 @@ def _coerce_status(value: str | None) -> PlanItemStatus:
         return PlanItemStatus(normalized)
     except ValueError as exc:
         raise ResearchPlanValidationError(f"Unknown plan item status: {value}") from exc
+
+
+def _normalize_package_source(value: str | None) -> str:
+    normalized = str(value or "").strip().lower().replace(" ", "_")
+    if not normalized:
+        return "manual_followup"
+    if normalized in _REPO_SOURCE_ALIASES:
+        return "repo"
+    if normalized in _COMMUNITY_SOURCE_ALIASES:
+        return "community"
+    if normalized in {
+        "manual",
+        "manual_follow_up",
+        "followup",
+        "follow_up",
+        "unsupported",
+        "unknown",
+        "none",
+    }:
+        return "manual_followup"
+    return str(value or "manual_followup").strip()
 
 
 def _extract_json_payload(text: str) -> dict[str, Any]:
@@ -209,7 +281,7 @@ def _parse_strategy(raw: Any, field_name: str) -> StrategyDecision:
     return StrategyDecision(
         strategy=strategy,
         confidence=str(raw.get("confidence", "manual_followup_required")),
-        source=str(raw.get("source", "manual_followup")),
+        source=_normalize_package_source(str(raw.get("source", "manual_followup"))),
         packages=list(raw.get("packages", []) or []),
         services=list(raw.get("services", []) or []),
         notes=str(raw.get("notes", "") or ""),
@@ -344,7 +416,7 @@ def _parse_command_group(item: Any) -> CommandGroup:
             field_name=f"command_groups[{gid or title or '?'}].verification",
         ),
         rationale=str(item.get("rationale", "") or ""),
-        source=str(item.get("source", "repo") or "repo"),
+        source=_normalize_package_source(str(item.get("source", "repo") or "repo")),
         packages=[str(pkg) for pkg in (item.get("packages", []) or []) if str(pkg).strip()],
         optional=optional,
         optional_slow=optional_slow,
@@ -378,7 +450,9 @@ def _normalize_app_items(raw: Any, requested: list[str]) -> list[AppPlanItem]:
         if not name:
             raise ResearchPlanValidationError("Each app plan item needs a name.")
         package_name = str(item.get("package_name", item.get("package", "")) or "").strip()
-        source = str(item.get("source", "manual_followup") or "manual_followup")
+        source = _normalize_package_source(
+            str(item.get("source", "manual_followup") or "manual_followup")
+        )
         optional_slow = (
             bool(item.get("optional_slow", False)) or package_name in _OPTIONAL_SLOW_PACKAGES
         )
@@ -410,7 +484,7 @@ def _normalize_app_items(raw: Any, requested: list[str]) -> list[AppPlanItem]:
             )
         )
     requested_lower = {name.lower(): name for name in requested}
-    known = {item.name.lower() for item in items}
+    known = {key for item in items for key in {item.name.lower(), item.package_name.lower()} if key}
     for lower, original in requested_lower.items():
         if lower in known:
             continue

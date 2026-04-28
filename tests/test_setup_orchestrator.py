@@ -210,6 +210,44 @@ def test_installed_nonroot_privileged_commands_are_sudo_normalized():
     ]
 
 
+def test_xfconf_query_counts_as_persisted_desktop_config():
+    assert SetupOrchestrator._command_persists_desktop_config(
+        "sudo -u ada dbus-run-session xfconf-query -c xsettings -p /Net/IconThemeName -s Papirus"
+    )
+
+
+def test_pending_login_display_preferences_become_manual_followup():
+    profile = UserProfile()
+    profile.hardware.displays = [
+        DisplayInfo(
+            name="VirtualBox Display",
+            width_px=1280,
+            height_px=800,
+            refresh_hz=60.0,
+            primary=True,
+        )
+    ]
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="ada",
+        display_manager="lightdm",
+        display_manager_enabled=True,
+        desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
+        displays=[],
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    state: dict[str, object] = {}
+
+    orchestrator._update_desktop_display_audit_state(state)
+
+    assert state["display_manual_followup"] is True
+    assert state["display_preference_blockers"] == []
+    assert "1280x800@60Hz" in str(state["display_manual_followup_reason"])
+
+
 def test_installed_nonroot_privilege_normalization_preserves_user_commands():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
@@ -522,6 +560,15 @@ def test_non_app_missing_repo_target_is_dropped_for_retry():
     assert repaired is not None
     assert repaired.commands == ["sudo pacman -S --noconfirm virtualbox-guest-utils"]
     assert repaired.packages == ["virtualbox-guest-utils"]
+    assert orchestrator.ctx.stage_state[SetupStage.POSTBOOT_DRIVER.value]["manual_followups"] == [
+        {
+            "group_id": "vbox",
+            "reason": (
+                "Unavailable repository target(s) were dropped from 'VirtualBox Guest Drivers': "
+                "xf86-video-vmware. Review or choose alternatives after setup."
+            ),
+        }
+    ]
     assert any(
         "Removed unavailable non-app repo target" in msg["content"] for msg in bridge.messages
     )
@@ -671,6 +718,135 @@ def test_app_group_completion_reconciles_corrected_aur_aliases():
     ]
 
 
+def test_apps_stage_synthesizes_missing_repo_install_group():
+    profile = UserProfile(apps_to_install=["Mozilla Firefox", "VLC media player"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="ada",
+        login_user="ada",
+        sudo_nopasswd=True,
+    )
+    commands_seen: list[str] = []
+
+    def ssh_exec(command, timeout):
+        commands_seen.append(command)
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch XFCE workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="xfce"),
+        apps=[
+            AppPlanItem(
+                name="Mozilla Firefox",
+                package_name="firefox",
+                source="pacman",
+                status=PlanItemStatus.PENDING,
+                required=True,
+            ),
+            AppPlanItem(
+                name="VLC media player",
+                package_name="vlc",
+                source="repo",
+                status=PlanItemStatus.PENDING,
+                required=True,
+            ),
+        ],
+    )
+
+    orchestrator._run_apps()
+
+    assert commands_seen == [
+        "sudo pacman -S --noconfirm firefox vlc",
+        "sudo pacman -Q firefox vlc",
+    ]
+    assert [app.status for app in orchestrator.ctx.plan.apps] == [
+        PlanItemStatus.INSTALLED,
+        PlanItemStatus.INSTALLED,
+    ]
+    assert any("Added missing app install group" in msg["content"] for msg in bridge.messages)
+
+
+def test_apps_stage_marks_unsupported_community_source_manual_followup():
+    profile = UserProfile(apps_to_install=["Brave"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="debian",
+        package_manager="apt",
+        current_user="ada",
+        login_user="ada",
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Debian workstation",
+        distro_family="debian",
+        package_manager="apt",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="xfce"),
+        apps=[
+            AppPlanItem(
+                name="Brave",
+                package_name="brave-bin",
+                source="community",
+                status=PlanItemStatus.PENDING,
+                required=True,
+            )
+        ],
+    )
+
+    orchestrator._run_apps()
+
+    assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.MANUAL_FOLLOWUP
+    assert "not supported automatically" in orchestrator.ctx.plan.apps[0].reason
+
+
+def test_pacman_group_verification_falls_back_to_group_query():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="ada",
+        login_user="ada",
+        sudo_nopasswd=True,
+    )
+    commands_seen: list[str] = []
+
+    def ssh_exec(command, timeout):
+        commands_seen.append(command)
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="xfce",
+        stage=SetupStage.DESKTOP,
+        title="Install XFCE",
+        commands=["true"],
+        verification=["pacman -Qi xfce4"],
+    )
+
+    failure = orchestrator._execute_group(SetupStage.DESKTOP, group, {})
+
+    assert failure is None
+    assert commands_seen == [
+        "true",
+        "(pacman -Qi xfce4 >/dev/null 2>&1 || pacman -Qg xfce4 >/dev/null 2>&1)",
+    ]
+
+
 def test_final_package_verification_accepts_known_package_aliases():
     profile = UserProfile(apps_to_install=["Brave", "Mullvad VPN"])
     bridge = BridgeState(profile, persist_path=None)
@@ -785,8 +961,8 @@ def test_desktop_display_audit_blocks_unverified_display_preferences():
     facts = SetupFacts(
         current_user="jan",
         login_user="jan",
-        display_manager_enabled=True,
-        desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
+        display_manager_enabled=False,
+        desktop_runtime_state=DesktopRuntimeState.BLOCKED_NO_GUI_SESSION,
     )
     orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
     orchestrator.ctx.facts = facts

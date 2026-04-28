@@ -61,6 +61,10 @@ class DesktopDesignState:
     gnome_icon_theme: str = ""
     gnome_cursor_theme: str = ""
     gnome_wallpaper: str = ""
+    xfce_gtk_theme: str = ""
+    xfce_icon_theme: str = ""
+    xfce_window_theme: str = ""
+    xfce_wallpaper: str = ""
 
 
 @dataclass

@@ -163,14 +163,70 @@ def test_extract_research_plan_accepts_common_status_aliases():
     assert plan.apps[1].status == PlanItemStatus.MANUAL_FOLLOWUP
 
 
-def test_extract_research_plan_accepts_ready_status_alias():
+def test_extract_research_plan_accepts_install_status_aliases():
     profile = UserProfile()
     payload = _base_plan_payload()
-    payload["apps"][0]["status"] = "ready"
+    payload["apps"][0]["status"] = "install"
+    payload["apps"][1]["package_name"] = "spotify"
+    payload["apps"][1]["status"] = "resolved"
+    payload["apps"][1]["optional_slow"] = False
 
     plan = extract_research_plan(json.dumps(payload), profile)
 
     assert plan.apps[0].status == PlanItemStatus.PENDING
+    assert plan.apps[1].status == PlanItemStatus.PENDING
+
+
+def test_extract_research_plan_normalizes_package_manager_source_aliases():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["command_groups"][0]["source"] = "pacman"
+    payload["apps"][0]["source"] = "official_docs"
+    payload["apps"][1]["source"] = "community_search"
+
+    plan = extract_research_plan(json.dumps(payload), profile)
+
+    assert plan.command_groups[0].source == "repo"
+    assert plan.apps[0].source == "repo"
+    assert plan.apps[1].source == "community"
+
+
+def test_extract_research_plan_does_not_duplicate_requested_package_names():
+    profile = UserProfile()
+    profile.apps_to_install = ["firefox", "vlc"]
+    payload = _base_plan_payload()
+    payload["apps"] = [
+        {
+            "name": "Mozilla Firefox",
+            "package_name": "firefox",
+            "source": "repo_search",
+            "status": "missing",
+            "required": True,
+            "evidence": [
+                {
+                    "source_type": "repo_search",
+                    "summary": "Firefox is in the repo.",
+                }
+            ],
+        },
+        {
+            "name": "VLC media player",
+            "package_name": "vlc",
+            "source": "repo",
+            "status": "missing",
+            "required": True,
+            "evidence": [
+                {
+                    "source_type": "repo_search",
+                    "summary": "VLC is in the repo.",
+                }
+            ],
+        },
+    ]
+
+    plan = extract_research_plan(json.dumps(payload), profile)
+
+    assert [app.name for app in plan.apps] == ["Mozilla Firefox", "VLC media player"]
 
 
 def test_extract_research_plan_rejects_incomplete_payload():

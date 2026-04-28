@@ -158,13 +158,19 @@ def _has_desktop_design_signal(facts: SetupFacts) -> bool:
             design.gnome_icon_theme,
             design.gnome_cursor_theme,
             design.gnome_wallpaper,
+            design.xfce_gtk_theme,
+            design.xfce_icon_theme,
+            design.xfce_window_theme,
+            design.xfce_wallpaper,
         )
     )
 
 
 def _has_wallpaper_signal(facts: SetupFacts) -> bool:
     design = facts.desktop_design
-    return bool(str(design.kde_wallpaper or design.gnome_wallpaper or "").strip())
+    return bool(
+        str(design.kde_wallpaper or design.gnome_wallpaper or design.xfce_wallpaper or "").strip()
+    )
 
 
 def final_audit(

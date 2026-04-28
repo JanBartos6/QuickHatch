@@ -28,9 +28,11 @@ from .planner import (
     extract_research_plan,
 )
 from .preflight import arch_community_helpers_in_command, preflight_setup_command
+from .resolver import build_install_command
 from .runlog import SetupRunLogger
 from .types import (
     AuditResult,
+    AppPlanItem,
     CommandGroup,
     DesktopRuntimeState,
     PlanItemStatus,
@@ -106,6 +108,48 @@ _DESKTOP_RUNTIME_COMMAND_RE = re.compile(
     r"\b(?:plasma-apply-[\w-]+|kscreen-doctor|xrandr|qdbus6?|gsettings|lookandfeeltool)\b",
     re.IGNORECASE,
 )
+_PACMAN_QI_SINGLE_RE = re.compile(
+    r"^(?:sudo\s+)?pacman\s+-Qi\s+(?P<name>[A-Za-z0-9@._+:-]+)\s*$",
+    re.IGNORECASE,
+)
+
+_REPO_APP_SOURCES = {
+    "repo",
+    "official",
+    "official-repo",
+    "official_repo",
+    "official_docs",
+    "repo_search",
+    "selected_app_catalog",
+    "distro_primer",
+    "package_manager",
+    "package-manager",
+    "pacman",
+    "apt",
+    "apt-get",
+    "apt_get",
+    "dnf",
+    "zypper",
+    "apk",
+    "xbps",
+    "xbps-install",
+    "xbps_install",
+    "emerge",
+    "core",
+    "extra",
+    "multilib",
+}
+_COMMUNITY_APP_SOURCES = {
+    "community",
+    "aur",
+    "aur-binary",
+    "aur_binary",
+    "aur-source",
+    "aur_source",
+    "community_search",
+    "yay",
+    "paru",
+}
 
 _APP_PACKAGE_ALIASES: dict[str, set[str]] = {
     "brave": {"brave", "brave-bin", "brave-browser", "brave-browser-bin"},
@@ -983,6 +1027,24 @@ class SetupOrchestrator:
     def _update_desktop_display_audit_state(self, stage_state: dict[str, Any]) -> None:
         prefs = self._source_display_preferences()
         stage_state["display_preferences"] = prefs
+        facts = self.ctx.facts
+        if (
+            prefs
+            and facts is not None
+            and not facts.displays
+            and facts.desktop_runtime_state == DesktopRuntimeState.PENDING_RELOGIN
+        ):
+            target = next((pref for pref in prefs if pref.get("primary")), prefs[0])
+            mode = str(target.get("mode") or "").strip()
+            refresh = self._as_float(target.get("refresh_hz"))
+            label = mode + (f"@{refresh:g}Hz" if refresh is not None and mode else "")
+            stage_state["display_manual_followup"] = True
+            stage_state["display_manual_followup_reason"] = (
+                "Display preferences"
+                + (f" ({label})" if label else "")
+                + " could not be runtime-verified before graphical login; display manager "
+                "is enabled, so treat display tuning as post-login/manual follow-up."
+            )
         if stage_state.get("display_manual_followup"):
             stage_state["display_preference_blockers"] = []
         else:
@@ -1111,6 +1173,7 @@ class SetupOrchestrator:
             return None
 
     def _run_apps(self) -> None:
+        self._synthesize_missing_app_command_groups()
         self._run_stage_groups(SetupStage.APPS)
 
     def _run_final_audit(self) -> AuditResult:
@@ -1490,6 +1553,7 @@ class SetupOrchestrator:
             verification = self._normalize_installed_nonroot_privileged_command(
                 verification, stage=stage
             )
+            verification = self._normalize_package_verification_command(verification, stage=stage)
             self.bridge.add_message("agent", f"`{verification}` — verify")
             rc, stdout, stderr = self._ssh_exec_with_transient_retries(
                 verification,
@@ -1532,6 +1596,199 @@ class SetupOrchestrator:
                     detail=detail,
                 )
         return None
+
+    def _synthesize_missing_app_command_groups(self) -> None:
+        """Turn resolved app plan rows into executable app groups if the model omitted them."""
+
+        if self.ctx.plan is None or self.ctx.facts is None:
+            return
+        pending = [
+            app
+            for app in self.ctx.plan.apps
+            if app.status
+            in {
+                PlanItemStatus.PENDING,
+                PlanItemStatus.IN_PROGRESS,
+                PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION,
+            }
+            and not self._app_is_covered_by_app_group(app)
+        ]
+        if not pending:
+            return
+
+        repo_packages: list[str] = []
+        community_packages: list[str] = []
+        repo_app_names: list[str] = []
+        community_app_names: list[str] = []
+        for app in pending:
+            source = self._normalized_app_source(app.source)
+            package_name = (app.package_name or "").strip()
+            if app.status == PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION:
+                # Optional slow apps need an explicit user decision. Without a
+                # planned group there is nothing safe to ask/execute, so keep
+                # setup moving with a visible manual follow-up instead.
+                app.status = PlanItemStatus.MANUAL_FOLLOWUP
+                app.reason = app.reason or "Optional slow app was left for manual follow-up."
+                continue
+            if source == "repo" and package_name:
+                repo_packages.append(package_name)
+                repo_app_names.append(app.name)
+                continue
+            if source == "community" and package_name:
+                if self.ctx.facts.package_manager == "pacman":
+                    community_packages.append(package_name)
+                    community_app_names.append(app.name)
+                    continue
+                app.status = PlanItemStatus.MANUAL_FOLLOWUP
+                app.reason = (
+                    app.reason
+                    or "Community package source is not supported automatically for this distro."
+                )
+                continue
+            app.status = PlanItemStatus.MANUAL_FOLLOWUP
+            app.reason = app.reason or "Planner did not provide a resolvable package source."
+
+        groups: list[CommandGroup] = []
+        if repo_packages:
+            command = build_install_command(repo_packages, "repo", self.ctx.facts)
+            if command:
+                groups.append(
+                    CommandGroup(
+                        id="quickhatch-synth-repo-apps",
+                        stage=SetupStage.APPS,
+                        title="Install resolved repository applications",
+                        commands=[command],
+                        verification=[
+                            self._package_verification_command(repo_packages, self.ctx.facts)
+                        ],
+                        rationale=(
+                            "QuickHatch synthesized this group because the planner resolved "
+                            "required repository apps but omitted an executable apps command group."
+                        ),
+                        source="repo",
+                        packages=repo_packages,
+                    )
+                )
+            else:
+                self._mark_apps_manual_followup_by_names(
+                    repo_app_names,
+                    "No typed repository install command is available for this package manager.",
+                )
+        if community_packages:
+            command = self._community_install_command(community_packages, self.ctx.facts)
+            if command:
+                groups.append(
+                    CommandGroup(
+                        id="quickhatch-synth-community-apps",
+                        stage=SetupStage.APPS,
+                        title="Install resolved community applications",
+                        commands=[command],
+                        verification=[
+                            self._package_verification_command(community_packages, self.ctx.facts)
+                        ],
+                        rationale=(
+                            "QuickHatch synthesized this group because the planner resolved "
+                            "required community apps but omitted an executable apps command group."
+                        ),
+                        source="community",
+                        packages=community_packages,
+                    )
+                )
+            else:
+                self._mark_apps_manual_followup_by_names(
+                    community_app_names,
+                    "No supported community-package helper is available for this target.",
+                )
+        if not groups:
+            return
+        self.ctx.plan.command_groups.extend(groups)
+        self.bridge.add_message(
+            "agent",
+            "[harness] Added missing app install group(s) from the validated app plan: "
+            + ", ".join(group.title for group in groups),
+        )
+        self.runlog.record(
+            "synthesized_app_command_groups",
+            stage=SetupStage.APPS.value,
+            groups=[asdict(group) for group in groups],
+        )
+
+    def _app_is_covered_by_app_group(self, app: AppPlanItem) -> bool:
+        if self.ctx.plan is None:
+            return False
+        variants = self._package_name_variants(app.name, app.package_name)
+        for group in self.ctx.plan.command_groups:
+            if group.stage != SetupStage.APPS:
+                continue
+            group_packages = {pkg.lower() for pkg in group.packages}
+            if variants and variants.intersection(group_packages):
+                return True
+            command_text = " ".join([group.title, *group.commands, *group.verification])
+            if any(
+                self._variant_appears_in_command_text(variant, command_text) for variant in variants
+            ):
+                return True
+        return False
+
+    @staticmethod
+    def _normalized_app_source(source: str) -> str:
+        normalized = (source or "").strip().lower().replace(" ", "_")
+        if normalized in _REPO_APP_SOURCES:
+            return "repo"
+        if normalized in _COMMUNITY_APP_SOURCES:
+            return "community"
+        return normalized or "manual_followup"
+
+    @staticmethod
+    def _community_install_command(packages: list[str], facts: SetupFacts) -> str:
+        if facts.package_manager != "pacman":
+            return ""
+        helper = facts.community_helper if facts.community_helper in {"yay", "paru"} else "yay"
+        quoted = " ".join(shlex.quote(package) for package in packages if package)
+        if not quoted:
+            return ""
+        if facts.is_root and facts.login_user and facts.login_user != "root":
+            return f"sudo -u {shlex.quote(facts.login_user)} {helper} -S --noconfirm {quoted}"
+        return f"{helper} -S --noconfirm {quoted}"
+
+    @staticmethod
+    def _package_verification_command(packages: list[str], facts: SetupFacts) -> str:
+        quoted = " ".join(shlex.quote(package) for package in packages if package)
+        if not quoted:
+            return "true"
+        pm = facts.package_manager
+        if pm == "pacman":
+            return f"pacman -Q {quoted}"
+        if pm == "apt":
+            return f"dpkg-query -W {quoted}"
+        if pm in {"dnf", "zypper"}:
+            return f"rpm -q {quoted}"
+        if pm == "apk":
+            return f"apk info -e {quoted}"
+        if pm == "xbps":
+            return " && ".join(f"xbps-query {shlex.quote(package)}" for package in packages)
+        if pm == "emerge":
+            return " && ".join(f"qlist -IC {shlex.quote(package)}" for package in packages)
+        return "true"
+
+    def _mark_apps_manual_followup_by_names(self, names: list[str], reason: str) -> None:
+        if self.ctx.plan is None:
+            return
+        wanted = {name.lower() for name in names if name}
+        for app in self.ctx.plan.apps:
+            if app.name.lower() in wanted:
+                app.status = PlanItemStatus.MANUAL_FOLLOWUP
+                app.reason = reason
+
+    def _normalize_package_verification_command(self, command: str, *, stage: SetupStage) -> str:
+        facts = self.ctx.facts or SetupFacts()
+        if facts.package_manager != "pacman" or stage not in _INSTALLED_NONROOT_PRIVILEGED_STAGES:
+            return command
+        match = _PACMAN_QI_SINGLE_RE.match((command or "").strip())
+        if not match:
+            return command
+        name = shlex.quote(match.group("name"))
+        return f"(pacman -Qi {name} >/dev/null 2>&1 || pacman -Qg {name} >/dev/null 2>&1)"
 
     def _auto_repair_missing_repo_targets(
         self,
@@ -1577,6 +1834,16 @@ class SetupOrchestrator:
             group_id=group.id,
             missing=sorted(missing),
             commands=repaired_commands,
+        )
+        self.ctx.stage_state.setdefault(stage.value, {}).setdefault("manual_followups", []).append(
+            {
+                "group_id": group.id,
+                "reason": (
+                    "Unavailable repository target(s) were dropped from "
+                    f"'{group.title}': {', '.join(sorted(missing))}. "
+                    "Review or choose alternatives after setup."
+                ),
+            }
         )
         return repaired_group
 
@@ -2524,10 +2791,12 @@ class SetupOrchestrator:
             for token in (
                 "kwriteconfig",
                 "gsettings",
+                "xfconf-query",
                 ".dmrc",
                 "/.config/",
                 "/etc/sddm.conf",
                 "/etc/sddm.conf.d/",
+                "/etc/lightdm/",
                 "kscreen",
                 "kdeglobals",
             )

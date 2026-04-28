@@ -58,6 +58,34 @@ def test_desktop_audit_accepts_observed_design_state():
     assert result.details["desktop_design"]["kde_color_scheme"] == "SweetMars"
 
 
+def test_desktop_audit_accepts_observed_xfce_design_state():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="ada",
+        desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
+        desktop_design=DesktopDesignState(
+            environment="XFCE",
+            xfce_gtk_theme="Arc-Dark",
+            xfce_icon_theme="Papirus",
+            xfce_window_theme="Arc-Dark",
+        ),
+    )
+
+    result = audit_stage(
+        SetupStage.DESKTOP,
+        facts,
+        stage_state={
+            "persisted_config_written": True,
+            "desktop_design_attempted": True,
+            "display_manual_followup": True,
+        },
+    )
+
+    assert result.passed
+    assert result.details["desktop_design"]["xfce_icon_theme"] == "Papirus"
+
+
 def test_desktop_audit_blocks_wallpaper_attempt_without_wallpaper_state():
     facts = SetupFacts(
         distro_family="arch",
