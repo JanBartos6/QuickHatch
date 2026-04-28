@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from quickhatch.config import UserProfile
 from quickhatch.setup.resolver import (
+    arch_nvidia_official_package_supported,
     build_install_command,
     build_service_enable_command,
     community_search_command,
@@ -64,3 +65,15 @@ def test_arch_legacy_nvidia_driver_strategy_requires_current_research():
     assert strategy.strategy == "nvidia_legacy_manual_followup"
     assert strategy.confidence == "manual_followup_required"
     assert strategy.packages == []
+
+
+def test_arch_nvidia_official_package_support_rejects_pascal_default_package():
+    facts = SetupFacts(
+        package_manager="pacman",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GeForce GTX 1080"],
+    )
+
+    assert arch_nvidia_official_package_supported(facts, ["nvidia-open"]) is False
+    assert arch_nvidia_official_package_supported(facts, ["nvidia-open-dkms"]) is False
+    assert arch_nvidia_official_package_supported(facts, ["nvidia-utils"]) is True

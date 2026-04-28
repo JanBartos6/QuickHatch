@@ -21,6 +21,7 @@ echo 'QH_IS_ROOT='$(if [ "$(id -u 2>/dev/null)" = "0" ]; then echo yes; else ech
 echo 'QH_SUDO_NOPASSWD='$(if [ "$(id -u 2>/dev/null)" = "0" ]; then echo yes; elif command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then echo yes; else echo no; fi)
 echo 'QH_OS_ID='$(. /etc/os-release 2>/dev/null; echo ${ID:-unknown})
 echo 'QH_OS_LIKE='$(. /etc/os-release 2>/dev/null; echo ${ID_LIKE:-})
+echo 'QH_KERNEL_RELEASE='$(uname -r 2>/dev/null || true)
 echo 'QH_VIRT='$(systemd-detect-virt 2>/dev/null || true)
 echo 'QH_SYS_VENDOR='$(cat /sys/class/dmi/id/sys_vendor 2>/dev/null | tr '|' '/')
 echo 'QH_PRODUCT_NAME='$(cat /sys/class/dmi/id/product_name 2>/dev/null | tr '|' '/')
@@ -374,6 +375,7 @@ def describe_fact_changes(before: SetupFacts | None, after: SetupFacts | None) -
         "package_manager": "package manager",
         "community_helper": "community helper",
         "virtualization": "virtualization",
+        "kernel_release": "kernel release",
         "system_vendor": "system vendor",
         "product_name": "product name",
         "current_user": "current user",
@@ -429,6 +431,7 @@ def probe_setup_facts(
         init_system=base.init_system,
         os_id=base.os_id,
         os_like=base.os_like,
+        kernel_release=base.kernel_release,
         virtualization=base.virtualization,
         system_vendor=base.system_vendor,
         product_name=base.product_name,
@@ -482,6 +485,9 @@ def probe_setup_facts(
     facts.sudo_nopasswd = raw.get("QH_SUDO_NOPASSWD", "no") == "yes"
     facts.os_id = raw.get("QH_OS_ID", facts.os_id) or facts.os_id
     facts.os_like = raw.get("QH_OS_LIKE", facts.os_like) or facts.os_like
+    facts.kernel_release = (
+        raw.get("QH_KERNEL_RELEASE", facts.kernel_release) or facts.kernel_release
+    )
     facts.virtualization = raw.get("QH_VIRT", facts.virtualization) or facts.virtualization
     facts.system_vendor = raw.get("QH_SYS_VENDOR", facts.system_vendor) or facts.system_vendor
     facts.product_name = raw.get("QH_PRODUCT_NAME", facts.product_name) or facts.product_name

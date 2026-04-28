@@ -124,6 +124,7 @@ class SetupFacts:
     init_system: str = "unknown"
     os_id: str = ""
     os_like: str = ""
+    kernel_release: str = ""
     virtualization: str = ""
     system_vendor: str = ""
     product_name: str = ""

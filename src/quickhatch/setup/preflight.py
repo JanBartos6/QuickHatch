@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 import shlex
 
+from .resolver import arch_nvidia_official_package_supported
 from .types import SetupFacts
 
 _ARCH_AUR_ONLY_PACKAGES = frozenset(
@@ -553,6 +554,12 @@ def preflight_setup_command(
                         "Do not pass AUR-only packages to `pacman` on Arch. "
                         + ", ".join(aur_only)
                         + " should use an AUR helper or manual `makepkg` flow."
+                    )
+                if not arch_nvidia_official_package_supported(facts, packages):
+                    return (
+                        "Detected pre-Turing NVIDIA hardware. Do not install the current "
+                        "official Arch NVIDIA packages blindly; resolve the supported legacy "
+                        "driver path with repo/AUR/web research before mutating drivers."
                     )
         elif package_manager == "apt" and tool in {"pacman", "yay", "paru", "dnf", "zypper"}:
             return f"This target uses apt, so `{tool}` is the wrong package manager."

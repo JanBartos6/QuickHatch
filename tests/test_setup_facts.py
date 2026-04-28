@@ -14,6 +14,7 @@ QH_IS_ROOT=no
 QH_SUDO_NOPASSWD=yes
 QH_OS_ID=arch
 QH_OS_LIKE=
+QH_KERNEL_RELEASE=6.19.14-arch1-1
 QH_VIRT=oracle
 QH_SYS_VENDOR=innotek GmbH
 QH_PRODUCT_NAME=VirtualBox
@@ -57,6 +58,7 @@ QH_XRANDR_END
     assert facts.displays[0].primary is True
     assert facts.desktop_runtime_state == DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
     assert facts.virtualization == "oracle"
+    assert facts.kernel_release == "6.19.14-arch1-1"
     assert facts.system_vendor == "innotek GmbH"
     assert facts.product_name == "VirtualBox"
     assert facts.secure_boot_state == "disabled"

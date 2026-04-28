@@ -250,6 +250,37 @@ def test_preflight_allows_non_root_package_manager_read_only_probes():
     assert preflight_setup_command("pacman -Ss nvidia", facts) is None
 
 
+def test_preflight_blocks_arch_default_nvidia_packages_for_pre_turing_gpu():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GeForce GTX 1080"],
+    )
+
+    error = preflight_setup_command("sudo pacman -S --noconfirm nvidia-open", facts)
+
+    assert error
+    assert "pre-Turing NVIDIA" in error
+
+
+def test_preflight_allows_arch_nvidia_open_for_rtx_gpu():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GeForce RTX 3080"],
+    )
+
+    assert preflight_setup_command("sudo pacman -S --noconfirm nvidia-open", facts) is None
+
+
 def test_preflight_still_blocks_pacman_database_refresh_without_root():
     facts = SetupFacts(
         package_manager="pacman",

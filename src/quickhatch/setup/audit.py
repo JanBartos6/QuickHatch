@@ -78,6 +78,17 @@ def audit_stage(
                 "NVIDIA driver strategy still requires manual follow-up; do not declare "
                 "driver setup complete until it is explicitly installed, skipped, or verified."
             )
+        if (
+            "nvidia" in facts.gpu_vendors
+            and plan is not None
+            and plan.driver_strategy.confidence != "manual_followup_required"
+            and plan.driver_strategy.source != "manual_followup"
+            and not expected
+        ):
+            blockers.append(
+                "NVIDIA driver strategy is marked resolved but contains no driver packages; "
+                "re-research the target driver path before continuing."
+            )
         if "nvidia" in facts.gpu_vendors and expected and facts.nvidia_smi_state != "ok":
             blockers.append("NVIDIA verification is incomplete: nvidia-smi is not healthy yet.")
             if facts.secure_boot_state == "enabled":

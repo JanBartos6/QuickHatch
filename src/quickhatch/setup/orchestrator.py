@@ -65,9 +65,23 @@ _ARCH_NVIDIA_OPEN_PACKAGES = (
     "lib32-nvidia-utils",
     "nvidia-settings",
 )
-_ARCH_NVIDIA_PROPRIETARY_PACKAGES = (
-    "linux-headers",
-    "nvidia",
+_ARCH_NVIDIA_LTS_OPEN_PACKAGES = (
+    "linux-lts-headers",
+    "nvidia-lts-open",
+    "nvidia-utils",
+    "lib32-nvidia-utils",
+    "nvidia-settings",
+)
+_ARCH_NVIDIA_ZEN_OPEN_PACKAGES = (
+    "linux-zen-headers",
+    "nvidia-open-dkms",
+    "nvidia-utils",
+    "lib32-nvidia-utils",
+    "nvidia-settings",
+)
+_ARCH_NVIDIA_HARDENED_OPEN_PACKAGES = (
+    "linux-hardened-headers",
+    "nvidia-open-dkms",
     "nvidia-utils",
     "lib32-nvidia-utils",
     "nvidia-settings",
@@ -2499,6 +2513,8 @@ class SetupOrchestrator:
         return "nvidia" in text or "nouveau" in text
 
     def _normalize_arch_nvidia_commands(self, commands: list[str]) -> list[str]:
+        if self._arch_nvidia_requires_manual_package_resolution():
+            return commands
         normalized: list[str] = []
         inserted_install = False
         for command in commands:
@@ -2695,12 +2711,17 @@ class SetupOrchestrator:
 
     def _arch_nvidia_packages(self) -> tuple[str, ...]:
         facts = self.ctx.facts or SetupFacts()
-        if self._nvidia_inventory_requires_proprietary_kernel(facts):
-            return _ARCH_NVIDIA_PROPRIETARY_PACKAGES
+        kernel_release = (facts.kernel_release or "").lower()
+        if "-lts" in kernel_release:
+            return _ARCH_NVIDIA_LTS_OPEN_PACKAGES
+        if "-zen" in kernel_release:
+            return _ARCH_NVIDIA_ZEN_OPEN_PACKAGES
+        if "-hardened" in kernel_release:
+            return _ARCH_NVIDIA_HARDENED_OPEN_PACKAGES
         return _ARCH_NVIDIA_OPEN_PACKAGES
 
-    @staticmethod
-    def _nvidia_inventory_requires_proprietary_kernel(facts: SetupFacts) -> bool:
+    def _arch_nvidia_requires_manual_package_resolution(self) -> bool:
+        facts = self.ctx.facts or SetupFacts()
         return bool(facts.gpu_inventory and not nvidia_open_kernel_supported(facts))
 
     def _maybe_reboot_for_nvidia_driver(

@@ -20,6 +20,16 @@ _NVIDIA_PRE_TURING_RE = re.compile(
     r"tesla\s+[kmp]\d{2,4}|maxwell|pascal|kepler|fermi)\b",
     re.IGNORECASE,
 )
+_ARCH_OFFICIAL_NVIDIA_PACKAGES = frozenset(
+    {
+        "nvidia",
+        "nvidia-dkms",
+        "nvidia-lts",
+        "nvidia-lts-open",
+        "nvidia-open",
+        "nvidia-open-dkms",
+    }
+)
 
 
 def detect_family(facts: SetupFacts) -> str:
@@ -128,6 +138,14 @@ def nvidia_open_kernel_supported(facts: SetupFacts) -> bool:
     if _NVIDIA_OPEN_KERNEL_SUPPORTED_RE.search(inventory):
         return True
     return True
+
+
+def arch_nvidia_official_package_supported(facts: SetupFacts, packages: list[str]) -> bool:
+    """Return False for Arch NVIDIA package plans that conflict with detected hardware."""
+
+    if nvidia_open_kernel_supported(facts):
+        return True
+    return not any(package in _ARCH_OFFICIAL_NVIDIA_PACKAGES for package in packages)
 
 
 def driver_strategy(profile: UserProfile, facts: SetupFacts) -> StrategyDecision:

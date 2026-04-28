@@ -234,6 +234,34 @@ def test_driver_audit_blocks_unresolved_legacy_nvidia_strategy():
     assert any("manual follow-up" in item for item in result.blockers)
 
 
+def test_driver_audit_blocks_resolved_nvidia_strategy_without_packages():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GeForce RTX 3080"],
+        nvidia_smi_state="missing",
+    )
+    plan = ResearchPlan(
+        target_summary="Arch NVIDIA workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(
+            strategy="official_nvidia_open",
+            confidence="resolved_official",
+            source="official",
+            packages=[],
+        ),
+        desktop_strategy=StrategyDecision(strategy="none"),
+    )
+
+    result = audit_stage(SetupStage.POSTBOOT_DRIVER, facts, plan=plan)
+
+    assert not result.passed
+    assert any("contains no driver packages" in item for item in result.blockers)
+
+
 def test_driver_audit_blocks_modern_radeon_bound_to_legacy_driver():
     facts = SetupFacts(
         distro_family="arch",
