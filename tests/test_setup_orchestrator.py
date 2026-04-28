@@ -330,6 +330,59 @@ def test_installed_nonroot_privilege_normalization_sudoes_privileged_tee_pipelin
     ]
 
 
+def test_installed_nonroot_privilege_normalization_converts_echo_redirection_to_sudo_tee():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="desktop",
+        stage=SetupStage.DESKTOP,
+        title="Configure SDDM autologin",
+        commands=[
+            "echo -e '[Autologin]\\nUser=jan\\nSession=plasma.desktop' > /etc/sddm.conf.d/autologin.conf"
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.DESKTOP, group)
+
+    assert commands == [
+        "echo -e '[Autologin]\\nUser=jan\\nSession=plasma.desktop' | sudo tee /etc/sddm.conf.d/autologin.conf >/dev/null"
+    ]
+
+
+def test_installed_nonroot_privilege_normalization_preserves_root_redirection():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        login_user="root",
+        is_root=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="desktop",
+        stage=SetupStage.DESKTOP,
+        title="Configure SDDM autologin",
+        commands=["echo -e '[Autologin]\\nUser=jan' > /etc/sddm.conf.d/autologin.conf"],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.DESKTOP, group)
+
+    assert commands == ["echo -e '[Autologin]\\nUser=jan' > /etc/sddm.conf.d/autologin.conf"]
+
+
 def test_installed_stage_strips_stale_chroot_prefix_and_sudoes_inner_command():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

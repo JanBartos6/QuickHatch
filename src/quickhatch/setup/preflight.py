@@ -7,8 +7,8 @@ resolution belongs to the planner/search phase.
 
 from __future__ import annotations
 
-import shlex
 import re
+import shlex
 
 from .types import SetupFacts
 
@@ -32,6 +32,11 @@ _ARCH_AUR_ONLY_PACKAGES = frozenset(
     }
 )
 _AURISH_SUFFIXES = ("-bin", "-git")
+_ARCH_BROAD_PACKAGE_GROUPS = frozenset(
+    {
+        "kde-applications",
+    }
+)
 _NETWORK_SECURITY_SERVICE_TOKENS = frozenset(
     {
         "mullvad-daemon",
@@ -254,6 +259,47 @@ def _is_root_owned_path(token: str) -> bool:
     return any(path.startswith(prefix) for prefix in _ROOT_WRITE_PREFIXES)
 
 
+def _root_owned_redirection_target(command: str) -> str | None:
+    quote: str | None = None
+    escaped = False
+    idx = 0
+    while idx < len(command):
+        char = command[idx]
+        if escaped:
+            escaped = False
+            idx += 1
+            continue
+        if char == "\\":
+            escaped = True
+            idx += 1
+            continue
+        if quote:
+            if char == quote:
+                quote = None
+            idx += 1
+            continue
+        if char in {"'", '"'}:
+            quote = char
+            idx += 1
+            continue
+        if char == ">":
+            op_len = 2 if idx + 1 < len(command) and command[idx + 1] == ">" else 1
+            rest = command[idx + op_len :].strip()
+            if not rest or rest.startswith("&"):
+                idx += op_len
+                continue
+            try:
+                target = shlex.split(rest, posix=True)[0]
+            except (IndexError, ValueError):
+                target = rest.split(maxsplit=1)[0] if rest else ""
+            if _is_root_owned_path(target):
+                return target
+            idx += op_len
+            continue
+        idx += 1
+    return None
+
+
 def _mutates_root_owned_path(tool: str, tokens: list[str]) -> bool:
     if tool not in _ROOT_WRITE_TOOLS:
         return False
@@ -427,6 +473,14 @@ def preflight_setup_command(
         if not tokens:
             continue
         tool = _normalize_tool(tokens[0])
+        redirected_target = _root_owned_redirection_target(segment)
+        if redirected_target and not has_root_privilege:
+            return (
+                f"`{segment}` redirects shell output into root-owned path "
+                f"`{redirected_target}` but the shell is not running as root. Shell "
+                "redirection happens before `sudo`; use `sudo tee` or "
+                "`sudo sh -c '...'` for root-owned config/system paths."
+            )
         if _mutates_root_owned_path(tool, tokens) and not has_root_privilege:
             return (
                 f"`{segment}` mutates a root-owned path but is not running as root. "
@@ -471,6 +525,17 @@ def preflight_setup_command(
                 )
             if tool == "pacman":
                 packages = _extract_pacman_install_packages(tokens)
+                broad_groups = [
+                    package for package in packages if package in _ARCH_BROAD_PACKAGE_GROUPS
+                ]
+                if broad_groups:
+                    return (
+                        "Do not install broad Arch desktop application groups unless the "
+                        "user explicitly requested the full suite. "
+                        + ", ".join(broad_groups)
+                        + " should be replaced with named requested apps such as kate, "
+                        "konsole, dolphin, spectacle, or ark."
+                    )
                 aur_only = [
                     package
                     for package in packages

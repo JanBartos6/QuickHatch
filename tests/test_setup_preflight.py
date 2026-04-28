@@ -139,6 +139,71 @@ def test_preflight_allows_root_owned_config_edit_with_sudo():
     assert error is None
 
 
+def test_preflight_blocks_root_owned_shell_redirection_without_root_shell():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+    )
+
+    error = preflight_setup_command(
+        "echo -e '[Autologin]\\nUser=jan' > /etc/sddm.conf.d/autologin.conf",
+        facts,
+    )
+
+    assert error
+    assert "redirects shell output" in error
+    assert "sudo tee" in error
+
+
+def test_preflight_allows_root_owned_shell_redirection_for_root_session():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="none",
+        current_user="root",
+        login_user="root",
+        is_root=True,
+    )
+
+    error = preflight_setup_command(
+        "echo -e '[Autologin]\\nUser=jan' > /etc/sddm.conf.d/autologin.conf",
+        facts,
+    )
+
+    assert error is None
+
+
+def test_preflight_allows_sudo_tee_for_root_owned_write():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+    )
+
+    error = preflight_setup_command(
+        "printf '%s\\n' 'options nvidia-drm modeset=1' | sudo tee /etc/modprobe.d/nvidia.conf >/dev/null",
+        facts,
+    )
+
+    assert error is None
+
+
+def test_preflight_blocks_broad_arch_desktop_app_group():
+    facts = SetupFacts(package_manager="pacman", community_helper="yay", is_root=True)
+
+    error = preflight_setup_command(
+        "pacman -S --noconfirm plasma kde-applications papirus-icon-theme",
+        facts,
+    )
+
+    assert error
+    assert "broad Arch desktop application groups" in error
+
+
 def test_preflight_blocks_non_root_package_manager_mutation():
     facts = SetupFacts(
         package_manager="pacman",

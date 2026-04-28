@@ -31,8 +31,8 @@ from .preflight import arch_community_helpers_in_command, preflight_setup_comman
 from .resolver import build_install_command
 from .runlog import SetupRunLogger
 from .types import (
-    AuditResult,
     AppPlanItem,
+    AuditResult,
     CommandGroup,
     DesktopRuntimeState,
     PlanItemStatus,
@@ -206,6 +206,8 @@ _INSTALLED_CHROOT_PREFIX_RE = re.compile(
     r"^(?:sudo\s+)?(?:arch-chroot|chroot)\s+/(?:mnt|target)\s+(?P<inner>.+)$",
     re.IGNORECASE | re.DOTALL,
 )
+_PRIVILEGED_REDIRECT_PREFIXES = ("/etc/", "/boot/", "/usr/", "/var/lib/", "/opt/")
+_PRIVILEGED_REDIRECT_EXACT_PATHS = {"/etc", "/boot", "/usr", "/opt"}
 
 
 @dataclass
@@ -2187,6 +2189,16 @@ class SetupOrchestrator:
             stripped = chroot_stripped
         if facts.is_root:
             return stripped if stripped != command.strip() else command
+        rewritten = self._sudo_tee_for_privileged_redirection(stripped)
+        if rewritten != stripped:
+            self.runlog.record(
+                "command_privilege_normalized",
+                stage=stage.value,
+                original=command,
+                rewritten=rewritten,
+                reason="root-owned shell redirection",
+            )
+            return rewritten
         if not stripped or self._has_privileged_command_wrapper(stripped):
             return stripped if stripped != command.strip() else command
         if self._uses_arch_community_helper_command(stripped):
@@ -2248,6 +2260,93 @@ class SetupOrchestrator:
         ):
             return command
         return re.sub(r"\|\s*tee\b", "| sudo tee", command, count=1)
+
+    @staticmethod
+    def _is_privileged_redirect_target(path: str) -> bool:
+        stripped = (path or "").strip().strip("'\"")
+        return stripped in _PRIVILEGED_REDIRECT_EXACT_PATHS or any(
+            stripped.startswith(prefix) for prefix in _PRIVILEGED_REDIRECT_PREFIXES
+        )
+
+    @staticmethod
+    def _split_shell_redirection(command: str) -> tuple[str, str, str] | None:
+        quote: str | None = None
+        escaped = False
+        idx = 0
+        while idx < len(command):
+            char = command[idx]
+            if escaped:
+                escaped = False
+                idx += 1
+                continue
+            if char == "\\":
+                escaped = True
+                idx += 1
+                continue
+            if quote:
+                if char == quote:
+                    quote = None
+                idx += 1
+                continue
+            if char in {"'", '"'}:
+                quote = char
+                idx += 1
+                continue
+            if char == ">":
+                op = ">>" if idx + 1 < len(command) and command[idx + 1] == ">" else ">"
+                rest = command[idx + len(op) :].strip()
+                if not rest or rest.startswith("&"):
+                    idx += len(op)
+                    continue
+                try:
+                    target = shlex.split(rest, posix=True)[0]
+                except (IndexError, ValueError):
+                    target = rest.split(maxsplit=1)[0] if rest else ""
+                if target:
+                    return command[:idx].strip(), op, target
+                idx += len(op)
+                continue
+            idx += 1
+        return None
+
+    @staticmethod
+    def _strip_leading_sudo_for_redirection(tokens: list[str]) -> list[str]:
+        if not tokens or tokens[0] != "sudo":
+            return tokens
+        idx = 1
+        while idx < len(tokens):
+            token = tokens[idx]
+            if token in {"-u", "-g", "-h", "-D", "-p", "-r", "-t", "-T", "-C", "-R"}:
+                idx += 2
+                continue
+            if token.startswith("-"):
+                idx += 1
+                continue
+            break
+        return tokens[idx:]
+
+    def _sudo_tee_for_privileged_redirection(self, command: str) -> str:
+        split = self._split_shell_redirection(command)
+        if split is None:
+            return command
+        left, op, target = split
+        if not self._is_privileged_redirect_target(target):
+            return command
+        if any(separator in left for separator in ("|", "&&", "||", ";")):
+            return command
+        try:
+            tokens = shlex.split(left, posix=True)
+        except ValueError:
+            return command
+        tokens = self._strip_leading_sudo_for_redirection(tokens)
+        if not tokens:
+            return command
+        tool = tokens[0].split("/")[-1].lower()
+        if tool not in {"echo", "printf"}:
+            return command
+        writer = shlex.join(tokens)
+        tee = "tee -a" if op == ">>" else "tee"
+        return f"{writer} | sudo {tee} {shlex.quote(target)} >/dev/null"
 
     def _is_arch_nvidia_driver_group(
         self, stage: SetupStage, group: CommandGroup, commands: list[str]
