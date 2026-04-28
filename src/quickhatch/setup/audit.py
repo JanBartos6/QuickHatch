@@ -71,6 +71,7 @@ def audit_stage(
     elif stage == SetupStage.DESKTOP:
         details["desktop_runtime_state"] = facts.desktop_runtime_state.value
         details["desktop_design"] = asdict(facts.desktop_design)
+        details["display_manager_active"] = facts.display_manager_active
         details["display_manual_followup"] = bool(state.get("display_manual_followup"))
         if state.get("display_manual_followup_reason"):
             details["display_manual_followup_reason"] = state.get("display_manual_followup_reason")
@@ -87,6 +88,10 @@ def audit_stage(
         ]
         if facts.desktop_runtime_state == DesktopRuntimeState.UNKNOWN:
             blockers.append("Desktop runtime state is still unknown.")
+        if facts.display_manager_enabled and not facts.display_manager_active:
+            blockers.append(
+                "Display manager is enabled but not active; start it or reboot before declaring desktop success."
+            )
         if not _desktop_persistence_satisfied(facts, state):
             blockers.append("Desktop configuration was not persisted yet.")
         if state.get("desktop_design_attempted") and not _has_desktop_design_signal(facts):

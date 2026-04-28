@@ -176,6 +176,7 @@ def desktop_runtime_capabilities(facts: SetupFacts) -> dict[str, Any]:
     return {
         "session_type": facts.session_type,
         "display_manager_enabled": facts.display_manager_enabled,
+        "display_manager_active": facts.display_manager_active,
         "has_live_session": bool(facts.session_type),
         "can_apply_live": bool(facts.session_type and facts.displays),
         "desktop_runtime_state": facts.desktop_runtime_state.value,

@@ -234,6 +234,7 @@ def test_pending_login_display_preferences_become_manual_followup():
         current_user="ada",
         display_manager="lightdm",
         display_manager_enabled=True,
+        display_manager_active=True,
         desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
         displays=[],
     )
@@ -1013,6 +1014,7 @@ def test_desktop_runtime_group_prompts_then_manual_followup_when_no_display(monk
         current_user="jan",
         login_user="jan",
         display_manager_enabled=True,
+        display_manager_active=True,
         desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
     )
     orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
@@ -1047,6 +1049,7 @@ def test_desktop_package_group_does_not_require_runtime_display(monkeypatch):
         current_user="jan",
         login_user="jan",
         display_manager_enabled=True,
+        display_manager_active=True,
         desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
     )
     orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
@@ -1067,6 +1070,54 @@ def test_desktop_package_group_does_not_require_runtime_display(monkeypatch):
 
     assert orchestrator._desktop_runtime_ready_or_followup(group, {})
     assert asked["value"] is False
+
+
+def test_desktop_stage_starts_enabled_inactive_display_manager():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    before = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        init_system="systemd",
+        current_user="linus",
+        login_user="linus",
+        display_manager="gdm",
+        display_manager_enabled=True,
+        display_manager_active=False,
+        desktop_runtime_state=DesktopRuntimeState.BLOCKED_NO_GUI_SESSION,
+    )
+    after = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        init_system="systemd",
+        current_user="linus",
+        login_user="linus",
+        display_manager="gdm",
+        display_manager_enabled=True,
+        display_manager_active=True,
+        desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
+    )
+    commands: list[str] = []
+
+    def ssh_exec(command, _timeout):
+        commands.append(command)
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(
+            profile,
+            bridge,
+            before,
+            ssh_exec=ssh_exec,
+            probe_facts=lambda **kwargs: after,
+        )
+    )
+    orchestrator.ctx.facts = before
+
+    orchestrator._ensure_display_manager_started()
+
+    assert any("systemctl start display-manager.service" in command for command in commands)
+    assert orchestrator.ctx.facts.display_manager_active is True
 
 
 def test_pre_reboot_checks_retry_transient_ssh_disconnect(monkeypatch):

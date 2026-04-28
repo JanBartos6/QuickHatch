@@ -131,6 +131,7 @@ echo 'QH_XFCE_WINDOW_THEME='$(qh_xfconf_value xfwm4 /general/theme)
 echo 'QH_XFCE_WALLPAPER='$(if command -v xfconf-query >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2>&1; then qh_wallpaper_prop=$(dbus-run-session xfconf-query -c xfce4-desktop -l 2>/dev/null | grep -E '/last-image$|/image-path$' | head -n 1); [ -n "$qh_wallpaper_prop" ] && dbus-run-session xfconf-query -c xfce4-desktop -p "$qh_wallpaper_prop" 2>/dev/null; fi)
 echo 'QH_DM='$(basename "$(readlink /etc/systemd/system/display-manager.service 2>/dev/null)" 2>/dev/null | sed 's/\.service$//' || true)
 echo 'QH_DM_ENABLED='$(if command -v systemctl >/dev/null 2>&1 && systemctl is-enabled display-manager >/dev/null 2>&1; then echo yes; else echo no; fi)
+echo 'QH_DM_ACTIVE='$(if command -v systemctl >/dev/null 2>&1 && systemctl is-active display-manager >/dev/null 2>&1; then echo yes; else echo no; fi)
 echo 'QH_GPU_VENDORS='$(lspci 2>/dev/null | awk 'BEGIN{IGNORECASE=1} /vga|3d|display/ { if ($0 ~ /nvidia/) print "nvidia"; else if ($0 ~ /amd|advanced micro devices|radeon/) print "amd"; else if ($0 ~ /intel/) print "intel"; }' | sort -u | paste -sd',' -)
 echo 'QH_GPU_INVENTORY='$(lspci 2>/dev/null | awk 'BEGIN{IGNORECASE=1} /vga|3d|display/ {sub(/^.*: /,""); gsub(/\|/, "/", $0); print $0}' | paste -sd'|' -)
 echo 'QH_NVIDIA_SMI='$(if command -v nvidia-smi >/dev/null 2>&1; then if nvidia-smi >/dev/null 2>&1; then echo ok; else echo present_but_failing; fi; else echo missing; fi)
@@ -282,7 +283,7 @@ def _parse_xrandr_output(output: str) -> list[DisplayRuntimeInfo]:
 def _desktop_runtime_state(facts: SetupFacts) -> DesktopRuntimeState:
     if facts.displays:
         return DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
-    if facts.display_manager_enabled:
+    if facts.display_manager_enabled and facts.display_manager_active:
         return DesktopRuntimeState.PENDING_RELOGIN
     if (
         facts.gpu_vendors
@@ -314,6 +315,7 @@ def describe_fact_changes(before: SetupFacts | None, after: SetupFacts | None) -
         "nvidia_nouveau_bound": "nouveau-bound NVIDIA GPU",
         "session_type": "session type",
         "display_manager": "display manager",
+        "display_manager_active": "display manager active",
     }
     for key, label in tracked.items():
         old = getattr(before, key, None)
@@ -409,6 +411,10 @@ def probe_setup_facts(
     facts.session_type = session_type if session_type in {"wayland", "x11"} else ""
     facts.display_manager = raw.get("QH_DM", facts.display_manager) or ""
     facts.display_manager_enabled = raw.get("QH_DM_ENABLED", "no") == "yes"
+    dm_active_raw = raw.get("QH_DM_ACTIVE")
+    facts.display_manager_active = (
+        dm_active_raw == "yes" if dm_active_raw is not None else facts.display_manager_enabled
+    )
     facts.desktop_design = DesktopDesignState(
         environment=raw.get("QH_DESKTOP_ENV", ""),
         kde_color_scheme=raw.get("QH_KDE_COLOR_SCHEME", ""),

@@ -1022,7 +1022,52 @@ class SetupOrchestrator:
         self._run_stage_groups(SetupStage.POSTBOOT_DRIVER)
 
     def _run_desktop(self) -> None:
-        self._run_stage_groups(SetupStage.DESKTOP)
+        self._run_stage_groups(SetupStage.DESKTOP, audit_after=False)
+        self._ensure_display_manager_started()
+        stage_state = self.ctx.stage_state.setdefault(SetupStage.DESKTOP.value, {})
+        self._update_desktop_display_audit_state(stage_state)
+        result = audit_stage(
+            SetupStage.DESKTOP,
+            self.ctx.facts or SetupFacts(),
+            plan=self.ctx.plan,
+            stage_state=stage_state,
+        )
+        self._record_stage_result(result)
+
+    def _ensure_display_manager_started(self) -> None:
+        facts = self.ctx.facts
+        if (
+            facts is None
+            or facts.init_system != "systemd"
+            or not facts.display_manager_enabled
+            or facts.display_manager_active
+        ):
+            return
+        command = (
+            'if [ "$(id -u)" = "0" ]; then '
+            "systemctl start display-manager.service; "
+            "else sudo systemctl start display-manager.service; fi"
+        )
+        self.bridge.add_message(
+            "agent",
+            "Starting the enabled display manager so the target reaches a graphical login…",
+        )
+        rc, stdout, stderr = self._ssh_exec_with_transient_retries(
+            command,
+            60,
+            stage=SetupStage.DESKTOP,
+            group_id="quickhatch-start-display-manager",
+            label="display-manager-start",
+        )
+        self.runlog.record(
+            "display_manager_start",
+            stage=SetupStage.DESKTOP.value,
+            command=command,
+            rc=rc,
+            stdout_tail=(stdout or "")[-500:],
+            stderr_tail=(stderr or "")[-500:],
+        )
+        self._refresh_facts(stage=SetupStage.DESKTOP)
 
     def _update_desktop_display_audit_state(self, stage_state: dict[str, Any]) -> None:
         prefs = self._source_display_preferences()

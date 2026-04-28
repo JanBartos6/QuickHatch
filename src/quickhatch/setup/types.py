@@ -144,6 +144,7 @@ class SetupFacts:
     session_type: str = ""
     display_manager: str = ""
     display_manager_enabled: bool = False
+    display_manager_active: bool = False
     desktop_runtime_state: DesktopRuntimeState = DesktopRuntimeState.UNKNOWN
     displays: list[DisplayRuntimeInfo] = field(default_factory=list)
     desktop_design: DesktopDesignState = field(default_factory=DesktopDesignState)

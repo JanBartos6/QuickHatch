@@ -23,6 +23,7 @@ QH_TARGET_ROOT=no
 QH_SESSION=
 QH_DM=sddm
 QH_DM_ENABLED=yes
+QH_DM_ACTIVE=yes
 QH_GPU_VENDORS=nvidia
 QH_GPU_INVENTORY=NVIDIA GeForce RTX 3080
 QH_NVIDIA_SMI=ok
@@ -204,6 +205,46 @@ QH_XRANDR_END
 
     assert facts.session_type == ""
     assert facts.desktop_runtime_state == DesktopRuntimeState.PENDING_RELOGIN
+
+
+def test_probe_setup_facts_distinguishes_enabled_inactive_display_manager():
+    output = """\
+QH_PM=pacman
+QH_AUR=none
+QH_USER=jan
+QH_LOGIN_USER=jan
+QH_IS_ROOT=no
+QH_SUDO_NOPASSWD=yes
+QH_OS_ID=arch
+QH_OS_LIKE=
+QH_INIT=systemd
+QH_BOOT=efi
+QH_TARGET_ROOT=no
+QH_SESSION=
+QH_DM=gdm
+QH_DM_ENABLED=yes
+QH_DM_ACTIVE=no
+QH_GPU_VENDORS=
+QH_GPU_INVENTORY=VMware SVGA II Adapter
+QH_NVIDIA_SMI=missing
+QH_NVIDIA_KERNEL_DRIVER=
+QH_NOUVEAU_BOUND=no
+QH_DRIVER_MODULES=
+QH_DISPLAYS=
+QH_KSCREEN_BEGIN
+QH_KSCREEN_END
+QH_XRANDR_BEGIN
+QH_XRANDR_END
+"""
+
+    def ssh_exec(_host, _user, _command, _key_path, _timeout, _port):
+        return (0, output, "")
+
+    facts = probe_setup_facts(ssh_exec, "192.0.2.10", "jan", None)
+
+    assert facts.display_manager_enabled is True
+    assert facts.display_manager_active is False
+    assert facts.desktop_runtime_state == DesktopRuntimeState.BLOCKED_NO_GUI_SESSION
 
 
 def test_probe_setup_facts_uses_xrandr_when_kscreen_is_unavailable():

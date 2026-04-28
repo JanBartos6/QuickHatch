@@ -37,6 +37,7 @@ def test_desktop_audit_accepts_stock_desktop_with_enabled_display_manager():
         current_user="linus",
         display_manager="gdm",
         display_manager_enabled=True,
+        display_manager_active=True,
         desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
         desktop_design=DesktopDesignState(
             environment="GNOME",
@@ -51,6 +52,25 @@ def test_desktop_audit_accepts_stock_desktop_with_enabled_display_manager():
 
     assert result.passed
     assert result.details["desktop_runtime_state"] == "pending_relogin"
+    assert result.details["display_manager_active"] is True
+
+
+def test_desktop_audit_blocks_enabled_but_inactive_display_manager():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="linus",
+        display_manager="gdm",
+        display_manager_enabled=True,
+        display_manager_active=False,
+        desktop_runtime_state=DesktopRuntimeState.BLOCKED_NO_GUI_SESSION,
+        desktop_design=DesktopDesignState(environment="GNOME"),
+    )
+
+    result = audit_stage(SetupStage.DESKTOP, facts, stage_state={})
+
+    assert not result.passed
+    assert any("enabled but not active" in item for item in result.blockers)
 
 
 def test_desktop_audit_accepts_observed_design_state():
