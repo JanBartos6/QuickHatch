@@ -2808,6 +2808,55 @@ def test_live_arch_vconsole_injection_does_not_split_assignment_from_pacstrap():
     assert "vconsole.conf" in commands[commands.index(pacstrap_command) - 1]
 
 
+def test_pre_format_partition_verification_uses_partition_nodes_not_filesystems():
+    group = CommandGroup(
+        id="partition",
+        stage=SetupStage.INSTALL_OR_SKIP,
+        title="Partition disk",
+        commands=[
+            "parted -s /dev/nvme0n1 mklabel gpt",
+            "parted -s /dev/nvme0n1 mkpart ESP fat32 1MiB 513MiB",
+            "parted -s /dev/nvme0n1 mkpart primary ext4 513MiB 100%",
+        ],
+    )
+
+    assert (
+        SetupOrchestrator._normalize_pre_format_partition_verification(
+            "parted -ms /dev/nvme0n1 print | grep -q '^1:.*:fat32:'",
+            group=group,
+        )
+        == "test -b /dev/nvme0n1p1"
+    )
+    assert (
+        SetupOrchestrator._normalize_pre_format_partition_verification(
+            "parted -ms /dev/sda print | grep -q '^2:.*:ext4:'",
+            group=group,
+        )
+        == "test -b /dev/sda2"
+    )
+
+
+def test_partition_verification_keeps_filesystem_check_after_mkfs():
+    group = CommandGroup(
+        id="format",
+        stage=SetupStage.INSTALL_OR_SKIP,
+        title="Format disk",
+        commands=[
+            "mkfs.fat -F32 /dev/sda1",
+            "mkfs.ext4 -F /dev/sda2",
+        ],
+    )
+    verification = "parted -ms /dev/sda print | grep -q '^2:.*:ext4:'"
+
+    assert (
+        SetupOrchestrator._normalize_pre_format_partition_verification(
+            verification,
+            group=group,
+        )
+        == verification
+    )
+
+
 def test_orchestrator_repairs_failed_command_group_with_search_and_retry():
     profile = UserProfile(apps_to_install=["Brave"])
     bridge = BridgeState(profile, persist_path=None)

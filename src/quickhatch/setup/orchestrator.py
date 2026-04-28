@@ -116,6 +116,11 @@ _PACMAN_QI_SINGLE_RE = re.compile(
     r"^(?:sudo\s+)?pacman\s+-Qi\s+(?P<name>[A-Za-z0-9@._+:-]+)\s*$",
     re.IGNORECASE,
 )
+_PARTED_PRE_FORMAT_FS_CHECK_RE = re.compile(
+    r"\bparted\s+-ms\s+(?P<disk>/\S+)\s+print\s*\|\s*grep\s+-q\s+"
+    r"(?P<quote>['\"])\^(?P<partition>\d+):\.\*:(?:fat32|ext[234]|btrfs|xfs):(?P=quote)",
+    re.IGNORECASE,
+)
 
 _REPO_APP_SOURCES = {
     "repo",
@@ -1605,6 +1610,19 @@ class SetupOrchestrator:
                 verification, stage=stage
             )
             verification = self._normalize_package_verification_command(verification, stage=stage)
+            normalized_verification = self._normalize_pre_format_partition_verification(
+                verification, group=group
+            )
+            if normalized_verification != verification:
+                self.runlog.record(
+                    "verification_normalized",
+                    stage=stage.value,
+                    group_id=group.id,
+                    original=verification,
+                    normalized=normalized_verification,
+                    reason="partition groups should verify partition nodes before mkfs, not filesystem labels",
+                )
+                verification = normalized_verification
             normalized_verification = self._normalize_fstab_mount_verification(verification)
             if normalized_verification != verification:
                 self.runlog.record(
@@ -1658,6 +1676,18 @@ class SetupOrchestrator:
                     detail=detail,
                 )
         return None
+
+    @staticmethod
+    def _normalize_pre_format_partition_verification(command: str, *, group: CommandGroup) -> str:
+        if any("mkfs" in planned.lower() for planned in group.commands):
+            return command
+        match = _PARTED_PRE_FORMAT_FS_CHECK_RE.search(command or "")
+        if not match:
+            return command
+        disk = match.group("disk").strip("'\"")
+        partition = match.group("partition")
+        suffix = "p" if disk and disk[-1].isdigit() else ""
+        return f"test -b {shlex.quote(disk + suffix + partition)}"
 
     @staticmethod
     def _normalize_fstab_mount_verification(command: str) -> str:
