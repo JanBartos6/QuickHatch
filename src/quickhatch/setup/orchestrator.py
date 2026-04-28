@@ -1599,6 +1599,17 @@ class SetupOrchestrator:
                 verification, stage=stage
             )
             verification = self._normalize_package_verification_command(verification, stage=stage)
+            normalized_verification = self._normalize_fstab_mount_verification(verification)
+            if normalized_verification != verification:
+                self.runlog.record(
+                    "verification_normalized",
+                    stage=stage.value,
+                    group_id=group.id,
+                    original=verification,
+                    normalized=normalized_verification,
+                    reason="fstab mount checks must match fields, not whitespace-sensitive text",
+                )
+                verification = normalized_verification
             self.bridge.add_message("agent", f"`{verification}` — verify")
             rc, stdout, stderr = self._ssh_exec_with_transient_retries(
                 verification,
@@ -1641,6 +1652,33 @@ class SetupOrchestrator:
                     detail=detail,
                 )
         return None
+
+    @staticmethod
+    def _normalize_fstab_mount_verification(command: str) -> str:
+        """Replace brittle `grep ' / ' fstab` checks with field-aware checks."""
+
+        try:
+            tokens = shlex.split(command, posix=True)
+        except ValueError:
+            return command
+        tool = (tokens[0] or "").strip().split("/")[-1].lower()
+        if len(tokens) < 3 or tool != "grep":
+            return command
+        args = tokens[1:]
+        if args and args[0] == "-q":
+            args = args[1:]
+        if len(args) != 2:
+            return command
+        mountpoint = args[0].strip()
+        path = args[1]
+        if mountpoint not in {"/", "/boot"} or not path.endswith("/etc/fstab"):
+            return command
+        return (
+            "awk "
+            + shlex.quote(f'$2 == "{mountpoint}" {{ found=1 }} END {{ exit(found ? 0 : 1) }}')
+            + " "
+            + shlex.quote(path)
+        )
 
     def _synthesize_missing_app_command_groups(self) -> None:
         """Turn resolved app plan rows into executable app groups if the model omitted them."""

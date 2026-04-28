@@ -1120,6 +1120,23 @@ def test_desktop_stage_starts_enabled_inactive_display_manager():
     assert orchestrator.ctx.facts.display_manager_active is True
 
 
+def test_fstab_mount_verification_uses_field_aware_check():
+    command = SetupOrchestrator._normalize_fstab_mount_verification("grep ' / ' /mnt/etc/fstab")
+
+    assert command.startswith("awk ")
+    assert '$2 == "/"' in command
+    assert command.endswith("/mnt/etc/fstab")
+
+
+def test_fstab_boot_verification_uses_field_aware_check():
+    command = SetupOrchestrator._normalize_fstab_mount_verification(
+        "grep -q ' /boot ' /mnt/etc/fstab"
+    )
+
+    assert command.startswith("awk ")
+    assert '$2 == "/boot"' in command
+
+
 def test_pre_reboot_checks_retry_transient_ssh_disconnect(monkeypatch):
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
