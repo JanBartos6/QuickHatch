@@ -1354,6 +1354,64 @@ def test_arch_nvidia_group_rewrites_legacy_driver_install_and_adds_boot_config()
     assert any("grub-mkconfig" in command for command in commands)
 
 
+def test_arch_nvidia_group_uses_proprietary_stack_for_pre_turing_gpu():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GeForce GTX 1080"],
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="driver",
+        stage=SetupStage.POSTBOOT_DRIVER,
+        title="NVIDIA Driver Setup",
+        commands=["sudo pacman -S --noconfirm nvidia-open nvidia-utils"],
+        packages=["nvidia-open"],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.POSTBOOT_DRIVER, group)
+
+    assert commands[0] == (
+        "sudo pacman -Syu --needed --noconfirm "
+        "linux-headers nvidia nvidia-utils lib32-nvidia-utils nvidia-settings"
+    )
+    assert "nvidia-open" not in commands[0]
+
+
+def test_arch_nvidia_group_keeps_open_stack_for_rtx_gpu():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GA102 [GeForce RTX 3080]"],
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="driver",
+        stage=SetupStage.POSTBOOT_DRIVER,
+        title="NVIDIA Driver Setup",
+        commands=["sudo pacman -S --noconfirm nvidia nvidia-utils"],
+        packages=["nvidia"],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.POSTBOOT_DRIVER, group)
+
+    assert "linux-headers nvidia-open nvidia-utils" in commands[0]
+
+
 def test_arch_nvidia_stage_reboots_once_when_nouveau_is_bound_before_verification():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

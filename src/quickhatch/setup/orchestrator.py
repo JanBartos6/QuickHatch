@@ -28,7 +28,7 @@ from .planner import (
     extract_research_plan,
 )
 from .preflight import arch_community_helpers_in_command, preflight_setup_command
-from .resolver import build_install_command
+from .resolver import build_install_command, nvidia_open_kernel_supported
 from .runlog import SetupRunLogger
 from .types import (
     AppPlanItem,
@@ -58,9 +58,16 @@ _ARCH_NVIDIA_INSTALL_RE = re.compile(
     r"\b(?:sudo\s+)?pacman\s+-S(?:y|u|yu|yyu)?\b.*\bnvidia\b",
     re.IGNORECASE,
 )
-_ARCH_NVIDIA_PACKAGES = (
+_ARCH_NVIDIA_OPEN_PACKAGES = (
     "linux-headers",
     "nvidia-open",
+    "nvidia-utils",
+    "lib32-nvidia-utils",
+    "nvidia-settings",
+)
+_ARCH_NVIDIA_PROPRIETARY_PACKAGES = (
+    "linux-headers",
+    "nvidia",
     "nvidia-utils",
     "lib32-nvidia-utils",
     "nvidia-settings",
@@ -2682,10 +2689,19 @@ class SetupOrchestrator:
     def _uses_arch_community_helper_command(command: str) -> bool:
         return bool(arch_community_helpers_in_command(command))
 
-    @staticmethod
-    def _arch_nvidia_install_command() -> str:
-        packages = " ".join(_ARCH_NVIDIA_PACKAGES)
+    def _arch_nvidia_install_command(self) -> str:
+        packages = " ".join(self._arch_nvidia_packages())
         return f"sudo pacman -Syu --needed --noconfirm {packages}"
+
+    def _arch_nvidia_packages(self) -> tuple[str, ...]:
+        facts = self.ctx.facts or SetupFacts()
+        if self._nvidia_inventory_requires_proprietary_kernel(facts):
+            return _ARCH_NVIDIA_PROPRIETARY_PACKAGES
+        return _ARCH_NVIDIA_OPEN_PACKAGES
+
+    @staticmethod
+    def _nvidia_inventory_requires_proprietary_kernel(facts: SetupFacts) -> bool:
+        return bool(facts.gpu_inventory and not nvidia_open_kernel_supported(facts))
 
     def _maybe_reboot_for_nvidia_driver(
         self,

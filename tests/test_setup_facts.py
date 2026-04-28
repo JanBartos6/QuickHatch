@@ -19,6 +19,7 @@ QH_SYS_VENDOR=innotek GmbH
 QH_PRODUCT_NAME=VirtualBox
 QH_INIT=systemd
 QH_BOOT=efi
+QH_SECURE_BOOT=disabled
 QH_TARGET_ROOT=no
 QH_SESSION=
 QH_DM=sddm
@@ -58,6 +59,47 @@ QH_XRANDR_END
     assert facts.virtualization == "oracle"
     assert facts.system_vendor == "innotek GmbH"
     assert facts.product_name == "VirtualBox"
+    assert facts.secure_boot_state == "disabled"
+
+
+def test_probe_setup_facts_parses_secure_boot_enabled():
+    output = """\
+QH_PM=pacman
+QH_AUR=none
+QH_USER=jan
+QH_LOGIN_USER=jan
+QH_IS_ROOT=no
+QH_SUDO_NOPASSWD=yes
+QH_OS_ID=arch
+QH_OS_LIKE=
+QH_INIT=systemd
+QH_BOOT=efi
+QH_SECURE_BOOT=enabled
+QH_TARGET_ROOT=no
+QH_SESSION=
+QH_DM=
+QH_DM_ENABLED=no
+QH_DM_ACTIVE=no
+QH_GPU_VENDORS=nvidia
+QH_GPU_INVENTORY=NVIDIA GeForce GTX 1080
+QH_NVIDIA_SMI=present_but_failing
+QH_NVIDIA_KERNEL_DRIVER=
+QH_NOUVEAU_BOUND=no
+QH_DRIVER_MODULES=
+QH_DISPLAYS=
+QH_KSCREEN_BEGIN
+QH_KSCREEN_END
+QH_XRANDR_BEGIN
+QH_XRANDR_END
+"""
+
+    def ssh_exec(_host, _user, _command, _key_path, _timeout, _port):
+        return (0, output, "")
+
+    facts = probe_setup_facts(ssh_exec, "192.0.2.10", "jan", None)
+
+    assert facts.secure_boot_state == "enabled"
+    assert facts.boot_mode == "efi"
 
 
 def test_probe_setup_facts_prefers_gui_session_over_ssh_tty_and_strips_ansi():

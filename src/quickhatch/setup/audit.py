@@ -58,8 +58,26 @@ def audit_stage(
         details["nvidia_smi_state"] = facts.nvidia_smi_state
         details["nvidia_kernel_driver"] = facts.nvidia_kernel_driver
         details["nvidia_nouveau_bound"] = facts.nvidia_nouveau_bound
+        details["secure_boot_state"] = facts.secure_boot_state
+        if (
+            "nvidia" in facts.gpu_vendors
+            and plan is not None
+            and (
+                plan.driver_strategy.confidence == "manual_followup_required"
+                or plan.driver_strategy.source == "manual_followup"
+            )
+        ):
+            blockers.append(
+                "NVIDIA driver strategy still requires manual follow-up; do not declare "
+                "driver setup complete until it is explicitly installed, skipped, or verified."
+            )
         if "nvidia" in facts.gpu_vendors and expected and facts.nvidia_smi_state != "ok":
             blockers.append("NVIDIA verification is incomplete: nvidia-smi is not healthy yet.")
+            if facts.secure_boot_state == "enabled":
+                blockers.append(
+                    "Secure Boot is enabled; NVIDIA kernel modules may need MOK signing, "
+                    "an enrolled key, or Secure Boot disabled before nvidia-smi can pass."
+                )
         if "nvidia" in facts.gpu_vendors and facts.nvidia_nouveau_bound:
             blockers.append(
                 "NVIDIA GPU is still bound to nouveau; blacklist nouveau, regenerate initramfs, "

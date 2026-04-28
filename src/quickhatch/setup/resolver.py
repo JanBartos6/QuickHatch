@@ -2,12 +2,24 @@
 
 from __future__ import annotations
 
+import re
 import shlex
 from typing import Any
 
 from quickhatch.config import UserProfile
 
 from .types import SetupFacts, StrategyDecision
+
+_NVIDIA_OPEN_KERNEL_SUPPORTED_RE = re.compile(
+    r"\b(?:rtx|gtx\s*16\d{2}|tesla\s+t4|quadro\s+(?:rtx|t)\b|"
+    r"(?:turing|ampere|ada|blackwell|hopper))\b",
+    re.IGNORECASE,
+)
+_NVIDIA_PRE_TURING_RE = re.compile(
+    r"\b(?:gtx\s*(?:10|9|7|6)\d{2}|gt\s*\d{3}|quadro\s+[kmp]\d{3,4}|"
+    r"tesla\s+[kmp]\d{2,4}|maxwell|pascal|kepler|fermi)\b",
+    re.IGNORECASE,
+)
 
 
 def detect_family(facts: SetupFacts) -> str:
@@ -101,12 +113,40 @@ def build_service_enable_command(services: list[str], facts: SetupFacts) -> str:
     return ""
 
 
+def nvidia_open_kernel_supported(facts: SetupFacts) -> bool:
+    """Best-effort local classification for NVIDIA's open kernel module path.
+
+    NVIDIA's open kernel modules require Turing-or-newer GPUs. Unknown
+    inventory stays permissive so the model can resolve current package policy
+    from repo/web evidence instead of being blocked by a weak local guess.
+    """
+    inventory = " ".join(facts.gpu_inventory or [])
+    if not inventory:
+        return True
+    if _NVIDIA_PRE_TURING_RE.search(inventory):
+        return False
+    if _NVIDIA_OPEN_KERNEL_SUPPORTED_RE.search(inventory):
+        return True
+    return True
+
+
 def driver_strategy(profile: UserProfile, facts: SetupFacts) -> StrategyDecision:
     del profile
     vendors = {v.lower() for v in facts.gpu_vendors}
     family = detect_family(facts)
     if "nvidia" in vendors:
         if family == "arch":
+            if not nvidia_open_kernel_supported(facts):
+                return StrategyDecision(
+                    strategy="nvidia_legacy_manual_followup",
+                    confidence="manual_followup_required",
+                    source="manual_followup",
+                    packages=[],
+                    notes=(
+                        "Detected pre-Turing NVIDIA hardware. Do not assume nvidia-open; "
+                        "resolve the current legacy/proprietary package path before installing."
+                    ),
+                )
             return StrategyDecision(
                 strategy="official_nvidia_open",
                 confidence="resolved_official",

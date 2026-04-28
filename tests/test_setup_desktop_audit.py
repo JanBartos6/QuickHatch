@@ -4,8 +4,10 @@ from quickhatch.setup.audit import audit_stage
 from quickhatch.setup.types import (
     DesktopDesignState,
     DesktopRuntimeState,
+    ResearchPlan,
     SetupFacts,
     SetupStage,
+    StrategyDecision,
 )
 
 
@@ -150,3 +152,82 @@ def test_desktop_audit_blocks_wallpaper_attempt_without_wallpaper_state():
 
     assert not result.passed
     assert any("Wallpaper apply/configuration was attempted" in item for item in result.blockers)
+
+
+def test_driver_audit_surfaces_secure_boot_for_failed_nvidia_stack():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GeForce RTX 3080"],
+        nvidia_smi_state="present_but_failing",
+        secure_boot_state="enabled",
+    )
+    plan = ResearchPlan(
+        target_summary="Arch NVIDIA workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(
+            strategy="official_nvidia_open",
+            packages=["nvidia-open", "nvidia-utils"],
+        ),
+        desktop_strategy=StrategyDecision(strategy="none"),
+    )
+
+    result = audit_stage(SetupStage.POSTBOOT_DRIVER, facts, plan=plan)
+
+    assert not result.passed
+    assert any("nvidia-smi is not healthy" in item for item in result.blockers)
+    assert any("Secure Boot is enabled" in item for item in result.blockers)
+    assert result.details["secure_boot_state"] == "enabled"
+
+
+def test_driver_audit_does_not_require_nvidia_for_amd_only_system():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        gpu_vendors=["amd"],
+        gpu_inventory=["AMD Radeon RX 7900 XTX"],
+        nvidia_smi_state="missing",
+    )
+    plan = ResearchPlan(
+        target_summary="Arch AMD workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="mesa_default", packages=[]),
+        desktop_strategy=StrategyDecision(strategy="none"),
+    )
+
+    result = audit_stage(SetupStage.POSTBOOT_DRIVER, facts, plan=plan)
+
+    assert result.passed
+
+
+def test_driver_audit_blocks_unresolved_legacy_nvidia_strategy():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GeForce GTX 1080"],
+        nvidia_smi_state="missing",
+    )
+    plan = ResearchPlan(
+        target_summary="Arch legacy NVIDIA workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(
+            strategy="nvidia_legacy_manual_followup",
+            confidence="manual_followup_required",
+            source="manual_followup",
+            packages=[],
+        ),
+        desktop_strategy=StrategyDecision(strategy="none"),
+    )
+
+    result = audit_stage(SetupStage.POSTBOOT_DRIVER, facts, plan=plan)
+
+    assert not result.passed
+    assert any("manual follow-up" in item for item in result.blockers)

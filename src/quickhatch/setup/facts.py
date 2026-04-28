@@ -26,6 +26,24 @@ echo 'QH_SYS_VENDOR='$(cat /sys/class/dmi/id/sys_vendor 2>/dev/null | tr '|' '/'
 echo 'QH_PRODUCT_NAME='$(cat /sys/class/dmi/id/product_name 2>/dev/null | tr '|' '/')
 echo 'QH_INIT='$(if command -v systemctl >/dev/null 2>&1; then echo systemd; elif command -v rc-service >/dev/null 2>&1; then echo openrc; elif command -v sv >/dev/null 2>&1; then echo runit; else echo unknown; fi)
 echo 'QH_BOOT='$(if [ -d /sys/firmware/efi/efivars ]; then echo efi; else echo bios; fi)
+qh_secure_boot=unknown
+if [ ! -d /sys/firmware/efi/efivars ]; then
+  qh_secure_boot=not_efi
+elif command -v mokutil >/dev/null 2>&1; then
+  qh_sb_state=$(mokutil --sb-state 2>/dev/null || true)
+  case "$qh_sb_state" in
+    *enabled*) qh_secure_boot=enabled ;;
+    *disabled*) qh_secure_boot=disabled ;;
+  esac
+else
+  qh_sb_var=$(ls /sys/firmware/efi/efivars/SecureBoot-* 2>/dev/null | head -n 1)
+  if [ -r "$qh_sb_var" ] && command -v od >/dev/null 2>&1; then
+    qh_sb_byte=$(od -An -t u1 -j 4 -N 1 "$qh_sb_var" 2>/dev/null | tr -d ' ')
+    [ "$qh_sb_byte" = "1" ] && qh_secure_boot=enabled
+    [ "$qh_sb_byte" = "0" ] && qh_secure_boot=disabled
+  fi
+fi
+echo 'QH_SECURE_BOOT='$qh_secure_boot
 echo 'QH_TARGET_ROOT='$(if mount | grep -Eq ' on /(mnt|target)( |$)'; then echo yes; else echo no; fi)
 qh_ssh_session=${XDG_SESSION_TYPE:-}
 qh_gui_record=$(
@@ -310,6 +328,7 @@ def describe_fact_changes(before: SetupFacts | None, after: SetupFacts | None) -
         "product_name": "product name",
         "current_user": "current user",
         "sudo_nopasswd": "sudo NOPASSWD",
+        "secure_boot_state": "Secure Boot",
         "nvidia_smi_state": "nvidia-smi",
         "nvidia_kernel_driver": "NVIDIA kernel driver",
         "nvidia_nouveau_bound": "nouveau-bound NVIDIA GPU",
@@ -361,6 +380,7 @@ def probe_setup_facts(
         is_live=is_live,
         live_marker=live_marker,
         boot_mode=base.boot_mode,
+        secure_boot_state=base.secure_boot_state,
         target_root_mounted=base.target_root_mounted,
         current_user=base.current_user or user,
         login_user=base.login_user or user,
@@ -406,6 +426,9 @@ def probe_setup_facts(
     facts.product_name = raw.get("QH_PRODUCT_NAME", facts.product_name) or facts.product_name
     facts.init_system = raw.get("QH_INIT", facts.init_system) or facts.init_system
     facts.boot_mode = raw.get("QH_BOOT", facts.boot_mode) or facts.boot_mode
+    facts.secure_boot_state = (
+        raw.get("QH_SECURE_BOOT", facts.secure_boot_state) or facts.secure_boot_state
+    )
     facts.target_root_mounted = raw.get("QH_TARGET_ROOT", "no") == "yes"
     session_type = (raw.get("QH_SESSION", "") or "").strip().lower()
     facts.session_type = session_type if session_type in {"wayland", "x11"} else ""

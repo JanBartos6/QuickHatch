@@ -7,6 +7,7 @@ from quickhatch.setup.resolver import (
     community_search_command,
     detect_family,
     driver_strategy,
+    nvidia_open_kernel_supported,
     repo_search_command,
 )
 from quickhatch.setup.types import SetupFacts
@@ -39,9 +40,27 @@ def test_service_enable_command_respects_init_system():
 
 
 def test_arch_nvidia_driver_strategy_prefers_current_official_path():
-    facts = SetupFacts(package_manager="pacman", gpu_vendors=["nvidia"])
+    facts = SetupFacts(
+        package_manager="pacman",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GeForce RTX 3080"],
+    )
     strategy = driver_strategy(UserProfile(), facts)
 
     assert strategy.strategy == "official_nvidia_open"
     assert strategy.confidence == "resolved_official"
     assert "nvidia-open" in strategy.packages
+
+
+def test_arch_legacy_nvidia_driver_strategy_requires_current_research():
+    facts = SetupFacts(
+        package_manager="pacman",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GeForce GTX 1080"],
+    )
+    strategy = driver_strategy(UserProfile(), facts)
+
+    assert nvidia_open_kernel_supported(facts) is False
+    assert strategy.strategy == "nvidia_legacy_manual_followup"
+    assert strategy.confidence == "manual_followup_required"
+    assert strategy.packages == []

@@ -130,6 +130,7 @@ class SetupFacts:
     is_live: bool = False
     live_marker: str = ""
     boot_mode: str = "unknown"
+    secure_boot_state: str = "unknown"
     target_root_mounted: bool = False
     current_user: str = ""
     login_user: str = ""
