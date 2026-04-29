@@ -21,6 +21,22 @@ _SENSITIVE_JSON_FIELD_RE = re.compile(
     r'("(?:[^"]*(?:api[_-]?key|token|secret|password|passphrase|private[_-]?key)[^"]*)"\s*:\s*)"[^"]*"',
     re.IGNORECASE,
 )
+_SSH_PUBLIC_KEY_RE = re.compile(
+    r"\b(?:ssh-(?:ed25519|rsa)|ecdsa-sha2-[A-Za-z0-9@._+-]+)\s+[A-Za-z0-9+/=]+"
+    r"(?:\s+[^\r\n'\"`;|&<>)]*)?",
+)
+
+
+def redact_sensitive_text(value: str) -> str:
+    text = _SENSITIVE_JSON_FIELD_RE.sub(r'\1"***REDACTED***"', value)
+    text = _SENSITIVE_LINE_RE.sub(lambda m: f"{m.group(1)}=***REDACTED***", text)
+    text = re.sub(
+        r"echo\s+['\"][^:'\"]+:[^'\"]+['\"]\s*\|\s*chpasswd",
+        "echo '***REDACTED***' | chpasswd",
+        text,
+        flags=re.IGNORECASE,
+    )
+    return _SSH_PUBLIC_KEY_RE.sub("ssh-key ***REDACTED***", text)
 
 
 def _redact(value: Any) -> Any:
@@ -37,16 +53,7 @@ def _redact(value: Any) -> Any:
     if isinstance(value, tuple):
         return [_redact(item) for item in value]
     if isinstance(value, str):
-        text = _SENSITIVE_JSON_FIELD_RE.sub(r'\1"***REDACTED***"', value)
-        text = _SENSITIVE_LINE_RE.sub(lambda m: f"{m.group(1)}=***REDACTED***", text)
-        text = re.sub(
-            r"echo\s+['\"][^:'\"]+:[^'\"]+['\"]\s*\|\s*chpasswd",
-            "echo '***REDACTED***' | chpasswd",
-            text,
-            flags=re.IGNORECASE,
-        )
-        text = re.sub(r"ssh-(?:ed25519|rsa)\s+[A-Za-z0-9+/=]+", "ssh-key ***REDACTED***", text)
-        return text
+        return redact_sensitive_text(value)
     return value
 
 

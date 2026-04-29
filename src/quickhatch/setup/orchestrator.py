@@ -30,7 +30,7 @@ from .planner import (
 )
 from .preflight import arch_community_helpers_in_command, preflight_setup_command
 from .resolver import build_install_command, nvidia_open_kernel_supported
-from .runlog import SetupRunLogger
+from .runlog import SetupRunLogger, redact_sensitive_text
 from .types import (
     AppPlanItem,
     AuditResult,
@@ -1080,7 +1080,10 @@ class SetupOrchestrator:
             f'chmod 600 "$qh_home/.ssh/authorized_keys"; '
             f'grep -qxF {key_q} "$qh_home/.ssh/authorized_keys"'
         )
-        self.bridge.add_message("agent", f"`{command}` — ensure SSH reconnect key")
+        self.bridge.add_message(
+            "agent",
+            f"`{redact_sensitive_text(command)}` — ensure SSH reconnect key",
+        )
         last_output = ""
         success = False
         max_attempts = 8
@@ -1095,7 +1098,9 @@ class SetupOrchestrator:
                 time.sleep(delay)
             rc, stdout, stderr = self.runtime.ssh_exec(command, 60)
             last_output = (stderr or stdout or "").strip()
-            self.ctx.results_log.append(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+            self.ctx.results_log.append(
+                redact_sensitive_text(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+            )
             self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
             self.runlog.record(
                 "ssh_continuity_key",
@@ -1797,10 +1802,11 @@ class SetupOrchestrator:
             if command != visible_command:
                 self.bridge.add_message(
                     "agent",
-                    f"`{visible_command}` — using active GUI session environment",
+                    f"`{redact_sensitive_text(visible_command)}` "
+                    "— using active GUI session environment",
                 )
             else:
-                self.bridge.add_message("agent", f"`{visible_command}`")
+                self.bridge.add_message("agent", f"`{redact_sensitive_text(visible_command)}`")
             rc, stdout, stderr = self._ssh_exec_with_transient_retries(
                 command,
                 self._command_timeout(command),
@@ -1808,7 +1814,9 @@ class SetupOrchestrator:
                 group_id=group.id,
                 label="command",
             )
-            self.ctx.results_log.append(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+            self.ctx.results_log.append(
+                redact_sensitive_text(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+            )
             self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
             self.runlog.record(
                 "command",
@@ -1887,7 +1895,10 @@ class SetupOrchestrator:
                     reason="fstab mount checks must match fields, not whitespace-sensitive text",
                 )
                 verification = normalized_verification
-            self.bridge.add_message("agent", f"`{verification}` — verify")
+            self.bridge.add_message(
+                "agent",
+                f"`{redact_sensitive_text(verification)}` — verify",
+            )
             rc, stdout, stderr = self._ssh_exec_with_transient_retries(
                 verification,
                 120,
@@ -3091,7 +3102,7 @@ class SetupOrchestrator:
             "agent",
             "AUR helper is missing; installing `yay` before retrying the planned community command.",
         )
-        self.bridge.add_message("agent", f"`{bootstrap_command}`")
+        self.bridge.add_message("agent", f"`{redact_sensitive_text(bootstrap_command)}`")
         self.runlog.record(
             "arch_aur_helper_bootstrap_started",
             stage=stage.value,
@@ -3103,7 +3114,9 @@ class SetupOrchestrator:
             bootstrap_command,
             self._command_timeout(bootstrap_command),
         )
-        self.ctx.results_log.append(f"$ {bootstrap_command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+        self.ctx.results_log.append(
+            redact_sensitive_text(f"$ {bootstrap_command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+        )
         self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
         self.runlog.record(
             "arch_aur_helper_bootstrap_result",
@@ -3188,7 +3201,7 @@ class SetupOrchestrator:
             "agent",
             "NVIDIA driver changes need a controlled reboot before verification.",
         )
-        self.bridge.add_message("agent", f"`{command}`")
+        self.bridge.add_message("agent", f"`{redact_sensitive_text(command)}`")
         self.runlog.record(
             "nvidia_driver_reboot",
             stage=stage.value,
@@ -3197,7 +3210,9 @@ class SetupOrchestrator:
             command=command,
         )
         rc, stdout, stderr = self.runtime.ssh_exec(command, 60)
-        self.ctx.results_log.append(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+        self.ctx.results_log.append(
+            redact_sensitive_text(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+        )
         self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
         if rc != 0:
             raise RuntimeError(
@@ -3287,7 +3302,10 @@ class SetupOrchestrator:
             tail = tail[-500:]
         if not tail:
             tail = "No output."
-        return f"⚠️ {label} in '{title}' (rc={rc}): `{command}`\n{tail}"
+        return (
+            f"⚠️ {label} in '{title}' (rc={rc}): "
+            f"`{redact_sensitive_text(command)}`\n{redact_sensitive_text(tail)}"
+        )
 
     def _repair_model_call(self, messages: list[dict[str, str]]) -> str:
         repair_config = copy.copy(self.runtime.config)
@@ -3380,9 +3398,9 @@ class SetupOrchestrator:
             stage=stage,
             failed_group=failed_group,
             failure_type=failure.failure_type,
-            failed_command=failure.command,
-            stdout_tail=failure.stdout,
-            stderr_tail=failure.stderr,
+            failed_command=redact_sensitive_text(failure.command),
+            stdout_tail=redact_sensitive_text(failure.stdout),
+            stderr_tail=redact_sensitive_text(failure.stderr),
             facts=self.ctx.facts or SetupFacts(),
             recent_results=self.ctx.results_log,
             native_search_active=self.runtime.native_search_active,

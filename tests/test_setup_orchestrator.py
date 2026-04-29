@@ -3424,6 +3424,24 @@ def test_fedora_dnf4_config_manager_add_repo_is_left_alone():
     assert command == "sudo dnf config-manager --add-repo https://example.test/example.repo"
 
 
+def test_group_failure_message_redacts_ssh_key_comment():
+    message = SetupOrchestrator._format_group_failure_message(
+        "SSH continuity",
+        "Command failed",
+        (
+            "grep -qxF 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFAKE "
+            "honz.bartos@example.test' ~/.ssh/authorized_keys"
+        ),
+        1,
+        "",
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFAKE honz.bartos@example.test",
+    )
+
+    assert "AAAAC3" not in message
+    assert "honz.bartos@example.test" not in message
+    assert "ssh-key ***REDACTED***" in message
+
+
 def test_live_arch_install_injects_vconsole_before_pacstrap():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

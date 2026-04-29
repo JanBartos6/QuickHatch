@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from quickhatch.setup.runlog import SetupRunLogger
+from quickhatch.setup.runlog import redact_sensitive_text
 
 
 def test_runlog_writes_jsonl_entries(tmp_path):
@@ -29,7 +30,7 @@ def test_runlog_redacts_sensitive_values(tmp_path):
             '{"default_account_password": "hunter2"}\n'
             "password: hunter2\n"
             "echo 'jan:hunter2' | chpasswd\n"
-            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFAKE quickhatch"
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFAKE honz.bartos@example.test"
         ),
     )
 
@@ -39,5 +40,19 @@ def test_runlog_redacts_sensitive_values(tmp_path):
     assert "sk-secret" not in serialized
     assert "hunter2" not in serialized
     assert "AAAAC3" not in serialized
+    assert "honz.bartos@example.test" not in serialized
     assert entry["profile"]["api_key"] == "***REDACTED***"
     assert entry["profile"]["default_account_password"] == "***REDACTED***"
+
+
+def test_redact_sensitive_text_removes_ssh_public_key_comment():
+    text = (
+        "grep -qxF 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFAKE "
+        "honz.bartos@example.test' ~/.ssh/authorized_keys"
+    )
+
+    redacted = redact_sensitive_text(text)
+
+    assert "AAAAC3" not in redacted
+    assert "honz.bartos@example.test" not in redacted
+    assert "ssh-key ***REDACTED***" in redacted
