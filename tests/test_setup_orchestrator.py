@@ -42,6 +42,35 @@ def test_extract_created_user_from_chrooted_shell_useradd():
     assert SetupOrchestrator._extract_created_user(command) == "jan"
 
 
+def test_extract_created_user_from_fedora_kickstart_user_line():
+    command = (
+        "PASS_HASH=$(openssl passwd -6 'password') && printf 'user --name=jan "
+        '--groups=wheel --iscrypted --password=%s\\n\' "$PASS_HASH" > /tmp/qh.ks'
+    )
+
+    assert SetupOrchestrator._extract_created_user(command) == "jan"
+
+
+def test_live_installer_disconnect_is_treated_as_reboot_boundary():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="fedora",
+        package_manager="dnf",
+        current_user="liveuser",
+        is_live=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    assert orchestrator._looks_like_live_installer_reboot_disconnect(
+        SetupStage.INSTALL_OR_SKIP,
+        "sudo anaconda --kickstart=/tmp/qh.ks --text --noninteractive",
+        "",
+        "Connection to 127.0.0.1 closed by remote host.",
+    )
+
+
 def _dummy_setup_runtime(
     profile: UserProfile,
     bridge: BridgeState,

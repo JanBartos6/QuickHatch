@@ -1009,20 +1009,27 @@ class SetupOrchestrator:
             self._record_stage_result(result)
             return
         self._run_stage_groups(SetupStage.INSTALL_OR_SKIP, audit_after=False)
-        self._ensure_reconnect_ssh_key()
-        ok, failures, summary = self._run_pre_reboot_checks_with_retries()
-        self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})[
-            "pre_reboot_checks_passed"
-        ] = ok
-        self.runlog.record(
-            "pre_reboot_checks",
-            passed=ok,
-            failures=failures,
-            summary=summary,
-        )
-        if not ok:
-            raise RuntimeError(summary or "; ".join(failures))
-        self._issue_install_reboot()
+        install_state = self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})
+        if install_state.get("installer_reboot_observed"):
+            install_state["pre_reboot_checks_passed"] = True
+            self.bridge.add_message(
+                "agent",
+                "Installer disconnected during live install; treating this as the install "
+                "reboot and polling for the installed system.",
+            )
+        else:
+            self._ensure_reconnect_ssh_key()
+            ok, failures, summary = self._run_pre_reboot_checks_with_retries()
+            install_state["pre_reboot_checks_passed"] = ok
+            self.runlog.record(
+                "pre_reboot_checks",
+                passed=ok,
+                failures=failures,
+                summary=summary,
+            )
+            if not ok:
+                raise RuntimeError(summary or "; ".join(failures))
+            self._issue_install_reboot()
         reconnect_user = self.ctx.created_user or self.runtime.user
         reconnected, fresh_info, new_user = self.runtime.wait_for_reconnect(reconnect_user)
         self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})[
@@ -1187,11 +1194,32 @@ class SetupOrchestrator:
             for marker in (
                 "rc=255",
                 "connection closed",
+                "closed by remote host",
                 "connection reset",
                 "kex_exchange_identification",
                 "connection timed out",
             )
         )
+
+    def _looks_like_live_installer_reboot_disconnect(
+        self, stage: SetupStage, command: str, stdout: str, stderr: str
+    ) -> bool:
+        facts = self.ctx.facts or SetupFacts()
+        if stage != SetupStage.INSTALL_OR_SKIP or not facts.is_live:
+            return False
+        command_text = (command or "").lower()
+        if not any(
+            token in command_text
+            for token in (
+                "anaconda",
+                "subiquity",
+                "ubuntu-desktop-bootstrap",
+                "curtin",
+                "calamares",
+            )
+        ):
+            return False
+        return self._looks_like_transient_ssh_disconnect(stdout, stderr)
 
     def _resolve_public_key_text(self) -> str:
         candidates: list[Path] = []
@@ -1845,6 +1873,28 @@ class SetupOrchestrator:
                 stderr_tail=(stderr or "")[-800:],
             )
             if rc != 0:
+                if self._looks_like_live_installer_reboot_disconnect(
+                    stage, visible_command, stdout, stderr
+                ):
+                    stage_state["installer_reboot_observed"] = True
+                    created_user = self._extract_created_user(visible_command)
+                    if created_user:
+                        self.ctx.created_user = created_user
+                    self.runlog.record(
+                        "live_installer_reboot_observed",
+                        stage=stage.value,
+                        group_id=group.id,
+                        command=visible_command,
+                        rc=rc,
+                        stdout_tail=(stdout or "")[-500:],
+                        stderr_tail=(stderr or "")[-500:],
+                    )
+                    self.bridge.add_message(
+                        "agent",
+                        "Live installer closed the SSH session; assuming it is rebooting "
+                        "into the installed system instead of retrying the installer command.",
+                    )
+                    return None
                 stage_state.setdefault("failed_commands", []).append(command)
                 detail = stderr.strip() or stdout.strip() or "command failed"
                 self.bridge.add_message(
@@ -3915,6 +3965,13 @@ class SetupOrchestrator:
 
     @staticmethod
     def _extract_created_user(command: str) -> str | None:
+        kickstart_match = re.search(
+            r"\buser\s+[^;\n]*--name(?:=|\s+)(?P<user>[a-z_][a-z0-9_-]{0,31})\b",
+            command,
+            re.IGNORECASE,
+        )
+        if kickstart_match:
+            return kickstart_match.group("user")
         flags_with_values = {
             "-c",
             "--comment",
