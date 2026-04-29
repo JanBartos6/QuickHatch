@@ -3511,6 +3511,30 @@ def test_live_fedora_anaconda_install_gets_disk_cleanup_and_long_timeout():
     assert orchestrator._command_timeout(commands[anaconda_index]) == 1800
 
 
+def test_installroot_package_bootstrap_gets_long_timeout():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="fedora", package_manager="dnf", is_live=True)
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+
+    timeout = orchestrator._command_timeout(
+        'REL=$(. /etc/os-release; echo ${VERSION_ID%%.*}) && sudo dnf '
+        '--installroot=/mnt --releasever="$REL" --use-host-config install -y '
+        "@core @standard kernel NetworkManager openssh-server"
+    )
+
+    assert timeout == 1800
+
+
+def test_package_search_keeps_short_timeout():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman")
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+
+    assert orchestrator._command_timeout("pacman -Ss nvidia") == 300
+
+
 def test_fedora_kickstart_printf_escapes_directives_and_pins_releasever():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

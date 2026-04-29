@@ -3931,6 +3931,20 @@ class SetupOrchestrator:
     def _command_timeout(self, command: str) -> int:
         command_lower = command.lower()
         if any(
+            re.search(pattern, command_lower)
+            for pattern in (
+                r"\bdnf5?\b.*\b(?:install|groupinstall|group\s+install|upgrade|update|distro-sync)\b",
+                r"\b(?:apt-get|apt)\b.*\b(?:install|dist-upgrade|full-upgrade|upgrade)\b",
+                r"\bzypper\b.*\b(?:install|in|dup|update|up|patch)\b",
+                r"\bapk\b.*\b(?:add|upgrade)\b",
+                r"\bxbps-install\b",
+                r"\bemerge\b",
+            )
+        ):
+            return 1800
+        if re.search(r"\b(?:pacman|yay|paru)\b.*(?:^|\s)-S(?![sil])", command):
+            return 1800
+        if any(
             token in command_lower
             for token in (
                 "yay -s",
