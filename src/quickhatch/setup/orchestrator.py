@@ -137,6 +137,8 @@ _NON_BLOCKING_FAILED_SYSTEMD_UNITS = {
     "mcelog.service",
     "systemd-modules-load.service",
     "systemd-resolved.service",
+    "whoopsie.path",
+    "whoopsie.service",
 }
 _NON_BLOCKING_FAILED_SYSTEMD_UNIT_PREFIXES = (
     "drkonqi-coredump-processor@",
@@ -157,8 +159,9 @@ def is_non_blocking_failed_systemd_unit(unit: str) -> bool:
     """Return true for noisy/transient failed units that should not block setup.
 
     Crash-report/coredump helpers can be left failed by a previous user-session
-    crash even when the installed OS is otherwise bootable and configured. Real
-    service failures still remain hard blockers.
+    crash or disabled crash-report pipeline even when the installed OS is
+    otherwise bootable and configured. Real service failures still remain hard
+    blockers.
     """
 
     normalized = (unit or "").strip()

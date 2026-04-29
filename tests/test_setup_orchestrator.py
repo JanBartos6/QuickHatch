@@ -93,6 +93,8 @@ def test_systemd_health_ignores_transient_coredump_helpers():
                 [
                     "drkonqi-coredump-processor@6-12290-90777_90778-0.service",
                     "systemd-coredump@0-123-0.service",
+                    "whoopsie.path",
+                    "whoopsie.service",
                 ]
             ),
             "",
@@ -141,6 +143,8 @@ def test_non_blocking_failed_systemd_unit_classifier():
     )
     assert is_non_blocking_failed_systemd_unit("systemd-coredump@0-123-0.service")
     assert is_non_blocking_failed_systemd_unit("mcelog.service")
+    assert is_non_blocking_failed_systemd_unit("whoopsie.path")
+    assert is_non_blocking_failed_systemd_unit("whoopsie.service")
     assert not is_non_blocking_failed_systemd_unit("sddm.service")
 
 
