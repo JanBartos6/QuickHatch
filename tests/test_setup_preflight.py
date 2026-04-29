@@ -104,6 +104,26 @@ def test_preflight_blocks_fake_plasma_dbus_session():
     assert "dbus-run-session" in error
 
 
+def test_preflight_blocks_fedora_live_anaconda_over_ssh():
+    facts = SetupFacts(package_manager="dnf", distro_family="fedora", is_live=True)
+
+    error = preflight_setup_command(
+        "sudo dbus-run-session anaconda --kickstart=/tmp/qh.ks --noninteractive -C --liveinst",
+        facts,
+    )
+
+    assert error
+    assert "dnf --installroot" in error
+
+
+def test_preflight_allows_fedora_installed_anaconda_probe():
+    facts = SetupFacts(package_manager="dnf", distro_family="fedora", is_live=False)
+
+    error = preflight_setup_command("anaconda --help", facts)
+
+    assert error is None
+
+
 def test_preflight_blocks_root_owned_config_edit_without_sudo():
     facts = SetupFacts(
         package_manager="pacman",

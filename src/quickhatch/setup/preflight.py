@@ -395,6 +395,26 @@ def _uses_fake_plasma_session_wrapper(cmd: str) -> bool:
     )
 
 
+def _uses_fedora_live_anaconda_from_ssh(cmd: str, facts: SetupFacts) -> bool:
+    if facts.package_manager != "dnf" or not facts.is_live:
+        return False
+    lower = (cmd or "").lower()
+    if not any(token in lower for token in ("anaconda", "liveinst")):
+        return False
+    return any(
+        token in lower
+        for token in (
+            "--kickstart",
+            "--ks",
+            " --ks ",
+            "--liveinst",
+            "--noninteractive",
+            "--cmdline",
+            " -c ",
+        )
+    )
+
+
 def _is_standalone_shell_assignment(command: str) -> bool:
     stripped = (command or "").strip()
     if not stripped:
@@ -461,6 +481,14 @@ def preflight_setup_command(
             "Do not use `dbus-run-session` to apply KDE/Plasma theming. It creates a throwaway "
             "bus, so live apply commands do not affect the user's real desktop session. Use the "
             "logged-in user's actual session bus or write persisted config and require relogin."
+        )
+    if _uses_fedora_live_anaconda_from_ssh(command, facts):
+        return (
+            "Do not launch Fedora live Anaconda/Kickstart as a normal SSH command. On live "
+            "Workstation ISOs local `--kickstart` is not supported for live installations and "
+            "text/cmdline runs can block on installer spokes with no stdin. Use the Fedora "
+            "`dnf --installroot` procedure for unattended SSH automation, or ask the user to run "
+            "the graphical installer manually and continue in configure-only mode."
         )
 
     for segment in _split_command_segments(command):

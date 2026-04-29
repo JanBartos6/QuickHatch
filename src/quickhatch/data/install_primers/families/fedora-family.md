@@ -18,7 +18,59 @@ package list differ.
 - Ethernet auto via NetworkManager.
 - WiFi: `nmcli device wifi connect <SSID> password <PSK>`.
 
-## Approach — Anaconda + kickstart (universal)
+## Approach A — SSH-unattended classic Fedora via `dnf --installroot`
+
+For QuickHatch remote setup over SSH, prefer this path for classic Fedora
+Workstation. Running Anaconda/Kickstart as a normal SSH command from a live
+Workstation ISO is not reliable: local `--kickstart` is not supported for live
+installations and text/cmdline runs can block on installer spokes with no stdin.
+
+```bash
+DISK=/dev/sda
+REL="$(. /etc/os-release; echo "${VERSION_ID%%.*}")"
+
+sudo swapoff -a || true
+sudo umount -R /mnt 2>/dev/null || true
+sudo wipefs -a "$DISK"
+sudo parted -s "$DISK" mklabel gpt \
+  mkpart ESP fat32 1MiB 513MiB set 1 esp on \
+  mkpart primary ext4 513MiB 100%
+sudo mkfs.fat -F32 "${DISK}1"
+sudo mkfs.ext4 -F "${DISK}2"
+sudo mount "${DISK}2" /mnt
+sudo mkdir -p /mnt/boot/efi
+sudo mount "${DISK}1" /mnt/boot/efi
+
+sudo dnf --installroot=/mnt --releasever="$REL" --setopt=install_weak_deps=False \
+  install -y @core @standard @workstation-product @gnome-desktop \
+  kernel-core kernel-modules kernel-modules-core linux-firmware \
+  grub2-efi-x64 shim-x64 efibootmgr sudo passwd NetworkManager openssh-server
+
+for f in dev proc sys run; do sudo mount --rbind /$f /mnt/$f; sudo mount --make-rslave /mnt/$f; done
+sudo chroot /mnt /bin/bash -c "
+  ln -sf /usr/share/zoneinfo/<ZONE> /etc/localtime
+  echo '<HOSTNAME>' > /etc/hostname
+  useradd -m -G wheel -s /bin/bash <USER>
+  echo '<USER>:<PASSWORD>' | chpasswd
+  echo 'root:<ROOT_PASSWORD>' | chpasswd
+  echo '%wheel ALL=(ALL) ALL' > /etc/sudoers.d/wheel
+  mkdir -p /home/<USER>/.ssh
+  echo '<PUBKEY>' > /home/<USER>/.ssh/authorized_keys
+  chown -R <USER>:<USER> /home/<USER>/.ssh
+  chmod 700 /home/<USER>/.ssh
+  chmod 600 /home/<USER>/.ssh/authorized_keys
+  systemctl enable NetworkManager sshd gdm
+  grub2-mkconfig -o /boot/grub2/grub.cfg
+  mkdir -p /boot/efi/EFI/BOOT
+  cp -f /boot/efi/EFI/fedora/shimx64.efi /boot/efi/EFI/BOOT/BOOTX64.EFI 2>/dev/null || true
+  cp -f /boot/efi/EFI/fedora/grubx64.efi /boot/efi/EFI/BOOT/grubx64.efi 2>/dev/null || true
+"
+```
+
+QuickHatch still owns the final SSH key continuity check, bootability guard,
+unmount, reboot, and reconnect.
+
+## Approach B — Anaconda + kickstart (boot-time or manual installer)
 
 Kickstart is a declarative file Anaconda consumes. Same format across all
 Fedora-family distros; only two things change per distro:
@@ -101,7 +153,9 @@ reboot
 ### Run it
 
 ```bash
-sudo anaconda --kickstart=/tmp/qh.ks
+# Use this at boot time or through the graphical installer workflow, not as a
+# normal QuickHatch SSH command from a live Workstation session.
+inst.ks=file:/path/to/qh.ks
 ```
 
 Anaconda handles partitioning, package install (or ostree pull),
