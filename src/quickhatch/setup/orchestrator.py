@@ -1467,6 +1467,10 @@ class SetupOrchestrator:
     def _verify_planned_packages_installed(self) -> list[str]:
         if self.ctx.plan is None or self.ctx.facts is None:
             return []
+        final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
+        final_state["package_verification_ran"] = False
+        final_state["verified_installed_apps"] = []
+        final_state["unverified_installed_apps"] = []
         package_sources = {
             "repo",
             "official",
@@ -1476,12 +1480,18 @@ class SetupOrchestrator:
             "aur-binary",
             "aur-source",
         }
-        candidates = [
+        installed_like = [
             app
             for app in self.ctx.plan.apps
             if app.status in {PlanItemStatus.INSTALLED, PlanItemStatus.COMPLETED}
-            and (app.source or "").lower() in package_sources
         ]
+        candidates = [
+            app
+            for app in installed_like
+            if (app.source or "").lower() in package_sources and (app.package_name or "").strip()
+        ]
+        unverifiable = [app.name for app in installed_like if app not in candidates]
+        final_state["unverified_installed_apps"] = sorted(unverifiable)
         if not candidates:
             return []
         query_cmds = {
@@ -1496,6 +1506,7 @@ class SetupOrchestrator:
         query = query_cmds.get(self.ctx.facts.package_manager)
         if not query:
             return []
+        final_state["package_verification_ran"] = True
         rc, stdout, stderr = self.runtime.ssh_exec(query, 45)
         self.runlog.record(
             "final_package_verification",
@@ -1506,12 +1517,14 @@ class SetupOrchestrator:
             stderr_tail=(stderr or "")[-800:],
         )
         if rc != 0:
+            final_state["unverified_installed_apps"] = sorted(app.name for app in installed_like)
             return [
                 "Could not verify installed packages with "
                 f"{self.ctx.facts.package_manager}: {(stderr or stdout or '').strip()[:200]}"
             ]
         installed = {line.strip().lower() for line in (stdout or "").splitlines() if line.strip()}
         missing: list[str] = []
+        verified: list[str] = []
         for app in candidates:
             variants = self._package_name_variants(app.name, app.package_name)
             if not variants:
@@ -1519,6 +1532,10 @@ class SetupOrchestrator:
                 continue
             if not any(variant in installed for variant in variants):
                 missing.append(app.name)
+                continue
+            verified.append(app.name)
+        final_state["verified_installed_apps"] = sorted(verified)
+        final_state["unverified_installed_apps"] = sorted({*unverifiable, *missing})
         if not missing:
             return []
         return [
@@ -3682,16 +3699,34 @@ class SetupOrchestrator:
     def _build_summary(self) -> str:
         plan = self.ctx.plan
         apps = plan.apps if plan else []
-        installed = [
-            app.name
-            for app in apps
-            if app.status in {PlanItemStatus.COMPLETED, PlanItemStatus.INSTALLED}
-        ]
-        followup = [
-            app.name
-            for app in apps
-            if app.status in {PlanItemStatus.MANUAL_FOLLOWUP, PlanItemStatus.EXPLICITLY_SKIPPED}
-        ]
+        final_state = self.ctx.stage_state.get(SetupStage.FINAL_AUDIT.value, {})
+        verified_names = {
+            str(name).strip()
+            for name in final_state.get("verified_installed_apps", []) or []
+            if str(name).strip()
+        }
+        unverified_names = {
+            str(name).strip()
+            for name in final_state.get("unverified_installed_apps", []) or []
+            if str(name).strip()
+        }
+        verified_installed = sorted(verified_names)
+        manual_followup: dict[str, str] = {}
+        skipped: list[str] = []
+        for app in apps:
+            if app.status == PlanItemStatus.EXPLICITLY_SKIPPED:
+                skipped.append(app.name)
+                continue
+            if app.status == PlanItemStatus.MANUAL_FOLLOWUP:
+                manual_followup[app.name] = app.reason or "manual follow-up"
+                continue
+            if app.status in {PlanItemStatus.COMPLETED, PlanItemStatus.INSTALLED}:
+                if app.name in verified_names:
+                    continue
+                reason = app.reason or "not verified by final package-manager check"
+                if app.name in unverified_names:
+                    reason = app.reason or "not verified by final package-manager check"
+                manual_followup[app.name] = reason
         stage_followup = []
         for stage_state in self.ctx.stage_state.values():
             for item in stage_state.get("manual_followups", []) or []:
@@ -3699,10 +3734,12 @@ class SetupOrchestrator:
                 if reason:
                     stage_followup.append(reason)
         parts = [plan.target_summary if plan else "Remote setup completed."]
-        if installed:
-            parts.append("Installed/configured: " + ", ".join(sorted(installed)))
-        if followup:
-            parts.append("Manual follow-up: " + ", ".join(sorted(followup)))
+        if verified_installed:
+            parts.append("Verified installed: " + ", ".join(verified_installed))
+        if manual_followup:
+            parts.append("Manual follow-up: " + ", ".join(sorted(manual_followup)))
+        if skipped:
+            parts.append("Skipped: " + ", ".join(sorted(skipped)))
         if stage_followup:
             parts.append("Manual follow-up: " + " | ".join(sorted(set(stage_followup))))
         return ". ".join(part for part in parts if part).strip()

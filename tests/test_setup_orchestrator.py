@@ -3512,7 +3512,7 @@ def test_orchestrator_repairs_failed_command_group_with_search_and_retry():
 
     assert repo_searches == ["brave-bin arch package"]
     assert "echo repaired brave install" in commands_seen
-    assert "Installed/configured: Brave" in summary
+    assert "Verified installed: Brave" in summary
 
 
 def test_repair_keeps_provider_native_search_enabled_when_available():
@@ -3882,7 +3882,7 @@ def test_orchestrator_retries_malformed_repair_json():
 
     assert model_calls["count"] == 3
     assert "echo repaired brave install" in commands_seen
-    assert "Installed/configured: Brave" in summary
+    assert "Verified installed: Brave" in summary
 
 
 def test_final_audit_blocks_when_completed_app_package_is_missing():
@@ -3995,6 +3995,57 @@ def test_final_audit_blocks_when_completed_app_package_is_missing():
 
     assert "final package verification failed" in summary.lower()
     assert "Brave" in summary
+
+
+def test_setup_summary_only_claims_verified_installed_apps():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation.",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("plasma"),
+        command_groups=[],
+        apps=[
+            AppPlanItem(
+                name="Brave",
+                package_name="brave-bin",
+                source="community",
+                status=PlanItemStatus.INSTALLED,
+            ),
+            AppPlanItem(
+                name="Cursor",
+                package_name="cursor-bin",
+                source="community",
+                status=PlanItemStatus.INSTALLED,
+            ),
+            AppPlanItem(
+                name="ChatGPT",
+                source="manual_followup",
+                status=PlanItemStatus.MANUAL_FOLLOWUP,
+                reason="desktop wrapper left for manual follow-up",
+            ),
+            AppPlanItem(
+                name="Codex",
+                source="community",
+                status=PlanItemStatus.EXPLICITLY_SKIPPED,
+            ),
+        ],
+    )
+    orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value] = {
+        "verified_installed_apps": ["Brave"],
+        "unverified_installed_apps": ["Cursor"],
+    }
+
+    summary = orchestrator._build_summary()
+
+    assert "Installed/configured" not in summary
+    assert "Verified installed: Brave" in summary
+    assert "Manual follow-up: ChatGPT, Cursor" in summary
+    assert "Skipped: Codex" in summary
 
 
 def test_orchestrator_can_convert_failed_verification_into_manual_followup_after_question():
