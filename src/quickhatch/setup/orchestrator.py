@@ -323,7 +323,14 @@ class GroupFailure:
 class SetupOrchestrator:
     """Execute staged remote setup with typed plans and audits."""
 
-    MAX_GROUP_REPAIRS = 2
+    DEFAULT_GROUP_REPAIRS = 3
+    GROUP_REPAIR_BUDGETS = {
+        SetupStage.INSTALL_OR_SKIP: 3,
+        SetupStage.POSTBOOT_DRIVER: 6,
+        SetupStage.DESKTOP: 10,
+        SetupStage.APPS: 10,
+    }
+    REPAIR_BUDGET_EXTENSION_ATTEMPTS = 3
     MAX_REPAIR_TURNS = 8
 
     def __init__(self, runtime: SetupRuntime) -> None:
@@ -748,6 +755,56 @@ class SetupOrchestrator:
             return []
         return [group for group in self.ctx.plan.command_groups if group.stage == stage]
 
+    def _group_repair_budget(self, stage: SetupStage) -> int:
+        return int(self.GROUP_REPAIR_BUDGETS.get(stage, self.DEFAULT_GROUP_REPAIRS))
+
+    def _ask_repair_budget_extension(
+        self,
+        stage: SetupStage,
+        group: CommandGroup,
+        failure: GroupFailure,
+        *,
+        attempts_used: int,
+        current_budget: int,
+    ) -> str:
+        extension = self.REPAIR_BUDGET_EXTENSION_ATTEMPTS
+        choices = [f"try {extension} more repairs", "stop setup"]
+        if stage not in {SetupStage.INSTALL_OR_SKIP}:
+            choices.insert(1, "manual follow-up")
+        answer = self._ask_blocking_question(
+            (
+                f"'{group.title}' has failed after {attempts_used} repair attempt(s) "
+                f"in stage '{stage.value}'.\n\n"
+                f"Last failure: {failure.detail}\n\n"
+                f"Current repair budget: {current_budget}. Continue only if you want "
+                "QuickHatch to spend more attempts on this exact group."
+            ),
+            choices=choices,
+            stage=stage,
+            context={
+                "group_id": group.id,
+                "repair_budget_exhausted": True,
+                "attempts_used": attempts_used,
+                "current_budget": current_budget,
+            },
+            timeout=1800,
+            return_qid=False,
+        )
+        normalized = (answer or "").strip().lower()
+        self.runlog.record(
+            "repair_budget_gate_answer",
+            stage=stage.value,
+            group_id=group.id,
+            attempts_used=attempts_used,
+            current_budget=current_budget,
+            answer=answer,
+        )
+        if normalized.startswith(("try", "continue", "yes", "y")):
+            return "extend"
+        if normalized.startswith("manual") and "manual follow-up" in choices:
+            return "manual_followup"
+        return "stop"
+
     def _run_stage_groups(self, stage: SetupStage, *, audit_after: bool = True) -> None:
         if self.ctx.facts is None or self.ctx.plan is None:
             raise RuntimeError("Setup orchestration missing facts or plan.")
@@ -758,6 +815,7 @@ class SetupOrchestrator:
                 raise RuntimeError("Agent stopped by user.")
             current_group = group
             repair_attempts = 0
+            repair_budget = self._group_repair_budget(stage)
             while True:
                 if stage == SetupStage.DESKTOP and not self._desktop_runtime_ready_or_followup(
                     current_group, stage_state
@@ -805,7 +863,41 @@ class SetupOrchestrator:
                     current_group = auto_repaired
                     continue
                 repair_attempts += 1
-                if repair_attempts > self.MAX_GROUP_REPAIRS:
+                if repair_attempts > repair_budget:
+                    decision = self._ask_repair_budget_extension(
+                        stage,
+                        current_group,
+                        failure,
+                        attempts_used=repair_attempts - 1,
+                        current_budget=repair_budget,
+                    )
+                    if decision == "extend":
+                        repair_budget += self.REPAIR_BUDGET_EXTENSION_ATTEMPTS
+                        self.runlog.record(
+                            "repair_budget_extended",
+                            stage=stage.value,
+                            group_id=current_group.id,
+                            repair_attempts=repair_attempts,
+                            new_budget=repair_budget,
+                        )
+                    elif decision == "manual_followup":
+                        current_group.status = PlanItemStatus.MANUAL_FOLLOWUP
+                        self._mark_group_manual_followup(
+                            current_group,
+                            stage=stage,
+                            reason=(
+                                f"User chose manual follow-up after {repair_attempts - 1} "
+                                f"failed repair attempt(s): {failure.detail}"
+                            ),
+                            app_names=[],
+                        )
+                        break
+                    else:
+                        raise RuntimeError(
+                            f"Stage {stage.value} exhausted repair attempts for "
+                            f"'{current_group.title}': {failure.detail}"
+                        )
+                if repair_attempts > repair_budget:
                     raise RuntimeError(
                         f"Stage {stage.value} exhausted repair attempts for '{current_group.title}': {failure.detail}"
                     )
@@ -814,7 +906,7 @@ class SetupOrchestrator:
                     "agent",
                     (
                         f"Repairing '{current_group.title}' after {failure.failure_type} "
-                        f"failure (attempt {repair_attempts}/{self.MAX_GROUP_REPAIRS})…"
+                        f"failure (attempt {repair_attempts}/{repair_budget})…"
                     ),
                 )
                 repair_outcome = self._repair_failed_group(

@@ -4413,3 +4413,120 @@ def test_orchestrator_stop_interrupts_blocking_repair_question():
         helper.join(timeout=2)
 
     assert "stopped by user while waiting for an answer" in summary.lower()
+
+
+def test_stage_specific_repair_budgets_match_risk():
+    profile = UserProfile()
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, BridgeState(profile, persist_path=None), SetupFacts())
+    )
+
+    assert orchestrator._group_repair_budget(SetupStage.INSTALL_OR_SKIP) == 3
+    assert orchestrator._group_repair_budget(SetupStage.POSTBOOT_DRIVER) == 6
+    assert orchestrator._group_repair_budget(SetupStage.DESKTOP) == 10
+    assert orchestrator._group_repair_budget(SetupStage.APPS) == 10
+
+
+def test_repair_budget_gate_can_extend_and_continue(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    group = CommandGroup(
+        id="apps",
+        stage=SetupStage.APPS,
+        title="Install apps",
+        commands=["install apps"],
+        verification=["verify apps"],
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("none"),
+        command_groups=[group],
+    )
+    executions = {"count": 0}
+    repair_attempts: list[int] = []
+    questions: list[tuple[str, list[str] | None]] = []
+
+    def execute_group(_stage, _group, _state):
+        executions["count"] += 1
+        if executions["count"] <= 2:
+            return GroupFailure("verification", "verify apps", "", "missing", "still missing")
+        return None
+
+    def repair_failed_group(_stage, failed_group, _failure, *, repair_attempt):
+        repair_attempts.append(repair_attempt)
+        return {"action": "retry_group", "group": failed_group}
+
+    def ask_question(question, *, choices, **_kwargs):
+        questions.append((question, choices))
+        return "try 3 more repairs"
+
+    monkeypatch.setattr(orchestrator, "_group_repair_budget", lambda _stage: 1)
+    monkeypatch.setattr(orchestrator, "_execute_group", execute_group)
+    monkeypatch.setattr(orchestrator, "_repair_failed_group", repair_failed_group)
+    monkeypatch.setattr(orchestrator, "_ask_blocking_question", ask_question)
+
+    orchestrator._run_stage_groups(SetupStage.APPS, audit_after=False)
+
+    assert executions["count"] == 3
+    assert repair_attempts == [1, 2]
+    assert questions
+    assert questions[0][1] == ["try 3 more repairs", "manual follow-up", "stop setup"]
+    assert group.status == PlanItemStatus.COMPLETED
+
+
+def test_repair_budget_gate_can_mark_non_install_group_manual_followup(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    group = CommandGroup(
+        id="theme",
+        stage=SetupStage.DESKTOP,
+        title="Apply theme",
+        commands=["apply theme"],
+        verification=["verify theme"],
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("plasma"),
+        command_groups=[group],
+    )
+    questions: list[tuple[str, list[str] | None]] = []
+
+    monkeypatch.setattr(orchestrator, "_group_repair_budget", lambda _stage: 0)
+    monkeypatch.setattr(
+        orchestrator,
+        "_execute_group",
+        lambda _stage, _group, _state: GroupFailure(
+            "verification", "verify theme", "", "missing", "theme still missing"
+        ),
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_repair_failed_group",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("repair should not run after manual follow-up choice")
+        ),
+    )
+
+    def ask_question(question, *, choices, **_kwargs):
+        questions.append((question, choices))
+        return "manual follow-up"
+
+    monkeypatch.setattr(orchestrator, "_ask_blocking_question", ask_question)
+
+    orchestrator._run_stage_groups(SetupStage.DESKTOP, audit_after=False)
+
+    assert questions
+    assert questions[0][1] == ["try 3 more repairs", "manual follow-up", "stop setup"]
+    assert group.status == PlanItemStatus.MANUAL_FOLLOWUP
