@@ -143,6 +143,48 @@ def test_non_blocking_failed_systemd_unit_classifier():
     assert not is_non_blocking_failed_systemd_unit("sddm.service")
 
 
+def test_unanswered_optional_slow_apps_become_manual_followup_before_apps_audit():
+    profile = UserProfile(apps_to_install=["Codex"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        current_user="jan",
+        login_user="jan",
+        package_manager="pacman",
+        distro_family="arch",
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="test setup",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none", confidence="resolved_official", source="repo"),
+        desktop_strategy=StrategyDecision("none", confidence="resolved_official", source="repo"),
+        command_groups=[],
+        apps=[
+            AppPlanItem(
+                name="Codex",
+                package_name="openai-codex",
+                source="community",
+                status=PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION,
+                required=True,
+                optional_slow=True,
+            )
+        ],
+    )
+
+    orchestrator._run_apps()
+
+    assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.MANUAL_FOLLOWUP
+    assert "Optional slow app" in orchestrator.ctx.plan.apps[0].reason
+    assert orchestrator.ctx.stage_results[-1].stage == SetupStage.APPS
+    assert orchestrator.ctx.stage_results[-1].passed is True
+    assert "Optional slow apps still need user confirmation" not in " ".join(
+        orchestrator.ctx.stage_results[-1].blockers
+    )
+    assert any("Codex" in message["content"] for message in bridge.messages)
+
+
 def test_connect_probe_runs_keep_windows_transfer_smoke_test():
     profile = UserProfile(data_transfer_method="keep_windows")
     bridge = BridgeState(profile, persist_path=None)

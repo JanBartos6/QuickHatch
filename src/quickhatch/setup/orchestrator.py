@@ -849,6 +849,8 @@ class SetupOrchestrator:
         if audit_after:
             if stage == SetupStage.DESKTOP:
                 self._update_desktop_display_audit_state(stage_state)
+            if stage == SetupStage.APPS:
+                self._mark_unanswered_optional_slow_apps_manual_followup()
             result = audit_stage(stage, self.ctx.facts, plan=self.ctx.plan, stage_state=stage_state)
             self._record_stage_result(result)
 
@@ -1833,6 +1835,7 @@ class SetupOrchestrator:
                 # setup moving with a visible manual follow-up instead.
                 app.status = PlanItemStatus.MANUAL_FOLLOWUP
                 app.reason = app.reason or "Optional slow app was left for manual follow-up."
+                self._record_optional_slow_apps_manual_followup([app.name])
                 continue
             if source == "repo" and package_name:
                 repo_packages.append(package_name)
@@ -3138,6 +3141,38 @@ class SetupOrchestrator:
             ):
                 app.status = PlanItemStatus.MANUAL_FOLLOWUP
                 app.reason = "User skipped optional slow install during setup."
+
+    def _mark_unanswered_optional_slow_apps_manual_followup(self) -> None:
+        if not self.ctx.plan:
+            return
+        names: list[str] = []
+        for app in self.ctx.plan.apps:
+            if app.status != PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION:
+                continue
+            app.status = PlanItemStatus.MANUAL_FOLLOWUP
+            app.reason = (
+                app.reason
+                or "Optional slow app was not explicitly confirmed during setup; left for manual follow-up."
+            )
+            names.append(app.name)
+        if not names:
+            return
+        self._record_optional_slow_apps_manual_followup(names)
+
+    def _record_optional_slow_apps_manual_followup(self, names: list[str]) -> None:
+        if not names:
+            return
+        reason = "Optional slow app(s) left for manual follow-up: " + ", ".join(sorted(names))
+        self.ctx.stage_state.setdefault(SetupStage.APPS.value, {}).setdefault(
+            "manual_followups", []
+        ).append({"reason": reason, "apps": sorted(names)})
+        self.runlog.record(
+            "optional_slow_manual_followup",
+            stage=SetupStage.APPS.value,
+            apps=sorted(names),
+            reason=reason,
+        )
+        self.bridge.add_message("agent", reason)
 
     def _mark_group_manual_followup(
         self,
