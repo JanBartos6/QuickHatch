@@ -3520,6 +3520,7 @@ class SetupOrchestrator:
                 state["desktop_design_attempted"] = True
             if self._command_attempts_wallpaper(command):
                 state["wallpaper_attempted"] = True
+            self._record_kde_design_expectations(command, state)
             if "plasma-apply" in command and stdout.strip() == "":
                 if self.ctx.facts and self.ctx.facts.displays:
                     self.ctx.facts.desktop_runtime_state = DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
@@ -3590,6 +3591,85 @@ class SetupOrchestrator:
                 "feh --bg",
             )
         )
+
+    def _record_kde_design_expectations(self, command: str, state: dict[str, Any]) -> None:
+        for tokens in self._shell_command_segments(command):
+            if not tokens:
+                continue
+            executable = Path(tokens[0]).name
+            if executable.startswith("kwriteconfig"):
+                self._record_kwriteconfig_expectation(tokens, state)
+                continue
+            if executable == "plasma-apply-wallpaperimage" and len(tokens) > 1:
+                state["expected_kde_wallpaper"] = tokens[-1]
+
+    @staticmethod
+    def _shell_command_segments(command: str) -> list[list[str]]:
+        try:
+            tokens = shlex.split(command)
+        except ValueError:
+            return []
+        segments: list[list[str]] = []
+        current: list[str] = []
+        separators = {"&&", "||", ";", "|"}
+        for token in tokens:
+            if token in separators:
+                if current:
+                    segments.append(current)
+                    current = []
+                continue
+            if current and Path(token).name.startswith(("kwriteconfig", "plasma-apply-")):
+                segments.append(current)
+                current = [token]
+                continue
+            current.append(token)
+        if current:
+            segments.append(current)
+        return segments
+
+    @staticmethod
+    def _record_kwriteconfig_expectation(tokens: list[str], state: dict[str, Any]) -> None:
+        file_name = SetupOrchestrator._shell_option_value(tokens, "--file").lower()
+        group = SetupOrchestrator._shell_option_value(tokens, "--group").lower()
+        key = SetupOrchestrator._shell_option_value(tokens, "--key").lower()
+        value = SetupOrchestrator._kwriteconfig_value(tokens)
+        if not value:
+            return
+        if file_name.endswith("kdeglobals") and group == "icons" and key == "theme":
+            state["expected_kde_icon_theme"] = value
+        elif file_name.endswith("kdeglobals") and group == "general" and key == "colorscheme":
+            state["expected_kde_color_scheme"] = value
+        elif file_name.endswith("kcminputrc") and group == "mouse" and key == "cursortheme":
+            state["expected_kde_cursor_theme"] = value
+        elif file_name.endswith("kwinrc") and group == "plugins" and key == "wobblywindowsenabled":
+            state["expected_kde_wobbly_windows"] = value
+        elif file_name.endswith("kwinrc") and group == "plugins" and key == "magiclampenabled":
+            state["expected_kde_magic_lamp"] = value
+        elif "plasma-org.kde.plasma.desktop-appletsrc" in file_name and key in {
+            "image",
+            "wallpaper",
+        }:
+            state["expected_kde_wallpaper"] = value
+
+    @staticmethod
+    def _shell_option_value(tokens: list[str], option: str) -> str:
+        try:
+            index = tokens.index(option)
+        except ValueError:
+            return ""
+        if index + 1 >= len(tokens):
+            return ""
+        return tokens[index + 1]
+
+    @staticmethod
+    def _kwriteconfig_value(tokens: list[str]) -> str:
+        try:
+            index = tokens.index("--key")
+        except ValueError:
+            return ""
+        if index + 2 >= len(tokens):
+            return ""
+        return tokens[index + 2]
 
     def _command_timeout(self, command: str) -> int:
         command_lower = command.lower()

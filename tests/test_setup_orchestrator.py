@@ -1254,6 +1254,27 @@ def test_desktop_display_audit_blocks_resolution_mismatch():
     assert any("Display mode mismatch" in blocker for blocker in result.blockers)
 
 
+def test_desktop_commands_record_kde_design_contract():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+
+    orchestrator._update_from_command(
+        "kwriteconfig6 --file kdeglobals --group Icons --key Theme candy-icons && "
+        "kwriteconfig6 --file kwinrc --group Plugins --key wobblywindowsEnabled true && "
+        "plasma-apply-wallpaperimage /home/jan/Pictures/masterpiece.png",
+        "",
+        "",
+        stage=SetupStage.DESKTOP,
+    )
+
+    state = orchestrator.ctx.stage_state[SetupStage.DESKTOP.value]
+    assert state["expected_kde_icon_theme"] == "candy-icons"
+    assert state["expected_kde_wobbly_windows"] == "true"
+    assert state["expected_kde_wallpaper"] == "/home/jan/Pictures/masterpiece.png"
+
+
 def test_desktop_run_prompts_on_display_mismatch_then_manual_followup(monkeypatch):
     profile = UserProfile()
     profile.hardware.displays = [

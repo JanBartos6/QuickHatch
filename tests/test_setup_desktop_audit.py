@@ -103,6 +103,66 @@ def test_desktop_audit_accepts_observed_design_state():
     assert result.details["desktop_design"]["kde_color_scheme"] == "SweetMars"
 
 
+def test_desktop_audit_blocks_expected_icon_reset_to_default():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        desktop_design=DesktopDesignState(
+            environment="KDE",
+            kde_icon_theme="breeze",
+            kde_wallpaper="file:///home/jan/Pictures/masterpiece.png",
+            kde_wobbly_windows="true",
+        ),
+    )
+
+    result = audit_stage(
+        SetupStage.DESKTOP,
+        facts,
+        stage_state={
+            "persisted_config_written": True,
+            "desktop_design_attempted": True,
+            "wallpaper_attempted": True,
+            "expected_kde_icon_theme": "candy-icons",
+            "expected_kde_wallpaper": "/home/jan/Pictures/masterpiece.png",
+            "expected_kde_wobbly_windows": "true",
+        },
+    )
+
+    assert not result.passed
+    assert any("KDE icon theme mismatch" in item for item in result.blockers)
+
+
+def test_desktop_audit_blocks_expected_wallpaper_missing():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        desktop_design=DesktopDesignState(
+            environment="KDE",
+            kde_icon_theme="candy-icons",
+            kde_wallpaper="file:///usr/share/wallpapers/default.jpg",
+        ),
+    )
+
+    result = audit_stage(
+        SetupStage.DESKTOP,
+        facts,
+        stage_state={
+            "persisted_config_written": True,
+            "desktop_design_attempted": True,
+            "wallpaper_attempted": True,
+            "expected_kde_icon_theme": "candy-icons",
+            "expected_kde_wallpaper": "/home/jan/Pictures/masterpiece.png",
+        },
+    )
+
+    assert not result.passed
+    assert any("KDE wallpaper mismatch" in item for item in result.blockers)
+
+
 def test_desktop_audit_accepts_observed_xfce_design_state():
     facts = SetupFacts(
         distro_family="arch",

@@ -169,6 +169,7 @@ def audit_stage(
                 "Wallpaper apply/configuration was attempted, but no target wallpaper "
                 "state was detected."
             )
+        blockers.extend(_desktop_design_contract_blockers(facts, state))
         if facts.desktop_runtime_state == DesktopRuntimeState.BLOCKED_DRIVER_OR_DISPLAY_STACK:
             blockers.append("Desktop apply is blocked by the current driver or display stack.")
         blockers.extend(str(item) for item in (state.get("display_preference_blockers") or []))
@@ -251,6 +252,102 @@ def _has_wallpaper_signal(facts: SetupFacts) -> bool:
     return bool(
         str(design.kde_wallpaper or design.gnome_wallpaper or design.xfce_wallpaper or "").strip()
     )
+
+
+def _desktop_design_contract_blockers(facts: SetupFacts, state: dict[str, Any]) -> list[str]:
+    """Check intended persisted design values against refreshed target facts."""
+
+    design = facts.desktop_design
+    checks = (
+        (
+            "KDE icon theme",
+            state.get("expected_kde_icon_theme"),
+            design.kde_icon_theme,
+            _matches_exactish,
+        ),
+        (
+            "KDE cursor theme",
+            state.get("expected_kde_cursor_theme"),
+            design.kde_cursor_theme,
+            _matches_exactish,
+        ),
+        (
+            "KDE color scheme",
+            state.get("expected_kde_color_scheme"),
+            design.kde_color_scheme,
+            _matches_exactish,
+        ),
+        (
+            "KDE wallpaper",
+            state.get("expected_kde_wallpaper"),
+            design.kde_wallpaper,
+            _matches_pathish,
+        ),
+        (
+            "KWin wobbly windows",
+            state.get("expected_kde_wobbly_windows"),
+            design.kde_wobbly_windows,
+            _matches_boolish,
+        ),
+        (
+            "KWin magic lamp",
+            state.get("expected_kde_magic_lamp"),
+            design.kde_magic_lamp,
+            _matches_boolish,
+        ),
+    )
+    blockers: list[str] = []
+    for label, expected, observed, matcher in checks:
+        expected_text = str(expected or "").strip()
+        if not expected_text:
+            continue
+        observed_text = str(observed or "").strip()
+        if not observed_text:
+            continue
+        if matcher(expected_text, observed_text):
+            continue
+        blockers.append(
+            f"{label} mismatch: expected {expected_text!r}, target reports "
+            f"{observed_text!r}. Re-apply or persist the desktop design before declaring success."
+        )
+    return blockers
+
+
+def _normalize_design_value(value: str) -> str:
+    return re.sub(r"[\s_-]+", "-", str(value or "").strip().strip("\"'").lower())
+
+
+def _matches_exactish(expected: str, observed: str) -> bool:
+    if not expected:
+        return True
+    if not observed:
+        return False
+    expected_norm = _normalize_design_value(expected)
+    observed_norm = _normalize_design_value(observed)
+    return expected_norm == observed_norm or expected_norm in observed_norm
+
+
+def _matches_boolish(expected: str, observed: str) -> bool:
+    expected_norm = str(expected or "").strip().lower()
+    observed_norm = str(observed or "").strip().lower()
+    if expected_norm in {"true", "1", "yes", "on", "enabled"}:
+        return observed_norm in {"true", "1", "yes", "on", "enabled"}
+    if expected_norm in {"false", "0", "no", "off", "disabled"}:
+        return observed_norm in {"false", "0", "no", "off", "disabled", ""}
+    return _matches_exactish(expected, observed)
+
+
+def _matches_pathish(expected: str, observed: str) -> bool:
+    if not expected:
+        return True
+    if not observed:
+        return False
+    expected_norm = str(expected).strip().strip("\"'").replace("\\", "/").lower()
+    observed_norm = str(observed).strip().strip("\"'").replace("\\", "/").lower()
+    if expected_norm == observed_norm or expected_norm in observed_norm:
+        return True
+    expected_name = expected_norm.rsplit("/", 1)[-1]
+    return bool(expected_name and expected_name in observed_norm)
 
 
 def _driver_names(driver: str) -> set[str]:
