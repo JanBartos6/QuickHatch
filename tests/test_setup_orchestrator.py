@@ -1212,6 +1212,106 @@ def test_desktop_display_audit_blocks_resolution_mismatch():
     assert any("Display mode mismatch" in blocker for blocker in result.blockers)
 
 
+def test_desktop_run_prompts_on_display_mismatch_then_manual_followup(monkeypatch):
+    profile = UserProfile()
+    profile.hardware.displays = [
+        DisplayInfo(
+            name="Primary 4K",
+            width_px=3840,
+            height_px=2160,
+            refresh_hz=60,
+            primary=True,
+        )
+    ]
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        current_user="jan",
+        login_user="jan",
+        displays=[DisplayRuntimeInfo(name="HDMI-A-1", current_mode="2259x1271", refresh_hz=60)],
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="test setup",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("kde"),
+        command_groups=[],
+    )
+    orchestrator.ctx.stage_state[SetupStage.DESKTOP.value] = {"persisted_config_written": True}
+    questions: list[str] = []
+
+    def ask(question, **kwargs):
+        questions.append(question)
+        return "manual follow-up"
+
+    monkeypatch.setattr(orchestrator, "_ask_blocking_question", ask)
+
+    orchestrator._run_desktop()
+
+    result = orchestrator.ctx.stage_results[-1]
+    state = orchestrator.ctx.stage_state[SetupStage.DESKTOP.value]
+    assert result.stage == SetupStage.DESKTOP
+    assert result.passed
+    assert state["display_manual_followup"] is True
+    assert state["display_preference_blockers"] == []
+    assert questions and "Display mode mismatch" in questions[0]
+    assert any("Display tuning left for manual follow-up" in m["content"] for m in bridge.messages)
+
+
+def test_desktop_run_retry_rechecks_display_mismatch(monkeypatch):
+    profile = UserProfile()
+    profile.hardware.displays = [
+        DisplayInfo(
+            name="Primary 4K",
+            width_px=3840,
+            height_px=2160,
+            refresh_hz=60,
+            primary=True,
+        )
+    ]
+    bridge = BridgeState(profile, persist_path=None)
+    stale = SetupFacts(
+        current_user="jan",
+        login_user="jan",
+        displays=[DisplayRuntimeInfo(name="HDMI-A-1", current_mode="2259x1271", refresh_hz=60)],
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    )
+    fresh = SetupFacts(
+        current_user="jan",
+        login_user="jan",
+        displays=[DisplayRuntimeInfo(name="HDMI-A-1", current_mode="3840x2160", refresh_hz=60)],
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, stale))
+    orchestrator.ctx.facts = stale
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="test setup",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("kde"),
+        command_groups=[],
+    )
+    orchestrator.ctx.stage_state[SetupStage.DESKTOP.value] = {"persisted_config_written": True}
+
+    def refresh(stage):
+        orchestrator.ctx.facts = fresh
+
+    monkeypatch.setattr(orchestrator, "_ask_blocking_question", lambda *args, **kwargs: "retry")
+    monkeypatch.setattr(orchestrator, "_refresh_facts", refresh)
+
+    orchestrator._run_desktop()
+
+    result = orchestrator.ctx.stage_results[-1]
+    state = orchestrator.ctx.stage_state[SetupStage.DESKTOP.value]
+    assert result.passed
+    assert state["display_preference_blockers"] == []
+    assert not state.get("display_manual_followup")
+
+
 def test_desktop_display_audit_accepts_matching_resolution_and_refresh():
     profile = UserProfile()
     profile.hardware.displays = [

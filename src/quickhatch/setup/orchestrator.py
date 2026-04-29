@@ -1099,6 +1099,13 @@ class SetupOrchestrator:
             plan=self.ctx.plan,
             stage_state=stage_state,
         )
+        if not result.passed and self._resolve_display_preference_blockers(stage_state):
+            result = audit_stage(
+                SetupStage.DESKTOP,
+                self.ctx.facts or SetupFacts(),
+                plan=self.ctx.plan,
+                stage_state=stage_state,
+            )
         self._record_stage_result(result)
 
     def _ensure_display_manager_started(self) -> None:
@@ -1161,6 +1168,47 @@ class SetupOrchestrator:
             stage_state["display_preference_blockers"] = []
         else:
             stage_state["display_preference_blockers"] = self._display_preference_blockers(prefs)
+
+    def _resolve_display_preference_blockers(self, stage_state: dict[str, Any]) -> bool:
+        blockers = [str(item) for item in (stage_state.get("display_preference_blockers") or [])]
+        if not blockers:
+            return False
+        answer = self._ask_blocking_question(
+            (
+                "QuickHatch detected a target display mismatch after desktop setup.\n\n"
+                + "\n".join(f"- {blocker}" for blocker in blockers)
+                + "\n\nChoose retry if the monitor was asleep, on another input, or the "
+                "graphical session just started. Choose manual follow-up if this monitor "
+                "cannot expose the requested mode right now or you want to finish setup "
+                "and adjust display settings later."
+            ),
+            choices=["retry display probe", "manual follow-up"],
+            stage=SetupStage.DESKTOP,
+            context={"display_preference_blockers": blockers},
+            timeout=600,
+            return_qid=False,
+        )
+        if answer and answer.strip().lower().startswith("retry"):
+            self._refresh_facts(stage=SetupStage.DESKTOP)
+            self._update_desktop_display_audit_state(stage_state)
+            blockers = [
+                str(item) for item in (stage_state.get("display_preference_blockers") or [])
+            ]
+            if not blockers:
+                return True
+
+        reason = "Display tuning left for manual follow-up: " + " | ".join(blockers)
+        stage_state["display_manual_followup"] = True
+        stage_state["display_manual_followup_reason"] = reason
+        stage_state["display_preference_blockers"] = []
+        stage_state.setdefault("manual_followups", []).append({"reason": reason})
+        self.runlog.record(
+            "display_preference_manual_followup",
+            stage=SetupStage.DESKTOP.value,
+            reason=reason,
+        )
+        self.bridge.add_message("agent", f"⚠️ {reason}")
+        return True
 
     def _desktop_runtime_ready_or_followup(
         self, group: CommandGroup, stage_state: dict[str, Any]
