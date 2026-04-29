@@ -140,6 +140,7 @@ def test_non_blocking_failed_systemd_unit_classifier():
         "drkonqi-coredump-processor@6-12290-90777_90778-0.service"
     )
     assert is_non_blocking_failed_systemd_unit("systemd-coredump@0-123-0.service")
+    assert is_non_blocking_failed_systemd_unit("mcelog.service")
     assert not is_non_blocking_failed_systemd_unit("sddm.service")
 
 
@@ -3373,6 +3374,54 @@ def test_fedora_kickstart_printf_escapes_directives_and_pins_releasever():
     assert "%%packages" in command
     assert "%%end" in command
     assert "%packages" not in command.replace("%%packages", "")
+
+
+def test_fedora_dnf5_config_manager_add_repo_is_normalized():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="fedora",
+        os_id="fedora",
+        package_manager="dnf",
+        raw={"QH_OS_VERSION_ID": "44"},
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="brave-repo",
+        stage=SetupStage.APPS,
+        title="Add Brave repository",
+        commands=[
+            "sudo dnf config-manager --add-repo https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo",
+            "sudo dnf config-manager --add-repo=https://example.test/example.repo",
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.APPS, group)
+
+    assert commands == [
+        "sudo dnf config-manager addrepo --from-repofile https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo",
+        "sudo dnf config-manager addrepo --from-repofile https://example.test/example.repo",
+    ]
+
+
+def test_fedora_dnf4_config_manager_add_repo_is_left_alone():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="fedora",
+        os_id="fedora",
+        package_manager="dnf",
+        raw={"QH_OS_VERSION_ID": "40"},
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    command = orchestrator._normalize_fedora_dnf_config_manager_command(
+        "sudo dnf config-manager --add-repo https://example.test/example.repo"
+    )
+
+    assert command == "sudo dnf config-manager --add-repo https://example.test/example.repo"
 
 
 def test_live_arch_install_injects_vconsole_before_pacstrap():

@@ -134,6 +134,7 @@ _SETUP_MODEL_CALL_TIMEOUT_SECONDS = max(
     30, int(os.environ.get("QUICKHATCH_SETUP_MODEL_TIMEOUT", "90") or "90")
 )
 _NON_BLOCKING_FAILED_SYSTEMD_UNITS = {
+    "mcelog.service",
     "systemd-modules-load.service",
     "systemd-resolved.service",
 }
@@ -143,6 +144,11 @@ _NON_BLOCKING_FAILED_SYSTEMD_UNIT_PREFIXES = (
 )
 _DESKTOP_RUNTIME_COMMAND_RE = re.compile(
     r"\b(?:plasma-apply-[\w-]+|kscreen-doctor|xrandr|qdbus6?|gsettings|lookandfeeltool)\b",
+    re.IGNORECASE,
+)
+_DNF_CONFIG_MANAGER_ADD_REPO_RE = re.compile(
+    r"^(?P<prefix>\s*(?:sudo\s+)?dnf5?\s+config-manager\s+)"
+    r"--add-repo(?:=|\s+)(?P<url>\"[^\"]+\"|'[^']+'|\S+)(?P<rest>.*)$",
     re.IGNORECASE,
 )
 
@@ -2460,6 +2466,9 @@ class SetupOrchestrator:
         commands = self._drop_live_install_harness_owned_commands(stage, group)
         commands = self._combine_standalone_assignments(commands)
         commands = [self._normalize_fedora_kickstart_command(command) for command in commands]
+        commands = [
+            self._normalize_fedora_dnf_config_manager_command(command) for command in commands
+        ]
         commands = self._inject_arch_live_vconsole_before_pacstrap(stage, group, commands)
         commands = self._inject_target_home_writability_prep(stage, group, commands)
         commands = self._inject_apt_external_repo_prereqs(stage, group, commands)
@@ -2564,6 +2573,24 @@ class SetupOrchestrator:
                 "repo=fedora-${releasever}", f"repo=fedora-{version_id}"
             )
         return normalized
+
+    def _normalize_fedora_dnf_config_manager_command(self, command: str) -> str:
+        facts = self.ctx.facts or SetupFacts()
+        if facts.distro_family != "fedora" and facts.os_id != "fedora":
+            return command
+        stripped = (command or "").strip()
+        version_id = str(facts.raw.get("QH_OS_VERSION_ID", "") or "").strip()
+        version_match = re.match(r"(\d+)", version_id)
+        dnf5_era = bool(version_match and int(version_match.group(1)) >= 41)
+        if "dnf5" not in stripped.lower() and not dnf5_era:
+            return command
+        match = _DNF_CONFIG_MANAGER_ADD_REPO_RE.match(command or "")
+        if not match:
+            return command
+        return (
+            f"{match.group('prefix')}addrepo --from-repofile "
+            f"{match.group('url')}{match.group('rest')}"
+        )
 
     @staticmethod
     def _combine_standalone_assignments(commands: list[str]) -> list[str]:
