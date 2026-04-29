@@ -1313,7 +1313,15 @@ class SetupOrchestrator:
             stdout_tail=(stdout or "")[-500:],
             stderr_tail=(stderr or "")[-500:],
         )
-        self._refresh_facts(stage=SetupStage.DESKTOP)
+        self._wait_for_display_manager_state()
+
+    def _wait_for_display_manager_state(self, *, attempts: int = 8) -> None:
+        for attempt in range(max(1, attempts)):
+            facts = self._refresh_facts(stage=SetupStage.DESKTOP)
+            if facts.display_manager_active or not facts.display_manager_enabled:
+                return
+            if attempt < attempts - 1:
+                time.sleep(min(2 + attempt, 5))
 
     def _update_desktop_display_audit_state(self, stage_state: dict[str, Any]) -> None:
         prefs = self._source_display_preferences()

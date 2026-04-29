@@ -1753,6 +1753,62 @@ def test_desktop_stage_starts_enabled_inactive_display_manager():
     assert orchestrator.ctx.facts.display_manager_active is True
 
 
+def test_desktop_stage_polls_after_starting_display_manager(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    before = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        init_system="systemd",
+        current_user="linus",
+        login_user="linus",
+        display_manager="sddm",
+        display_manager_enabled=True,
+        display_manager_active=False,
+        desktop_runtime_state=DesktopRuntimeState.BLOCKED_NO_GUI_SESSION,
+    )
+    still_starting = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        init_system="systemd",
+        current_user="linus",
+        login_user="linus",
+        display_manager="sddm",
+        display_manager_enabled=True,
+        display_manager_active=False,
+        desktop_runtime_state=DesktopRuntimeState.BLOCKED_NO_GUI_SESSION,
+    )
+    active = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        init_system="systemd",
+        current_user="linus",
+        login_user="linus",
+        display_manager="sddm",
+        display_manager_enabled=True,
+        display_manager_active=True,
+        desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
+    )
+    probes = iter([still_starting, active])
+
+    monkeypatch.setattr("quickhatch.setup.orchestrator.time.sleep", lambda _seconds: None)
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(
+            profile,
+            bridge,
+            before,
+            ssh_exec=lambda _command, _timeout: (0, "", ""),
+            probe_facts=lambda **kwargs: next(probes),
+        )
+    )
+    orchestrator.ctx.facts = before
+
+    orchestrator._ensure_display_manager_started()
+
+    assert orchestrator.ctx.facts.display_manager_active is True
+
+
 def test_fstab_mount_verification_uses_field_aware_check():
     command = SetupOrchestrator._normalize_fstab_mount_verification("grep ' / ' /mnt/etc/fstab")
 
