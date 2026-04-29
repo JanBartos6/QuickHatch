@@ -165,6 +165,15 @@ _PACMAN_QI_SINGLE_RE = re.compile(
     r"^(?:sudo\s+)?pacman\s+-Qi\s+(?P<name>[A-Za-z0-9@._+:-]+)\s*$",
     re.IGNORECASE,
 )
+_SIMPLE_APP_LAUNCHER_PROBE_RE = re.compile(
+    r"^\s*(?:command\s+-v|which)\s+(?P<binary>[A-Za-z0-9@._+-]+)\s*$"
+    r"|^\s*(?P<binary2>[A-Za-z0-9@._+-]+)\s+(?:--version|-version|-v)\s*$",
+    re.IGNORECASE,
+)
+_APT_EXTERNAL_REPO_SETUP_RE = re.compile(
+    r"\b(?:curl|wget|gpg|apt-key|add-apt-repository)\b|/etc/apt/sources\.list\.d/|signed-by=",
+    re.IGNORECASE,
+)
 _PARTED_PRE_FORMAT_FS_CHECK_RE = re.compile(
     r"\bparted\s+-ms\s+(?P<disk>/\S+)\s+print\s*\|\s*grep\s+-q\s+"
     r"(?P<quote>['\"])\^(?P<partition>\d+):\.\*:(?:fat32|ext[234]|btrfs|xfs):(?P=quote)",
@@ -1496,7 +1505,10 @@ class SetupOrchestrator:
             return []
         query_cmds = {
             "pacman": "pacman -Qq",
-            "apt": "dpkg-query -W -f='${Package}\\n'",
+            "apt": (
+                "dpkg-query -W -f='${Package}\\n' 2>/dev/null; "
+                "snap list 2>/dev/null | awk 'NR>1 {print $1}'"
+            ),
             "dnf": "rpm -qa --queryformat '%{NAME}\\n'",
             "zypper": "rpm -qa --queryformat '%{NAME}\\n'",
             "apk": "apk info",
@@ -1821,7 +1833,9 @@ class SetupOrchestrator:
             verification = self._normalize_installed_nonroot_privileged_command(
                 verification, stage=stage
             )
-            verification = self._normalize_package_verification_command(verification, stage=stage)
+            verification = self._normalize_package_verification_command(
+                verification, stage=stage, group=group
+            )
             normalized_verification = self._normalize_sysfs_module_parameter_verification(
                 verification, stage=stage
             )
@@ -2134,7 +2148,14 @@ class SetupOrchestrator:
         if pm == "pacman":
             return f"pacman -Q {quoted}"
         if pm == "apt":
-            return f"dpkg-query -W {quoted}"
+            return " && ".join(
+                (
+                    f"(dpkg-query -W {shlex.quote(package)} >/dev/null 2>&1 "
+                    f"|| snap list {shlex.quote(package)} >/dev/null 2>&1)"
+                )
+                for package in packages
+                if package
+            )
         if pm in {"dnf", "zypper"}:
             return f"rpm -q {quoted}"
         if pm == "apk":
@@ -2154,8 +2175,18 @@ class SetupOrchestrator:
                 app.status = PlanItemStatus.MANUAL_FOLLOWUP
                 app.reason = reason
 
-    def _normalize_package_verification_command(self, command: str, *, stage: SetupStage) -> str:
+    def _normalize_package_verification_command(
+        self, command: str, *, stage: SetupStage, group: CommandGroup | None = None
+    ) -> str:
         facts = self.ctx.facts or SetupFacts()
+        if (
+            stage == SetupStage.APPS
+            and group is not None
+            and group.packages
+            and facts.package_manager in {"pacman", "apt", "dnf", "zypper", "apk", "xbps", "emerge"}
+            and self._is_simple_app_launcher_probe(command)
+        ):
+            return self._package_verification_command(group.packages, facts)
         if facts.package_manager != "pacman" or stage not in _INSTALLED_NONROOT_PRIVILEGED_STAGES:
             return command
         match = _PACMAN_QI_SINGLE_RE.match((command or "").strip())
@@ -2163,6 +2194,13 @@ class SetupOrchestrator:
             return command
         name = shlex.quote(match.group("name"))
         return f"(pacman -Qi {name} >/dev/null 2>&1 || pacman -Qg {name} >/dev/null 2>&1)"
+
+    @staticmethod
+    def _is_simple_app_launcher_probe(command: str) -> bool:
+        stripped = (command or "").strip()
+        if not stripped or any(token in stripped for token in ("&&", "||", ";", "|", ">", "<")):
+            return False
+        return bool(_SIMPLE_APP_LAUNCHER_PROBE_RE.match(stripped))
 
     def _soft_fail_desktop_cosmetic_verification(
         self,
@@ -2414,6 +2452,8 @@ class SetupOrchestrator:
         commands = self._drop_live_install_harness_owned_commands(stage, group)
         commands = self._combine_standalone_assignments(commands)
         commands = self._inject_arch_live_vconsole_before_pacstrap(stage, group, commands)
+        commands = self._inject_target_home_writability_prep(stage, group, commands)
+        commands = self._inject_apt_external_repo_prereqs(stage, group, commands)
         if self._is_arch_nvidia_driver_group(stage, group, commands):
             commands = self._normalize_arch_nvidia_commands(commands)
         if self._needs_arch_aur_helper_bootstrap(commands):
@@ -2455,6 +2495,51 @@ class SetupOrchestrator:
             self._normalize_installed_nonroot_privileged_command(command, stage=stage)
             for command in patched_commands
         ]
+
+    def _inject_target_home_writability_prep(
+        self, stage: SetupStage, group: CommandGroup, commands: list[str]
+    ) -> list[str]:
+        facts = self.ctx.facts or SetupFacts()
+        if stage not in {SetupStage.DESKTOP, SetupStage.APPS}:
+            return commands
+        if facts.package_manager != "apt":
+            return commands
+        if facts.is_live or facts.is_root or not (facts.login_user or facts.current_user):
+            return commands
+        if not commands:
+            return commands
+        prep = (
+            'test -w "$HOME" || sudo chown "$USER:$USER" "$HOME"; '
+            'mkdir -p "$HOME/.config" "$HOME/.local" "$HOME/snap"'
+        )
+        if any(command.strip() == prep for command in commands):
+            return commands
+        self.runlog.record(
+            "target_home_writability_prep_injected",
+            stage=stage.value,
+            group_id=group.id,
+            command=prep,
+        )
+        return [prep, *commands]
+
+    def _inject_apt_external_repo_prereqs(
+        self, stage: SetupStage, group: CommandGroup, commands: list[str]
+    ) -> list[str]:
+        facts = self.ctx.facts or SetupFacts()
+        if facts.package_manager != "apt" or stage not in _INSTALLED_NONROOT_PRIVILEGED_STAGES:
+            return commands
+        if not any(_APT_EXTERNAL_REPO_SETUP_RE.search(command or "") for command in commands):
+            return commands
+        prep = "sudo apt update && sudo apt install -y curl ca-certificates gnupg"
+        if any("curl ca-certificates gnupg" in command for command in commands):
+            return commands
+        self.runlog.record(
+            "apt_external_repo_prereqs_injected",
+            stage=stage.value,
+            group_id=group.id,
+            command=prep,
+        )
+        return [prep, *commands]
 
     @staticmethod
     def _combine_standalone_assignments(commands: list[str]) -> list[str]:

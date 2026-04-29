@@ -1064,6 +1064,79 @@ def test_pacman_group_verification_falls_back_to_group_query():
     ]
 
 
+def test_apt_package_verification_accepts_snap_backed_apps():
+    facts = SetupFacts(package_manager="apt")
+
+    command = SetupOrchestrator._package_verification_command(["thunderbird"], facts)
+
+    assert "dpkg-query -W thunderbird" in command
+    assert "snap list thunderbird" in command
+
+
+def test_apps_launcher_verification_uses_package_query_for_apt_snap_apps():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="ubuntu",
+        package_manager="apt",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    commands_seen: list[str] = []
+
+    def ssh_exec(command, _timeout):
+        commands_seen.append(command)
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="ubuntu-apps",
+        stage=SetupStage.APPS,
+        title="Install Ubuntu Apps",
+        commands=["true"],
+        verification=["thunderbird --version"],
+        packages=["thunderbird"],
+    )
+
+    failure = orchestrator._execute_group(SetupStage.APPS, group, {})
+
+    assert failure is None
+    assert any("dpkg-query -W thunderbird" in command for command in commands_seen)
+    assert any("snap list thunderbird" in command for command in commands_seen)
+    assert all("thunderbird --version" not in command for command in commands_seen)
+
+
+def test_apt_external_repo_groups_inject_download_prerequisites():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="ubuntu",
+        package_manager="apt",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="brave",
+        stage=SetupStage.APPS,
+        title="Install Brave",
+        commands=[
+            "sudo curl -fsSLo /etc/apt/sources.list.d/brave.sources https://brave.example/sources"
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.APPS, group)
+
+    assert commands[0] == "sudo apt update && sudo apt install -y curl ca-certificates gnupg"
+    assert any('mkdir -p "$HOME/.config" "$HOME/.local" "$HOME/snap"' in c for c in commands)
+
+
 def test_desktop_cosmetic_package_verification_becomes_manual_followup():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
