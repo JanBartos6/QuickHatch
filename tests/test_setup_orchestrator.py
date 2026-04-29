@@ -1299,6 +1299,57 @@ def test_final_package_verification_accepts_known_package_aliases():
     assert orchestrator._verify_planned_packages_installed() == []
 
 
+def test_final_package_verification_accepts_external_repo_sources():
+    profile = UserProfile(apps_to_install=["Git", "VLC media player", "Brave"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="fedora", package_manager="dnf", current_user="jan")
+
+    def ssh_exec(command, timeout):
+        assert command == "rpm -qa --queryformat '%{NAME}\\n'"
+        assert timeout == 45
+        return (0, "git\nvlc\nbrave-browser\n", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Fedora workstation",
+        distro_family="fedora",
+        package_manager="dnf",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[
+            AppPlanItem(
+                name="Git",
+                package_name="git",
+                source="repo",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+            AppPlanItem(
+                name="VLC media player",
+                package_name="vlc",
+                source="repo_rpmfusion",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+            AppPlanItem(
+                name="Brave",
+                package_name="brave-browser",
+                source="brave_repo",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+        ],
+    )
+
+    assert orchestrator._verify_planned_packages_installed() == []
+    final_state = orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value]
+    assert final_state["verified_installed_apps"] == ["Brave", "Git", "VLC media player"]
+    assert final_state["unverified_installed_apps"] == []
+
+
 def test_desktop_display_audit_blocks_resolution_mismatch():
     profile = UserProfile()
     profile.hardware.displays = [

@@ -208,6 +208,27 @@ _REPO_APP_SOURCES = {
     "repo_search",
     "selected_app_catalog",
     "distro_primer",
+    "vendor_repo",
+    "vendor-repo",
+    "external_repo",
+    "external-repo",
+    "third_party_repo",
+    "third-party-repo",
+    "thirdparty_repo",
+    "thirdparty-repo",
+    "repo_external",
+    "repo-external",
+    "brave_repo",
+    "brave-repo",
+    "rpmfusion",
+    "rpm_fusion",
+    "rpm-fusion",
+    "repo_rpmfusion",
+    "repo-rpmfusion",
+    "rpmfusion_repo",
+    "rpmfusion-repo",
+    "rpm_fusion_repo",
+    "rpm-fusion-repo",
     "package_manager",
     "package-manager",
     "pacman",
@@ -1499,15 +1520,6 @@ class SetupOrchestrator:
         final_state["package_verification_ran"] = False
         final_state["verified_installed_apps"] = []
         final_state["unverified_installed_apps"] = []
-        package_sources = {
-            "repo",
-            "official",
-            "official-repo",
-            "community",
-            "aur",
-            "aur-binary",
-            "aur-source",
-        }
         installed_like = [
             app
             for app in self.ctx.plan.apps
@@ -1516,7 +1528,8 @@ class SetupOrchestrator:
         candidates = [
             app
             for app in installed_like
-            if (app.source or "").lower() in package_sources and (app.package_name or "").strip()
+            if self._normalized_app_source(app.source) in {"repo", "community"}
+            and (app.package_name or "").strip()
         ]
         unverifiable = [app.name for app in installed_like if app not in candidates]
         final_state["unverified_installed_apps"] = sorted(unverifiable)

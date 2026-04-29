@@ -129,6 +129,34 @@ def test_extract_research_plan_parses_valid_json():
     assert plan.apps[1].status == PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION
 
 
+def test_extract_research_plan_normalizes_external_repo_app_sources():
+    profile = UserProfile()
+    profile.apps_to_install = ["Brave", "VLC media player"]
+    payload = _base_plan_payload()
+    payload["apps"] = [
+        {
+            "name": "Brave",
+            "package_name": "brave-browser",
+            "source": "brave_repo",
+            "status": "installed",
+            "required": True,
+            "optional_slow": False,
+        },
+        {
+            "name": "VLC media player",
+            "package_name": "vlc",
+            "source": "repo_rpmfusion",
+            "status": "installed",
+            "required": True,
+            "optional_slow": False,
+        },
+    ]
+
+    plan = extract_research_plan(json.dumps(payload), profile)
+
+    assert [app.source for app in plan.apps] == ["repo", "repo"]
+
+
 def test_extract_research_plan_accepts_single_evidence_objects():
     profile = UserProfile()
     payload = _base_plan_payload()
