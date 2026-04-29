@@ -3297,7 +3297,14 @@ def test_live_install_injects_disk_cleanup_before_destructive_partitioning():
     summary = SetupOrchestrator(runtime).run()
 
     parted_index = commands.index("parted -s /dev/sda mklabel gpt")
-    assert commands[parted_index - 3] == "swapoff -a || true"
+    assert commands[parted_index - 5] == "swapoff -a || true"
+    assert (
+        commands[parted_index - 4]
+        == "mountpoint -q /mnt/sysimage && umount -R /mnt/sysimage || true"
+    )
+    assert (
+        commands[parted_index - 3] == "mountpoint -q /mnt/sysroot && umount -R /mnt/sysroot || true"
+    )
     assert commands[parted_index - 2] == "mountpoint -q /mnt && umount -R /mnt || true"
     assert "lsblk -lnpo NAME /dev/sda" in commands[parted_index - 1]
     assert 'umount "$p"' in commands[parted_index - 1]
@@ -3305,6 +3312,44 @@ def test_live_install_injects_disk_cleanup_before_destructive_partitioning():
     messages = [message["content"] for message in bridge.messages]
     assert "`parted -s /dev/sda mklabel gpt`" in messages
     assert "Arch live install" in summary
+
+
+def test_live_fedora_anaconda_install_gets_disk_cleanup_and_long_timeout():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="fedora",
+        package_manager="dnf",
+        current_user="liveuser",
+        login_user="liveuser",
+        is_live=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="fedora-install",
+        stage=SetupStage.INSTALL_OR_SKIP,
+        title="Fedora Anaconda Install",
+        commands=[
+            "printf 'clearpart --all --drives=sda\\nautopart\\n' > /tmp/qh.ks",
+            "sudo anaconda --kickstart=/tmp/qh.ks -C --noninteractive",
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
+
+    ks_index = commands.index("printf 'clearpart --all --drives=sda\\nautopart\\n' > /tmp/qh.ks")
+    anaconda_index = commands.index("sudo anaconda --kickstart=/tmp/qh.ks -C --noninteractive")
+    assert commands[ks_index - 5] == "swapoff -a || true"
+    assert commands[ks_index - 4] == (
+        "mountpoint -q /mnt/sysimage && umount -R /mnt/sysimage || true"
+    )
+    assert commands[ks_index - 3] == (
+        "mountpoint -q /mnt/sysroot && umount -R /mnt/sysroot || true"
+    )
+    assert commands[ks_index - 2] == "mountpoint -q /mnt && umount -R /mnt || true"
+    assert "lsblk -lnpo NAME /dev/sda" in commands[ks_index - 1]
+    assert orchestrator._command_timeout(commands[anaconda_index]) == 1800
 
 
 def test_live_arch_install_injects_vconsole_before_pacstrap():

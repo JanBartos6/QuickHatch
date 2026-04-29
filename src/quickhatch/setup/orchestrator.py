@@ -44,6 +44,8 @@ from .types import (
 
 _LIVE_DISK_PREP_BASE_COMMANDS = (
     "swapoff -a || true",
+    "mountpoint -q /mnt/sysimage && umount -R /mnt/sysimage || true",
+    "mountpoint -q /mnt/sysroot && umount -R /mnt/sysroot || true",
     "mountpoint -q /mnt && umount -R /mnt || true",
 )
 
@@ -54,6 +56,8 @@ _LIVE_DISK_DESTRUCTIVE_PATTERNS = (
     re.compile(r"\bwipefs\b", re.IGNORECASE),
     re.compile(r"\bsgdisk\b", re.IGNORECASE),
     re.compile(r"\bfdisk\b", re.IGNORECASE),
+    re.compile(r"\b(?:anaconda|liveinst)\b.*(?:--kickstart|-C|--noninteractive)", re.IGNORECASE),
+    re.compile(r"\b(?:clearpart|autopart|zerombr|liveimg)\b", re.IGNORECASE),
 )
 _ARCH_NVIDIA_INSTALL_RE = re.compile(
     r"\b(?:sudo\s+)?pacman\s+-S(?:y|u|yu|yyu)?\b.*\bnvidia\b",
@@ -3197,11 +3201,19 @@ class SetupOrchestrator:
         disk_re = re.compile(
             r"(/dev/(?:nvme\d+n\d+|mmcblk\d+|sd[a-z]+|vd[a-z]+|xvd[a-z]+))(?:p?\d+)?\b"
         )
+        bare_disk_re = re.compile(
+            r"--(?:drives|boot-drive)=(?P<disk>nvme\d+n\d+|mmcblk\d+|sd[a-z]+|vd[a-z]+|xvd[a-z]+)\b"
+        )
         for command in commands:
             if not any(pattern.search(command) for pattern in _LIVE_DISK_DESTRUCTIVE_PATTERNS):
                 continue
             for match in disk_re.finditer(command):
                 disk = match.group(1)
+                if disk not in seen:
+                    seen.add(disk)
+                    disks.append(disk)
+            for match in bare_disk_re.finditer(command):
+                disk = f"/dev/{match.group('disk')}"
                 if disk not in seen:
                     seen.add(disk)
                     disks.append(disk)
@@ -3759,7 +3771,18 @@ class SetupOrchestrator:
     def _command_timeout(self, command: str) -> int:
         command_lower = command.lower()
         if any(
-            token in command_lower for token in ("yay -s", "makepkg", "pacstrap", "debootstrap")
+            token in command_lower
+            for token in (
+                "yay -s",
+                "makepkg",
+                "pacstrap",
+                "debootstrap",
+                "anaconda",
+                "liveinst",
+                "dnf install",
+                "dnf5 install",
+                "dnf group install",
+            )
         ):
             return 1800
         if "reboot" in command_lower:
