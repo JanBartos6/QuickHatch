@@ -163,6 +163,34 @@ def test_desktop_audit_blocks_expected_wallpaper_missing():
     assert any("KDE wallpaper mismatch" in item for item in result.blockers)
 
 
+def test_desktop_audit_ignores_dynamic_shell_wallpaper_expectation():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="linus",
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        desktop_design=DesktopDesignState(
+            environment="KDE",
+            kde_icon_theme="Papirus-Dark",
+            kde_wallpaper="file:///usr/share/wallpapers/Next/contents/images/1440x2960.png",
+        ),
+    )
+
+    result = audit_stage(
+        SetupStage.DESKTOP,
+        facts,
+        stage_state={
+            "persisted_config_written": True,
+            "desktop_design_attempted": True,
+            "wallpaper_attempted": True,
+            "expected_kde_icon_theme": "Papirus-Dark",
+            "expected_kde_wallpaper": "file://$W;",
+        },
+    )
+
+    assert result.passed
+
+
 def test_desktop_audit_accepts_observed_xfce_design_state():
     facts = SetupFacts(
         distro_family="arch",

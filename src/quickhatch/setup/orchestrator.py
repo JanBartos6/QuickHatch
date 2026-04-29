@@ -2812,6 +2812,27 @@ class SetupOrchestrator:
         current_user = (facts.current_user or facts.login_user or self.runtime.user or "").strip()
         if not current_user:
             return command
+        literal_sudo = re.match(
+            rf"^\s*sudo\s+(?:-u|--user)\s+{re.escape(current_user)}\s+(?P<rest>.+)$",
+            command,
+            re.DOTALL,
+        )
+        if literal_sudo:
+            return literal_sudo.group("rest").strip()
+        literal_sudo_equals = re.match(
+            rf"^\s*sudo\s+--user={re.escape(current_user)}\s+(?P<rest>.+)$",
+            command,
+            re.DOTALL,
+        )
+        if literal_sudo_equals:
+            return literal_sudo_equals.group("rest").strip()
+        literal_runuser = re.match(
+            rf"^\s*runuser\s+(?:-u|--user)\s+{re.escape(current_user)}\s+--\s+(?P<rest>.+)$",
+            command,
+            re.DOTALL,
+        )
+        if literal_runuser:
+            return literal_runuser.group("rest").strip()
         try:
             tokens = shlex.split(command, posix=True)
         except ValueError:

@@ -301,6 +301,8 @@ def _desktop_design_contract_blockers(facts: SetupFacts, state: dict[str, Any]) 
         expected_text = str(expected or "").strip()
         if not expected_text:
             continue
+        if _is_dynamic_shell_expectation(expected_text):
+            continue
         observed_text = str(observed or "").strip()
         if not observed_text:
             continue
@@ -311,6 +313,11 @@ def _desktop_design_contract_blockers(facts: SetupFacts, state: dict[str, Any]) 
             f"{observed_text!r}. Re-apply or persist the desktop design before declaring success."
         )
     return blockers
+
+
+def _is_dynamic_shell_expectation(value: str) -> bool:
+    text = str(value or "")
+    return "$" in text or "`" in text
 
 
 def _normalize_design_value(value: str) -> str:

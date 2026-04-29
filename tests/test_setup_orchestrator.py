@@ -1404,6 +1404,24 @@ def test_desktop_commands_record_kde_design_contract():
     assert state["expected_kde_wallpaper"] == "/home/jan/Pictures/masterpiece.png"
 
 
+def test_same_user_wrapper_strip_preserves_shell_pipelines():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="linus")
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    command = (
+        "sudo -u linus kreadconfig6 --file kdeglobals --group Icons --key Theme "
+        "| grep -q Papirus-Dark"
+    )
+
+    assert (
+        orchestrator._strip_same_user_execution_wrapper(command)
+        == "kreadconfig6 --file kdeglobals --group Icons --key Theme | grep -q Papirus-Dark"
+    )
+
+
 def test_desktop_run_prompts_on_display_mismatch_then_manual_followup(monkeypatch):
     profile = UserProfile()
     profile.hardware.displays = [
