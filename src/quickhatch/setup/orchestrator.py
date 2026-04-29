@@ -1720,6 +1720,16 @@ class SetupOrchestrator:
                 stderr_tail=(stderr or "")[-500:],
             )
             if rc != 0:
+                if self._soft_fail_desktop_cosmetic_package_verification(
+                    stage=stage,
+                    group=group,
+                    verification=verification,
+                    rc=rc,
+                    stdout=stdout,
+                    stderr=stderr,
+                    stage_state=stage_state,
+                ):
+                    continue
                 detail = (
                     f"Verification failed for {group.title}: {verification} "
                     f"(rc={rc}; {(stderr or stdout or '').strip()[:200]})"
@@ -1996,6 +2006,90 @@ class SetupOrchestrator:
             return command
         name = shlex.quote(match.group("name"))
         return f"(pacman -Qi {name} >/dev/null 2>&1 || pacman -Qg {name} >/dev/null 2>&1)"
+
+    def _soft_fail_desktop_cosmetic_package_verification(
+        self,
+        *,
+        stage: SetupStage,
+        group: CommandGroup,
+        verification: str,
+        rc: int,
+        stdout: str,
+        stderr: str,
+        stage_state: dict[str, Any],
+    ) -> bool:
+        if stage != SetupStage.DESKTOP:
+            return False
+        if not self._is_cosmetic_desktop_package_verification(verification):
+            return False
+        reason = (
+            f"Cosmetic desktop package verification did not pass for '{group.title}' "
+            f"({verification}). Leaving this theme/icon/font package check as manual follow-up."
+        )
+        stage_state.setdefault("manual_followups", []).append(
+            {
+                "group_id": group.id,
+                "reason": reason,
+                "verification": verification,
+            }
+        )
+        self.runlog.record(
+            "desktop_cosmetic_package_verification_manual_followup",
+            stage=stage.value,
+            group_id=group.id,
+            command=verification,
+            rc=rc,
+            stdout_tail=(stdout or "")[-500:],
+            stderr_tail=(stderr or "")[-500:],
+            reason=reason,
+        )
+        self.bridge.add_message("agent", f"[harness] {reason}")
+        return True
+
+    @staticmethod
+    def _is_cosmetic_desktop_package_verification(command: str) -> bool:
+        lowered = (command or "").lower()
+        if not re.search(r"\b(?:pacman|dpkg-query|rpm|apk|xbps-query|qlist)\b", lowered):
+            return False
+        if any(
+            core in lowered
+            for core in (
+                "plasma-desktop",
+                "plasma-meta",
+                "kde-applications",
+                "sddm",
+                "gdm",
+                "lightdm",
+                "xorg",
+                "wayland",
+                "xdg-desktop-portal",
+                "networkmanager",
+                "pipewire",
+                "dolphin",
+                "konsole",
+            )
+        ):
+            return False
+        return any(
+            hint in lowered
+            for hint in (
+                "theme",
+                "icon",
+                "cursor",
+                "wallpaper",
+                "font",
+                "ttf-",
+                "otf-",
+                "noto",
+                "inter",
+                "kvantum",
+                "catppuccin",
+                "sweet",
+                "candy",
+                "papirus",
+                "bibata",
+            )
+        )
 
     def _auto_repair_missing_repo_targets(
         self,

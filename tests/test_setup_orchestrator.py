@@ -1064,6 +1064,84 @@ def test_pacman_group_verification_falls_back_to_group_query():
     ]
 
 
+def test_desktop_cosmetic_package_verification_becomes_manual_followup():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    commands_seen: list[str] = []
+
+    def ssh_exec(command, timeout):
+        commands_seen.append(command)
+        if "sweet-kde-theme-mars-git" in command:
+            return (1, "", "")
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="neon-theme",
+        stage=SetupStage.DESKTOP,
+        title="Neon Aesthetic Deployment",
+        commands=["true"],
+        verification=["sudo pacman -Qm | grep -q sweet-kde-theme-mars-git"],
+        packages=["sweet-kde-theme-mars-git", "candy-icons-git"],
+    )
+    stage_state: dict[str, object] = {}
+
+    failure = orchestrator._execute_group(SetupStage.DESKTOP, group, stage_state)
+
+    assert failure is None
+    assert commands_seen == ["true", "sudo pacman -Qm | grep -q sweet-kde-theme-mars-git"]
+    assert stage_state["failed_verifications"] == []
+    assert stage_state["manual_followups"]
+    assert "sweet-kde-theme-mars-git" in stage_state["manual_followups"][0]["reason"]
+    assert any("manual follow-up" in message["content"] for message in bridge.messages)
+
+
+def test_core_desktop_package_verification_still_blocks():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+
+    def ssh_exec(command, timeout):
+        if "plasma-desktop" in command:
+            return (1, "", "missing")
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="desktop-core",
+        stage=SetupStage.DESKTOP,
+        title="KDE Plasma Core",
+        commands=["true"],
+        verification=["pacman -Qi plasma-desktop"],
+        packages=["plasma-desktop"],
+    )
+
+    failure = orchestrator._execute_group(SetupStage.DESKTOP, group, {})
+
+    assert failure is not None
+    assert failure.failure_type == "verification"
+    assert "plasma-desktop" in failure.command
+
+
 def test_final_package_verification_accepts_known_package_aliases():
     profile = UserProfile(apps_to_install=["Brave", "Mullvad VPN"])
     bridge = BridgeState(profile, persist_path=None)
