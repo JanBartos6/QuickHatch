@@ -25,7 +25,13 @@ QuickHatch is pre-1.0 and there's no security backport policy yet. The `main` br
 
 **Please do not open a public GitHub issue for security problems.**
 
-Send a report to **private-maintainer-contact** with:
+Use GitHub's **Report a vulnerability** / private security advisory flow if it is
+enabled for the repository. If private vulnerability reporting is unavailable,
+contact the maintainers through a private channel listed on the repository
+profile; do not include exploit details, secrets, SSH keys, or API keys in a
+public issue.
+
+Include:
 
 1. A description of the issue
 2. Steps to reproduce (a minimal profile JSON + the model response that caused the behavior helps enormously)
