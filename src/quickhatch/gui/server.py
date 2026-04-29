@@ -1692,17 +1692,11 @@ def make_gui_server(
 
             elif self.path == "/wizard/clear-setup-log":
                 self._read_json()  # drain request body
-                if gui_state.agent_thread_running():
-                    self._send_json(
-                        {
-                            "status": "error",
-                            "message": "Stop the running agent before clearing the setup log.",
-                        },
-                        409,
-                    )
-                else:
-                    bridge_state.clear_phase_log("setup")
-                    self._send_json({"status": "ok"})
+                bridge_state.clear_phase_log(
+                    "setup",
+                    reset_setup_run=not gui_state.agent_thread_running(),
+                )
+                self._send_json({"status": "ok"})
 
             elif self.path == "/wizard/reset-remote-setup":
                 self._read_json()  # drain request body
@@ -3741,6 +3735,8 @@ def _launch_agent(
             }
         if prelaunch is not None:
             prelaunch()
+        if phase == "setup":
+            gui_state.bridge.clear_phase_log("setup", reset_setup_run=False)
 
         if phase == "setup":
             thread = threading.Thread(

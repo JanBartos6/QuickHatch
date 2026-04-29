@@ -403,13 +403,14 @@ class BridgeState:
             self.agent_done = False
             self._persist()
 
-    def clear_phase_log(self, phase: str) -> None:
+    def clear_phase_log(self, phase: str, *, reset_setup_run: bool = True) -> None:
         """Clear message/question runtime associated with one agent phase.
 
         Intended for UI-level "clear this run's log" actions. This is
         non-destructive to the saved profile and does not touch
         suggestions, because those are shared across analysis/setup and
-        currently have no phase tag.
+        currently have no phase tag. For active setup runs, callers can keep
+        setup_run intact and clear only rendered log history.
         """
         target = phase or ""
         with self.lock:
@@ -419,7 +420,7 @@ class BridgeState:
             self.stop_requested = False
             if self.current_phase == target:
                 self.current_phase = ""
-            if target == "setup":
+            if target == "setup" and reset_setup_run:
                 self.setup_run = {
                     "run_id": "",
                     "stage": "",

@@ -566,6 +566,26 @@ class TestBridgeEndpoints:
         assert bridge.agent_done is False
         assert bridge.stop_requested is False
 
+    def test_clear_setup_log_preserves_running_setup_state(self, server):
+        bridge = server["bridge"]
+        bridge.add_message("agent", "setup goes away", phase="setup")
+        bridge.update_setup_run(run_id="run123", stage="apps", status="running")
+        server["gui_state"]._agent_thread = type(
+            "RunningThread",
+            (),
+            {"is_alive": lambda self: True},
+        )()
+
+        status, body = _post(server["port"], "/wizard/clear-setup-log", {})
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["status"] == "ok"
+        assert bridge.messages == []
+        assert bridge.snapshot_setup_run()["run_id"] == "run123"
+        assert bridge.snapshot_setup_run()["stage"] == "apps"
+        assert bridge.snapshot_setup_run()["status"] == "running"
+
     def test_post_suggest_adds_suggestion(self, server):
         _post(
             server["port"],
