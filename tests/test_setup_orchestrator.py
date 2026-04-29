@@ -3352,6 +3352,29 @@ def test_live_fedora_anaconda_install_gets_disk_cleanup_and_long_timeout():
     assert orchestrator._command_timeout(commands[anaconda_index]) == 1800
 
 
+def test_fedora_kickstart_printf_escapes_directives_and_pins_releasever():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="fedora",
+        os_id="fedora",
+        package_manager="dnf",
+        is_live=True,
+        raw={"QH_OS_VERSION_ID": "44"},
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    command = orchestrator._normalize_fedora_kickstart_command(
+        'printf "url --mirrorlist=https://mirrors.fedoraproject.org/mirrorlist?repo=fedora-$releasever&arch=$basearch\\n%packages\\n@core\\n%end\\n" > /tmp/qh.ks'
+    )
+
+    assert "repo=fedora-44" in command
+    assert "%%packages" in command
+    assert "%%end" in command
+    assert "%packages" not in command.replace("%%packages", "")
+
+
 def test_live_arch_install_injects_vconsole_before_pacstrap():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

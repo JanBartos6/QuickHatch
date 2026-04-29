@@ -178,6 +178,10 @@ _APT_EXTERNAL_REPO_SETUP_RE = re.compile(
     r"\b(?:curl|wget|gpg|apt-key|add-apt-repository)\b|/etc/apt/sources\.list\.d/|signed-by=",
     re.IGNORECASE,
 )
+_KICKSTART_DIRECTIVE_IN_PRINTF_RE = re.compile(
+    r"(?<!%)%(packages|end|post|pre|addon|include|ksappend)\b",
+    re.IGNORECASE,
+)
 _PARTED_PRE_FORMAT_FS_CHECK_RE = re.compile(
     r"\bparted\s+-ms\s+(?P<disk>/\S+)\s+print\s*\|\s*grep\s+-q\s+"
     r"(?P<quote>['\"])\^(?P<partition>\d+):\.\*:(?:fat32|ext[234]|btrfs|xfs):(?P=quote)",
@@ -2455,6 +2459,7 @@ class SetupOrchestrator:
     def _commands_for_group(self, stage: SetupStage, group: CommandGroup) -> list[str]:
         commands = self._drop_live_install_harness_owned_commands(stage, group)
         commands = self._combine_standalone_assignments(commands)
+        commands = [self._normalize_fedora_kickstart_command(command) for command in commands]
         commands = self._inject_arch_live_vconsole_before_pacstrap(stage, group, commands)
         commands = self._inject_target_home_writability_prep(stage, group, commands)
         commands = self._inject_apt_external_repo_prereqs(stage, group, commands)
@@ -2544,6 +2549,21 @@ class SetupOrchestrator:
             command=prep,
         )
         return [prep, *commands]
+
+    def _normalize_fedora_kickstart_command(self, command: str) -> str:
+        facts = self.ctx.facts or SetupFacts()
+        if facts.distro_family != "fedora" and facts.os_id != "fedora":
+            return command
+        normalized = command
+        if "printf" in normalized and ".ks" in normalized:
+            normalized = _KICKSTART_DIRECTIVE_IN_PRINTF_RE.sub(r"%%\1", normalized)
+        version_id = str(facts.raw.get("QH_OS_VERSION_ID", "") or "").strip()
+        if version_id:
+            normalized = normalized.replace("repo=fedora-$releasever", f"repo=fedora-{version_id}")
+            normalized = normalized.replace(
+                "repo=fedora-${releasever}", f"repo=fedora-{version_id}"
+            )
+        return normalized
 
     @staticmethod
     def _combine_standalone_assignments(commands: list[str]) -> list[str]:

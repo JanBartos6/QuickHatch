@@ -21,6 +21,7 @@ echo 'QH_IS_ROOT='$(if [ "$(id -u 2>/dev/null)" = "0" ]; then echo yes; else ech
 echo 'QH_SUDO_NOPASSWD='$(if [ "$(id -u 2>/dev/null)" = "0" ]; then echo yes; elif command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then echo yes; else echo no; fi)
 echo 'QH_OS_ID='$(. /etc/os-release 2>/dev/null; echo ${ID:-unknown})
 echo 'QH_OS_LIKE='$(. /etc/os-release 2>/dev/null; echo ${ID_LIKE:-})
+echo 'QH_OS_VERSION_ID='$(. /etc/os-release 2>/dev/null; echo ${VERSION_ID:-})
 echo 'QH_KERNEL_RELEASE='$(uname -r 2>/dev/null || true)
 echo 'QH_VIRT='$(systemd-detect-virt 2>/dev/null || true)
 echo 'QH_SYS_VENDOR='$(cat /sys/class/dmi/id/sys_vendor 2>/dev/null | tr '|' '/')
