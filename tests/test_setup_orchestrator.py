@@ -1106,6 +1106,48 @@ def test_desktop_cosmetic_package_verification_becomes_manual_followup():
     assert any("manual follow-up" in message["content"] for message in bridge.messages)
 
 
+def test_desktop_cosmetic_asset_verification_becomes_manual_followup():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    commands_seen: list[str] = []
+
+    def ssh_exec(command, timeout):
+        commands_seen.append(command)
+        if "look-and-feel" in command:
+            return (1, "", "missing theme id")
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="neon-assets",
+        stage=SetupStage.DESKTOP,
+        title="Neon Aesthetic Assets",
+        commands=["true"],
+        verification=["ls /usr/share/plasma/look-and-feel/ | grep -i Sweet-Mars"],
+        packages=["sweet-kde-theme-git", "candy-icons-git"],
+    )
+    stage_state: dict[str, object] = {}
+
+    failure = orchestrator._execute_group(SetupStage.DESKTOP, group, stage_state)
+
+    assert failure is None
+    assert commands_seen == ["true", "ls /usr/share/plasma/look-and-feel/ | grep -i Sweet-Mars"]
+    assert stage_state["failed_verifications"] == []
+    assert stage_state["manual_followups"]
+    assert "look-and-feel" in stage_state["manual_followups"][0]["verification"]
+    assert any("Cosmetic desktop verification" in message["content"] for message in bridge.messages)
+
+
 def test_core_desktop_package_verification_still_blocks():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

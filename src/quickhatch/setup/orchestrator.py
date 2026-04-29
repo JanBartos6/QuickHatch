@@ -1768,7 +1768,7 @@ class SetupOrchestrator:
                 stderr_tail=(stderr or "")[-500:],
             )
             if rc != 0:
-                if self._soft_fail_desktop_cosmetic_package_verification(
+                if self._soft_fail_desktop_cosmetic_verification(
                     stage=stage,
                     group=group,
                     verification=verification,
@@ -2055,7 +2055,7 @@ class SetupOrchestrator:
         name = shlex.quote(match.group("name"))
         return f"(pacman -Qi {name} >/dev/null 2>&1 || pacman -Qg {name} >/dev/null 2>&1)"
 
-    def _soft_fail_desktop_cosmetic_package_verification(
+    def _soft_fail_desktop_cosmetic_verification(
         self,
         *,
         stage: SetupStage,
@@ -2068,11 +2068,11 @@ class SetupOrchestrator:
     ) -> bool:
         if stage != SetupStage.DESKTOP:
             return False
-        if not self._is_cosmetic_desktop_package_verification(verification):
+        if not self._is_cosmetic_desktop_verification(verification):
             return False
         reason = (
-            f"Cosmetic desktop package verification did not pass for '{group.title}' "
-            f"({verification}). Leaving this theme/icon/font package check as manual follow-up."
+            f"Cosmetic desktop verification did not pass for '{group.title}' "
+            f"({verification}). Leaving this theme/icon/font check as manual follow-up."
         )
         stage_state.setdefault("manual_followups", []).append(
             {
@@ -2082,7 +2082,7 @@ class SetupOrchestrator:
             }
         )
         self.runlog.record(
-            "desktop_cosmetic_package_verification_manual_followup",
+            "desktop_cosmetic_verification_manual_followup",
             stage=stage.value,
             group_id=group.id,
             command=verification,
@@ -2095,15 +2095,14 @@ class SetupOrchestrator:
         return True
 
     @staticmethod
-    def _is_cosmetic_desktop_package_verification(command: str) -> bool:
+    def _is_cosmetic_desktop_verification(command: str) -> bool:
         lowered = (command or "").lower()
-        if not re.search(r"\b(?:pacman|dpkg-query|rpm|apk|xbps-query|qlist)\b", lowered):
-            return False
         if any(
             core in lowered
             for core in (
                 "plasma-desktop",
                 "plasma-meta",
+                "plasma-workspace",
                 "kde-applications",
                 "sddm",
                 "gdm",
@@ -2118,9 +2117,11 @@ class SetupOrchestrator:
             )
         ):
             return False
-        return any(
+        has_cosmetic_hint = any(
             hint in lowered
             for hint in (
+                "look-and-feel",
+                "lookandfeel",
                 "theme",
                 "icon",
                 "cursor",
@@ -2136,6 +2137,27 @@ class SetupOrchestrator:
                 "candy",
                 "papirus",
                 "bibata",
+            )
+        )
+        if not has_cosmetic_hint:
+            return False
+        if re.search(r"\b(?:pacman|dpkg-query|rpm|apk|xbps-query|qlist)\b", lowered):
+            return True
+        return any(
+            path in lowered
+            for path in (
+                "/usr/share/plasma/look-and-feel",
+                "/usr/share/icons",
+                "/usr/share/themes",
+                "/usr/share/wallpapers",
+                "/usr/share/fonts",
+                "/usr/local/share/fonts",
+                "/.local/share/icons",
+                "/.local/share/themes",
+                "/.local/share/wallpapers",
+                "/.config/gtk-",
+                "kdeglobals",
+                "kwinrc",
             )
         )
 
