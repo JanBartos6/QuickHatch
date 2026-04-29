@@ -59,6 +59,18 @@ _LIVE_DISK_DESTRUCTIVE_PATTERNS = (
     re.compile(r"\b(?:anaconda|liveinst)\b.*(?:--kickstart|-C|--noninteractive)", re.IGNORECASE),
     re.compile(r"\b(?:clearpart|autopart|zerombr|liveimg)\b", re.IGNORECASE),
 )
+_LIVE_DISK_REREAD_REQUIRED_RE = re.compile(
+    r"unable to inform the kernel of the change|"
+    r"old partition\(s\) will remain in use|"
+    r"you should reboot now before making further changes|"
+    r"this disk is currently in use|"
+    r"device or resource busy",
+    re.IGNORECASE,
+)
+_LIVE_DISK_REREAD_COMMAND_RE = re.compile(
+    r"\b(?:parted|sfdisk|fdisk|sgdisk|partprobe|partx|wipefs|mkfs(?:\.[\w+-]+)?)\b",
+    re.IGNORECASE,
+)
 _ARCH_NVIDIA_INSTALL_RE = re.compile(
     r"\b(?:sudo\s+)?pacman\s+-S(?:y|u|yu|yyu)?\b.*\bnvidia\b",
     re.IGNORECASE,
@@ -903,6 +915,8 @@ class SetupOrchestrator:
                     self._mark_group_completion(current_group, stage=stage)
                     self._refresh_facts(stage=stage)
                     break
+                if failure.failure_type == "live_reboot_required":
+                    raise RuntimeError(failure.detail)
                 auto_repaired = self._auto_repair_missing_repo_targets(
                     stage, current_group, failure
                 )
@@ -1220,6 +1234,28 @@ class SetupOrchestrator:
         ):
             return False
         return self._looks_like_transient_ssh_disconnect(stdout, stderr)
+
+    def _looks_like_live_disk_reread_required(
+        self, stage: SetupStage, command: str, stdout: str, stderr: str
+    ) -> bool:
+        facts = self.ctx.facts or SetupFacts()
+        if stage != SetupStage.INSTALL_OR_SKIP or not facts.is_live:
+            return False
+        if not _LIVE_DISK_REREAD_COMMAND_RE.search(command or ""):
+            return False
+        output = "\n".join([stdout or "", stderr or ""])
+        return bool(_LIVE_DISK_REREAD_REQUIRED_RE.search(output))
+
+    @staticmethod
+    def _live_disk_reread_required_message(command: str) -> str:
+        return (
+            "Live install disk state is stale: the kernel reports that the target "
+            "disk partition table could not be reread or is still busy after "
+            f"`{redact_sensitive_text(command)}`. QuickHatch stopped instead of "
+            "escalating destructive disk commands. Reboot back into the same live "
+            "USB/ISO, rerun quickstart.sh, then restart Remote Setup from a clean "
+            "live session."
+        )
 
     def _resolve_public_key_text(self) -> str:
         candidates: list[Path] = []
@@ -1903,6 +1939,28 @@ class SetupOrchestrator:
                         "into the installed system instead of retrying the installer command.",
                     )
                     return None
+                if self._looks_like_live_disk_reread_required(
+                    stage, visible_command, stdout, stderr
+                ):
+                    detail = self._live_disk_reread_required_message(visible_command)
+                    stage_state["live_disk_reboot_required"] = True
+                    self.runlog.record(
+                        "live_disk_reboot_required",
+                        stage=stage.value,
+                        group_id=group.id,
+                        command=visible_command,
+                        rc=rc,
+                        stdout_tail=(stdout or "")[-500:],
+                        stderr_tail=(stderr or "")[-500:],
+                    )
+                    self.bridge.add_message("agent", f"⚠️ {detail}")
+                    return GroupFailure(
+                        failure_type="live_reboot_required",
+                        command=visible_command,
+                        stdout=stdout,
+                        stderr=stderr,
+                        detail=detail,
+                    )
                 stage_state.setdefault("failed_commands", []).append(command)
                 detail = stderr.strip() or stdout.strip() or "command failed"
                 self.bridge.add_message(

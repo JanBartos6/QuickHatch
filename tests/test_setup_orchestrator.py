@@ -71,6 +71,95 @@ def test_live_installer_disconnect_is_treated_as_reboot_boundary():
     )
 
 
+def test_live_disk_partition_reread_failure_blocks_repairs():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="fedora",
+        package_manager="dnf",
+        current_user="liveuser",
+        is_live=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Fedora live install",
+        distro_family="fedora",
+        package_manager="dnf",
+        driver_strategy=StrategyDecision("none", confidence="resolved_official"),
+        desktop_strategy=StrategyDecision("gnome", confidence="resolved_official"),
+        command_groups=[
+            CommandGroup(
+                id="disk",
+                stage=SetupStage.INSTALL_OR_SKIP,
+                title="Disk Prep",
+                commands=["sudo parted -s /dev/sda mklabel msdos"],
+                verification=[],
+            )
+        ],
+    )
+    repair_calls = {"count": 0}
+
+    def execute_group(_stage, _group, _state):
+        return GroupFailure(
+            "live_reboot_required",
+            "sudo parted -s /dev/sda mklabel msdos",
+            "",
+            (
+                "Error: Partition(s) 2 on /dev/sda have been written, but we have "
+                "been unable to inform the kernel of the change. You should reboot "
+                "now before making further changes."
+            ),
+            "Live install disk state is stale; reboot live media.",
+        )
+
+    def repair_failed_group(*_args, **_kwargs):
+        repair_calls["count"] += 1
+        return {"action": "retry_group", "group": orchestrator.ctx.plan.command_groups[0]}
+
+    orchestrator._execute_group = execute_group  # type: ignore[method-assign]
+    orchestrator._repair_failed_group = repair_failed_group  # type: ignore[method-assign]
+
+    try:
+        orchestrator._run_stage_groups(SetupStage.INSTALL_OR_SKIP, audit_after=False)
+    except RuntimeError as exc:
+        assert "reboot live" in str(exc).lower()
+    else:
+        raise AssertionError("live disk reread failure should block setup")
+    assert repair_calls["count"] == 0
+
+
+def test_live_disk_partition_reread_detector_requires_live_install_stage():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="fedora",
+        package_manager="dnf",
+        current_user="liveuser",
+        is_live=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    stderr = (
+        "Error: Partition(s) 2 on /dev/sda have been written, but we have been "
+        "unable to inform the kernel of the change. You should reboot now before "
+        "making further changes."
+    )
+
+    assert orchestrator._looks_like_live_disk_reread_required(
+        SetupStage.INSTALL_OR_SKIP,
+        "sudo parted -s /dev/sda mklabel msdos",
+        "",
+        stderr,
+    )
+    assert not orchestrator._looks_like_live_disk_reread_required(
+        SetupStage.APPS,
+        "sudo parted -s /dev/sda mklabel msdos",
+        "",
+        stderr,
+    )
+
+
 def _dummy_setup_runtime(
     profile: UserProfile,
     bridge: BridgeState,
