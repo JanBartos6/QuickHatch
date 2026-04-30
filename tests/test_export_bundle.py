@@ -52,6 +52,8 @@ def test_run_export_cleans_generated_outputs_and_writes_start_here(monkeypatch, 
 
     quickstart = (output_dir / "quickstart.sh").read_text(encoding="utf-8")
     assert "stale-quickstart" not in quickstart
+    assert "99-quickhatch-live-nopasswd" in quickstart
+    assert "NOPASSWD: ALL" in quickstart
     install_script = (output_dir / "install.sh").read_text(encoding="utf-8")
     assert "stale-install" not in install_script
     copied_key = (output_dir / ssh_pub.name).read_text(encoding="utf-8")

@@ -330,6 +330,16 @@ else
 fi
 echo ""
 
+# --- Live ISO privilege continuity ---
+# Live ISO users are often passwordless locally, but not necessarily
+# passwordless over SSH. Grant a temporary live-session sudoers drop-in so
+# later remote setup commands do not hang or fail on invisible sudo prompts.
+if [ "$IS_LIVE" = "yes" ] && [ "$(id -u)" != "0" ] && command -v sudo >/dev/null 2>&1; then
+    LIVE_USER=$(id -un)
+    echo "[*] Granting temporary NOPASSWD sudo for live user: $LIVE_USER"
+    sudo sh -c 'printf "%s\n" "$1 ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/99-quickhatch-live-nopasswd && chmod 440 /etc/sudoers.d/99-quickhatch-live-nopasswd' _ "$LIVE_USER"
+fi
+
 # --- Ensure SSH server is installed ---
 if ! command -v sshd >/dev/null 2>&1; then
     echo "[*] Installing SSH server..."
