@@ -5827,6 +5827,11 @@ fi
 
 emit(){ echo "STATUS|$1|$2|$3"; }
 
+QH_SUDO=
+if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
+  QH_SUDO=sudo
+fi
+
 # Detect distro family from /etc/os-release on the target.
 DFAMILY=unknown
 if [ -f "$_root/etc/os-release" ]; then
@@ -5904,7 +5909,7 @@ if [ -n "$LUKS_DEVS" ]; then
       fi
       ;;
     debian)
-      if chroot "$_root" dpkg -s cryptsetup-initramfs >/dev/null 2>&1; then
+      if $QH_SUDO chroot "$_root" dpkg -s cryptsetup-initramfs >/dev/null 2>&1; then
         emit OK luks-init "cryptsetup-initramfs installed"
       else
         emit FAIL luks-init "LUKS in use but 'cryptsetup-initramfs' package is not installed — initramfs cannot unlock root. Run \`apt install -y cryptsetup-initramfs\` then \`update-initramfs -u -k all\` inside chroot."
@@ -5916,7 +5921,7 @@ if [ -n "$LUKS_DEVS" ]; then
       fi
       ;;
     fedora|suse|void)
-      if [ -n "$INIT_NEWEST" ] && chroot "$_root" lsinitrd "$INIT_NEWEST" 2>/dev/null | grep -qi crypt; then
+      if [ -n "$INIT_NEWEST" ] && $QH_SUDO chroot "$_root" lsinitrd "$INIT_NEWEST" 2>/dev/null | grep -qi crypt; then
         emit OK luks-init "dracut initramfs includes crypt module"
       elif [ -s "$_root/etc/crypttab" ]; then
         emit OK luks-init "/etc/crypttab populated (dracut should pick up crypt module automatically on regen)"
@@ -5974,7 +5979,7 @@ fi
 ROOT_HAS_PW=0
 SUDOER_OK=0
 if [ -f "$_root/etc/shadow" ]; then
-  RHASH=$(awk -F: '$1=="root"{print $2}' "$_root/etc/shadow" 2>/dev/null)
+  RHASH=$($QH_SUDO awk -F: '$1=="root"{print $2}' "$_root/etc/shadow" 2>/dev/null)
   case "$RHASH" in
     ''|'!'|'!!'|'!*'|'*'|'x') ROOT_HAS_PW=0 ;;
     *) ROOT_HAS_PW=1 ;;
@@ -5984,8 +5989,8 @@ fi
 if [ -f "$_root/etc/group" ]; then
   ADMIN_USERS=$(awk -F: '$1=="wheel" || $1=="sudo"{print $4}' "$_root/etc/group" 2>/dev/null | tr -d ' ')
   if [ -n "$ADMIN_USERS" ]; then
-    if grep -qE '^[[:space:]]*%(wheel|sudo)[[:space:]]+ALL=\(ALL(:ALL)?\)[[:space:]]+(NOPASSWD:[[:space:]]*)?ALL' "$_root/etc/sudoers" 2>/dev/null \
-       || (ls "$_root/etc/sudoers.d/" 2>/dev/null | xargs -I{} grep -qlE '^[[:space:]]*%(wheel|sudo)[[:space:]]+ALL' "$_root/etc/sudoers.d/{}" 2>/dev/null); then
+    if $QH_SUDO grep -qE '^[[:space:]]*%(wheel|sudo)[[:space:]]+ALL=\(ALL(:ALL)?\)[[:space:]]+(NOPASSWD:[[:space:]]*)?ALL' "$_root/etc/sudoers" 2>/dev/null \
+       || { [ -d "$_root/etc/sudoers.d" ] && $QH_SUDO find "$_root/etc/sudoers.d" -type f -exec grep -qlE '^[[:space:]]*%(wheel|sudo)[[:space:]]+ALL' {} \; 2>/dev/null | grep -q .; }; then
       SUDOER_OK=1
     fi
   fi

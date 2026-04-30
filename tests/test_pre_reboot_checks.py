@@ -139,6 +139,20 @@ class TestPreRebootChecksParser:
             in server_mod._PRE_REBOOT_CHECK_SCRIPT
         )
 
+    def test_recovery_guard_reads_privileged_files_with_sudo_when_live_user_nonroot(self):
+        """Ubuntu live sessions run as a sudo-capable non-root user.
+
+        The target's shadow/sudoers files are root-readable only, so the
+        guard must use sudo before deciding root recovery is unavailable.
+        """
+
+        script = server_mod._PRE_REBOOT_CHECK_SCRIPT
+
+        assert "QH_SUDO=sudo" in script
+        assert 'RHASH=$($QH_SUDO awk -F:' in script
+        assert "$QH_SUDO grep -qE" in script
+        assert '$QH_SUDO find "$_root/etc/sudoers.d"' in script
+
 
 if __name__ == "__main__":  # pragma: no cover
     pytest.main([__file__, "-v"])
