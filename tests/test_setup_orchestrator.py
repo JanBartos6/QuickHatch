@@ -3950,10 +3950,11 @@ def test_ubuntu_live_debootstrap_rewrites_variable_mirror_with_cdrom_no_check_gp
 
     rewritten = SetupOrchestrator._rewrite_debootstrap_http_mirror_to_cdrom_fallback(command)
 
-    assert rewritten.startswith("if [ -d /cdrom/dists/resolute ]")
-    assert "base-files base-passwd bash coreutils dpkg libc6" in rewritten
-    assert "sudo debootstrap --no-check-gpg --arch=amd64 resolute /mnt file:///cdrom" in rewritten
-    assert "sudo debootstrap --arch=amd64 resolute /mnt http://mirrors.kernel.org/ubuntu" in rewritten
+    assert rewritten == (
+        'MIRROR=$(test -d /cdrom/dists/resolute && echo "file:///cdrom" || '
+        'echo "http://mirrors.kernel.org/ubuntu") && '
+        'sudo debootstrap --arch=amd64 resolute /mnt "$MIRROR"'
+    )
 
 
 def test_ubuntu_live_debootstrap_rewrites_default_archive_to_fast_mirror():
@@ -3964,6 +3965,33 @@ def test_ubuntu_live_debootstrap_rewrites_default_archive_to_fast_mirror():
     assert "sudo debootstrap --arch=amd64 resolute /mnt http://mirrors.kernel.org/ubuntu" in (
         rewritten
     )
+
+
+def test_ubuntu_live_debootstrap_does_not_wrap_guarded_shell_conditionals():
+    command = (
+        "if [ ! -f /mnt/usr/bin/apt ]; then "
+        "sudo debootstrap resolute /mnt http://archive.ubuntu.com/ubuntu; "
+        "fi"
+    )
+
+    rewritten = SetupOrchestrator._rewrite_debootstrap_http_mirror_to_cdrom_fallback(command)
+
+    assert rewritten == (
+        "if [ ! -f /mnt/usr/bin/apt ]; then "
+        "sudo debootstrap resolute /mnt http://mirrors.kernel.org/ubuntu; "
+        "fi"
+    )
+
+
+def test_live_resolv_conf_copy_is_idempotent_for_bind_mounted_run():
+    command = "sudo cp /etc/resolv.conf /mnt/etc/resolv.conf"
+
+    rewritten = SetupOrchestrator._rewrite_live_resolv_conf_copy(command)
+
+    assert rewritten.startswith("sudo sh -c ")
+    assert "cmp -s /etc/resolv.conf /mnt/etc/resolv.conf" in rewritten
+    assert "rm -f /mnt/etc/resolv.conf" in rewritten
+    assert "cp -L /etc/resolv.conf /mnt/etc/resolv.conf" in rewritten
 
 
 def test_package_search_keeps_short_timeout():

@@ -234,6 +234,19 @@ _PARTED_PRE_FORMAT_FS_CHECK_RE = re.compile(
 _DEBIAN_LIVE_DEBOOTSTRAP_RE = re.compile(r"\bdebootstrap\b", re.IGNORECASE)
 _UBUNTU_DEBOOTSTRAP_FALLBACK_MIRROR = "http://mirrors.kernel.org/ubuntu"
 _DEBIAN_DEBOOTSTRAP_FALLBACK_MIRROR = "http://deb.debian.org/debian"
+_DEBOOTSTRAP_SHELL_CONTROL_TOKENS = {
+    "case",
+    "do",
+    "done",
+    "elif",
+    "else",
+    "esac",
+    "fi",
+    "for",
+    "if",
+    "then",
+    "while",
+}
 _DEBOOTSTRAP_OPTION_ARGS_WITH_VALUE = {
     "-a",
     "--arch",
@@ -248,6 +261,12 @@ _DEBOOTSTRAP_OPTION_ARGS_WITH_VALUE = {
 }
 _DEBIAN_LIVE_CHROOT_RE = re.compile(
     r"\b(?:chroot|systemd-nspawn)\s+(?P<target>/mnt|/target)\b", re.IGNORECASE
+)
+_LIVE_RESOLV_CONF_TARGETS = (
+    "/mnt/etc/resolv.conf",
+    "/target/etc/resolv.conf",
+    "/mnt/sysroot/etc/resolv.conf",
+    "/mnt/sysimage/etc/resolv.conf",
 )
 _SYSFS_MODULE_PARAMETER_CAT_RE = re.compile(
     r"^(?P<prefix>\s*)cat\s+(?P<path>/sys/module/[A-Za-z0-9_+-]+/parameters/[A-Za-z0-9_+-]+)"
@@ -2945,6 +2964,7 @@ class SetupOrchestrator:
         commands = self._inject_debian_live_debootstrap_prereqs(stage, group, commands)
         commands = self._prefer_debian_live_cdrom_debootstrap_mirror(stage, group, commands)
         commands = self._inject_debian_live_chroot_bind_mounts(stage, group, commands)
+        commands = self._normalize_live_resolv_conf_copies(stage, group, commands)
         commands = self._inject_arch_live_vconsole_before_pacstrap(stage, group, commands)
         commands = self._inject_target_home_writability_prep(stage, group, commands)
         commands = self._inject_apt_external_repo_prereqs(stage, group, commands)
@@ -3128,6 +3148,8 @@ class SetupOrchestrator:
         )
         if debootstrap_index < 0:
             return command
+        if SetupOrchestrator._debootstrap_is_inside_complex_shell(tokens, debootstrap_index):
+            return SetupOrchestrator._normalize_debootstrap_mirrors_in_shell(command)
 
         positional: list[tuple[int, str]] = []
         index = debootstrap_index + 1
@@ -3206,6 +3228,29 @@ class SetupOrchestrator:
         return match.group(0) if match else ""
 
     @staticmethod
+    def _debootstrap_is_inside_complex_shell(tokens: list[str], debootstrap_index: int) -> bool:
+        before = [token.rstrip(";").lower() for token in tokens[:debootstrap_index]]
+        return any(token in _DEBOOTSTRAP_SHELL_CONTROL_TOKENS for token in before) or any(
+            token.endswith(";") or token in {"&&", "||", "|"} for token in tokens
+        )
+
+    @staticmethod
+    def _normalize_debootstrap_mirrors_in_shell(command: str) -> str:
+        rewritten = re.sub(
+            r"https?://(?:archive|security)\.ubuntu\.com/ubuntu\b",
+            _UBUNTU_DEBOOTSTRAP_FALLBACK_MIRROR,
+            command,
+            flags=re.IGNORECASE,
+        )
+        rewritten = re.sub(
+            r"https?://deb\.debian\.org/debian\b",
+            _DEBIAN_DEBOOTSTRAP_FALLBACK_MIRROR,
+            rewritten,
+            flags=re.IGNORECASE,
+        )
+        return rewritten
+
+    @staticmethod
     def _normalize_debootstrap_fallback_mirror(suite: str, mirror: str, command: str) -> str:
         normalized = (mirror or "").strip()
         haystack = f"{suite} {mirror} {command}".lower()
@@ -3221,6 +3266,47 @@ class SetupOrchestrator:
         if "debian" in haystack and "deb.debian.org/debian" not in normalized:
             return _DEBIAN_DEBOOTSTRAP_FALLBACK_MIRROR
         return normalized
+
+    def _normalize_live_resolv_conf_copies(
+        self, stage: SetupStage, group: CommandGroup, commands: list[str]
+    ) -> list[str]:
+        facts = self.ctx.facts or SetupFacts()
+        if stage != SetupStage.INSTALL_OR_SKIP or not facts.is_live:
+            return commands
+        patched: list[str] = []
+        for command in commands:
+            rewritten = self._rewrite_live_resolv_conf_copy(command)
+            if rewritten != command:
+                self.runlog.record(
+                    "live_resolv_conf_copy_normalized",
+                    stage=stage.value,
+                    group_id=group.id,
+                    original=command,
+                    rewritten=rewritten,
+                )
+            patched.append(rewritten)
+        return patched
+
+    @staticmethod
+    def _rewrite_live_resolv_conf_copy(command: str) -> str:
+        try:
+            tokens = shlex.split(command, posix=True)
+        except ValueError:
+            return command
+        if tokens and tokens[0] == "sudo":
+            tokens = tokens[1:]
+        if not tokens or tokens[0] != "cp":
+            return command
+        args = [token for token in tokens[1:] if token not in {"-L", "-f"}]
+        if len(args) != 2 or args[0] != "/etc/resolv.conf" or args[1] not in _LIVE_RESOLV_CONF_TARGETS:
+            return command
+        target_q = shlex.quote(args[1])
+        return "sudo sh -c " + shlex.quote(
+            "if ! cmp -s /etc/resolv.conf "
+            f"{target_q} 2>/dev/null; then "
+            f"rm -f {target_q} && cp -L /etc/resolv.conf {target_q}; "
+            "fi"
+        )
 
     def _inject_debian_live_chroot_bind_mounts(
         self, stage: SetupStage, group: CommandGroup, commands: list[str]
