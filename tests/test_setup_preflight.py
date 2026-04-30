@@ -117,6 +117,49 @@ def test_preflight_blocks_fedora_live_anaconda_over_ssh():
     assert "configure-only" in error
 
 
+def test_preflight_blocks_ubuntu_live_interactive_installer_over_ssh():
+    facts = SetupFacts(
+        package_manager="apt",
+        distro_family="debian",
+        os_id="ubuntu",
+        os_like="debian",
+        is_live=True,
+    )
+
+    error = preflight_setup_command("ubuntu-desktop-bootstrap --try-or-install", facts)
+
+    assert error
+    assert "graphical/live installer" in error
+    assert "debootstrap" in error
+
+
+def test_preflight_allows_ubuntu_live_debootstrap_and_autoinstall():
+    facts = SetupFacts(
+        package_manager="apt",
+        distro_family="debian",
+        os_id="ubuntu",
+        os_like="debian",
+        is_live=True,
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+
+    assert (
+        preflight_setup_command(
+            "sudo debootstrap --arch=amd64 noble /mnt http://archive.ubuntu.com/ubuntu",
+            facts,
+        )
+        is None
+    )
+    assert (
+        preflight_setup_command(
+            "sudo subiquity --autoinstall-url=file:///tmp/user-data",
+            facts,
+        )
+        is None
+    )
+
+
 def test_preflight_allows_fedora_installed_anaconda_probe():
     facts = SetupFacts(package_manager="dnf", distro_family="fedora", is_live=False)
 

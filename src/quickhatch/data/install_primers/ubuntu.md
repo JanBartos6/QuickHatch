@@ -12,11 +12,26 @@ procedure.
 | Mirror | `http://archive.ubuntu.com/ubuntu` |
 | Extra repos | None required. Snap is enabled by default. |
 | Desktop metapackage | `ubuntu-desktop` (GNOME) / `kubuntu-desktop` (KDE) / `xubuntu-desktop` / `ubuntu-server` (headless) |
-| Installer | `subiquity` (server, cloud-init autoinstall) / `ubiquity` (desktop) |
+| Installer | QuickHatch prefers debootstrap from the live ISO; Subiquity/autoinstall is supported only when a current noninteractive invocation is proven |
 | sudo group | `sudo` |
 | non-free firmware | Ubuntu ships it by default via the `restricted` component |
 
-## Installer-specific path (subiquity/ubiquity with cloud-init)
+## QuickHatch live-install path
+
+For Ubuntu Desktop live ISOs, QuickHatch should use the Debian-family
+debootstrap path from `families/debian-family.md` as the default full live
+install path. Do not drive the graphical Ubuntu Desktop installer over SSH.
+
+Use the current `VERSION_CODENAME` from `/etc/os-release` as `<RELEASE>`, the
+Ubuntu mirror below as `<MIRROR>`, and `ubuntu-desktop` unless the user selected
+Kubuntu/Xubuntu/etc. The harness owns final SSH-key continuity, pre-reboot
+checks, unmount, reboot, and reconnect.
+
+## Alternative installer-specific path (Subiquity/autoinstall)
+
+Use this only when the target live environment exposes a current,
+noninteractive Subiquity/autoinstall entry point and the command is backed by
+fresh evidence. Otherwise use debootstrap.
 
 The preferred Path A config for Ubuntu is cloud-init `user-data`:
 
@@ -50,10 +65,7 @@ autoinstall:
   shutdown: reboot
 ```
 
-```bash
-sudo subiquity --autoinstall-url=file:///tmp/user-data        # server
-sudo ubiquity --automation-file=/tmp/user-data                # desktop
-```
+Do not launch `ubiquity` or `ubuntu-desktop-bootstrap` interactively over SSH.
 
 ## Ubuntu flavors (same base, different DE metapackage)
 

@@ -3743,6 +3743,44 @@ def test_installroot_package_bootstrap_gets_long_timeout():
     assert timeout == 1800
 
 
+def test_ubuntu_live_debootstrap_gets_prereqs_and_chroot_binds():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="debian",
+        os_id="ubuntu",
+        os_like="debian",
+        package_manager="apt",
+        current_user="ubuntu",
+        login_user="ubuntu",
+        is_live=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="ubuntu-live-base",
+        stage=SetupStage.INSTALL_OR_SKIP,
+        title="Ubuntu debootstrap install",
+        commands=[
+            "sudo debootstrap --arch=amd64 noble /mnt http://archive.ubuntu.com/ubuntu",
+            "sudo chroot /mnt sh -c 'apt update && apt install -y linux-generic ubuntu-desktop'",
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
+
+    debootstrap_index = commands.index(
+        "sudo debootstrap --arch=amd64 noble /mnt http://archive.ubuntu.com/ubuntu"
+    )
+    chroot_index = commands.index(
+        "sudo chroot /mnt sh -c 'apt update && apt install -y linux-generic ubuntu-desktop'"
+    )
+    assert "apt-get install -y debootstrap" in commands[0]
+    assert "mount --bind" in commands[chroot_index - 1]
+    assert "/mnt" in commands[chroot_index - 1]
+    assert debootstrap_index < chroot_index
+
+
 def test_package_search_keeps_short_timeout():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

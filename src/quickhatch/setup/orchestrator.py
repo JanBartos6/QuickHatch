@@ -208,6 +208,10 @@ _PARTED_PRE_FORMAT_FS_CHECK_RE = re.compile(
     r"(?P<quote>['\"])\^(?P<partition>\d+):\.\*:(?:fat32|ext[234]|btrfs|xfs):(?P=quote)",
     re.IGNORECASE,
 )
+_DEBIAN_LIVE_DEBOOTSTRAP_RE = re.compile(r"\bdebootstrap\b", re.IGNORECASE)
+_DEBIAN_LIVE_CHROOT_RE = re.compile(
+    r"\b(?:chroot|systemd-nspawn)\s+(?P<target>/mnt|/target)\b", re.IGNORECASE
+)
 _SYSFS_MODULE_PARAMETER_CAT_RE = re.compile(
     r"^(?P<prefix>\s*)cat\s+(?P<path>/sys/module/[A-Za-z0-9_+-]+/parameters/[A-Za-z0-9_+-]+)"
     r"(?P<rest>(?:\s|$).*)",
@@ -2723,6 +2727,8 @@ class SetupOrchestrator:
         commands = [
             self._normalize_fedora_dnf_config_manager_command(command) for command in commands
         ]
+        commands = self._inject_debian_live_debootstrap_prereqs(stage, group, commands)
+        commands = self._inject_debian_live_chroot_bind_mounts(stage, group, commands)
         commands = self._inject_arch_live_vconsole_before_pacstrap(stage, group, commands)
         commands = self._inject_target_home_writability_prep(stage, group, commands)
         commands = self._inject_apt_external_repo_prereqs(stage, group, commands)
@@ -2812,6 +2818,73 @@ class SetupOrchestrator:
             command=prep,
         )
         return [prep, *commands]
+
+    def _inject_debian_live_debootstrap_prereqs(
+        self, stage: SetupStage, group: CommandGroup, commands: list[str]
+    ) -> list[str]:
+        facts = self.ctx.facts or SetupFacts()
+        if (
+            stage != SetupStage.INSTALL_OR_SKIP
+            or not facts.is_live
+            or facts.package_manager != "apt"
+            or not any(_DEBIAN_LIVE_DEBOOTSTRAP_RE.search(command or "") for command in commands)
+        ):
+            return commands
+        if any(
+            "apt-get install" in (command or "").lower()
+            and "debootstrap" in (command or "").lower()
+            for command in commands
+        ):
+            return commands
+        prep = (
+            "sudo apt-get update && sudo apt-get install -y "
+            "debootstrap ca-certificates dosfstools e2fsprogs parted"
+        )
+        self.runlog.record(
+            "debian_live_debootstrap_prereqs_injected",
+            stage=stage.value,
+            group_id=group.id,
+            command=prep,
+        )
+        return [prep, *commands]
+
+    def _inject_debian_live_chroot_bind_mounts(
+        self, stage: SetupStage, group: CommandGroup, commands: list[str]
+    ) -> list[str]:
+        facts = self.ctx.facts or SetupFacts()
+        if (
+            stage != SetupStage.INSTALL_OR_SKIP
+            or not facts.is_live
+            or facts.package_manager != "apt"
+        ):
+            return commands
+        patched: list[str] = []
+        injected_targets: set[str] = set()
+        for command in commands:
+            match = _DEBIAN_LIVE_CHROOT_RE.search(command or "")
+            if match:
+                target = match.group("target")
+                if target not in injected_targets:
+                    injected_targets.add(target)
+                    target_q = shlex.quote(target)
+                    prep = "sudo sh -c " + shlex.quote(
+                        f"target={target_q}; "
+                        'test -d "$target/etc" && cp -L /etc/resolv.conf "$target/etc/resolv.conf" || true; '
+                        "for d in dev dev/pts proc sys run; do "
+                        'mkdir -p "$target/$d"; '
+                        'mountpoint -q "$target/$d" || mount --bind "/$d" "$target/$d"; '
+                        "done"
+                    )
+                    patched.append(prep)
+                    self.runlog.record(
+                        "debian_live_chroot_bind_mounts_injected",
+                        stage=stage.value,
+                        group_id=group.id,
+                        target=target,
+                        command=prep,
+                    )
+            patched.append(command)
+        return patched
 
     def _normalize_fedora_kickstart_command(self, command: str) -> str:
         facts = self.ctx.facts or SetupFacts()

@@ -415,6 +415,26 @@ def _uses_fedora_live_anaconda_from_ssh(cmd: str, facts: SetupFacts) -> bool:
     )
 
 
+def _uses_ubuntu_live_interactive_installer_from_ssh(cmd: str, facts: SetupFacts) -> bool:
+    if facts.package_manager != "apt" or not facts.is_live:
+        return False
+    os_text = " ".join((facts.os_id or "", facts.os_like or "", facts.distro_family or "")).lower()
+    if "ubuntu" not in os_text and "debian" not in os_text:
+        return False
+    lower = (cmd or "").lower()
+    if not any(
+        token in lower
+        for token in (
+            "ubiquity",
+            "ubuntu-desktop-bootstrap",
+            "ubuntu_bootstrap",
+            "subiquity",
+        )
+    ):
+        return False
+    return "autoinstall" not in lower and "--automation-file" not in lower
+
+
 def _is_standalone_shell_assignment(command: str) -> bool:
     stripped = (command or "").strip()
     if not stripped:
@@ -481,6 +501,12 @@ def preflight_setup_command(
             "Do not use `dbus-run-session` to apply KDE/Plasma theming. It creates a throwaway "
             "bus, so live apply commands do not affect the user's real desktop session. Use the "
             "logged-in user's actual session bus or write persisted config and require relogin."
+        )
+    if _uses_ubuntu_live_interactive_installer_from_ssh(command, facts):
+        return (
+            "Do not launch Ubuntu's graphical/live installer interactively over SSH. Use the "
+            "Debian-family debootstrap path for full live installs, or provide a current, "
+            "noninteractive, evidence-backed Subiquity/autoinstall invocation."
         )
     if _uses_fedora_live_anaconda_from_ssh(command, facts):
         return (

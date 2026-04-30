@@ -34,10 +34,15 @@ The LLM should use this procedure unless the distro card says otherwise.
 
 Per-distro card has the installer config template.
 
-### Path B: debootstrap (universal, agent-friendly)
+### Path B: debootstrap (universal, QuickHatch-friendly)
 
-This path works on any Debian-family live env. Agent uses this when the
-distro's installer is awkward to automate:
+This path works on any Debian-family live env and is the preferred QuickHatch
+path for Ubuntu Desktop live installs over SSH. Use it when the distro's
+graphical installer is awkward to automate or would need an interactive GUI.
+
+QuickHatch command items run as separate SSH executions, so do not use heredocs
+or standalone shell variables. Keep each command self-contained, and put every
+disk/base/chroot/bootloader command under `install_or_skip`.
 
 ```bash
 DISK=/dev/nvme0n1
@@ -61,91 +66,33 @@ mount "${DISK}p1" /mnt/boot
 #   Kali:         kali-rolling  http://http.kali.org/kali
 sudo debootstrap --arch=amd64 <RELEASE> /mnt <MIRROR>
 
-# Bind-mount system dirs before chroot
-for f in dev dev/pts proc sys run; do sudo mount --bind /$f /mnt/$f; done
+# Bind-mount system dirs before chroot. The harness can inject this before
+# chroot commands when it sees a Debian-family live debootstrap plan, but it is
+# safe to include explicitly.
+sudo sh -c 'target=/mnt; test -d "$target/etc" && cp -L /etc/resolv.conf "$target/etc/resolv.conf" || true; for d in dev dev/pts proc sys run; do mkdir -p "$target/$d"; mountpoint -q "$target/$d" || mount --bind "/$d" "$target/$d"; done'
 ```
 
-Now chroot and configure. The base packages needed are the same everywhere:
+Now chroot and configure. Use `chroot /mnt sh -c '...'` batches, not heredocs.
+The base packages needed are the same everywhere:
 
 ```bash
-sudo chroot /mnt /bin/bash <<'EOF'
-# --- 1. Add distro-specific repo/PPA (from card) if needed ---
-# Example (Mint):
-#   echo 'deb http://packages.linuxmint.com wilma main upstream import backport' \
-#     > /etc/apt/sources.list.d/mint.list
-#   apt-key adv --keyserver keyserver.ubuntu.com --recv A6616109451BBBF2
-# Example (Zorin):
-#   add-apt-repository -y ppa:zorinos/stable
-# Example (Kali, non-free-firmware):
-#   sed -i 's/main$/main contrib non-free non-free-firmware/' /etc/apt/sources.list
-
-apt update
-
-# --- 2. Core system packages ---
-apt install -y \
-  linux-generic systemd-sysv sudo \
-  grub-efi-amd64 efibootmgr \
-  openssh-server network-manager \
-  locales curl
-
-# For BIOS machines swap grub-efi-amd64 + efibootmgr for:
-#   apt install -y grub-pc
-
-# --- 3. Distro metapackage (from card) ---
-# Example substitutions:
-#   Ubuntu:      apt install -y ubuntu-desktop
-#   Mint:        apt install -y mint-meta-cinnamon
-#   Pop!_OS:     apt install -y pop-desktop
-#   Zorin:       apt install -y zorin-os-desktop
-#   elementary:  apt install -y elementary-desktop pantheon-session
-#   KDE Neon:    apt install -y neon-desktop
-#   Kali:        apt install -y kali-linux-default
-#   Debian min:  apt install -y task-desktop
-apt install -y <METAPACKAGE>
-
-# --- 4. Locale ---
-locale-gen en_US.UTF-8
-echo 'LANG=en_US.UTF-8' > /etc/default/locale
-
-# --- 5. Hostname ---
-echo '<HOSTNAME>' > /etc/hostname
-cat >> /etc/hosts <<HOSTS
-127.0.0.1 localhost
-127.0.1.1 <HOSTNAME>.localdomain <HOSTNAME>
-HOSTS
-
-# --- 6. Timezone ---
-ln -sf /usr/share/zoneinfo/<ZONE> /etc/localtime
-
-# --- 7. User + sudo ---
-useradd -m -G sudo -s /bin/bash <USER>
-echo '<USER>:<PASSWORD>' | chpasswd
-echo 'root:<ROOT_PASSWORD>' | chpasswd
-
-# --- 8. SSH key for reconnect after reboot ---
-mkdir -p /home/<USER>/.ssh
-echo '<PUBKEY>' > /home/<USER>/.ssh/authorized_keys
-chown -R <USER>:<USER> /home/<USER>/.ssh
-chmod 700 /home/<USER>/.ssh
-chmod 600 /home/<USER>/.ssh/authorized_keys
-
-# --- 9. Enable services ---
-systemctl enable ssh NetworkManager
-
-# --- 10. fstab ---
-ROOT_UUID=$(blkid -s UUID -o value ${DISK}p2)
-BOOT_UUID=$(blkid -s UUID -o value ${DISK}p1)
-echo "UUID=$ROOT_UUID / ext4 defaults 0 1" >> /etc/fstab
-echo "UUID=$BOOT_UUID /boot vfat defaults 0 2" >> /etc/fstab
-
-# --- 11. Bootloader ---
-grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=ubuntu
-update-grub
-EOF
-
-sudo umount -R /mnt
-sudo reboot
+sudo chroot /mnt sh -c "apt update"
+sudo chroot /mnt sh -c "apt install -y linux-generic systemd-sysv sudo openssh-server network-manager locales curl grub-efi-amd64 efibootmgr"
+sudo chroot /mnt sh -c "apt install -y <METAPACKAGE>"
+sudo chroot /mnt sh -c "locale-gen en_US.UTF-8 && echo LANG=en_US.UTF-8 > /etc/default/locale"
+sudo chroot /mnt sh -c "echo '<HOSTNAME>' > /etc/hostname && printf '127.0.0.1 localhost\n127.0.1.1 <HOSTNAME>.localdomain <HOSTNAME>\n' > /etc/hosts"
+sudo chroot /mnt sh -c "ln -sf /usr/share/zoneinfo/<ZONE> /etc/localtime"
+sudo chroot /mnt sh -c "id <USER> >/dev/null 2>&1 || useradd -m -G sudo -s /bin/bash <USER>; echo '<USER>:<PASSWORD>' | chpasswd; echo 'root:<ROOT_PASSWORD>' | chpasswd"
+sudo sh -c "install -d -m 700 /mnt/home/<USER>/.ssh && printf '%s\n' '<PUBKEY>' > /mnt/home/<USER>/.ssh/authorized_keys && chown -R <USER>:<USER> /mnt/home/<USER>/.ssh && chmod 600 /mnt/home/<USER>/.ssh/authorized_keys"
+sudo chroot /mnt sh -c "systemctl enable ssh NetworkManager"
+sudo sh -c 'ROOT_UUID=$(blkid -s UUID -o value /dev/<ROOT_PARTITION>); BOOT_UUID=$(blkid -s UUID -o value /dev/<BOOT_PARTITION>); printf "UUID=%s / ext4 defaults 0 1\nUUID=%s /boot vfat defaults 0 2\n" "$ROOT_UUID" "$BOOT_UUID" > /mnt/etc/fstab'
+sudo chroot /mnt sh -c "grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=ubuntu && update-initramfs -u -k all && update-grub"
 ```
+
+For BIOS machines swap `grub-efi-amd64 efibootmgr` for `grub-pc`, and use the
+matching `grub-install /dev/<DISK>` command. Do not include the final
+`umount -R /mnt` or `reboot` in the plan; QuickHatch runs guarded boot checks,
+copies/verifies the SSH key, unmounts, reboots, and reconnects.
 
 ### Path C: cloud-init autoinstall YAML (Ubuntu + derivatives only)
 
