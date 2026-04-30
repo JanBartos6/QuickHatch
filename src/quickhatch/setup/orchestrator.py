@@ -3116,21 +3116,52 @@ class SetupOrchestrator:
             positional.append((index, token))
             index += 1
 
-        if len(positional) < 3:
+        if len(positional) < 2:
             return command
         suite = positional[0][1]
-        mirror_index, mirror = positional[2]
-        if not mirror.startswith(("http://", "https://")):
+        mirror_index = positional[2][0] if len(positional) >= 3 else -1
+        original_mirror_index = mirror_index
+        mirror = positional[2][1] if len(positional) >= 3 else ""
+        mirror_is_rewritable = mirror.startswith(("http://", "https://")) or mirror in {
+            "$MIRROR",
+            "${MIRROR}",
+        }
+        if mirror and not mirror_is_rewritable:
             return command
 
         cdrom_tokens = list(tokens)
-        cdrom_tokens[mirror_index] = "file:///cdrom"
+        if "--no-check-gpg" not in cdrom_tokens:
+            cdrom_tokens.insert(debootstrap_index + 1, "--no-check-gpg")
+            if mirror_index >= 0:
+                mirror_index += 1
+        if mirror_index >= 0:
+            cdrom_tokens[mirror_index] = "file:///cdrom"
+        else:
+            cdrom_tokens.append("file:///cdrom")
+        fallback_tokens = list(tokens)
+        if original_mirror_index >= 0 and mirror in {"$MIRROR", "${MIRROR}"}:
+            fallback_tokens[original_mirror_index] = (
+                SetupOrchestrator._first_http_url_in_text(command)
+                or "http://archive.ubuntu.com/ubuntu"
+            )
         suite_path = f"/cdrom/dists/{suite}"
-        return (
-            f"if [ -d {shlex.quote(suite_path)} ]; then "
-            f"{shlex.join(cdrom_tokens)}; "
-            f"else {shlex.join(tokens)}; fi"
+        cdrom_complete_check = (
+            f"[ -d {shlex.quote(suite_path)} ] && qh_cdrom_ok=1 && "
+            "for qh_pkg in base-files base-passwd bash coreutils dpkg libc6; do "
+            'find /cdrom/pool -type f -name "${qh_pkg}_*.deb" -print -quit | '
+            "grep -q . || qh_cdrom_ok=0; "
+            'done && [ "$qh_cdrom_ok" = 1 ]'
         )
+        return (
+            f"if {cdrom_complete_check}; then "
+            f"{shlex.join(cdrom_tokens)}; "
+            f"else {shlex.join(fallback_tokens)}; fi"
+        )
+
+    @staticmethod
+    def _first_http_url_in_text(text: str) -> str:
+        match = re.search(r"https?://[^\s\"')]+", text or "")
+        return match.group(0) if match else ""
 
     def _inject_debian_live_chroot_bind_mounts(
         self, stage: SetupStage, group: CommandGroup, commands: list[str]
