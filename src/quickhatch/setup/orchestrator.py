@@ -1268,9 +1268,82 @@ class SetupOrchestrator:
                 f"QuickHatch public key for '{reconnect_user}'. "
                 f"{last_output[:240]}"
             )
+        if self.ctx.facts and self.ctx.facts.is_live:
+            self._ensure_live_target_network_reconnect(root_path)
         self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})[
             "ssh_continuity_key_installed"
         ] = True
+
+    def _ensure_live_target_network_reconnect(self, root_path: str) -> None:
+        command = self._live_target_network_reconnect_command(root_path)
+        self.bridge.add_message(
+            "agent",
+            "`" + redact_sensitive_text(command) + "` — ensure post-reboot network reconnect",
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 60)
+        self.ctx.results_log.append(
+            redact_sensitive_text(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+        )
+        self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
+        self.runlog.record(
+            "live_target_network_reconnect",
+            stage=SetupStage.INSTALL_OR_SKIP.value,
+            root_path=root_path,
+            rc=rc,
+            stdout_tail=(stdout or "")[-500:],
+            stderr_tail=(stderr or "")[-500:],
+        )
+        if rc != 0:
+            detail = (stderr or stdout or "").strip()
+            raise RuntimeError(
+                "Cannot verify SSH continuity before reboot: failed to write installed "
+                f"network reconnect config. {detail[:240]}"
+            )
+
+    @staticmethod
+    def _live_target_network_reconnect_command(root_path: str) -> str:
+        root_q = shlex.quote(root_path)
+        nm_payload = (
+            "[connection]\n"
+            "id=quickhatch-wired-dhcp\n"
+            "type=ethernet\n"
+            "autoconnect=true\n"
+            "\n"
+            "[ethernet]\n"
+            "\n"
+            "[ipv4]\n"
+            "method=auto\n"
+            "\n"
+            "[ipv6]\n"
+            "method=auto\n"
+        )
+        netplan_payload = "network:\n  version: 2\n  renderer: NetworkManager\n"
+        managed_payload = "[keyfile]\nunmanaged-devices=none\n"
+        return (
+            f"set -e; qh_root={root_q}; "
+            f'qh_sudo=sudo; [ "$(id -u)" -eq 0 ] && qh_sudo=; '
+            f'test -d "$qh_root/etc"; '
+            f'$qh_sudo mkdir -p "$qh_root/etc/NetworkManager/system-connections"; '
+            f"printf '%s\\n' {shlex.quote(nm_payload)} | "
+            f'$qh_sudo tee "$qh_root/etc/NetworkManager/system-connections/'
+            f'quickhatch-wired-dhcp.nmconnection" >/dev/null; '
+            f'$qh_sudo chmod 600 "$qh_root/etc/NetworkManager/system-connections/'
+            f'quickhatch-wired-dhcp.nmconnection"; '
+            f'$qh_sudo mkdir -p "$qh_root/etc/NetworkManager/conf.d"; '
+            f"printf '%s\\n' {shlex.quote(managed_payload)} | "
+            f'$qh_sudo tee "$qh_root/etc/NetworkManager/conf.d/10-quickhatch-managed.conf" '
+            f'>/dev/null; '
+            f'if [ -d "$qh_root/etc/netplan" ]; then '
+            f"printf '%s\\n' {shlex.quote(netplan_payload)} | "
+            f'$qh_sudo tee "$qh_root/etc/netplan/01-quickhatch-networkmanager.yaml" '
+            f'>/dev/null; '
+            f'$qh_sudo chmod 600 "$qh_root/etc/netplan/01-quickhatch-networkmanager.yaml"; fi; '
+            f'$qh_sudo chroot "$qh_root" systemctl enable NetworkManager '
+            f'>/dev/null 2>&1 || true; '
+            f'$qh_sudo chroot "$qh_root" systemctl enable ssh >/dev/null 2>&1 '
+            f'|| $qh_sudo chroot "$qh_root" systemctl enable sshd >/dev/null 2>&1 '
+            f'|| true'
+        )
 
     def _ensure_live_install_reconnect_user(self) -> tuple[str, str]:
         if self._valid_target_username(self.ctx.created_user or ""):
@@ -1544,8 +1617,8 @@ class SetupOrchestrator:
             "$qh_sudo umount -R /mnt 2>/dev/null || true; "
             "$qh_sudo umount -R /target 2>/dev/null || true; "
             "if command -v systemctl >/dev/null 2>&1; then "
-            "$qh_sudo systemctl reboot || $qh_sudo reboot; "
-            "else $qh_sudo reboot; fi"
+            "$qh_sudo systemctl reboot --force --force || $qh_sudo reboot -f || $qh_sudo reboot; "
+            "else $qh_sudo reboot -f || $qh_sudo reboot; fi"
         )
         self.bridge.add_message("agent", "Rebooting into the installed system…")
         self.runlog.record(

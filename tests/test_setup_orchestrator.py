@@ -196,7 +196,8 @@ def test_install_reboot_uses_sudo_for_nonroot_live_sessions():
     assert commands
     assert 'qh_sudo=; [ "$(id -u)" -eq 0 ] || qh_sudo=sudo' in commands[0]
     assert "$qh_sudo umount -R /mnt" in commands[0]
-    assert "$qh_sudo systemctl reboot || $qh_sudo reboot" in commands[0]
+    assert "$qh_sudo systemctl reboot --force --force" in commands[0]
+    assert "$qh_sudo reboot -f || $qh_sudo reboot" in commands[0]
 
 
 def test_install_reboot_blocks_when_reboot_command_is_denied():
@@ -255,6 +256,21 @@ def test_install_reboot_accepts_ssh_disconnect_as_successful_reboot_boundary():
     orchestrator.ctx.facts = facts
 
     orchestrator._issue_install_reboot()
+
+
+def test_live_target_network_reconnect_command_seeds_networkmanager_dhcp():
+    command = SetupOrchestrator._live_target_network_reconnect_command("/mnt")
+
+    assert "quickhatch-wired-dhcp.nmconnection" in command
+    assert "type=ethernet" in command
+    assert "method=auto" in command
+    assert "10-quickhatch-managed.conf" in command
+    assert "unmanaged-devices=none" in command
+    assert "01-quickhatch-networkmanager.yaml" in command
+    assert "renderer: NetworkManager" in command
+    assert 'chmod 600 "$qh_root/etc/netplan/01-quickhatch-networkmanager.yaml"' in command
+    assert 'chroot "$qh_root" systemctl enable NetworkManager' in command
+    assert 'chroot "$qh_root" systemctl enable ssh' in command
 
 
 def test_fedora_live_media_blocks_before_planning():
