@@ -1540,8 +1540,14 @@ class SetupOrchestrator:
 
     def _issue_install_reboot(self) -> None:
         command = (
-            "(umount -R /mnt 2>/dev/null || true); (umount -R /target 2>/dev/null || true); reboot"
+            'qh_sudo=; [ "$(id -u)" -eq 0 ] || qh_sudo=sudo; '
+            "$qh_sudo umount -R /mnt 2>/dev/null || true; "
+            "$qh_sudo umount -R /target 2>/dev/null || true; "
+            "if command -v systemctl >/dev/null 2>&1; then "
+            "$qh_sudo systemctl reboot || $qh_sudo reboot; "
+            "else $qh_sudo reboot; fi"
         )
+        self.bridge.add_message("agent", "Rebooting into the installed system…")
         self.runlog.record(
             "install_reboot",
             stage=SetupStage.INSTALL_OR_SKIP.value,
@@ -1555,6 +1561,9 @@ class SetupOrchestrator:
             stdout_tail=(stdout or "")[-500:],
             stderr_tail=(stderr or "")[-500:],
         )
+        if rc != 0 and not self._looks_like_transient_ssh_disconnect(stdout, stderr):
+            detail = (stderr or stdout or "reboot command failed").strip()
+            raise RuntimeError(f"Install reboot command failed: {detail[:240]}")
 
     def _run_postboot_driver(self) -> None:
         self._run_stage_groups(SetupStage.POSTBOOT_DRIVER)

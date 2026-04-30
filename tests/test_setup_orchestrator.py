@@ -169,6 +169,94 @@ def test_live_disk_partition_reread_detector_requires_live_install_stage():
     )
 
 
+def test_install_reboot_uses_sudo_for_nonroot_live_sessions():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="ubuntu",
+        package_manager="apt",
+        current_user="ubuntu",
+        login_user="ubuntu",
+        is_live=True,
+        is_root=False,
+    )
+    commands: list[str] = []
+
+    def ssh_exec(command: str, _timeout: int):
+        commands.append(command)
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+
+    orchestrator._issue_install_reboot()
+
+    assert commands
+    assert 'qh_sudo=; [ "$(id -u)" -eq 0 ] || qh_sudo=sudo' in commands[0]
+    assert "$qh_sudo umount -R /mnt" in commands[0]
+    assert "$qh_sudo systemctl reboot || $qh_sudo reboot" in commands[0]
+
+
+def test_install_reboot_blocks_when_reboot_command_is_denied():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="ubuntu",
+        package_manager="apt",
+        current_user="ubuntu",
+        login_user="ubuntu",
+        is_live=True,
+        is_root=False,
+    )
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(
+            profile,
+            bridge,
+            facts,
+            ssh_exec=lambda _command, _timeout: (1, "", "Access denied"),
+        )
+    )
+    orchestrator.ctx.facts = facts
+
+    try:
+        orchestrator._issue_install_reboot()
+    except RuntimeError as exc:
+        assert "Install reboot command failed" in str(exc)
+        assert "Access denied" in str(exc)
+    else:
+        raise AssertionError("denied reboot should block instead of polling live ISO")
+
+
+def test_install_reboot_accepts_ssh_disconnect_as_successful_reboot_boundary():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="ubuntu",
+        package_manager="apt",
+        current_user="ubuntu",
+        login_user="ubuntu",
+        is_live=True,
+        is_root=False,
+    )
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(
+            profile,
+            bridge,
+            facts,
+            ssh_exec=lambda _command, _timeout: (
+                255,
+                "",
+                "Connection to 127.0.0.1 closed by remote host.",
+            ),
+        )
+    )
+    orchestrator.ctx.facts = facts
+
+    orchestrator._issue_install_reboot()
+
+
 def test_fedora_live_media_blocks_before_planning():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
