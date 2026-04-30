@@ -143,13 +143,13 @@ NetworkManager
 # B. Silverblue (immutable, stock Fedora ostree):
 # ostreesetup --osname="fedora" --remote="fedora" \
 #   --url="https://ostree.fedoraproject.org" \
-#   --ref="fedora/41/x86_64/silverblue" \
+#   --ref="fedora/<VERSION>/x86_64/silverblue" \
 #   --nogpg
 
 # C. Kinoite (KDE variant of Silverblue):
 # ostreesetup --osname="fedora" --remote="fedora" \
 #   --url="https://ostree.fedoraproject.org" \
-#   --ref="fedora/41/x86_64/kinoite" \
+#   --ref="fedora/<VERSION>/x86_64/kinoite" \
 #   --nogpg
 
 # D. Bazzite (OCI image from Universal Blue):
@@ -224,8 +224,9 @@ Preference order: **flatpak > toolbox/distrobox > rpm-ostree**.
 
 - **`--iscrypted` requires crypt(3) SHA-512 hashes, not plaintext.** Agent
   generates with `openssl passwd -6 '<password>'`.
-- **Version pinning** — `--releasever=<N>` must match the Fedora release in
-  use (41, 42, ...). Agent reads `/etc/fedora-release` on the live env.
+- **Version pinning** — `--releasever=<N>` and ostree refs must match the
+  Fedora release in use. Read `/etc/os-release`, `/etc/fedora-release`, or
+  `rpm -E %fedora`; never hardcode a "current" Fedora number in a plan.
 - **Secure Boot** — Fedora's shim is signed; works out of the box on most
   hardware.
 - **NVIDIA drivers** — Classic Fedora: add RPMFusion, `dnf install

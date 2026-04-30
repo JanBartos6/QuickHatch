@@ -8,7 +8,7 @@ procedure.
 | Key | Value |
 |---|---|
 | Live user | `user` (password `live`) or graphical-installer boot |
-| Release codename | `bookworm` (stable), `trixie` (testing) |
+| Release codename | Read `VERSION_CODENAME` from `/etc/os-release` or the installer media; do not assume which codename is currently stable |
 | Mirror | `http://deb.debian.org/debian` |
 | Extra repos | None required. For WiFi/NVIDIA firmware add `contrib non-free non-free-firmware` to sources.list |
 | Desktop metapackage | `task-gnome-desktop` (GNOME default) / `task-kde-desktop` / `task-xfce-desktop` / `task-cinnamon-desktop` |
@@ -68,5 +68,6 @@ Boot d-i with `preseed/file=/tmp/preseed.cfg auto=true priority=critical`.
   firmware. Either use the "firmware" variant ISO or add the `non-free-firmware`
   component to sources.list after install.
 - **`sudo` not installed by default** — always add it to the package list.
-- **Kernel is conservative** — for very new hardware, enable
-  `bookworm-backports` and install `linux-image-amd64/bookworm-backports`.
+- **Kernel is conservative** — for very new hardware, use the backports suite
+  matching the detected stable codename (for example
+  `<codename>-backports`) and verify the exact kernel package before install.

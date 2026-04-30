@@ -10,7 +10,7 @@ Fedora IS the family reference; this card lists the specific values.
 |---|---|
 | Live env | Live user `liveuser`, auto-logged-in to GNOME |
 | Variant | Classic (package-based, not ostree) |
-| Releasever | `41` (current) — agent reads `/etc/fedora-release` to confirm |
+| Releasever | Read from `/etc/os-release`, `/etc/fedora-release`, or `rpm -E %fedora`; never hardcode a "current" Fedora release in generated commands |
 | Package group | `@core @standard @workstation-product` |
 | Installer | Anaconda + kickstart (primary); `dnf --installroot` as fallback |
 | sudo group | `wheel` |
@@ -45,6 +45,7 @@ Swap the package group for a different spin:
     https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
   ```
 - **SELinux enforcing** — leave it alone unless user specifically asks.
-- **Anaconda config file location** — `--kickstart=` flag is portable;
-  kernel `inst.ks=` param also works.
+- **Anaconda config file location** — kernel `inst.ks=` at boot is the
+  supported unattended path. Do not launch live Workstation Anaconda from a
+  normal QuickHatch SSH shell.
 - **Secure Boot** — Fedora's shim is signed; works out of the box.

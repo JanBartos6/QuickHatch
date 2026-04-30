@@ -8,7 +8,7 @@ procedure.
 | Key | Value |
 |---|---|
 | Live user | `ubuntu` (desktop) / `installer` (server) |
-| Release codename | `noble` (24.04 LTS) / `jammy` (22.04 LTS) |
+| Release codename | Read `VERSION_CODENAME` from `/etc/os-release`; examples include `noble`/`jammy`, but generated commands must not assume a specific Ubuntu release |
 | Mirror | `http://archive.ubuntu.com/ubuntu` |
 | Extra repos | None required. Snap is enabled by default. |
 | Desktop metapackage | `ubuntu-desktop` (GNOME) / `kubuntu-desktop` (KDE) / `xubuntu-desktop` / `ubuntu-server` (headless) |
@@ -80,6 +80,8 @@ from the family primer. Everything else is identical to stock Ubuntu.
   as snaps. If the user prefers apt packages, disable snap via
   `apt remove snapd` and use the Mozilla PPA or flatpak.
 - **Ubuntu Pro nag** — harmless, disable with `pro config set apt_news=false`.
-- **HWE kernel** — newer hardware may need `linux-generic-hwe-24.04`.
+- **HWE kernel** — newer hardware may need the HWE kernel matching the
+  detected Ubuntu release. Resolve the exact package from the target release
+  instead of hardcoding `linux-generic-hwe-24.04`.
 - **GRUB EFI-only on UEFI machines** — swap `grub-efi-amd64` for `grub-pc`
   on BIOS-only targets.
