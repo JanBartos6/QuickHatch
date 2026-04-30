@@ -169,6 +169,11 @@ def audit_stage(
                 "Wallpaper apply/configuration was attempted, but no target wallpaper "
                 "state was detected."
             )
+        if plan and _plan_mentions_wallpaper(plan) and not _has_wallpaper_signal(facts):
+            blockers.append(
+                "Desktop plan mentions wallpaper, but the target desktop wallpaper was "
+                "not verified in the active desktop environment."
+            )
         blockers.extend(_desktop_design_contract_blockers(facts, state))
         if facts.desktop_runtime_state == DesktopRuntimeState.BLOCKED_DRIVER_OR_DISPLAY_STACK:
             blockers.append("Desktop apply is blocked by the current driver or display stack.")
@@ -216,9 +221,32 @@ def audit_stage(
 
 def _has_desktop_design_signal(facts: SetupFacts) -> bool:
     design = facts.desktop_design
-    return any(
-        str(value or "").strip()
-        for value in (
+    env = _desktop_environment(design)
+    if env == "kde":
+        values = (
+            design.kde_color_scheme,
+            design.kde_icon_theme,
+            design.kde_cursor_theme,
+            design.kde_wallpaper,
+            design.kde_wobbly_windows,
+            design.kde_magic_lamp,
+        )
+    elif env == "gnome":
+        values = (
+            design.gnome_gtk_theme,
+            design.gnome_icon_theme,
+            design.gnome_cursor_theme,
+            design.gnome_wallpaper,
+        )
+    elif env == "xfce":
+        values = (
+            design.xfce_gtk_theme,
+            design.xfce_icon_theme,
+            design.xfce_window_theme,
+            design.xfce_wallpaper,
+        )
+    else:
+        values = (
             design.kde_color_scheme,
             design.kde_icon_theme,
             design.kde_cursor_theme,
@@ -234,7 +262,7 @@ def _has_desktop_design_signal(facts: SetupFacts) -> bool:
             design.xfce_window_theme,
             design.xfce_wallpaper,
         )
-    )
+    return any(str(value or "").strip() for value in values)
 
 
 def _desktop_persistence_satisfied(facts: SetupFacts, state: dict[str, Any]) -> bool:
@@ -249,9 +277,39 @@ def _desktop_persistence_satisfied(facts: SetupFacts, state: dict[str, Any]) -> 
 
 def _has_wallpaper_signal(facts: SetupFacts) -> bool:
     design = facts.desktop_design
+    env = _desktop_environment(design)
+    if env == "kde":
+        return bool(str(design.kde_wallpaper or "").strip())
+    if env == "gnome":
+        return bool(str(design.gnome_wallpaper or "").strip())
+    if env == "xfce":
+        return bool(str(design.xfce_wallpaper or "").strip())
     return bool(
         str(design.kde_wallpaper or design.gnome_wallpaper or design.xfce_wallpaper or "").strip()
     )
+
+
+def _desktop_environment(design: Any) -> str:
+    env = str(getattr(design, "environment", "") or "").strip().lower()
+    if "plasma" in env or "kde" in env:
+        return "kde"
+    if "gnome" in env:
+        return "gnome"
+    if "xfce" in env:
+        return "xfce"
+    return ""
+
+
+def _plan_mentions_wallpaper(plan: ResearchPlan) -> bool:
+    text = " ".join(
+        str(value or "")
+        for value in (
+            plan.target_summary,
+            plan.desktop_strategy.strategy,
+            plan.desktop_strategy.notes,
+        )
+    )
+    return bool(re.search(r"\bwall[-\s]?paper\b|background image", text, re.IGNORECASE))
 
 
 def _desktop_design_contract_blockers(facts: SetupFacts, state: dict[str, Any]) -> list[str]:

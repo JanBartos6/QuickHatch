@@ -1666,10 +1666,13 @@ class SetupOrchestrator:
                 self.ctx.facts or SetupFacts(), self.ctx.plan, self.ctx.stage_results
             )
             remote_blockers = self._remote_final_verification()
+            result.details["remote_final_verification"] = dict(
+                self.ctx.stage_state.get(SetupStage.FINAL_AUDIT.value, {})
+            )
             if remote_blockers:
                 result.blockers.extend(remote_blockers)
                 result.passed = False
-                result.details["remote_final_verification"] = remote_blockers
+                result.details["remote_final_verification_blockers"] = remote_blockers
         self.ctx.stage_results.append(result)
         self.runlog.record("final_audit", result=asdict(result))
         self.bridge.update_setup_run(
@@ -1699,12 +1702,7 @@ class SetupOrchestrator:
             for app in self.ctx.plan.apps
             if app.status in {PlanItemStatus.INSTALLED, PlanItemStatus.COMPLETED}
         ]
-        candidates = [
-            app
-            for app in installed_like
-            if self._normalized_app_source(app.source) in {"repo", "community"}
-            and (app.package_name or "").strip()
-        ]
+        candidates = [app for app in installed_like if (app.package_name or "").strip()]
         unverifiable = [app.name for app in installed_like if app not in candidates]
         final_state["unverified_installed_apps"] = sorted(unverifiable)
         if not candidates:

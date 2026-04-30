@@ -4676,6 +4676,50 @@ def test_setup_summary_only_claims_verified_installed_apps():
     assert "Skipped: Codex" in summary
 
 
+def test_final_package_verification_accepts_user_profile_source_apps():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.ssh_exec = lambda command, _timeout: (
+        0,
+        "firefox\nflatpak\nkate\nkonsole\ndolphin\nspectacle\nark\n",
+        "",
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation.",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("plasma"),
+        command_groups=[],
+        apps=[
+            AppPlanItem(
+                name="Mozilla Firefox",
+                package_name="firefox",
+                source="user_profile",
+                status=PlanItemStatus.INSTALLED,
+            ),
+            AppPlanItem(
+                name="Flatpak",
+                package_name="flatpak",
+                source="user_profile",
+                status=PlanItemStatus.INSTALLED,
+            ),
+        ],
+    )
+
+    blockers = orchestrator._verify_planned_packages_installed()
+
+    final_state = orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value]
+    assert blockers == []
+    assert final_state["verified_installed_apps"] == ["Flatpak", "Mozilla Firefox"]
+    assert final_state["unverified_installed_apps"] == []
+    assert "Manual follow-up" not in orchestrator._build_summary()
+
+
 def test_orchestrator_can_convert_failed_verification_into_manual_followup_after_question():
     profile = UserProfile(apps_to_install=["ChatGPT"])
     bridge = BridgeState(profile, persist_path=None)

@@ -242,6 +242,41 @@ def test_desktop_audit_blocks_wallpaper_attempt_without_wallpaper_state():
     assert any("Wallpaper apply/configuration was attempted" in item for item in result.blockers)
 
 
+def test_desktop_audit_does_not_treat_gnome_wallpaper_as_kde_wallpaper():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="linus",
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        desktop_design=DesktopDesignState(
+            environment="KDE",
+            kde_icon_theme="Papirus-Dark",
+            kde_wallpaper="",
+            gnome_wallpaper="file:///usr/share/backgrounds/gnome/adwaita-l.jxl",
+        ),
+    )
+    plan = ResearchPlan(
+        target_summary="KDE desktop with a bold geometric wallpaper.",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("plasma", notes="Apply wallpaper and icons."),
+    )
+
+    result = audit_stage(
+        SetupStage.DESKTOP,
+        facts,
+        plan=plan,
+        stage_state={
+            "persisted_config_written": True,
+            "desktop_design_attempted": True,
+        },
+    )
+
+    assert not result.passed
+    assert any("plan mentions wallpaper" in item for item in result.blockers)
+
+
 def test_driver_audit_surfaces_secure_boot_for_failed_nvidia_stack():
     facts = SetupFacts(
         distro_family="arch",
