@@ -212,6 +212,16 @@ _APT_EXTERNAL_REPO_SETUP_RE = re.compile(
     r"\b(?:curl|wget|gpg|apt-key|add-apt-repository)\b|/etc/apt/sources\.list\.d/|signed-by=",
     re.IGNORECASE,
 )
+_APT_NETWORK_OPTIONS = (
+    "-o Acquire::Retries=2 "
+    "-o Acquire::http::Timeout=20 "
+    "-o Acquire::https::Timeout=20 "
+    "-o Acquire::ForceIPv4=true"
+)
+_APT_COMMAND_RE = re.compile(
+    r"(?<![\w/-])(?P<tool>apt-get|apt)(?![\w-])\s+(?![^;&|]*Acquire::)",
+    re.IGNORECASE,
+)
 _KICKSTART_DIRECTIVE_IN_PRINTF_RE = re.compile(
     r"(?<!%)%(packages|end|post|pre|addon|include|ksappend)\b",
     re.IGNORECASE,
@@ -2936,6 +2946,7 @@ class SetupOrchestrator:
         commands = self._inject_arch_live_vconsole_before_pacstrap(stage, group, commands)
         commands = self._inject_target_home_writability_prep(stage, group, commands)
         commands = self._inject_apt_external_repo_prereqs(stage, group, commands)
+        commands = self._normalize_apt_network_timeouts(stage, group, commands)
         if self._is_arch_nvidia_driver_group(stage, group, commands):
             commands = self._normalize_arch_nvidia_commands(commands)
         if self._needs_arch_aur_helper_bootstrap(commands):
@@ -3022,6 +3033,29 @@ class SetupOrchestrator:
             command=prep,
         )
         return [prep, *commands]
+
+    def _normalize_apt_network_timeouts(
+        self, stage: SetupStage, group: CommandGroup, commands: list[str]
+    ) -> list[str]:
+        facts = self.ctx.facts or SetupFacts()
+        if facts.package_manager != "apt":
+            return commands
+        patched: list[str] = []
+        for command in commands:
+            rewritten = _APT_COMMAND_RE.sub(
+                lambda match: f"{match.group('tool')} {_APT_NETWORK_OPTIONS} ",
+                command,
+            )
+            if rewritten != command:
+                self.runlog.record(
+                    "apt_network_timeouts_injected",
+                    stage=stage.value,
+                    group_id=group.id,
+                    original=command,
+                    rewritten=rewritten,
+                )
+            patched.append(rewritten)
+        return patched
 
     def _inject_debian_live_debootstrap_prereqs(
         self, stage: SetupStage, group: CommandGroup, commands: list[str]

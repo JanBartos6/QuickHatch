@@ -1364,8 +1364,43 @@ def test_apt_external_repo_groups_inject_download_prerequisites():
 
     commands = orchestrator._commands_for_group(SetupStage.APPS, group)
 
-    assert commands[0] == "sudo apt update && sudo apt install -y curl ca-certificates gnupg"
+    assert commands[0].startswith("sudo apt -o Acquire::Retries=2")
+    assert "Acquire::http::Timeout=20" in commands[0]
+    assert "Acquire::https::Timeout=20" in commands[0]
+    assert "Acquire::ForceIPv4=true" in commands[0]
+    assert " update && sudo apt -o " in commands[0]
+    assert " install -y curl ca-certificates gnupg" in commands[0]
     assert any('mkdir -p "$HOME/.config" "$HOME/.local" "$HOME/snap"' in c for c in commands)
+
+
+def test_apt_commands_get_bounded_network_timeouts():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="ubuntu",
+        package_manager="apt",
+        current_user="ubuntu",
+        login_user="ubuntu",
+        is_live=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="apt-prereqs",
+        stage=SetupStage.INSTALL_OR_SKIP,
+        title="Install debootstrap prerequisites",
+        commands=["sudo apt-get update && sudo apt-get install -y debootstrap gdisk"],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
+
+    apt_command = next(command for command in commands if "apt-get" in command)
+    assert apt_command.count("Acquire::Retries=2") == 2
+    assert apt_command.count("Acquire::http::Timeout=20") == 2
+    assert apt_command.count("Acquire::https::Timeout=20") == 2
+    assert apt_command.count("Acquire::ForceIPv4=true") == 2
+    assert " update && sudo apt-get -o " in apt_command
+    assert " install -y debootstrap gdisk" in apt_command
 
 
 def test_desktop_cosmetic_package_verification_becomes_manual_followup():
@@ -3848,10 +3883,16 @@ def test_ubuntu_live_debootstrap_gets_prereqs_and_chroot_binds():
 
     debootstrap_command = next(command for command in commands if " debootstrap --" in command)
     debootstrap_index = commands.index(debootstrap_command)
-    chroot_index = commands.index(
-        "sudo chroot /mnt sh -c 'apt update && apt install -y linux-generic ubuntu-desktop'"
+    chroot_command = next(
+        command
+        for command in commands
+        if "sudo chroot /mnt sh -c" in command and "linux-generic ubuntu-desktop" in command
     )
-    assert "apt-get install -y debootstrap" in commands[0]
+    chroot_index = commands.index(chroot_command)
+    assert "apt-get -o " in commands[0]
+    assert " install -y debootstrap" in commands[0]
+    assert "Acquire::http::Timeout=20" in commands[0]
+    assert "Acquire::http::Timeout=20" in chroot_command
     assert debootstrap_command.startswith("if [ -d /cdrom/dists/noble ]")
     assert "base-files base-passwd bash coreutils dpkg libc6" in debootstrap_command
     assert "sudo debootstrap --no-check-gpg --arch=amd64 noble /mnt file:///cdrom" in (
