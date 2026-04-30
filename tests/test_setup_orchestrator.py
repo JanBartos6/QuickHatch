@@ -160,6 +160,38 @@ def test_live_disk_partition_reread_detector_requires_live_install_stage():
     )
 
 
+def test_fedora_live_media_blocks_before_planning():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="fedora",
+        package_manager="dnf",
+        current_user="liveuser",
+        login_user="liveuser",
+        is_live=True,
+        live_marker="LIVE:cmdline",
+    )
+    model_calls = {"count": 0}
+
+    def call_model(_cfg, _messages):
+        model_calls["count"] += 1
+        return "{}"
+
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        facts,
+        probe_facts=lambda **_kwargs: facts,
+    )
+    runtime.call_model_text = call_model
+
+    summary = SetupOrchestrator(runtime).run()
+
+    assert "Fedora-family live media is detected" in summary
+    assert model_calls["count"] == 0
+    assert bridge.snapshot_setup_run()["status"] == "blocked"
+
+
 def _dummy_setup_runtime(
     profile: UserProfile,
     bridge: BridgeState,

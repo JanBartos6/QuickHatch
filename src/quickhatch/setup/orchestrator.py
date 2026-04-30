@@ -523,6 +523,31 @@ class SetupOrchestrator:
         self._maybe_run_transfer_smoke_test()
         result = audit_stage(SetupStage.CONNECT_AND_PROBE, self.ctx.facts)
         self._record_stage_result(result)
+        self._block_unsupported_live_installer()
+
+    def _block_unsupported_live_installer(self) -> None:
+        facts = self.ctx.facts or SetupFacts()
+        if not facts.is_live:
+            return
+        if facts.package_manager != "dnf" and facts.distro_family != "fedora":
+            return
+        message = (
+            "Fedora-family live media is detected. QuickHatch currently supports Fedora "
+            "configure-only after the graphical installer, but not a full unattended "
+            "Fedora Workstation live install over SSH. Run the Fedora installer manually, "
+            "reboot into the installed system, run `bash quickstart.sh` there, then start "
+            "Remote Setup again so QuickHatch can configure drivers, desktop, apps, and "
+            "final audit safely."
+        )
+        self.runlog.record(
+            "unsupported_live_installer",
+            stage=SetupStage.CONNECT_AND_PROBE.value,
+            distro_family=facts.distro_family,
+            package_manager=facts.package_manager,
+            live_marker=facts.live_marker,
+            message=message,
+        )
+        raise RuntimeError(message)
 
     def _maybe_run_transfer_smoke_test(self) -> None:
         method = (self.profile.data_transfer_method or "").strip().lower()
