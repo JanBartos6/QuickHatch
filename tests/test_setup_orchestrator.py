@@ -1794,6 +1794,66 @@ def test_desktop_package_group_does_not_require_runtime_display(monkeypatch):
     assert asked["value"] is False
 
 
+def test_mixed_desktop_group_skips_only_runtime_items_without_display(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        display_manager_enabled=True,
+        display_manager_active=True,
+        desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
+    )
+    executed: list[str] = []
+
+    def ssh_exec(command, _timeout):
+        executed.append(command)
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    monkeypatch.setattr(orchestrator, "_refresh_facts", lambda stage: facts)
+    monkeypatch.setattr(
+        orchestrator,
+        "_ask_blocking_question",
+        lambda *args, **kwargs: "manual follow-up",
+    )
+    group = CommandGroup(
+        id="kde-mixed",
+        stage=SetupStage.DESKTOP,
+        title="KDE Install and Design",
+        commands=[
+            "sudo pacman -S --noconfirm plasma-desktop sddm",
+            "sudo systemctl enable sddm",
+            "plasma-apply-wallpaperimage /home/jan/wallpaper.jpg",
+        ],
+        verification=[
+            "systemctl is-enabled sddm",
+            "kscreen-doctor -o",
+        ],
+    )
+    state: dict[str, object] = {}
+    orchestrator.ctx.stage_state[SetupStage.DESKTOP.value] = state
+
+    failure = orchestrator._execute_group(SetupStage.DESKTOP, group, state)
+
+    assert failure is None
+    assert any("pacman -S" in command for command in executed)
+    assert any("systemctl enable sddm" in command for command in executed)
+    assert any("systemctl is-enabled sddm" in command for command in executed)
+    assert not any("plasma-apply-wallpaperimage" in command for command in executed)
+    assert not any("kscreen-doctor" in command for command in executed)
+    assert state["persisted_config_written"]
+    assert state["display_manual_followup"]
+    skipped = state["skipped_runtime_desktop_items"]
+    assert any(item["kind"] == "command" for item in skipped)
+    assert any(item["kind"] == "verification" for item in skipped)
+
+
 def test_desktop_stage_starts_enabled_inactive_display_manager():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

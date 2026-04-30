@@ -1429,7 +1429,7 @@ class SetupOrchestrator:
     def _desktop_runtime_ready_or_followup(
         self, group: CommandGroup, stage_state: dict[str, Any]
     ) -> bool:
-        if not self._desktop_group_needs_runtime_display(group):
+        if not self._desktop_group_is_runtime_display_only(group):
             return True
         if self.ctx.facts and self.ctx.facts.displays:
             return True
@@ -1466,11 +1466,79 @@ class SetupOrchestrator:
         return False
 
     @staticmethod
-    def _desktop_group_needs_runtime_display(group: CommandGroup) -> bool:
-        return any(
-            SetupOrchestrator._command_needs_desktop_runtime_env(command)
-            for command in [*group.commands, *group.verification]
+    def _desktop_group_is_runtime_display_only(group: CommandGroup) -> bool:
+        commands = [
+            command for command in [*group.commands, *group.verification] if str(command).strip()
+        ]
+        return bool(commands) and all(
+            SetupOrchestrator._command_needs_desktop_runtime_env(command) for command in commands
         )
+
+    def _desktop_runtime_command_ready_or_followup(
+        self,
+        command: str,
+        group: CommandGroup,
+        stage_state: dict[str, Any],
+        *,
+        item_kind: str,
+    ) -> bool:
+        if not self._command_needs_desktop_runtime_env(command):
+            return True
+        if self.ctx.facts and self.ctx.facts.displays:
+            return True
+        self._refresh_facts(stage=SetupStage.DESKTOP)
+        if self.ctx.facts and self.ctx.facts.displays:
+            return True
+
+        asked_groups = set(stage_state.get("_display_runtime_groups_asked") or [])
+        if group.id not in asked_groups:
+            answer = self._ask_blocking_question(
+                (
+                    "QuickHatch cannot read an active target display before running "
+                    f"desktop live-apply {item_kind} in group '{group.title}'. If the "
+                    "monitor is asleep, on another input, or not logged into the GUI, "
+                    "switch it to this Linux machine and choose retry. Otherwise this "
+                    "live-only item will be left as manual follow-up while non-display "
+                    "install/config commands continue."
+                ),
+                choices=["retry display probe", "manual follow-up"],
+                stage=SetupStage.DESKTOP,
+                context={
+                    "group_id": group.id,
+                    "display_runtime_probe": True,
+                    "item_kind": item_kind,
+                    "command": command,
+                },
+                timeout=600,
+                return_qid=False,
+            )
+            asked_groups.add(group.id)
+            stage_state["_display_runtime_groups_asked"] = sorted(asked_groups)
+            if answer and answer.strip().lower().startswith("retry"):
+                self._refresh_facts(stage=SetupStage.DESKTOP)
+                if self.ctx.facts and self.ctx.facts.displays:
+                    return True
+
+        reason = (
+            f"Skipped display-dependent desktop {item_kind} in group '{group.title}' "
+            "because no active target display facts were available over the real GUI "
+            "session."
+        )
+        stage_state["display_manual_followup"] = True
+        stage_state["display_manual_followup_reason"] = reason
+        stage_state.setdefault("skipped_runtime_desktop_items", []).append(
+            {"group_id": group.id, "kind": item_kind, "command": command}
+        )
+        self.runlog.record(
+            "desktop_runtime_item_manual_followup",
+            stage=SetupStage.DESKTOP.value,
+            group_id=group.id,
+            item_kind=item_kind,
+            command=command,
+            reason=reason,
+        )
+        self.bridge.add_message("agent", f"⚠️ {reason}")
+        return False
 
     def _source_display_preferences(self) -> list[dict[str, Any]]:
         displays = getattr(getattr(self.profile, "hardware", None), "displays", []) or []
@@ -1833,6 +1901,13 @@ class SetupOrchestrator:
         for command in commands:
             command = self._rewrite_arch_community_helper_command(command, stage=stage, group=group)
             visible_command = command
+            if stage == SetupStage.DESKTOP and not self._desktop_runtime_command_ready_or_followup(
+                visible_command,
+                group,
+                stage_state,
+                item_kind="command",
+            ):
+                continue
             if stage == SetupStage.INSTALL_OR_SKIP and self._is_reboot_command(command):
                 stage_state["deferred_reboot_command"] = command
                 self.runlog.record(
@@ -2027,6 +2102,13 @@ class SetupOrchestrator:
                     reason="fstab mount checks must match fields, not whitespace-sensitive text",
                 )
                 verification = normalized_verification
+            if stage == SetupStage.DESKTOP and not self._desktop_runtime_command_ready_or_followup(
+                verification,
+                group,
+                stage_state,
+                item_kind="verification",
+            ):
+                continue
             self.bridge.add_message(
                 "agent",
                 f"`{redact_sensitive_text(verification)}` — verify",
