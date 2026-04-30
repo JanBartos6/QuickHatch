@@ -3898,7 +3898,7 @@ def test_ubuntu_live_debootstrap_gets_prereqs_and_chroot_binds():
     assert "sudo debootstrap --no-check-gpg --arch=amd64 noble /mnt file:///cdrom" in (
         debootstrap_command
     )
-    assert "http://archive.ubuntu.com/ubuntu" in debootstrap_command
+    assert "http://mirrors.kernel.org/ubuntu" in debootstrap_command
     assert "mount --bind" in commands[chroot_index - 1]
     assert "/mnt" in commands[chroot_index - 1]
     assert debootstrap_index < chroot_index
@@ -3936,7 +3936,7 @@ def test_ubuntu_live_debootstrap_prefers_cdrom_with_split_arch_option():
         "sudo debootstrap --no-check-gpg --arch amd64 resolute /mnt file:///cdrom"
         in debootstrap_command
     )
-    assert "sudo debootstrap --arch amd64 resolute /mnt https://archive.ubuntu.com/ubuntu" in (
+    assert "sudo debootstrap --arch amd64 resolute /mnt http://mirrors.kernel.org/ubuntu" in (
         debootstrap_command
     )
 
@@ -3953,7 +3953,17 @@ def test_ubuntu_live_debootstrap_rewrites_variable_mirror_with_cdrom_no_check_gp
     assert rewritten.startswith("if [ -d /cdrom/dists/resolute ]")
     assert "base-files base-passwd bash coreutils dpkg libc6" in rewritten
     assert "sudo debootstrap --no-check-gpg --arch=amd64 resolute /mnt file:///cdrom" in rewritten
-    assert "sudo debootstrap --arch=amd64 resolute /mnt http://archive.ubuntu.com/ubuntu" in rewritten
+    assert "sudo debootstrap --arch=amd64 resolute /mnt http://mirrors.kernel.org/ubuntu" in rewritten
+
+
+def test_ubuntu_live_debootstrap_rewrites_default_archive_to_fast_mirror():
+    command = "sudo debootstrap --arch=amd64 resolute /mnt http://archive.ubuntu.com/ubuntu"
+
+    rewritten = SetupOrchestrator._rewrite_debootstrap_http_mirror_to_cdrom_fallback(command)
+
+    assert "sudo debootstrap --arch=amd64 resolute /mnt http://mirrors.kernel.org/ubuntu" in (
+        rewritten
+    )
 
 
 def test_package_search_keeps_short_timeout():

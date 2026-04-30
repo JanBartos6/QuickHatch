@@ -232,6 +232,8 @@ _PARTED_PRE_FORMAT_FS_CHECK_RE = re.compile(
     re.IGNORECASE,
 )
 _DEBIAN_LIVE_DEBOOTSTRAP_RE = re.compile(r"\bdebootstrap\b", re.IGNORECASE)
+_UBUNTU_DEBOOTSTRAP_FALLBACK_MIRROR = "http://mirrors.kernel.org/ubuntu"
+_DEBIAN_DEBOOTSTRAP_FALLBACK_MIRROR = "http://deb.debian.org/debian"
 _DEBOOTSTRAP_OPTION_ARGS_WITH_VALUE = {
     "-a",
     "--arch",
@@ -3178,6 +3180,12 @@ class SetupOrchestrator:
                 SetupOrchestrator._first_http_url_in_text(command)
                 or "http://archive.ubuntu.com/ubuntu"
             )
+        if original_mirror_index >= 0:
+            fallback_tokens[original_mirror_index] = (
+                SetupOrchestrator._normalize_debootstrap_fallback_mirror(
+                    suite, fallback_tokens[original_mirror_index], command
+                )
+            )
         suite_path = f"/cdrom/dists/{suite}"
         cdrom_complete_check = (
             f"[ -d {shlex.quote(suite_path)} ] && qh_cdrom_ok=1 && "
@@ -3196,6 +3204,23 @@ class SetupOrchestrator:
     def _first_http_url_in_text(text: str) -> str:
         match = re.search(r"https?://[^\s\"')]+", text or "")
         return match.group(0) if match else ""
+
+    @staticmethod
+    def _normalize_debootstrap_fallback_mirror(suite: str, mirror: str, command: str) -> str:
+        normalized = (mirror or "").strip()
+        haystack = f"{suite} {mirror} {command}".lower()
+        if "ubuntu" in haystack and any(
+            host in normalized
+            for host in (
+                "archive.ubuntu.com/ubuntu",
+                "security.ubuntu.com/ubuntu",
+                "ports.ubuntu.com/ubuntu-ports",
+            )
+        ):
+            return _UBUNTU_DEBOOTSTRAP_FALLBACK_MIRROR
+        if "debian" in haystack and "deb.debian.org/debian" not in normalized:
+            return _DEBIAN_DEBOOTSTRAP_FALLBACK_MIRROR
+        return normalized
 
     def _inject_debian_live_chroot_bind_mounts(
         self, stage: SetupStage, group: CommandGroup, commands: list[str]
