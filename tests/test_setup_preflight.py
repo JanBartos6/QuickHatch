@@ -196,6 +196,23 @@ def test_preflight_blocks_live_mount_without_root_privileges():
     assert "needs root privileges" in error
 
 
+def test_preflight_allows_read_only_mount_diagnostics_without_root():
+    facts = SetupFacts(
+        package_manager="apt",
+        distro_family="debian",
+        os_id="ubuntu",
+        is_live=True,
+        is_root=False,
+        sudo_nopasswd=True,
+        current_user="ubuntu",
+        login_user="ubuntu",
+    )
+
+    assert preflight_setup_command("mount", facts) is None
+    assert preflight_setup_command("mount | grep ' /mnt '", facts) is None
+    assert preflight_setup_command("mount -l | grep ext4", facts) is None
+
+
 def test_preflight_allows_live_disk_mutation_with_sudo():
     facts = SetupFacts(
         package_manager="apt",

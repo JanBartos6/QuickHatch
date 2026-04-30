@@ -4039,10 +4039,24 @@ def test_ubuntu_live_debootstrap_rewrites_variable_mirror_with_cdrom_no_check_gp
     rewritten = SetupOrchestrator._rewrite_debootstrap_http_mirror_to_cdrom_fallback(command)
 
     assert rewritten == (
-        'MIRROR=$(test -d /cdrom/dists/resolute && echo "file:///cdrom" || '
+        'MIRROR=$(test -d /cdrom/dists/resolute && echo "http://mirrors.kernel.org/ubuntu" || '
         'echo "http://mirrors.kernel.org/ubuntu") && '
         'sudo debootstrap --arch=amd64 resolute /mnt "$MIRROR"'
     )
+
+
+def test_ubuntu_live_debootstrap_rewrites_complex_cdrom_shell_to_network_mirror():
+    command = (
+        "MIRROR=$([ -d /cdrom/dists/resolute ] && echo 'file:///cdrom' || "
+        "echo 'http://archive.ubuntu.com/ubuntu') && "
+        'sudo debootstrap --no-check-gpg --arch=amd64 resolute /mnt "$MIRROR"'
+    )
+
+    rewritten = SetupOrchestrator._rewrite_debootstrap_http_mirror_to_cdrom_fallback(command)
+
+    assert "file:///cdrom" not in rewritten
+    assert rewritten.count("http://mirrors.kernel.org/ubuntu") == 2
+    assert 'sudo debootstrap --no-check-gpg --arch=amd64 resolute /mnt "$MIRROR"' in rewritten
 
 
 def test_ubuntu_live_debootstrap_rewrites_default_archive_to_fast_mirror():

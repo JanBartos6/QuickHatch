@@ -3245,6 +3245,7 @@ class SetupOrchestrator:
 
     @staticmethod
     def _normalize_debootstrap_mirrors_in_shell(command: str) -> str:
+        fallback_mirror = SetupOrchestrator._infer_debootstrap_fallback_mirror(command)
         rewritten = re.sub(
             r"https?://(?:archive|security)\.ubuntu\.com/ubuntu\b",
             _UBUNTU_DEBOOTSTRAP_FALLBACK_MIRROR,
@@ -3257,7 +3258,33 @@ class SetupOrchestrator:
             rewritten,
             flags=re.IGNORECASE,
         )
+        rewritten = re.sub(r"file:///cdrom\b", fallback_mirror, rewritten, flags=re.IGNORECASE)
         return rewritten
+
+    @staticmethod
+    def _infer_debootstrap_fallback_mirror(command: str) -> str:
+        lower = (command or "").lower()
+        ubuntu_codenames = (
+            "resolute",
+            "questing",
+            "plucky",
+            "oracular",
+            "noble",
+            "mantic",
+            "lunar",
+            "kinetic",
+            "jammy",
+            "impish",
+            "hirsute",
+            "focal",
+            "bionic",
+            "xenial",
+            "trusty",
+            "gutsy",
+        )
+        if "ubuntu" in lower or any(re.search(rf"\b{name}\b", lower) for name in ubuntu_codenames):
+            return _UBUNTU_DEBOOTSTRAP_FALLBACK_MIRROR
+        return _DEBIAN_DEBOOTSTRAP_FALLBACK_MIRROR
 
     @staticmethod
     def _normalize_debootstrap_fallback_mirror(suite: str, mirror: str, command: str) -> str:

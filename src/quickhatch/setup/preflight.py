@@ -414,9 +414,28 @@ def _package_tool_mutates_system(tool: str, tokens: list[str]) -> bool:
     return tool == "xbps-install"
 
 
+def _mount_command_requires_root(tokens: list[str]) -> bool:
+    args = tokens[1:]
+    if not args:
+        return False
+    if "|" in args:
+        pipe_index = args.index("|")
+        pre_pipe_args = [
+            arg
+            for arg in args[:pipe_index]
+            if arg not in {"-l", "--show-labels", "-v", "--verbose"}
+        ]
+        return bool(pre_pipe_args)
+    if all(arg in {"-l", "--show-labels", "-v", "--verbose"} for arg in args):
+        return False
+    return True
+
+
 def _tool_requires_root(tool: str, tokens: list[str]) -> bool:
     if not tool:
         return False
+    if tool == "mount":
+        return _mount_command_requires_root(tokens)
     if tool in _ROOT_REQUIRED_MUTATION_TOOLS:
         return True
     if tool.startswith("mkfs"):
