@@ -18,12 +18,33 @@ package list differ.
 - Ethernet auto via NetworkManager.
 - WiFi: `nmcli device wifi connect <SSID> password <PSK>`.
 
-## Approach A — SSH-unattended classic Fedora via `dnf --installroot`
+## Approach A — QuickHatch supported path: install first, then configure
 
-For QuickHatch remote setup over SSH, prefer this path for classic Fedora
-Workstation. Running Anaconda/Kickstart as a normal SSH command from a live
-Workstation ISO is not reliable: local `--kickstart` is not supported for live
-installations and text/cmdline runs can block on installer spokes with no stdin.
+For this tranche, QuickHatch should not attempt a full Fedora Workstation OS
+install from a running live desktop over SSH. Running Anaconda/Kickstart as a
+normal SSH command from a live Workstation ISO is not reliable: local
+`--kickstart` is not supported for live installations and text/cmdline runs can
+block on installer spokes with no stdin. A direct `dnf --installroot` install is
+also too fragile across BIOS/UEFI, bootloader, repo, and live-root storage
+state to be the default automation path.
+
+Supported flow:
+
+1. User boots the Fedora Workstation ISO.
+2. User runs the graphical installer manually and reboots into the installed
+   system.
+3. User runs `bash quickstart.sh` on the installed Fedora system.
+4. QuickHatch reconnects and performs drivers, desktop, apps, display, and
+   final audit work in configure-only mode.
+
+If the model is connected to a Fedora-family live ISO, it should ask for this
+manual installer handoff instead of emitting disk partitioning, Anaconda, or
+`dnf --installroot` command groups.
+
+## Experimental — classic Fedora via `dnf --installroot`
+
+This is not the QuickHatch default. Keep it for future implementation notes and
+expert debugging only.
 
 ```bash
 DISK=/dev/sda
@@ -67,8 +88,10 @@ sudo chroot /mnt /bin/bash -c "
 "
 ```
 
-QuickHatch still owns the final SSH key continuity check, bootability guard,
-unmount, reboot, and reconnect.
+Do not use this path in generated plans unless QuickHatch grows a typed Fedora
+install executor that owns the partition layout, bootloader mode, chroot bind
+mounts, repo cache location, SSH continuity, bootability guard, unmount, reboot,
+and reconnect as first-class code.
 
 ## Approach B — Anaconda + kickstart (boot-time or manual installer)
 

@@ -113,7 +113,8 @@ def test_preflight_blocks_fedora_live_anaconda_over_ssh():
     )
 
     assert error
-    assert "dnf --installroot" in error
+    assert "graphical installer" in error
+    assert "configure-only" in error
 
 
 def test_preflight_allows_fedora_installed_anaconda_probe():

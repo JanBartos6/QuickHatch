@@ -486,9 +486,9 @@ def preflight_setup_command(
         return (
             "Do not launch Fedora live Anaconda/Kickstart as a normal SSH command. On live "
             "Workstation ISOs local `--kickstart` is not supported for live installations and "
-            "text/cmdline runs can block on installer spokes with no stdin. Use the Fedora "
-            "`dnf --installroot` procedure for unattended SSH automation, or ask the user to run "
-            "the graphical installer manually and continue in configure-only mode."
+            "text/cmdline runs can block on installer spokes with no stdin. Ask the user to run "
+            "the graphical installer manually, reboot, rerun quickstart.sh, and continue in "
+            "configure-only mode."
         )
 
     for segment in _split_command_segments(command):
