@@ -585,6 +585,7 @@ def test_build_research_prompt_includes_selected_app_catalog():
     assert "VirtualBox with VMSVGA may report a `VMware SVGA` display adapter" in prompt
     assert "Variables do not persist across SSH executions" in prompt
     assert "do not add `--noconfirm` to `pacstrap`" in prompt
+    assert "prefer `file:///cdrom`" in prompt
     assert "avoid whitespace-sensitive checks like `grep -q ' / ' /mnt/etc/fstab`" in prompt
     assert "Treat desktop design as a contract" in prompt
     assert "Installing a theme/icon package is not the same as applying it" in prompt
