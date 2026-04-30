@@ -85,6 +85,32 @@ _ROOT_REQUIRED_PACKAGE_TOOLS = {
     "xbps-install",
     "emerge",
 }
+_ROOT_REQUIRED_MUTATION_TOOLS = {
+    "arch-chroot",
+    "blkdiscard",
+    "bootctl",
+    "chroot",
+    "debootstrap",
+    "dracut",
+    "fdisk",
+    "genfstab",
+    "grub-install",
+    "grub-mkconfig",
+    "grub2-install",
+    "grub2-mkconfig",
+    "mount",
+    "parted",
+    "partprobe",
+    "partx",
+    "sfdisk",
+    "sgdisk",
+    "swapoff",
+    "swapon",
+    "umount",
+    "update-grub",
+    "update-initramfs",
+    "wipefs",
+}
 _ASSIGNMENT_NAME = r"[A-Za-z_][A-Za-z0-9_]*"
 
 
@@ -388,6 +414,16 @@ def _package_tool_mutates_system(tool: str, tokens: list[str]) -> bool:
     return tool == "xbps-install"
 
 
+def _tool_requires_root(tool: str, tokens: list[str]) -> bool:
+    if not tool:
+        return False
+    if tool in _ROOT_REQUIRED_MUTATION_TOOLS:
+        return True
+    if tool.startswith("mkfs"):
+        return True
+    return False
+
+
 def _uses_fake_plasma_session_wrapper(cmd: str) -> bool:
     lower = (cmd or "").lower()
     return "dbus-run-session" in lower and (
@@ -548,6 +584,11 @@ def preflight_setup_command(
                 f"`{segment}` mutates a root-owned path but is not running as root. "
                 "Use `sudo` for root-owned config/system paths, or run the command inside the "
                 "installer chroot while the session is root."
+            )
+        if _tool_requires_root(tool, tokens) and not has_root_privilege:
+            return (
+                f"`{tool}` changes disks, mounts, boot files, or chroot state and needs root "
+                "privileges. Use `sudo` unless the remote session is already root."
             )
         if (
             tool in _ROOT_REQUIRED_PACKAGE_TOOLS

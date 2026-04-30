@@ -23,7 +23,7 @@ def test_preflight_blocks_yay_before_helper_exists():
 
 
 def test_preflight_detects_wrapped_aur_helper_before_helper_exists():
-    facts = SetupFacts(package_manager="pacman", community_helper="none")
+    facts = SetupFacts(package_manager="pacman", community_helper="none", is_root=True)
 
     error = preflight_setup_command(
         "arch-chroot /mnt sudo -u jan bash -lc 'yay -S --noconfirm brave-bin'",
@@ -158,6 +158,58 @@ def test_preflight_allows_ubuntu_live_debootstrap_and_autoinstall():
         )
         is None
     )
+
+
+def test_preflight_blocks_live_disk_mutation_without_root_privileges():
+    facts = SetupFacts(
+        package_manager="apt",
+        distro_family="debian",
+        os_id="ubuntu",
+        is_live=True,
+        is_root=False,
+        sudo_nopasswd=True,
+        current_user="ubuntu",
+        login_user="ubuntu",
+    )
+
+    error = preflight_setup_command("sgdisk --zap-all /dev/sda", facts)
+
+    assert error
+    assert "needs root privileges" in error
+
+
+def test_preflight_blocks_live_mount_without_root_privileges():
+    facts = SetupFacts(
+        package_manager="apt",
+        distro_family="debian",
+        os_id="ubuntu",
+        is_live=True,
+        is_root=False,
+        sudo_nopasswd=True,
+        current_user="ubuntu",
+        login_user="ubuntu",
+    )
+
+    error = preflight_setup_command("mount --bind /dev /mnt/dev", facts)
+
+    assert error
+    assert "needs root privileges" in error
+
+
+def test_preflight_allows_live_disk_mutation_with_sudo():
+    facts = SetupFacts(
+        package_manager="apt",
+        distro_family="debian",
+        os_id="ubuntu",
+        is_live=True,
+        is_root=False,
+        sudo_nopasswd=True,
+        current_user="ubuntu",
+        login_user="ubuntu",
+    )
+
+    assert preflight_setup_command("sudo sgdisk --zap-all /dev/sda", facts) is None
+    assert preflight_setup_command("sudo mount --bind /dev /mnt/dev", facts) is None
 
 
 def test_preflight_allows_fedora_installed_anaconda_probe():

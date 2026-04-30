@@ -127,6 +127,18 @@ class TestPreRebootChecksParser:
         assert len(failures) == 1
         assert len(oks) == 1
 
+    def test_recovery_guard_uses_posix_whitespace_classes_for_sudoers(self):
+        r"""The pre-reboot shell runs under grep -E, where ``\s`` is not
+        portable whitespace. Debian/Ubuntu sudoers commonly uses a tab
+        after ``%sudo``; the guard must use POSIX character classes so a
+        real sudo-capable user is not misclassified as unrecoverable."""
+
+        assert r"\s*%(wheel|sudo)\s+ALL" not in server_mod._PRE_REBOOT_CHECK_SCRIPT
+        assert (
+            r"[[:space:]]*%(wheel|sudo)[[:space:]]+ALL"
+            in server_mod._PRE_REBOOT_CHECK_SCRIPT
+        )
+
 
 if __name__ == "__main__":  # pragma: no cover
     pytest.main([__file__, "-v"])

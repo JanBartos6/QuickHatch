@@ -43,11 +43,24 @@ from .types import (
 )
 
 _LIVE_DISK_PREP_BASE_COMMANDS = (
-    "swapoff -a || true",
-    "mountpoint -q /mnt/sysimage && umount -R /mnt/sysimage || true",
-    "mountpoint -q /mnt/sysroot && umount -R /mnt/sysroot || true",
-    "mountpoint -q /mnt && umount -R /mnt || true",
+    "sudo swapoff -a || true",
+    "mountpoint -q /mnt/sysimage && sudo umount -R /mnt/sysimage || true",
+    "mountpoint -q /mnt/sysroot && sudo umount -R /mnt/sysroot || true",
+    "mountpoint -q /mnt && sudo umount -R /mnt || true",
 )
+_LIVE_TARGET_ROOT_CANDIDATES = ("/mnt", "/target", "/mnt/sysroot", "/mnt/sysimage")
+_LIVE_SESSION_USER_NAMES = {
+    "root",
+    "ubuntu",
+    "liveuser",
+    "user",
+    "demo",
+    "arch",
+    "fedora",
+    "mint",
+    "manjaro",
+    "kali",
+}
 
 _LIVE_DISK_DESTRUCTIVE_PATTERNS = (
     re.compile(r"\bparted\b.*\bmklabel\b", re.IGNORECASE),
@@ -1128,7 +1141,10 @@ class SetupOrchestrator:
         return last_result
 
     def _ensure_reconnect_ssh_key(self) -> None:
+        root_path = "/mnt"
         reconnect_user = self.ctx.created_user or self.runtime.user
+        if self.ctx.facts and self.ctx.facts.is_live:
+            root_path, reconnect_user = self._ensure_live_install_reconnect_user()
         if not reconnect_user or reconnect_user == "root":
             return
         public_key = self._resolve_public_key_text()
@@ -1137,22 +1153,26 @@ class SetupOrchestrator:
                 "Cannot verify SSH continuity before reboot: QuickHatch public key is missing."
             )
 
+        root_q = shlex.quote(root_path)
         user_q = shlex.quote(reconnect_user)
         key_q = shlex.quote(public_key)
         command = (
             f"set -e; "
+            f"qh_root={root_q}; "
             f"qh_user={user_q}; "
-            f'qh_home="/mnt/home/$qh_user"; '
+            f'qh_sudo=sudo; [ "$(id -u)" -eq 0 ] && qh_sudo=; '
+            f'qh_home="$qh_root/home/$qh_user"; '
             f'test -d "$qh_home"; '
             f"qh_owner=$(stat -c '%u:%g' \"$qh_home\"); "
-            f'install -d -m 700 "$qh_home/.ssh"; '
-            f'touch "$qh_home/.ssh/authorized_keys"; '
-            f'grep -qxF {key_q} "$qh_home/.ssh/authorized_keys" '
-            f"|| printf '%s\\n' {key_q} >> \"$qh_home/.ssh/authorized_keys\"; "
-            f'chown "$qh_owner" "$qh_home/.ssh" "$qh_home/.ssh/authorized_keys"; '
-            f'chmod 700 "$qh_home/.ssh"; '
-            f'chmod 600 "$qh_home/.ssh/authorized_keys"; '
-            f'grep -qxF {key_q} "$qh_home/.ssh/authorized_keys"'
+            f'$qh_sudo install -d -m 700 "$qh_home/.ssh"; '
+            f'$qh_sudo touch "$qh_home/.ssh/authorized_keys"; '
+            f'$qh_sudo grep -qxF {key_q} "$qh_home/.ssh/authorized_keys" '
+            f"|| printf '%s\\n' {key_q} | "
+            f'$qh_sudo tee -a "$qh_home/.ssh/authorized_keys" >/dev/null; '
+            f'$qh_sudo chown "$qh_owner" "$qh_home/.ssh" "$qh_home/.ssh/authorized_keys"; '
+            f'$qh_sudo chmod 700 "$qh_home/.ssh"; '
+            f'$qh_sudo chmod 600 "$qh_home/.ssh/authorized_keys"; '
+            f'$qh_sudo grep -qxF {key_q} "$qh_home/.ssh/authorized_keys"'
         )
         self.bridge.add_message(
             "agent",
@@ -1188,7 +1208,7 @@ class SetupOrchestrator:
             if rc == 0:
                 success = True
                 break
-            if self._verify_reconnect_ssh_key(reconnect_user, public_key):
+            if self._verify_reconnect_ssh_key(reconnect_user, public_key, root_path=root_path):
                 self.bridge.add_message(
                     "agent",
                     "SSH reconnect key is present despite a transient SSH command failure.",
@@ -1209,14 +1229,185 @@ class SetupOrchestrator:
             "ssh_continuity_key_installed"
         ] = True
 
-    def _verify_reconnect_ssh_key(self, reconnect_user: str, public_key: str) -> bool:
+    def _ensure_live_install_reconnect_user(self) -> tuple[str, str]:
+        if self._valid_target_username(self.ctx.created_user or ""):
+            return "/mnt", str(self.ctx.created_user)
+
+        candidates = self._planned_target_user_candidates()
+        if not candidates and self.runtime.user == "root":
+            return "/mnt", "root"
+
+        root_path = self._detect_live_target_root_path()
+        existing_user = self._detect_live_target_admin_user(root_path)
+        if existing_user:
+            self.ctx.created_user = existing_user
+            self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})[
+                "target_reconnect_user"
+            ] = existing_user
+            return root_path, existing_user
+
+        if not candidates:
+            raise RuntimeError(
+                "Cannot verify SSH continuity before reboot: no sudo-capable installed "
+                "user exists, and the research plan did not name a target user to create."
+            )
+        target_user = candidates[0]
+        self._create_live_target_reconnect_user(root_path, target_user)
+        self.ctx.created_user = target_user
+        state = self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})
+        state["target_reconnect_user"] = target_user
+        state["target_user_harness_created"] = True
+        return root_path, target_user
+
+    def _detect_live_target_root_path(self) -> str:
+        command = (
+            "for qh_root in "
+            + " ".join(shlex.quote(path) for path in _LIVE_TARGET_ROOT_CANDIDATES)
+            + '; do test -f "$qh_root/etc/passwd" && printf "%s\\n" "$qh_root" && exit 0; '
+            "done; exit 1"
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 30)
+        self.runlog.record(
+            "live_target_root_detect",
+            stage=SetupStage.INSTALL_OR_SKIP.value,
+            rc=rc,
+            stdout_tail=(stdout or "")[-500:],
+            stderr_tail=(stderr or "")[-500:],
+        )
+        if rc == 0:
+            for line in (stdout or "").splitlines():
+                candidate = line.strip()
+                if candidate.startswith("/"):
+                    return candidate
+        raise RuntimeError(
+            "Cannot verify SSH continuity before reboot: no mounted target root was "
+            "found at /mnt, /target, /mnt/sysroot, or /mnt/sysimage."
+        )
+
+    def _detect_live_target_admin_user(self, root_path: str) -> str:
+        root_q = shlex.quote(root_path)
+        command = (
+            f"qh_root={root_q}; "
+            f'qh_sudo=sudo; [ "$(id -u)" -eq 0 ] && qh_sudo=; '
+            f'test -f "$qh_root/etc/passwd" || exit 1; '
+            f'qh_groups=$($qh_sudo awk -F: '
+            f'\'$1=="sudo" || $1=="wheel" || $1=="admin" {{print "," $4 ","}}\' '
+            f'"$qh_root/etc/group" | tr -d "\\n"); '
+            f'$qh_sudo awk -F: -v groups="$qh_groups" '
+            f'\'$3 >= 1000 && $3 < 60000 && $7 !~ /(nologin|false)$/ '
+            f'&& index(groups, "," $1 ",") > 0 {{print $1; found=1; exit}} '
+            f'END {{exit !found}}\' "$qh_root/etc/passwd"'
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 30)
+        self.runlog.record(
+            "live_target_admin_user_detect",
+            stage=SetupStage.INSTALL_OR_SKIP.value,
+            root_path=root_path,
+            rc=rc,
+            stdout_tail=(stdout or "")[-500:],
+            stderr_tail=(stderr or "")[-500:],
+        )
+        if rc != 0:
+            return ""
+        for line in (stdout or "").splitlines():
+            user = line.strip()
+            if self._valid_target_username(user):
+                return user
+        return ""
+
+    def _planned_target_user_candidates(self) -> list[str]:
+        candidates: list[str] = []
+
+        def add(user: str | None) -> None:
+            user = (user or "").strip()
+            if (
+                self._valid_target_username(user)
+                and user not in _LIVE_SESSION_USER_NAMES
+                and user not in candidates
+            ):
+                candidates.append(user)
+
+        add(self.ctx.created_user)
+        if self.ctx.plan:
+            for group in self.ctx.plan.command_groups:
+                if group.stage != SetupStage.INSTALL_OR_SKIP:
+                    continue
+                for command in group.commands:
+                    add(self._extract_created_user(command))
+        runtime_user = (getattr(self.runtime.profile, "linux_user", "") or "").strip()
+        add(runtime_user)
+        return candidates
+
+    @staticmethod
+    def _valid_target_username(user: str) -> bool:
+        return bool(re.fullmatch(r"[a-z_][a-z0-9_-]{0,31}", user or ""))
+
+    def _create_live_target_reconnect_user(self, root_path: str, target_user: str) -> None:
+        root_q = shlex.quote(root_path)
+        user_q = shlex.quote(target_user)
+        password = getattr(self.runtime.profile, "default_account_password", "") or "password"
+        password_q = shlex.quote(password)
+        command = (
+            f"set -e; "
+            f"qh_root={root_q}; "
+            f"qh_user={user_q}; "
+            f"qh_pw={password_q}; "
+            f'qh_sudo=sudo; [ "$(id -u)" -eq 0 ] && qh_sudo=; '
+            f'test -f "$qh_root/etc/passwd"; '
+            f'if $qh_sudo chroot "$qh_root" getent group sudo >/dev/null 2>&1; then '
+            f"qh_group=sudo; "
+            f'elif $qh_sudo chroot "$qh_root" getent group wheel >/dev/null 2>&1; then '
+            f"qh_group=wheel; "
+            f"else $qh_sudo chroot \"$qh_root\" groupadd sudo; qh_group=sudo; fi; "
+            f'if $qh_sudo chroot "$qh_root" id -u "$qh_user" >/dev/null 2>&1; then '
+            f'$qh_sudo chroot "$qh_root" usermod -aG "$qh_group" "$qh_user"; '
+            f"else "
+            f'$qh_sudo chroot "$qh_root" useradd -m -G "$qh_group" -s /bin/bash "$qh_user"; '
+            f"fi; "
+            f'printf "%s:%s\\n" "$qh_user" "$qh_pw" | $qh_sudo chroot "$qh_root" chpasswd; '
+            f'$qh_sudo chroot "$qh_root" install -d -m 700 -o "$qh_user" -g "$qh_user" '
+            f'"/home/$qh_user/.ssh"; '
+            f'test -d "$qh_root/home/$qh_user"'
+        )
+        self.bridge.add_message(
+            "agent",
+            f"`{redact_sensitive_text(command)}` — ensure installed sudo user for reconnect",
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 60)
+        self.ctx.results_log.append(
+            redact_sensitive_text(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+        )
+        self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
+        self.runlog.record(
+            "live_target_user_ensure",
+            stage=SetupStage.INSTALL_OR_SKIP.value,
+            root_path=root_path,
+            user=target_user,
+            rc=rc,
+            stdout_tail=(stdout or "")[-500:],
+            stderr_tail=(stderr or "")[-500:],
+        )
+        if rc != 0:
+            detail = (stderr or stdout or "").strip()
+            raise RuntimeError(
+                "Cannot verify SSH continuity before reboot: failed to create or repair "
+                f"installed user '{target_user}'. {detail[:240]}"
+            )
+
+    def _verify_reconnect_ssh_key(
+        self, reconnect_user: str, public_key: str, *, root_path: str = "/mnt"
+    ) -> bool:
+        root_q = shlex.quote(root_path)
         user_q = shlex.quote(reconnect_user)
         key_q = shlex.quote(public_key)
         command = (
-            f"qh_home=/mnt/home/{user_q}; "
+            f"qh_root={root_q}; "
+            f"qh_user={user_q}; "
+            f'qh_sudo=sudo; [ "$(id -u)" -eq 0 ] && qh_sudo=; '
+            f'qh_home="$qh_root/home/$qh_user"; '
             f'test -d "$qh_home" && '
             f'test -f "$qh_home/.ssh/authorized_keys" && '
-            f'grep -qxF {key_q} "$qh_home/.ssh/authorized_keys"'
+            f'$qh_sudo grep -qxF {key_q} "$qh_home/.ssh/authorized_keys"'
         )
         rc, stdout, stderr = self.runtime.ssh_exec(command, 30)
         self.runlog.record(
@@ -3589,7 +3780,7 @@ class SetupOrchestrator:
             disk_q = shlex.quote(disk)
             prep.append(
                 f"for p in $(lsblk -lnpo NAME {disk_q} 2>/dev/null | tail -n +2 | tac); "
-                'do umount "$p" 2>/dev/null || true; done'
+                'do sudo umount "$p" 2>/dev/null || true; done'
             )
         return prep
 

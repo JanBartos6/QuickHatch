@@ -5966,8 +5966,8 @@ fi
 if [ -f "$_root/etc/group" ]; then
   ADMIN_USERS=$(awk -F: '$1=="wheel" || $1=="sudo"{print $4}' "$_root/etc/group" 2>/dev/null | tr -d ' ')
   if [ -n "$ADMIN_USERS" ]; then
-    if grep -qE '^\s*%(wheel|sudo)\s+ALL=\(ALL(:ALL)?\)\s+(NOPASSWD:)?ALL' "$_root/etc/sudoers" 2>/dev/null \
-       || (ls "$_root/etc/sudoers.d/" 2>/dev/null | xargs -I{} grep -qlE '^\s*%(wheel|sudo)\s+ALL' "$_root/etc/sudoers.d/{}" 2>/dev/null); then
+    if grep -qE '^[[:space:]]*%(wheel|sudo)[[:space:]]+ALL=\(ALL(:ALL)?\)[[:space:]]+(NOPASSWD:[[:space:]]*)?ALL' "$_root/etc/sudoers" 2>/dev/null \
+       || (ls "$_root/etc/sudoers.d/" 2>/dev/null | xargs -I{} grep -qlE '^[[:space:]]*%(wheel|sudo)[[:space:]]+ALL' "$_root/etc/sudoers.d/{}" 2>/dev/null); then
       SUDOER_OK=1
     fi
   fi

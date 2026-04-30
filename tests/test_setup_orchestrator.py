@@ -42,6 +42,15 @@ def test_extract_created_user_from_chrooted_shell_useradd():
     assert SetupOrchestrator._extract_created_user(command) == "jan"
 
 
+def test_extract_created_user_from_chrooted_shell_probe_then_useradd():
+    command = (
+        'sudo chroot /mnt sh -c "id jan >/dev/null 2>&1 || '
+        "useradd -m -G sudo -s /bin/bash jan; echo 'jan:password' | chpasswd\""
+    )
+
+    assert SetupOrchestrator._extract_created_user(command) == "jan"
+
+
 def test_extract_created_user_from_fedora_kickstart_user_line():
     command = (
         "PASS_HASH=$(openssl passwd -6 'password') && printf 'user --name=jan "
@@ -812,7 +821,74 @@ def test_reconnect_key_accepts_verified_key_after_transient_failure(monkeypatch)
         "ssh_continuity_key_installed"
     ]
     assert len(calls) == 2
-    assert calls[1].startswith("qh_home=/mnt/home/jan")
+    assert "qh_root=/mnt" in calls[1]
+    assert "qh_user=jan" in calls[1]
+    assert "$qh_sudo grep" in calls[1]
+
+
+def test_live_reconnect_key_creates_planned_target_user_when_repair_skipped_it():
+    profile = UserProfile()
+    profile.linux_user = "ubuntu"
+    profile.default_account_password = "password"
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="ubuntu",
+        package_manager="apt",
+        current_user="ubuntu",
+        login_user="ubuntu",
+        is_live=True,
+        is_root=False,
+    )
+    commands: list[str] = []
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=lambda command, timeout: (0, "", ""))
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Ubuntu live install",
+        distro_family="ubuntu",
+        package_manager="apt",
+        driver_strategy=StrategyDecision("none", confidence="resolved_official"),
+        desktop_strategy=StrategyDecision("gnome", confidence="resolved_official"),
+        command_groups=[
+            CommandGroup(
+                id="user",
+                stage=SetupStage.INSTALL_OR_SKIP,
+                title="Create user",
+                commands=[
+                    'sudo chroot /mnt sh -c "id jan >/dev/null 2>&1 || '
+                    "useradd -m -G sudo -s /bin/bash jan; echo 'jan:password' | chpasswd\""
+                ],
+                verification=[],
+            )
+        ],
+    )
+
+    def ssh_exec(command, timeout):
+        commands.append(command)
+        if "for qh_root in" in command:
+            return (0, "/mnt\n", "")
+        if "live_target_admin_user" in command:
+            return (1, "", "")
+        if "awk -F:" in command and "groups=" in command:
+            return (1, "", "")
+        if "useradd" in command and "chroot" in command:
+            return (0, "", "")
+        if "authorized_keys" in command:
+            return (0, "", "")
+        return (0, "", "")
+
+    orchestrator.runtime.ssh_exec = ssh_exec
+    orchestrator._resolve_public_key_text = lambda: "ssh-ed25519 AAAATEST quickhatch"  # type: ignore[method-assign]
+
+    orchestrator._ensure_reconnect_ssh_key()
+
+    assert orchestrator.ctx.created_user == "jan"
+    assert any("useradd" in command and "qh_user=jan" in command for command in commands)
+    key_command = next(command for command in commands if "authorized_keys" in command)
+    assert "qh_root=/mnt" in key_command
+    assert "qh_user=jan" in key_command
+    assert "$qh_sudo tee -a" in key_command
 
 
 def test_reconnect_key_retries_after_transient_disconnect(monkeypatch):
@@ -3673,17 +3749,18 @@ def test_live_install_injects_disk_cleanup_before_destructive_partitioning():
     summary = SetupOrchestrator(runtime).run()
 
     parted_index = commands.index("parted -s /dev/sda mklabel gpt")
-    assert commands[parted_index - 5] == "swapoff -a || true"
+    assert commands[parted_index - 5] == "sudo swapoff -a || true"
     assert (
         commands[parted_index - 4]
-        == "mountpoint -q /mnt/sysimage && umount -R /mnt/sysimage || true"
+        == "mountpoint -q /mnt/sysimage && sudo umount -R /mnt/sysimage || true"
     )
     assert (
-        commands[parted_index - 3] == "mountpoint -q /mnt/sysroot && umount -R /mnt/sysroot || true"
+        commands[parted_index - 3]
+        == "mountpoint -q /mnt/sysroot && sudo umount -R /mnt/sysroot || true"
     )
-    assert commands[parted_index - 2] == "mountpoint -q /mnt && umount -R /mnt || true"
+    assert commands[parted_index - 2] == "mountpoint -q /mnt && sudo umount -R /mnt || true"
     assert "lsblk -lnpo NAME /dev/sda" in commands[parted_index - 1]
-    assert 'umount "$p"' in commands[parted_index - 1]
+    assert 'sudo umount "$p"' in commands[parted_index - 1]
     assert "umount -R /mnt" not in commands
     messages = [message["content"] for message in bridge.messages]
     assert "`parted -s /dev/sda mklabel gpt`" in messages
@@ -3716,14 +3793,14 @@ def test_live_fedora_anaconda_install_gets_disk_cleanup_and_long_timeout():
 
     ks_index = commands.index("printf 'clearpart --all --drives=sda\\nautopart\\n' > /tmp/qh.ks")
     anaconda_index = commands.index("sudo anaconda --kickstart=/tmp/qh.ks -C --noninteractive")
-    assert commands[ks_index - 5] == "swapoff -a || true"
+    assert commands[ks_index - 5] == "sudo swapoff -a || true"
     assert commands[ks_index - 4] == (
-        "mountpoint -q /mnt/sysimage && umount -R /mnt/sysimage || true"
+        "mountpoint -q /mnt/sysimage && sudo umount -R /mnt/sysimage || true"
     )
     assert commands[ks_index - 3] == (
-        "mountpoint -q /mnt/sysroot && umount -R /mnt/sysroot || true"
+        "mountpoint -q /mnt/sysroot && sudo umount -R /mnt/sysroot || true"
     )
-    assert commands[ks_index - 2] == "mountpoint -q /mnt && umount -R /mnt || true"
+    assert commands[ks_index - 2] == "mountpoint -q /mnt && sudo umount -R /mnt || true"
     assert "lsblk -lnpo NAME /dev/sda" in commands[ks_index - 1]
     assert orchestrator._command_timeout(commands[anaconda_index]) == 1800
 
