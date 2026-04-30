@@ -747,6 +747,28 @@ class TestSshExecErrorHandling:
         assert out == ""
         assert "timed out on target after 3s" in err
 
+    def test_large_probe_script_is_not_wrapped_past_windows_command_limit(self, monkeypatch):
+        import subprocess
+
+        from quickhatch.gui.server import _ssh_exec
+
+        self._bypass_probe(monkeypatch)
+        captured = {}
+        long_script = "echo QH_PM=apt\n" * 700
+
+        def good_run(args, **kwargs):
+            captured["args"] = args
+            return subprocess.CompletedProcess(args, 0, "ok\n", "")
+
+        monkeypatch.setattr(subprocess, "run", good_run)
+        rc, out, err = _ssh_exec("127.0.0.1", "root", long_script, timeout=10)
+
+        assert rc == 0
+        assert out == "ok\n"
+        assert err == ""
+        assert captured["args"][-1] == long_script
+        assert "timeout --kill-after" not in captured["args"][-1]
+
     def test_probe_detects_unreachable_host_before_spawning_ssh(self, monkeypatch):
         """The TCP probe should short-circuit when the port is closed —
         no ssh subprocess should even be launched."""

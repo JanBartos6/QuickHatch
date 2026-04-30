@@ -3925,12 +3925,19 @@ def _ssh_exec(
     if key_path:
         ssh_args += ["-i", key_path]
     remote_timeout = max(1, int(timeout or 1))
-    quoted_cmd = _shlex.quote(cmd)
-    remote_cmd = (
-        "if command -v timeout >/dev/null 2>&1; then "
-        f"exec timeout --kill-after=30s {remote_timeout}s sh -lc {quoted_cmd}; "
-        f"else exec sh -lc {quoted_cmd}; fi"
-    )
+    # Very large inline scripts (facts/pre-reboot probes) can exceed the
+    # Windows CreateProcess command-line limit once shell-quoted into a
+    # timeout wrapper. They are short-lived probes, not package installers,
+    # so keep the historical direct SSH path for them.
+    if len(cmd) <= 6000:
+        quoted_cmd = _shlex.quote(cmd)
+        remote_cmd = (
+            "if command -v timeout >/dev/null 2>&1; then "
+            f"exec timeout --kill-after=30s {remote_timeout}s sh -lc {quoted_cmd}; "
+            f"else exec sh -lc {quoted_cmd}; fi"
+        )
+    else:
+        remote_cmd = cmd
     ssh_args += [f"{user}@{host}", remote_cmd]
 
     try:
