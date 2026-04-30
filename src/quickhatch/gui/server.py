@@ -3889,6 +3889,7 @@ def _ssh_exec(
     host: str, user: str, cmd: str, key_path: str | None = None, timeout: int = 120, port: int = 22
 ) -> tuple[int, str, str]:
     """Execute a command on a remote host via SSH. Returns (returncode, stdout, stderr)."""
+    import shlex as _shlex
     import socket as _socket
     import subprocess
 
@@ -3923,7 +3924,14 @@ def _ssh_exec(
     ]
     if key_path:
         ssh_args += ["-i", key_path]
-    ssh_args += [f"{user}@{host}", cmd]
+    remote_timeout = max(1, int(timeout or 1))
+    quoted_cmd = _shlex.quote(cmd)
+    remote_cmd = (
+        "if command -v timeout >/dev/null 2>&1; then "
+        f"exec timeout --kill-after=30s {remote_timeout}s sh -lc {quoted_cmd}; "
+        f"else exec sh -lc {quoted_cmd}; fi"
+    )
+    ssh_args += [f"{user}@{host}", remote_cmd]
 
     try:
         result = subprocess.run(
@@ -3932,9 +3940,12 @@ def _ssh_exec(
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=timeout,
+            timeout=remote_timeout + 45,
         )
-        return result.returncode, result.stdout, result.stderr
+        stderr = result.stderr
+        if result.returncode in {124, 137} and "timed out" not in (stderr or "").lower():
+            stderr = (stderr.rstrip() + f"\nCommand timed out on target after {remote_timeout}s").strip()
+        return result.returncode, result.stdout, stderr
     except subprocess.TimeoutExpired:
         return -1, "", "Command timed out"
     except FileNotFoundError:

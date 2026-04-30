@@ -705,6 +705,48 @@ class TestSshExecErrorHandling:
         assert rc == -1
         assert "timed out" in err.lower()
 
+    def test_remote_command_is_wrapped_in_target_side_timeout(self, monkeypatch):
+        import subprocess
+
+        from quickhatch.gui.server import _ssh_exec
+
+        self._bypass_probe(monkeypatch)
+        captured = {}
+
+        def good_run(args, **kwargs):
+            captured["args"] = args
+            captured["timeout"] = kwargs.get("timeout")
+            return subprocess.CompletedProcess(args, 0, "ok\n", "")
+
+        monkeypatch.setattr(subprocess, "run", good_run)
+        rc, out, err = _ssh_exec("127.0.0.1", "root", "echo 'hello world'", timeout=7)
+
+        assert rc == 0
+        assert out == "ok\n"
+        assert err == ""
+        assert captured["timeout"] == 52
+        remote_command = captured["args"][-1]
+        assert "timeout --kill-after=30s 7s sh -lc" in remote_command
+        assert "echo" in remote_command
+        assert "hello world" in remote_command
+
+    def test_target_side_timeout_result_is_annotated(self, monkeypatch):
+        import subprocess
+
+        from quickhatch.gui.server import _ssh_exec
+
+        self._bypass_probe(monkeypatch)
+
+        def timed_out_run(args, **kwargs):
+            return subprocess.CompletedProcess(args, 124, "", "")
+
+        monkeypatch.setattr(subprocess, "run", timed_out_run)
+        rc, out, err = _ssh_exec("127.0.0.1", "root", "sleep 999", timeout=3)
+
+        assert rc == 124
+        assert out == ""
+        assert "timed out on target after 3s" in err
+
     def test_probe_detects_unreachable_host_before_spawning_ssh(self, monkeypatch):
         """The TCP probe should short-circuit when the port is closed —
         no ssh subprocess should even be launched."""
