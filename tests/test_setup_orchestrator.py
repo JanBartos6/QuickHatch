@@ -1794,6 +1794,42 @@ def test_desktop_package_group_does_not_require_runtime_display(monkeypatch):
     assert asked["value"] is False
 
 
+def test_gsettings_desktop_group_counts_as_persistent_not_runtime_only(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        current_user="jan",
+        login_user="jan",
+        desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    asked = {"value": False}
+    monkeypatch.setattr(orchestrator, "_refresh_facts", lambda stage: facts)
+    monkeypatch.setattr(
+        orchestrator,
+        "_ask_blocking_question",
+        lambda *args, **kwargs: asked.__setitem__("value", True),
+    )
+    group = CommandGroup(
+        id="gnome-persist",
+        stage=SetupStage.DESKTOP,
+        title="GNOME Persisted Preferences",
+        commands=[
+            "gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'",
+        ],
+    )
+
+    assert orchestrator._desktop_runtime_ready_or_followup(group, {})
+    assert orchestrator._desktop_runtime_command_ready_or_followup(
+        group.commands[0],
+        group,
+        {},
+        item_kind="command",
+    )
+    assert asked["value"] is False
+
+
 def test_mixed_desktop_group_skips_only_runtime_items_without_display(monkeypatch):
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

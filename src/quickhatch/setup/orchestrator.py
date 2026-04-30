@@ -1467,11 +1467,15 @@ class SetupOrchestrator:
 
     @staticmethod
     def _desktop_group_is_runtime_display_only(group: CommandGroup) -> bool:
-        commands = [
-            command for command in [*group.commands, *group.verification] if str(command).strip()
+        items = [("command", command) for command in group.commands if str(command).strip()] + [
+            ("verification", command) for command in group.verification if str(command).strip()
         ]
-        return bool(commands) and all(
-            SetupOrchestrator._command_needs_desktop_runtime_env(command) for command in commands
+        return bool(items) and all(
+            SetupOrchestrator._command_needs_desktop_runtime_env(command)
+            and not (
+                kind == "command" and SetupOrchestrator._command_persists_desktop_config(command)
+            )
+            for kind, command in items
         )
 
     def _desktop_runtime_command_ready_or_followup(
@@ -1483,6 +1487,8 @@ class SetupOrchestrator:
         item_kind: str,
     ) -> bool:
         if not self._command_needs_desktop_runtime_env(command):
+            return True
+        if item_kind == "command" and self._command_persists_desktop_config(command):
             return True
         if self.ctx.facts and self.ctx.facts.displays:
             return True
