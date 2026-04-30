@@ -3607,7 +3607,7 @@ def test_installroot_package_bootstrap_gets_long_timeout():
     orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
 
     timeout = orchestrator._command_timeout(
-        'REL=$(. /etc/os-release; echo ${VERSION_ID%%.*}) && sudo dnf '
+        "REL=$(. /etc/os-release; echo ${VERSION_ID%%.*}) && sudo dnf "
         '--installroot=/mnt --releasever="$REL" --use-host-config install -y '
         "@core @standard kernel NetworkManager openssh-server"
     )
