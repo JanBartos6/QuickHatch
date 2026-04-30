@@ -222,6 +222,18 @@ _PARTED_PRE_FORMAT_FS_CHECK_RE = re.compile(
     re.IGNORECASE,
 )
 _DEBIAN_LIVE_DEBOOTSTRAP_RE = re.compile(r"\bdebootstrap\b", re.IGNORECASE)
+_DEBOOTSTRAP_OPTION_ARGS_WITH_VALUE = {
+    "-a",
+    "--arch",
+    "--components",
+    "--exclude",
+    "--foreign",
+    "--include",
+    "--keyring",
+    "--merged-usr",
+    "--no-merged-usr",
+    "--variant",
+}
 _DEBIAN_LIVE_CHROOT_RE = re.compile(
     r"\b(?:chroot|systemd-nspawn)\s+(?P<target>/mnt|/target)\b", re.IGNORECASE
 )
@@ -2919,6 +2931,7 @@ class SetupOrchestrator:
             self._normalize_fedora_dnf_config_manager_command(command) for command in commands
         ]
         commands = self._inject_debian_live_debootstrap_prereqs(stage, group, commands)
+        commands = self._prefer_debian_live_cdrom_debootstrap_mirror(stage, group, commands)
         commands = self._inject_debian_live_chroot_bind_mounts(stage, group, commands)
         commands = self._inject_arch_live_vconsole_before_pacstrap(stage, group, commands)
         commands = self._inject_target_home_writability_prep(stage, group, commands)
@@ -3038,6 +3051,86 @@ class SetupOrchestrator:
             command=prep,
         )
         return [prep, *commands]
+
+    def _prefer_debian_live_cdrom_debootstrap_mirror(
+        self, stage: SetupStage, group: CommandGroup, commands: list[str]
+    ) -> list[str]:
+        facts = self.ctx.facts or SetupFacts()
+        if (
+            stage != SetupStage.INSTALL_OR_SKIP
+            or not facts.is_live
+            or facts.package_manager != "apt"
+        ):
+            return commands
+        patched: list[str] = []
+        for command in commands:
+            rewritten = self._rewrite_debootstrap_http_mirror_to_cdrom_fallback(command)
+            if rewritten != command:
+                self.runlog.record(
+                    "debian_live_cdrom_debootstrap_mirror_preferred",
+                    stage=stage.value,
+                    group_id=group.id,
+                    original=command,
+                    rewritten=rewritten,
+                )
+            patched.append(rewritten)
+        return patched
+
+    @staticmethod
+    def _rewrite_debootstrap_http_mirror_to_cdrom_fallback(command: str) -> str:
+        try:
+            tokens = shlex.split(command, posix=True)
+        except ValueError:
+            return command
+        debootstrap_index = next(
+            (
+                index
+                for index, token in enumerate(tokens)
+                if token.rstrip().split("/")[-1] == "debootstrap"
+            ),
+            -1,
+        )
+        if debootstrap_index < 0:
+            return command
+
+        positional: list[tuple[int, str]] = []
+        index = debootstrap_index + 1
+        while index < len(tokens):
+            token = tokens[index]
+            if token == "--":
+                index += 1
+                continue
+            if token.startswith("--"):
+                option = token.split("=", 1)[0]
+                if "=" not in token and option in _DEBOOTSTRAP_OPTION_ARGS_WITH_VALUE:
+                    index += 2
+                    continue
+                index += 1
+                continue
+            if token.startswith("-"):
+                if token in _DEBOOTSTRAP_OPTION_ARGS_WITH_VALUE:
+                    index += 2
+                    continue
+                index += 1
+                continue
+            positional.append((index, token))
+            index += 1
+
+        if len(positional) < 3:
+            return command
+        suite = positional[0][1]
+        mirror_index, mirror = positional[2]
+        if not mirror.startswith(("http://", "https://")):
+            return command
+
+        cdrom_tokens = list(tokens)
+        cdrom_tokens[mirror_index] = "file:///cdrom"
+        suite_path = f"/cdrom/dists/{suite}"
+        return (
+            f"if [ -d {shlex.quote(suite_path)} ]; then "
+            f"{shlex.join(cdrom_tokens)}; "
+            f"else {shlex.join(tokens)}; fi"
+        )
 
     def _inject_debian_live_chroot_bind_mounts(
         self, stage: SetupStage, group: CommandGroup, commands: list[str]

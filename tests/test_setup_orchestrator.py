@@ -3846,16 +3846,51 @@ def test_ubuntu_live_debootstrap_gets_prereqs_and_chroot_binds():
 
     commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
 
-    debootstrap_index = commands.index(
-        "sudo debootstrap --arch=amd64 noble /mnt http://archive.ubuntu.com/ubuntu"
-    )
+    debootstrap_command = next(command for command in commands if " debootstrap --" in command)
+    debootstrap_index = commands.index(debootstrap_command)
     chroot_index = commands.index(
         "sudo chroot /mnt sh -c 'apt update && apt install -y linux-generic ubuntu-desktop'"
     )
     assert "apt-get install -y debootstrap" in commands[0]
+    assert debootstrap_command.startswith("if [ -d /cdrom/dists/noble ]; then ")
+    assert "file:///cdrom" in debootstrap_command
+    assert "http://archive.ubuntu.com/ubuntu" in debootstrap_command
     assert "mount --bind" in commands[chroot_index - 1]
     assert "/mnt" in commands[chroot_index - 1]
     assert debootstrap_index < chroot_index
+
+
+def test_ubuntu_live_debootstrap_prefers_cdrom_with_split_arch_option():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="debian",
+        os_id="ubuntu",
+        os_like="debian",
+        package_manager="apt",
+        current_user="ubuntu",
+        login_user="ubuntu",
+        is_live=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="ubuntu-live-base",
+        stage=SetupStage.INSTALL_OR_SKIP,
+        title="Ubuntu debootstrap install",
+        commands=[
+            "sudo debootstrap --arch amd64 resolute /mnt https://archive.ubuntu.com/ubuntu",
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
+
+    debootstrap_command = next(command for command in commands if " debootstrap --" in command)
+    assert debootstrap_command.startswith("if [ -d /cdrom/dists/resolute ]; then ")
+    assert "sudo debootstrap --arch amd64 resolute /mnt file:///cdrom" in debootstrap_command
+    assert "sudo debootstrap --arch amd64 resolute /mnt https://archive.ubuntu.com/ubuntu" in (
+        debootstrap_command
+    )
 
 
 def test_package_search_keeps_short_timeout():
