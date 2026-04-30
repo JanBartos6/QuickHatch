@@ -5123,18 +5123,22 @@ def _lookup_hint_for_failed_command(cmd: str, output: str, facts: dict[str, str]
 # live ISO or an installed system. Prints the first positive signal or
 # "INSTALLED" if no live markers matched.
 _LIVE_ENV_DETECTION_SCRIPT = r"""
-if grep -qE '\\b(boot=live|live-media|toram|rd\\.live\\.image|archisolabel|archisodevice|boot=casper)\\b' /proc/cmdline 2>/dev/null; then
+if grep -qE '(^|[[:space:]])(boot=live|live-media|toram|rd\.live\.image|rd\.live\.overlay|archisolabel|archisodevice|boot=casper)([[:space:]]|$)' /proc/cmdline 2>/dev/null; then
     echo 'LIVE:cmdline'
     exit 0
 fi
-for marker in /run/live /rofs /cdrom/casper /run/archiso /lib/live /run/calamares; do
+for marker in /run/live /rofs /cdrom/casper /run/archiso /run/initramfs/live /run/rootfsbase /lib/live /run/calamares; do
     if [ -d "$marker" ]; then
         echo "LIVE:marker=$marker"
         exit 0
     fi
 done
-if mount 2>/dev/null | grep -qE ' on / type (overlay|aufs|squashfs|tmpfs)\b'; then
+if mount 2>/dev/null | grep -qE ' on / type (overlay|aufs|squashfs|erofs|tmpfs)\b'; then
     echo 'LIVE:overlay-root'
+    exit 0
+fi
+if findmnt -n -o FSTYPE / 2>/dev/null | grep -qE '^(overlay|aufs|squashfs|erofs|tmpfs)$'; then
+    echo 'LIVE:root-fstype'
     exit 0
 fi
 # Live ISOs commonly auto-login as these users. Distinguish from a real

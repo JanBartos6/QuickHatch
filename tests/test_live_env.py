@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from quickhatch.gui.server import (
+    _LIVE_ENV_DETECTION_SCRIPT,
     _detect_live_env,
     _is_reboot_command,
     _wait_for_installed_ssh_reconnect,
@@ -62,6 +63,12 @@ class TestDetectLiveEnv:
         with patch("quickhatch.gui.server._ssh_exec", self._fake_ssh("LIVE:overlay-root\n")):
             is_live, marker = _detect_live_env("1.2.3.4", "root", None)
         assert is_live
+
+    def test_detector_script_includes_fedora_live_markers(self):
+        assert "rd\\.live\\.image" in _LIVE_ENV_DETECTION_SCRIPT
+        assert "/run/initramfs/live" in _LIVE_ENV_DETECTION_SCRIPT
+        assert "/run/rootfsbase" in _LIVE_ENV_DETECTION_SCRIPT
+        assert "erofs" in _LIVE_ENV_DETECTION_SCRIPT
 
     def test_installed_system_returns_false(self):
         with patch("quickhatch.gui.server._ssh_exec", self._fake_ssh("INSTALLED\n")):

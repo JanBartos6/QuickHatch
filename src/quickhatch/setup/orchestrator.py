@@ -513,7 +513,7 @@ class SetupOrchestrator:
             pending_question_id="",
             pending_question_blocking=False,
         )
-        if not is_live:
+        if not self.ctx.facts.is_live:
             self.ctx.facts = self.runtime.bootstrap_nopasswd_sudo(self.ctx.facts)
         self.runlog.record(
             "connect_and_probe",

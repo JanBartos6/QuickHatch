@@ -47,6 +47,34 @@ else
 fi
 echo 'QH_SECURE_BOOT='$qh_secure_boot
 echo 'QH_TARGET_ROOT='$(if mount | grep -Eq ' on /(mnt|target)( |$)'; then echo yes; else echo no; fi)
+qh_live_marker=INSTALLED
+if grep -qE '(^|[[:space:]])(boot=live|live-media|toram|rd\.live\.image|rd\.live\.overlay|archisolabel|archisodevice|boot=casper)([[:space:]]|$)' /proc/cmdline 2>/dev/null; then
+  qh_live_marker='LIVE:cmdline'
+else
+  for qh_marker in /run/live /rofs /cdrom/casper /run/archiso /run/initramfs/live /run/rootfsbase /lib/live /run/calamares; do
+    if [ -d "$qh_marker" ]; then
+      qh_live_marker="LIVE:marker=$qh_marker"
+      break
+    fi
+  done
+fi
+if [ "$qh_live_marker" = "INSTALLED" ] && mount 2>/dev/null | grep -qE ' on / type (overlay|aufs|squashfs|erofs|tmpfs)\b'; then
+  qh_live_marker='LIVE:overlay-root'
+fi
+if [ "$qh_live_marker" = "INSTALLED" ] && findmnt -n -o FSTYPE / 2>/dev/null | grep -qE '^(overlay|aufs|squashfs|erofs|tmpfs)$'; then
+  qh_live_marker='LIVE:root-fstype'
+fi
+if [ "$qh_live_marker" = "INSTALLED" ]; then
+  case "$(whoami 2>/dev/null)" in
+    liveuser|live|kali|parrot|manjaro|endeavour|artix|voidlive)
+      if command -v unsquashfs >/dev/null 2>&1 || [ -x /usr/lib/live/boot ] || [ -d /run/initramfs/live ]; then
+        qh_live_marker='LIVE:user'
+      fi
+      ;;
+  esac
+fi
+echo 'QH_IS_LIVE='$(case "$qh_live_marker" in LIVE:*) echo yes ;; *) echo no ;; esac)
+echo 'QH_LIVE_MARKER='$qh_live_marker
 qh_ssh_session=${XDG_SESSION_TYPE:-}
 qh_gui_record=$(
   if command -v loginctl >/dev/null 2>&1; then
@@ -498,6 +526,14 @@ def probe_setup_facts(
         raw.get("QH_SECURE_BOOT", facts.secure_boot_state) or facts.secure_boot_state
     )
     facts.target_root_mounted = raw.get("QH_TARGET_ROOT", "no") == "yes"
+    live_raw = raw.get("QH_IS_LIVE")
+    live_marker_raw = raw.get("QH_LIVE_MARKER", "")
+    if live_raw == "yes":
+        facts.is_live = True
+        facts.live_marker = live_marker_raw or facts.live_marker or "LIVE:facts"
+    elif live_raw == "no" and not facts.is_live:
+        facts.is_live = False
+        facts.live_marker = live_marker_raw or facts.live_marker
     session_type = (raw.get("QH_SESSION", "") or "").strip().lower()
     facts.session_type = session_type if session_type in {"wayland", "x11"} else ""
     facts.display_manager = raw.get("QH_DM", facts.display_manager) or ""

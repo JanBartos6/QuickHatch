@@ -104,6 +104,55 @@ QH_XRANDR_END
     assert facts.boot_mode == "efi"
 
 
+def test_probe_setup_facts_can_promote_fedora_live_marker_from_raw_probe():
+    output = """\
+QH_PM=dnf
+QH_AUR=none
+QH_USER=liveuser
+QH_LOGIN_USER=liveuser
+QH_IS_ROOT=no
+QH_SUDO_NOPASSWD=yes
+QH_OS_ID=fedora
+QH_OS_LIKE=
+QH_INIT=systemd
+QH_BOOT=efi
+QH_SECURE_BOOT=disabled
+QH_TARGET_ROOT=no
+QH_IS_LIVE=yes
+QH_LIVE_MARKER=LIVE:marker=/run/initramfs/live
+QH_SESSION=
+QH_DM=
+QH_DM_ENABLED=no
+QH_DM_ACTIVE=no
+QH_GPU_VENDORS=
+QH_GPU_INVENTORY=
+QH_NVIDIA_SMI=missing
+QH_NVIDIA_KERNEL_DRIVER=
+QH_NOUVEAU_BOUND=no
+QH_DRIVER_MODULES=
+QH_DISPLAYS=
+QH_KSCREEN_BEGIN
+QH_KSCREEN_END
+QH_XRANDR_BEGIN
+QH_XRANDR_END
+"""
+
+    def ssh_exec(_host, _user, _command, _key_path, _timeout, _port):
+        return (0, output, "")
+
+    facts = probe_setup_facts(
+        ssh_exec,
+        "192.0.2.10",
+        "liveuser",
+        None,
+        is_live=False,
+        live_marker="INSTALLED",
+    )
+
+    assert facts.is_live is True
+    assert facts.live_marker == "LIVE:marker=/run/initramfs/live"
+
+
 def test_probe_setup_facts_parses_amd_intel_acceleration_state():
     output = """\
 QH_PM=pacman
