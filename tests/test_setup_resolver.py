@@ -77,3 +77,79 @@ def test_arch_nvidia_official_package_support_rejects_pascal_default_package():
     assert arch_nvidia_official_package_supported(facts, ["nvidia-open"]) is False
     assert arch_nvidia_official_package_supported(facts, ["nvidia-open-dkms"]) is False
     assert arch_nvidia_official_package_supported(facts, ["nvidia-utils"]) is True
+
+
+def test_debian_and_ubuntu_nvidia_strategies_are_distinct():
+    ubuntu = driver_strategy(
+        UserProfile(),
+        SetupFacts(
+            package_manager="apt",
+            os_id="ubuntu",
+            gpu_vendors=["nvidia"],
+            gpu_inventory=["NVIDIA GeForce RTX 3080"],
+        ),
+    )
+    debian = driver_strategy(
+        UserProfile(),
+        SetupFacts(
+            package_manager="apt",
+            os_id="debian",
+            gpu_vendors=["nvidia"],
+            gpu_inventory=["NVIDIA GeForce RTX 3080"],
+        ),
+    )
+
+    assert ubuntu.strategy == "ubuntu_drivers_nvidia"
+    assert "ubuntu-drivers-common" in ubuntu.packages
+    assert debian.strategy == "official_nvidia"
+    assert "firmware-misc-nonfree" in debian.packages
+
+
+def test_fedora_opensuse_and_void_nvidia_have_typed_paths_for_rtx():
+    fedora = driver_strategy(
+        UserProfile(),
+        SetupFacts(
+            package_manager="dnf",
+            gpu_vendors=["nvidia"],
+            gpu_inventory=["NVIDIA GeForce RTX 3080"],
+        ),
+    )
+    opensuse = driver_strategy(
+        UserProfile(),
+        SetupFacts(
+            package_manager="zypper",
+            gpu_vendors=["nvidia"],
+            gpu_inventory=["NVIDIA GeForce RTX 3080"],
+        ),
+    )
+    void = driver_strategy(
+        UserProfile(),
+        SetupFacts(
+            package_manager="xbps",
+            gpu_vendors=["nvidia"],
+            gpu_inventory=["NVIDIA GeForce RTX 3080"],
+        ),
+    )
+
+    assert fedora.confidence == "resolved_community"
+    assert "akmod-nvidia" in fedora.packages
+    assert opensuse.confidence == "resolved_official"
+    assert "nvidia-open-driver-G06-signed-kmp-meta" in opensuse.packages
+    assert void.confidence == "resolved_official"
+    assert "void-repo-nonfree" in void.packages
+
+
+def test_alpine_and_gentoo_nvidia_remain_manual_followup():
+    for package_manager in ["apk", "emerge"]:
+        strategy = driver_strategy(
+            UserProfile(),
+            SetupFacts(
+                package_manager=package_manager,
+                gpu_vendors=["nvidia"],
+                gpu_inventory=["NVIDIA GeForce RTX 3080"],
+            ),
+        )
+
+        assert strategy.confidence == "manual_followup_required"
+        assert strategy.source == "manual_followup"
+        assert strategy.packages == []

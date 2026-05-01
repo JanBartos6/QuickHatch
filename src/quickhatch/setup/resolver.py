@@ -32,6 +32,12 @@ _ARCH_OFFICIAL_NVIDIA_PACKAGES = frozenset(
 )
 
 
+def _is_ubuntu_like(facts: SetupFacts) -> bool:
+    os_id = (facts.os_id or "").lower()
+    os_like = (facts.os_like or "").lower()
+    return os_id == "ubuntu" or "ubuntu" in os_like
+
+
 def detect_family(facts: SetupFacts) -> str:
     pm = (facts.package_manager or "unknown").lower()
     if pm == "pacman":
@@ -174,19 +180,106 @@ def driver_strategy(profile: UserProfile, facts: SetupFacts) -> StrategyDecision
                 notes="Prefer the current official Arch NVIDIA Open modules path and verify with nvidia-smi.",
             )
         if family == "debian":
+            if _is_ubuntu_like(facts):
+                return StrategyDecision(
+                    strategy="ubuntu_drivers_nvidia",
+                    confidence="resolved_official",
+                    source="official",
+                    packages=["ubuntu-drivers-common", "nvidia-driver"],
+                    notes=(
+                        "Use Ubuntu's ubuntu-drivers tool to select the current signed "
+                        "recommended desktop NVIDIA driver, then verify with nvidia-smi."
+                    ),
+                )
             return StrategyDecision(
                 strategy="official_nvidia",
                 confidence="resolved_official",
                 source="official",
-                packages=["nvidia-driver"],
-                notes="Verify exact non-free repository requirements before install.",
+                packages=["nvidia-driver", "firmware-misc-nonfree"],
+                notes=(
+                    "Enable Debian contrib/non-free/non-free-firmware components, install "
+                    "nvidia-driver plus firmware-misc-nonfree, then verify with nvidia-smi."
+                ),
             )
         if family == "fedora":
             return StrategyDecision(
                 strategy="rpmfusion_nvidia",
+                confidence="resolved_community",
+                source="community",
+                packages=["akmod-nvidia", "xorg-x11-drv-nvidia-cuda"],
+                notes=(
+                    "Fedora's NVIDIA path uses RPM Fusion nonfree packages; Secure Boot "
+                    "may still require MOK/module signing before nvidia-smi can pass."
+                ),
+            )
+        if family == "opensuse":
+            if not nvidia_open_kernel_supported(facts):
+                return StrategyDecision(
+                    strategy="opensuse_nvidia_legacy_manual_followup",
+                    confidence="manual_followup_required",
+                    source="manual_followup",
+                    packages=[],
+                    notes=(
+                        "Detected older NVIDIA hardware. Resolve the current openSUSE G04/G05/G06 "
+                        "package family before installing proprietary drivers."
+                    ),
+                )
+            return StrategyDecision(
+                strategy="opensuse_nvidia_open",
+                confidence="resolved_official",
+                source="official",
+                packages=[
+                    "nvidia-open-driver-G06-signed-kmp-meta",
+                    "nvidia-userspace-meta-G06",
+                ],
+                notes=(
+                    "Add/refresh the openSUSE NVIDIA repository and install the G06 open "
+                    "kernel module/userspace meta packages for Turing-or-newer GPUs."
+                ),
+            )
+        if family == "void":
+            if not nvidia_open_kernel_supported(facts):
+                return StrategyDecision(
+                    strategy="void_nvidia_legacy_manual_followup",
+                    confidence="manual_followup_required",
+                    source="manual_followup",
+                    packages=[],
+                    notes=(
+                        "Void has generation-specific NVIDIA packages. Resolve nvidia580/"
+                        "nvidia470/nvidia390 manually for this older GPU before installing."
+                    ),
+                )
+            return StrategyDecision(
+                strategy="void_nvidia_open",
+                confidence="resolved_official",
+                source="official",
+                packages=["void-repo-nonfree", "nvidia", "nvidia-libs-32bit"],
+                notes=(
+                    "Enable Void's nonfree repository and install the current nvidia package "
+                    "for Turing-or-newer hardware, then rebuild kernel hooks if needed."
+                ),
+            )
+        if family == "alpine":
+            return StrategyDecision(
+                strategy="alpine_nouveau_only",
                 confidence="manual_followup_required",
                 source="manual_followup",
-                notes="Fedora often needs RPM Fusion enablement before NVIDIA packages are available.",
+                packages=[],
+                notes=(
+                    "Alpine/musl does not provide the proprietary NVIDIA driver path; use "
+                    "nouveau/Mesa or choose a glibc distro for proprietary NVIDIA support."
+                ),
+            )
+        if family == "gentoo":
+            return StrategyDecision(
+                strategy="gentoo_nvidia_manual_followup",
+                confidence="manual_followup_required",
+                source="manual_followup",
+                packages=[],
+                notes=(
+                    "Gentoo NVIDIA setup depends on kernel/USE flag policy. Resolve and "
+                    "confirm x11-drivers/nvidia-drivers configuration before mutating."
+                ),
             )
         return StrategyDecision(
             strategy="nvidia_manual_followup",

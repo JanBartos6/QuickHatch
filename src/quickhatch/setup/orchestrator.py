@@ -135,6 +135,61 @@ _ARCH_NVIDIA_MODULE_LOAD_COMMANDS = (
     "sudo modprobe nvidia_uvm || true",
     "sudo modprobe nvidia_drm || true",
 )
+_UBUNTU_NVIDIA_PACKAGES = ("ubuntu-drivers-common", "nvidia-driver")
+_UBUNTU_NVIDIA_COMMANDS = (
+    "sudo apt-get update",
+    "sudo apt-get install -y ubuntu-drivers-common",
+    "sudo ubuntu-drivers install",
+    "sudo update-initramfs -u -k all || true",
+)
+_DEBIAN_NVIDIA_PACKAGES = ("nvidia-driver", "firmware-misc-nonfree")
+_DEBIAN_ENABLE_NONFREE_COMMAND = (
+    "codename=$(. /etc/os-release && printf '%s' \"${VERSION_CODENAME:-stable}\"); "
+    "if ! grep -Rqs 'non-free' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; "
+    "then printf 'Types: deb\\nURIs: http://deb.debian.org/debian\\nSuites: %s %s-updates\\n"
+    "Components: main contrib non-free non-free-firmware\\n"
+    "Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg\\n\\n"
+    "Types: deb\\nURIs: http://security.debian.org/debian-security\\nSuites: %s-security\\n"
+    "Components: main contrib non-free non-free-firmware\\n"
+    "Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg\\n' "
+    '"$codename" "$codename" "$codename" | '
+    "sudo tee /etc/apt/sources.list.d/quickhatch-nonfree.sources >/dev/null; fi"
+)
+_DEBIAN_NVIDIA_COMMANDS = (
+    _DEBIAN_ENABLE_NONFREE_COMMAND,
+    "sudo apt-get update",
+    "sudo apt-get install -y nvidia-driver firmware-misc-nonfree",
+    "sudo update-initramfs -u -k all || true",
+)
+_FEDORA_NVIDIA_PACKAGES = ("akmod-nvidia", "xorg-x11-drv-nvidia-cuda")
+_FEDORA_NVIDIA_COMMANDS = (
+    "sudo dnf install -y "
+    "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm "
+    "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm",
+    "sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda",
+    "sudo akmods --force || true",
+    "sudo dracut --force || true",
+)
+_OPENSUSE_NVIDIA_PACKAGES = (
+    "nvidia-open-driver-G06-signed-kmp-meta",
+    "nvidia-userspace-meta-G06",
+)
+_OPENSUSE_NVIDIA_COMMANDS = (
+    "if grep -qi tumbleweed /etc/os-release; then "
+    "sudo zypper --non-interactive install openSUSE-repos-Tumbleweed-NVIDIA; "
+    "elif grep -qi slowroll /etc/os-release; then "
+    "sudo zypper --non-interactive install openSUSE-repos-Slowroll-NVIDIA; "
+    "else sudo zypper --non-interactive install openSUSE-repos-Leap-NVIDIA; fi",
+    "sudo zypper --non-interactive --gpg-auto-import-keys refresh",
+    "sudo zypper --non-interactive install nvidia-open-driver-G06-signed-kmp-meta nvidia-userspace-meta-G06",
+    "sudo dracut -f --regenerate-all || true",
+)
+_VOID_NVIDIA_PACKAGES = ("void-repo-nonfree", "nvidia", "nvidia-libs-32bit")
+_VOID_NVIDIA_COMMANDS = (
+    "sudo xbps-install -Sy void-repo-nonfree",
+    "sudo xbps-install -Syu nvidia nvidia-libs-32bit",
+    "sudo xbps-reconfigure -f linux || true",
+)
 _ARCH_AUR_BUILD_USER = "quickhatch-build"
 _ARCH_YAY_BOOTSTRAP_COMMAND = (
     "(sudo timedatectl set-ntp true >/dev/null 2>&1 && sleep 5 || true) && "
@@ -1912,7 +1967,7 @@ class SetupOrchestrator:
             raise RuntimeError(f"Install reboot command failed: {detail[:240]}")
 
     def _run_postboot_driver(self) -> None:
-        self._inject_arch_nvidia_recovery_group_if_needed()
+        self._inject_nvidia_recovery_group_if_needed()
         self._run_stage_groups(SetupStage.POSTBOOT_DRIVER)
 
     def _run_desktop(self) -> None:
@@ -4629,12 +4684,20 @@ class SetupOrchestrator:
         self, stage: SetupStage, group: CommandGroup, commands: list[str]
     ) -> bool:
         facts = self.ctx.facts or SetupFacts()
+        return facts.package_manager == "pacman" and self._is_nvidia_driver_group(
+            stage, group, commands
+        )
+
+    def _is_nvidia_driver_group(
+        self, stage: SetupStage, group: CommandGroup, commands: list[str]
+    ) -> bool:
+        facts = self.ctx.facts or SetupFacts()
         if stage != SetupStage.POSTBOOT_DRIVER:
             return False
-        if facts.package_manager != "pacman" or "nvidia" not in facts.gpu_vendors:
+        if not self._has_nvidia_gpu(facts):
             return False
         text = " ".join([group.title, *group.packages, *commands]).lower()
-        return "nvidia" in text or "nouveau" in text
+        return any(token in text for token in ("nvidia", "nouveau", "ubuntu-drivers", "akmod"))
 
     def _normalize_arch_nvidia_commands(self, commands: list[str]) -> list[str]:
         if self._arch_nvidia_requires_manual_package_resolution():
@@ -4675,47 +4738,56 @@ class SetupOrchestrator:
                 normalized.append(command)
         return normalized
 
-    def _inject_arch_nvidia_recovery_group_if_needed(self) -> None:
+    def _inject_nvidia_recovery_group_if_needed(self) -> None:
         facts = self.ctx.facts or SetupFacts()
         plan = self.ctx.plan
-        if plan is None or not self._needs_arch_nvidia_recovery_group(facts):
+        if plan is None or not self._needs_nvidia_recovery_group(facts):
             return
         existing_groups = [
             group for group in plan.command_groups if group.stage == SetupStage.POSTBOOT_DRIVER
         ]
         if any(
-            self._is_arch_nvidia_driver_group(
+            self._is_nvidia_driver_group(
                 SetupStage.POSTBOOT_DRIVER, group, [*group.commands, *group.verification]
             )
             for group in existing_groups
         ):
             return
-        group = self._arch_nvidia_recovery_group()
+        group = self._nvidia_recovery_group(facts)
+        if group is None:
+            self._mark_nvidia_driver_manual_followup(facts)
+            return
         plan.command_groups.append(group)
-        packages = list(self._arch_nvidia_packages())
-        plan.driver_strategy.strategy = plan.driver_strategy.strategy or "arch_nvidia_open"
-        plan.driver_strategy.confidence = "resolved_official"
-        plan.driver_strategy.source = "repo"
+        packages = list(group.packages)
+        plan.driver_strategy.strategy = group.id.replace("quickhatch-", "").replace("-recovery", "")
+        plan.driver_strategy.confidence = (
+            "resolved_community" if group.source == "community" else "resolved_official"
+        )
+        plan.driver_strategy.source = group.source
         plan.driver_strategy.packages = packages
         self.bridge.add_message(
             "agent",
             (
                 "NVIDIA hardware is present but the researched plan has no postboot driver "
-                "group; injecting Arch NVIDIA recovery commands before auditing drivers."
+                f"group; injecting {self._nvidia_recovery_family_label(facts)} NVIDIA "
+                "recovery commands before auditing drivers."
             ),
         )
         self.runlog.record(
-            "arch_nvidia_recovery_group_injected",
+            "nvidia_recovery_group_injected",
             stage=SetupStage.POSTBOOT_DRIVER.value,
             facts=asdict(facts),
             group=asdict(group),
             packages=packages,
         )
 
-    def _needs_arch_nvidia_recovery_group(self, facts: SetupFacts) -> bool:
-        if facts.package_manager != "pacman" or "nvidia" not in facts.gpu_vendors:
+    def _needs_nvidia_recovery_group(self, facts: SetupFacts) -> bool:
+        if not self._has_nvidia_gpu(facts):
             return False
-        if self._arch_nvidia_requires_manual_package_resolution():
+        if (
+            facts.package_manager == "pacman"
+            and self._arch_nvidia_requires_manual_package_resolution()
+        ):
             return False
         if facts.nvidia_nouveau_bound:
             return True
@@ -4725,6 +4797,52 @@ class SetupOrchestrator:
             return True
         module_names = {module.lower() for module in facts.driver_modules}
         return bool(module_names and "nvidia" not in module_names)
+
+    @staticmethod
+    def _has_nvidia_gpu(facts: SetupFacts) -> bool:
+        return "nvidia" in {vendor.lower() for vendor in facts.gpu_vendors}
+
+    @staticmethod
+    def _is_ubuntu_like(facts: SetupFacts) -> bool:
+        os_id = (facts.os_id or "").lower()
+        os_like = (facts.os_like or "").lower()
+        return os_id == "ubuntu" or "ubuntu" in os_like
+
+    @staticmethod
+    def _nvidia_recovery_family_label(facts: SetupFacts) -> str:
+        if facts.package_manager == "apt" and SetupOrchestrator._is_ubuntu_like(facts):
+            return "Ubuntu"
+        labels = {
+            "pacman": "Arch",
+            "apt": "Debian",
+            "dnf": "Fedora/RPM Fusion",
+            "zypper": "openSUSE",
+            "xbps": "Void",
+            "apk": "Alpine",
+            "emerge": "Gentoo",
+        }
+        return labels.get(facts.package_manager, "distro-specific")
+
+    def _nvidia_recovery_group(self, facts: SetupFacts) -> CommandGroup | None:
+        if facts.package_manager == "pacman":
+            return self._arch_nvidia_recovery_group()
+        if facts.package_manager == "apt":
+            return (
+                self._ubuntu_nvidia_recovery_group()
+                if self._is_ubuntu_like(facts)
+                else self._debian_nvidia_recovery_group()
+            )
+        if facts.package_manager == "dnf":
+            return self._fedora_nvidia_recovery_group()
+        if facts.package_manager == "zypper":
+            if nvidia_open_kernel_supported(facts):
+                return self._opensuse_nvidia_recovery_group()
+            return None
+        if facts.package_manager == "xbps":
+            if nvidia_open_kernel_supported(facts):
+                return self._void_nvidia_recovery_group()
+            return None
+        return None
 
     def _arch_nvidia_recovery_group(self) -> CommandGroup:
         commands = [
@@ -4745,6 +4863,111 @@ class SetupOrchestrator:
             ),
             source="repo",
             packages=list(self._arch_nvidia_packages()),
+        )
+
+    def _ubuntu_nvidia_recovery_group(self) -> CommandGroup:
+        return CommandGroup(
+            id="quickhatch-ubuntu-nvidia-recovery",
+            stage=SetupStage.POSTBOOT_DRIVER,
+            title="Ubuntu NVIDIA Hardware Recovery",
+            commands=list(_UBUNTU_NVIDIA_COMMANDS),
+            verification=["nvidia-smi"],
+            rationale=(
+                "QuickHatch detected NVIDIA hardware with an unhealthy driver state, so "
+                "it uses Ubuntu's ubuntu-drivers tool to install the current recommended "
+                "signed desktop driver and verifies nvidia-smi before desktop work."
+            ),
+            source="repo",
+            packages=list(_UBUNTU_NVIDIA_PACKAGES),
+        )
+
+    def _debian_nvidia_recovery_group(self) -> CommandGroup:
+        return CommandGroup(
+            id="quickhatch-debian-nvidia-recovery",
+            stage=SetupStage.POSTBOOT_DRIVER,
+            title="Debian NVIDIA Hardware Recovery",
+            commands=list(_DEBIAN_NVIDIA_COMMANDS),
+            verification=["nvidia-smi"],
+            rationale=(
+                "QuickHatch detected NVIDIA hardware with an unhealthy driver state, so "
+                "it enables Debian non-free firmware/components, installs the packaged "
+                "NVIDIA driver path, and verifies nvidia-smi."
+            ),
+            source="repo",
+            packages=list(_DEBIAN_NVIDIA_PACKAGES),
+        )
+
+    def _fedora_nvidia_recovery_group(self) -> CommandGroup:
+        return CommandGroup(
+            id="quickhatch-fedora-nvidia-recovery",
+            stage=SetupStage.POSTBOOT_DRIVER,
+            title="Fedora NVIDIA Hardware Recovery",
+            commands=list(_FEDORA_NVIDIA_COMMANDS),
+            verification=["nvidia-smi"],
+            rationale=(
+                "QuickHatch detected NVIDIA hardware with an unhealthy driver state, so "
+                "it enables RPM Fusion's NVIDIA repository path, installs akmod-nvidia, "
+                "and verifies nvidia-smi after module rebuild/reboot."
+            ),
+            source="community",
+            packages=list(_FEDORA_NVIDIA_PACKAGES),
+        )
+
+    def _opensuse_nvidia_recovery_group(self) -> CommandGroup:
+        return CommandGroup(
+            id="quickhatch-opensuse-nvidia-recovery",
+            stage=SetupStage.POSTBOOT_DRIVER,
+            title="openSUSE NVIDIA Hardware Recovery",
+            commands=list(_OPENSUSE_NVIDIA_COMMANDS),
+            verification=["nvidia-smi"],
+            rationale=(
+                "QuickHatch detected NVIDIA hardware with an unhealthy driver state, so "
+                "it enables the matching openSUSE NVIDIA repository, installs the G06 "
+                "open kernel/userspace meta packages, and verifies nvidia-smi."
+            ),
+            source="repo",
+            packages=list(_OPENSUSE_NVIDIA_PACKAGES),
+        )
+
+    def _void_nvidia_recovery_group(self) -> CommandGroup:
+        return CommandGroup(
+            id="quickhatch-void-nvidia-recovery",
+            stage=SetupStage.POSTBOOT_DRIVER,
+            title="Void NVIDIA Hardware Recovery",
+            commands=list(_VOID_NVIDIA_COMMANDS),
+            verification=["nvidia-smi"],
+            rationale=(
+                "QuickHatch detected NVIDIA hardware with an unhealthy driver state, so "
+                "it enables Void's nonfree repository, installs the current NVIDIA package "
+                "path for Turing-or-newer hardware, and verifies nvidia-smi."
+            ),
+            source="repo",
+            packages=list(_VOID_NVIDIA_PACKAGES),
+        )
+
+    def _mark_nvidia_driver_manual_followup(self, facts: SetupFacts) -> None:
+        plan = self.ctx.plan
+        if plan is None:
+            return
+        label = self._nvidia_recovery_family_label(facts)
+        reason = (
+            f"NVIDIA hardware is present but QuickHatch does not have a safe automatic "
+            f"driver recovery path for {label} with this GPU/package-manager state. "
+            "Leaving driver setup as manual follow-up instead of guessing."
+        )
+        plan.driver_strategy.strategy = "nvidia_manual_followup"
+        plan.driver_strategy.confidence = "manual_followup_required"
+        plan.driver_strategy.source = "manual_followup"
+        plan.driver_strategy.packages = []
+        plan.driver_strategy.notes = reason
+        stage_state = self.ctx.stage_state.setdefault(SetupStage.POSTBOOT_DRIVER.value, {})
+        stage_state.setdefault("manual_followups", []).append(reason)
+        self.bridge.add_message("agent", f"⚠️ {reason}")
+        self.runlog.record(
+            "nvidia_recovery_manual_followup",
+            stage=SetupStage.POSTBOOT_DRIVER.value,
+            facts=asdict(facts),
+            reason=reason,
         )
 
     def _needs_arch_aur_helper_bootstrap(self, commands: list[str]) -> bool:
@@ -4936,7 +5159,7 @@ class SetupOrchestrator:
         stage_state: dict[str, Any],
     ) -> None:
         commands = [*group.commands, *group.verification]
-        if not self._is_arch_nvidia_driver_group(stage, group, commands):
+        if not self._is_nvidia_driver_group(stage, group, commands):
             return
         if stage_state.get("nvidia_reboot_attempted"):
             return
@@ -4949,7 +5172,12 @@ class SetupOrchestrator:
         }:
             return
         stage_state["nvidia_reboot_attempted"] = True
-        command = "sudo systemctl enable sshd NetworkManager || true; sudo reboot"
+        command = (
+            "if command -v systemctl >/dev/null 2>&1; then "
+            "sudo systemctl enable sshd NetworkManager 2>/dev/null || "
+            "sudo systemctl enable ssh NetworkManager 2>/dev/null || true; "
+            "fi; sudo reboot"
+        )
         self.bridge.add_message(
             "agent",
             "NVIDIA driver changes need a controlled reboot before verification.",

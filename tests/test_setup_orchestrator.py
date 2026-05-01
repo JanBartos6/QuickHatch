@@ -2812,6 +2812,231 @@ def test_arch_nvidia_recovery_group_is_injected_when_postboot_plan_is_missing():
     assert orchestrator.ctx.stage_results[-1].passed is True
 
 
+def test_ubuntu_nvidia_recovery_group_is_injected_when_postboot_plan_is_missing():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="debian",
+        package_manager="apt",
+        os_id="ubuntu",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GeForce RTX 3080"],
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+        nvidia_smi_state="missing",
+        nvidia_kernel_driver="",
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Ubuntu workstation with NVIDIA",
+        distro_family="debian",
+        package_manager="apt",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("kde"),
+        command_groups=[],
+    )
+
+    orchestrator._inject_nvidia_recovery_group_if_needed()
+
+    group = orchestrator.ctx.plan.command_groups[0]
+    assert group.id == "quickhatch-ubuntu-nvidia-recovery"
+    assert "ubuntu-drivers-common" in group.packages
+    assert any("ubuntu-drivers install" in command for command in group.commands)
+    assert group.verification == ["nvidia-smi"]
+    assert orchestrator.ctx.plan.driver_strategy.confidence == "resolved_official"
+
+
+def test_debian_nvidia_recovery_group_enables_nonfree_components():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="debian",
+        package_manager="apt",
+        os_id="debian",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GeForce RTX 3080"],
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+        nvidia_smi_state="missing",
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Debian workstation with NVIDIA",
+        distro_family="debian",
+        package_manager="apt",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("kde"),
+        command_groups=[],
+    )
+
+    orchestrator._inject_nvidia_recovery_group_if_needed()
+
+    group = orchestrator.ctx.plan.command_groups[0]
+    assert group.id == "quickhatch-debian-nvidia-recovery"
+    assert "firmware-misc-nonfree" in group.packages
+    assert any("quickhatch-nonfree.sources" in command for command in group.commands)
+    assert any("nvidia-driver firmware-misc-nonfree" in command for command in group.commands)
+
+
+def test_fedora_nvidia_recovery_group_uses_rpmfusion_and_reboot_path():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    fact_state = {
+        "facts": SetupFacts(
+            distro_family="fedora",
+            package_manager="dnf",
+            gpu_vendors=["nvidia"],
+            gpu_inventory=["NVIDIA GeForce RTX 3080"],
+            current_user="jan",
+            login_user="jan",
+            sudo_nopasswd=True,
+            nvidia_smi_state="missing",
+            nvidia_kernel_driver="nouveau",
+            nvidia_nouveau_bound=True,
+        )
+    }
+    commands: list[str] = []
+
+    def ssh_exec(command: str, _timeout: int):
+        commands.append(command)
+        return (0, "", "")
+
+    def wait_for_reconnect(reconnect_user):
+        fact_state["facts"] = SetupFacts(
+            distro_family="fedora",
+            package_manager="dnf",
+            gpu_vendors=["nvidia"],
+            gpu_inventory=["NVIDIA GeForce RTX 3080"],
+            current_user=reconnect_user,
+            login_user=reconnect_user,
+            sudo_nopasswd=True,
+            nvidia_smi_state="ok",
+            nvidia_kernel_driver="nvidia",
+            nvidia_nouveau_bound=False,
+            driver_modules=["nvidia"],
+        )
+        return (True, "fresh info", reconnect_user)
+
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        fact_state["facts"],
+        ssh_exec=ssh_exec,
+        wait_for_reconnect=wait_for_reconnect,
+        probe_facts=lambda **_kwargs: fact_state["facts"],
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = fact_state["facts"]
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Fedora workstation with NVIDIA",
+        distro_family="fedora",
+        package_manager="dnf",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("kde"),
+        command_groups=[],
+    )
+
+    orchestrator._inject_nvidia_recovery_group_if_needed()
+    group = orchestrator.ctx.plan.command_groups[0]
+    stage_state: dict[str, object] = {}
+    orchestrator._maybe_reboot_for_nvidia_driver(SetupStage.POSTBOOT_DRIVER, group, stage_state)
+
+    assert group.id == "quickhatch-fedora-nvidia-recovery"
+    assert group.source == "community"
+    assert "akmod-nvidia" in group.packages
+    assert any("rpmfusion-free-release" in command for command in group.commands)
+    assert any("rpmfusion-nonfree-release" in command for command in group.commands)
+    assert any("akmods --force" in command for command in group.commands)
+    assert any("sudo reboot" in command for command in commands)
+    assert orchestrator.ctx.plan.driver_strategy.confidence == "resolved_community"
+
+
+def test_opensuse_and_void_get_typed_nvidia_recovery_groups():
+    profile = UserProfile()
+    cases = [
+        (
+            SetupFacts(
+                distro_family="opensuse",
+                package_manager="zypper",
+                gpu_vendors=["nvidia"],
+                gpu_inventory=["NVIDIA GeForce RTX 3080"],
+                nvidia_smi_state="missing",
+                current_user="jan",
+                login_user="jan",
+            ),
+            "quickhatch-opensuse-nvidia-recovery",
+            "openSUSE-repos",
+        ),
+        (
+            SetupFacts(
+                distro_family="void",
+                package_manager="xbps",
+                gpu_vendors=["nvidia"],
+                gpu_inventory=["NVIDIA GeForce RTX 3080"],
+                nvidia_smi_state="missing",
+                current_user="jan",
+                login_user="jan",
+            ),
+            "quickhatch-void-nvidia-recovery",
+            "void-repo-nonfree",
+        ),
+    ]
+    for facts, expected_id, command_fragment in cases:
+        bridge = BridgeState(profile, persist_path=None)
+        orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+        orchestrator.ctx.facts = facts
+        orchestrator.ctx.plan = ResearchPlan(
+            target_summary="NVIDIA workstation",
+            distro_family=facts.distro_family,
+            package_manager=facts.package_manager,
+            driver_strategy=StrategyDecision("none"),
+            desktop_strategy=StrategyDecision("kde"),
+            command_groups=[],
+        )
+
+        orchestrator._inject_nvidia_recovery_group_if_needed()
+
+        group = orchestrator.ctx.plan.command_groups[0]
+        assert group.id == expected_id
+        assert any(command_fragment in command for command in group.commands)
+        assert group.verification == ["nvidia-smi"]
+
+
+def test_alpine_and_gentoo_nvidia_recovery_stay_manual_followup():
+    profile = UserProfile()
+    for package_manager, distro_family in [("apk", "alpine"), ("emerge", "gentoo")]:
+        bridge = BridgeState(profile, persist_path=None)
+        facts = SetupFacts(
+            distro_family=distro_family,
+            package_manager=package_manager,
+            gpu_vendors=["nvidia"],
+            gpu_inventory=["NVIDIA GeForce RTX 3080"],
+            nvidia_smi_state="missing",
+            current_user="jan",
+            login_user="jan",
+        )
+        orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+        orchestrator.ctx.facts = facts
+        orchestrator.ctx.plan = ResearchPlan(
+            target_summary="NVIDIA workstation",
+            distro_family=distro_family,
+            package_manager=package_manager,
+            driver_strategy=StrategyDecision("none"),
+            desktop_strategy=StrategyDecision("kde"),
+            command_groups=[],
+        )
+
+        orchestrator._inject_nvidia_recovery_group_if_needed()
+
+        assert orchestrator.ctx.plan.command_groups == []
+        assert orchestrator.ctx.plan.driver_strategy.confidence == "manual_followup_required"
+        assert "safe automatic" in orchestrator.ctx.plan.driver_strategy.notes
+
+
 def test_arch_nvidia_group_uses_lts_open_package_for_lts_kernel():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
@@ -2929,7 +3154,12 @@ def test_arch_nvidia_stage_reboots_once_when_nouveau_is_bound_before_verificatio
     orchestrator._maybe_reboot_for_nvidia_driver(SetupStage.POSTBOOT_DRIVER, group, stage_state)
 
     reboot_commands = [command for command in commands if "reboot" in command]
-    assert reboot_commands == ["sudo systemctl enable sshd NetworkManager || true; sudo reboot"]
+    assert reboot_commands == [
+        "if command -v systemctl >/dev/null 2>&1; then "
+        "sudo systemctl enable sshd NetworkManager 2>/dev/null || "
+        "sudo systemctl enable ssh NetworkManager 2>/dev/null || true; "
+        "fi; sudo reboot"
+    ]
     assert stage_state["nvidia_reboot_attempted"] is True
     assert orchestrator.ctx.facts.nvidia_smi_state == "ok"
 
