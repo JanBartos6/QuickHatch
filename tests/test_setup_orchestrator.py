@@ -4013,6 +4013,59 @@ def test_live_install_injects_disk_cleanup_before_destructive_partitioning():
     assert "Arch live install" in summary
 
 
+def test_arch_live_pacstrap_gets_keyring_prep():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        login_user="root",
+        is_live=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="arch-install",
+        stage=SetupStage.INSTALL_OR_SKIP,
+        title="Arch base install",
+        commands=["pacstrap -K /mnt base linux linux-firmware"],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
+
+    pacstrap_index = commands.index("pacstrap -K /mnt base linux linux-firmware")
+    assert "pacman-key --populate archlinux" in commands[pacstrap_index - 1]
+    assert "pacman -Sy --noconfirm archlinux-keyring" in commands[pacstrap_index - 1]
+
+
+def test_arch_live_pacstrap_does_not_duplicate_existing_keyring_prep():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        login_user="root",
+        is_live=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="arch-install",
+        stage=SetupStage.INSTALL_OR_SKIP,
+        title="Arch base install",
+        commands=[
+            "pacman-key --init && pacman-key --populate archlinux",
+            "pacstrap -K /mnt base linux linux-firmware",
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
+
+    assert sum("pacman-key --populate archlinux" in command for command in commands) == 1
+
+
 def test_live_fedora_anaconda_install_gets_disk_cleanup_and_long_timeout():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
@@ -4397,8 +4450,8 @@ def test_live_arch_install_injects_vconsole_before_pacstrap():
     commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
 
     pacstrap_index = commands.index("pacstrap -K /mnt base linux linux-firmware")
-    assert "vconsole.conf" in commands[pacstrap_index - 1]
-    assert "KEYMAP=us" in commands[pacstrap_index - 1]
+    before_pacstrap = commands[:pacstrap_index]
+    assert any("vconsole.conf" in command and "KEYMAP=us" in command for command in before_pacstrap)
 
 
 def test_live_arch_vconsole_injection_does_not_split_assignment_from_pacstrap():
@@ -4429,8 +4482,12 @@ def test_live_arch_vconsole_injection_does_not_split_assignment_from_pacstrap():
     pacstrap_command = next(command for command in commands if "pacstrap -K /mnt" in command)
     assert pacstrap_command.startswith("UCODE=$(grep -qi intel")
     assert "&& pacstrap -K /mnt" in pacstrap_command
-    assert commands.index(pacstrap_command) > 0
-    assert "vconsole.conf" in commands[commands.index(pacstrap_command) - 1]
+    pacstrap_index = commands.index(pacstrap_command)
+    assert pacstrap_index > 0
+    assert any(
+        "vconsole.conf" in command and "KEYMAP=us" in command
+        for command in commands[:pacstrap_index]
+    )
 
 
 def test_pre_format_partition_verification_uses_partition_nodes_not_filesystems():

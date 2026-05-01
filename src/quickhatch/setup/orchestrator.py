@@ -154,6 +154,12 @@ _ARCH_LIVE_VCONSOLE_PREP_COMMAND = (
     "mkdir -p /mnt/etc && { test -f /mnt/etc/vconsole.conf || "
     "printf 'KEYMAP=us\\n' > /mnt/etc/vconsole.conf; }"
 )
+_ARCH_LIVE_PACSTRAP_KEYRING_COMMAND = (
+    "sh -c 'set -e; qh_sudo=; [ \"$(id -u)\" = 0 ] || qh_sudo=sudo; "
+    "$qh_sudo pacman-key --init; "
+    "$qh_sudo pacman-key --populate archlinux; "
+    "$qh_sudo pacman -Sy --noconfirm archlinux-keyring'"
+)
 _ARCH_PACSTRAP_MNT_RE = re.compile(r"\bpacstrap\b.*\s/mnt(?:\s|$)", re.IGNORECASE)
 _SETUP_MODEL_CALL_TIMEOUT_SECONDS = max(
     30, int(os.environ.get("QUICKHATCH_SETUP_MODEL_TIMEOUT", "90") or "90")
@@ -3218,6 +3224,7 @@ class SetupOrchestrator:
         commands = self._normalize_live_resolv_conf_copies(stage, group, commands)
         commands = self._normalize_debian_live_efi_layout(stage, group, commands)
         commands = self._inject_arch_live_vconsole_before_pacstrap(stage, group, commands)
+        commands = self._inject_arch_live_keyring_before_pacstrap(stage, group, commands)
         commands = self._inject_target_home_writability_prep(stage, group, commands)
         commands = self._inject_apt_external_repo_prereqs(stage, group, commands)
         commands = self._inject_ubuntu_apt_component_prereqs(stage, group, commands)
@@ -3875,6 +3882,40 @@ class SetupOrchestrator:
                     stage=stage.value,
                     group_id=group.id,
                     command=_ARCH_LIVE_VCONSOLE_PREP_COMMAND,
+                )
+            patched.append(command)
+        return patched
+
+    def _inject_arch_live_keyring_before_pacstrap(
+        self, stage: SetupStage, group: CommandGroup, commands: list[str]
+    ) -> list[str]:
+        facts = self.ctx.facts or SetupFacts()
+        if (
+            stage != SetupStage.INSTALL_OR_SKIP
+            or not facts.is_live
+            or facts.package_manager != "pacman"
+            or facts.distro_family != "arch"
+            or not any(_ARCH_PACSTRAP_MNT_RE.search(command or "") for command in commands)
+            or any(
+                "archlinux-keyring" in (command or "").lower()
+                or "pacman-key" in (command or "").lower()
+                for command in commands
+            )
+        ):
+            return commands
+
+        patched: list[str] = []
+        injected = False
+        for command in commands:
+            if not injected and _ARCH_PACSTRAP_MNT_RE.search(command or ""):
+                patched.append(_ARCH_LIVE_PACSTRAP_KEYRING_COMMAND)
+                injected = True
+                self.runlog.record(
+                    "arch_live_keyring_prep_injected",
+                    stage=stage.value,
+                    group_id=group.id,
+                    command=_ARCH_LIVE_PACSTRAP_KEYRING_COMMAND,
+                    reason="fresh Arch live media often needs a current keyring before pacstrap can verify packages",
                 )
             patched.append(command)
         return patched
