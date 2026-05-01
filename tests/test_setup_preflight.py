@@ -99,6 +99,31 @@ def test_preflight_allows_explicit_gnome_core_packages_on_apt():
     )
 
 
+def test_preflight_blocks_virtualbox_guest_additions_iso_installer():
+    facts = SetupFacts(package_manager="apt", distro_family="debian")
+
+    error = preflight_setup_command(
+        "sudo apt-get install -y virtualbox-guest-additions-iso && sudo /media/cdrom/VBoxLinuxAdditions.run",
+        facts,
+    )
+
+    assert error
+    assert "Guest Additions ISO" in error
+    assert "manual_followup" in error
+
+
+def test_preflight_allows_distro_virtualbox_guest_utility_packages():
+    facts = SetupFacts(package_manager="apt", distro_family="debian")
+
+    assert (
+        preflight_setup_command(
+            "sudo apt-get install -y virtualbox-guest-utils virtualbox-guest-x11",
+            facts,
+        )
+        is None
+    )
+
+
 def test_preflight_blocks_standalone_shell_variable_assignment():
     facts = SetupFacts(package_manager="pacman", community_helper="none")
 

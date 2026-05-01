@@ -67,6 +67,11 @@ _PACKAGE_PROCESS_NAMES = frozenset(
     }
 )
 _UBUNTU_DESKTOP_METAPACKAGES = frozenset({"ubuntu-desktop", "ubuntu-desktop-minimal"})
+_VM_GUEST_ISO_TOKENS = (
+    "virtualbox-guest-additions-iso",
+    "vboxlinuxadditions.run",
+    "vboxguestadditions.iso",
+)
 _ROOT_WRITE_PREFIXES = (
     "/etc/",
     "/boot/",
@@ -592,6 +597,17 @@ def _uses_broad_package_process_kill(cmd: str) -> bool:
     return False
 
 
+def _uses_virtualbox_guest_iso_installer(cmd: str) -> bool:
+    lower = (cmd or "").lower()
+    if not any(token in lower for token in _VM_GUEST_ISO_TOKENS):
+        return False
+    # Distro-provided guest utility packages are fine. The fragile path is the
+    # ISO/additions installer and its generated vboxadd service.
+    if "virtualbox-guest-utils" in lower or "virtualbox-guest-x11" in lower:
+        return False
+    return True
+
+
 def preflight_setup_command(
     command: str,
     facts: SetupFacts,
@@ -621,6 +637,14 @@ def preflight_setup_command(
             "PackageKit. They can kill the current SSH command or leave dpkg half-written. "
             "Stop specific services/timers, inspect the lock holder, wait for package work to "
             "finish, or kill only a confirmed stale PID."
+        )
+    if _uses_virtualbox_guest_iso_installer(command):
+        return (
+            "Do not install or run the VirtualBox Guest Additions ISO installer during "
+            "unattended setup. It is kernel-fragile and can leave failed `vboxadd.service` "
+            "units. Use distro-provided guest utility packages only; if they are unavailable "
+            "or incompatible, mark VM guest integration as manual_followup and continue with "
+            "the generic display stack."
         )
     if _uses_fake_plasma_session_wrapper(command):
         return (
