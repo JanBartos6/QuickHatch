@@ -335,6 +335,15 @@ class TestFrontendProfileSync:
         )
         assert "state._setupStarted=false;" in html
 
+    def test_gui_html_responses_include_content_length_for_http11(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        server = (root / "src/quickhatch/gui/server.py").read_text(encoding="utf-8")
+        assert 'protocol_version = "HTTP/1.1"' in server
+        assert "def _send_html(self, content: bytes) -> None:" in server
+        assert 'self.send_header("Content-Length", str(len(content)))' in server
+
     def test_setup_launch_clears_stale_error_message(self):
         from pathlib import Path
 
