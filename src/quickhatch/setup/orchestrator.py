@@ -1376,6 +1376,11 @@ class SetupOrchestrator:
             f"elif $qh_sudo chroot \"$qh_root\" sh -c 'command -v grub-mkconfig >/dev/null 2>&1'; then "
             f'$qh_sudo chroot "$qh_root" grub-mkconfig -o /boot/grub/grub.cfg; '
             f"fi; "
+            f"if $qh_sudo chroot \"$qh_root\" sh -c 'command -v grub-editenv >/dev/null 2>&1'; then "
+            f"$qh_sudo chroot \"$qh_root\" sh -c "
+            f"'test -f /boot/grub/grubenv && grub-editenv /boot/grub/grubenv list >/dev/null 2>&1 "
+            f"|| grub-editenv /boot/grub/grubenv create' || true; "
+            f"fi; "
             f'test -f "$qh_root$qh_efi_dir/EFI/BOOT/BOOTX64.EFI" '
             f'|| test -f "$qh_root$qh_efi_dir/EFI/boot/bootx64.efi"; '
             f"if command -v efibootmgr >/dev/null 2>&1; then "

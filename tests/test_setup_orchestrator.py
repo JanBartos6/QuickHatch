@@ -319,6 +319,7 @@ def test_live_target_uefi_boot_fallback_installs_removable_grub():
     assert r"\EFI\quickhatch\grubx64.efi" in command
     assert 'update-grub' in command
     assert 'grub-mkconfig -o /boot/grub/grub.cfg' in command
+    assert 'grub-editenv /boot/grub/grubenv create' in command
     assert "efibootmgr -v" in command
     assert "efibootmgr -c" in command
     assert "efibootmgr -n" in command
