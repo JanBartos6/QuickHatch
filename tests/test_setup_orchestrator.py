@@ -313,8 +313,8 @@ def test_live_target_uefi_boot_fallback_installs_removable_grub():
     assert "chroot \"$qh_root\" sh -c 'command -v grub-install" in command
     assert 'grub-install --target=x86_64-efi' in command
     assert '--bootloader-id=quickhatch' in command
-    assert '--bootloader-id=quickhatch --recheck' in command
-    assert '--removable --recheck' in command
+    assert '--bootloader-id=quickhatch --recheck || true' in command
+    assert '--removable --no-nvram --recheck' in command
     assert 'EFI/BOOT/BOOTX64.EFI' in command
     assert r"\EFI\quickhatch\grubx64.efi" in command
     assert 'update-grub' in command

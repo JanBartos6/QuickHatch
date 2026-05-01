@@ -1374,12 +1374,12 @@ class SetupOrchestrator:
             f'[ -n "$qh_efi_dir" ] || exit 0; '
             f'$qh_sudo chroot "$qh_root" grub-install --target=x86_64-efi '
             f'--efi-directory="$qh_efi_dir" --bootloader-id=quickhatch '
-            f"--recheck; "
+            f"--recheck || true; "
             f'if ! test -f "$qh_root$qh_efi_dir/EFI/BOOT/BOOTX64.EFI" '
             f'&& ! test -f "$qh_root$qh_efi_dir/EFI/boot/bootx64.efi"; then '
             f'$qh_sudo chroot "$qh_root" grub-install --target=x86_64-efi '
             f'--efi-directory="$qh_efi_dir" --bootloader-id=quickhatch '
-            f"--removable --recheck; "
+            f"--removable --no-nvram --recheck; "
             f"fi; "
             f"if $qh_sudo chroot \"$qh_root\" sh -c 'command -v update-grub >/dev/null 2>&1'; then "
             f'$qh_sudo chroot "$qh_root" update-grub; '
