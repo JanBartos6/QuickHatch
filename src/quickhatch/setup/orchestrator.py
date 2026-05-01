@@ -3427,6 +3427,14 @@ class SetupOrchestrator:
         commands = [
             self._normalize_fedora_dnf_config_manager_command(command) for command in commands
         ]
+        commands = [
+            self._normalize_fedora_virtualbox_service_command(command, stage=stage, group=group)
+            for command in commands
+        ]
+        commands = [
+            self._normalize_fedora_removed_package_command(command, stage=stage, group=group)
+            for command in commands
+        ]
         commands = [self._normalize_mountpoint_probe_command(command) for command in commands]
         commands = self._inject_debian_live_debootstrap_prereqs(stage, group, commands)
         commands = self._prefer_debian_live_cdrom_debootstrap_mirror(stage, group, commands)
@@ -4127,6 +4135,46 @@ class SetupOrchestrator:
             f"{match.group('prefix')}addrepo --from-repofile "
             f"{match.group('url')}{match.group('rest')}"
         )
+
+    def _normalize_fedora_virtualbox_service_command(
+        self, command: str, *, stage: SetupStage, group: CommandGroup
+    ) -> str:
+        facts = self.ctx.facts or SetupFacts()
+        if facts.distro_family != "fedora" and facts.os_id != "fedora":
+            return command
+        rewritten = re.sub(r"\bvboxadd(?:\.service)?\b", "vboxservice", command or "")
+        if rewritten != command:
+            self.runlog.record(
+                "fedora_virtualbox_service_normalized",
+                stage=stage.value,
+                group_id=group.id,
+                original=command,
+                rewritten=rewritten,
+                reason="Fedora virtualbox-guest-additions provides vboxservice.service, not vboxadd.service",
+            )
+        return rewritten
+
+    def _normalize_fedora_removed_package_command(
+        self, command: str, *, stage: SetupStage, group: CommandGroup
+    ) -> str:
+        facts = self.ctx.facts or SetupFacts()
+        if facts.distro_family != "fedora" and facts.os_id != "fedora":
+            return command
+        lower = (command or "").lower()
+        if "dnf" not in lower or "install" not in lower or "gnome-themes-extra" not in lower:
+            return command
+        rewritten = re.sub(r"(?<!\S)gnome-themes-extra(?!\S)\s*", "", command).strip()
+        if rewritten != command:
+            self.runlog.record(
+                "fedora_removed_package_dropped",
+                stage=stage.value,
+                group_id=group.id,
+                original=command,
+                rewritten=rewritten,
+                package="gnome-themes-extra",
+                reason="gnome-themes-extra is not available on current Fedora releases; GTK/Adwaita theming lives in other packages",
+            )
+        return rewritten
 
     @staticmethod
     def _normalize_mountpoint_probe_command(command: str) -> str:

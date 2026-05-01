@@ -4334,6 +4334,44 @@ def test_fedora_live_user_setup_gets_hidden_shadow_lock_cleanup():
     assert "/mnt/etc/passwd.lock" in commands[cleanup_index]
 
 
+def test_fedora_virtualbox_service_is_normalized_to_vboxservice():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="fedora", package_manager="dnf")
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="drivers",
+        stage=SetupStage.POSTBOOT_DRIVER,
+        title="Install VM Drivers",
+        commands=["sudo systemctl enable --now vboxadd"],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.POSTBOOT_DRIVER, group)
+
+    assert commands == ["sudo systemctl enable --now vboxservice"]
+
+
+def test_fedora_removed_desktop_package_is_dropped():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="fedora", package_manager="dnf")
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="desktop",
+        stage=SetupStage.DESKTOP,
+        title="Install GNOME",
+        commands=[
+            "sudo dnf install -y gnome-shell gdm gnome-themes-extra google-noto-sans-fonts"
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.DESKTOP, group)
+
+    assert commands == ["sudo dnf install -y gnome-shell gdm google-noto-sans-fonts"]
+
+
 def test_mount_point_probe_is_normalized_to_mountpoint_command():
     assert (
         SetupOrchestrator._normalize_mountpoint_probe_command(
