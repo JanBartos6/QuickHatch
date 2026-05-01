@@ -477,6 +477,55 @@ def test_systemd_health_still_blocks_real_failed_services():
     assert "drkonqi" not in failures[0]
 
 
+def test_display_manager_session_health_blocks_false_active_dm():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        init_system="systemd",
+        display_manager="gdm",
+        display_manager_enabled=True,
+        display_manager_active=True,
+    )
+
+    def ssh_exec(command: str, _timeout: int):
+        assert "loginctl list-sessions" in command
+        return (1, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+
+    blockers = orchestrator._verify_display_manager_session_health()
+
+    assert blockers == [
+        "Display manager is active, but no local greeter/user session was verified. "
+        "Inspect `journalctl -u display-manager -b` or the concrete DM service before "
+        "declaring desktop setup complete."
+    ]
+
+
+def test_display_manager_session_health_accepts_greeter_session():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        init_system="systemd",
+        display_manager="gdm",
+        display_manager_enabled=True,
+        display_manager_active=True,
+    )
+
+    def ssh_exec(_command: str, _timeout: int):
+        return (0, "c1 gdm-greeter greeter active wayland\n", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+
+    assert orchestrator._verify_display_manager_session_health() == []
+
+
 def test_non_blocking_failed_systemd_unit_classifier():
     assert is_non_blocking_failed_systemd_unit(
         "drkonqi-coredump-processor@6-12290-90777_90778-0.service"

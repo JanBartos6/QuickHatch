@@ -750,6 +750,9 @@ def test_build_research_prompt_allows_fedora_live_installroot_not_anaconda():
     )
 
     assert "dnf --installroot=/mnt" in prompt
+    assert "--use-host-config" in prompt
+    assert "systemd-pam" in prompt
+    assert "dbus-daemon" in prompt
     assert "Do not run Anaconda" in prompt
     assert "touch /mnt/.autorelabel" in prompt
     assert "experimental `dnf --installroot`" not in prompt

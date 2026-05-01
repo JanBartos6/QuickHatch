@@ -2163,6 +2163,7 @@ class SetupOrchestrator:
         blockers: list[str] = []
         blockers.extend(self._verify_planned_packages_installed())
         blockers.extend(self._verify_systemd_health())
+        blockers.extend(self._verify_display_manager_session_health())
         return blockers
 
     def _verify_planned_packages_installed(self) -> list[str]:
@@ -2293,6 +2294,51 @@ class SetupOrchestrator:
             "systemctl reports failed unit(s): "
             + ", ".join(failed_units)
             + ". Investigate them before declaring setup complete."
+        ]
+
+    def _verify_display_manager_session_health(self) -> list[str]:
+        if self.ctx.facts is None or self.ctx.facts.init_system != "systemd":
+            return []
+        facts = self.ctx.facts
+        if not facts.display_manager_enabled or not facts.display_manager_active:
+            return []
+        command = (
+            "if ! command -v loginctl >/dev/null 2>&1; then exit 0; fi; "
+            "found=0; "
+            "for s in $(loginctl list-sessions --no-legend 2>/dev/null | awk '{print $1}'); do "
+            "remote=$(loginctl show-session \"$s\" -p Remote --value 2>/dev/null || true); "
+            "class=$(loginctl show-session \"$s\" -p Class --value 2>/dev/null || true); "
+            "state=$(loginctl show-session \"$s\" -p State --value 2>/dev/null || true); "
+            "name=$(loginctl show-session \"$s\" -p Name --value 2>/dev/null || true); "
+            "type=$(loginctl show-session \"$s\" -p Type --value 2>/dev/null || true); "
+            "if [ \"$remote\" != yes ] && "
+            "printf '%s\\n' \"$class $state $name $type\" | "
+            "grep -Eqi '(greeter|user).*(active|online)|gdm|sddm|lightdm'; then "
+            "printf '%s %s %s %s %s\\n' \"$s\" \"$name\" \"$class\" \"$state\" \"$type\"; "
+            "found=1; "
+            "fi; "
+            "done; "
+            "exit $([ \"$found\" = 1 ] && echo 0 || echo 1)"
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 30)
+        final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
+        final_state["display_manager_session_probe"] = {
+            "rc": rc,
+            "stdout_tail": (stdout or "")[-500:],
+            "stderr_tail": (stderr or "")[-500:],
+        }
+        self.runlog.record(
+            "final_display_manager_session_verification",
+            rc=rc,
+            stdout_tail=(stdout or "")[-800:],
+            stderr_tail=(stderr or "")[-800:],
+        )
+        if rc == 0:
+            return []
+        return [
+            "Display manager is active, but no local greeter/user session was verified. "
+            "Inspect `journalctl -u display-manager -b` or the concrete DM service before "
+            "declaring desktop setup complete."
         ]
 
     def _ask_optional_slow_confirmation(self, group: CommandGroup) -> str | None:
