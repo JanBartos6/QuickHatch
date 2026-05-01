@@ -4016,7 +4016,7 @@ def test_ubuntu_live_debootstrap_gets_prereqs_and_chroot_binds():
     assert "sudo debootstrap --no-check-gpg --arch=amd64 noble /mnt file:///cdrom" in (
         debootstrap_command
     )
-    assert "http://mirrors.kernel.org/ubuntu" in debootstrap_command
+    assert "http://archive.ubuntu.com/ubuntu" in debootstrap_command
     assert "mount --bind" in commands[chroot_index - 1]
     assert "/mnt" in commands[chroot_index - 1]
     assert debootstrap_index < chroot_index
@@ -4111,7 +4111,7 @@ def test_ubuntu_live_debootstrap_prefers_cdrom_with_split_arch_option():
         "sudo debootstrap --no-check-gpg --arch amd64 resolute /mnt file:///cdrom"
         in debootstrap_command
     )
-    assert "sudo debootstrap --arch amd64 resolute /mnt http://mirrors.kernel.org/ubuntu" in (
+    assert "sudo debootstrap --arch amd64 resolute /mnt http://archive.ubuntu.com/ubuntu" in (
         debootstrap_command
     )
 
@@ -4126,8 +4126,8 @@ def test_ubuntu_live_debootstrap_rewrites_variable_mirror_with_cdrom_no_check_gp
     rewritten = SetupOrchestrator._rewrite_debootstrap_http_mirror_to_cdrom_fallback(command)
 
     assert rewritten == (
-        'MIRROR=$(test -d /cdrom/dists/resolute && echo "http://mirrors.kernel.org/ubuntu" || '
-        'echo "http://mirrors.kernel.org/ubuntu") && '
+        'MIRROR=$(test -d /cdrom/dists/resolute && echo "http://archive.ubuntu.com/ubuntu" || '
+        'echo "http://archive.ubuntu.com/ubuntu") && '
         'sudo debootstrap --arch=amd64 resolute /mnt "$MIRROR"'
     )
 
@@ -4142,7 +4142,7 @@ def test_ubuntu_live_debootstrap_rewrites_complex_cdrom_shell_to_network_mirror(
     rewritten = SetupOrchestrator._rewrite_debootstrap_http_mirror_to_cdrom_fallback(command)
 
     assert "file:///cdrom" not in rewritten
-    assert rewritten.count("http://mirrors.kernel.org/ubuntu") == 2
+    assert rewritten.count("http://archive.ubuntu.com/ubuntu") == 2
     assert 'sudo debootstrap --no-check-gpg --arch=amd64 resolute /mnt "$MIRROR"' in rewritten
 
 
@@ -4151,7 +4151,7 @@ def test_ubuntu_live_debootstrap_rewrites_default_archive_to_fast_mirror():
 
     rewritten = SetupOrchestrator._rewrite_debootstrap_http_mirror_to_cdrom_fallback(command)
 
-    assert "sudo debootstrap --arch=amd64 resolute /mnt http://mirrors.kernel.org/ubuntu" in (
+    assert "sudo debootstrap --arch=amd64 resolute /mnt http://archive.ubuntu.com/ubuntu" in (
         rewritten
     )
 
@@ -4167,7 +4167,7 @@ def test_ubuntu_live_debootstrap_does_not_wrap_guarded_shell_conditionals():
 
     assert rewritten == (
         "if [ ! -f /mnt/usr/bin/apt ]; then "
-        "sudo debootstrap resolute /mnt http://mirrors.kernel.org/ubuntu; "
+        "sudo debootstrap resolute /mnt http://archive.ubuntu.com/ubuntu; "
         "fi"
     )
 

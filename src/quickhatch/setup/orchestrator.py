@@ -232,7 +232,7 @@ _PARTED_PRE_FORMAT_FS_CHECK_RE = re.compile(
     re.IGNORECASE,
 )
 _DEBIAN_LIVE_DEBOOTSTRAP_RE = re.compile(r"\bdebootstrap\b", re.IGNORECASE)
-_UBUNTU_DEBOOTSTRAP_FALLBACK_MIRROR = "http://mirrors.kernel.org/ubuntu"
+_UBUNTU_DEBOOTSTRAP_FALLBACK_MIRROR = "http://archive.ubuntu.com/ubuntu"
 _DEBIAN_DEBOOTSTRAP_FALLBACK_MIRROR = "http://deb.debian.org/debian"
 _DEBOOTSTRAP_SHELL_CONTROL_TOKENS = {
     "case",
