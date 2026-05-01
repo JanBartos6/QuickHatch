@@ -196,8 +196,10 @@ def test_install_reboot_uses_sudo_for_nonroot_live_sessions():
     assert commands
     assert 'qh_sudo=; [ "$(id -u)" -eq 0 ] || qh_sudo=sudo' in commands[0]
     assert "$qh_sudo umount -R /mnt" in commands[0]
-    assert "$qh_sudo systemctl reboot --force --force" in commands[0]
-    assert "$qh_sudo reboot -f || $qh_sudo reboot" in commands[0]
+    assert "nohup sh -c" in commands[0]
+    assert "systemctl reboot --force --force" in commands[0]
+    assert "reboot -f || reboot" in commands[0]
+    assert "quickhatch-reboot.log" in commands[0]
 
 
 def test_install_reboot_blocks_when_reboot_command_is_denied():
@@ -256,6 +258,18 @@ def test_install_reboot_accepts_ssh_disconnect_as_successful_reboot_boundary():
     orchestrator.ctx.facts = facts
 
     orchestrator._issue_install_reboot()
+
+
+def test_live_target_uefi_boot_fallback_installs_removable_grub():
+    command = SetupOrchestrator._live_target_uefi_boot_fallback_command("/mnt")
+
+    assert "[ -d /sys/firmware/efi ] || exit 0" in command
+    assert 'grub-install --target=x86_64-efi' in command
+    assert '--bootloader-id=quickhatch' in command
+    assert '--removable --recheck' in command
+    assert 'EFI/BOOT/BOOTX64.EFI' in command
+    assert 'update-grub' in command
+    assert 'grub-mkconfig -o /boot/grub/grub.cfg' in command
 
 
 def test_live_target_network_reconnect_command_seeds_networkmanager_dhcp():
@@ -4006,6 +4020,29 @@ def test_ubuntu_live_debootstrap_gets_prereqs_and_chroot_binds():
     assert "mount --bind" in commands[chroot_index - 1]
     assert "/mnt" in commands[chroot_index - 1]
     assert debootstrap_index < chroot_index
+
+
+def test_live_nonroot_chroot_verification_gets_sudo():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="debian",
+        package_manager="apt",
+        current_user="ubuntu",
+        login_user="ubuntu",
+        is_live=True,
+        is_root=False,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    assert (
+        orchestrator._normalize_live_nonroot_chroot_command(
+            "chroot /mnt id jan && chroot /mnt ls /boot/grub/grub.cfg",
+            stage=SetupStage.INSTALL_OR_SKIP,
+        )
+        == "sudo chroot /mnt id jan && sudo chroot /mnt ls /boot/grub/grub.cfg"
+    )
 
 
 def test_ubuntu_live_debootstrap_prefers_cdrom_with_split_arch_option():

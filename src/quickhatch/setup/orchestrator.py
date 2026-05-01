@@ -262,6 +262,11 @@ _DEBOOTSTRAP_OPTION_ARGS_WITH_VALUE = {
 _DEBIAN_LIVE_CHROOT_RE = re.compile(
     r"\b(?:chroot|systemd-nspawn)\s+(?P<target>/mnt|/target)\b", re.IGNORECASE
 )
+_LIVE_NONROOT_CHROOT_RE = re.compile(
+    r"(?P<prefix>^|[;&|]\s*)(?P<tool>chroot|systemd-nspawn)\s+"
+    r"(?P<target>/mnt|/target)\b",
+    re.IGNORECASE,
+)
 _LIVE_RESOLV_CONF_TARGETS = (
     "/mnt/etc/resolv.conf",
     "/target/etc/resolv.conf",
@@ -1270,6 +1275,7 @@ class SetupOrchestrator:
             )
         if self.ctx.facts and self.ctx.facts.is_live:
             self._ensure_live_target_network_reconnect(root_path)
+            self._ensure_live_target_uefi_boot_fallback(root_path)
         self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})[
             "ssh_continuity_key_installed"
         ] = True
@@ -1299,6 +1305,62 @@ class SetupOrchestrator:
                 "Cannot verify SSH continuity before reboot: failed to write installed "
                 f"network reconnect config. {detail[:240]}"
             )
+
+    def _ensure_live_target_uefi_boot_fallback(self, root_path: str) -> None:
+        command = self._live_target_uefi_boot_fallback_command(root_path)
+        self.bridge.add_message(
+            "agent",
+            "`" + redact_sensitive_text(command) + "` — ensure removable UEFI boot fallback",
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 180)
+        self.ctx.results_log.append(
+            redact_sensitive_text(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+        )
+        self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
+        self.runlog.record(
+            "live_target_uefi_boot_fallback",
+            stage=SetupStage.INSTALL_OR_SKIP.value,
+            root_path=root_path,
+            rc=rc,
+            stdout_tail=(stdout or "")[-500:],
+            stderr_tail=(stderr or "")[-500:],
+        )
+        if rc != 0:
+            detail = (stderr or stdout or "").strip()
+            raise RuntimeError(
+                "Cannot verify boot continuity before reboot: failed to install a "
+                f"removable UEFI boot fallback. {detail[:240]}"
+            )
+
+    @staticmethod
+    def _live_target_uefi_boot_fallback_command(root_path: str) -> str:
+        root_q = shlex.quote(root_path)
+        return (
+            f"set -e; qh_root={root_q}; "
+            f'qh_sudo=sudo; [ "$(id -u)" -eq 0 ] && qh_sudo=; '
+            f"[ -d /sys/firmware/efi ] || exit 0; "
+            f'test -d "$qh_root/etc"; '
+            f'$qh_sudo chroot "$qh_root" command -v grub-install >/dev/null 2>&1 '
+            f"|| exit 0; "
+            f'qh_efi_dir=""; '
+            f"for qh_dir in /boot/efi /boot; do "
+            f'if mountpoint -q "$qh_root$qh_dir" '
+            f'|| grep -Eq "[[:space:]]$qh_dir[[:space:]]+vfat" "$qh_root/etc/fstab" '
+            f'|| [ -d "$qh_root$qh_dir/EFI" ]; then '
+            f'qh_efi_dir="$qh_dir"; break; fi; '
+            f"done; "
+            f'[ -n "$qh_efi_dir" ] || exit 0; '
+            f'$qh_sudo chroot "$qh_root" grub-install --target=x86_64-efi '
+            f'--efi-directory="$qh_efi_dir" --bootloader-id=quickhatch '
+            f"--removable --recheck; "
+            f"if $qh_sudo chroot \"$qh_root\" command -v update-grub >/dev/null 2>&1; then "
+            f'$qh_sudo chroot "$qh_root" update-grub; '
+            f"elif $qh_sudo chroot \"$qh_root\" command -v grub-mkconfig >/dev/null 2>&1; then "
+            f'$qh_sudo chroot "$qh_root" grub-mkconfig -o /boot/grub/grub.cfg; '
+            f"fi; "
+            f'test -f "$qh_root$qh_efi_dir/EFI/BOOT/BOOTX64.EFI" '
+            f'|| test -f "$qh_root$qh_efi_dir/EFI/boot/bootx64.efi"'
+        )
 
     @staticmethod
     def _live_target_network_reconnect_command(root_path: str) -> str:
@@ -1612,13 +1674,23 @@ class SetupOrchestrator:
         return ""
 
     def _issue_install_reboot(self) -> None:
+        reboot_inner = (
+            "sleep 1; "
+            "if command -v systemctl >/dev/null 2>&1; then "
+            "systemctl reboot --force --force || reboot -f || reboot; "
+            "else reboot -f || reboot; fi"
+        )
+        background_reboot = (
+            "nohup sh -c "
+            + shlex.quote(reboot_inner)
+            + " >/tmp/quickhatch-reboot.log 2>&1 </dev/null &"
+        )
         command = (
             'qh_sudo=; [ "$(id -u)" -eq 0 ] || qh_sudo=sudo; '
             "$qh_sudo umount -R /mnt 2>/dev/null || true; "
             "$qh_sudo umount -R /target 2>/dev/null || true; "
-            "if command -v systemctl >/dev/null 2>&1; then "
-            "$qh_sudo systemctl reboot --force --force || $qh_sudo reboot -f || $qh_sudo reboot; "
-            "else $qh_sudo reboot -f || $qh_sudo reboot; fi"
+            "$qh_sudo sh -c "
+            + shlex.quote(background_reboot)
         )
         self.bridge.add_message("agent", "Rebooting into the installed system…")
         self.runlog.record(
@@ -1626,7 +1698,7 @@ class SetupOrchestrator:
             stage=SetupStage.INSTALL_OR_SKIP.value,
             command=command,
         )
-        rc, stdout, stderr = self.runtime.ssh_exec(command, 60)
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 30)
         self.runlog.record(
             "install_reboot_result",
             stage=SetupStage.INSTALL_OR_SKIP.value,
@@ -2408,6 +2480,7 @@ class SetupOrchestrator:
             self._update_from_command(visible_command, stdout, stderr, stage=stage)
         self._maybe_reboot_for_nvidia_driver(stage, group, stage_state)
         for verification in group.verification:
+            verification = self._normalize_live_nonroot_chroot_command(verification, stage=stage)
             verification = self._normalize_installed_nonroot_privileged_command(
                 verification, stage=stage
             )
@@ -3051,6 +3124,10 @@ class SetupOrchestrator:
         commands = self._inject_target_home_writability_prep(stage, group, commands)
         commands = self._inject_apt_external_repo_prereqs(stage, group, commands)
         commands = self._normalize_apt_network_timeouts(stage, group, commands)
+        commands = [
+            self._normalize_live_nonroot_chroot_command(command, stage=stage)
+            for command in commands
+        ]
         if self._is_arch_nvidia_driver_group(stage, group, commands):
             commands = self._normalize_arch_nvidia_commands(commands)
         if self._needs_arch_aur_helper_bootstrap(commands):
@@ -3092,6 +3169,27 @@ class SetupOrchestrator:
             self._normalize_installed_nonroot_privileged_command(command, stage=stage)
             for command in patched_commands
         ]
+
+    def _normalize_live_nonroot_chroot_command(self, command: str, *, stage: SetupStage) -> str:
+        facts = self.ctx.facts or SetupFacts()
+        if stage != SetupStage.INSTALL_OR_SKIP or not facts.is_live or facts.is_root:
+            return command
+        rewritten = _LIVE_NONROOT_CHROOT_RE.sub(
+            lambda match: (
+                f"{match.group('prefix')}sudo {match.group('tool')} "
+                f"{match.group('target')}"
+            ),
+            command,
+        )
+        if rewritten != command:
+            self.runlog.record(
+                "live_nonroot_chroot_normalized",
+                stage=stage.value,
+                original=command,
+                rewritten=rewritten,
+                reason="live non-root sessions need sudo for chroot verification/commands",
+            )
+        return rewritten
 
     def _inject_target_home_writability_prep(
         self, stage: SetupStage, group: CommandGroup, commands: list[str]
