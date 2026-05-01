@@ -270,6 +270,12 @@ def test_live_target_uefi_boot_fallback_installs_removable_grub():
     assert 'EFI/BOOT/BOOTX64.EFI' in command
     assert 'update-grub' in command
     assert 'grub-mkconfig -o /boot/grub/grub.cfg' in command
+    assert "efibootmgr -v" in command
+    assert "efibootmgr -n" in command
+    assert "efibootmgr -o" in command
+    assert "BootOrder:" in command
+    assert "Windows Boot Manager" in command
+    assert "VBOX HARDDISK" in command
 
 
 def test_live_target_network_reconnect_command_seeds_networkmanager_dhcp():

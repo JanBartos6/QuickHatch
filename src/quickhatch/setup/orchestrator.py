@@ -1363,7 +1363,30 @@ class SetupOrchestrator:
             f'$qh_sudo chroot "$qh_root" grub-mkconfig -o /boot/grub/grub.cfg; '
             f"fi; "
             f'test -f "$qh_root$qh_efi_dir/EFI/BOOT/BOOTX64.EFI" '
-            f'|| test -f "$qh_root$qh_efi_dir/EFI/boot/bootx64.efi"'
+            f'|| test -f "$qh_root$qh_efi_dir/EFI/boot/bootx64.efi"; '
+            f"if command -v efibootmgr >/dev/null 2>&1; then "
+            f'qh_boot_entry="$($qh_sudo efibootmgr -v 2>/dev/null | '
+            f"awk 'BEGIN{{IGNORECASE=1}} "
+            f"/^Boot[0-9A-F][0-9A-F][0-9A-F][0-9A-F]\\*/ "
+            f"&& $0 !~ /(CD-ROM|DVD|USB|Network|PXE|UiApp|Windows Boot Manager)/ "
+            f"&& $0 ~ /(quickhatch|ubuntu|debian|fedora|arch|opensuse|grub|linux|VBOX HARDDISK|QEMU HARDDISK|UEFI OS)/ "
+            "{print substr($1,5,4); exit}')\"; "
+            f'[ -n "$qh_boot_entry" ] '
+            f'&& $qh_sudo efibootmgr -n "$qh_boot_entry" || true; '
+            f'qh_boot_order="$($qh_sudo efibootmgr 2>/dev/null | '
+            f"awk -F': ' '/^BootOrder:/ {{print $2; exit}}')\"; "
+            f'if [ -n "$qh_boot_entry" ] && [ -n "$qh_boot_order" ]; then '
+            f'qh_boot_rest="$(printf "%s\\n" "$qh_boot_order" | tr "," "\\n" '
+            f'| awk -v b="$qh_boot_entry" \'$0 != b && $0 != ""\' '
+            f'| paste -sd, -)"; '
+            f'if [ -n "$qh_boot_rest" ]; then '
+            f'qh_new_order="$qh_boot_entry,$qh_boot_rest"; '
+            f'else qh_new_order="$qh_boot_entry"; fi; '
+            f'$qh_sudo efibootmgr -o "$qh_new_order" || true; '
+            f"fi; "
+            f'[ -n "$qh_boot_entry" ] '
+            f'&& $qh_sudo efibootmgr | sed -n "1,4p" || true; '
+            f"fi"
         )
 
     @staticmethod
