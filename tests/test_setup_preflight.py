@@ -55,6 +55,25 @@ def test_preflight_blocks_vpn_firewall_activation():
     assert "VPN or firewall" in error
 
 
+def test_preflight_blocks_broad_package_process_kill():
+    facts = SetupFacts(package_manager="apt", distro_family="ubuntu", is_root=False)
+
+    error = preflight_setup_command(
+        'sudo pkill -9 -f "apt|dpkg|snapd|packagekit|debconf" || true',
+        facts,
+    )
+
+    assert error
+    assert "broad `pkill`" in error
+    assert "dpkg half-written" in error
+
+
+def test_preflight_allows_specific_non_package_pkill():
+    facts = SetupFacts(package_manager="apt", distro_family="ubuntu", is_root=False)
+
+    assert preflight_setup_command("sudo pkill -TERM my-temporary-helper", facts) is None
+
+
 def test_preflight_blocks_standalone_shell_variable_assignment():
     facts = SetupFacts(package_manager="pacman", community_helper="none")
 

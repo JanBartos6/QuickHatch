@@ -52,6 +52,20 @@ _NETWORK_SECURITY_SERVICE_TOKENS = frozenset(
         "iptables",
     }
 )
+_PACKAGE_PROCESS_NAMES = frozenset(
+    {
+        "apt",
+        "apt-get",
+        "apt.systemd.daily",
+        "debconf",
+        "dpkg",
+        "packagekit",
+        "packagekitd",
+        "snapd",
+        "unattended-upgrade",
+        "unattended-upgrades",
+    }
+)
 _ROOT_WRITE_PREFIXES = (
     "/etc/",
     "/boot/",
@@ -528,6 +542,30 @@ def _activates_network_security_services(cmd: str) -> bool:
     return False
 
 
+def _uses_broad_package_process_kill(cmd: str) -> bool:
+    for segment in _split_command_segments(cmd):
+        lower_segment = segment.lower()
+        try:
+            tokens = shlex.split(segment, posix=True)
+        except ValueError:
+            tokens = lower_segment.split()
+        tokens = _strip_wrappers(tokens)
+        if not tokens:
+            continue
+        tool = _normalize_tool(tokens[0])
+        if tool not in {"pkill", "killall"}:
+            continue
+        args = [token.lower() for token in tokens[1:]]
+        haystack = " ".join(args)
+        if not any(name in haystack for name in _PACKAGE_PROCESS_NAMES):
+            continue
+        if tool == "killall":
+            return True
+        if "-f" in args or "--full" in args or "|" in haystack or ".*" in haystack:
+            return True
+    return False
+
+
 def preflight_setup_command(
     command: str,
     facts: SetupFacts,
@@ -550,6 +588,13 @@ def preflight_setup_command(
             "Do not enable/start VPN or firewall services automatically. Installing the package "
             "is fine, but activating VPN/firewall services can change routing, DNS, firewall "
             "policy, or kill-switch behavior and cut off remote access."
+        )
+    if _uses_broad_package_process_kill(command):
+        return (
+            "Do not use broad `pkill`/`killall` patterns against apt/dpkg/debconf/snapd/"
+            "PackageKit. They can kill the current SSH command or leave dpkg half-written. "
+            "Stop specific services/timers, inspect the lock holder, wait for package work to "
+            "finish, or kill only a confirmed stale PID."
         )
     if _uses_fake_plasma_session_wrapper(command):
         return (
