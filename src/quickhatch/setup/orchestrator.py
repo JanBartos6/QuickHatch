@@ -1388,21 +1388,25 @@ class SetupOrchestrator:
             f'test -f "$qh_root$qh_efi_dir/EFI/BOOT/BOOTX64.EFI" '
             f'|| test -f "$qh_root$qh_efi_dir/EFI/boot/bootx64.efi"; '
             f"if command -v efibootmgr >/dev/null 2>&1; then "
-            f'qh_boot_entry="$($qh_sudo efibootmgr -v 2>/dev/null | '
-            f"awk '/^Boot[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]\\*/ "
-            f"{{line=tolower($0); "
-            f"if (line !~ /(cd-rom|dvd|usb|network|pxe|uiapp|windows boot manager)/ "
-            f"&& line ~ /(quickhatch|ubuntu|debian|fedora|arch|opensuse|grub|linux)/) "
-            f"{{print substr($1,5,4); exit}}}}')\"; "
-            f'if [ -z "$qh_boot_entry" ]; then '
             f'qh_efi_source="$(findmnt -n -o SOURCE --target "$qh_root$qh_efi_dir" '
             f'2>/dev/null | head -n1)"; '
-            f'qh_efi_disk=""; qh_efi_part=""; '
+            f'qh_efi_disk=""; qh_efi_part=""; qh_efi_partuuid_lc=""; '
             f'if [ -n "$qh_efi_source" ]; then '
             f'qh_efi_pk="$(lsblk -no PKNAME "$qh_efi_source" 2>/dev/null | head -n1)"; '
             f'qh_efi_part="$(lsblk -no PARTN "$qh_efi_source" 2>/dev/null | head -n1)"; '
+            f'qh_efi_partuuid_lc="$(blkid -s PARTUUID -o value "$qh_efi_source" '
+            f'2>/dev/null | tr "A-F" "a-f")"; '
             f'[ -n "$qh_efi_pk" ] && qh_efi_disk="/dev/$qh_efi_pk"; '
             f'fi; '
+            f'qh_boot_entry="$($qh_sudo efibootmgr -v 2>/dev/null | '
+            f"awk -v p=\"$qh_efi_partuuid_lc\" "
+            f"'/^Boot[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]\\*/ "
+            f"{{line=tolower($0); "
+            f"if (line !~ /(cd-rom|dvd|usb|network|pxe|uiapp|windows boot manager)/ "
+            f"&& line ~ /(quickhatch|ubuntu|debian|fedora|arch|opensuse|grub|linux)/ "
+            f"&& (p == \"\" || index(line, p) > 0)) "
+            f"{{print substr($1,5,4); exit}}}}')\"; "
+            f'if [ -z "$qh_boot_entry" ]; then '
             f'qh_efi_loader=""; '
             f'if test -f "$qh_root$qh_efi_dir/EFI/quickhatch/grubx64.efi"; then '
             f"qh_efi_loader='\\EFI\\quickhatch\\grubx64.efi'; "
@@ -1420,10 +1424,12 @@ class SetupOrchestrator:
             f'-L quickhatch -l "$qh_efi_loader" || true; '
             f"fi; "
             f'qh_boot_entry="$($qh_sudo efibootmgr -v 2>/dev/null | '
-            f"awk '/^Boot[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]\\*/ "
+            f"awk -v p=\"$qh_efi_partuuid_lc\" "
+            f"'/^Boot[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]\\*/ "
             f"{{line=tolower($0); "
             f"if (line !~ /(cd-rom|dvd|usb|network|pxe|uiapp|windows boot manager)/ "
-            f"&& line ~ /(quickhatch|ubuntu|debian|fedora|arch|opensuse|grub|linux)/) "
+            f"&& line ~ /(quickhatch|ubuntu|debian|fedora|arch|opensuse|grub|linux)/ "
+            f"&& (p == \"\" || index(line, p) > 0)) "
             f"{{print substr($1,5,4); exit}}}}')\"; "
             f"fi; "
             f'if [ -z "$qh_boot_entry" ]; then '

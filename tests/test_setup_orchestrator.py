@@ -321,6 +321,9 @@ def test_live_target_uefi_boot_fallback_installs_removable_grub():
     assert 'grub-mkconfig -o /boot/grub/grub.cfg' in command
     assert 'grub-editenv /boot/grub/grubenv create' in command
     assert "efibootmgr -v" in command
+    assert "qh_efi_partuuid_lc" in command
+    assert "blkid -s PARTUUID" in command
+    assert "index(line, p) > 0" in command
     assert "efibootmgr -c" in command
     assert "efibootmgr -n" in command
     assert "efibootmgr -o" in command
