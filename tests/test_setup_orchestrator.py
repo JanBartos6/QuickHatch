@@ -4327,7 +4327,9 @@ def test_fedora_live_user_setup_gets_hidden_shadow_lock_cleanup():
 
     commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
 
+    setenforce_index = commands.index("sudo setenforce 0 || true")
     cleanup_index = next(i for i, command in enumerate(commands) if ".pwd.lock" in command)
+    assert setenforce_index < cleanup_index
     assert cleanup_index < commands.index("sudo chroot /mnt useradd -m fedoraqa")
     assert "/mnt/etc/passwd.lock" in commands[cleanup_index]
 
@@ -4356,6 +4358,13 @@ def test_live_nonroot_target_path_verification_uses_sudo():
     assert (
         orchestrator._normalize_live_nonroot_target_path_verification(
             "test -f /mnt/boot/grub2/grub.cfg",
+            stage=SetupStage.INSTALL_OR_SKIP,
+        )
+        == "sudo test -f /mnt/boot/grub2/grub.cfg"
+    )
+    assert (
+        orchestrator._normalize_live_nonroot_target_path_verification(
+            "[ -f /mnt/boot/grub2/grub.cfg ]",
             stage=SetupStage.INSTALL_OR_SKIP,
         )
         == "sudo test -f /mnt/boot/grub2/grub.cfg"

@@ -3540,10 +3540,19 @@ class SetupOrchestrator:
             or not facts.is_live
             or facts.is_root
             or stripped.startswith("sudo ")
-            or not re.match(r"test\s+-[a-zA-Z]+\s+/mnt/", stripped)
         ):
             return command
-        rewritten = f"sudo {stripped}"
+        rewritten = ""
+        if re.match(r"test\s+-[a-zA-Z]+\s+/mnt/", stripped):
+            rewritten = f"sudo {stripped}"
+        else:
+            bracket_match = re.fullmatch(
+                r"\[\s+(-[a-zA-Z]+)\s+(/mnt/[^\]\s]+)\s+\]", stripped
+            )
+            if bracket_match:
+                rewritten = f"sudo test {bracket_match.group(1)} {shlex.quote(bracket_match.group(2))}"
+        if not rewritten:
+            return command
         self.runlog.record(
             "live_target_path_verification_normalized",
             stage=stage.value,
@@ -4008,9 +4017,13 @@ class SetupOrchestrator:
                 re.search(r"\b(?:chpasswd|passwd|useradd|groupadd)\b", command or "")
                 for command in commands
             )
-            or any(".pwd.lock" in (command or "") for command in commands)
         ):
             return commands
+        needs_setenforce = not any("setenforce" in (command or "") for command in commands)
+        needs_lock_cleanup = not any(".pwd.lock" in (command or "") for command in commands)
+        if not needs_setenforce and not needs_lock_cleanup:
+            return commands
+        setenforce = "sudo setenforce 0 || true"
         cleanup = (
             "sudo rm -f /mnt/etc/.pwd.lock /mnt/etc/passwd.lock /mnt/etc/shadow.lock "
             "/mnt/etc/group.lock /mnt/etc/gshadow.lock /mnt/etc/passwd+ /mnt/etc/shadow+ "
@@ -4022,15 +4035,25 @@ class SetupOrchestrator:
             if not injected and re.search(
                 r"\b(?:chpasswd|passwd|useradd|groupadd)\b", command or ""
             ):
-                patched.append(cleanup)
+                if needs_setenforce:
+                    patched.append(setenforce)
+                    self.runlog.record(
+                        "fedora_live_selinux_permissive_injected",
+                        stage=stage.value,
+                        group_id=group.id,
+                        command=setenforce,
+                        reason="Fedora live SELinux can prevent chroot user/password tools from writing target shadow files",
+                    )
+                if needs_lock_cleanup:
+                    patched.append(cleanup)
+                    self.runlog.record(
+                        "fedora_live_shadow_lock_cleanup_injected",
+                        stage=stage.value,
+                        group_id=group.id,
+                        command=cleanup,
+                        reason="Fedora installroot user tools can leave /etc/.pwd.lock after partial user creation",
+                    )
                 injected = True
-                self.runlog.record(
-                    "fedora_live_shadow_lock_cleanup_injected",
-                    stage=stage.value,
-                    group_id=group.id,
-                    command=cleanup,
-                    reason="Fedora installroot user tools can leave /etc/.pwd.lock after partial user creation",
-                )
             patched.append(command)
         return patched
 
