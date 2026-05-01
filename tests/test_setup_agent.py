@@ -11,6 +11,7 @@ from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, UserProfile
 from quickhatch.gui.server import (
     GUIState,
+    _build_setup_repo_search_command,
     _call_setup_model_text,
     _launch_agent,
     _run_setup_agent,
@@ -135,6 +136,27 @@ class TestNativeSearchSetupContract:
 
         assert result == '{"action":"done","summary":"ok"}'
         assert compat_call.call_args.kwargs["timeout"] == 45
+
+
+class TestSetupRepoSearch:
+    def test_pacman_repo_search_refreshes_missing_sync_database(self):
+        command = _build_setup_repo_search_command("pacman", "plasma-desktop")
+
+        assert command is not None
+        assert "/var/lib/pacman/sync/*.db" in command
+        assert "pacman -Sy --noconfirm" in command
+        assert "pacman -Ss 'plasma-desktop'" in command
+
+    def test_repo_search_normalizes_command_shaped_model_query(self):
+        command = _build_setup_repo_search_command(
+            "pacman",
+            "pacman -Sy && pacman -Ss papirus-icon-theme | sed -n '1,40p'",
+        )
+
+        assert command is not None
+        assert "pacman -Ss 'papirus-icon-theme'" in command
+        assert "pacman -Ss pacman" not in command
+        assert "-Sy &&" not in command
 
 
 class TestSetupAgentWrapper:

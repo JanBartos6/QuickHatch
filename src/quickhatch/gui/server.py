@@ -4791,10 +4791,43 @@ def _format_setup_web_lookup_result(kind: str, query: str, raw_json: str) -> tup
     return True, _truncate_setup_lookup_text("\n".join(lines))
 
 
+def _normalize_setup_repo_search_query(query: str) -> str:
+    normalized = " ".join((query or "").split())
+    if not normalized:
+        return ""
+
+    # Models sometimes put the shell command they wanted to run into the
+    # repo_search query. Keep the useful search term and discard shell syntax.
+    command_patterns = [
+        r"(?:^|[;&|]\s*)(?:sudo\s+)?pacman\s+-\S*s\S*\s+(?P<query>[^;&|]+)",
+        r"(?:^|[;&|]\s*)(?:sudo\s+)?apt-cache\s+search(?:\s+--names-only)?\s+(?P<query>[^;&|]+)",
+        r"(?:^|[;&|]\s*)(?:sudo\s+)?dnf\s+search\s+(?P<query>[^;&|]+)",
+        r"(?:^|[;&|]\s*)(?:sudo\s+)?zypper\s+search(?:\s+--details)?\s+(?P<query>[^;&|]+)",
+        r"(?:^|[;&|]\s*)(?:sudo\s+)?apk\s+search\s+(?P<query>[^;&|]+)",
+        r"(?:^|[;&|]\s*)(?:sudo\s+)?xbps-query\s+-\S*s\S*\s+(?P<query>[^;&|]+)",
+        r"(?:^|[;&|]\s*)(?:sudo\s+)?emerge\s+--search\s+(?P<query>[^;&|]+)",
+    ]
+    matches: list[str] = []
+    for pattern in command_patterns:
+        matches.extend(
+            match.group("query").strip() for match in re.finditer(pattern, normalized)
+        )
+    if matches:
+        normalized = matches[-1]
+
+    normalized = re.sub(r"^(?:--\s+)+", "", normalized).strip()
+    return normalized.strip("'\"")
+
+
 def _build_setup_repo_search_command(package_manager: str, query: str) -> str | None:
-    q = _shell_single_quote(" ".join((query or "").split()))
+    q = _shell_single_quote(_normalize_setup_repo_search_query(query))
     commands = {
-        "pacman": f"pacman -Ss {q} | sed -n '1,40p'",
+        "pacman": (
+            "if ! ls /var/lib/pacman/sync/*.db >/dev/null 2>&1; then "
+            'qh_sudo=""; [ "$(id -u)" = 0 ] || qh_sudo=sudo; '
+            "$qh_sudo pacman -Sy --noconfirm >/dev/null 2>&1 || true; "
+            f"fi; pacman -Ss {q} | sed -n '1,40p'"
+        ),
         "apt": f"apt-cache search --names-only {q} | sed -n '1,40p'",
         "dnf": f"dnf search {q} | sed -n '1,60p'",
         "zypper": f"zypper search --details {q} | sed -n '1,60p'",
