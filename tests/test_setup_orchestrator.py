@@ -4064,6 +4064,7 @@ def test_debian_live_efi_layout_keeps_boot_on_root_filesystem():
         title="Mount target",
         commands=[
             "sudo mount /dev/sda2 /mnt && sudo mkdir -p /mnt/boot && sudo mount /dev/sda1 /mnt/boot",
+            "sudo mkdir -p /mnt/boot/efi && sudo mount /dev/sda1 /mnt/boot/efi",
             "sudo sh -c 'printf \"UUID=%s / ext4 defaults 0 1\\nUUID=%s /boot vfat defaults 0 2\\n\" \"$ROOT_UUID\" \"$BOOT_UUID\" > /mnt/etc/fstab'",
             'sudo chroot /mnt sh -c "grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=ubuntu"',
         ],
@@ -4072,7 +4073,9 @@ def test_debian_live_efi_layout_keeps_boot_on_root_filesystem():
     commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
 
     assert commands[0] == "sudo mount /dev/sda2 /mnt && sudo mkdir -p /mnt/boot/efi && sudo mount /dev/sda1 /mnt/boot/efi"
-    assert "/boot/efi vfat" in commands[1]
+    assert commands[1] == "sudo mkdir -p /mnt/boot/efi && sudo mount /dev/sda1 /mnt/boot/efi"
+    assert not any("/mnt/boot/efi/efi" in command for command in commands)
+    assert any("/boot/efi vfat" in command for command in commands)
     assert any("--efi-directory=/boot/efi" in command for command in commands)
 
 

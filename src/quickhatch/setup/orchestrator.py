@@ -263,7 +263,7 @@ _DEBIAN_LIVE_CHROOT_RE = re.compile(
     r"\b(?:chroot|systemd-nspawn)\s+(?P<target>/mnt|/target)\b", re.IGNORECASE
 )
 _DEBIAN_LIVE_BOOT_MOUNT_RE = re.compile(
-    r"(?P<prefix>(?:sudo\s+)?mount\s+(?:\"[^\"]+\"|'[^']+'|\S+)\s+)/mnt/boot\b",
+    r"(?P<prefix>(?:sudo\s+)?mount\s+(?:\"[^\"]+\"|'[^']+'|\S+)\s+)/mnt/boot(?!/)\b",
     re.IGNORECASE,
 )
 _LIVE_NONROOT_CHROOT_RE = re.compile(
@@ -3210,7 +3210,7 @@ class SetupOrchestrator:
         for command in commands:
             rewritten = command
             rewritten = re.sub(
-                r"((?:sudo\s+)?mkdir\s+-p\s+)/mnt/boot\b",
+                r"((?:sudo\s+)?mkdir\s+-p\s+)/mnt/boot(?!/)\b",
                 r"\1/mnt/boot/efi",
                 rewritten,
                 flags=re.IGNORECASE,
