@@ -262,6 +262,10 @@ _DEBOOTSTRAP_OPTION_ARGS_WITH_VALUE = {
 _DEBIAN_LIVE_CHROOT_RE = re.compile(
     r"\b(?:chroot|systemd-nspawn)\s+(?P<target>/mnt|/target)\b", re.IGNORECASE
 )
+_DEBIAN_LIVE_BOOT_MOUNT_RE = re.compile(
+    r"(?P<prefix>(?:sudo\s+)?mount\s+(?:\"[^\"]+\"|'[^']+'|\S+)\s+)/mnt/boot\b",
+    re.IGNORECASE,
+)
 _LIVE_NONROOT_CHROOT_RE = re.compile(
     r"(?P<prefix>^|[;&|]\s*)(?P<tool>chroot|systemd-nspawn)\s+"
     r"(?P<target>/mnt|/target)\b",
@@ -3120,6 +3124,7 @@ class SetupOrchestrator:
         commands = self._prefer_debian_live_cdrom_debootstrap_mirror(stage, group, commands)
         commands = self._inject_debian_live_chroot_bind_mounts(stage, group, commands)
         commands = self._normalize_live_resolv_conf_copies(stage, group, commands)
+        commands = self._normalize_debian_live_efi_layout(stage, group, commands)
         commands = self._inject_arch_live_vconsole_before_pacstrap(stage, group, commands)
         commands = self._inject_target_home_writability_prep(stage, group, commands)
         commands = self._inject_apt_external_repo_prereqs(stage, group, commands)
@@ -3190,6 +3195,50 @@ class SetupOrchestrator:
                 reason="live non-root sessions need sudo for chroot verification/commands",
             )
         return rewritten
+
+    def _normalize_debian_live_efi_layout(
+        self, stage: SetupStage, group: CommandGroup, commands: list[str]
+    ) -> list[str]:
+        facts = self.ctx.facts or SetupFacts()
+        if (
+            stage != SetupStage.INSTALL_OR_SKIP
+            or not facts.is_live
+            or facts.package_manager != "apt"
+        ):
+            return commands
+        patched: list[str] = []
+        for command in commands:
+            rewritten = command
+            rewritten = re.sub(
+                r"((?:sudo\s+)?mkdir\s+-p\s+)/mnt/boot\b",
+                r"\1/mnt/boot/efi",
+                rewritten,
+                flags=re.IGNORECASE,
+            )
+            rewritten = _DEBIAN_LIVE_BOOT_MOUNT_RE.sub(
+                lambda match: f"{match.group('prefix')}/mnt/boot/efi",
+                rewritten,
+            )
+            rewritten = re.sub(
+                r"(?P<prefix>[\s'\"])/boot(?P<suffix>\s+vfat\b)",
+                r"\g<prefix>/boot/efi\g<suffix>",
+                rewritten,
+                flags=re.IGNORECASE,
+            )
+            rewritten = rewritten.replace("--efi-directory=/boot ", "--efi-directory=/boot/efi ")
+            rewritten = rewritten.replace("--efi-directory=/boot'", "--efi-directory=/boot/efi'")
+            rewritten = rewritten.replace('--efi-directory=/boot"', '--efi-directory=/boot/efi"')
+            if rewritten != command:
+                self.runlog.record(
+                    "debian_live_efi_layout_normalized",
+                    stage=stage.value,
+                    group_id=group.id,
+                    original=command,
+                    rewritten=rewritten,
+                    reason="Debian/Ubuntu kernels need /boot on a symlink-capable root filesystem; mount the ESP at /boot/efi",
+                )
+            patched.append(rewritten)
+        return patched
 
     def _inject_target_home_writability_prep(
         self, stage: SetupStage, group: CommandGroup, commands: list[str]

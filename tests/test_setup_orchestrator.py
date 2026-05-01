@@ -4045,6 +4045,37 @@ def test_live_nonroot_chroot_verification_gets_sudo():
     )
 
 
+def test_debian_live_efi_layout_keeps_boot_on_root_filesystem():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="debian",
+        package_manager="apt",
+        current_user="ubuntu",
+        login_user="ubuntu",
+        is_live=True,
+        is_root=False,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="mounts",
+        stage=SetupStage.INSTALL_OR_SKIP,
+        title="Mount target",
+        commands=[
+            "sudo mount /dev/sda2 /mnt && sudo mkdir -p /mnt/boot && sudo mount /dev/sda1 /mnt/boot",
+            "sudo sh -c 'printf \"UUID=%s / ext4 defaults 0 1\\nUUID=%s /boot vfat defaults 0 2\\n\" \"$ROOT_UUID\" \"$BOOT_UUID\" > /mnt/etc/fstab'",
+            'sudo chroot /mnt sh -c "grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=ubuntu"',
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
+
+    assert commands[0] == "sudo mount /dev/sda2 /mnt && sudo mkdir -p /mnt/boot/efi && sudo mount /dev/sda1 /mnt/boot/efi"
+    assert "/boot/efi vfat" in commands[1]
+    assert any("--efi-directory=/boot/efi" in command for command in commands)
+
+
 def test_ubuntu_live_debootstrap_prefers_cdrom_with_split_arch_option():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

@@ -52,8 +52,12 @@ parted -s "$DISK" mklabel gpt \
 mkfs.fat -F32 "${DISK}p1"
 mkfs.ext4 -F "${DISK}p2"
 mount "${DISK}p2" /mnt
-mkdir /mnt/boot
-mount "${DISK}p1" /mnt/boot
+mkdir -p /mnt/boot/efi
+mount "${DISK}p1" /mnt/boot/efi
+
+Keep `/boot` on the Linux root filesystem for Debian/Ubuntu-family installs.
+Do not mount the FAT32 ESP directly at `/boot`; Ubuntu kernel postinst scripts
+create `/boot/vmlinuz*` symlinks, and FAT32 cannot support those symlinks.
 
 # Substitute <RELEASE> and <MIRROR> from the per-distro card:
 #   Debian:       bookworm   http://deb.debian.org/debian
@@ -85,8 +89,8 @@ sudo chroot /mnt sh -c "ln -sf /usr/share/zoneinfo/<ZONE> /etc/localtime"
 sudo chroot /mnt sh -c "id <USER> >/dev/null 2>&1 || useradd -m -G sudo -s /bin/bash <USER>; echo '<USER>:<PASSWORD>' | chpasswd; echo 'root:<ROOT_PASSWORD>' | chpasswd"
 sudo sh -c "install -d -m 700 /mnt/home/<USER>/.ssh && printf '%s\n' '<PUBKEY>' > /mnt/home/<USER>/.ssh/authorized_keys && chown -R <USER>:<USER> /mnt/home/<USER>/.ssh && chmod 600 /mnt/home/<USER>/.ssh/authorized_keys"
 sudo chroot /mnt sh -c "systemctl enable ssh NetworkManager"
-sudo sh -c 'ROOT_UUID=$(blkid -s UUID -o value /dev/<ROOT_PARTITION>); BOOT_UUID=$(blkid -s UUID -o value /dev/<BOOT_PARTITION>); printf "UUID=%s / ext4 defaults 0 1\nUUID=%s /boot vfat defaults 0 2\n" "$ROOT_UUID" "$BOOT_UUID" > /mnt/etc/fstab'
-sudo chroot /mnt sh -c "grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=ubuntu && update-initramfs -u -k all && update-grub"
+sudo sh -c 'ROOT_UUID=$(blkid -s UUID -o value /dev/<ROOT_PARTITION>); BOOT_UUID=$(blkid -s UUID -o value /dev/<BOOT_PARTITION>); printf "UUID=%s / ext4 defaults 0 1\nUUID=%s /boot/efi vfat defaults 0 2\n" "$ROOT_UUID" "$BOOT_UUID" > /mnt/etc/fstab'
+sudo chroot /mnt sh -c "grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu && update-initramfs -u -k all && update-grub"
 ```
 
 For BIOS machines swap `grub-efi-amd64 efibootmgr` for `grub-pc`, and use the
