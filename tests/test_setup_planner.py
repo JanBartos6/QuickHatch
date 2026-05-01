@@ -751,9 +751,12 @@ def test_build_research_prompt_allows_fedora_live_installroot_not_anaconda():
 
     assert "dnf --installroot=/mnt" in prompt
     assert "--use-host-config" in prompt
+    assert "prefer one ext4 root partition mounted at `/mnt`" in prompt
+    assert "do not create a separate `/boot` partition" in prompt
     assert "systemd-pam" in prompt
     assert "dbus-daemon" in prompt
     assert "ROOT_UUID=$(sudo blkid" in prompt
+    assert "ensure `/mnt/boot/vmlinuz-*` and `/mnt/boot/initramfs-*.img` exist" in prompt
     assert "Do not run Anaconda" in prompt
     assert "touch /mnt/.autorelabel" in prompt
     assert "experimental `dnf --installroot`" not in prompt

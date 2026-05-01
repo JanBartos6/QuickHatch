@@ -390,6 +390,7 @@ def _dummy_setup_runtime(
     ssh_exec=None,
     wait_for_reconnect=None,
     probe_facts=None,
+    run_pre_reboot_checks=None,
     native_search_active: bool = False,
 ) -> SetupRuntime:
     return SetupRuntime(
@@ -410,7 +411,7 @@ def _dummy_setup_runtime(
         web_search=lambda query, max_results: "",
         wait_for_reconnect=wait_for_reconnect
         or (lambda reconnect_user: (True, "fresh info", reconnect_user)),
-        run_pre_reboot_checks=lambda: (True, [], ""),
+        run_pre_reboot_checks=run_pre_reboot_checks or (lambda: (True, [], "")),
         smoke_test_preboot_script=lambda: None,
         bootstrap_nopasswd_sudo=lambda current: current,
         runtime_prompt_block=lambda current, is_live: "",
@@ -4256,6 +4257,61 @@ def test_live_fstab_blkid_command_is_normalized_to_sudo():
     assert any(
         "UUID=$(sudo blkid -s UUID -o value /dev/sda1)" in command for command in commands
     )
+
+
+def test_fedora_live_missing_kernel_pre_reboot_gets_artifact_repair():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="fedora",
+        os_id="fedora",
+        package_manager="dnf",
+        is_live=True,
+    )
+    attempts = {"count": 0}
+    commands: list[str] = []
+
+    def run_pre_reboot_checks():
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            return (
+                False,
+                [
+                    (
+                        "[kernel] /boot missing kernel or initramfs "
+                        "(vmlinuz / initramfs / initrd count: 0 / 0)."
+                    )
+                ],
+                "FAIL [kernel] /boot missing kernel or initramfs",
+            )
+        return (True, [], "ok")
+
+    def ssh_exec(command: str, timeout: int):
+        commands.append(command)
+        assert timeout == 300
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(
+            profile,
+            bridge,
+            facts,
+            ssh_exec=ssh_exec,
+            run_pre_reboot_checks=run_pre_reboot_checks,
+        )
+    )
+    orchestrator.ctx.facts = facts
+
+    ok, failures, summary = orchestrator._run_pre_reboot_checks_with_retries()
+
+    assert ok
+    assert failures == []
+    assert summary == "ok"
+    assert attempts["count"] == 2
+    assert len(commands) == 1
+    assert "/usr/lib/modules" in commands[0]
+    assert "dracut --force --kver" in commands[0]
+    assert "grub2-mkconfig -o /boot/grub2/grub.cfg" in commands[0]
 
 
 def test_ubuntu_live_debootstrap_gets_prereqs_and_chroot_binds():

@@ -1169,7 +1169,11 @@ class SetupOrchestrator:
                 failures=failures,
                 summary=summary,
             )
-            if ok or not self._looks_like_transient_ssh_disconnect(summary, *failures):
+            if ok:
+                return last_result
+            if self._try_repair_live_fedora_kernel_artifacts(failures, summary):
+                continue
+            if not self._looks_like_transient_ssh_disconnect(summary, *failures):
                 return last_result
             if attempt >= max_attempts:
                 return last_result
@@ -1183,6 +1187,83 @@ class SetupOrchestrator:
             )
             time.sleep(delay)
         return last_result
+
+    def _try_repair_live_fedora_kernel_artifacts(
+        self, failures: list[str], summary: str
+    ) -> bool:
+        facts = self.ctx.facts or SetupFacts()
+        if not facts.is_live or (facts.distro_family != "fedora" and facts.os_id != "fedora"):
+            return False
+        stage_state = self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})
+        if stage_state.get("fedora_kernel_artifact_repair_attempted"):
+            return False
+        text = f"{summary}\n" + "\n".join(failures or [])
+        lowered = text.lower()
+        if "missing kernel or initramfs" not in lowered and "vmlinuz" not in lowered:
+            return False
+
+        stage_state["fedora_kernel_artifact_repair_attempted"] = True
+        command = self._fedora_live_kernel_artifact_repair_command("/mnt")
+        self.bridge.add_message(
+            "agent",
+            "Fedora installroot is missing boot kernel artifacts; repairing `/mnt/boot` before reboot checks retry.",
+        )
+        self.bridge.add_message("agent", f"`{redact_sensitive_text(command)}`")
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 300)
+        self.ctx.results_log.append(
+            redact_sensitive_text(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+        )
+        self.runlog.record(
+            "fedora_live_kernel_artifact_repair",
+            stage=SetupStage.INSTALL_OR_SKIP.value,
+            command=command,
+            rc=rc,
+            stdout_tail=(stdout or "")[-1000:],
+            stderr_tail=(stderr or "")[-1000:],
+        )
+        stage_state["fedora_kernel_artifact_repair_rc"] = rc
+        if rc == 0:
+            self.bridge.add_message(
+                "agent",
+                "✓ Fedora boot kernel artifacts repaired; retrying pre-reboot safety checks.",
+            )
+            return True
+        detail = (stderr or stdout or "").strip()
+        self.bridge.add_message(
+            "agent",
+            f"⚠️ Fedora boot artifact repair failed: {detail[:240]}",
+        )
+        return False
+
+    @staticmethod
+    def _fedora_live_kernel_artifact_repair_command(root_path: str) -> str:
+        root_q = shlex.quote(root_path or "/mnt")
+        return (
+            f"set -e; qh_root={root_q}; "
+            'qh_sudo=sudo; [ "$(id -u)" -eq 0 ] && qh_sudo=; '
+            'test -d "$qh_root/etc"; '
+            'if ! grep -qiE "^ID(_LIKE)?=.*fedora" "$qh_root/etc/os-release"; then '
+            'echo "target is not Fedora"; exit 2; fi; '
+            'for qh_bind in dev dev/pts proc sys run; do '
+            '$qh_sudo mkdir -p "$qh_root/$qh_bind"; '
+            'mountpoint -q "$qh_root/$qh_bind" || $qh_sudo mount --bind "/$qh_bind" "$qh_root/$qh_bind" || true; '
+            'done; '
+            'qh_kver="$($qh_sudo chroot "$qh_root" sh -c \'ls /usr/lib/modules 2>/dev/null | sort -V | tail -n1\')"; '
+            'test -n "$qh_kver"; '
+            'test -f "$qh_root/usr/lib/modules/$qh_kver/vmlinuz"; '
+            '$qh_sudo mkdir -p "$qh_root/boot"; '
+            'if ! test -s "$qh_root/boot/vmlinuz-$qh_kver"; then '
+            '$qh_sudo cp "$qh_root/usr/lib/modules/$qh_kver/vmlinuz" "$qh_root/boot/vmlinuz-$qh_kver"; '
+            'fi; '
+            'if ! test -s "$qh_root/boot/initramfs-$qh_kver.img"; then '
+            '$qh_sudo chroot "$qh_root" dracut --force --kver "$qh_kver" "/boot/initramfs-$qh_kver.img"; '
+            'fi; '
+            'if $qh_sudo chroot "$qh_root" sh -c \'command -v grub2-mkconfig >/dev/null 2>&1\'; then '
+            '$qh_sudo chroot "$qh_root" sh -c \'mkdir -p /boot/grub2 && grub2-mkconfig -o /boot/grub2/grub.cfg\'; '
+            'fi; '
+            'test -s "$qh_root/boot/vmlinuz-$qh_kver"; '
+            'test -s "$qh_root/boot/initramfs-$qh_kver.img"'
+        )
 
     def _ensure_reconnect_ssh_key(self) -> None:
         root_path = "/mnt"
