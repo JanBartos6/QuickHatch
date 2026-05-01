@@ -2265,6 +2265,8 @@ class SetupOrchestrator:
         final_state["unverified_installed_apps"] = sorted(unverifiable)
         if not candidates:
             return []
+        flatpak_candidates = [app for app in candidates if self._app_uses_flatpak(app)]
+        package_candidates = [app for app in candidates if app not in flatpak_candidates]
         query_cmds = {
             "pacman": "pacman -Qq",
             "apt": (
@@ -2278,33 +2280,45 @@ class SetupOrchestrator:
             "emerge": "qlist -IC 2>/dev/null || true",
         }
         query = query_cmds.get(self.ctx.facts.package_manager)
-        if not query:
+        if not query and package_candidates:
             return []
-        final_state["package_verification_ran"] = True
-        rc, stdout, stderr = self.runtime.ssh_exec(query, 45)
-        self.runlog.record(
-            "final_package_verification",
-            package_manager=self.ctx.facts.package_manager,
-            command=query,
-            rc=rc,
-            stdout_tail=(stdout or "")[-800:],
-            stderr_tail=(stderr or "")[-800:],
-        )
-        if rc != 0:
-            final_state["unverified_installed_apps"] = sorted(app.name for app in installed_like)
-            return [
-                "Could not verify installed packages with "
-                f"{self.ctx.facts.package_manager}: {(stderr or stdout or '').strip()[:200]}"
-            ]
-        installed = {line.strip().lower() for line in (stdout or "").splitlines() if line.strip()}
+        installed: set[str] = set()
+        if package_candidates and query:
+            final_state["package_verification_ran"] = True
+            rc, stdout, stderr = self.runtime.ssh_exec(query, 45)
+            self.runlog.record(
+                "final_package_verification",
+                package_manager=self.ctx.facts.package_manager,
+                command=query,
+                rc=rc,
+                stdout_tail=(stdout or "")[-800:],
+                stderr_tail=(stderr or "")[-800:],
+            )
+            if rc != 0:
+                final_state["unverified_installed_apps"] = sorted(
+                    app.name for app in installed_like
+                )
+                return [
+                    "Could not verify installed packages with "
+                    f"{self.ctx.facts.package_manager}: {(stderr or stdout or '').strip()[:200]}"
+                ]
+            installed = {
+                line.strip().lower() for line in (stdout or "").splitlines() if line.strip()
+            }
+        flatpak_installed = self._query_installed_flatpaks() if flatpak_candidates else set()
         missing: list[str] = []
         verified: list[str] = []
         for app in candidates:
-            variants = self._package_name_variants(app.name, app.package_name)
+            variants = (
+                self._flatpak_name_variants(app)
+                if self._app_uses_flatpak(app)
+                else self._package_name_variants(app.name, app.package_name)
+            )
             if not variants:
                 missing.append(app.name)
                 continue
-            if not any(variant in installed for variant in variants):
+            installed_pool = flatpak_installed if self._app_uses_flatpak(app) else installed
+            if not any(variant in installed_pool for variant in variants):
                 missing.append(app.name)
                 continue
             verified.append(app.name)
@@ -2317,6 +2331,46 @@ class SetupOrchestrator:
             + ", ".join(sorted(missing))
             + ". Re-check exact package names or mark them manual_followup before done."
         ]
+
+    def _query_installed_flatpaks(self) -> set[str]:
+        final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
+        final_state["flatpak_verification_ran"] = True
+        command = (
+            "if command -v flatpak >/dev/null 2>&1; then "
+            "flatpak list --app --columns=application --user 2>/dev/null || true; "
+            "flatpak list --app --columns=application --system 2>/dev/null || true; "
+            "fi"
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 45)
+        self.runlog.record(
+            "final_flatpak_verification",
+            command=command,
+            rc=rc,
+            stdout_tail=(stdout or "")[-800:],
+            stderr_tail=(stderr or "")[-800:],
+        )
+        final_state["flatpak_verification_rc"] = rc
+        final_state["installed_flatpaks"] = sorted(
+            line.strip() for line in (stdout or "").splitlines() if line.strip()
+        )
+        if rc != 0:
+            return set()
+        return {line.strip().lower() for line in (stdout or "").splitlines() if line.strip()}
+
+    @staticmethod
+    def _app_uses_flatpak(app: AppPlanItem) -> bool:
+        source = (app.source or "").strip().lower()
+        package = (app.package_name or "").strip()
+        return source in {"flatpak", "flathub"} or package.lower().startswith(
+            ("org.", "com.", "io.", "net.")
+        )
+
+    def _flatpak_name_variants(self, app: AppPlanItem) -> set[str]:
+        variants = self._package_name_variants(app.name, app.package_name)
+        package = (app.package_name or "").strip().lower()
+        if package:
+            variants.add(package)
+        return variants
 
     @staticmethod
     def _package_name_variants(app_name: str, package_name: str) -> set[str]:
@@ -2733,7 +2787,11 @@ class SetupOrchestrator:
             self._update_from_command(visible_command, stdout, stderr, stage=stage)
         self._maybe_reboot_for_nvidia_driver(stage, group, stage_state)
         for verification in group.verification:
+            verification = self._normalize_mountpoint_probe_command(verification)
             verification = self._normalize_live_nonroot_chroot_command(verification, stage=stage)
+            verification = self._normalize_live_nonroot_target_path_verification(
+                verification, stage=stage
+            )
             verification = self._normalize_installed_nonroot_privileged_command(
                 verification, stage=stage
             )
@@ -3369,10 +3427,12 @@ class SetupOrchestrator:
         commands = [
             self._normalize_fedora_dnf_config_manager_command(command) for command in commands
         ]
+        commands = [self._normalize_mountpoint_probe_command(command) for command in commands]
         commands = self._inject_debian_live_debootstrap_prereqs(stage, group, commands)
         commands = self._prefer_debian_live_cdrom_debootstrap_mirror(stage, group, commands)
         commands = self._inject_debian_live_chroot_bind_mounts(stage, group, commands)
         commands = self._normalize_live_resolv_conf_copies(stage, group, commands)
+        commands = self._inject_fedora_live_shadow_lock_cleanup(stage, group, commands)
         commands = self._normalize_debian_live_efi_layout(stage, group, commands)
         commands = self._inject_arch_live_vconsole_before_pacstrap(stage, group, commands)
         commands = self._inject_arch_live_keyring_before_pacstrap(stage, group, commands)
@@ -3468,6 +3528,29 @@ class SetupOrchestrator:
                 rewritten=rewritten,
                 reason="live non-root sessions need sudo for chroot verification/commands",
             )
+        return rewritten
+
+    def _normalize_live_nonroot_target_path_verification(
+        self, command: str, *, stage: SetupStage
+    ) -> str:
+        facts = self.ctx.facts or SetupFacts()
+        stripped = (command or "").strip()
+        if (
+            stage != SetupStage.INSTALL_OR_SKIP
+            or not facts.is_live
+            or facts.is_root
+            or stripped.startswith("sudo ")
+            or not re.match(r"test\s+-[a-zA-Z]+\s+/mnt/", stripped)
+        ):
+            return command
+        rewritten = f"sudo {stripped}"
+        self.runlog.record(
+            "live_target_path_verification_normalized",
+            stage=stage.value,
+            original=command,
+            rewritten=rewritten,
+            reason="live non-root users may not traverse target-owned /mnt paths",
+        )
         return rewritten
 
     @staticmethod
@@ -3913,6 +3996,44 @@ class SetupOrchestrator:
             "fi"
         )
 
+    def _inject_fedora_live_shadow_lock_cleanup(
+        self, stage: SetupStage, group: CommandGroup, commands: list[str]
+    ) -> list[str]:
+        facts = self.ctx.facts or SetupFacts()
+        if (
+            stage != SetupStage.INSTALL_OR_SKIP
+            or not facts.is_live
+            or facts.distro_family != "fedora"
+            or not any(
+                re.search(r"\b(?:chpasswd|passwd|useradd|groupadd)\b", command or "")
+                for command in commands
+            )
+            or any(".pwd.lock" in (command or "") for command in commands)
+        ):
+            return commands
+        cleanup = (
+            "sudo rm -f /mnt/etc/.pwd.lock /mnt/etc/passwd.lock /mnt/etc/shadow.lock "
+            "/mnt/etc/group.lock /mnt/etc/gshadow.lock /mnt/etc/passwd+ /mnt/etc/shadow+ "
+            "/mnt/etc/group+ /mnt/etc/gshadow+"
+        )
+        patched: list[str] = []
+        injected = False
+        for command in commands:
+            if not injected and re.search(
+                r"\b(?:chpasswd|passwd|useradd|groupadd)\b", command or ""
+            ):
+                patched.append(cleanup)
+                injected = True
+                self.runlog.record(
+                    "fedora_live_shadow_lock_cleanup_injected",
+                    stage=stage.value,
+                    group_id=group.id,
+                    command=cleanup,
+                    reason="Fedora installroot user tools can leave /etc/.pwd.lock after partial user creation",
+                )
+            patched.append(command)
+        return patched
+
     def _inject_debian_live_chroot_bind_mounts(
         self, stage: SetupStage, group: CommandGroup, commands: list[str]
     ) -> list[str]:
@@ -3983,6 +4104,10 @@ class SetupOrchestrator:
             f"{match.group('prefix')}addrepo --from-repofile "
             f"{match.group('url')}{match.group('rest')}"
         )
+
+    @staticmethod
+    def _normalize_mountpoint_probe_command(command: str) -> str:
+        return re.sub(r"\bmount\s+--point\b", "mountpoint -q", command or "")
 
     @staticmethod
     def _combine_standalone_assignments(commands: list[str]) -> list[str]:

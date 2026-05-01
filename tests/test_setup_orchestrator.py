@@ -1943,6 +1943,56 @@ def test_final_package_verification_accepts_external_repo_sources():
     assert final_state["unverified_installed_apps"] == []
 
 
+def test_final_package_verification_accepts_user_flatpak_apps():
+    profile = UserProfile(apps_to_install=["Firefox", "VLC"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="fedora", package_manager="dnf", current_user="jan")
+    commands: list[str] = []
+
+    def ssh_exec(command, timeout):
+        commands.append(command)
+        assert timeout == 45
+        if "rpm -qa" in command:
+            return (0, "firefox\nflatpak\n", "")
+        if "flatpak list" in command:
+            return (0, "org.videolan.VLC\n", "")
+        raise AssertionError(f"unexpected command: {command}")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Fedora workstation",
+        distro_family="fedora",
+        package_manager="dnf",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[
+            AppPlanItem(
+                name="Firefox",
+                package_name="firefox",
+                source="repo",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+            AppPlanItem(
+                name="VLC",
+                package_name="org.videolan.VLC",
+                source="flatpak",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+        ],
+    )
+
+    assert orchestrator._verify_planned_packages_installed() == []
+    final_state = orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value]
+    assert final_state["verified_installed_apps"] == ["Firefox", "VLC"]
+    assert final_state["unverified_installed_apps"] == []
+    assert any("flatpak list --app --columns=application --user" in cmd for cmd in commands)
+
+
 def test_desktop_display_audit_blocks_resolution_mismatch():
     profile = UserProfile()
     profile.hardware.displays = [
@@ -4256,6 +4306,59 @@ def test_live_fstab_blkid_command_is_normalized_to_sudo():
 
     assert any(
         "UUID=$(sudo blkid -s UUID -o value /dev/sda1)" in command for command in commands
+    )
+
+
+def test_fedora_live_user_setup_gets_hidden_shadow_lock_cleanup():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="fedora", package_manager="dnf", is_live=True)
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="users",
+        stage=SetupStage.INSTALL_OR_SKIP,
+        title="Create Fedora user",
+        commands=[
+            "sudo chroot /mnt useradd -m fedoraqa",
+            "sudo chroot /mnt sh -c \"echo 'fedoraqa:password' | chpasswd\"",
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
+
+    cleanup_index = next(i for i, command in enumerate(commands) if ".pwd.lock" in command)
+    assert cleanup_index < commands.index("sudo chroot /mnt useradd -m fedoraqa")
+    assert "/mnt/etc/passwd.lock" in commands[cleanup_index]
+
+
+def test_mount_point_probe_is_normalized_to_mountpoint_command():
+    assert (
+        SetupOrchestrator._normalize_mountpoint_probe_command(
+            "sudo mount --point /mnt/proc >/dev/null || true"
+        )
+        == "sudo mountpoint -q /mnt/proc >/dev/null || true"
+    )
+
+
+def test_live_nonroot_target_path_verification_uses_sudo():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="fedora",
+        package_manager="dnf",
+        is_live=True,
+        is_root=False,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    assert (
+        orchestrator._normalize_live_nonroot_target_path_verification(
+            "test -f /mnt/boot/grub2/grub.cfg",
+            stage=SetupStage.INSTALL_OR_SKIP,
+        )
+        == "sudo test -f /mnt/boot/grub2/grub.cfg"
     )
 
 
