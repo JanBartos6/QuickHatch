@@ -89,6 +89,7 @@ def generate_start_here(profile: UserProfile, *, include_install_script: bool) -
     """Generate the practical operator guide shipped in the export bundle."""
     distro = profile.preferences.distro_preference or "your chosen distro"
     offline_mode = (profile.preferences.another_machine or "").strip().lower() == "no"
+    quickstart_block = _quickstart_usb_finder_block()
 
     lines = [
         "# QuickHatch Start Here",
@@ -150,11 +151,17 @@ def generate_start_here(profile: UserProfile, *, include_install_script: bool) -
             [
                 "## Live Agent Path",
                 "",
-                "1. Extract the bundle in the live environment.",
-                "2. Run `bash quickstart.sh`.",
-                "3. Note the IP address and username it prints.",
-                "4. Return to QuickHatch on Windows, enter those values in Remote Setup, test the connection, then start the agent.",
-                "5. Leave the target machine alone unless the agent explicitly asks you to intervene.",
+                "1. Copy the whole QuickHatch export folder to a second USB drive.",
+                "2. Boot the target ISO and get online.",
+                "3. Plug in the bundle USB and paste this whole block:",
+                "",
+                "```sh",
+                quickstart_block,
+                "```",
+                "",
+                "4. Note the IP address and username it prints.",
+                "5. Return to QuickHatch on Windows, enter those values in Remote Setup, test the connection, then start the agent.",
+                "6. Leave the target machine alone unless the agent explicitly asks you to intervene.",
                 "",
                 "If you prefer the distro installer, that also works:",
                 "- Install Linux manually first.",
@@ -165,6 +172,33 @@ def generate_start_here(profile: UserProfile, *, include_install_script: bool) -
         )
 
     return "\n".join(lines) + "\n"
+
+
+def _quickstart_usb_finder_block() -> str:
+    """Return the one-paste target command block for finding the bundle USB.
+
+    The block is intentionally POSIX-sh compatible and mounts candidate
+    partitions read-only. `quickstart.sh` resolves its own directory, so
+    there is no need to copy, cd, or chmod before running it.
+    """
+    return """SUDO=
+[ "$(id -u)" = 0 ] || SUDO=sudo
+QH_MNT=/mnt/quickhatch-bundle
+for d in . "$PWD" /run/media/*/* /media/*/* /mnt/* /tmp/quickhatch /var/tmp/quickhatch; do
+  if [ -f "$d/quickstart.sh" ] && { [ -f "$d/quickhatch-profile.json" ] || [ -f "$d/quickhatch-handoff.json" ]; }; then
+    bash "$d/quickstart.sh"; exit $?
+  fi
+done
+$SUDO mkdir -p "$QH_MNT"
+for p in $(lsblk -rpno NAME,TYPE | awk '$2=="part"{print $1}'); do
+  $SUDO mount -o ro "$p" "$QH_MNT" 2>/dev/null || continue
+  if [ -f "$QH_MNT/quickstart.sh" ] && { [ -f "$QH_MNT/quickhatch-profile.json" ] || [ -f "$QH_MNT/quickhatch-handoff.json" ]; }; then
+    bash "$QH_MNT/quickstart.sh"; exit $?
+  fi
+  $SUDO umount "$QH_MNT" 2>/dev/null || true
+done
+echo "QuickHatch bundle not found. Check the bundle USB with: lsblk -f"
+exit 1"""
 
 
 def run(profile: UserProfile) -> None:
@@ -308,7 +342,7 @@ def _generate_quickstart(profile: UserProfile) -> str:
     if _raw_pub_name:
         key_block = f"""
 # --- Install SSH key into the current user's authorized_keys ---
-KEY_FILE={pub_name_quoted}
+KEY_FILE="$SCRIPT_DIR"/{pub_name_quoted}
 USER_HOME="$HOME"
 if [ "$(id -u)" = "0" ] && [ -n "${{SUDO_USER:-}}" ] && [ "${{SUDO_USER}}" != "root" ]; then
     # Running under sudo — install into the invoking user, not root
@@ -354,6 +388,9 @@ fi
 # The AI agent on your Windows PC will SSH in and do the rest.
 
 set -e
+
+SCRIPT_PATH="${BASH_SOURCE[0]:-$0}"
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$SCRIPT_PATH")" && pwd -P) || SCRIPT_DIR="$PWD"
 
 echo "========================================"
 echo "  QuickHatch — Preparing Linux"

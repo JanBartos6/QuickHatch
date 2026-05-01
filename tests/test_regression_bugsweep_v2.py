@@ -348,7 +348,12 @@ class TestFrontendProfileSync:
         root = Path(__file__).resolve().parent.parent
         html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
         assert "Do not rely on <code>scp</code> yet" in html
-        assert "Replace <code>/dev/sdX1</code> with the actual bundle USB partition." in html
+        assert "Plug in the QuickHatch bundle USB and paste one block" in html
+        assert (
+            "No <code>cp</code>, <code>cd</code>, <code>chmod</code>, or device-name guessing required"
+            in html
+        )
+        assert "mount -o ro" in html
 
     def test_bootable_usb_uses_curated_distro_family_guides(self):
         from pathlib import Path
@@ -356,9 +361,9 @@ class TestFrontendProfileSync:
         root = Path(__file__).resolve().parent.parent
         html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
         assert "const DISTRO_USB_GUIDES=" in html
+        assert "const QUICKHATCH_USB_LAUNCH_COMMANDS=" in html
         assert "function getDistroUsbGuide(distro)" in html
-        assert "guide.mountCommands" in html
-        assert "guide.runCommands" in html
+        assert "QUICKHATCH_USB_LAUNCH_COMMANDS" in html
         assert "Arch boots straight into a root shell." in html
         assert (
             'Ubuntu, Mint, Pop!_OS, Zorin, KDE Neon, and similar ISOs usually have a "Try" or live desktop option.'

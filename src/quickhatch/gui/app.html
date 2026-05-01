@@ -1454,6 +1454,24 @@ function currentPrefs(){return state.profile?.preferences||{}}
 function galleryEntries(){return state.galleryEntries||[]}
 function galleryPinIndex(recipeId){return(state.galleryPinned||[]).indexOf(recipeId)}
 function galleryHasVerified(){return galleryEntries().some(entry=>entry.verified)}
+const QUICKHATCH_USB_LAUNCH_COMMANDS=`SUDO=
+[ "$(id -u)" = 0 ] || SUDO=sudo
+QH_MNT=/mnt/quickhatch-bundle
+for d in . "$PWD" /run/media/*/* /media/*/* /mnt/* /tmp/quickhatch /var/tmp/quickhatch; do
+  if [ -f "$d/quickstart.sh" ] && { [ -f "$d/quickhatch-profile.json" ] || [ -f "$d/quickhatch-handoff.json" ]; }; then
+    bash "$d/quickstart.sh"; exit $?
+  fi
+done
+$SUDO mkdir -p "$QH_MNT"
+for p in $(lsblk -rpno NAME,TYPE | awk '$2=="part"{print $1}'); do
+  $SUDO mount -o ro "$p" "$QH_MNT" 2>/dev/null || continue
+  if [ -f "$QH_MNT/quickstart.sh" ] && { [ -f "$QH_MNT/quickhatch-profile.json" ] || [ -f "$QH_MNT/quickhatch-handoff.json" ]; }; then
+    bash "$QH_MNT/quickstart.sh"; exit $?
+  fi
+  $SUDO umount "$QH_MNT" 2>/dev/null || true
+done
+echo "QuickHatch bundle not found. Check the bundle USB with: lsblk -f"
+exit 1`;
 const DISTRO_USB_GUIDES={
   generic:{
     family:'generic',
@@ -2211,7 +2229,7 @@ const stepRenderers={
     // the user runs the AI-written script locally (offline single-machine).
     const step6 = offlineMode
       ? `<div class="guide-step"><div class="guide-num">6</div><div class="guide-text">Run <code>sudo bash install.sh</code><span>The script you got in your bundle. It asks you to retype the target disk to confirm, then partitions, installs the base system + desktop + apps, and reboots. Post-install config runs on first boot automatically.</span></div></div>`
-      : `<div class="guide-step"><div class="guide-num">6</div><div class="guide-text">${guide.copyTitle}<span>${guide.copyHint}</span>${codeBlockHtml(guide.runCommands)}<div class="muted" style="font-size:var(--t-xs);margin-top:var(--s2)">${guide.successHint}</div></div></div>`;
+      : `<div class="guide-step"><div class="guide-num">6</div><div class="guide-text">Come back to QuickHatch<span>Paste the printed IP address and username into Remote Setup, test the connection, then start the agent. Leave the target terminal open.</span></div></div>`;
     const tail = offlineMode
       ? `<div class="info-box" style="margin-top:var(--s3)">
             <strong>No agent during install</strong>
@@ -2239,7 +2257,7 @@ const stepRenderers={
             <div class="guide-step"><div class="guide-num">2</div><div class="guide-text">Boot from USB<span>Enter BIOS/UEFI (F2, F12, Del, or Esc during boot) and move the USB to the top of the boot order.</span></div></div>
             <div class="guide-step"><div class="guide-num">3</div><div class="guide-text">${guide.liveBootLabel}<span>${guide.liveBootHint}</span></div></div>
             <div class="guide-step"><div class="guide-num">4</div><div class="guide-text">Get online<span>${guide.onlineHint}</span></div></div>
-            <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">${guide.mountTitle}<span>${guide.mountHint}</span>${codeBlockHtml(guide.mountCommands)}<div class="muted" style="font-size:var(--t-xs);margin-top:var(--s2)">Replace <code>/dev/sdX1</code> with the actual bundle USB partition. Do not rely on <code>scp</code> yet — SSH only comes online after <code>quickstart.sh</code> runs.</div></div></div>
+            <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">Plug in the QuickHatch bundle USB and paste one block<span>${guide.mountHint} The command below first checks auto-mounted drives, then mounts candidate partitions read-only until it finds the QuickHatch bundle.</span>${codeBlockHtml(QUICKHATCH_USB_LAUNCH_COMMANDS)}<div class="muted" style="font-size:var(--t-xs);margin-top:var(--s2)">No <code>cp</code>, <code>cd</code>, <code>chmod</code>, or device-name guessing required in the common path. Do not rely on <code>scp</code> yet — SSH only comes online after <code>quickstart.sh</code> runs.</div></div></div>
             ${step6}
           </div>
         </div>
