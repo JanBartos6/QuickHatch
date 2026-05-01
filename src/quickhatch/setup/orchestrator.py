@@ -222,6 +222,10 @@ _APT_COMMAND_RE = re.compile(
     r"(?<![\w/-])(?P<tool>apt-get|apt)(?![\w-])\s+(?![^;&|]*Acquire::)",
     re.IGNORECASE,
 )
+_APT_INSTALL_COMMAND_RE = re.compile(
+    r"(?<![\w/-])(?:apt-get|apt)(?![\w-])(?:(?![;&|]).)*\binstall\b",
+    re.IGNORECASE,
+)
 _KICKSTART_DIRECTIVE_IN_PRINTF_RE = re.compile(
     r"(?<!%)%(packages|end|post|pre|addon|include|ksappend)\b",
     re.IGNORECASE,
@@ -3210,6 +3214,7 @@ class SetupOrchestrator:
         commands = self._inject_arch_live_vconsole_before_pacstrap(stage, group, commands)
         commands = self._inject_target_home_writability_prep(stage, group, commands)
         commands = self._inject_apt_external_repo_prereqs(stage, group, commands)
+        commands = self._inject_ubuntu_apt_component_prereqs(stage, group, commands)
         commands = self._normalize_apt_network_timeouts(stage, group, commands)
         commands = [
             self._normalize_live_nonroot_chroot_command(command, stage=stage)
@@ -3369,6 +3374,43 @@ class SetupOrchestrator:
             return commands
         self.runlog.record(
             "apt_external_repo_prereqs_injected",
+            stage=stage.value,
+            group_id=group.id,
+            command=prep,
+        )
+        return [prep, *commands]
+
+    def _inject_ubuntu_apt_component_prereqs(
+        self, stage: SetupStage, group: CommandGroup, commands: list[str]
+    ) -> list[str]:
+        facts = self.ctx.facts or SetupFacts()
+        is_ubuntu = facts.os_id.lower() == "ubuntu" or facts.distro_family.lower() == "ubuntu"
+        if (
+            facts.package_manager != "apt"
+            or not is_ubuntu
+            or stage not in _INSTALLED_NONROOT_PRIVILEGED_STAGES
+            or not any(_APT_INSTALL_COMMAND_RE.search(command or "") for command in commands)
+        ):
+            return commands
+        if any("quickhatch-ubuntu-components.list" in command for command in commands):
+            return commands
+        prep = (
+            "sudo sh -c 'set -e; "
+            "if grep -RqsE \"^[[:space:]]*(deb|Components:).*(universe|multiverse)\" "
+            "/etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then exit 0; fi; "
+            ". /etc/os-release; codename=\"${VERSION_CODENAME:-}\"; "
+            "if [ -z \"$codename\" ] && command -v lsb_release >/dev/null 2>&1; "
+            "then codename=\"$(lsb_release -sc)\"; fi; "
+            "[ -n \"$codename\" ]; "
+            "printf \"%s\\n\" "
+            "\"deb http://archive.ubuntu.com/ubuntu $codename restricted universe multiverse\" "
+            "\"deb http://archive.ubuntu.com/ubuntu $codename-updates restricted universe multiverse\" "
+            "\"deb http://archive.ubuntu.com/ubuntu $codename-backports restricted universe multiverse\" "
+            "\"deb http://security.ubuntu.com/ubuntu $codename-security restricted universe multiverse\" "
+            "> /etc/apt/sources.list.d/quickhatch-ubuntu-components.list' && sudo apt-get update"
+        )
+        self.runlog.record(
+            "ubuntu_apt_component_prereqs_injected",
             stage=stage.value,
             group_id=group.id,
             command=prep,

@@ -1541,13 +1541,44 @@ def test_apt_external_repo_groups_inject_download_prerequisites():
 
     commands = orchestrator._commands_for_group(SetupStage.APPS, group)
 
-    assert commands[0].startswith("sudo apt -o Acquire::Retries=2")
-    assert "Acquire::http::Timeout=20" in commands[0]
-    assert "Acquire::https::Timeout=20" in commands[0]
-    assert "Acquire::ForceIPv4=true" in commands[0]
-    assert " update && sudo apt -o " in commands[0]
-    assert " install -y curl ca-certificates gnupg" in commands[0]
+    prep = next(command for command in commands if " install -y curl ca-certificates gnupg" in command)
+    assert prep.startswith("sudo apt -o Acquire::Retries=2")
+    assert "Acquire::http::Timeout=20" in prep
+    assert "Acquire::https::Timeout=20" in prep
+    assert "Acquire::ForceIPv4=true" in prep
+    assert " update && sudo apt -o " in prep
     assert any('mkdir -p "$HOME/.config" "$HOME/.local" "$HOME/snap"' in c for c in commands)
+
+
+def test_ubuntu_apt_install_injects_component_sources_before_package_resolution():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="debian",
+        os_id="ubuntu",
+        package_manager="apt",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="vbox-drivers",
+        stage=SetupStage.POSTBOOT_DRIVER,
+        title="Install VirtualBox guest utilities",
+        commands=[
+            "sudo apt-get install -y virtualbox-guest-utils virtualbox-guest-x11 dkms"
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.POSTBOOT_DRIVER, group)
+
+    assert "quickhatch-ubuntu-components.list" in commands[0]
+    assert "restricted universe multiverse" in commands[0]
+    assert "sudo apt-get -o Acquire::Retries=2" in commands[0]
+    assert commands[1].startswith("sudo apt-get -o Acquire::Retries=2")
+    assert "install -y virtualbox-guest-utils virtualbox-guest-x11 dkms" in commands[1]
 
 
 def test_apt_commands_get_bounded_network_timeouts():

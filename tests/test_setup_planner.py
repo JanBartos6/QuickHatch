@@ -179,6 +179,43 @@ def test_extract_research_plan_accepts_single_evidence_objects():
     assert plan.command_groups[0].evidence[0].source_type == "repo_search"
 
 
+def test_extract_repair_action_accepts_top_level_evidence_for_retry_group():
+    failed_group = CommandGroup(
+        id="vbox",
+        stage=SetupStage.POSTBOOT_DRIVER,
+        title="Install VirtualBox guest drivers",
+        commands=["sudo apt-get install -y virtualbox-guest-utils"],
+    )
+    action = extract_repair_action(
+        json.dumps(
+            {
+                "action": "retry_group",
+                "group": {
+                    "id": "vbox-repair",
+                    "stage": "postboot_driver",
+                    "title": "Install VirtualBox guest drivers after repo refresh",
+                    "commands": [
+                        "sudo apt-get update",
+                        "sudo apt-get install -y virtualbox-guest-utils virtualbox-guest-x11",
+                    ],
+                },
+                "evidence": [
+                    {
+                        "source_type": "web_search",
+                        "query": "ubuntu virtualbox guest utils package",
+                        "summary": "VirtualBox guest packages are available from Ubuntu repositories.",
+                    }
+                ],
+            }
+        ),
+        fallback_stage=SetupStage.POSTBOOT_DRIVER,
+        failed_group=failed_group,
+    )
+
+    assert action["action"] == "retry_group"
+    assert action["group"].evidence[0].source_type == "web_search"
+
+
 def test_extract_research_plan_accepts_common_status_aliases():
     profile = UserProfile()
     payload = _base_plan_payload()

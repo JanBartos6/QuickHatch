@@ -760,6 +760,8 @@ def extract_repair_action(
     normalized_group.setdefault("packages", failed_group.packages)
     normalized_group.setdefault("optional", failed_group.optional)
     normalized_group.setdefault("optional_slow", failed_group.optional_slow)
+    if "evidence" not in normalized_group and payload.get("evidence") is not None:
+        normalized_group["evidence"] = payload.get("evidence")
     try:
         group = _parse_command_group(normalized_group)
     except ResearchPlanValidationError as exc:
