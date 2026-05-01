@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from quickhatch.setup.runlog import SetupRunLogger
+from quickhatch.setup.runlog import write_executed_commands_script
 from quickhatch.setup.runlog import redact_sensitive_text
 
 
@@ -56,3 +57,37 @@ def test_redact_sensitive_text_removes_ssh_public_key_comment():
     assert "AAAAC3" not in redacted
     assert "honz.bartos@example.test" not in redacted
     assert "ssh-key ***REDACTED***" in redacted
+
+
+def test_executed_commands_script_contains_successful_commands_only(tmp_path):
+    logger = SetupRunLogger("run-replay", root=tmp_path)
+    logger.record("command", stage="apps", group_id="browser", command="sudo pacman -S brave", rc=0)
+    logger.record(
+        "verification",
+        stage="apps",
+        group_id="browser",
+        command="pacman -Q brave-bin",
+        rc=0,
+    )
+    logger.record("command", stage="apps", group_id="broken", command="sudo pacman -S nope", rc=1)
+    logger.record(
+        "command",
+        stage="install_or_skip",
+        group_id="user",
+        command="echo 'jan:hunter2' | chpasswd",
+        rc=0,
+    )
+
+    script_path = write_executed_commands_script(
+        logger.path,
+        output_dir=tmp_path / "bundle",
+        status="complete",
+    )
+
+    assert script_path is not None
+    text = script_path.read_text(encoding="utf-8")
+    assert "sudo pacman -S brave" in text
+    assert "# VERIFY rc=0: pacman -Q brave-bin" in text
+    assert "# SKIPPED failed command rc=1: sudo pacman -S nope" in text
+    assert "hunter2" not in text
+    assert "# EDIT REQUIRED redacted command rc=0: echo '***REDACTED***' | chpasswd" in text

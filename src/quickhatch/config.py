@@ -163,6 +163,11 @@ class UserProfile:
     # "configure_only" = never repartition/reformat; just configure the
     #   current installed system
     remote_setup_mode: str = "auto"
+    # When enabled, the staged setup executor writes a best-effort shell
+    # replay file from the commands that actually succeeded during Remote
+    # Setup. Intended for inspection and repeated installs on identical
+    # hardware. Secrets are redacted; users must review before reuse.
+    export_executed_setup_script: bool = False
     # Free-text description of the TARGET hardware when it differs from
     # the machine QuickHatch is running on. Empty string means "install
     # for this machine" (hardware scan is authoritative). Non-empty
@@ -354,6 +359,7 @@ class UserProfile:
                 linux_ip=data.get("linux_ip", "") or "",
                 linux_user=data.get("linux_user", "") or "",
                 remote_setup_mode=data.get("remote_setup_mode", "auto") or "auto",
+                export_executed_setup_script=bool(data.get("export_executed_setup_script", False)),
                 target_hardware_override=data.get("target_hardware_override", "") or "",
                 default_account_password=data.get("default_account_password", "password")
                 or "password",

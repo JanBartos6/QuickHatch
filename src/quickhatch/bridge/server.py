@@ -76,6 +76,7 @@ class BridgeState:
             "waiting_for_input": False,
             "active_question_id": "",
             "planning_complete": False,
+            "executed_script_path": "",
         }
         # Where to persist suggestions/messages. Pass None to disable
         # persistence (e.g. in unit tests).
@@ -277,6 +278,7 @@ class BridgeState:
                 "waiting_for_input": False,
                 "active_question_id": "",
                 "planning_complete": False,
+                "executed_script_path": "",
             }
         if self._persist_path is None:
             return
@@ -429,6 +431,7 @@ class BridgeState:
                     "waiting_for_input": False,
                     "active_question_id": "",
                     "planning_complete": False,
+                    "executed_script_path": "",
                 }
             data = self._serialize_payload_locked()
         self._write_payload_unlocked(data)
@@ -519,6 +522,7 @@ class BridgeState:
                 "waiting_for_input": False,
                 "active_question_id": "",
                 "planning_complete": False,
+                "executed_script_path": "",
             }
             data = self._serialize_payload_locked()
         self._write_payload_unlocked(data)

@@ -100,13 +100,19 @@ class TestProfileEndpoint:
         _post(
             server["port"],
             "/wizard/update",
-            {"linux_ip": "1.2.3.4", "linux_user": "bob", "remote_setup_mode": "configure_only"},
+            {
+                "linux_ip": "1.2.3.4",
+                "linux_user": "bob",
+                "remote_setup_mode": "configure_only",
+                "export_executed_setup_script": True,
+            },
         )
         status, body = _get(server["port"], "/wizard/profile")
         data = json.loads(body)
         assert data["profile"]["linux_ip"] == "1.2.3.4"
         assert data["profile"]["linux_user"] == "bob"
         assert data["profile"]["remote_setup_mode"] == "configure_only"
+        assert data["profile"]["export_executed_setup_script"] is True
 
     def test_update_reports_changed_false_for_noop(self, server, monkeypatch):
         calls = []

@@ -346,6 +346,7 @@ class GUIState:
             "ssh_public_key_path",
         }
     )
+    _BOOL_TOP_FIELDS = frozenset({"export_executed_setup_script"})
 
     @staticmethod
     def _coerce_str(val: Any) -> str | None:
@@ -490,12 +491,19 @@ class GUIState:
                     "ssh_public_key_path",
                     self._coerce_str(updates["ssh_public_key_path"]),
                 )
+            if "export_executed_setup_script" in updates:
+                changed |= self._set_if_changed(
+                    self.profile,
+                    "export_executed_setup_script",
+                    bool(updates["export_executed_setup_script"]),
+                )
 
             known_top = {
                 "preferences",
                 "ai_config",
                 *self._LIST_TOP_FIELDS,
                 *self._STR_TOP_FIELDS,
+                *self._BOOL_TOP_FIELDS,
             }
             dropped.extend(
                 sorted(k for k in updates if k not in known_top and not k.startswith("_"))
@@ -6458,6 +6466,7 @@ def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = ""
         distro_primer_md=distro_primer_md,
         target_distro_family=distro_hint,
         native_search_active=native_search_active,
+        executed_script_output_dir=_export_output_dir(),
     )
 
 

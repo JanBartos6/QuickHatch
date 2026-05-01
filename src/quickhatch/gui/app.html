@@ -1181,6 +1181,7 @@ function buildProfileFromDraft(baseProfile){
   if(draft.additional_info!==undefined)profile.additional_info=draft.additional_info||'';
   if(draft.linux_ip!==undefined)profile.linux_ip=draft.linux_ip||'';
   if(draft.linux_user!==undefined)profile.linux_user=draft.linux_user||'';
+  if(draft.export_executed_setup_script!==undefined)profile.export_executed_setup_script=!!draft.export_executed_setup_script;
   if(draft.ssh_public_key_path!==undefined)profile.ssh_public_key_path=draft.ssh_public_key_path||null;
   if(draft.ai_config&&typeof draft.ai_config==='object'){
     const ai=draft.ai_config;
@@ -1241,6 +1242,7 @@ function captureInFlightDraftForCurrentStep(){
     const user=((el('linuxUser')||{}).value||'').trim();
     setDraftValue('linux_ip', ip);
     setDraftValue('linux_user', user);
+    setDraftValue('export_executed_setup_script', !!((el('exportExecutedSetupScript')||{}).checked));
   }
   persistWizardProgressDraft();
 }
@@ -2404,6 +2406,7 @@ const stepRenderers={
     const ip=state.profile.linux_ip||'';
     const user=state.profile.linux_user||'';
     const remoteSetupMode=state.profile.remote_setup_mode||'auto';
+    const exportExecutedScript=!!state.profile.export_executed_setup_script;
     const port=location.port;
     const hasConn=ip&&user;
     const canLaunch=!!(hasConn&&state._sshTestOk);
@@ -2437,6 +2440,14 @@ const stepRenderers={
               :'Default mode. On a live ISO the agent may install Linux if needed after explicit disk confirmation; on an installed system it should continue with post-install configuration.'}
           </div>
         </div>
+
+        <label class="checkbox-row" style="align-items:flex-start;margin:calc(-1 * var(--s2)) 0 var(--s5) 0">
+          <input type="checkbox" id="exportExecutedSetupScript" ${exportExecutedScript?'checked':''} onchange="setExportExecutedSetupScript(this.checked)">
+          <span>
+            <strong>Save executed commands as a reusable <code>.sh</code></strong>
+            <span class="muted" style="display:block;font-size:var(--t-xs);margin-top:var(--s1)">At the end of Remote Setup, write an inspectable script from commands that actually succeeded. Secrets are redacted; review before using it on matching hardware.</span>
+          </span>
+        </label>
 
         <div class="stack-h" style="gap:var(--s2);margin-bottom:var(--s5)">
           <button class="btn btn-ghost" onclick="saveLinuxConn()" id="saveConnBtn">Save</button>
@@ -4118,12 +4129,29 @@ function invalidateSshTest(){
   const status=el('connStatus'); if(status)status.textContent='Connection changed — test again.';
 }
 
+function exportExecutedSetupScriptEnabled(){
+  return !!((el('exportExecutedSetupScript')||{}).checked);
+}
+
+async function setExportExecutedSetupScript(enabled){
+  if(state.profile)state.profile.export_executed_setup_script=!!enabled;
+  setDraftValue('export_executed_setup_script', !!enabled);
+  try{
+    await saveProfile({export_executed_setup_script:!!enabled},{silentError:true,toast:false});
+  }catch(_){}
+}
+
 async function saveLinuxConn(){
   const ip=el('linuxIp').value.trim();
   const user=el('linuxUser').value.trim();
   const remoteSetupMode=state.profile.remote_setup_mode||'auto';
   if(!ip||!user){toast('Enter IP and username first','error');return;}
-  await saveProfile({linux_ip:ip,linux_user:user,remote_setup_mode:remoteSetupMode});
+  await saveProfile({
+    linux_ip:ip,
+    linux_user:user,
+    remote_setup_mode:remoteSetupMode,
+    export_executed_setup_script:exportExecutedSetupScriptEnabled(),
+  });
   state._sshTestOk=false;
   state._setupStarted=false;
   state._setupDone=false;
@@ -4138,6 +4166,12 @@ async function launchSetupAgent(){
   btn.disabled=true;btn.textContent='Starting…';
   if(msg)msg.innerHTML='';
   try{
+    await saveProfile({
+      linux_ip:(el('linuxIp')||{}).value?.trim?.()||'',
+      linux_user:(el('linuxUser')||{}).value?.trim?.()||'',
+      remote_setup_mode:state.profile.remote_setup_mode||'auto',
+      export_executed_setup_script:exportExecutedSetupScriptEnabled(),
+    },{silentError:true,toast:false});
     const data=await api('/wizard/launch-agent','POST',{phase:'setup'});
     if(data.status==='ok'){
       state._setupStarted=true;
@@ -4174,7 +4208,12 @@ async function testLinuxConn(){
   const remoteSetupMode=state.profile.remote_setup_mode||'auto';
   if(!ip||!user)return;
   btn.disabled=true;btn.textContent='Testing…';status.textContent='';
-  await saveProfile({linux_ip:ip,linux_user:user,remote_setup_mode:remoteSetupMode});
+  await saveProfile({
+    linux_ip:ip,
+    linux_user:user,
+    remote_setup_mode:remoteSetupMode,
+    export_executed_setup_script:exportExecutedSetupScriptEnabled(),
+  });
   try{
     const r=await api('/wizard/test-ssh','POST',{ip,user});
     if(r.status==='ok'){

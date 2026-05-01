@@ -514,6 +514,15 @@ class TestFrontendProfileSync:
         assert "function importHandoffFile(input)" in html
         assert "api('/wizard/import-handoff','POST',{handoff})" in html
 
+    def test_remote_setup_exposes_executed_command_script_toggle(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "Save executed commands as a reusable <code>.sh</code>" in html
+        assert "exportExecutedSetupScript" in html
+        assert "export_executed_setup_script:exportExecutedSetupScriptEnabled()" in html
+
 
 class TestAnalysisSearchOwnership:
     """Regression: hardware search planning should belong to the selected LLM,

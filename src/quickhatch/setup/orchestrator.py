@@ -30,7 +30,7 @@ from .planner import (
 )
 from .preflight import arch_community_helpers_in_command, preflight_setup_command
 from .resolver import build_install_command, nvidia_open_kernel_supported
-from .runlog import SetupRunLogger, redact_sensitive_text
+from .runlog import SetupRunLogger, redact_sensitive_text, write_executed_commands_script
 from .types import (
     AppPlanItem,
     AuditResult,
@@ -442,6 +442,7 @@ class SetupRuntime:
     native_search_active: bool = False
     results_log_limit: int = 100
     copy_local_file_to_target: Callable[[Path, str, int], tuple[int, str, str]] | None = None
+    executed_script_output_dir: Path | None = None
 
 
 @dataclass
@@ -487,6 +488,7 @@ class SetupOrchestrator:
 
     def run(self) -> str:
         self._start_run_state()
+        replay_status = "partial"
         try:
             try:
                 self._run_connect_and_probe()
@@ -497,14 +499,17 @@ class SetupOrchestrator:
                 self._run_apps()
                 final = self._run_final_audit()
                 if not final.passed:
+                    replay_status = "blocked"
                     summary = "Setup stopped during final audit: " + "; ".join(final.blockers)
                     self.bridge.add_message("agent", f"⚠️ {summary}")
                     return summary
+                replay_status = "complete"
                 summary = self._build_summary()
                 self.bridge.add_message("agent", f"Finished: {summary}")
                 return summary
             except RuntimeError as exc:
                 stopped = self.bridge.stop_requested
+                replay_status = "stopped" if stopped else "blocked"
                 summary = str(exc) if stopped else f"Setup blocked: {exc}"
                 if stopped and not summary:
                     summary = "Agent stopped by user."
@@ -520,7 +525,32 @@ class SetupOrchestrator:
                 )
                 return summary
         finally:
+            self._maybe_write_executed_setup_script(replay_status)
             self.bridge.update_setup_run(waiting_for_input=False, active_question_id="")
+
+    def _maybe_write_executed_setup_script(self, status: str) -> Path | None:
+        if not getattr(self.profile, "export_executed_setup_script", False):
+            return None
+        path = write_executed_commands_script(
+            self.runlog.path,
+            output_dir=self.runtime.executed_script_output_dir,
+            status=status,
+        )
+        if path is None:
+            self.bridge.add_message(
+                "agent",
+                "⚠️ Could not write the executed-command replay script.",
+            )
+            self.runlog.record("executed_commands_script_failed", status=status)
+            return None
+        self.bridge.update_setup_run(executed_script_path=str(path))
+        self.bridge.add_message(
+            "agent",
+            "Executed-command replay script saved: "
+            f"`{path}`. Review before reuse; secrets are redacted.",
+        )
+        self.runlog.record("executed_commands_script_written", status=status, path=str(path))
+        return path
 
     def _start_run_state(self) -> None:
         self.bridge.update_setup_run(
