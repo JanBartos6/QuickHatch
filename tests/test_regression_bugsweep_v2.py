@@ -504,6 +504,16 @@ class TestFrontendProfileSync:
         assert "Bundle exported with quickstart + plan" in html
         assert "Install guidance ready for the live environment" in html
 
+    def test_handoff_import_ui_exists_on_first_screen(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "Continue from another PC" in html
+        assert "quickhatch-handoff.json" in html
+        assert "function importHandoffFile(input)" in html
+        assert "api('/wizard/import-handoff','POST',{handoff})" in html
+
 
 class TestAnalysisSearchOwnership:
     """Regression: hardware search planning should belong to the selected LLM,

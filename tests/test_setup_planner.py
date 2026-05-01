@@ -659,7 +659,10 @@ def test_build_repair_prompt_warns_about_vm_gpu_label_mismatch():
     )
 
     assert "VirtualBox with VMSVGA may report a `VMware SVGA` display adapter" in prompt
-    assert "Do not repair VM guest integration by installing `virtualbox-guest-additions-iso`" in prompt
+    assert (
+        "Do not repair VM guest integration by installing `virtualbox-guest-additions-iso`"
+        in prompt
+    )
     assert "running or recommending `VBoxLinuxAdditions.run`" in prompt
     assert "emit manual_followup for VM integration" in prompt
     assert '"virtualization": "oracle"' in prompt

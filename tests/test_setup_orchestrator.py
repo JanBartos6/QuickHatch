@@ -310,16 +310,16 @@ def test_live_target_uefi_boot_fallback_installs_removable_grub():
     assert "[ -d /sys/firmware/efi ] || exit 0" in command
     assert "for qh_bind in dev dev/pts proc sys run" in command
     assert 'mount --bind "/$qh_bind" "$qh_root/$qh_bind"' in command
-    assert "chroot \"$qh_root\" sh -c 'command -v grub-install" in command
-    assert 'grub-install --target=x86_64-efi' in command
-    assert '--bootloader-id=quickhatch' in command
-    assert '--bootloader-id=quickhatch --recheck || true' in command
-    assert '--removable --no-nvram --recheck' in command
-    assert 'EFI/BOOT/BOOTX64.EFI' in command
+    assert 'chroot "$qh_root" sh -c \'command -v grub-install' in command
+    assert "grub-install --target=x86_64-efi" in command
+    assert "--bootloader-id=quickhatch" in command
+    assert "--bootloader-id=quickhatch --recheck || true" in command
+    assert "--removable --no-nvram --recheck" in command
+    assert "EFI/BOOT/BOOTX64.EFI" in command
     assert r"\EFI\quickhatch\grubx64.efi" in command
-    assert 'update-grub' in command
-    assert 'grub-mkconfig -o /boot/grub/grub.cfg' in command
-    assert 'grub-editenv /boot/grub/grubenv create' in command
+    assert "update-grub" in command
+    assert "grub-mkconfig -o /boot/grub/grub.cfg" in command
+    assert "grub-editenv /boot/grub/grubenv create" in command
     assert "efibootmgr -v" in command
     assert "qh_efi_partuuid_lc" in command
     assert "blkid -s PARTUUID" in command
@@ -1632,7 +1632,9 @@ def test_apt_external_repo_groups_inject_download_prerequisites():
 
     commands = orchestrator._commands_for_group(SetupStage.APPS, group)
 
-    prep = next(command for command in commands if " install -y curl ca-certificates gnupg" in command)
+    prep = next(
+        command for command in commands if " install -y curl ca-certificates gnupg" in command
+    )
     assert prep.startswith("sudo apt -o Acquire::Retries=2")
     assert "Acquire::http::Timeout=20" in prep
     assert "Acquire::https::Timeout=20" in prep
@@ -1658,9 +1660,7 @@ def test_ubuntu_apt_install_injects_component_sources_before_package_resolution(
         id="vbox-drivers",
         stage=SetupStage.POSTBOOT_DRIVER,
         title="Install VirtualBox guest utilities",
-        commands=[
-            "sudo apt-get install -y virtualbox-guest-utils virtualbox-guest-x11 dkms"
-        ],
+        commands=["sudo apt-get install -y virtualbox-guest-utils virtualbox-guest-x11 dkms"],
     )
 
     commands = orchestrator._commands_for_group(SetupStage.POSTBOOT_DRIVER, group)
@@ -4297,16 +4297,14 @@ def test_live_fstab_blkid_command_is_normalized_to_sudo():
         stage=SetupStage.INSTALL_OR_SKIP,
         title="Write fstab",
         commands=[
-            'UUID=$(blkid -s UUID -o value /dev/sda1) && '
+            "UUID=$(blkid -s UUID -o value /dev/sda1) && "
             'echo "UUID=$UUID / ext4 defaults 1 1" | sudo tee /mnt/etc/fstab'
         ],
     )
 
     commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
 
-    assert any(
-        "UUID=$(sudo blkid -s UUID -o value /dev/sda1)" in command for command in commands
-    )
+    assert any("UUID=$(sudo blkid -s UUID -o value /dev/sda1)" in command for command in commands)
 
 
 def test_fedora_live_user_setup_gets_hidden_shadow_lock_cleanup():
@@ -4362,9 +4360,7 @@ def test_fedora_removed_desktop_package_is_dropped():
         id="desktop",
         stage=SetupStage.DESKTOP,
         title="Install GNOME",
-        commands=[
-            "sudo dnf install -y gnome-shell gdm gnome-themes-extra google-noto-sans-fonts"
-        ],
+        commands=["sudo dnf install -y gnome-shell gdm gnome-themes-extra google-noto-sans-fonts"],
     )
 
     commands = orchestrator._commands_for_group(SetupStage.DESKTOP, group)
@@ -4556,14 +4552,17 @@ def test_debian_live_efi_layout_keeps_boot_on_root_filesystem():
         commands=[
             "sudo mount /dev/sda2 /mnt && sudo mkdir -p /mnt/boot && sudo mount /dev/sda1 /mnt/boot",
             "sudo mkdir -p /mnt/boot/efi && sudo mount /dev/sda1 /mnt/boot/efi",
-            "sudo sh -c 'printf \"UUID=%s / ext4 defaults 0 1\\nUUID=%s /boot vfat defaults 0 2\\n\" \"$ROOT_UUID\" \"$BOOT_UUID\" > /mnt/etc/fstab'",
+            'sudo sh -c \'printf "UUID=%s / ext4 defaults 0 1\\nUUID=%s /boot vfat defaults 0 2\\n" "$ROOT_UUID" "$BOOT_UUID" > /mnt/etc/fstab\'',
             'sudo chroot /mnt sh -c "grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=ubuntu"',
         ],
     )
 
     commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
 
-    assert commands[0] == "sudo mount /dev/sda2 /mnt && sudo mkdir -p /mnt/boot/efi && sudo mount /dev/sda1 /mnt/boot/efi"
+    assert (
+        commands[0]
+        == "sudo mount /dev/sda2 /mnt && sudo mkdir -p /mnt/boot/efi && sudo mount /dev/sda1 /mnt/boot/efi"
+    )
     assert commands[1] == "sudo mkdir -p /mnt/boot/efi && sudo mount /dev/sda1 /mnt/boot/efi"
     assert not any("/mnt/boot/efi/efi" in command for command in commands)
     assert any("/boot/efi vfat" in command for command in commands)

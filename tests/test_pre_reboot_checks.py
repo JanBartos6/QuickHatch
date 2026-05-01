@@ -134,10 +134,7 @@ class TestPreRebootChecksParser:
         real sudo-capable user is not misclassified as unrecoverable."""
 
         assert r"\s*%(wheel|sudo)\s+ALL" not in server_mod._PRE_REBOOT_CHECK_SCRIPT
-        assert (
-            r"[[:space:]]*%(wheel|sudo)[[:space:]]+ALL"
-            in server_mod._PRE_REBOOT_CHECK_SCRIPT
-        )
+        assert r"[[:space:]]*%(wheel|sudo)[[:space:]]+ALL" in server_mod._PRE_REBOOT_CHECK_SCRIPT
 
     def test_recovery_guard_reads_privileged_files_with_sudo_when_live_user_nonroot(self):
         """Ubuntu live sessions run as a sudo-capable non-root user.
@@ -149,7 +146,7 @@ class TestPreRebootChecksParser:
         script = server_mod._PRE_REBOOT_CHECK_SCRIPT
 
         assert "QH_SUDO=sudo" in script
-        assert 'RHASH=$($QH_SUDO awk -F:' in script
+        assert "RHASH=$($QH_SUDO awk -F:" in script
         assert "$QH_SUDO grep -qE" in script
         assert '$QH_SUDO find "$_root/etc/sudoers.d"' in script
 

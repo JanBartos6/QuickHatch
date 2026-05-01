@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import zipfile
 
 import quickhatch.ai.instruction_gen as instruction_gen
@@ -23,6 +24,9 @@ def test_run_export_cleans_generated_outputs_and_writes_start_here(monkeypatch, 
 
     bridge = BridgeState(profile, persist_path=None)
     bridge.add_suggestion("install_script", "Install", "#!/usr/bin/env bash\necho ready\n")
+    bridge.add_suggestion("plan", "Migration Plan", "Install Arch, then KDE.")
+    bridge.add_message("agent", "analysis summary", phase="analysis")
+    bridge.add_message("agent", "setup command log should not move", phase="setup")
     gui_state = GUIState(profile, bridge)
 
     output_dir = tmp_path / "export"
@@ -43,6 +47,7 @@ def test_run_export_cleans_generated_outputs_and_writes_start_here(monkeypatch, 
 
     assert result["status"] == "ok"
     assert "START_HERE.md" in result["files"]
+    assert "quickhatch-handoff.json" in result["files"]
     assert "install.sh" in result["files"]
     assert not (output_dir / "old-key.pub").exists()
 
@@ -58,11 +63,20 @@ def test_run_export_cleans_generated_outputs_and_writes_start_here(monkeypatch, 
     assert "stale-install" not in install_script
     copied_key = (output_dir / ssh_pub.name).read_text(encoding="utf-8")
     assert copied_key == "ssh-ed25519 AAAATEST quickhatch\n"
+    handoff = json.loads((output_dir / "quickhatch-handoff.json").read_text(encoding="utf-8"))
+    assert handoff["type"] == "quickhatch-handoff"
+    assert handoff["profile"]["ai_config"]["api_key"] is None
+    assert [s["category"] for s in handoff["bridge"]["suggestions"]] == [
+        "install_script",
+        "plan",
+    ]
+    assert [m["content"] for m in handoff["bridge"]["messages"]] == ["analysis summary"]
 
     zip_path = output_dir / "quickhatch-migration-bundle.zip"
     with zipfile.ZipFile(zip_path) as zf:
         names = set(zf.namelist())
     assert "START_HERE.md" in names
+    assert "quickhatch-handoff.json" in names
     assert "quickstart.sh" in names
     assert "install.sh" in names
     assert ssh_pub.name in names

@@ -1886,6 +1886,15 @@ const stepRenderers={
         <div class="btn-row">
           <button class="btn btn-primary" onclick="submitWelcome()">Continue</button>
         </div>
+        <div class="info-box" style="margin-top:var(--s5)">
+          <strong>Continue from another PC</strong>
+          <p style="margin:var(--s2) 0">Load <code>quickhatch-handoff.json</code> from an exported bundle to reuse the saved profile and analysis plan here. This PC will generate/select its own SSH key before Remote Setup.</p>
+          <div class="stack-h" style="gap:var(--s2);flex-wrap:wrap">
+            <input class="hidden" type="file" id="handoffFileInput" accept=".json,application/json" onchange="importHandoffFile(this)">
+            <button class="btn btn-ghost" onclick="document.getElementById('handoffFileInput').click()">Load handoff file</button>
+            <span class="muted" style="font-size:var(--t-xs)">Use this when a laptop, Raspberry Pi, or other helper machine will run the final installer agent.</span>
+          </div>
+        </div>
       </div>`;
   },
 
@@ -2376,6 +2385,10 @@ const stepRenderers={
       <div class="card">
         <h2>Export bundle</h2>
         <p class="subtitle">Bundles the plan, profile, SSH key, and <code>quickstart.sh</code> into one ZIP. Move it over by USB or another removable drive.</p>
+        <div class="info-box" style="margin-bottom:var(--s4)">
+          <strong>Need to switch helper PCs?</strong>
+          <p style="margin:var(--s2) 0 0 0">The export includes <code>quickhatch-handoff.json</code>. Load that file on another PC to restore this profile and plan without rerunning analysis. That helper PC must then generate/select its own SSH key and re-export the bundle before starting Remote Setup.</p>
+        </div>
         <div id="exportResult">${exportResultCard(state._exportResult)}</div>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
@@ -4054,6 +4067,33 @@ async function runExport(){
     el('exportResult').innerHTML=errorCard(data.message||'Export failed', 'onclick="runExport()"');
     el('exportBtn').disabled=false;el('exportBtn').textContent='Retry';
     toast('Export failed','error');
+  }
+}
+
+async function importHandoffFile(input){
+  const file=input?.files?.[0];
+  if(!file)return;
+  try{
+    const text=await file.text();
+    const handoff=JSON.parse(text);
+    const resp=await api('/wizard/import-handoff','POST',{handoff});
+    if(!resp||resp.status!=='ok'){
+      throw new Error((resp&&resp.message)||'Could not load this handoff file.');
+    }
+    clearClientWizardPersistence();
+    const seq=++state._profileRequestSeq;
+    applyServerProfile(resp.profile,seq);
+    refreshSteps();
+    const nextId=resp.next_step_id||'ssh';
+    const idx=STEPS.findIndex(s=>s.id===nextId);
+    state.currentStep=idx>=0?idx:0;
+    persistWizardProgressDraft();
+    render();
+    toast(resp.message||'Handoff loaded','success',4200);
+  }catch(e){
+    toast(e?.message||'Could not load handoff file','error',4200);
+  }finally{
+    if(input)input.value='';
   }
 }
 

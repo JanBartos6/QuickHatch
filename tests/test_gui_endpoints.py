@@ -226,6 +226,90 @@ class TestProfileEndpoint:
         assert server["gui_state"].profile.ai_config.provider == "api_openai"
         assert server["gui_state"].profile.ai_config.api_key is None
 
+    def test_import_handoff_restores_profile_and_plan_but_requires_local_key(
+        self, server, tmp_path
+    ):
+        missing_pub = tmp_path / "from-other-pc" / "quickhatch_ed25519.pub"
+        handoff = {
+            "type": "quickhatch-handoff",
+            "version": 1,
+            "profile": {
+                "preferences": {
+                    "migration_type": "fresh_install",
+                    "distro_preference": "Arch Linux",
+                    "another_machine": "yes",
+                },
+                "ai_config": {"provider": "api_gemini", "api_key": "should-not-load"},
+                "hardware": {},
+                "apps": [],
+                "files_summary": {},
+                "windows_settings": {},
+                "ssh_public_key_path": str(missing_pub),
+                "apps_to_install": ["Brave"],
+                "completed_steps": ["welcome", "ai_setup", "questionnaire"],
+            },
+            "bridge": {
+                "suggestions": [
+                    {
+                        "id": "plan1",
+                        "category": "plan",
+                        "title": "Migration Plan",
+                        "content": "Install Arch and KDE.",
+                    }
+                ],
+                "messages": [
+                    {"role": "agent", "content": "analysis survives", "phase": "analysis"},
+                    {"role": "agent", "content": "setup log drops", "phase": "setup"},
+                ],
+            },
+        }
+
+        status, body = _post(server["port"], "/wizard/import-handoff", {"handoff": handoff})
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["status"] == "ok"
+        assert data["next_step_id"] == "ssh"
+        assert data["requires_reexport"] is True
+        assert server["gui_state"].profile.ssh_public_key_path is None
+        assert server["gui_state"].profile.ai_config.api_key is None
+        assert "bridge" in server["gui_state"].profile.completed_steps
+        assert "ssh" not in server["gui_state"].profile.completed_steps
+
+        status, body = _get(server["port"], "/api/suggestions")
+        suggestions = json.loads(body)["suggestions"]
+        assert [s["title"] for s in suggestions] == ["Migration Plan"]
+        status, body = _get(server["port"], "/api/messages")
+        messages = json.loads(body)["messages"]
+        assert [m["content"] for m in messages] == ["analysis survives"]
+
+    def test_import_handoff_with_local_key_lands_on_export_for_reexport(self, server, tmp_path):
+        key = tmp_path / "quickhatch_ed25519"
+        pub = tmp_path / "quickhatch_ed25519.pub"
+        key.write_text("private", encoding="utf-8")
+        pub.write_text("ssh-ed25519 AAAATEST quickhatch\n", encoding="utf-8")
+        handoff = {
+            "type": "quickhatch-handoff",
+            "profile": {
+                "preferences": {"migration_type": "fresh_install", "another_machine": "yes"},
+                "hardware": {},
+                "apps": [],
+                "files_summary": {},
+                "windows_settings": {},
+                "ssh_public_key_path": str(pub),
+            },
+            "bridge": {"suggestions": [{"category": "plan", "title": "Plan", "content": "..."}]},
+        }
+
+        status, body = _post(server["port"], "/wizard/import-handoff", {"handoff": handoff})
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["status"] == "ok"
+        assert data["next_step_id"] == "export"
+        assert server["gui_state"].profile.ssh_public_key_path == str(pub)
+        assert "export" not in server["gui_state"].profile.completed_steps
+
     def test_update_can_store_api_key_in_os_keyring_without_response_leak(
         self, server, monkeypatch
     ):

@@ -730,6 +730,103 @@ def _reset_all_data(gui_state: GUIState) -> dict[str, Any]:
     }
 
 
+_MIGRATION_HANDOFF_STEPS = [
+    "welcome",
+    "ai_setup",
+    "questionnaire",
+    "scan",
+    "apps_data",
+    "additional",
+    "bridge",
+    "usb",
+]
+
+
+def _restore_handoff(gui_state: GUIState, payload: Any) -> dict[str, Any]:
+    """Restore a portable profile+plan handoff created by export.
+
+    A handoff can come from a different helper PC, so saved local file paths
+    are not trustworthy. If the SSH public/private keypair is not usable on
+    THIS machine, clear the key path and send the user back to the SSH step.
+    """
+    if not isinstance(payload, dict):
+        return {"status": "error", "message": "Expected a QuickHatch handoff JSON object."}
+
+    if payload.get("type") == "quickhatch-handoff":
+        profile_payload = payload.get("profile")
+        bridge_payload = payload.get("bridge") if isinstance(payload.get("bridge"), dict) else {}
+    elif isinstance(payload.get("profile"), dict):
+        # Tolerate early handoff-like files that only wrapped a profile.
+        profile_payload = payload.get("profile")
+        bridge_payload = payload.get("bridge") if isinstance(payload.get("bridge"), dict) else {}
+    else:
+        # Also accept quickhatch-profile.json directly as a convenience.
+        profile_payload = payload
+        bridge_payload = {}
+
+    restored = UserProfile.from_dict(profile_payload)
+    if restored is None:
+        return {
+            "status": "error",
+            "message": "The selected file does not contain a valid QuickHatch profile.",
+        }
+    # Handoff/profile JSON is intentionally portable/debuggable; never trust
+    # or import raw secrets from it. The receiving PC can use its own keyring
+    # entry if GUIState.restore_profile finds a matching local AI target.
+    restored.ai_config.api_key = None
+
+    suggestions = bridge_payload.get("suggestions", [])
+    messages = bridge_payload.get("messages", [])
+    if not isinstance(suggestions, list):
+        suggestions = []
+    if not isinstance(messages, list):
+        messages = []
+    has_plan = any(
+        isinstance(item, dict)
+        and str(item.get("category") or "")
+        in {"distro", "apps", "drivers", "desktop", "plan", "summary", "install_script"}
+        for item in suggestions
+    )
+
+    # Imported API key sentinels are deliberately ignored by UserProfile.from_dict.
+    # SSH paths are machine-local. If the matching private key is absent on the
+    # receiving PC, force a local key/export refresh before setup.
+    imported_key_ready = _ssh_key_status(restored)["ready"]
+    requires_reexport = True
+    if not imported_key_ready:
+        restored.ssh_public_key_path = None
+
+    completed = list(dict.fromkeys(restored.completed_steps or []))
+    if has_plan:
+        for step in _MIGRATION_HANDOFF_STEPS:
+            if step not in completed:
+                completed.append(step)
+    # Re-export from the helper PC so quickstart.sh contains the helper's
+    # public key. Never trust an old export bundle from another machine.
+    completed = [step for step in completed if step not in {"ssh", "export", "setup"}]
+    restored.completed_steps = completed
+
+    changed = gui_state.restore_profile(restored)
+    gui_state.bridge.restore_handoff_state(suggestions=suggestions, messages=messages)
+    gui_state.profile.save_checkpoint()
+
+    next_step_id = "export" if _ssh_key_status(gui_state.profile)["ready"] else "ssh"
+    message = (
+        "Handoff loaded. Re-export the bundle from this helper PC before Remote Setup."
+        if next_step_id == "export"
+        else "Handoff loaded. Generate or select an SSH key on this helper PC, then re-export before Remote Setup."
+    )
+    return {
+        "status": "ok",
+        "changed": changed or bool(suggestions or messages),
+        "message": message,
+        "next_step_id": next_step_id,
+        "requires_reexport": requires_reexport,
+        "imported_suggestions": len(suggestions),
+        "profile": _profile_response_dict(gui_state.profile),
+    }
+
+
 def _format_recipe_short(entry: dict[str, Any]) -> str:
     """Render a single recipe as a compact one-paragraph line for library injection.
 
@@ -1357,6 +1454,12 @@ def make_gui_server(
                         "profile": _profile_response_dict(gui_state.profile),
                     }
                 )
+
+            elif self.path == "/wizard/import-handoff":
+                data = self._read_json()
+                payload = data.get("handoff") if isinstance(data, dict) else data
+                result = _restore_handoff(gui_state, payload)
+                self._send_json(result, 200 if result.get("status") == "ok" else 400)
 
             elif self.path == "/wizard/reset-all":
                 self._read_json()  # drain request body
@@ -3951,7 +4054,9 @@ def _ssh_exec(
         )
         stderr = result.stderr
         if result.returncode in {124, 137} and "timed out" not in (stderr or "").lower():
-            stderr = (stderr.rstrip() + f"\nCommand timed out on target after {remote_timeout}s").strip()
+            stderr = (
+                stderr.rstrip() + f"\nCommand timed out on target after {remote_timeout}s"
+            ).strip()
         return result.returncode, result.stdout, stderr
     except subprocess.TimeoutExpired:
         return -1, "", "Command timed out"
@@ -4809,9 +4914,7 @@ def _normalize_setup_repo_search_query(query: str) -> str:
     ]
     matches: list[str] = []
     for pattern in command_patterns:
-        matches.extend(
-            match.group("query").strip() for match in re.finditer(pattern, normalized)
-        )
+        matches.extend(match.group("query").strip() for match in re.finditer(pattern, normalized))
     if matches:
         normalized = matches[-1]
 
@@ -8250,8 +8353,11 @@ def _run_export(gui_state: GUIState) -> dict:
     from quickhatch.ai.instruction_gen import save_instructions
     from quickhatch.wizard.export import (
         GENERATED_EXPORT_FILES,
+        HANDOFF_FILE_NAME,
         _generate_quickstart,
+        build_handoff_payload,
         generate_start_here,
+        redacted_profile_dict,
     )
 
     output_dir = _export_output_dir()
@@ -8284,9 +8390,7 @@ def _run_export(gui_state: GUIState) -> dict:
         files.append(inst_path.name)
 
         # Profile JSON (redact API key)
-        profile_dict = asdict(gui_state.profile)
-        if profile_dict.get("ai_config", {}).get("api_key"):
-            profile_dict["ai_config"]["api_key"] = "***STORED_SEPARATELY***"
+        profile_dict = redacted_profile_dict(gui_state.profile)
         json_path = output_dir / "quickhatch-profile.json"
         json_path.write_text(json.dumps(profile_dict, indent=2))
         files.append(json_path.name)
@@ -8295,6 +8399,27 @@ def _run_export(gui_state: GUIState) -> dict:
         yaml_path = output_dir / "quickhatch-profile.yaml"
         yaml_path.write_text(yaml.dump(profile_dict, default_flow_style=False, sort_keys=False))
         files.append(yaml_path.name)
+
+        suggestions = [asdict(s) for s in gui_state.bridge.snapshot_suggestions()]
+        with gui_state.bridge.lock:
+            messages = [
+                dict(m)
+                for m in gui_state.bridge.messages
+                if (m.get("phase") or "analysis") != "setup"
+            ]
+        handoff_path = output_dir / HANDOFF_FILE_NAME
+        handoff_path.write_text(
+            json.dumps(
+                build_handoff_payload(
+                    gui_state.profile,
+                    suggestions=suggestions,
+                    messages=messages,
+                ),
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        files.append(handoff_path.name)
 
         # Offline install script (present only when the user said they
         # don't have a second machine — analysis phase generated it as

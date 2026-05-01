@@ -155,7 +155,7 @@ _ARCH_LIVE_VCONSOLE_PREP_COMMAND = (
     "printf 'KEYMAP=us\\n' > /mnt/etc/vconsole.conf; }"
 )
 _ARCH_LIVE_PACSTRAP_KEYRING_COMMAND = (
-    "sh -c 'set -e; qh_sudo=; [ \"$(id -u)\" = 0 ] || qh_sudo=sudo; "
+    'sh -c \'set -e; qh_sudo=; [ "$(id -u)" = 0 ] || qh_sudo=sudo; '
     "$qh_sudo pacman-key --init; "
     "$qh_sudo pacman-key --populate archlinux; "
     "$qh_sudo pacman -Sy --noconfirm archlinux-keyring'"
@@ -1188,9 +1188,7 @@ class SetupOrchestrator:
             time.sleep(delay)
         return last_result
 
-    def _try_repair_live_fedora_kernel_artifacts(
-        self, failures: list[str], summary: str
-    ) -> bool:
+    def _try_repair_live_fedora_kernel_artifacts(self, failures: list[str], summary: str) -> bool:
         facts = self.ctx.facts or SetupFacts()
         if not facts.is_live or (facts.distro_family != "fedora" and facts.os_id != "fedora"):
             return False
@@ -1244,23 +1242,23 @@ class SetupOrchestrator:
             'test -d "$qh_root/etc"; '
             'if ! grep -qiE "^ID(_LIKE)?=.*fedora" "$qh_root/etc/os-release"; then '
             'echo "target is not Fedora"; exit 2; fi; '
-            'for qh_bind in dev dev/pts proc sys run; do '
+            "for qh_bind in dev dev/pts proc sys run; do "
             '$qh_sudo mkdir -p "$qh_root/$qh_bind"; '
             'mountpoint -q "$qh_root/$qh_bind" || $qh_sudo mount --bind "/$qh_bind" "$qh_root/$qh_bind" || true; '
-            'done; '
+            "done; "
             'qh_kver="$($qh_sudo chroot "$qh_root" sh -c \'ls /usr/lib/modules 2>/dev/null | sort -V | tail -n1\')"; '
             'test -n "$qh_kver"; '
             'test -f "$qh_root/usr/lib/modules/$qh_kver/vmlinuz"; '
             '$qh_sudo mkdir -p "$qh_root/boot"; '
             'if ! test -s "$qh_root/boot/vmlinuz-$qh_kver"; then '
             '$qh_sudo cp "$qh_root/usr/lib/modules/$qh_kver/vmlinuz" "$qh_root/boot/vmlinuz-$qh_kver"; '
-            'fi; '
+            "fi; "
             'if ! test -s "$qh_root/boot/initramfs-$qh_kver.img"; then '
             '$qh_sudo chroot "$qh_root" dracut --force --kver "$qh_kver" "/boot/initramfs-$qh_kver.img"; '
-            'fi; '
-            'if $qh_sudo chroot "$qh_root" sh -c \'command -v grub2-mkconfig >/dev/null 2>&1\'; then '
-            '$qh_sudo chroot "$qh_root" sh -c \'mkdir -p /boot/grub2 && grub2-mkconfig -o /boot/grub2/grub.cfg\'; '
-            'fi; '
+            "fi; "
+            "if $qh_sudo chroot \"$qh_root\" sh -c 'command -v grub2-mkconfig >/dev/null 2>&1'; then "
+            "$qh_sudo chroot \"$qh_root\" sh -c 'mkdir -p /boot/grub2 && grub2-mkconfig -o /boot/grub2/grub.cfg'; "
+            "fi; "
             'test -s "$qh_root/boot/vmlinuz-$qh_kver"; '
             'test -s "$qh_root/boot/initramfs-$qh_kver.img"'
         )
@@ -1449,7 +1447,7 @@ class SetupOrchestrator:
             f'$qh_sudo chroot "$qh_root" grub-mkconfig -o /boot/grub/grub.cfg; '
             f"fi; "
             f"if $qh_sudo chroot \"$qh_root\" sh -c 'command -v grub-editenv >/dev/null 2>&1'; then "
-            f"$qh_sudo chroot \"$qh_root\" sh -c "
+            f'$qh_sudo chroot "$qh_root" sh -c '
             f"'test -f /boot/grub/grubenv && grub-editenv /boot/grub/grubenv list >/dev/null 2>&1 "
             f"|| grub-editenv /boot/grub/grubenv create' || true; "
             f"fi; "
@@ -1465,14 +1463,14 @@ class SetupOrchestrator:
             f'qh_efi_partuuid_lc="$(blkid -s PARTUUID -o value "$qh_efi_source" '
             f'2>/dev/null | tr "A-F" "a-f")"; '
             f'[ -n "$qh_efi_pk" ] && qh_efi_disk="/dev/$qh_efi_pk"; '
-            f'fi; '
+            f"fi; "
             f'qh_boot_entry="$($qh_sudo efibootmgr -v 2>/dev/null | '
-            f"awk -v p=\"$qh_efi_partuuid_lc\" "
+            f'awk -v p="$qh_efi_partuuid_lc" '
             f"'/^Boot[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]\\*/ "
             f"{{line=tolower($0); "
             f"if (line !~ /(cd-rom|dvd|usb|network|pxe|uiapp|windows boot manager)/ "
             f"&& line ~ /(quickhatch|ubuntu|debian|fedora|arch|opensuse|grub|linux)/ "
-            f"&& (p == \"\" || index(line, p) > 0)) "
+            f'&& (p == "" || index(line, p) > 0)) '
             f"{{print substr($1,5,4); exit}}}}')\"; "
             f'if [ -z "$qh_boot_entry" ]; then '
             f'qh_efi_loader=""; '
@@ -1484,20 +1482,20 @@ class SetupOrchestrator:
             f"qh_efi_loader='\\EFI\\debian\\grubx64.efi'; "
             f'elif test -f "$qh_root$qh_efi_dir/EFI/fedora/grubx64.efi"; then '
             f"qh_efi_loader='\\EFI\\fedora\\grubx64.efi'; "
-            f'else '
+            f"else "
             f"qh_efi_loader='\\EFI\\BOOT\\BOOTX64.EFI'; "
             f"fi; "
             f'if [ -n "$qh_efi_disk" ] && [ -n "$qh_efi_part" ]; then '
-            f"$qh_sudo efibootmgr -c -d \"$qh_efi_disk\" -p \"$qh_efi_part\" "
+            f'$qh_sudo efibootmgr -c -d "$qh_efi_disk" -p "$qh_efi_part" '
             f'-L quickhatch -l "$qh_efi_loader" || true; '
             f"fi; "
             f'qh_boot_entry="$($qh_sudo efibootmgr -v 2>/dev/null | '
-            f"awk -v p=\"$qh_efi_partuuid_lc\" "
+            f'awk -v p="$qh_efi_partuuid_lc" '
             f"'/^Boot[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]\\*/ "
             f"{{line=tolower($0); "
             f"if (line !~ /(cd-rom|dvd|usb|network|pxe|uiapp|windows boot manager)/ "
             f"&& line ~ /(quickhatch|ubuntu|debian|fedora|arch|opensuse|grub|linux)/ "
-            f"&& (p == \"\" || index(line, p) > 0)) "
+            f'&& (p == "" || index(line, p) > 0)) '
             f"{{print substr($1,5,4); exit}}}}')\"; "
             f"fi; "
             f'if [ -z "$qh_boot_entry" ]; then '
@@ -1558,17 +1556,17 @@ class SetupOrchestrator:
             f'$qh_sudo mkdir -p "$qh_root/etc/NetworkManager/conf.d"; '
             f"printf '%s\\n' {shlex.quote(managed_payload)} | "
             f'$qh_sudo tee "$qh_root/etc/NetworkManager/conf.d/10-quickhatch-managed.conf" '
-            f'>/dev/null; '
+            f">/dev/null; "
             f'if [ -d "$qh_root/etc/netplan" ]; then '
             f"printf '%s\\n' {shlex.quote(netplan_payload)} | "
             f'$qh_sudo tee "$qh_root/etc/netplan/01-quickhatch-networkmanager.yaml" '
-            f'>/dev/null; '
+            f">/dev/null; "
             f'$qh_sudo chmod 600 "$qh_root/etc/netplan/01-quickhatch-networkmanager.yaml"; fi; '
             f'$qh_sudo chroot "$qh_root" systemctl enable NetworkManager '
-            f'>/dev/null 2>&1 || true; '
+            f">/dev/null 2>&1 || true; "
             f'$qh_sudo chroot "$qh_root" systemctl enable ssh >/dev/null 2>&1 '
             f'|| $qh_sudo chroot "$qh_root" systemctl enable sshd >/dev/null 2>&1 '
-            f'|| true'
+            f"|| true"
         )
 
     def _ensure_live_install_reconnect_user(self) -> tuple[str, str]:
@@ -1632,11 +1630,11 @@ class SetupOrchestrator:
             f"qh_root={root_q}; "
             f'qh_sudo=sudo; [ "$(id -u)" -eq 0 ] && qh_sudo=; '
             f'test -f "$qh_root/etc/passwd" || exit 1; '
-            f'qh_groups=$($qh_sudo awk -F: '
+            f"qh_groups=$($qh_sudo awk -F: "
             f'\'$1=="sudo" || $1=="wheel" || $1=="admin" {{print "," $4 ","}}\' '
             f'"$qh_root/etc/group" | tr -d "\\n"); '
             f'$qh_sudo awk -F: -v groups="$qh_groups" '
-            f'\'$3 >= 1000 && $3 < 60000 && $7 !~ /(nologin|false)$/ '
+            f"'$3 >= 1000 && $3 < 60000 && $7 !~ /(nologin|false)$/ "
             f'&& index(groups, "," $1 ",") > 0 {{print $1; found=1; exit}} '
             f'END {{exit !found}}\' "$qh_root/etc/passwd"'
         )
@@ -1700,7 +1698,7 @@ class SetupOrchestrator:
             f"qh_group=sudo; "
             f'elif $qh_sudo chroot "$qh_root" getent group wheel >/dev/null 2>&1; then '
             f"qh_group=wheel; "
-            f"else $qh_sudo chroot \"$qh_root\" groupadd sudo; qh_group=sudo; fi; "
+            f'else $qh_sudo chroot "$qh_root" groupadd sudo; qh_group=sudo; fi; '
             f'if $qh_sudo chroot "$qh_root" id -u "$qh_user" >/dev/null 2>&1; then '
             f'$qh_sudo chroot "$qh_root" usermod -aG "$qh_group" "$qh_user"; '
             f"else "
@@ -1853,8 +1851,7 @@ class SetupOrchestrator:
             'qh_sudo=; [ "$(id -u)" -eq 0 ] || qh_sudo=sudo; '
             "$qh_sudo umount -R /mnt 2>/dev/null || true; "
             "$qh_sudo umount -R /target 2>/dev/null || true; "
-            "$qh_sudo sh -c "
-            + shlex.quote(background_reboot)
+            "$qh_sudo sh -c " + shlex.quote(background_reboot)
         )
         self.bridge.add_message("agent", "Rebooting into the installed system…")
         self.runlog.record(
@@ -2411,15 +2408,15 @@ class SetupOrchestrator:
             "if [ ! -f /etc/fstab ]; then echo missing-fstab; exit 2; fi; "
             "root_src=$(awk '$2 == \"/\" {print $1; exit}' /etc/fstab); "
             "printf '%s\\n' \"$root_src\"; "
-            "[ -n \"$root_src\" ] || exit 2; "
-            "case \"$root_src\" in "
+            '[ -n "$root_src" ] || exit 2; '
+            'case "$root_src" in '
             "UUID=) exit 3 ;; "
             "UUID=*) uuid=${root_src#UUID=}; "
-            "[ -n \"$uuid\" ] && blkid -U \"$uuid\" >/dev/null 2>&1 || exit 4 ;; "
+            '[ -n "$uuid" ] && blkid -U "$uuid" >/dev/null 2>&1 || exit 4 ;; '
             "PARTUUID=*) partuuid=${root_src#PARTUUID=}; "
-            "[ -n \"$partuuid\" ] && blkid -t PARTUUID=\"$partuuid\" >/dev/null 2>&1 || exit 4 ;; "
-            "LABEL=*) label=${root_src#LABEL=}; [ -n \"$label\" ] || exit 3 ;; "
-            "/dev/*) test -b \"$root_src\" || exit 4 ;; "
+            '[ -n "$partuuid" ] && blkid -t PARTUUID="$partuuid" >/dev/null 2>&1 || exit 4 ;; '
+            'LABEL=*) label=${root_src#LABEL=}; [ -n "$label" ] || exit 3 ;; '
+            '/dev/*) test -b "$root_src" || exit 4 ;; '
             "*) exit 5 ;; "
             "esac"
         )
@@ -2484,19 +2481,19 @@ class SetupOrchestrator:
             "if ! command -v loginctl >/dev/null 2>&1; then exit 0; fi; "
             "found=0; "
             "for s in $(loginctl list-sessions --no-legend 2>/dev/null | awk '{print $1}'); do "
-            "remote=$(loginctl show-session \"$s\" -p Remote --value 2>/dev/null || true); "
-            "class=$(loginctl show-session \"$s\" -p Class --value 2>/dev/null || true); "
-            "state=$(loginctl show-session \"$s\" -p State --value 2>/dev/null || true); "
-            "name=$(loginctl show-session \"$s\" -p Name --value 2>/dev/null || true); "
-            "type=$(loginctl show-session \"$s\" -p Type --value 2>/dev/null || true); "
-            "if [ \"$remote\" != yes ] && "
+            'remote=$(loginctl show-session "$s" -p Remote --value 2>/dev/null || true); '
+            'class=$(loginctl show-session "$s" -p Class --value 2>/dev/null || true); '
+            'state=$(loginctl show-session "$s" -p State --value 2>/dev/null || true); '
+            'name=$(loginctl show-session "$s" -p Name --value 2>/dev/null || true); '
+            'type=$(loginctl show-session "$s" -p Type --value 2>/dev/null || true); '
+            'if [ "$remote" != yes ] && '
             "printf '%s\\n' \"$class $state $name $type\" | "
             "grep -Eqi '(greeter|user).*(active|online)|gdm|sddm|lightdm'; then "
-            "printf '%s %s %s %s %s\\n' \"$s\" \"$name\" \"$class\" \"$state\" \"$type\"; "
+            'printf \'%s %s %s %s %s\\n\' "$s" "$name" "$class" "$state" "$type"; '
             "found=1; "
             "fi; "
             "done; "
-            "exit $([ \"$found\" = 1 ] && echo 0 || echo 1)"
+            'exit $([ "$found" = 1 ] && echo 0 || echo 1)'
         )
         rc, stdout, stderr = self.runtime.ssh_exec(command, 30)
         final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
@@ -3450,8 +3447,7 @@ class SetupOrchestrator:
         commands = self._normalize_apt_network_timeouts(stage, group, commands)
         commands = self._normalize_apt_noninteractive(stage, group, commands)
         commands = [
-            self._normalize_live_blkid_fstab_command(command, stage=stage)
-            for command in commands
+            self._normalize_live_blkid_fstab_command(command, stage=stage) for command in commands
         ]
         commands = [
             self._normalize_live_nonroot_chroot_command(command, stage=stage)
@@ -3554,11 +3550,11 @@ class SetupOrchestrator:
         if re.match(r"test\s+-[a-zA-Z]+\s+/mnt/", stripped):
             rewritten = f"sudo {stripped}"
         else:
-            bracket_match = re.fullmatch(
-                r"\[\s+(-[a-zA-Z]+)\s+(/mnt/[^\]\s]+)\s+\]", stripped
-            )
+            bracket_match = re.fullmatch(r"\[\s+(-[a-zA-Z]+)\s+(/mnt/[^\]\s]+)\s+\]", stripped)
             if bracket_match:
-                rewritten = f"sudo test {bracket_match.group(1)} {shlex.quote(bracket_match.group(2))}"
+                rewritten = (
+                    f"sudo test {bracket_match.group(1)} {shlex.quote(bracket_match.group(2))}"
+                )
         if not rewritten:
             return command
         self.runlog.record(
@@ -3682,17 +3678,17 @@ class SetupOrchestrator:
             return commands
         prep = (
             "sudo sh -c 'set -e; "
-            "if grep -RqsE \"^[[:space:]]*(deb|Components:).*(universe|multiverse)\" "
+            'if grep -RqsE "^[[:space:]]*(deb|Components:).*(universe|multiverse)" '
             "/etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then exit 0; fi; "
-            ". /etc/os-release; codename=\"${VERSION_CODENAME:-}\"; "
-            "if [ -z \"$codename\" ] && command -v lsb_release >/dev/null 2>&1; "
-            "then codename=\"$(lsb_release -sc)\"; fi; "
-            "[ -n \"$codename\" ]; "
-            "printf \"%s\\n\" "
-            "\"deb http://archive.ubuntu.com/ubuntu $codename restricted universe multiverse\" "
-            "\"deb http://archive.ubuntu.com/ubuntu $codename-updates restricted universe multiverse\" "
-            "\"deb http://archive.ubuntu.com/ubuntu $codename-backports restricted universe multiverse\" "
-            "\"deb http://security.ubuntu.com/ubuntu $codename-security restricted universe multiverse\" "
+            '. /etc/os-release; codename="${VERSION_CODENAME:-}"; '
+            'if [ -z "$codename" ] && command -v lsb_release >/dev/null 2>&1; '
+            'then codename="$(lsb_release -sc)"; fi; '
+            '[ -n "$codename" ]; '
+            'printf "%s\\n" '
+            '"deb http://archive.ubuntu.com/ubuntu $codename restricted universe multiverse" '
+            '"deb http://archive.ubuntu.com/ubuntu $codename-updates restricted universe multiverse" '
+            '"deb http://archive.ubuntu.com/ubuntu $codename-backports restricted universe multiverse" '
+            '"deb http://security.ubuntu.com/ubuntu $codename-security restricted universe multiverse" '
             "> /etc/apt/sources.list.d/quickhatch-ubuntu-components.list' && sudo apt-get update"
         )
         self.runlog.record(
@@ -3734,6 +3730,7 @@ class SetupOrchestrator:
             return commands
         patched: list[str] = []
         for command in commands:
+
             def repl(match: re.Match[str]) -> str:
                 matched = match.group(0)
                 if "DEBIAN_FRONTEND=" in matched:
@@ -4003,7 +4000,11 @@ class SetupOrchestrator:
         if not tokens or tokens[0] != "cp":
             return command
         args = [token for token in tokens[1:] if token not in {"-L", "-f"}]
-        if len(args) != 2 or args[0] != "/etc/resolv.conf" or args[1] not in _LIVE_RESOLV_CONF_TARGETS:
+        if (
+            len(args) != 2
+            or args[0] != "/etc/resolv.conf"
+            or args[1] not in _LIVE_RESOLV_CONF_TARGETS
+        ):
             return command
         target_q = shlex.quote(args[1])
         return "sudo sh -c " + shlex.quote(

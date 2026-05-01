@@ -444,6 +444,85 @@ class BridgeState:
             self.suggestions[:] = new_list
             self._persist()
 
+    def restore_handoff_state(
+        self,
+        *,
+        suggestions: list[dict[str, Any]] | None = None,
+        messages: list[dict[str, Any]] | None = None,
+    ) -> None:
+        """Restore portable analysis state from a QuickHatch handoff file.
+
+        Handoffs are meant to move a completed analysis/plan to a different
+        helper machine before Remote Setup. Runtime-only state (pending
+        questions, active setup runs, stop flags) is intentionally discarded.
+        """
+        restored_suggestions: list[Suggestion] = []
+        for item in suggestions or []:
+            if not isinstance(item, dict):
+                continue
+            category = str(item.get("category") or "").strip()
+            title = str(item.get("title") or "").strip()
+            if not category or not title:
+                continue
+            try:
+                timestamp = float(item.get("timestamp") or time.time())
+            except (TypeError, ValueError):
+                timestamp = time.time()
+            restored_suggestions.append(
+                Suggestion(
+                    id=str(item.get("id") or uuid.uuid4())[:32],
+                    category=category,
+                    title=title,
+                    content=item.get("content", ""),
+                    timestamp=timestamp,
+                    accepted=item.get("accepted")
+                    if item.get("accepted") in {True, False}
+                    else None,
+                )
+            )
+
+        restored_messages: list[dict[str, Any]] = []
+        for item in messages or []:
+            if not isinstance(item, dict):
+                continue
+            role = str(item.get("role") or "").strip() or "agent"
+            content = str(item.get("content") or "")
+            if not content.strip():
+                continue
+            try:
+                when = float(item.get("time") or time.time())
+            except (TypeError, ValueError):
+                when = time.time()
+            phase = str(item.get("phase") or "analysis")
+            # Do not replay stale setup command logs/questions from a
+            # different helper machine. Analysis messages are useful context;
+            # setup messages are tied to a specific SSH session.
+            if phase == "setup":
+                continue
+            restored_messages.append(
+                {"role": role, "content": content, "time": when, "phase": phase or "analysis"}
+            )
+
+        with self.lock:
+            self.suggestions[:] = restored_suggestions
+            self.messages[:] = restored_messages
+            self.questions.clear()
+            self.agent_connected = False
+            self.agent_done = bool(restored_suggestions)
+            self.stop_requested = False
+            self.current_phase = ""
+            self.setup_run = {
+                "run_id": "",
+                "stage": "",
+                "status": "idle",
+                "blockers": [],
+                "waiting_for_input": False,
+                "active_question_id": "",
+                "planning_complete": False,
+            }
+            data = self._serialize_payload_locked()
+        self._write_payload_unlocked(data)
+
     def add_suggestion(self, category: str, title: str, content: Any) -> str:
         sid = str(uuid.uuid4())[:8]
         suggestion = Suggestion(id=sid, category=category, title=title, content=content)

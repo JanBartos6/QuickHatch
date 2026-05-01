@@ -6,6 +6,7 @@ import json
 import zipfile
 from dataclasses import asdict
 from pathlib import Path
+from typing import Any
 
 import questionary
 import yaml
@@ -19,11 +20,55 @@ GENERATED_EXPORT_FILES = {
     "START_HERE.md",
     "quickhatch-profile.json",
     "quickhatch-profile.yaml",
+    "quickhatch-handoff.json",
     "quickstart.sh",
     "install.sh",
     "quickhatch-migration-bundle.zip",
     ".api_key",
 }
+
+HANDOFF_FILE_NAME = "quickhatch-handoff.json"
+
+
+def redacted_profile_dict(profile: UserProfile) -> dict[str, Any]:
+    """Return profile JSON safe to copy between machines."""
+    profile_dict = asdict(profile)
+    if isinstance(profile_dict.get("ai_config"), dict):
+        profile_dict["ai_config"]["api_key"] = None
+    return profile_dict
+
+
+def build_handoff_payload(
+    profile: UserProfile,
+    *,
+    suggestions: list[dict[str, Any]] | None = None,
+    messages: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Portable checkpoint for moving the finished plan to another PC.
+
+    Deliberately excludes API keys and SSH private keys. The receiving
+    machine should generate/select its own SSH key and re-export the bundle
+    before starting Remote Setup.
+    """
+    import time
+
+    return {
+        "type": "quickhatch-handoff",
+        "version": 1,
+        "created_at": time.time(),
+        "profile": redacted_profile_dict(profile),
+        "bridge": {
+            "suggestions": list(suggestions or []),
+            "messages": list(messages or []),
+        },
+        "target_step": "setup",
+        "notes": (
+            "Load this in QuickHatch on another helper PC to reuse the saved "
+            "profile and analysis plan. API keys and SSH private keys are not "
+            "included; generate or select a local SSH key on the receiving PC "
+            "and re-export the bundle before Remote Setup."
+        ),
+    }
 
 
 def _write_unix_text(path: Path, text: str) -> None:
@@ -157,14 +202,19 @@ def run(profile: UserProfile) -> None:
     print_info("Saving profile data...")
     profile_path = output_dir / "quickhatch-profile.json"
     # Exclude sensitive data like API keys from the JSON dump
-    profile_dict = asdict(profile)
-    if profile_dict.get("ai_config", {}).get("api_key"):
-        profile_dict["ai_config"]["api_key"] = "***STORED_SEPARATELY***"
+    profile_dict = redacted_profile_dict(profile)
     profile_path.write_text(json.dumps(profile_dict, indent=2))
 
     # Save as YAML for human readability
     yaml_path = output_dir / "quickhatch-profile.yaml"
     yaml_path.write_text(yaml.dump(profile_dict, default_flow_style=False, sort_keys=False))
+
+    handoff_path = output_dir / HANDOFF_FILE_NAME
+    handoff_path.write_text(
+        json.dumps(build_handoff_payload(profile), indent=2),
+        encoding="utf-8",
+    )
+    print_info(f"Portable handoff saved: {handoff_path}")
 
     start_here_path = output_dir / "START_HERE.md"
     start_here_path.write_text(
@@ -214,6 +264,7 @@ def run(profile: UserProfile) -> None:
         f"  - START_HERE.md             (practical boot/install checklist)\n"
         f"  - quickhatch-profile.json    (machine-readable profile)\n"
         f"  - quickhatch-profile.yaml    (human-readable profile)\n"
+        f"  - quickhatch-handoff.json    (portable profile + plan checkpoint)\n"
         f"  - quickstart.sh              (quick-start script for Linux)\n"
         f"  - quickhatch-migration-bundle.zip (all-in-one archive)\n\n"
         f"[bold]Next steps:[/bold]\n"
