@@ -2656,15 +2656,22 @@ def test_arch_nvidia_group_rewrites_legacy_driver_install_and_adds_boot_config()
 
     commands = orchestrator._commands_for_group(SetupStage.POSTBOOT_DRIVER, group)
 
-    assert commands[0] == (
+    assert commands[0].startswith("sudo sed -i ")
+    assert "multilib" in commands[0]
+    assert (
         "sudo pacman -Syu --needed --noconfirm "
         "linux-headers nvidia-open nvidia-utils lib32-nvidia-utils nvidia-settings"
-    )
+    ) in commands[0]
     assert not any("$NV_PKG" in command for command in commands)
     assert not any(" --noconfirm nvidia " in command for command in commands)
     assert any("blacklist nouveau" in command for command in commands)
     assert any("mkinitcpio -P" in command for command in commands)
     assert any("grub-mkconfig" in command for command in commands)
+    assert commands[-3:] == [
+        "sudo modprobe nvidia || true",
+        "sudo modprobe nvidia_uvm || true",
+        "sudo modprobe nvidia_drm || true",
+    ]
 
 
 def test_arch_nvidia_group_does_not_rewrite_pre_turing_gpu_to_default_packages():
@@ -2719,6 +2726,90 @@ def test_arch_nvidia_group_keeps_open_stack_for_rtx_gpu():
     commands = orchestrator._commands_for_group(SetupStage.POSTBOOT_DRIVER, group)
 
     assert "linux-headers nvidia-open nvidia-utils" in commands[0]
+
+
+def test_arch_nvidia_recovery_group_is_injected_when_postboot_plan_is_missing():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    initial_facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GA102 [GeForce RTX 3080]"],
+        kernel_release="7.0.3-arch1-1",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+        nvidia_smi_state="present_but_failing",
+        nvidia_kernel_driver="driver",
+        nvidia_nouveau_bound=False,
+        driver_modules=[],
+    )
+    healthy_facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GA102 [GeForce RTX 3080]"],
+        kernel_release="7.0.3-arch1-1",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+        nvidia_smi_state="ok",
+        nvidia_kernel_driver="nvidia",
+        nvidia_nouveau_bound=False,
+        driver_modules=["nvidia", "nvidia_drm"],
+    )
+    executed: list[str] = []
+
+    def ssh_exec(command: str, _timeout: int):
+        executed.append(command)
+        return (0, "ok", "")
+
+    def probe_facts(**_kwargs):
+        if any("pacman -Syu" in command for command in executed):
+            return healthy_facts
+        return initial_facts
+
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        initial_facts,
+        ssh_exec=ssh_exec,
+        probe_facts=probe_facts,
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = initial_facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation with NVIDIA",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(
+            "nvidia-open",
+            confidence="resolved_official",
+            source="repo",
+            packages=[],
+        ),
+        desktop_strategy=StrategyDecision("kde", confidence="resolved_official", source="repo"),
+        command_groups=[],
+    )
+
+    orchestrator._run_postboot_driver()
+
+    assert any("NVIDIA hardware is present" in msg["content"] for msg in bridge.messages)
+    assert orchestrator.ctx.plan.command_groups[0].id == "quickhatch-arch-nvidia-recovery"
+    assert orchestrator.ctx.plan.driver_strategy.packages == [
+        "linux-headers",
+        "nvidia-open",
+        "nvidia-utils",
+        "lib32-nvidia-utils",
+        "nvidia-settings",
+    ]
+    assert any("multilib" in command for command in executed)
+    assert any("nvidia-open" in command for command in executed)
+    assert any("lib32-nvidia-utils" in command for command in executed)
+    assert any(command == "sudo modprobe nvidia || true" for command in executed)
+    assert any(command == "nvidia-smi" for command in executed)
+    assert orchestrator.ctx.stage_results[-1].passed is True
 
 
 def test_arch_nvidia_group_uses_lts_open_package_for_lts_kernel():

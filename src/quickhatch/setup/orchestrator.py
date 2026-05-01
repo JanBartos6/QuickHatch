@@ -116,6 +116,11 @@ _ARCH_NVIDIA_HARDENED_OPEN_PACKAGES = (
     "lib32-nvidia-utils",
     "nvidia-settings",
 )
+_ARCH_ENABLE_MULTILIB_COMMAND = (
+    "sudo sed -i "
+    "'/^#\\[multilib\\]/,/^#Include = \\/etc\\/pacman.d\\/mirrorlist/s/^#//' "
+    "/etc/pacman.conf"
+)
 _ARCH_NVIDIA_BOOT_CONFIG_COMMANDS = (
     "printf '%s\\n' 'blacklist nouveau' 'options nouveau modeset=0' | sudo tee /etc/modprobe.d/blacklist-nouveau.conf >/dev/null",
     "printf '%s\\n' 'options nvidia-drm modeset=1' | sudo tee /etc/modprobe.d/nvidia.conf >/dev/null",
@@ -124,6 +129,11 @@ _ARCH_NVIDIA_BOOT_CONFIG_COMMANDS = (
     'if [ -f /etc/default/grub ] && ! grep -q \'modprobe.blacklist=nouveau\' /etc/default/grub; then sudo sed -i \'s/GRUB_CMDLINE_LINUX_DEFAULT="\\([^"]*\\)"/GRUB_CMDLINE_LINUX_DEFAULT="\\1 modprobe.blacklist=nouveau"/\' /etc/default/grub; fi',
     "sudo mkinitcpio -P",
     "if command -v grub-mkconfig >/dev/null 2>&1; then sudo grub-mkconfig -o /boot/grub/grub.cfg; fi",
+)
+_ARCH_NVIDIA_MODULE_LOAD_COMMANDS = (
+    "sudo modprobe nvidia || true",
+    "sudo modprobe nvidia_uvm || true",
+    "sudo modprobe nvidia_drm || true",
 )
 _ARCH_AUR_BUILD_USER = "quickhatch-build"
 _ARCH_YAY_BOOTSTRAP_COMMAND = (
@@ -1902,6 +1912,7 @@ class SetupOrchestrator:
             raise RuntimeError(f"Install reboot command failed: {detail[:240]}")
 
     def _run_postboot_driver(self) -> None:
+        self._inject_arch_nvidia_recovery_group_if_needed()
         self._run_stage_groups(SetupStage.POSTBOOT_DRIVER)
 
     def _run_desktop(self) -> None:
@@ -4651,13 +4662,90 @@ class SetupOrchestrator:
                 continue
             if "mkinitcpio" in lower and " -p" in lower:
                 continue
+            if re.search(r"\bmodprobe\s+nvidia(?:\b|_)", lower):
+                continue
             normalized.append(stripped)
         if not inserted_install and any("nvidia" in command.lower() for command in commands):
             normalized.insert(0, self._arch_nvidia_install_command())
         for command in _ARCH_NVIDIA_BOOT_CONFIG_COMMANDS:
             if command not in normalized:
                 normalized.append(command)
+        for command in _ARCH_NVIDIA_MODULE_LOAD_COMMANDS:
+            if command not in normalized:
+                normalized.append(command)
         return normalized
+
+    def _inject_arch_nvidia_recovery_group_if_needed(self) -> None:
+        facts = self.ctx.facts or SetupFacts()
+        plan = self.ctx.plan
+        if plan is None or not self._needs_arch_nvidia_recovery_group(facts):
+            return
+        existing_groups = [
+            group for group in plan.command_groups if group.stage == SetupStage.POSTBOOT_DRIVER
+        ]
+        if any(
+            self._is_arch_nvidia_driver_group(
+                SetupStage.POSTBOOT_DRIVER, group, [*group.commands, *group.verification]
+            )
+            for group in existing_groups
+        ):
+            return
+        group = self._arch_nvidia_recovery_group()
+        plan.command_groups.append(group)
+        packages = list(self._arch_nvidia_packages())
+        plan.driver_strategy.strategy = plan.driver_strategy.strategy or "arch_nvidia_open"
+        plan.driver_strategy.confidence = "resolved_official"
+        plan.driver_strategy.source = "repo"
+        plan.driver_strategy.packages = packages
+        self.bridge.add_message(
+            "agent",
+            (
+                "NVIDIA hardware is present but the researched plan has no postboot driver "
+                "group; injecting Arch NVIDIA recovery commands before auditing drivers."
+            ),
+        )
+        self.runlog.record(
+            "arch_nvidia_recovery_group_injected",
+            stage=SetupStage.POSTBOOT_DRIVER.value,
+            facts=asdict(facts),
+            group=asdict(group),
+            packages=packages,
+        )
+
+    def _needs_arch_nvidia_recovery_group(self, facts: SetupFacts) -> bool:
+        if facts.package_manager != "pacman" or "nvidia" not in facts.gpu_vendors:
+            return False
+        if self._arch_nvidia_requires_manual_package_resolution():
+            return False
+        if facts.nvidia_nouveau_bound:
+            return True
+        if facts.nvidia_smi_state in {"missing", "present_but_failing"}:
+            return True
+        if facts.nvidia_kernel_driver.lower() in {"", "none", "unknown", "nouveau"}:
+            return True
+        module_names = {module.lower() for module in facts.driver_modules}
+        return bool(module_names and "nvidia" not in module_names)
+
+    def _arch_nvidia_recovery_group(self) -> CommandGroup:
+        commands = [
+            self._arch_nvidia_install_command(),
+            *_ARCH_NVIDIA_BOOT_CONFIG_COMMANDS,
+            *_ARCH_NVIDIA_MODULE_LOAD_COMMANDS,
+        ]
+        return CommandGroup(
+            id="quickhatch-arch-nvidia-recovery",
+            stage=SetupStage.POSTBOOT_DRIVER,
+            title="Arch NVIDIA Hardware Recovery",
+            commands=commands,
+            verification=["nvidia-smi"],
+            rationale=(
+                "QuickHatch detected NVIDIA hardware with an unhealthy driver state after "
+                "install/reconnect, so it installs the Arch kernel module stack and verifies "
+                "nvidia-smi before desktop work."
+            ),
+            source="repo",
+            packages=list(self._arch_nvidia_packages()),
+        )
 
     def _needs_arch_aur_helper_bootstrap(self, commands: list[str]) -> bool:
         facts = self.ctx.facts or SetupFacts()
@@ -4822,7 +4910,9 @@ class SetupOrchestrator:
 
     def _arch_nvidia_install_command(self) -> str:
         packages = " ".join(self._arch_nvidia_packages())
-        return f"sudo pacman -Syu --needed --noconfirm {packages}"
+        return (
+            f"{_ARCH_ENABLE_MULTILIB_COMMAND} && sudo pacman -Syu --needed --noconfirm {packages}"
+        )
 
     def _arch_nvidia_packages(self) -> tuple[str, ...]:
         facts = self.ctx.facts or SetupFacts()
