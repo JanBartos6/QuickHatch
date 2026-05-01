@@ -1549,7 +1549,7 @@ def test_apt_external_repo_groups_inject_download_prerequisites():
     assert "Acquire::http::Timeout=20" in prep
     assert "Acquire::https::Timeout=20" in prep
     assert "Acquire::ForceIPv4=true" in prep
-    assert " update && sudo apt -o " in prep
+    assert " update && sudo env DEBIAN_FRONTEND=noninteractive apt -o " in prep
     assert any('mkdir -p "$HOME/.config" "$HOME/.local" "$HOME/snap"' in c for c in commands)
 
 
@@ -1580,7 +1580,9 @@ def test_ubuntu_apt_install_injects_component_sources_before_package_resolution(
     assert "quickhatch-ubuntu-components.list" in commands[0]
     assert "restricted universe multiverse" in commands[0]
     assert "sudo apt-get -o Acquire::Retries=2" in commands[0]
-    assert commands[1].startswith("sudo apt-get -o Acquire::Retries=2")
+    assert commands[1].startswith(
+        "sudo env DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=2"
+    )
     assert "install -y virtualbox-guest-utils virtualbox-guest-x11 dkms" in commands[1]
 
 
@@ -1610,8 +1612,35 @@ def test_apt_commands_get_bounded_network_timeouts():
     assert apt_command.count("Acquire::http::Timeout=20") == 2
     assert apt_command.count("Acquire::https::Timeout=20") == 2
     assert apt_command.count("Acquire::ForceIPv4=true") == 2
-    assert " update && sudo apt-get -o " in apt_command
+    assert " update && sudo env DEBIAN_FRONTEND=noninteractive apt-get -o " in apt_command
     assert " install -y debootstrap gdisk" in apt_command
+
+
+def test_apt_mutating_commands_get_noninteractive_frontend():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="debian",
+        package_manager="apt",
+        current_user="ada",
+        login_user="ada",
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="desktop",
+        stage=SetupStage.DESKTOP,
+        title="Install XFCE",
+        commands=["sudo apt install -y task-xfce-desktop lightdm"],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.DESKTOP, group)
+
+    assert any(
+        command.startswith("sudo env DEBIAN_FRONTEND=noninteractive apt -o ")
+        and " install -y task-xfce-desktop lightdm" in command
+        for command in commands
+    )
 
 
 def test_desktop_cosmetic_package_verification_becomes_manual_followup():

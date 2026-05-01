@@ -621,6 +621,7 @@ def test_build_research_prompt_includes_selected_app_catalog():
     assert "Never assume Arch, KDE, NVIDIA, AUR" in prompt
     assert "VirtualBox with VMSVGA may report a `VMware SVGA` display adapter" in prompt
     assert "Do not install `virtualbox-guest-additions-iso`" in prompt
+    assert "do not run or recommend `VBoxLinuxAdditions.run`" in prompt
     assert "mark VM guest integration as manual_followup" in prompt
     assert "Variables do not persist across SSH executions" in prompt
     assert "do not add `--noconfirm` to `pacstrap`" in prompt
@@ -659,6 +660,7 @@ def test_build_repair_prompt_warns_about_vm_gpu_label_mismatch():
 
     assert "VirtualBox with VMSVGA may report a `VMware SVGA` display adapter" in prompt
     assert "Do not repair VM guest integration by installing `virtualbox-guest-additions-iso`" in prompt
+    assert "running or recommending `VBoxLinuxAdditions.run`" in prompt
     assert "emit manual_followup for VM integration" in prompt
     assert '"virtualization": "oracle"' in prompt
     assert "standalone shell variable assignments" in prompt

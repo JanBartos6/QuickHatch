@@ -232,6 +232,12 @@ _APT_INSTALL_COMMAND_RE = re.compile(
     r"(?<![\w/-])(?:apt-get|apt)(?![\w-])(?:(?![;&|]).)*\binstall\b",
     re.IGNORECASE,
 )
+_APT_MUTATING_COMMAND_RE = re.compile(
+    r"(?<![\w/-])(?P<sudo>sudo\s+)?(?P<tool>apt-get|apt)(?![\w-])"
+    r"(?P<tail>(?:(?![;&|]).)*\b(?:install|dist-upgrade|full-upgrade|upgrade)\b"
+    r"(?:(?![;&|]).)*)",
+    re.IGNORECASE,
+)
 _KICKSTART_DIRECTIVE_IN_PRINTF_RE = re.compile(
     r"(?<!%)%(packages|end|post|pre|addon|include|ksappend)\b",
     re.IGNORECASE,
@@ -3229,6 +3235,7 @@ class SetupOrchestrator:
         commands = self._inject_apt_external_repo_prereqs(stage, group, commands)
         commands = self._inject_ubuntu_apt_component_prereqs(stage, group, commands)
         commands = self._normalize_apt_network_timeouts(stage, group, commands)
+        commands = self._normalize_apt_noninteractive(stage, group, commands)
         commands = [
             self._normalize_live_nonroot_chroot_command(command, stage=stage)
             for command in commands
@@ -3445,6 +3452,37 @@ class SetupOrchestrator:
             if rewritten != command:
                 self.runlog.record(
                     "apt_network_timeouts_injected",
+                    stage=stage.value,
+                    group_id=group.id,
+                    original=command,
+                    rewritten=rewritten,
+                )
+            patched.append(rewritten)
+        return patched
+
+    def _normalize_apt_noninteractive(
+        self, stage: SetupStage, group: CommandGroup, commands: list[str]
+    ) -> list[str]:
+        facts = self.ctx.facts or SetupFacts()
+        if facts.package_manager != "apt":
+            return commands
+        patched: list[str] = []
+        for command in commands:
+            def repl(match: re.Match[str]) -> str:
+                matched = match.group(0)
+                if "DEBIAN_FRONTEND=" in matched:
+                    return matched
+                sudo = match.group("sudo") or ""
+                tool = match.group("tool")
+                tail = match.group("tail") or ""
+                if sudo:
+                    return f"{sudo}env DEBIAN_FRONTEND=noninteractive {tool}{tail}"
+                return f"DEBIAN_FRONTEND=noninteractive {tool}{tail}"
+
+            rewritten = _APT_MUTATING_COMMAND_RE.sub(repl, command)
+            if rewritten != command:
+                self.runlog.record(
+                    "apt_noninteractive_injected",
                     stage=stage.value,
                     group_id=group.id,
                     original=command,
