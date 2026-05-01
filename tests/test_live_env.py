@@ -154,6 +154,37 @@ class TestWaitForInstalledSshReconnect:
         assert calls[1][0] == "root"
         assert "/run/archiso" in calls[1][1]
 
+    def test_ignores_live_user_during_reboot_grace_window(self):
+        calls: list[tuple[str, str]] = []
+
+        def fake_ssh(_host, user, cmd, _key, timeout=120, port=22):
+            calls.append((user, cmd))
+            if user == "jan" and len(calls) >= 3:
+                return (0, "__reconnected__\n", "")
+            if user == "jan":
+                return (255, "", "Permission denied")
+            assert user == "root"
+            return (0, "LIVE:marker=/rofs\n", "")
+
+        with patch("quickhatch.gui.server._ssh_exec", side_effect=fake_ssh):
+            ok, message, connected_user = _wait_for_installed_ssh_reconnect(
+                "1.2.3.4",
+                "jan",
+                None,
+                fallback_user="root",
+                timeout=30,
+                interval=0,
+                live_fail_grace_seconds=999,
+            )
+        assert ok is True
+        assert message == ""
+        assert connected_user == "jan"
+        assert calls[:3] == [
+            ("jan", "echo __reconnected__"),
+            ("root", _wait_for_installed_ssh_reconnect.__globals__["_LIVE_ENV_DETECTION_SCRIPT"]),
+            ("jan", "echo __reconnected__"),
+        ]
+
     def test_can_continue_with_fallback_user_if_installed_system_allows_it(self):
         def fake_ssh(_host, user, cmd, _key, timeout=120, port=22):
             if user == "jan":

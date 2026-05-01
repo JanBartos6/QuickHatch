@@ -5239,6 +5239,7 @@ def _wait_for_installed_ssh_reconnect(
     fallback_user: str | None = None,
     timeout: int | None = None,
     interval: int = 5,
+    live_fail_grace_seconds: float = 0,
     stop_flag_getter=None,
 ) -> tuple[bool, str, str | None]:
     """Poll for the installed system and fail fast if the target boots live media.
@@ -5252,6 +5253,7 @@ def _wait_for_installed_ssh_reconnect(
     import time as _time
 
     deadline = None if timeout is None else (_time.time() + timeout)
+    live_fail_after = _time.monotonic() + max(0.0, live_fail_grace_seconds)
     last_error = ""
     while True:
         if stop_flag_getter is not None and stop_flag_getter():
@@ -5283,6 +5285,13 @@ def _wait_for_installed_ssh_reconnect(
             if live_rc == 0:
                 marker = live_out.strip().splitlines()[-1] if live_out.strip() else ""
                 if marker.startswith("LIVE:"):
+                    if _time.monotonic() < live_fail_after:
+                        last_error = (
+                            "Original live-session user is still reachable; "
+                            "waiting for the reboot transition to complete."
+                        )
+                        _time.sleep(interval)
+                        continue
                     return (
                         False,
                         "Target reconnected as the original live-session user, "
@@ -6228,6 +6237,7 @@ def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = ""
             port=ssh_port,
             fallback_user=previous_user,
             timeout=None,
+            live_fail_grace_seconds=30,
             stop_flag_getter=lambda: bridge.stop_requested,
         )
         if ok and connected_user:
