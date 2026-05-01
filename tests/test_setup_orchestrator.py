@@ -313,8 +313,10 @@ def test_live_target_uefi_boot_fallback_installs_removable_grub():
     assert "chroot \"$qh_root\" sh -c 'command -v grub-install" in command
     assert 'grub-install --target=x86_64-efi' in command
     assert '--bootloader-id=quickhatch' in command
+    assert '--bootloader-id=quickhatch --recheck' in command
     assert '--removable --recheck' in command
     assert 'EFI/BOOT/BOOTX64.EFI' in command
+    assert r"\EFI\quickhatch\grubx64.efi" in command
     assert 'update-grub' in command
     assert 'grub-mkconfig -o /boot/grub/grub.cfg' in command
     assert "efibootmgr -v" in command
@@ -325,6 +327,7 @@ def test_live_target_uefi_boot_fallback_installs_removable_grub():
     assert r"\EFI\BOOT\BOOTX64.EFI" in command
     assert "windows boot manager" in command
     assert "vbox harddisk" in command
+    assert command.index(r"\EFI\quickhatch\grubx64.efi") < command.index("vbox harddisk")
 
 
 def test_live_target_network_reconnect_command_seeds_networkmanager_dhcp():

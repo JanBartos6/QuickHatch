@@ -1364,7 +1364,13 @@ class SetupOrchestrator:
             f'[ -n "$qh_efi_dir" ] || exit 0; '
             f'$qh_sudo chroot "$qh_root" grub-install --target=x86_64-efi '
             f'--efi-directory="$qh_efi_dir" --bootloader-id=quickhatch '
+            f"--recheck; "
+            f'if ! test -f "$qh_root$qh_efi_dir/EFI/BOOT/BOOTX64.EFI" '
+            f'&& ! test -f "$qh_root$qh_efi_dir/EFI/boot/bootx64.efi"; then '
+            f'$qh_sudo chroot "$qh_root" grub-install --target=x86_64-efi '
+            f'--efi-directory="$qh_efi_dir" --bootloader-id=quickhatch '
             f"--removable --recheck; "
+            f"fi; "
             f"if $qh_sudo chroot \"$qh_root\" sh -c 'command -v update-grub >/dev/null 2>&1'; then "
             f'$qh_sudo chroot "$qh_root" update-grub; '
             f"elif $qh_sudo chroot \"$qh_root\" sh -c 'command -v grub-mkconfig >/dev/null 2>&1'; then "
@@ -1380,14 +1386,6 @@ class SetupOrchestrator:
             f"&& line ~ /(quickhatch|ubuntu|debian|fedora|arch|opensuse|grub|linux)/) "
             f"{{print substr($1,5,4); exit}}}}')\"; "
             f'if [ -z "$qh_boot_entry" ]; then '
-            f'qh_boot_entry="$($qh_sudo efibootmgr -v 2>/dev/null | '
-            f"awk '/^Boot[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]\\*/ "
-            f"{{line=tolower($0); "
-            f"if (line !~ /(cd-rom|dvd|usb|network|pxe|uiapp|windows boot manager)/ "
-            f"&& line ~ /(vbox harddisk|qemu harddisk|uefi os)/) "
-            f"{{print substr($1,5,4); exit}}}}')\"; "
-            f"fi; "
-            f'if [ -z "$qh_boot_entry" ]; then '
             f'qh_efi_source="$(findmnt -n -o SOURCE --target "$qh_root$qh_efi_dir" '
             f'2>/dev/null | head -n1)"; '
             f'qh_efi_disk=""; qh_efi_part=""; '
@@ -1396,15 +1394,35 @@ class SetupOrchestrator:
             f'qh_efi_part="$(lsblk -no PARTN "$qh_efi_source" 2>/dev/null | head -n1)"; '
             f'[ -n "$qh_efi_pk" ] && qh_efi_disk="/dev/$qh_efi_pk"; '
             f'fi; '
+            f'qh_efi_loader=""; '
+            f'if test -f "$qh_root$qh_efi_dir/EFI/quickhatch/grubx64.efi"; then '
+            f"qh_efi_loader='\\EFI\\quickhatch\\grubx64.efi'; "
+            f'elif test -f "$qh_root$qh_efi_dir/EFI/ubuntu/grubx64.efi"; then '
+            f"qh_efi_loader='\\EFI\\ubuntu\\grubx64.efi'; "
+            f'elif test -f "$qh_root$qh_efi_dir/EFI/debian/grubx64.efi"; then '
+            f"qh_efi_loader='\\EFI\\debian\\grubx64.efi'; "
+            f'elif test -f "$qh_root$qh_efi_dir/EFI/fedora/grubx64.efi"; then '
+            f"qh_efi_loader='\\EFI\\fedora\\grubx64.efi'; "
+            f'else '
+            f"qh_efi_loader='\\EFI\\BOOT\\BOOTX64.EFI'; "
+            f"fi; "
             f'if [ -n "$qh_efi_disk" ] && [ -n "$qh_efi_part" ]; then '
             f"$qh_sudo efibootmgr -c -d \"$qh_efi_disk\" -p \"$qh_efi_part\" "
-            f"-L quickhatch -l '\\EFI\\BOOT\\BOOTX64.EFI' || true; "
+            f'-L quickhatch -l "$qh_efi_loader" || true; '
             f"fi; "
             f'qh_boot_entry="$($qh_sudo efibootmgr -v 2>/dev/null | '
             f"awk '/^Boot[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]\\*/ "
             f"{{line=tolower($0); "
             f"if (line !~ /(cd-rom|dvd|usb|network|pxe|uiapp|windows boot manager)/ "
             f"&& line ~ /(quickhatch|ubuntu|debian|fedora|arch|opensuse|grub|linux)/) "
+            f"{{print substr($1,5,4); exit}}}}')\"; "
+            f"fi; "
+            f'if [ -z "$qh_boot_entry" ]; then '
+            f'qh_boot_entry="$($qh_sudo efibootmgr -v 2>/dev/null | '
+            f"awk '/^Boot[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]\\*/ "
+            f"{{line=tolower($0); "
+            f"if (line !~ /(cd-rom|dvd|usb|network|pxe|uiapp|windows boot manager)/ "
+            f"&& line ~ /(vbox harddisk|qemu harddisk|uefi os)/) "
             f"{{print substr($1,5,4); exit}}}}')\"; "
             f"fi; "
             f'[ -n "$qh_boot_entry" ] '
