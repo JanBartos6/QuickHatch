@@ -448,6 +448,43 @@ def test_systemd_health_ignores_transient_coredump_helpers():
     assert orchestrator._verify_systemd_health() == []
 
 
+def test_fstab_root_verification_blocks_empty_uuid():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan", is_live=False)
+
+    def ssh_exec(command: str, _timeout: int):
+        assert "/etc/fstab" in command
+        return (3, "UUID=\n", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+
+    blockers = orchestrator._verify_fstab_root_entry()
+
+    assert len(blockers) == 1
+    assert "Root fstab entry is missing or invalid" in blockers[0]
+    assert "UUID=" in blockers[0]
+
+
+def test_fstab_root_verification_accepts_valid_device_entry():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan", is_live=False)
+
+    def ssh_exec(_command: str, _timeout: int):
+        return (0, "/dev/sda1\n", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+
+    assert orchestrator._verify_fstab_root_entry() == []
+
+
 def test_systemd_health_still_blocks_real_failed_services():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

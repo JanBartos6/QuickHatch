@@ -2162,6 +2162,7 @@ class SetupOrchestrator:
             return []
         blockers: list[str] = []
         blockers.extend(self._verify_planned_packages_installed())
+        blockers.extend(self._verify_fstab_root_entry())
         blockers.extend(self._verify_systemd_health())
         blockers.extend(self._verify_display_manager_session_health())
         return blockers
@@ -2267,6 +2268,48 @@ class SetupOrchestrator:
             rf"(?<![A-Za-z0-9_.+-]){re.escape(variant.lower())}(?![A-Za-z0-9_.+-])"
         )
         return bool(pattern.search(text.lower()))
+
+    def _verify_fstab_root_entry(self) -> list[str]:
+        if self.ctx.facts is None or self.ctx.facts.is_live:
+            return []
+        command = (
+            "if [ ! -f /etc/fstab ]; then echo missing-fstab; exit 2; fi; "
+            "root_src=$(awk '$2 == \"/\" {print $1; exit}' /etc/fstab); "
+            "printf '%s\\n' \"$root_src\"; "
+            "[ -n \"$root_src\" ] || exit 2; "
+            "case \"$root_src\" in "
+            "UUID=) exit 3 ;; "
+            "UUID=*) uuid=${root_src#UUID=}; "
+            "[ -n \"$uuid\" ] && blkid -U \"$uuid\" >/dev/null 2>&1 || exit 4 ;; "
+            "PARTUUID=*) partuuid=${root_src#PARTUUID=}; "
+            "[ -n \"$partuuid\" ] && blkid -t PARTUUID=\"$partuuid\" >/dev/null 2>&1 || exit 4 ;; "
+            "LABEL=*) label=${root_src#LABEL=}; [ -n \"$label\" ] || exit 3 ;; "
+            "/dev/*) test -b \"$root_src\" || exit 4 ;; "
+            "*) exit 5 ;; "
+            "esac"
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 30)
+        final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
+        final_state["fstab_root_probe"] = {
+            "rc": rc,
+            "stdout_tail": (stdout or "")[-500:],
+            "stderr_tail": (stderr or "")[-500:],
+        }
+        self.runlog.record(
+            "final_fstab_root_verification",
+            rc=rc,
+            stdout_tail=(stdout or "")[-800:],
+            stderr_tail=(stderr or "")[-800:],
+        )
+        if rc == 0:
+            return []
+        observed = (stdout or stderr or "").strip().splitlines()
+        root_src = observed[-1] if observed else "<none>"
+        return [
+            "Root fstab entry is missing or invalid "
+            f"({root_src}). Re-write /etc/fstab with a valid UUID/PARTUUID/LABEL/block "
+            "device before declaring setup complete."
+        ]
 
     def _verify_systemd_health(self) -> list[str]:
         if self.ctx.facts is None or self.ctx.facts.init_system != "systemd":
