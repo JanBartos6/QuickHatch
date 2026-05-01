@@ -3301,6 +3301,10 @@ class SetupOrchestrator:
         commands = self._normalize_apt_network_timeouts(stage, group, commands)
         commands = self._normalize_apt_noninteractive(stage, group, commands)
         commands = [
+            self._normalize_live_blkid_fstab_command(command, stage=stage)
+            for command in commands
+        ]
+        commands = [
             self._normalize_live_nonroot_chroot_command(command, stage=stage)
             for command in commands
         ]
@@ -3345,6 +3349,23 @@ class SetupOrchestrator:
             self._normalize_installed_nonroot_privileged_command(command, stage=stage)
             for command in patched_commands
         ]
+
+    def _normalize_live_blkid_fstab_command(self, command: str, *, stage: SetupStage) -> str:
+        facts = self.ctx.facts or SetupFacts()
+        if stage != SetupStage.INSTALL_OR_SKIP or not facts.is_live:
+            return command
+        if "blkid" not in command or "/etc/fstab" not in command:
+            return command
+        rewritten = re.sub(r"\$\((?!sudo\s)(blkid\s+)", r"$(sudo \1", command)
+        if rewritten != command:
+            self.runlog.record(
+                "live_blkid_fstab_normalized",
+                stage=stage.value,
+                original=command,
+                rewritten=rewritten,
+                reason="live installs may need sudo to read block UUIDs for fstab",
+            )
+        return rewritten
 
     def _normalize_live_nonroot_chroot_command(self, command: str, *, stage: SetupStage) -> str:
         facts = self.ctx.facts or SetupFacts()

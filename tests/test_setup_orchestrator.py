@@ -4235,6 +4235,29 @@ def test_installroot_package_bootstrap_gets_long_timeout():
     assert timeout == 1800
 
 
+def test_live_fstab_blkid_command_is_normalized_to_sudo():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="fedora", package_manager="dnf", is_live=True)
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="fstab",
+        stage=SetupStage.INSTALL_OR_SKIP,
+        title="Write fstab",
+        commands=[
+            'UUID=$(blkid -s UUID -o value /dev/sda1) && '
+            'echo "UUID=$UUID / ext4 defaults 1 1" | sudo tee /mnt/etc/fstab'
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.INSTALL_OR_SKIP, group)
+
+    assert any(
+        "UUID=$(sudo blkid -s UUID -o value /dev/sda1)" in command for command in commands
+    )
+
+
 def test_ubuntu_live_debootstrap_gets_prereqs_and_chroot_binds():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
