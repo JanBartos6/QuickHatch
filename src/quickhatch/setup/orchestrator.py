@@ -267,7 +267,8 @@ _DEBIAN_LIVE_BOOT_MOUNT_RE = re.compile(
     re.IGNORECASE,
 )
 _LIVE_NONROOT_CHROOT_RE = re.compile(
-    r"(?P<prefix>^|[;&|]\s*)(?P<tool>chroot|systemd-nspawn)\s+"
+    r"(?P<prefix>^|[;&|]\s*)(?:sudo\s+)?"
+    r"(?P<tool>arch-chroot|chroot|systemd-nspawn)\s+"
     r"(?P<target>/mnt|/target)\b",
     re.IGNORECASE,
 )
@@ -1373,11 +1374,19 @@ class SetupOrchestrator:
             f'|| test -f "$qh_root$qh_efi_dir/EFI/boot/bootx64.efi"; '
             f"if command -v efibootmgr >/dev/null 2>&1; then "
             f'qh_boot_entry="$($qh_sudo efibootmgr -v 2>/dev/null | '
-            f"awk 'BEGIN{{IGNORECASE=1}} "
-            f"/^Boot[0-9A-F][0-9A-F][0-9A-F][0-9A-F]\\*/ "
-            f"&& $0 !~ /(CD-ROM|DVD|USB|Network|PXE|UiApp|Windows Boot Manager)/ "
-            f"&& $0 ~ /(quickhatch|ubuntu|debian|fedora|arch|opensuse|grub|linux|VBOX HARDDISK|QEMU HARDDISK|UEFI OS)/ "
-            "{print substr($1,5,4); exit}')\"; "
+            f"awk '/^Boot[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]\\*/ "
+            f"{{line=tolower($0); "
+            f"if (line !~ /(cd-rom|dvd|usb|network|pxe|uiapp|windows boot manager)/ "
+            f"&& line ~ /(quickhatch|ubuntu|debian|fedora|arch|opensuse|grub|linux)/) "
+            f"{{print substr($1,5,4); exit}}}}')\"; "
+            f'if [ -z "$qh_boot_entry" ]; then '
+            f'qh_boot_entry="$($qh_sudo efibootmgr -v 2>/dev/null | '
+            f"awk '/^Boot[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]\\*/ "
+            f"{{line=tolower($0); "
+            f"if (line !~ /(cd-rom|dvd|usb|network|pxe|uiapp|windows boot manager)/ "
+            f"&& line ~ /(vbox harddisk|qemu harddisk|uefi os)/) "
+            f"{{print substr($1,5,4); exit}}}}')\"; "
+            f"fi; "
             f'if [ -z "$qh_boot_entry" ]; then '
             f'qh_efi_source="$(findmnt -n -o SOURCE --target "$qh_root$qh_efi_dir" '
             f'2>/dev/null | head -n1)"; '
@@ -1392,11 +1401,11 @@ class SetupOrchestrator:
             f"-L quickhatch -l '\\EFI\\BOOT\\BOOTX64.EFI' || true; "
             f"fi; "
             f'qh_boot_entry="$($qh_sudo efibootmgr -v 2>/dev/null | '
-            f"awk 'BEGIN{{IGNORECASE=1}} "
-            f"/^Boot[0-9A-F][0-9A-F][0-9A-F][0-9A-F]\\*/ "
-            f"&& $0 !~ /(CD-ROM|DVD|USB|Network|PXE|UiApp|Windows Boot Manager)/ "
-            f"&& $0 ~ /(quickhatch|ubuntu|debian|fedora|arch|opensuse|grub|linux|VBOX HARDDISK|QEMU HARDDISK|UEFI OS)/ "
-            "{print substr($1,5,4); exit}')\"; "
+            f"awk '/^Boot[0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f]\\*/ "
+            f"{{line=tolower($0); "
+            f"if (line !~ /(cd-rom|dvd|usb|network|pxe|uiapp|windows boot manager)/ "
+            f"&& line ~ /(quickhatch|ubuntu|debian|fedora|arch|opensuse|grub|linux)/) "
+            f"{{print substr($1,5,4); exit}}}}')\"; "
             f"fi; "
             f'[ -n "$qh_boot_entry" ] '
             f'&& $qh_sudo efibootmgr -n "$qh_boot_entry" || true; '
@@ -3231,7 +3240,8 @@ class SetupOrchestrator:
             return command
         rewritten = _LIVE_NONROOT_CHROOT_RE.sub(
             lambda match: (
-                f"{match.group('prefix')}sudo {match.group('tool')} "
+                f"{match.group('prefix')}sudo "
+                f"{self._live_chroot_tool_for_family(match.group('tool'), facts)} "
                 f"{match.group('target')}"
             ),
             command,
@@ -3245,6 +3255,13 @@ class SetupOrchestrator:
                 reason="live non-root sessions need sudo for chroot verification/commands",
             )
         return rewritten
+
+    @staticmethod
+    def _live_chroot_tool_for_family(tool: str, facts: SetupFacts) -> str:
+        normalized = (tool or "").lower()
+        if normalized == "arch-chroot" and facts.package_manager != "pacman":
+            return "chroot"
+        return tool
 
     def _normalize_debian_live_efi_layout(
         self, stage: SetupStage, group: CommandGroup, commands: list[str]

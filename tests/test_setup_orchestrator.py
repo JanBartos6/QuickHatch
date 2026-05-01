@@ -260,6 +260,50 @@ def test_install_reboot_accepts_ssh_disconnect_as_successful_reboot_boundary():
     orchestrator._issue_install_reboot()
 
 
+def test_ubuntu_live_arch_chroot_is_rewritten_to_sudo_chroot():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="ubuntu",
+        package_manager="apt",
+        current_user="ubuntu",
+        login_user="ubuntu",
+        is_live=True,
+        is_root=False,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    rewritten = orchestrator._normalize_live_nonroot_chroot_command(
+        "sudo arch-chroot /mnt sh -c 'apt update'",
+        stage=SetupStage.INSTALL_OR_SKIP,
+    )
+
+    assert rewritten == "sudo chroot /mnt sh -c 'apt update'"
+
+
+def test_arch_live_arch_chroot_keeps_arch_tool_but_adds_sudo():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="arch",
+        login_user="arch",
+        is_live=True,
+        is_root=False,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    rewritten = orchestrator._normalize_live_nonroot_chroot_command(
+        "arch-chroot /mnt pacman -Syu",
+        stage=SetupStage.INSTALL_OR_SKIP,
+    )
+
+    assert rewritten == "sudo arch-chroot /mnt pacman -Syu"
+
+
 def test_live_target_uefi_boot_fallback_installs_removable_grub():
     command = SetupOrchestrator._live_target_uefi_boot_fallback_command("/mnt")
 
@@ -279,8 +323,8 @@ def test_live_target_uefi_boot_fallback_installs_removable_grub():
     assert "efibootmgr -o" in command
     assert "BootOrder:" in command
     assert r"\EFI\BOOT\BOOTX64.EFI" in command
-    assert "Windows Boot Manager" in command
-    assert "VBOX HARDDISK" in command
+    assert "windows boot manager" in command
+    assert "vbox harddisk" in command
 
 
 def test_live_target_network_reconnect_command_seeds_networkmanager_dhcp():
