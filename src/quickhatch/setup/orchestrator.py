@@ -1344,7 +1344,14 @@ class SetupOrchestrator:
             f'qh_sudo=sudo; [ "$(id -u)" -eq 0 ] && qh_sudo=; '
             f"[ -d /sys/firmware/efi ] || exit 0; "
             f'test -d "$qh_root/etc"; '
-            f'$qh_sudo chroot "$qh_root" command -v grub-install >/dev/null 2>&1 '
+            f"for qh_bind in dev dev/pts proc sys run; do "
+            f'$qh_sudo mkdir -p "$qh_root/$qh_bind"; '
+            f'mountpoint -q "$qh_root/$qh_bind" '
+            f'|| $qh_sudo mount --bind "/$qh_bind" "$qh_root/$qh_bind" '
+            f"|| true; "
+            f"done; "
+            f'$qh_sudo chroot "$qh_root" sh -c '
+            f"'command -v grub-install >/dev/null 2>&1' "
             f"|| exit 0; "
             f'qh_efi_dir=""; '
             f"for qh_dir in /boot/efi /boot; do "
@@ -1357,9 +1364,9 @@ class SetupOrchestrator:
             f'$qh_sudo chroot "$qh_root" grub-install --target=x86_64-efi '
             f'--efi-directory="$qh_efi_dir" --bootloader-id=quickhatch '
             f"--removable --recheck; "
-            f"if $qh_sudo chroot \"$qh_root\" command -v update-grub >/dev/null 2>&1; then "
+            f"if $qh_sudo chroot \"$qh_root\" sh -c 'command -v update-grub >/dev/null 2>&1'; then "
             f'$qh_sudo chroot "$qh_root" update-grub; '
-            f"elif $qh_sudo chroot \"$qh_root\" command -v grub-mkconfig >/dev/null 2>&1; then "
+            f"elif $qh_sudo chroot \"$qh_root\" sh -c 'command -v grub-mkconfig >/dev/null 2>&1'; then "
             f'$qh_sudo chroot "$qh_root" grub-mkconfig -o /boot/grub/grub.cfg; '
             f"fi; "
             f'test -f "$qh_root$qh_efi_dir/EFI/BOOT/BOOTX64.EFI" '
@@ -1371,6 +1378,26 @@ class SetupOrchestrator:
             f"&& $0 !~ /(CD-ROM|DVD|USB|Network|PXE|UiApp|Windows Boot Manager)/ "
             f"&& $0 ~ /(quickhatch|ubuntu|debian|fedora|arch|opensuse|grub|linux|VBOX HARDDISK|QEMU HARDDISK|UEFI OS)/ "
             "{print substr($1,5,4); exit}')\"; "
+            f'if [ -z "$qh_boot_entry" ]; then '
+            f'qh_efi_source="$(findmnt -n -o SOURCE --target "$qh_root$qh_efi_dir" '
+            f'2>/dev/null | head -n1)"; '
+            f'qh_efi_disk=""; qh_efi_part=""; '
+            f'if [ -n "$qh_efi_source" ]; then '
+            f'qh_efi_pk="$(lsblk -no PKNAME "$qh_efi_source" 2>/dev/null | head -n1)"; '
+            f'qh_efi_part="$(lsblk -no PARTN "$qh_efi_source" 2>/dev/null | head -n1)"; '
+            f'[ -n "$qh_efi_pk" ] && qh_efi_disk="/dev/$qh_efi_pk"; '
+            f'fi; '
+            f'if [ -n "$qh_efi_disk" ] && [ -n "$qh_efi_part" ]; then '
+            f"$qh_sudo efibootmgr -c -d \"$qh_efi_disk\" -p \"$qh_efi_part\" "
+            f"-L quickhatch -l '\\EFI\\BOOT\\BOOTX64.EFI' || true; "
+            f"fi; "
+            f'qh_boot_entry="$($qh_sudo efibootmgr -v 2>/dev/null | '
+            f"awk 'BEGIN{{IGNORECASE=1}} "
+            f"/^Boot[0-9A-F][0-9A-F][0-9A-F][0-9A-F]\\*/ "
+            f"&& $0 !~ /(CD-ROM|DVD|USB|Network|PXE|UiApp|Windows Boot Manager)/ "
+            f"&& $0 ~ /(quickhatch|ubuntu|debian|fedora|arch|opensuse|grub|linux|VBOX HARDDISK|QEMU HARDDISK|UEFI OS)/ "
+            "{print substr($1,5,4); exit}')\"; "
+            f"fi; "
             f'[ -n "$qh_boot_entry" ] '
             f'&& $qh_sudo efibootmgr -n "$qh_boot_entry" || true; '
             f'qh_boot_order="$($qh_sudo efibootmgr 2>/dev/null | '

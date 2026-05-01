@@ -264,6 +264,9 @@ def test_live_target_uefi_boot_fallback_installs_removable_grub():
     command = SetupOrchestrator._live_target_uefi_boot_fallback_command("/mnt")
 
     assert "[ -d /sys/firmware/efi ] || exit 0" in command
+    assert "for qh_bind in dev dev/pts proc sys run" in command
+    assert 'mount --bind "/$qh_bind" "$qh_root/$qh_bind"' in command
+    assert "chroot \"$qh_root\" sh -c 'command -v grub-install" in command
     assert 'grub-install --target=x86_64-efi' in command
     assert '--bootloader-id=quickhatch' in command
     assert '--removable --recheck' in command
@@ -271,9 +274,11 @@ def test_live_target_uefi_boot_fallback_installs_removable_grub():
     assert 'update-grub' in command
     assert 'grub-mkconfig -o /boot/grub/grub.cfg' in command
     assert "efibootmgr -v" in command
+    assert "efibootmgr -c" in command
     assert "efibootmgr -n" in command
     assert "efibootmgr -o" in command
     assert "BootOrder:" in command
+    assert r"\EFI\BOOT\BOOTX64.EFI" in command
     assert "Windows Boot Manager" in command
     assert "VBOX HARDDISK" in command
 
