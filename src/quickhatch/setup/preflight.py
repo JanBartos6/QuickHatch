@@ -66,6 +66,7 @@ _PACKAGE_PROCESS_NAMES = frozenset(
         "unattended-upgrades",
     }
 )
+_UBUNTU_DESKTOP_METAPACKAGES = frozenset({"ubuntu-desktop", "ubuntu-desktop-minimal"})
 _ROOT_WRITE_PREFIXES = (
     "/etc/",
     "/boot/",
@@ -359,6 +360,31 @@ def _extract_pacman_install_packages(tokens: list[str]) -> list[str]:
     if not any(arg.startswith("-S") and arg not in {"-Ss", "-Si"} for arg in args):
         return []
     return [arg for arg in args if arg and not arg.startswith("-")]
+
+
+def _extract_apt_install_packages(tokens: list[str]) -> list[str]:
+    if not tokens or _normalize_tool(tokens[0]) not in {"apt", "apt-get"}:
+        return []
+    args = tokens[1:]
+    try:
+        install_index = next(idx for idx, arg in enumerate(args) if arg.lower() == "install")
+    except StopIteration:
+        return []
+    packages: list[str] = []
+    skip_next = False
+    for arg in args[install_index + 1 :]:
+        if skip_next:
+            skip_next = False
+            continue
+        if arg in {"-o", "--option", "-c", "--config-file"}:
+            skip_next = True
+            continue
+        if arg.startswith("-"):
+            continue
+        if "=" in arg and not arg.startswith("./"):
+            continue
+        packages.append(arg)
+    return packages
 
 
 def _package_tool_mutates_system(tool: str, tokens: list[str]) -> bool:
@@ -722,6 +748,19 @@ def preflight_setup_command(
                     )
         elif package_manager == "apt" and tool in {"pacman", "yay", "paru", "dnf", "zypper"}:
             return f"This target uses apt, so `{tool}` is the wrong package manager."
+        elif package_manager == "apt" and tool in {"apt", "apt-get"}:
+            packages = _extract_apt_install_packages(tokens)
+            desktop_metapackages = [
+                package for package in packages if package in _UBUNTU_DESKTOP_METAPACKAGES
+            ]
+            if desktop_metapackages:
+                return (
+                    "Do not install Ubuntu desktop metapackages in debootstrap-driven remote "
+                    "setup. They can pull Firefox/Snap transitional packages that block dpkg "
+                    "noninteractively. Install explicit GNOME/display-manager packages instead "
+                    "(for example gnome-shell, gdm3, ubuntu-session, gnome-terminal, nautilus, "
+                    "gnome-control-center, yaru themes, xdg-desktop-portal-gnome)."
+                )
         elif package_manager == "dnf" and tool in {
             "pacman",
             "yay",

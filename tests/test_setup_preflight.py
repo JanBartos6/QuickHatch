@@ -74,6 +74,31 @@ def test_preflight_allows_specific_non_package_pkill():
     assert preflight_setup_command("sudo pkill -TERM my-temporary-helper", facts) is None
 
 
+def test_preflight_blocks_ubuntu_desktop_metapackages_for_debootstrap_setup():
+    facts = SetupFacts(package_manager="apt", distro_family="ubuntu", is_root=False)
+
+    error = preflight_setup_command(
+        "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ubuntu-desktop-minimal virtualbox-guest-x11",
+        facts,
+    )
+
+    assert error
+    assert "desktop metapackages" in error
+    assert "Firefox/Snap" in error
+
+
+def test_preflight_allows_explicit_gnome_core_packages_on_apt():
+    facts = SetupFacts(package_manager="apt", distro_family="ubuntu", is_root=False)
+
+    assert (
+        preflight_setup_command(
+            "sudo apt-get install -y --no-install-recommends gnome-shell gdm3 ubuntu-session gnome-terminal nautilus",
+            facts,
+        )
+        is None
+    )
+
+
 def test_preflight_blocks_standalone_shell_variable_assignment():
     facts = SetupFacts(package_manager="pacman", community_helper="none")
 
