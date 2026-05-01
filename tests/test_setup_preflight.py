@@ -183,7 +183,21 @@ def test_preflight_blocks_fedora_live_anaconda_over_ssh():
 
     assert error
     assert "graphical installer" in error
-    assert "configure-only" in error
+    assert "dnf --installroot=/mnt" in error
+
+
+def test_preflight_allows_fedora_live_installroot_path():
+    facts = SetupFacts(package_manager="dnf", distro_family="fedora", is_live=True)
+
+    assert (
+        preflight_setup_command(
+            "sudo dnf --installroot=/mnt --releasever=44 "
+            "--setopt=install_weak_deps=False --nodocs install -y "
+            "fedora-release systemd kernel-core NetworkManager openssh-server",
+            facts,
+        )
+        is None
+    )
 
 
 def test_preflight_blocks_ubuntu_live_interactive_installer_over_ssh():

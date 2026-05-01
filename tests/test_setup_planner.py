@@ -731,3 +731,25 @@ def test_build_research_prompt_includes_all_hints_when_distro_unknown(monkeypatc
     assert "install_hints" in prompt
     assert "arch-pkg" in prompt
     assert "fedora-pkg" in prompt
+
+
+def test_build_research_prompt_allows_fedora_live_installroot_not_anaconda():
+    prompt = build_research_prompt(
+        UserProfile(),
+        SetupFacts(
+            distro_family="fedora",
+            package_manager="dnf",
+            os_id="fedora",
+            is_live=True,
+            live_marker="LIVE:cmdline",
+        ),
+        system_info="Fedora live target",
+        migration_plan_md="Install Fedora from the live environment.",
+        distro_primer_md="",
+        native_search_active=False,
+    )
+
+    assert "dnf --installroot=/mnt" in prompt
+    assert "Do not run Anaconda" in prompt
+    assert "touch /mnt/.autorelabel" in prompt
+    assert "experimental `dnf --installroot`" not in prompt

@@ -349,7 +349,7 @@ def test_live_target_network_reconnect_command_seeds_networkmanager_dhcp():
     assert 'chroot "$qh_root" systemctl enable ssh' in command
 
 
-def test_fedora_live_media_blocks_before_planning():
+def test_fedora_live_media_reaches_research_planning():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
     facts = SetupFacts(
@@ -376,8 +376,9 @@ def test_fedora_live_media_blocks_before_planning():
 
     summary = SetupOrchestrator(runtime).run()
 
-    assert "Fedora-family live media is detected" in summary
-    assert model_calls["count"] == 0
+    assert "Research plan validation failed" in summary
+    assert "Fedora-family live media is detected" not in summary
+    assert model_calls["count"] > 0
     assert bridge.snapshot_setup_run()["status"] == "blocked"
 
 
