@@ -371,6 +371,79 @@ def _run_resume_policy_checks() -> list[dict[str, Any]]:
     return checks
 
 
+def _run_app_stage_prefilter_checks() -> list[dict[str, Any]]:
+    cases = [
+        (
+            "arch",
+            "pacman",
+            "sudo pacman -S --noconfirm git python",
+            "sudo pacman -S --noconfirm python",
+        ),
+        ("ubuntu", "apt", "sudo apt-get install -y git python3", "sudo apt-get install -y python3"),
+        ("debian", "apt", "sudo apt-get install -y git python3", "sudo apt-get install -y python3"),
+        ("fedora", "dnf", "sudo dnf install -y git python3", "sudo dnf install -y python3"),
+    ]
+    checks: list[dict[str, Any]] = []
+    for family, package_manager, command, expected in cases:
+        profile = UserProfile()
+        bridge = BridgeState(profile, persist_path=None)
+        facts = SetupFacts(
+            distro_family=family,
+            package_manager=package_manager,
+            current_user="jan",
+            sudo_nopasswd=True,
+        )
+        executed: list[str] = []
+
+        def ssh_exec(
+            remote_command: str,
+            _timeout: int,
+            _executed: list[str] = executed,
+        ) -> tuple[int, str, str]:
+            _executed.append(remote_command)
+            if "INSTALLED:" in remote_command:
+                return (0, "INSTALLED:git\nMISSING:python3\nMISSING:python\n", "")
+            return (0, "", "")
+
+        runtime = _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+        orchestrator = SetupOrchestrator(runtime)
+        orchestrator.ctx.facts = facts
+        orchestrator.ctx.plan = ResearchPlan(
+            target_summary=f"{family} workstation.",
+            distro_family=family,
+            package_manager=package_manager,
+            driver_strategy=StrategyDecision("none"),
+            desktop_strategy=StrategyDecision("desktop"),
+            command_groups=[
+                CommandGroup(
+                    id=f"apps-{family}",
+                    stage=SetupStage.APPS,
+                    title="Install apps",
+                    commands=[command],
+                    packages=["git", "python" if package_manager == "pacman" else "python3"],
+                )
+            ],
+        )
+        orchestrator._run_stage_groups(SetupStage.APPS, audit_after=False)
+        expected_package = "python" if package_manager == "pacman" else "python3"
+        filtered_install_seen = any(
+            expected_package in remote_command and "git" not in remote_command
+            for remote_command in executed
+        )
+        _record(
+            checks,
+            name=f"apps_prefilter_skips_installed_packages_{family}",
+            category="apps_prefilter",
+            passed=filtered_install_seen and command not in executed,
+            details={
+                "executed_commands": executed,
+                "expected_filtered_command": expected,
+                "original_command": command,
+            },
+        )
+    return checks
+
+
 def _run_package_final_audit_checks() -> list[dict[str, Any]]:
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
@@ -592,6 +665,7 @@ def run_harness_health(
             *_run_failure_classifier_checks(),
             *_run_final_audit_semantic_checks(),
             *_run_resume_policy_checks(),
+            *_run_app_stage_prefilter_checks(),
         ]
         failed = [check for check in checks if not check["passed"]]
         return {

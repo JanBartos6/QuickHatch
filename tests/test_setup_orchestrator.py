@@ -1543,10 +1543,9 @@ def test_apps_stage_synthesizes_missing_repo_install_group():
 
     orchestrator._run_apps()
 
-    assert commands_seen == [
-        "sudo pacman -S --noconfirm firefox vlc",
-        "sudo pacman -Q firefox vlc",
-    ]
+    assert any("pacman -Qq" in command for command in commands_seen)
+    assert "sudo pacman -S --noconfirm firefox vlc" in commands_seen
+    assert "sudo pacman -Q firefox vlc" in commands_seen
     assert [app.status for app in orchestrator.ctx.plan.apps] == [
         PlanItemStatus.INSTALLED,
         PlanItemStatus.INSTALLED,
@@ -6337,6 +6336,164 @@ def test_final_package_verification_accepts_user_profile_source_apps():
     assert final_state["verified_installed_apps"] == ["Flatpak", "Mozilla Firefox"]
     assert final_state["unverified_installed_apps"] == []
     assert "Manual follow-up" not in orchestrator._build_summary()
+
+
+def test_apps_stage_skips_package_install_when_all_group_packages_are_installed():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    executed: list[str] = []
+
+    def ssh_exec(command: str, _timeout: int):
+        executed.append(command)
+        if "pacman -Qq" in command:
+            return (0, "INSTALLED:git\nINSTALLED:python\n", "")
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation.",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("plasma"),
+        command_groups=[
+            CommandGroup(
+                id="apps",
+                stage=SetupStage.APPS,
+                title="Install apps",
+                commands=["sudo pacman -S --noconfirm git python"],
+                packages=["git", "python"],
+            )
+        ],
+        apps=[
+            AppPlanItem(name="Git", package_name="git", source="repo"),
+            AppPlanItem(name="Python", package_name="python", source="repo"),
+        ],
+    )
+
+    orchestrator._run_stage_groups(SetupStage.APPS, audit_after=False)
+
+    assert any("pacman -Qq" in command for command in executed)
+    assert not any("pacman -S" in command for command in executed)
+    assert orchestrator.ctx.plan.command_groups[0].status == PlanItemStatus.COMPLETED
+    assert {app.name: app.status for app in orchestrator.ctx.plan.apps} == {
+        "Git": PlanItemStatus.INSTALLED,
+        "Python": PlanItemStatus.INSTALLED,
+    }
+
+
+def test_apps_stage_filters_already_installed_packages_from_install_command():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        sudo_nopasswd=True,
+    )
+    executed: list[str] = []
+
+    def ssh_exec(command: str, _timeout: int):
+        executed.append(command)
+        if "pacman -Qq" in command:
+            return (0, "INSTALLED:git\nMISSING:python\n", "")
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation.",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("plasma"),
+        command_groups=[
+            CommandGroup(
+                id="apps",
+                stage=SetupStage.APPS,
+                title="Install apps",
+                commands=["sudo pacman -S --noconfirm git python"],
+                packages=["git", "python"],
+            )
+        ],
+        apps=[
+            AppPlanItem(name="Git", package_name="git", source="repo"),
+            AppPlanItem(name="Python", package_name="python", source="repo"),
+        ],
+    )
+
+    orchestrator._run_stage_groups(SetupStage.APPS, audit_after=False)
+
+    assert any("pacman -Qq" in command for command in executed)
+    assert "sudo pacman -S --noconfirm python" in executed
+    assert "sudo pacman -S --noconfirm git python" not in executed
+
+
+def test_apps_stage_filters_already_installed_packages_across_package_managers():
+    cases = [
+        ("apt", "sudo apt-get install -y git python3", "sudo apt-get install -y python3"),
+        ("dnf", "sudo dnf install -y git python3", "sudo dnf install -y python3"),
+        ("zypper", "sudo zypper install -y git python3", "sudo zypper install -y python3"),
+        ("apk", "sudo apk add git python3", "sudo apk add python3"),
+        ("xbps", "sudo xbps-install -Sy git python3", "sudo xbps-install -Sy python3"),
+        ("emerge", "sudo emerge git python", "sudo emerge python"),
+    ]
+    for package_manager, command, _expected in cases:
+        profile = UserProfile()
+        bridge = BridgeState(profile, persist_path=None)
+        facts = SetupFacts(
+            distro_family=package_manager,
+            package_manager=package_manager,
+            current_user="jan",
+            sudo_nopasswd=True,
+        )
+        executed: list[str] = []
+
+        def ssh_exec(
+            remote_command: str,
+            _timeout: int,
+            _executed: list[str] = executed,
+        ):
+            _executed.append(remote_command)
+            if "INSTALLED:" in remote_command:
+                return (0, "INSTALLED:git\nMISSING:python3\nMISSING:python\n", "")
+            return (0, "", "")
+
+        orchestrator = SetupOrchestrator(
+            _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+        )
+        orchestrator.ctx.facts = facts
+        orchestrator.ctx.plan = ResearchPlan(
+            target_summary="Linux workstation.",
+            distro_family=package_manager,
+            package_manager=package_manager,
+            driver_strategy=StrategyDecision("none"),
+            desktop_strategy=StrategyDecision("desktop"),
+            command_groups=[
+                CommandGroup(
+                    id=f"apps-{package_manager}",
+                    stage=SetupStage.APPS,
+                    title="Install apps",
+                    commands=[command],
+                    packages=["git", "python3" if package_manager != "emerge" else "python"],
+                )
+            ],
+        )
+
+        orchestrator._run_stage_groups(SetupStage.APPS, audit_after=False)
+
+        expected_package = "python" if package_manager == "emerge" else "python3"
+        assert any(
+            expected_package in remote_command and "git" not in remote_command
+            for remote_command in executed
+        ), package_manager
+        assert command not in executed, package_manager
 
 
 def test_final_package_verification_infers_obvious_package_names_from_app_names():

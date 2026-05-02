@@ -1071,6 +1071,13 @@ class SetupOrchestrator:
             if self.bridge.stop_requested:
                 raise RuntimeError("Agent stopped by user.")
             current_group = group
+            if stage == SetupStage.APPS:
+                filtered_group = self._filter_installed_app_group(current_group, stage_state)
+                if filtered_group is None:
+                    current_group.status = PlanItemStatus.COMPLETED
+                    self._mark_group_completion(current_group, stage=stage)
+                    continue
+                current_group = filtered_group
             repair_attempts = 0
             repair_budget = self._group_repair_budget(stage)
             while True:
@@ -3519,6 +3526,175 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         if pm == "emerge":
             return " && ".join(f"qlist -IC {shlex.quote(package)}" for package in packages)
         return "true"
+
+    def _filter_installed_app_group(
+        self, group: CommandGroup, stage_state: dict[str, Any]
+    ) -> CommandGroup | None:
+        if self.ctx.facts is None or not group.packages or group.id.endswith("-missing-only"):
+            return group
+        installed = self._query_installed_native_packages(group.packages, self.ctx.facts)
+        if not installed:
+            return group
+        installed_in_group = {package for package in group.packages if package in installed}
+        if not installed_in_group:
+            return group
+        missing = [package for package in group.packages if package not in installed]
+        rewritten_commands: list[str] = []
+        changed = False
+        for command in group.commands:
+            rewritten = self._drop_installed_targets_from_app_install_command(
+                command, installed_in_group, self.ctx.facts
+            )
+            if rewritten is None:
+                rewritten_commands.append(command)
+                continue
+            changed = True
+            if rewritten:
+                rewritten_commands.append(rewritten)
+        stage_state.setdefault("already_installed_packages", []).extend(sorted(installed_in_group))
+        self.runlog.record(
+            "app_group_installed_package_prefilter",
+            stage=SetupStage.APPS.value,
+            group_id=group.id,
+            installed=sorted(installed_in_group),
+            missing=missing,
+            original_commands=list(group.commands),
+            rewritten_commands=rewritten_commands,
+        )
+        if not changed:
+            return group
+        if not rewritten_commands:
+            self.bridge.add_message(
+                "agent",
+                "[harness] App group already installed; skipping package install command(s): "
+                + ", ".join(sorted(installed_in_group)),
+            )
+            return None
+        if missing:
+            self.bridge.add_message(
+                "agent",
+                "[harness] App package precheck found already-installed package(s): "
+                + ", ".join(sorted(installed_in_group))
+                + ". Installing only missing package(s): "
+                + ", ".join(missing),
+            )
+        repaired = copy.deepcopy(group)
+        repaired.id = f"{group.id}-missing-only"
+        repaired.title = f"{group.title} (missing packages only)"
+        repaired.commands = rewritten_commands
+        repaired.packages = missing
+        return repaired
+
+    def _query_installed_native_packages(self, packages: list[str], facts: SetupFacts) -> set[str]:
+        package_list = [package for package in dict.fromkeys(packages) if package]
+        if not package_list:
+            return set()
+        checks = {
+            "pacman": 'pacman -Qq "$p" >/dev/null 2>&1',
+            "apt": ('dpkg-query -W "$p" >/dev/null 2>&1 || snap list "$p" >/dev/null 2>&1'),
+            "dnf": 'rpm -q "$p" >/dev/null 2>&1',
+            "zypper": 'rpm -q "$p" >/dev/null 2>&1',
+            "apk": 'apk info -e "$p" >/dev/null 2>&1',
+            "xbps": 'xbps-query "$p" >/dev/null 2>&1',
+            "emerge": 'qlist -IC "$p" >/dev/null 2>&1',
+        }
+        check = checks.get(facts.package_manager)
+        if not check:
+            return set()
+        quoted_packages = " ".join(shlex.quote(package) for package in package_list)
+        command = (
+            f"for p in {quoted_packages}; do "
+            f"if {check}; then printf 'INSTALLED:%s\\n' \"$p\"; "
+            "else printf 'MISSING:%s\\n' \"$p\"; fi; done"
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 30)
+        self.runlog.record(
+            "app_package_precheck",
+            stage=SetupStage.APPS.value,
+            package_manager=facts.package_manager,
+            command=command,
+            rc=rc,
+            stdout_tail=(stdout or "")[-800:],
+            stderr_tail=(stderr or "")[-800:],
+        )
+        if rc != 0:
+            return set()
+        installed: set[str] = set()
+        for line in (stdout or "").splitlines():
+            if line.startswith("INSTALLED:"):
+                installed.add(line.split(":", 1)[1].strip())
+        return installed
+
+    def _drop_installed_targets_from_app_install_command(
+        self, command: str, installed: set[str], facts: SetupFacts
+    ) -> str | None:
+        if any(token in command for token in ("&&", "||", ";", "|", "\n")):
+            return None
+        try:
+            tokens = shlex.split(command)
+        except ValueError:
+            return None
+        payload = self._install_payload_tokens_for_package_manager(tokens, facts.package_manager)
+        if not payload or not any(package in payload for package in installed):
+            return None
+        filtered = [token for token in tokens if token not in installed]
+        filtered_payload = self._install_payload_tokens_for_package_manager(
+            filtered, facts.package_manager
+        )
+        if not filtered_payload:
+            return ""
+        return shlex.join(filtered)
+
+    @staticmethod
+    def _install_payload_tokens_for_package_manager(
+        tokens: list[str], package_manager: str
+    ) -> list[str]:
+        tokens = SetupOrchestrator._strip_command_wrappers(tokens)
+        if package_manager == "pacman" or any(tool in tokens for tool in ("pacman", "yay", "paru")):
+            for idx, token in enumerate(tokens):
+                if token == "-S" or token.startswith("-S"):
+                    return [item for item in tokens[idx + 1 :] if not item.startswith("-")]
+        if package_manager == "apt" or any(tool in tokens for tool in ("apt", "apt-get")):
+            for idx, token in enumerate(tokens):
+                if token == "install":
+                    return [item for item in tokens[idx + 1 :] if not item.startswith("-")]
+        if package_manager in {"dnf", "zypper"} or any(
+            tool in tokens for tool in ("dnf", "zypper")
+        ):
+            for idx, token in enumerate(tokens):
+                if token in {"install", "in"}:
+                    return [item for item in tokens[idx + 1 :] if not item.startswith("-")]
+        if package_manager == "apk" or "apk" in tokens:
+            for idx, token in enumerate(tokens):
+                if token == "add":
+                    return [item for item in tokens[idx + 1 :] if not item.startswith("-")]
+        if package_manager in {"xbps", "emerge"} or any(
+            tool in tokens for tool in ("xbps-install", "emerge")
+        ):
+            tool_names = {"xbps-install", "emerge"}
+            for idx, token in enumerate(tokens):
+                if token in tool_names:
+                    return [item for item in tokens[idx + 1 :] if not item.startswith("-")]
+        return []
+
+    @staticmethod
+    def _strip_command_wrappers(tokens: list[str]) -> list[str]:
+        stripped = list(tokens)
+        while stripped:
+            token = stripped[0]
+            if token == "sudo":
+                stripped = stripped[1:]
+                while stripped and stripped[0] in {"-E", "-H", "-n", "-S"}:
+                    stripped = stripped[1:]
+                continue
+            if token == "env":
+                stripped = stripped[1:]
+                continue
+            if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=.*$", token):
+                stripped = stripped[1:]
+                continue
+            break
+        return stripped
 
     def _mark_apps_manual_followup_by_names(self, names: list[str], reason: str) -> None:
         if self.ctx.plan is None:
