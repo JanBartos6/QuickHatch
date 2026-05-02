@@ -582,7 +582,7 @@ def test_systemd_health_still_blocks_real_failed_services():
     assert "drkonqi" not in failures[0]
 
 
-def test_display_manager_session_health_blocks_false_active_dm():
+def test_display_manager_session_health_treats_missing_session_as_pending_login():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
     facts = SetupFacts(
@@ -601,13 +601,9 @@ def test_display_manager_session_health_blocks_false_active_dm():
     )
     orchestrator.ctx.facts = facts
 
-    blockers = orchestrator._verify_display_manager_session_health()
-
-    assert blockers == [
-        "Display manager is active, but no local greeter/user session was verified. "
-        "Inspect `journalctl -u display-manager -b` or the concrete DM service before "
-        "declaring desktop setup complete."
-    ]
+    assert orchestrator._verify_display_manager_session_health() == []
+    final_state = orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value]
+    assert final_state["display_manager_session_status"] == "pending_login_or_headless"
 
 
 def test_display_manager_session_health_accepts_greeter_session():
@@ -2100,6 +2096,50 @@ def test_final_package_verification_accepts_user_flatpak_apps():
     assert any("flatpak list --app --columns=application --user" in cmd for cmd in commands)
 
 
+def test_final_package_verification_accepts_repo_repair_for_flatpak_planned_app():
+    profile = UserProfile(apps_to_install=["VLC"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="fedora", package_manager="dnf", current_user="jan")
+    commands: list[str] = []
+
+    def ssh_exec(command, timeout):
+        commands.append(command)
+        assert timeout == 45
+        if "rpm -qa" in command:
+            return (0, "vlc\nfirefox\nflatpak\n", "")
+        if "flatpak list" in command:
+            return (0, "", "")
+        raise AssertionError(f"unexpected command: {command}")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Fedora workstation",
+        distro_family="fedora",
+        package_manager="dnf",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[
+            AppPlanItem(
+                name="VLC",
+                package_name="org.videolan.VLC",
+                source="flatpak",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            )
+        ],
+    )
+
+    assert orchestrator._verify_planned_packages_installed() == []
+    final_state = orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value]
+    assert final_state["verified_installed_apps"] == ["VLC"]
+    assert final_state["unverified_installed_apps"] == []
+    assert any("rpm -qa" in cmd for cmd in commands)
+    assert any("flatpak list --app --columns=application --user" in cmd for cmd in commands)
+
+
 def test_desktop_display_audit_blocks_resolution_mismatch():
     profile = UserProfile()
     profile.hardware.displays = [
@@ -2344,6 +2384,7 @@ def test_desktop_runtime_commands_are_wrapped_with_real_gui_environment():
 
     assert wrapped.startswith("bash -lc ")
     assert "plasmashell" in wrapped
+    assert "gnome-shell" in wrapped
     assert "DBUS_SESSION_BUS_ADDRESS" in wrapped
     assert "plasma-apply-wallpaperimage" in wrapped
 

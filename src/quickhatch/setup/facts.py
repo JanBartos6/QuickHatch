@@ -99,7 +99,13 @@ qh_gui_active=$(printf '%s' "$qh_gui_record" | cut -d'|' -f5)
 qh_gui_uid=$(id -u "$qh_gui_user" 2>/dev/null || id -u 2>/dev/null || echo 1000)
 qh_gui_pid=$(
   if [ -n "$qh_gui_user" ]; then
-    pgrep -u "$qh_gui_user" -n plasmashell 2>/dev/null || pgrep -u "$qh_gui_user" -n kwin_wayland 2>/dev/null || pgrep -u "$qh_gui_user" -n kwin_x11 2>/dev/null || true
+    for qh_proc in plasmashell kwin_wayland kwin_x11 gnome-shell cinnamon-session xfce4-session mate-session lxqt-session; do
+      qh_pid=$(pgrep -u "$qh_gui_user" -n "$qh_proc" 2>/dev/null || true)
+      if [ -n "$qh_pid" ]; then
+        printf '%s\n' "$qh_pid"
+        break
+      fi
+    done
   fi
 )
 qh_env_value() {

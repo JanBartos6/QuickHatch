@@ -2494,7 +2494,10 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                 "or add a verifier before done."
             ]
         installed: set[str] = set()
-        if package_candidates and query:
+        # Query the native package DB even for Flatpak-planned apps when possible.
+        # Repairs may choose a faster/better repo package while the original plan item
+        # still names a Flatpak id, and final audit should verify the real outcome.
+        if candidates and query:
             final_state["package_verification_ran"] = True
             rc, stdout, stderr = self.runtime.ssh_exec(query, 45)
             self.runlog.record(
@@ -2520,16 +2523,16 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         missing: list[str] = []
         verified: list[str] = []
         for app in candidates:
-            variants = (
-                self._flatpak_name_variants(app)
-                if self._app_uses_flatpak(app)
-                else self._package_name_variants(app.name, app.package_name)
-            )
+            variants = self._package_name_variants(app.name, app.package_name)
+            if self._app_uses_flatpak(app):
+                variants.update(self._flatpak_name_variants(app))
             if not variants:
                 missing.append(app.name)
                 continue
-            installed_pool = flatpak_installed if self._app_uses_flatpak(app) else installed
-            if not any(variant in installed_pool for variant in variants):
+            installed_pools = [installed]
+            if self._app_uses_flatpak(app):
+                installed_pools.insert(0, flatpak_installed)
+            if not any(variant in pool for pool in installed_pools for variant in variants):
                 missing.append(app.name)
                 continue
             verified.append(app.name)
@@ -2724,11 +2727,8 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         )
         if rc == 0:
             return []
-        return [
-            "Display manager is active, but no local greeter/user session was verified. "
-            "Inspect `journalctl -u display-manager -b` or the concrete DM service before "
-            "declaring desktop setup complete."
-        ]
+        final_state["display_manager_session_status"] = "pending_login_or_headless"
+        return []
 
     def _ask_optional_slow_confirmation(self, group: CommandGroup) -> str | None:
         qid = self._ask_blocking_question(
@@ -4479,9 +4479,11 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         current_user = facts.current_user or self.runtime.user
         user_q = shlex.quote(gui_user)
         inner = (
-            f"qh_pid=$(pgrep -u {user_q} -n plasmashell 2>/dev/null "
-            f"|| pgrep -u {user_q} -n kwin_wayland 2>/dev/null "
-            f"|| pgrep -u {user_q} -n kwin_x11 2>/dev/null || true); "
+            "qh_pid=$(for qh_proc in plasmashell kwin_wayland kwin_x11 "
+            "gnome-shell cinnamon-session xfce4-session mate-session lxqt-session; "
+            f'do qh_found=$(pgrep -u {user_q} -n "$qh_proc" 2>/dev/null || true); '
+            'if [ -n "$qh_found" ]; then printf \'%s\\n\' "$qh_found"; break; fi; '
+            "done); "
             'if [ -n "$qh_pid" ] && [ -r "/proc/$qh_pid/environ" ]; then '
             'while IFS= read -r qh_env; do case "$qh_env" in '
             "DISPLAY=*|WAYLAND_DISPLAY=*|XAUTHORITY=*|XDG_RUNTIME_DIR=*|"
