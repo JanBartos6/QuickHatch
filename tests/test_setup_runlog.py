@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import json
 
-from quickhatch.setup.runlog import SetupRunLogger
-from quickhatch.setup.runlog import write_executed_commands_script
-from quickhatch.setup.runlog import redact_sensitive_text
+from quickhatch.setup.runlog import (
+    SetupRunLogger,
+    redact_sensitive_text,
+    write_executed_commands_script,
+)
 
 
 def test_runlog_writes_jsonl_entries(tmp_path):

@@ -8,8 +8,8 @@ from quickhatch.config import AppInfo, UserProfile
 from quickhatch.setup.planner import (
     RepairActionValidationError,
     ResearchPlanValidationError,
-    build_research_prompt,
     build_repair_prompt,
+    build_research_prompt,
     extract_repair_action,
     extract_research_plan,
 )
