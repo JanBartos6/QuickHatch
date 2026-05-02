@@ -20,7 +20,9 @@ def test_runlog_writes_jsonl_entries(tmp_path):
     first = json.loads(lines[0])
     second = json.loads(lines[1])
     assert first["run_id"] == "run123"
+    assert first["event_id"] == "run123:000001"
     assert first["event_type"] == "planner_prompt"
+    assert second["event_id"] == "run123:000002"
     assert second["command"] == "sudo pacman -S steam"
 
 

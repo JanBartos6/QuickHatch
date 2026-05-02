@@ -11,7 +11,7 @@ import re
 import shlex
 
 from .resolver import arch_nvidia_official_package_supported
-from .types import SetupFacts
+from .types import PreflightDecision, PreflightDecisionKind, SetupFacts
 
 _ARCH_AUR_ONLY_PACKAGES = frozenset(
     {
@@ -908,3 +908,107 @@ def preflight_setup_command(
                 "Use `sudo` unless the remote session is already root."
             )
     return None
+
+
+def _decision_category(reason: str) -> str:
+    lower = (reason or "").lower()
+    if "vpn" in lower or "firewall" in lower or "cut off remote access" in lower:
+        return "ssh_continuity"
+    if "pkill" in lower or "dpkg half-written" in lower or "packagekit" in lower:
+        return "package_database_integrity"
+    if "passwordless sudo" in lower or "invisible password prompt" in lower:
+        return "sudo_password"
+    if "root-owned" in lower or "needs root privileges" in lower or "non-root" in lower:
+        return "privilege_precondition"
+    if "disks" in lower or "mounts" in lower or "boot files" in lower or "chroot" in lower:
+        return "disk_boot_safety"
+    return "setup_precondition"
+
+
+def _suggested_next_for_category(category: str) -> str:
+    suggestions = {
+        "ssh_continuity": (
+            "Install VPN/firewall packages without enabling them, or ask the user for explicit "
+            "network-security consent before starting services."
+        ),
+        "package_database_integrity": (
+            "Inspect the package lock holder and wait or stop a specific stale service/PID; do "
+            "not broadly kill package-manager processes."
+        ),
+        "sudo_password": (
+            "Bootstrap NOPASSWD sudo, use an explicit known-password sudo -S command, or ask the "
+            "user before executing further privileged installed-system commands."
+        ),
+        "privilege_precondition": (
+            "Let the command fail and repair from the real permission error, or add sudo/chroot "
+            "deliberately if the target path is correct."
+        ),
+        "disk_boot_safety": (
+            "Confirm the selected target disk/root and use sudo/root for disk, mount, bootloader, "
+            "or chroot operations."
+        ),
+    }
+    return suggestions.get(category, "Use the command result and stage audit to decide repair.")
+
+
+def _hard_block_category(category: str) -> bool:
+    return category in {
+        "ssh_continuity",
+        "package_database_integrity",
+        "sudo_password",
+        "disk_boot_safety",
+    }
+
+
+def preflight_setup_decisions(
+    command: str,
+    facts: SetupFacts,
+    *,
+    allow_network_security_changes: bool = False,
+    shadow_mode: bool = False,
+) -> list[PreflightDecision]:
+    """Return typed preflight decisions for setup commands.
+
+    The new orchestrator path treats package/app/theme/package-name concerns as
+    advisory. Hard blocks are reserved for SSH continuity, package database
+    corruption, sudo-password hangs, and disk/boot safety. Shadow mode records
+    would-blocks without stopping non-safety categories during VM certification.
+    """
+
+    decisions: list[PreflightDecision] = [
+        PreflightDecision(
+            kind=PreflightDecisionKind.ADVISORY,
+            category="guidance",
+            reason=advisory,
+            suggested_next="Continue if the command is intentional; repair from real output if it fails.",
+            command=command,
+        )
+        for advisory in preflight_setup_advisories(
+            command,
+            facts,
+            allow_network_security_changes=allow_network_security_changes,
+        )
+    ]
+    reason = preflight_setup_command(
+        command,
+        facts,
+        allow_network_security_changes=allow_network_security_changes,
+    )
+    if not reason:
+        return decisions
+    category = _decision_category(reason)
+    kind = (
+        PreflightDecisionKind.BLOCK
+        if _hard_block_category(category) and not (shadow_mode and category != "ssh_continuity")
+        else PreflightDecisionKind.SHADOW
+    )
+    decisions.append(
+        PreflightDecision(
+            kind=kind,
+            category=category,
+            reason=reason,
+            suggested_next=_suggested_next_for_category(category),
+            command=command,
+        )
+    )
+    return decisions

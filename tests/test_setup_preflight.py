@@ -4,8 +4,9 @@ from quickhatch.setup.preflight import (
     arch_community_helpers_in_command,
     preflight_setup_advisories,
     preflight_setup_command,
+    preflight_setup_decisions,
 )
-from quickhatch.setup.types import SetupFacts
+from quickhatch.setup.types import PreflightDecisionKind, SetupFacts
 
 
 def test_preflight_warns_pacman_for_aur_only_packages():
@@ -571,3 +572,44 @@ def test_preflight_does_not_split_package_probe_inside_quoted_payload():
     )
 
     assert preflight_setup_command("bash -c 'pacman -Q nvidia-open && echo ok'", facts) is None
+
+
+def test_typed_preflight_keeps_package_name_concerns_advisory():
+    facts = SetupFacts(package_manager="pacman", community_helper="none")
+
+    decisions = preflight_setup_decisions("yay -S --noconfirm brave-bin", facts)
+
+    assert not any(item.kind == PreflightDecisionKind.BLOCK for item in decisions)
+    assert any(item.kind == PreflightDecisionKind.ADVISORY for item in decisions)
+
+
+def test_typed_preflight_shadows_privilege_precondition_instead_of_blocking():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+    )
+
+    decisions = preflight_setup_decisions("pacman -S --noconfirm nvidia-open", facts)
+
+    assert any(item.kind == PreflightDecisionKind.SHADOW for item in decisions)
+    assert not any(item.kind == PreflightDecisionKind.BLOCK for item in decisions)
+
+
+def test_typed_preflight_keeps_sudo_password_prompt_as_hard_block():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_live=False,
+        is_root=False,
+        sudo_nopasswd=False,
+    )
+
+    decisions = preflight_setup_decisions("sudo pacman -S --noconfirm nvidia-open", facts)
+
+    assert any(item.kind == PreflightDecisionKind.BLOCK for item in decisions)
+    assert any(item.category == "sudo_password" for item in decisions)

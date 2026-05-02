@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 import threading
 import webbrowser
+from dataclasses import asdict
+from pathlib import Path
 
 from quickhatch.config import UserProfile
 from quickhatch.console import console, print_error, print_info, print_success
@@ -131,6 +134,36 @@ def _populate_demo_profile(profile: UserProfile) -> None:
 def main() -> None:
     """Run the QuickHatch migration wizard."""
     parser = argparse.ArgumentParser(description="QuickHatch — Windows to Linux Migration Wizard")
+    subparsers = parser.add_subparsers(dest="command")
+
+    debug_parser = subparsers.add_parser("debug", help="Replay and promote setup run artifacts")
+    debug_subparsers = debug_parser.add_subparsers(dest="debug_command")
+    replay_parser = debug_subparsers.add_parser("replay-run", help="Summarize a setup run JSONL")
+    replay_parser.add_argument("runlog")
+    replay_parser.add_argument("--summary-only", action="store_true")
+    stage_parser = debug_subparsers.add_parser("stage", help="Replay one stage/group from JSONL")
+    stage_parser.add_argument("runlog")
+    stage_parser.add_argument("--stage", required=True)
+    stage_parser.add_argument("--group")
+    promote_parser = debug_subparsers.add_parser(
+        "promote-regression",
+        help="Generate a pytest regression from a runlog event",
+    )
+    promote_parser.add_argument("runlog")
+    promote_parser.add_argument("--event", required=True)
+    promote_parser.add_argument("--name", required=True)
+    promote_parser.add_argument("--output-dir", default="tests/generated")
+
+    certify_parser = subparsers.add_parser("certify", help="Run certification tooling")
+    certify_subparsers = certify_parser.add_subparsers(dest="certify_command")
+    vm_parser = certify_subparsers.add_parser("vm", help="Prepare/run VM certification")
+    vm_parser.add_argument(
+        "--family", required=True, choices=["arch", "ubuntu", "debian", "fedora"]
+    )
+    vm_parser.add_argument("--iso", required=True)
+    vm_parser.add_argument("--profile", required=True)
+    vm_parser.add_argument("--backend", default="virtualbox", choices=["virtualbox", "qemu"])
+    vm_parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
         "--gui", action="store_true", help="Launch web GUI instead of terminal wizard"
     )
@@ -150,6 +183,12 @@ def main() -> None:
         "--tauri", action="store_true", help="Machine-readable output for Tauri wrapper"
     )
     args = parser.parse_args()
+
+    if args.command == "debug":
+        return _run_debug_command(args)
+
+    if args.command == "certify":
+        return _run_certify_command(args)
 
     if args.gui:
         return _run_gui(args)
@@ -284,6 +323,59 @@ def _run_gui(args) -> None:
     except KeyboardInterrupt:
         console.print("\n[dim]Shutting down...[/dim]")
         server.shutdown()
+
+
+def _print_json(payload: object) -> None:
+    console.print(json.dumps(payload, indent=2, sort_keys=True, default=str))
+
+
+def _run_debug_command(args) -> None:
+    from quickhatch.setup.replay import (
+        promote_regression_fixture,
+        summarize_runlog,
+        summarize_stage,
+    )
+
+    if args.debug_command == "replay-run":
+        summary = summarize_runlog(Path(args.runlog))
+        payload = asdict(summary)
+        if args.summary_only:
+            _print_json(payload)
+        else:
+            console.print("[bold]QuickHatch setup replay summary[/bold]")
+            _print_json(payload)
+        return
+    if args.debug_command == "stage":
+        _print_json(summarize_stage(Path(args.runlog), stage=args.stage, group_id=args.group))
+        return
+    if args.debug_command == "promote-regression":
+        path = promote_regression_fixture(
+            Path(args.runlog),
+            event_id=args.event,
+            name=args.name,
+            output_dir=Path(args.output_dir),
+        )
+        print_success(f"Generated regression fixture: {path}")
+        return
+    raise SystemExit("Missing debug subcommand.")
+
+
+def _run_certify_command(args) -> None:
+    from quickhatch.setup.certify import run_vm_certification
+
+    if args.certify_command == "vm":
+        result = run_vm_certification(
+            family=args.family,
+            iso=Path(args.iso),
+            profile=Path(args.profile),
+            backend=args.backend,
+            dry_run=args.dry_run,
+        )
+        _print_json(asdict(result))
+        if not result.success and result.status == "blocked":
+            raise SystemExit(1)
+        return
+    raise SystemExit("Missing certify subcommand.")
 
 
 if __name__ == "__main__":

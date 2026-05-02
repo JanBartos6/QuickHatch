@@ -20,6 +20,8 @@ from quickhatch.config import AIConfig, UserProfile
 
 from .audit import audit_stage, final_audit
 from .facts import describe_fact_changes
+from .failure import classify_failure
+from .families import get_family_installer
 from .planner import (
     RepairActionValidationError,
     ResearchPlanValidationError,
@@ -30,8 +32,7 @@ from .planner import (
 )
 from .preflight import (
     arch_community_helpers_in_command,
-    preflight_setup_advisories,
-    preflight_setup_command,
+    preflight_setup_decisions,
 )
 from .resolver import build_install_command, nvidia_open_kernel_supported
 from .runlog import SetupRunLogger, redact_sensitive_text, write_executed_commands_script
@@ -41,6 +42,7 @@ from .types import (
     CommandGroup,
     DesktopRuntimeState,
     PlanItemStatus,
+    PreflightDecisionKind,
     ResearchPlan,
     SetupFacts,
     SetupStage,
@@ -481,6 +483,17 @@ _INSTALLED_CHROOT_PREFIX_RE = re.compile(
 )
 _PRIVILEGED_REDIRECT_PREFIXES = ("/etc/", "/boot/", "/usr/", "/var/lib/", "/opt/")
 _PRIVILEGED_REDIRECT_EXACT_PATHS = {"/etc", "/boot", "/usr", "/opt"}
+
+
+def _preflight_decision_payload(decision: Any) -> dict[str, str]:
+    kind = getattr(decision, "kind", "")
+    return {
+        "kind": getattr(kind, "value", str(kind)),
+        "category": str(getattr(decision, "category", "")),
+        "reason": str(getattr(decision, "reason", "")),
+        "suggested_next": str(getattr(decision, "suggested_next", "")),
+        "command": str(getattr(decision, "command", "")),
+    }
 
 
 @dataclass
@@ -1207,6 +1220,24 @@ class SetupOrchestrator:
             )
             self._record_stage_result(result)
             return
+        if self.ctx.facts:
+            installer = get_family_installer(self.ctx.facts.os_id or self.ctx.facts.distro_family)
+            spine = installer.build_install_spine(self.ctx.facts, self.profile)
+            install_state = self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})
+            install_state["family_adapter"] = {
+                "family": spine.family,
+                "adapter_version": spine.adapter_version,
+                "command_count": len(spine.commands),
+                "verification_count": len(spine.verification),
+            }
+            self.runlog.record(
+                "family_adapter_spine",
+                stage=SetupStage.INSTALL_OR_SKIP.value,
+                adapter_name=spine.family,
+                adapter_version=spine.adapter_version,
+                commands=spine.commands,
+                verification=spine.verification,
+            )
         self._run_stage_groups(SetupStage.INSTALL_OR_SKIP, audit_after=False)
         install_state = self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})
         if install_state.get("installer_reboot_observed"):
@@ -2856,19 +2887,34 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                     command=command,
                 )
                 continue
-            advisories = preflight_setup_advisories(command, self.ctx.facts or SetupFacts())
-            if advisories:
-                advisory_text = "\n".join(f"- {item}" for item in advisories)
+            shadow_preflight = os.environ.get("QUICKHATCH_PREFLIGHT_SHADOW") == "1"
+            decisions = preflight_setup_decisions(
+                command,
+                self.ctx.facts or SetupFacts(),
+                shadow_mode=shadow_preflight,
+            )
+            visible_decisions = [
+                decision
+                for decision in decisions
+                if decision.kind in {PreflightDecisionKind.ADVISORY, PreflightDecisionKind.SHADOW}
+            ]
+            if visible_decisions:
+                advisory_text = "\n".join(
+                    f"- [{decision.kind.value}:{decision.category}] {decision.reason}"
+                    for decision in visible_decisions
+                )
                 self.bridge.add_message(
                     "agent",
                     f"[harness] ⚠️ Advisory for `{redact_sensitive_text(command)}`\n{advisory_text}",
                 )
                 self.runlog.record(
-                    "command_preflight_advisory",
+                    "command_preflight_decision",
                     stage=stage.value,
                     group_id=group.id,
                     command=command,
-                    advisories=list(advisories),
+                    decisions=[
+                        _preflight_decision_payload(decision) for decision in visible_decisions
+                    ],
                 )
             if (
                 (self.ctx.facts or SetupFacts()).package_manager == "pacman"
@@ -2893,8 +2939,16 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                     command=command,
                     recovery="arch_aur_helper_bootstrap",
                 )
-            lint_error = preflight_setup_command(command, self.ctx.facts or SetupFacts())
-            if lint_error:
+            blocking_decisions = [
+                decision
+                for decision in preflight_setup_decisions(
+                    command,
+                    self.ctx.facts or SetupFacts(),
+                    shadow_mode=shadow_preflight,
+                )
+                if decision.kind == PreflightDecisionKind.BLOCK
+            ]
+            if blocking_decisions:
                 bootstrap_failure = self._try_bootstrap_arch_aur_helper_for_command(
                     command,
                     stage=stage,
@@ -2909,8 +2963,16 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                 if self._arch_aur_helper_available() and self._uses_arch_community_helper_command(
                     command
                 ):
-                    lint_error = preflight_setup_command(command, self.ctx.facts or SetupFacts())
-                if not lint_error:
+                    blocking_decisions = [
+                        decision
+                        for decision in preflight_setup_decisions(
+                            command,
+                            self.ctx.facts or SetupFacts(),
+                            shadow_mode=shadow_preflight,
+                        )
+                        if decision.kind == PreflightDecisionKind.BLOCK
+                    ]
+                if not blocking_decisions:
                     self.runlog.record(
                         "command_preflight_recovered",
                         stage=stage.value,
@@ -2919,6 +2981,7 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                         recovery="arch_aur_helper_bootstrap",
                     )
                 else:
+                    lint_error = blocking_decisions[0].reason
                     self.bridge.add_message(
                         "agent",
                         f"[harness] 🛑 Safety/precondition block: `{command}`\n{lint_error}",
@@ -2928,6 +2991,7 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                         stage=stage.value,
                         group_id=group.id,
                         command=command,
+                        decision=_preflight_decision_payload(blocking_decisions[0]),
                         reason=lint_error,
                     )
                     return GroupFailure(
@@ -2966,6 +3030,22 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                 rc=rc,
                 stdout_tail=(stdout or "")[-800:],
                 stderr_tail=(stderr or "")[-800:],
+                failure_classification=(
+                    {
+                        "category": (
+                            failure := classify_failure(
+                                command=visible_command,
+                                rc=rc,
+                                stdout=stdout,
+                                stderr=stderr,
+                            )
+                        ).category.value,
+                        "detail": failure.detail,
+                        "confidence": failure.confidence,
+                    }
+                    if rc != 0
+                    else None
+                ),
             )
             if rc != 0:
                 if self._looks_like_live_installer_reboot_disconnect(

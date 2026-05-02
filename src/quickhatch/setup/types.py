@@ -38,6 +38,64 @@ class DesktopRuntimeState(str, Enum):
     UNKNOWN = "unknown"
 
 
+class PreflightDecisionKind(str, Enum):
+    BLOCK = "block"
+    ADVISORY = "advisory"
+    SHADOW = "shadow"
+
+
+class FailureCategory(str, Enum):
+    NETWORK = "network"
+    PACKAGE_MISSING = "package_missing"
+    PACKAGE_CONFLICT = "package_conflict"
+    SUDO_PASSWORD = "sudo_password"
+    BOOTLOADER = "bootloader"
+    FSTAB = "fstab"
+    SSH_RECONNECT = "ssh_reconnect"
+    DISPLAY_SESSION = "display_session"
+    DRIVER_PENDING_REBOOT = "driver_pending_reboot"
+    TIMEOUT = "timeout"
+    MODEL_JSON = "model_json"
+    HARNESS_FALSE_POSITIVE = "harness_false_positive"
+    UNKNOWN = "unknown"
+
+
+class DriverAuditState(str, Enum):
+    HEALTHY = "healthy"
+    NEEDS_REBOOT = "needs_reboot"
+    MANUAL_FOLLOWUP_SECURE_BOOT = "manual_followup_secure_boot"
+    UNSUPPORTED_HARDWARE = "unsupported_hardware"
+    NOT_APPLICABLE = "not_applicable"
+    UNKNOWN = "unknown"
+
+
+@dataclass
+class PreflightDecision:
+    kind: PreflightDecisionKind
+    category: str
+    reason: str
+    suggested_next: str = ""
+    command: str = ""
+
+
+@dataclass
+class FailureClassification:
+    category: FailureCategory
+    detail: str = ""
+    confidence: str = "medium"
+
+
+@dataclass
+class CertificationResult:
+    success: bool
+    family: str
+    status: str
+    artifact_dir: str = ""
+    blockers: list[str] = field(default_factory=list)
+    summary: str = ""
+    snapshots: list[str] = field(default_factory=list)
+
+
 @dataclass
 class DisplayRuntimeInfo:
     name: str

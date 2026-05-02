@@ -69,11 +69,14 @@ class SetupRunLogger:
         except OSError:
             pass
         self.path = self.root / f"{run_id}.jsonl"
+        self._event_counter = 0
 
     def record(self, event_type: str, **payload: Any) -> None:
+        self._event_counter += 1
         entry = {
             "timestamp": time.time(),
             "run_id": self.run_id,
+            "event_id": f"{self.run_id}:{self._event_counter:06d}",
             "event_type": event_type,
             **_redact(payload),
         }
