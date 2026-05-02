@@ -239,6 +239,112 @@ class TestVerifyInstallScript:
         assert "vm-started" in result.stages
         assert "ssh-up" in result.stages
 
+    def test_full_post_reboot_path_with_mocked_backend(self, monkeypatch, tmp_path):
+        script = tmp_path / "install.sh"
+        script.write_text("echo ok")
+        iso = tmp_path / "live.iso"
+        iso.write_text("x")
+        reboots = []
+        audit_calls = []
+
+        monkeypatch.setattr(vm_verify, "bash_syntax_check", lambda _p: (True, "ok"))
+        monkeypatch.setattr(vm_verify, "pick_backend", lambda prefer=None: "virtualbox")
+        monkeypatch.setattr(
+            vm_verify,
+            "detect_backends",
+            lambda: {"virtualbox": "VBoxManage", "qemu": None},
+        )
+        monkeypatch.setattr(vm_verify, "_wait_for_vm_ssh", lambda *a, **k: True)
+        monkeypatch.setattr(vm_verify, "run_script_in_vm", lambda *a, **k: (0, "done", ""))
+
+        def _fake_audit(command, *args, **kwargs):
+            del args, kwargs
+            audit_calls.append(command)
+            return (0, "audit ok", "")
+
+        monkeypatch.setattr(vm_verify, "run_command_in_vm", _fake_audit)
+
+        class _FakeVM:
+            vm_name = "fake"
+
+            def __init__(self, *a, **k):
+                pass
+
+            def create(self, *a, **k):
+                pass
+
+            def start(self):
+                pass
+
+            def boot_from_disk(self):
+                reboots.append(1)
+
+            def teardown(self):
+                pass
+
+        monkeypatch.setattr(vm_verify, "VirtualBoxBackend", _FakeVM)
+        result = vm_verify.verify_install_script(
+            script,
+            iso_path=iso,
+            post_reboot_user="jan",
+            post_reboot_commands=["test -s /etc/fstab"],
+            require_post_reboot=True,
+        )
+        assert result.success
+        assert reboots == [1]
+        assert audit_calls == ["test -s /etc/fstab"]
+        assert "post-reboot-ssh-up" in result.stages
+        assert "post-reboot-audit:1:0" in result.stages
+
+    def test_post_reboot_audit_failure_blocks(self, monkeypatch, tmp_path):
+        script = tmp_path / "install.sh"
+        script.write_text("echo ok")
+        iso = tmp_path / "live.iso"
+        iso.write_text("x")
+
+        monkeypatch.setattr(vm_verify, "bash_syntax_check", lambda _p: (True, "ok"))
+        monkeypatch.setattr(vm_verify, "pick_backend", lambda prefer=None: "virtualbox")
+        monkeypatch.setattr(
+            vm_verify,
+            "detect_backends",
+            lambda: {"virtualbox": "VBoxManage", "qemu": None},
+        )
+        monkeypatch.setattr(vm_verify, "_wait_for_vm_ssh", lambda *a, **k: True)
+        monkeypatch.setattr(vm_verify, "run_script_in_vm", lambda *a, **k: (0, "done", ""))
+        monkeypatch.setattr(
+            vm_verify,
+            "run_command_in_vm",
+            lambda *a, **k: (1, "", "missing fstab"),
+        )
+
+        class _FakeVM:
+            vm_name = "fake"
+
+            def __init__(self, *a, **k):
+                pass
+
+            def create(self, *a, **k):
+                pass
+
+            def start(self):
+                pass
+
+            def boot_from_disk(self):
+                pass
+
+            def teardown(self):
+                pass
+
+        monkeypatch.setattr(vm_verify, "VirtualBoxBackend", _FakeVM)
+        result = vm_verify.verify_install_script(
+            script,
+            iso_path=iso,
+            post_reboot_commands=["test -s /etc/fstab"],
+            require_post_reboot=True,
+        )
+        assert not result.success
+        assert "Post-reboot audit command failed" in result.error
+
     def test_soft_pass_exit_code(self, monkeypatch, tmp_path):
         script = tmp_path / "install.sh"
         script.write_text("echo ok")

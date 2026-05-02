@@ -253,6 +253,32 @@ class VirtualBoxBackend:
         self.progress(f"Starting VM {self.vm_name} ({mode})")
         self._vb("startvm", self.vm_name, "--type", mode)
 
+    def boot_from_disk(self, headless: bool = True) -> None:
+        """Power-cycle the VM with the ISO detached so the installed OS boots."""
+        mode = "headless" if headless else "gui"
+        self.progress(f"Powering off {self.vm_name} before installed-OS boot")
+        try:
+            self._vb("controlvm", self.vm_name, "poweroff", timeout=30)
+        except Exception:
+            pass
+        time.sleep(2.0)
+        self.progress(f"Detaching ISO and booting {self.vm_name} from disk")
+        self._vb(
+            "storageattach",
+            self.vm_name,
+            "--storagectl",
+            "SATA",
+            "--port",
+            "1",
+            "--device",
+            "0",
+            "--type",
+            "dvddrive",
+            "--medium",
+            "none",
+        )
+        self._vb("startvm", self.vm_name, "--type", mode)
+
     def teardown(self) -> None:
         self.progress(f"Tearing down {self.vm_name}")
         try:
@@ -328,6 +354,16 @@ class QemuBackend:
         ]
         self.progress(f"Starting QEMU VM {self.vm_name}")
         self.proc = subprocess.Popen(cmd)  # noqa: S603
+
+    def boot_from_disk(self, headless: bool = True) -> None:
+        """Restart QEMU from the installed disk.
+
+        The current QEMU launcher uses daemonized processes without a monitor,
+        so reliable ISO detach/reboot support needs a separate backend pass.
+        Fail closed instead of pretending post-reboot certification happened.
+        """
+        del headless
+        raise RuntimeError("QEMU post-reboot certification is not implemented yet")
 
     def teardown(self) -> None:
         self.progress(f"Tearing down {self.vm_name}")
@@ -473,6 +509,39 @@ def run_script_in_vm(
     return (rc.returncode, rc.stdout, rc.stderr)
 
 
+def run_command_in_vm(
+    command: str,
+    ssh_user: str,
+    ssh_port: int,
+    ssh_key: str | None,
+    progress: ProgressCallback = _noop_progress,
+    timeout: int = 300,
+) -> tuple[int, str, str]:
+    """Run one command over SSH inside the VM."""
+    ssh = shutil.which("ssh") or shutil.which("ssh.exe")
+    if not ssh:
+        return (127, "", "ssh not available on host")
+
+    key_args = ["-i", ssh_key] if ssh_key else []
+    progress(f"Running VM audit command: {command[:120]}")
+    ssh_cmd = [
+        ssh,
+        "-o",
+        "StrictHostKeyChecking=no",
+        "-o",
+        "UserKnownHostsFile=/dev/null",
+        "-o",
+        "ConnectTimeout=10",
+        "-p",
+        str(ssh_port),
+        *key_args,
+        f"{ssh_user}@127.0.0.1",
+        command,
+    ]
+    rc = _run(ssh_cmd, timeout=timeout)
+    return (rc.returncode, rc.stdout, rc.stderr)
+
+
 # ---------------------------------------------------------------------------
 # Top-level entry point
 # ---------------------------------------------------------------------------
@@ -485,6 +554,9 @@ def verify_install_script(
     ssh_key: str | None = None,
     progress: ProgressCallback = _noop_progress,
     backend: str | None = None,
+    post_reboot_user: str | None = None,
+    post_reboot_commands: list[str] | None = None,
+    require_post_reboot: bool = False,
 ) -> VerifyResult:
     """End-to-end: syntax check → spin VM → boot ISO → SSH in → run script.
 
@@ -558,6 +630,42 @@ def verify_install_script(
                 )
             else:
                 result.error = raw[:300]
+
+        if result.success and (require_post_reboot or post_reboot_commands):
+            result.stages.append("post-reboot-requested")
+            try:
+                vm.boot_from_disk()
+            except Exception as exc:
+                result.success = False
+                result.error = f"Could not boot installed VM from disk: {exc}"
+                return result
+
+            if not _wait_for_vm_ssh(22022, timeout=600, progress=progress, vm_name=vm.vm_name):
+                result.success = False
+                result.error = "Installed VM never answered on SSH after ISO detach/reboot"
+                return result
+            result.stages.append("post-reboot-ssh-up")
+
+            audit_user = post_reboot_user or ssh_user
+            for idx, command in enumerate(post_reboot_commands or [], start=1):
+                rc, out, err = run_command_in_vm(
+                    command,
+                    audit_user,
+                    22022,
+                    ssh_key,
+                    progress=progress,
+                    timeout=300,
+                )
+                result.stages.append(f"post-reboot-audit:{idx}:{rc}")
+                result.stdout_tail = ((result.stdout_tail or "") + "\n" + (out or ""))[-4000:]
+                result.stderr_tail = ((result.stderr_tail or "") + "\n" + (err or ""))[-4000:]
+                if rc != 0:
+                    result.success = False
+                    raw = (err or out or "").strip()
+                    result.error = (
+                        f"Post-reboot audit command failed ({rc}): {command}; {raw[:300]}"
+                    )
+                    return result
     except subprocess.TimeoutExpired:
         result.error = "VM operation timed out"
     except Exception as exc:  # pragma: no cover - defensive

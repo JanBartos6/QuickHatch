@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from quickhatch.setup.certify import run_vm_certification
+from quickhatch.wizard.vm_verify import VerifyResult
 
 
 def test_vm_certification_dry_run_writes_artifacts(tmp_path):
@@ -43,11 +44,23 @@ def test_vm_certification_blocks_missing_iso(tmp_path):
     assert result.blockers
 
 
-def test_vm_certification_fails_closed_for_live_backend_until_wired(tmp_path):
+def test_vm_certification_live_backend_success_is_automated(monkeypatch, tmp_path):
     iso = tmp_path / "fedora.iso"
     profile = tmp_path / "profile.json"
     iso.write_text("fake iso", encoding="utf-8")
     profile.write_text(json.dumps({}), encoding="utf-8")
+    calls = []
+
+    def _fake_verify(*args, **kwargs):
+        calls.append((args, kwargs))
+        return VerifyResult(
+            success=True,
+            backend="virtualbox",
+            exit_code=0,
+            stages=["syntax-check", "vm-created", "vm-started", "ssh-up", "script-exit:0"],
+        )
+
+    monkeypatch.setattr("quickhatch.setup.certify.verify_install_script", _fake_verify)
 
     result = run_vm_certification(
         family="fedora",
@@ -57,6 +70,46 @@ def test_vm_certification_fails_closed_for_live_backend_until_wired(tmp_path):
         dry_run=False,
     )
 
+    assert result.success
+    assert result.status == "passed"
+    assert calls
+    script_path = calls[0][0][0]
+    verify_kwargs = calls[0][1]
+    assert script_path.name == "certify-install.sh"
+    assert "dnf --installroot" in script_path.read_text(encoding="utf-8")
+    assert verify_kwargs["post_reboot_user"] == "jan"
+    assert verify_kwargs["require_post_reboot"] is True
+    assert verify_kwargs["post_reboot_commands"]
+
+
+def test_vm_certification_live_backend_failure_records_artifact(monkeypatch, tmp_path):
+    iso = tmp_path / "arch.iso"
+    profile = tmp_path / "profile.json"
+    iso.write_text("fake iso", encoding="utf-8")
+    profile.write_text(json.dumps({}), encoding="utf-8")
+
+    monkeypatch.setattr(
+        "quickhatch.setup.certify.verify_install_script",
+        lambda *a, **k: VerifyResult(
+            success=False,
+            backend="virtualbox",
+            exit_code=255,
+            error="VM never answered on SSH",
+            stages=["syntax-check", "vm-created"],
+        ),
+    )
+
+    result = run_vm_certification(
+        family="arch",
+        iso=iso,
+        profile=profile,
+        root=tmp_path / "certification",
+        dry_run=False,
+    )
+
     assert not result.success
     assert result.status == "blocked"
-    assert any("Live VM execution" in blocker for blocker in result.blockers)
+    assert "VM never answered on SSH" in result.blockers
+    artifact = next((tmp_path / "certification" / "arch").iterdir())
+    assert (artifact / "vm-result.json").exists()
+    assert (artifact / "certification-run.jsonl").exists()
