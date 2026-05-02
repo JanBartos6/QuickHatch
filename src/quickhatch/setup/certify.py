@@ -66,7 +66,12 @@ def run_vm_certification(
     adapter = get_family_installer(normalized_family)
     facts = SetupFacts(distro_family=normalized_family, is_live=True)
     spine = adapter.build_install_spine(facts, loaded_profile)
-    status = "blocked" if blockers else ("dry_run" if dry_run else "ready")
+    if not dry_run and not blockers:
+        blockers.append(
+            "Live VM execution is not wired into the staged setup runner yet. "
+            "Use --dry-run for artifact validation until backend execution lands."
+        )
+    status = "blocked" if blockers else "dry_run"
     success = not blockers and dry_run
     summary = {
         "family": normalized_family,
@@ -98,7 +103,7 @@ def run_vm_certification(
         summary=(
             "Certification dry-run artifact written."
             if success
-            else "Certification runner prepared artifacts; live VM execution is not started by tests."
+            else "Certification runner wrote artifacts but did not certify a live VM pass."
         ),
         snapshots=list(CERTIFICATION_SNAPSHOTS),
     )
