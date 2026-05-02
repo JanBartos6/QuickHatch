@@ -253,6 +253,13 @@ class VirtualBoxBackend:
         self.progress(f"Starting VM {self.vm_name} ({mode})")
         self._vb("startvm", self.vm_name, "--type", mode)
 
+    def type_command(self, command: str) -> None:
+        """Type a shell command into the VM console and press Enter."""
+        self.progress(f"Typing bootstrap command into {self.vm_name}")
+        self._vb("controlvm", self.vm_name, "keyboardputstring", command, timeout=30)
+        # Enter key press/release scancodes.
+        self._vb("controlvm", self.vm_name, "keyboardputscancode", "1c", "9c", timeout=30)
+
     def boot_from_disk(self, headless: bool = True) -> None:
         """Power-cycle the VM with the ISO detached so the installed OS boots."""
         mode = "headless" if headless else "gui"
@@ -542,6 +549,33 @@ def run_command_in_vm(
     return (rc.returncode, rc.stdout, rc.stderr)
 
 
+def _try_live_ssh_bootstrap(
+    vm: VirtualBoxBackend | QemuBackend,
+    command: str | None,
+    *,
+    ssh_port: int,
+    progress: ProgressCallback,
+    vm_name: str,
+    wait_seconds: int,
+) -> bool:
+    """Try to make an Arch-style live shell SSH-ready without human input."""
+    if not command:
+        return False
+    if not hasattr(vm, "type_command"):
+        progress("Live SSH bootstrap skipped: backend cannot type into the VM console")
+        return False
+    progress(
+        f"VM SSH is not up yet; trying live-console SSH bootstrap after {wait_seconds}s boot grace"
+    )
+    time.sleep(max(wait_seconds, 0))
+    try:
+        vm.type_command(command)  # type: ignore[attr-defined]
+    except Exception as exc:
+        progress(f"Live SSH bootstrap failed while typing command: {exc}")
+        return False
+    return _wait_for_vm_ssh(ssh_port, timeout=180, progress=progress, vm_name=vm_name)
+
+
 # ---------------------------------------------------------------------------
 # Top-level entry point
 # ---------------------------------------------------------------------------
@@ -557,6 +591,8 @@ def verify_install_script(
     post_reboot_user: str | None = None,
     post_reboot_commands: list[str] | None = None,
     require_post_reboot: bool = False,
+    live_bootstrap_command: str | None = None,
+    live_bootstrap_wait_seconds: int = 45,
 ) -> VerifyResult:
     """End-to-end: syntax check → spin VM → boot ISO → SSH in → run script.
 
@@ -600,7 +636,23 @@ def verify_install_script(
         vm.start()
         result.stages.append("vm-started")
 
-        if not _wait_for_vm_ssh(22022, timeout=600, progress=progress, vm_name=vm.vm_name):
+        initial_ssh_timeout = 60 if live_bootstrap_command else 600
+        ssh_ready = _wait_for_vm_ssh(
+            22022,
+            timeout=initial_ssh_timeout,
+            progress=progress,
+            vm_name=vm.vm_name,
+        )
+        if not ssh_ready:
+            ssh_ready = _try_live_ssh_bootstrap(
+                vm,
+                live_bootstrap_command,
+                ssh_port=22022,
+                progress=progress,
+                vm_name=vm.vm_name,
+                wait_seconds=live_bootstrap_wait_seconds,
+            )
+        if not ssh_ready:
             result.error = "VM never answered on SSH (boot or network failed)"
             return result
         result.stages.append("ssh-up")

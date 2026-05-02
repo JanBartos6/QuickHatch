@@ -61,6 +61,10 @@ def test_vm_certification_live_backend_success_is_automated(monkeypatch, tmp_pat
         )
 
     monkeypatch.setattr("quickhatch.setup.certify.verify_install_script", _fake_verify)
+    monkeypatch.setattr(
+        "quickhatch.setup.certify._prepare_certification_key",
+        lambda *a, **k: ("cert-key", "ssh-ed25519 AAAA quickhatch", ""),
+    )
 
     result = run_vm_certification(
         family="fedora",
@@ -80,6 +84,7 @@ def test_vm_certification_live_backend_success_is_automated(monkeypatch, tmp_pat
     assert verify_kwargs["post_reboot_user"] == "jan"
     assert verify_kwargs["require_post_reboot"] is True
     assert verify_kwargs["post_reboot_commands"]
+    assert "authorized_keys" in verify_kwargs["live_bootstrap_command"]
 
 
 def test_vm_certification_live_backend_failure_records_artifact(monkeypatch, tmp_path):
@@ -97,6 +102,10 @@ def test_vm_certification_live_backend_failure_records_artifact(monkeypatch, tmp
             error="VM never answered on SSH",
             stages=["syntax-check", "vm-created"],
         ),
+    )
+    monkeypatch.setattr(
+        "quickhatch.setup.certify._prepare_certification_key",
+        lambda *a, **k: ("cert-key", "ssh-ed25519 AAAA quickhatch", ""),
     )
 
     result = run_vm_certification(

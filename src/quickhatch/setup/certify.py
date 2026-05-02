@@ -8,12 +8,18 @@ can validate family/profile/snapshot wiring without mutating a real VM.
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
 import time
 from dataclasses import asdict
 from pathlib import Path
 
 from quickhatch.config import UserProfile
-from quickhatch.wizard.vm_verify import VerifyResult, verify_install_script
+from quickhatch.wizard.vm_verify import (
+    VerifyResult,
+    build_key_paste_snippet,
+    verify_install_script,
+)
 
 from .families import get_family_installer
 from .types import CertificationResult, SetupFacts
@@ -102,6 +108,60 @@ def _append_event(artifact_dir: Path, event_type: str, **payload: object) -> Non
         handle.write(json.dumps(event, sort_keys=True, default=str) + "\n")
 
 
+def _public_key_for_private_key(private_key: Path) -> tuple[str, str]:
+    public_key_path = private_key.with_name(private_key.name + ".pub")
+    if public_key_path.exists():
+        return public_key_path.read_text(encoding="utf-8").strip(), ""
+
+    ssh_keygen = shutil.which("ssh-keygen") or shutil.which("ssh-keygen.exe")
+    if not ssh_keygen:
+        return "", "ssh-keygen not found; cannot derive public key for VM certification"
+    proc = subprocess.run(  # noqa: S603
+        [ssh_keygen, "-y", "-f", str(private_key)],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    if proc.returncode != 0:
+        return "", (proc.stderr or proc.stdout or "ssh-keygen failed").strip()
+    return proc.stdout.strip(), ""
+
+
+def _prepare_certification_key(artifact_dir: Path, ssh_key: str | None) -> tuple[str, str, str]:
+    if ssh_key:
+        private_key = Path(ssh_key)
+        if not private_key.exists():
+            return "", "", f"SSH key not found: {private_key}"
+        public_key, error = _public_key_for_private_key(private_key)
+        return str(private_key), public_key, error
+
+    ssh_keygen = shutil.which("ssh-keygen") or shutil.which("ssh-keygen.exe")
+    if not ssh_keygen:
+        return "", "", "ssh-keygen not found; cannot generate VM certification key"
+
+    private_key = artifact_dir / "quickhatch-certify-ed25519"
+    proc = subprocess.run(  # noqa: S603
+        [
+            ssh_keygen,
+            "-t",
+            "ed25519",
+            "-N",
+            "",
+            "-C",
+            "quickhatch-certify",
+            "-f",
+            str(private_key),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    if proc.returncode != 0:
+        return "", "", (proc.stderr or proc.stdout or "ssh-keygen failed").strip()
+    public_key = private_key.with_name(private_key.name + ".pub").read_text(encoding="utf-8")
+    return str(private_key), public_key.strip(), ""
+
+
 def run_vm_certification(
     *,
     family: str,
@@ -164,6 +224,20 @@ def run_vm_certification(
     )
 
     vm_result: VerifyResult | None = None
+    effective_ssh_key = ssh_key
+    live_bootstrap_command = None
+    generated_key = False
+    if not blockers and not dry_run:
+        effective_ssh_key, public_key, key_error = _prepare_certification_key(
+            artifact_dir,
+            ssh_key,
+        )
+        generated_key = ssh_key is None and bool(effective_ssh_key)
+        if key_error:
+            blockers.append(key_error)
+        elif public_key:
+            live_bootstrap_command = build_key_paste_snippet(public_key)
+
     if not blockers and not dry_run:
         progress_log = artifact_dir / "progress.log"
 
@@ -175,12 +249,13 @@ def run_vm_certification(
             script_path,
             iso_path=iso_path,
             ssh_user=ssh_user,
-            ssh_key=ssh_key,
+            ssh_key=effective_ssh_key,
             progress=_progress,
             backend=backend,
             post_reboot_user=post_reboot_user,
             post_reboot_commands=post_reboot_audit,
             require_post_reboot=require_post_reboot,
+            live_bootstrap_command=live_bootstrap_command,
         )
         _write_vm_result(artifact_dir, vm_result)
         _append_event(
@@ -213,6 +288,8 @@ def run_vm_certification(
         "runlog": str(artifact_dir / "certification-run.jsonl"),
         "final_facts": str(artifact_dir / "final-facts.json"),
         "ssh_user": ssh_user,
+        "ssh_key": str(effective_ssh_key) if effective_ssh_key else "",
+        "generated_ssh_key": generated_key,
         "post_reboot_user": post_reboot_user,
         "require_post_reboot": require_post_reboot,
         "manual_intervention_required": False,

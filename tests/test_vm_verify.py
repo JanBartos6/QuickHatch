@@ -239,6 +239,59 @@ class TestVerifyInstallScript:
         assert "vm-started" in result.stages
         assert "ssh-up" in result.stages
 
+    def test_live_console_bootstrap_when_initial_ssh_missing(self, monkeypatch, tmp_path):
+        script = tmp_path / "install.sh"
+        script.write_text("echo ok")
+        iso = tmp_path / "live.iso"
+        iso.write_text("x")
+        typed = []
+        waits = []
+
+        monkeypatch.setattr(vm_verify, "bash_syntax_check", lambda _p: (True, "ok"))
+        monkeypatch.setattr(vm_verify, "pick_backend", lambda prefer=None: "virtualbox")
+        monkeypatch.setattr(
+            vm_verify,
+            "detect_backends",
+            lambda: {"virtualbox": "VBoxManage", "qemu": None},
+        )
+
+        def _fake_wait(*args, **kwargs):
+            waits.append(kwargs.get("timeout"))
+            return len(waits) > 1
+
+        monkeypatch.setattr(vm_verify, "_wait_for_vm_ssh", _fake_wait)
+        monkeypatch.setattr(vm_verify, "run_script_in_vm", lambda *a, **k: (0, "done", ""))
+        monkeypatch.setattr(vm_verify.time, "sleep", lambda _s: None)
+
+        class _FakeVM:
+            vm_name = "fake"
+
+            def __init__(self, *a, **k):
+                pass
+
+            def create(self, *a, **k):
+                pass
+
+            def start(self):
+                pass
+
+            def type_command(self, command):
+                typed.append(command)
+
+            def teardown(self):
+                pass
+
+        monkeypatch.setattr(vm_verify, "VirtualBoxBackend", _FakeVM)
+        result = vm_verify.verify_install_script(
+            script,
+            iso_path=iso,
+            live_bootstrap_command="systemctl start sshd",
+            live_bootstrap_wait_seconds=0,
+        )
+        assert result.success
+        assert typed == ["systemctl start sshd"]
+        assert waits == [60, 180]
+
     def test_full_post_reboot_path_with_mocked_backend(self, monkeypatch, tmp_path):
         script = tmp_path / "install.sh"
         script.write_text("echo ok")
