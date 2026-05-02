@@ -270,6 +270,44 @@ def test_desktop_audit_blocks_wallpaper_attempt_without_wallpaper_state():
     assert any("Wallpaper apply/configuration was attempted" in item for item in result.blockers)
 
 
+def test_desktop_audit_accepts_plasma6_wallpaper_and_breeze_dark_palette_fallback():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="linus",
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        desktop_design=DesktopDesignState(
+            environment="KDE",
+            kde_color_scheme="custom-dark-palette:2c3f86428c11011a7c64ee1e7f47c274d498ff10",
+            kde_icon_theme="Papirus-Dark",
+            kde_wallpaper="/usr/share/wallpapers/Next/contents/images/1280x800.png",
+        ),
+    )
+    plan = ResearchPlan(
+        target_summary="KDE desktop with Breeze Dark and wallpaper.",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("plasma", notes="Apply wallpaper and BreezeDark."),
+    )
+
+    result = audit_stage(
+        SetupStage.DESKTOP,
+        facts,
+        plan=plan,
+        stage_state={
+            "persisted_config_written": True,
+            "desktop_design_attempted": True,
+            "wallpaper_attempted": True,
+            "expected_kde_color_scheme": "BreezeDark",
+            "expected_kde_icon_theme": "Papirus-Dark",
+            "expected_kde_wallpaper": "/usr/share/wallpapers/Next/contents/images/1280x800.png",
+        },
+    )
+
+    assert result.passed
+
+
 def test_desktop_audit_does_not_treat_gnome_wallpaper_as_kde_wallpaper():
     facts = SetupFacts(
         distro_family="arch",

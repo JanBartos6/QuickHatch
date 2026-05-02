@@ -150,6 +150,34 @@ qh_xfconf_value() {
     fi
   fi
 }
+qh_kde_color_scheme=$(qh_ini_value "$qh_gui_home/.config/kdeglobals" General ColorScheme)
+if [ -z "$qh_kde_color_scheme" ]; then
+  qh_kde_color_hash=$(qh_ini_value "$qh_gui_home/.config/kdeglobals" General ColorSchemeHash)
+  qh_kde_window_bg=$(qh_ini_value "$qh_gui_home/.config/kdeglobals" "Colors:Window" BackgroundNormal)
+  if [ -n "$qh_kde_color_hash$qh_kde_window_bg" ]; then
+    qh_kde_palette_tone=custom-palette
+    if printf '%s\n' "$qh_kde_window_bg" | awk -F, 'NF >= 3 && ($1 + $2 + $3) < 300 { found=1 } END { exit found ? 0 : 1 }'; then
+      qh_kde_palette_tone=custom-dark-palette
+    fi
+    if [ -n "$qh_kde_color_hash" ]; then
+      qh_kde_color_scheme="$qh_kde_palette_tone:$qh_kde_color_hash"
+    else
+      qh_kde_color_scheme="$qh_kde_palette_tone"
+    fi
+  fi
+fi
+qh_kde_wallpaper=$(
+  awk -F= '
+    {
+      key=tolower($1)
+      if (key == "image" || key == "wallpaper" || key == "wallpaper-image") {
+        sub(/^[^=]*=/, "")
+        print
+        exit
+      }
+    }
+  ' "$qh_gui_home/.config/plasma-org.kde.plasma.desktop-appletsrc" 2>/dev/null
+)
 echo 'QH_SSH_SESSION='$qh_ssh_session
 echo 'QH_GUI_SESSION_ID='$qh_gui_session
 echo 'QH_GUI_SESSION_TYPE='$qh_gui_type
@@ -163,12 +191,12 @@ echo 'QH_GUI_XAUTHORITY='$qh_gui_xauth
 echo 'QH_GUI_DBUS='$qh_gui_dbus
 echo 'QH_SESSION='$qh_gui_type
 echo 'QH_DESKTOP_ENV='$qh_gui_current_desktop
-echo 'QH_KDE_COLOR_SCHEME='$(qh_ini_value "$qh_gui_home/.config/kdeglobals" General ColorScheme)
-echo 'QH_KDE_ICON_THEME='$(qh_ini_value "$qh_gui_home/.config/kdeglobals" Icons Theme)
-echo 'QH_KDE_CURSOR_THEME='$(qh_ini_value "$qh_gui_home/.config/kcminputrc" Mouse cursorTheme)
-echo 'QH_KDE_WOBBLY='$(qh_ini_value "$qh_gui_home/.config/kwinrc" Plugins wobblywindowsEnabled)
-echo 'QH_KDE_MAGIC_LAMP='$(qh_ini_value "$qh_gui_home/.config/kwinrc" Plugins magiclampEnabled)
-echo 'QH_KDE_WALLPAPER='$(awk -F= '/^(Image|Wallpaper|wallpaper)=/ {print $2; exit}' "$qh_gui_home/.config/plasma-org.kde.plasma.desktop-appletsrc" 2>/dev/null)
+printf 'QH_KDE_COLOR_SCHEME=%s\n' "$qh_kde_color_scheme"
+printf 'QH_KDE_ICON_THEME=%s\n' "$(qh_ini_value "$qh_gui_home/.config/kdeglobals" Icons Theme)"
+printf 'QH_KDE_CURSOR_THEME=%s\n' "$(qh_ini_value "$qh_gui_home/.config/kcminputrc" Mouse cursorTheme)"
+printf 'QH_KDE_WOBBLY=%s\n' "$(qh_ini_value "$qh_gui_home/.config/kwinrc" Plugins wobblywindowsEnabled)"
+printf 'QH_KDE_MAGIC_LAMP=%s\n' "$(qh_ini_value "$qh_gui_home/.config/kwinrc" Plugins magiclampEnabled)"
+printf 'QH_KDE_WALLPAPER=%s\n' "$qh_kde_wallpaper"
 echo 'QH_GNOME_GTK_THEME='$(qh_gsettings_value org.gnome.desktop.interface gtk-theme)
 echo 'QH_GNOME_ICON_THEME='$(qh_gsettings_value org.gnome.desktop.interface icon-theme)
 echo 'QH_GNOME_CURSOR_THEME='$(qh_gsettings_value org.gnome.desktop.interface cursor-theme)

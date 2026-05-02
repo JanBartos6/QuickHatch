@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from quickhatch.setup.facts import probe_setup_facts
+from quickhatch.setup.facts import probe_setup_facts, setup_fact_probe_command
 from quickhatch.setup.types import DesktopRuntimeState, SetupFacts
 
 
@@ -62,6 +62,14 @@ QH_XRANDR_END
     assert facts.system_vendor == "innotek GmbH"
     assert facts.product_name == "VirtualBox"
     assert facts.secure_boot_state == "disabled"
+
+
+def test_fact_probe_reads_plasma6_serialized_wallpaper_and_palette_hash():
+    command = setup_fact_probe_command()
+
+    assert "wallpaper-image" in command
+    assert "ColorSchemeHash" in command
+    assert "custom-dark-palette" in command
 
 
 def test_probe_setup_facts_parses_secure_boot_enabled():

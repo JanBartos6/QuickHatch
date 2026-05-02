@@ -339,7 +339,7 @@ def _desktop_design_contract_blockers(facts: SetupFacts, state: dict[str, Any]) 
             "KDE color scheme",
             state.get("expected_kde_color_scheme"),
             design.kde_color_scheme,
-            _matches_exactish,
+            _matches_kde_color_scheme,
         ),
         (
             "KDE wallpaper",
@@ -400,6 +400,22 @@ def _matches_exactish(expected: str, observed: str) -> bool:
     expected_norm = _normalize_design_value(expected)
     observed_norm = _normalize_design_value(observed)
     return expected_norm == observed_norm or expected_norm in observed_norm
+
+
+def _matches_kde_color_scheme(expected: str, observed: str) -> bool:
+    if _matches_exactish(expected, observed):
+        return True
+    expected_norm = _normalize_design_value(expected)
+    observed_norm = _normalize_design_value(observed)
+    builtin_dark_names = {
+        "breezedark",
+        "breeze-dark",
+        "org.kde.breezedark.desktop",
+        "org-kde-breezedark-desktop",
+    }
+    if expected_norm in builtin_dark_names and "custom-dark-palette" in observed_norm:
+        return True
+    return False
 
 
 def _matches_boolish(expected: str, observed: str) -> bool:
