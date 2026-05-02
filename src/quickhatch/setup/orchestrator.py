@@ -2381,9 +2381,71 @@ class SetupOrchestrator:
         blockers: list[str] = []
         blockers.extend(self._verify_planned_packages_installed())
         blockers.extend(self._verify_fstab_root_entry())
+        blockers.extend(self._verify_reboot_required_state())
         blockers.extend(self._verify_systemd_health())
         blockers.extend(self._verify_display_manager_session_health())
         return blockers
+
+    def _verify_reboot_required_state(self) -> list[str]:
+        if self.ctx.facts is None or self.ctx.facts.is_live:
+            return []
+        final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
+        command = r"""qh_required=no
+qh_detail=
+if [ -f /var/run/reboot-required ] || [ -f /run/reboot-required ]; then
+  qh_required=yes
+  qh_detail="reboot-required marker present"
+  if [ -f /var/run/reboot-required.pkgs ]; then
+    qh_detail="$qh_detail: $(tr '\n' ' ' < /var/run/reboot-required.pkgs 2>/dev/null)"
+  fi
+elif command -v needs-restarting >/dev/null 2>&1; then
+  qh_out=$(needs-restarting -r 2>&1)
+  qh_rc=$?
+  if [ "$qh_rc" -ne 0 ] && printf '%s' "$qh_out" | grep -Eiq 'reboot|restart.*system|core libraries|kernel'; then
+    qh_required=yes
+    qh_detail="$qh_out"
+  fi
+elif command -v dkms >/dev/null 2>&1; then
+  qh_out=$(dkms status 2>/dev/null | grep -Ei ': (added|built)$|: (added|built),' || true)
+  if [ -n "$qh_out" ]; then
+    qh_required=yes
+    qh_detail="DKMS module build/install is incomplete: $qh_out"
+  fi
+fi
+printf 'QH_REBOOT_REQUIRED=%s\n' "$qh_required"
+printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
+"""
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 45)
+        self.runlog.record(
+            "final_reboot_required_verification",
+            command=command,
+            rc=rc,
+            stdout_tail=(stdout or "")[-800:],
+            stderr_tail=(stderr or "")[-800:],
+        )
+        final_state["reboot_required_verification_ran"] = True
+        final_state["reboot_required_rc"] = rc
+        final_state["reboot_required_raw"] = (stdout or "")[-1000:]
+        if rc != 0:
+            return [
+                "Could not verify reboot-required state: "
+                + (stderr or stdout or "unknown error").strip()[:240]
+            ]
+        required = ""
+        detail = ""
+        for line in (stdout or "").splitlines():
+            if line.startswith("QH_REBOOT_REQUIRED="):
+                required = line.split("=", 1)[1].strip()
+            elif line.startswith("QH_REBOOT_DETAIL="):
+                detail = line.split("=", 1)[1].strip()
+        final_state["reboot_required"] = required
+        final_state["reboot_required_detail"] = detail
+        if required == "yes":
+            return [
+                "A reboot is still required before setup can be declared complete"
+                + (f": {detail[:240]}" if detail else ".")
+            ]
+        return []
 
     def _verify_planned_packages_installed(self) -> list[str]:
         if self.ctx.plan is None or self.ctx.facts is None:
@@ -2859,7 +2921,7 @@ class SetupOrchestrator:
                 else:
                     self.bridge.add_message(
                         "agent",
-                        f"[harness] 🛑 Command blocked: `{command}`\n{lint_error}",
+                        f"[harness] 🛑 Safety/precondition block: `{command}`\n{lint_error}",
                     )
                     self.runlog.record(
                         "command_preflight_blocked",
@@ -2971,7 +3033,21 @@ class SetupOrchestrator:
                     detail=detail,
                 )
             self._update_from_command(visible_command, stdout, stderr, stage=stage)
-        self._maybe_reboot_for_nvidia_driver(stage, group, stage_state)
+        try:
+            self._maybe_reboot_for_nvidia_driver(stage, group, stage_state)
+        except RuntimeError as exc:
+            detail = str(exc) or "NVIDIA driver reboot/reconnect failed."
+            self.bridge.add_message(
+                "agent",
+                f"⚠️ NVIDIA reboot/reconnect step failed in '{group.title}': {detail}",
+            )
+            return GroupFailure(
+                failure_type="nvidia_reboot",
+                command="controlled NVIDIA driver reboot",
+                stdout="",
+                stderr=detail,
+                detail=detail,
+            )
         for verification in group.verification:
             verification = self._normalize_mountpoint_probe_command(verification)
             verification = self._normalize_live_nonroot_chroot_command(verification, stage=stage)
@@ -3374,6 +3450,8 @@ class SetupOrchestrator:
         if stage != SetupStage.DESKTOP:
             return False
         if not self._is_cosmetic_desktop_verification(verification):
+            return False
+        if not (group.optional or group.optional_slow):
             return False
         reason = (
             f"Cosmetic desktop verification did not pass for '{group.title}' "
@@ -5558,10 +5636,16 @@ class SetupOrchestrator:
                     timeout=float(action.get("timeout_seconds", 600) or 600),
                 )
                 if not answer:
-                    if not bool(action.get("required", True)):
+                    if not bool(action.get("required", True)) or stage in {
+                        SetupStage.DESKTOP,
+                        SetupStage.APPS,
+                    }:
                         return {
                             "action": "manual_followup",
-                            "reason": "Repair question timed out for a non-required item.",
+                            "reason": (
+                                "Repair question timed out; this non-install item was left "
+                                "for manual follow-up instead of stopping setup."
+                            ),
                         }
                     raise RuntimeError(
                         f"Repair question timed out for required item in '{failed_group.title}'."
@@ -5601,6 +5685,14 @@ class SetupOrchestrator:
                 ]
                 continue
             return action
+        if stage in {SetupStage.POSTBOOT_DRIVER, SetupStage.DESKTOP, SetupStage.APPS}:
+            return {
+                "action": "manual_followup",
+                "reason": (
+                    f"Repair loop exhausted for '{failed_group.title}' after "
+                    f"{self.MAX_REPAIR_TURNS} invalid or non-actionable repair turn(s)."
+                ),
+            }
         raise RuntimeError(f"Repair loop exhausted for '{failed_group.title}'.")
 
     @staticmethod
@@ -5694,6 +5786,13 @@ class SetupOrchestrator:
         if not self.ctx.plan:
             return
         if stage != SetupStage.APPS:
+            if stage == SetupStage.POSTBOOT_DRIVER and self.ctx.facts:
+                if "nvidia" in self.ctx.facts.gpu_vendors:
+                    self.ctx.plan.driver_strategy.strategy = "nvidia_manual_followup"
+                    self.ctx.plan.driver_strategy.confidence = "manual_followup_required"
+                    self.ctx.plan.driver_strategy.source = "manual_followup"
+                    self.ctx.plan.driver_strategy.notes = reason
+                    self.ctx.plan.driver_strategy.packages = []
             self.ctx.stage_state.setdefault(stage.value, {}).setdefault(
                 "manual_followups", []
             ).append({"group_id": group.id, "reason": reason})

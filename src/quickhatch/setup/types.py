@@ -160,6 +160,7 @@ class SetupFacts:
     pending_question_id: str = ""
     pending_question_blocking: bool = False
     waiting_for_input: bool = False
+    fact_probe_ok: bool = True
     raw: dict[str, Any] = field(default_factory=dict)
 
 

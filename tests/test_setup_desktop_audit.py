@@ -163,6 +163,34 @@ def test_desktop_audit_blocks_expected_wallpaper_missing():
     assert any("KDE wallpaper mismatch" in item for item in result.blockers)
 
 
+def test_desktop_audit_blocks_missing_expected_icon_value():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        desktop_design=DesktopDesignState(
+            environment="KDE",
+            kde_wallpaper="file:///home/jan/Pictures/masterpiece.png",
+        ),
+    )
+
+    result = audit_stage(
+        SetupStage.DESKTOP,
+        facts,
+        stage_state={
+            "persisted_config_written": True,
+            "desktop_design_attempted": True,
+            "wallpaper_attempted": True,
+            "expected_kde_icon_theme": "candy-icons",
+            "expected_kde_wallpaper": "/home/jan/Pictures/masterpiece.png",
+        },
+    )
+
+    assert not result.passed
+    assert any("KDE icon theme was expected" in item for item in result.blockers)
+
+
 def test_desktop_audit_ignores_dynamic_shell_wallpaper_expectation():
     facts = SetupFacts(
         distro_family="arch",
@@ -355,6 +383,37 @@ def test_driver_audit_blocks_unresolved_legacy_nvidia_strategy():
 
     assert not result.passed
     assert any("manual follow-up" in item for item in result.blockers)
+
+
+def test_driver_audit_blocks_stale_nvidia_probe_even_if_previous_state_was_healthy():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GeForce RTX 3080"],
+        nvidia_smi_state="ok",
+        nvidia_kernel_driver="nvidia",
+        nvidia_nouveau_bound=False,
+        fact_probe_ok=False,
+    )
+    plan = ResearchPlan(
+        target_summary="Arch NVIDIA workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(
+            strategy="official_nvidia_open",
+            confidence="resolved_official",
+            source="official",
+            packages=["nvidia-open", "nvidia-utils"],
+        ),
+        desktop_strategy=StrategyDecision(strategy="none"),
+    )
+
+    result = audit_stage(SetupStage.POSTBOOT_DRIVER, facts, plan=plan)
+
+    assert not result.passed
+    assert any("stale" in item for item in result.blockers)
 
 
 def test_driver_audit_blocks_resolved_nvidia_strategy_without_packages():

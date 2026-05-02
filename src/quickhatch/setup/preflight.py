@@ -773,6 +773,13 @@ def preflight_setup_advisories(
                         "These look like Arch community/AUR packages and may not resolve with "
                         "`pacman`: " + ", ".join(aurish),
                     )
+                if not arch_nvidia_official_package_supported(facts, packages):
+                    _append_unique(
+                        advisories,
+                        "Detected pre-Turing NVIDIA hardware. Current official Arch NVIDIA "
+                        "packages are probably the wrong driver path; use repo/AUR/web research "
+                        "or let the command fail and repair from the real package/driver output.",
+                    )
         elif package_manager == "apt":
             if tool in {"pacman", "yay", "paru", "dnf", "zypper"}:
                 _append_unique(
@@ -826,7 +833,6 @@ def preflight_setup_command(
 ) -> str | None:
     """Return a blocking reason for clearly unsafe/impossible setup commands."""
 
-    package_manager = facts.package_manager or "unknown"
     if not allow_network_security_changes and _activates_network_security_services(command):
         return (
             "Do not enable/start VPN or firewall services automatically. Installing the package "
@@ -901,13 +907,4 @@ def preflight_setup_command(
                 f"`{tool}` changes system packages and needs root privileges. "
                 "Use `sudo` unless the remote session is already root."
             )
-        if package_manager == "pacman":
-            if tool == "pacman":
-                packages = _extract_pacman_install_packages(tokens)
-                if not arch_nvidia_official_package_supported(facts, packages):
-                    return (
-                        "Detected pre-Turing NVIDIA hardware. Do not install the current "
-                        "official Arch NVIDIA packages blindly; resolve the supported legacy "
-                        "driver path with repo/AUR/web research before mutating drivers."
-                    )
     return None

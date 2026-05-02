@@ -59,6 +59,7 @@ def audit_stage(
         details["nvidia_smi_state"] = facts.nvidia_smi_state
         details["nvidia_kernel_driver"] = facts.nvidia_kernel_driver
         details["nvidia_nouveau_bound"] = facts.nvidia_nouveau_bound
+        details["fact_probe_ok"] = facts.fact_probe_ok
         details["secure_boot_state"] = facts.secure_boot_state
         details["amd_kernel_driver"] = facts.amd_kernel_driver
         details["intel_kernel_driver"] = facts.intel_kernel_driver
@@ -77,6 +78,11 @@ def audit_stage(
             blockers.append(
                 "NVIDIA driver strategy still requires manual follow-up; do not declare "
                 "driver setup complete until it is explicitly installed, skipped, or verified."
+            )
+        if "nvidia" in facts.gpu_vendors and not facts.fact_probe_ok:
+            blockers.append(
+                "NVIDIA verification facts are stale because the latest remote fact probe failed; "
+                "refresh facts successfully before declaring driver setup complete."
             )
         if (
             "nvidia" in facts.gpu_vendors
@@ -363,6 +369,10 @@ def _desktop_design_contract_blockers(facts: SetupFacts, state: dict[str, Any]) 
             continue
         observed_text = str(observed or "").strip()
         if not observed_text:
+            blockers.append(
+                f"{label} was expected as {expected_text!r}, but no target value was detected. "
+                "Re-apply or persist the desktop design before declaring success."
+            )
             continue
         if matcher(expected_text, observed_text):
             continue

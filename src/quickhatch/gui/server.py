@@ -4752,10 +4752,13 @@ def _preflight_setup_command(
     *,
     allow_network_security_changes: bool = False,
 ) -> str | None:
-    """Reject obviously impossible package-manager actions before they hit the target."""
-    import shlex
+    """Reject only commands that can cut off remote access in the legacy loop.
 
-    package_manager = facts.get("package_manager", "unknown")
+    Package names, helper availability, wrong package managers, and desktop
+    apply mistakes are guidance/repair problems. They should fail normally and
+    feed the model real target output instead of being stopped by stale rules.
+    """
+
     if not allow_network_security_changes and _activates_network_security_services(cmd):
         return (
             "Do not enable/start VPN or firewall services automatically. "
@@ -4764,86 +4767,6 @@ def _preflight_setup_command(
             "explicit user request right now because it can change routing, DNS, firewall "
             "policy, or kill-switch behavior and cut off remote access."
         )
-    if _uses_fake_plasma_session_wrapper(cmd):
-        return (
-            "Do not use `dbus-run-session` to apply KDE/Plasma theming. That creates a throwaway "
-            "bus, so `plasma-apply-lookandfeel`/`plasma-apply-wallpaperimage` do not touch the "
-            "real desktop the user sees. Use the logged-in user's actual session bus instead "
-            "(`XDG_RUNTIME_DIR=/run/user/<uid>` and "
-            "`DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/<uid>/bus`), or write KDE config files "
-            "directly and tell the user a logout/login is required."
-        )
-    aur_helper = facts.get("aur_helper", "none")
-    for segment in _split_command_segments_for_lint(cmd):
-        try:
-            tokens = shlex.split(segment, posix=True)
-        except ValueError:
-            continue
-        tokens = _strip_command_wrappers(tokens)
-        if not tokens:
-            continue
-        tool = _normalize_command_tool(tokens[0])
-        if package_manager == "pacman":
-            if tool in {"apt", "apt-get", "dnf", "zypper"}:
-                return (
-                    f"This target is Arch-family (`pacman`), so `{tool}` is the wrong package manager. "
-                    "Use `pacman` for repo packages, and use the AUR helper only for AUR packages."
-                )
-            if tool in {"yay", "paru"} and aur_helper == "none":
-                return (
-                    f"The command uses `{tool}` but no AUR helper is installed yet. "
-                    "Install `yay`/`paru` first, build the package manually with `makepkg -s` + `pacman -U`, "
-                    "or use `aur_search`/`web_search` first if you still need to resolve the exact package name."
-                )
-            if tool == "pacman":
-                packages = _extract_pacman_install_packages(tokens)
-                aur_only = [
-                    pkg
-                    for pkg in packages
-                    if pkg in _ARCH_AUR_ONLY_PACKAGES or pkg.endswith(_AURISH_SUFFIXES)
-                ]
-                if aur_only:
-                    helper = aur_helper if aur_helper != "none" else "an AUR helper"
-                    joined = ", ".join(aur_only)
-                    return (
-                        "Do not pass AUR-only packages to `pacman` on Arch. "
-                        f"`{joined}` should be installed with {helper} or via manual `makepkg`, "
-                        "while repo packages stay on `pacman`. If you are unsure about the exact package name, "
-                        "use `aur_search` before issuing another install command."
-                    )
-            if tool in {"yay", "paru"}:
-                packages = _extract_pacman_install_packages(tokens)
-                heavy_optional = [
-                    pkg for pkg in packages if pkg in _HEAVY_OPTIONAL_DESKTOP_PACKAGES
-                ]
-                if heavy_optional and len(packages) > len(heavy_optional):
-                    joined = ", ".join(heavy_optional)
-                    return (
-                        "Do not bundle heavyweight optional desktop wrappers into a mixed install batch. "
-                        f"`{joined}` should be installed separately from core tools/themes so one slow or "
-                        "failed package does not derail the whole transaction. Split this into smaller commands "
-                        "and keep optional AI desktop clients independent."
-                    )
-        elif package_manager == "apt" and tool in {"pacman", "yay", "paru", "dnf", "zypper"}:
-            return f"This target uses apt, so `{tool}` is the wrong package manager."
-        elif package_manager == "dnf" and tool in {
-            "pacman",
-            "yay",
-            "paru",
-            "apt",
-            "apt-get",
-            "zypper",
-        }:
-            return f"This target uses dnf, so `{tool}` is the wrong package manager."
-        elif package_manager == "zypper" and tool in {
-            "pacman",
-            "yay",
-            "paru",
-            "apt",
-            "apt-get",
-            "dnf",
-        }:
-            return f"This target uses zypper, so `{tool}` is the wrong package manager."
     return None
 
 
@@ -7552,7 +7475,7 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
                             )
                             bridge.add_message(
                                 "agent",
-                                f"[harness] 🛑 Command blocked: `{cmd}`\n{block_hint}",
+                                f"[harness] 🛑 Reboot safety block: `{cmd}`\n{block_hint}",
                             )
                             bridge.add_message(
                                 "agent",
@@ -7597,7 +7520,7 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
                     if lint_error:
                         bridge.add_message(
                             "agent",
-                            f"[harness] 🛑 Command blocked: `{cmd}`\n{lint_error}",
+                            f"[harness] 🛑 Safety/precondition block: `{cmd}`\n{lint_error}",
                         )
                         pending_feedback.append(
                             "[quickhatch preflight]\n"

@@ -495,9 +495,11 @@ def probe_setup_facts(
         pending_question_id=pending_question_id,
         pending_question_blocking=pending_question_blocking,
         waiting_for_input=bool(pending_question_id and pending_question_blocking),
+        fact_probe_ok=rc == 0,
         raw=dict(base.raw),
     )
     if rc != 0:
+        facts.raw = {**facts.raw, "QH_FACT_PROBE_RC": str(rc)}
         return facts
     raw: dict[str, str] = {}
     for line in out.splitlines():

@@ -17,6 +17,7 @@ from quickhatch.setup.orchestrator import (
 from quickhatch.setup.types import (
     AppPlanItem,
     CommandGroup,
+    DesktopDesignState,
     DesktopRuntimeState,
     DisplayRuntimeInfo,
     PlanItemStatus,
@@ -25,6 +26,27 @@ from quickhatch.setup.types import (
     SetupStage,
     StrategyDecision,
 )
+
+
+def _with_verified_kde_icon(facts: SetupFacts, icon_theme: str = "candy-icons") -> SetupFacts:
+    facts.desktop_design = DesktopDesignState(
+        environment=facts.desktop_design.environment or "KDE",
+        kde_color_scheme=facts.desktop_design.kde_color_scheme,
+        kde_icon_theme=icon_theme,
+        kde_cursor_theme=facts.desktop_design.kde_cursor_theme,
+        kde_wallpaper=facts.desktop_design.kde_wallpaper,
+        kde_wobbly_windows=facts.desktop_design.kde_wobbly_windows,
+        kde_magic_lamp=facts.desktop_design.kde_magic_lamp,
+        gnome_gtk_theme=facts.desktop_design.gnome_gtk_theme,
+        gnome_icon_theme=facts.desktop_design.gnome_icon_theme,
+        gnome_cursor_theme=facts.desktop_design.gnome_cursor_theme,
+        gnome_wallpaper=facts.desktop_design.gnome_wallpaper,
+        xfce_gtk_theme=facts.desktop_design.xfce_gtk_theme,
+        xfce_icon_theme=facts.desktop_design.xfce_icon_theme,
+        xfce_window_theme=facts.desktop_design.xfce_window_theme,
+        xfce_wallpaper=facts.desktop_design.xfce_wallpaper,
+    )
+    return facts
 
 
 def test_extract_created_user_from_chrooted_useradd():
@@ -430,6 +452,14 @@ def _dummy_setup_runtime(
     run_pre_reboot_checks=None,
     native_search_active: bool = False,
 ) -> SetupRuntime:
+    def default_probe_facts(**_kwargs) -> SetupFacts:
+        if (
+            facts.desktop_runtime_state == DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
+            and not facts.desktop_design.kde_icon_theme
+        ):
+            return _with_verified_kde_icon(facts)
+        return facts
+
     return SetupRuntime(
         profile=profile,
         bridge=bridge,
@@ -440,7 +470,7 @@ def _dummy_setup_runtime(
         key_path=None,
         system_info_fn=lambda: "system info",
         call_model_text=lambda cfg, messages: "{}",
-        probe_facts=probe_facts or (lambda **kwargs: facts),
+        probe_facts=probe_facts or default_probe_facts,
         detect_live_env=lambda: (False, "INSTALLED"),
         ssh_exec=ssh_exec or (lambda command, timeout: (0, "", "")),
         repo_search=lambda query: "",
@@ -1768,7 +1798,7 @@ def test_apt_mutating_commands_get_noninteractive_frontend():
     )
 
 
-def test_desktop_cosmetic_package_verification_becomes_manual_followup():
+def test_optional_desktop_cosmetic_package_verification_becomes_manual_followup():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
     facts = SetupFacts(
@@ -1797,6 +1827,7 @@ def test_desktop_cosmetic_package_verification_becomes_manual_followup():
         commands=["true"],
         verification=["sudo pacman -Qm | grep -q sweet-kde-theme-mars-git"],
         packages=["sweet-kde-theme-mars-git", "candy-icons-git"],
+        optional=True,
     )
     stage_state: dict[str, object] = {}
 
@@ -1810,7 +1841,7 @@ def test_desktop_cosmetic_package_verification_becomes_manual_followup():
     assert any("manual follow-up" in message["content"] for message in bridge.messages)
 
 
-def test_desktop_cosmetic_asset_verification_becomes_manual_followup():
+def test_optional_desktop_cosmetic_asset_verification_becomes_manual_followup():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
     facts = SetupFacts(
@@ -1839,6 +1870,7 @@ def test_desktop_cosmetic_asset_verification_becomes_manual_followup():
         commands=["true"],
         verification=["ls /usr/share/plasma/look-and-feel/ | grep -i Sweet-Mars"],
         packages=["sweet-kde-theme-git", "candy-icons-git"],
+        optional=True,
     )
     stage_state: dict[str, object] = {}
 
@@ -1850,6 +1882,44 @@ def test_desktop_cosmetic_asset_verification_becomes_manual_followup():
     assert stage_state["manual_followups"]
     assert "look-and-feel" in stage_state["manual_followups"][0]["verification"]
     assert any("Cosmetic desktop verification" in message["content"] for message in bridge.messages)
+
+
+def test_required_desktop_cosmetic_asset_verification_blocks():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+
+    def ssh_exec(command, timeout):
+        if "look-and-feel" in command:
+            return (1, "", "missing theme id")
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="neon-assets",
+        stage=SetupStage.DESKTOP,
+        title="Neon Aesthetic Assets",
+        commands=["true"],
+        verification=["ls /usr/share/plasma/look-and-feel/ | grep -i Sweet-Mars"],
+        packages=["sweet-kde-theme-git", "candy-icons-git"],
+    )
+    stage_state: dict[str, object] = {}
+
+    failure = orchestrator._execute_group(SetupStage.DESKTOP, group, stage_state)
+
+    assert failure is not None
+    assert failure.failure_type == "verification"
+    assert stage_state["failed_verifications"]
+    assert "manual_followups" not in stage_state
 
 
 def test_core_desktop_package_verification_still_blocks():
@@ -3209,6 +3279,51 @@ def test_arch_nvidia_stage_reboots_once_when_nouveau_is_bound_before_verificatio
     assert orchestrator.ctx.facts.nvidia_smi_state == "ok"
 
 
+def test_nvidia_reboot_failure_enters_group_repair_path():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        gpu_vendors=["nvidia"],
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+        nvidia_smi_state="present_but_failing",
+        nvidia_kernel_driver="nouveau",
+        nvidia_nouveau_bound=True,
+    )
+
+    def ssh_exec(command, _timeout):
+        if "reboot" in command:
+            return (1, "", "reboot denied")
+        return (0, "", "")
+
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        facts,
+        ssh_exec=ssh_exec,
+        probe_facts=lambda **_kwargs: facts,
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="driver",
+        stage=SetupStage.POSTBOOT_DRIVER,
+        title="NVIDIA Driver Setup",
+        commands=["sudo pacman -S --noconfirm nvidia-open nvidia-utils"],
+        verification=["nvidia-smi"],
+        packages=["nvidia-open"],
+    )
+
+    failure = orchestrator._execute_group(SetupStage.POSTBOOT_DRIVER, group, {})
+
+    assert failure is not None
+    assert failure.failure_type == "nvidia_reboot"
+    assert "reboot denied" in failure.detail
+
+
 def test_live_install_bootstraps_nopasswd_sudo_after_reconnect(tmp_path):
     profile = UserProfile()
     pubkey = tmp_path / "quickhatch.pub"
@@ -3614,14 +3729,16 @@ def test_orchestrator_blocks_on_required_planning_question():
 def test_orchestrator_continues_after_answered_required_planning_question():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
-    facts = SetupFacts(
-        distro_family="arch",
-        package_manager="pacman",
-        community_helper="yay",
-        current_user="jan",
-        login_user="jan",
-        session_type="wayland",
-        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    facts = _with_verified_kde_icon(
+        SetupFacts(
+            distro_family="arch",
+            package_manager="pacman",
+            community_helper="yay",
+            current_user="jan",
+            login_user="jan",
+            session_type="wayland",
+            desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        )
     )
     plan_payload = {
         "target_summary": "Arch workstation.",
@@ -3721,14 +3838,16 @@ def test_orchestrator_continues_after_answered_required_planning_question():
 def test_orchestrator_retries_invalid_planner_json_before_blocking():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
-    facts = SetupFacts(
-        distro_family="arch",
-        package_manager="pacman",
-        community_helper="yay",
-        current_user="jan",
-        login_user="jan",
-        session_type="wayland",
-        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    facts = _with_verified_kde_icon(
+        SetupFacts(
+            distro_family="arch",
+            package_manager="pacman",
+            community_helper="yay",
+            current_user="jan",
+            login_user="jan",
+            session_type="wayland",
+            desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        )
     )
     model_calls = {"count": 0}
     seen_messages: list[list[dict[str, str]]] = []
@@ -3793,14 +3912,16 @@ def test_orchestrator_retries_invalid_planner_json_before_blocking():
 def test_orchestrator_retries_planner_validation_error_before_blocking():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
-    facts = SetupFacts(
-        distro_family="arch",
-        package_manager="pacman",
-        community_helper="yay",
-        current_user="jan",
-        login_user="jan",
-        session_type="wayland",
-        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    facts = _with_verified_kde_icon(
+        SetupFacts(
+            distro_family="arch",
+            package_manager="pacman",
+            community_helper="yay",
+            current_user="jan",
+            login_user="jan",
+            session_type="wayland",
+            desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        )
     )
     model_calls = {"count": 0}
 
@@ -4228,7 +4349,7 @@ def test_live_install_passes_guard_then_reboots_and_reconnects_once():
 
     def probe_facts(**kwargs):
         is_live = bool(kwargs.get("is_live", live_state["is_live"]))
-        return SetupFacts(
+        probed = SetupFacts(
             distro_family="arch",
             package_manager="pacman",
             community_helper="none",
@@ -4243,6 +4364,7 @@ def test_live_install_passes_guard_then_reboots_and_reconnects_once():
                 else DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
             ),
         )
+        return probed if is_live else _with_verified_kde_icon(probed)
 
     def ssh_exec(command, _timeout):
         commands.append(command)
@@ -4357,7 +4479,7 @@ def test_live_install_installs_reconnect_key_before_reboot(tmp_path):
 
     def probe_facts(**kwargs):
         is_live = bool(kwargs.get("is_live", live_state["is_live"]))
-        return SetupFacts(
+        probed = SetupFacts(
             distro_family="arch",
             package_manager="pacman",
             community_helper="none",
@@ -4372,6 +4494,7 @@ def test_live_install_installs_reconnect_key_before_reboot(tmp_path):
                 else DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
             ),
         )
+        return probed if is_live else _with_verified_kde_icon(probed)
 
     def ssh_exec(command, _timeout):
         commands.append(command)
@@ -4480,7 +4603,7 @@ def test_live_install_injects_disk_cleanup_before_destructive_partitioning():
 
     def probe_facts(**kwargs):
         is_live = bool(kwargs.get("is_live", live_state["is_live"]))
-        return SetupFacts(
+        probed = SetupFacts(
             distro_family="arch",
             package_manager="pacman",
             community_helper="none",
@@ -4495,6 +4618,7 @@ def test_live_install_injects_disk_cleanup_before_destructive_partitioning():
                 else DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
             ),
         )
+        return probed if is_live else _with_verified_kde_icon(probed)
 
     def ssh_exec(command, _timeout):
         commands.append(command)
@@ -5308,14 +5432,16 @@ def test_sysfs_module_parameter_verification_preserves_root_session():
 def test_orchestrator_repairs_failed_command_group_with_search_and_retry():
     profile = UserProfile(apps_to_install=["Brave"])
     bridge = BridgeState(profile, persist_path=None)
-    facts = SetupFacts(
-        distro_family="arch",
-        package_manager="pacman",
-        community_helper="yay",
-        current_user="jan",
-        login_user="jan",
-        session_type="wayland",
-        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    facts = _with_verified_kde_icon(
+        SetupFacts(
+            distro_family="arch",
+            package_manager="pacman",
+            community_helper="yay",
+            current_user="jan",
+            login_user="jan",
+            session_type="wayland",
+            desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        )
     )
     commands_seen: list[str] = []
     repo_searches: list[str] = []
@@ -5595,14 +5721,16 @@ def test_repair_rejects_retry_without_search_or_evidence_for_package_failures():
 def test_orchestrator_does_not_run_stage_verifications_per_group():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
-    facts = SetupFacts(
-        distro_family="arch",
-        package_manager="pacman",
-        community_helper="yay",
-        current_user="jan",
-        login_user="jan",
-        session_type="wayland",
-        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    facts = _with_verified_kde_icon(
+        SetupFacts(
+            distro_family="arch",
+            package_manager="pacman",
+            community_helper="yay",
+            current_user="jan",
+            login_user="jan",
+            session_type="wayland",
+            desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        )
     )
     commands_seen: list[str] = []
     plan_payload = {
@@ -5688,14 +5816,16 @@ def test_orchestrator_does_not_run_stage_verifications_per_group():
 def test_orchestrator_retries_malformed_repair_json():
     profile = UserProfile(apps_to_install=["Brave"])
     bridge = BridgeState(profile, persist_path=None)
-    facts = SetupFacts(
-        distro_family="arch",
-        package_manager="pacman",
-        community_helper="yay",
-        current_user="jan",
-        login_user="jan",
-        session_type="wayland",
-        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    facts = _with_verified_kde_icon(
+        SetupFacts(
+            distro_family="arch",
+            package_manager="pacman",
+            community_helper="yay",
+            current_user="jan",
+            login_user="jan",
+            session_type="wayland",
+            desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        )
     )
     commands_seen: list[str] = []
     model_calls = {"count": 0}
@@ -5826,15 +5956,17 @@ def test_orchestrator_retries_malformed_repair_json():
 def test_final_audit_blocks_when_completed_app_package_is_missing():
     profile = UserProfile(apps_to_install=["Brave"])
     bridge = BridgeState(profile, persist_path=None)
-    facts = SetupFacts(
-        distro_family="arch",
-        package_manager="pacman",
-        community_helper="yay",
-        init_system="unknown",
-        current_user="jan",
-        login_user="jan",
-        session_type="wayland",
-        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    facts = _with_verified_kde_icon(
+        SetupFacts(
+            distro_family="arch",
+            package_manager="pacman",
+            community_helper="yay",
+            init_system="unknown",
+            current_user="jan",
+            login_user="jan",
+            session_type="wayland",
+            desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        )
     )
     plan_payload = {
         "target_summary": "Arch workstation.",
@@ -6033,14 +6165,16 @@ def test_final_package_verification_accepts_user_profile_source_apps():
 def test_orchestrator_can_convert_failed_verification_into_manual_followup_after_question():
     profile = UserProfile(apps_to_install=["ChatGPT"])
     bridge = BridgeState(profile, persist_path=None)
-    facts = SetupFacts(
-        distro_family="arch",
-        package_manager="pacman",
-        community_helper="yay",
-        current_user="jan",
-        login_user="jan",
-        session_type="wayland",
-        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    facts = _with_verified_kde_icon(
+        SetupFacts(
+            distro_family="arch",
+            package_manager="pacman",
+            community_helper="yay",
+            current_user="jan",
+            login_user="jan",
+            session_type="wayland",
+            desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        )
     )
     model_calls = {"count": 0}
 
@@ -6180,17 +6314,19 @@ def test_orchestrator_can_convert_failed_verification_into_manual_followup_after
     assert "Manual follow-up: ChatGPT" in summary
 
 
-def test_orchestrator_blocks_when_required_repair_question_times_out():
+def test_orchestrator_marks_app_repair_question_timeout_manual_followup():
     profile = UserProfile(apps_to_install=["Brave"])
     bridge = BridgeState(profile, persist_path=None)
-    facts = SetupFacts(
-        distro_family="arch",
-        package_manager="pacman",
-        community_helper="yay",
-        current_user="jan",
-        login_user="jan",
-        session_type="wayland",
-        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    facts = _with_verified_kde_icon(
+        SetupFacts(
+            distro_family="arch",
+            package_manager="pacman",
+            community_helper="yay",
+            current_user="jan",
+            login_user="jan",
+            session_type="wayland",
+            desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        )
     )
     model_calls = {"count": 0}
 
@@ -6303,7 +6439,7 @@ def test_orchestrator_blocks_when_required_repair_question_times_out():
 
     summary = SetupOrchestrator(runtime).run()
 
-    assert "required item" in summary.lower()
+    assert "Manual follow-up: Brave" in summary
     pending = bridge.get_pending_questions()
     assert pending == []
 
@@ -6311,14 +6447,16 @@ def test_orchestrator_blocks_when_required_repair_question_times_out():
 def test_orchestrator_stop_interrupts_blocking_repair_question():
     profile = UserProfile(apps_to_install=["Brave"])
     bridge = BridgeState(profile, persist_path=None)
-    facts = SetupFacts(
-        distro_family="arch",
-        package_manager="pacman",
-        community_helper="yay",
-        current_user="jan",
-        login_user="jan",
-        session_type="wayland",
-        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    facts = _with_verified_kde_icon(
+        SetupFacts(
+            distro_family="arch",
+            package_manager="pacman",
+            community_helper="yay",
+            current_user="jan",
+            login_user="jan",
+            session_type="wayland",
+            desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        )
     )
     model_calls = {"count": 0}
 
@@ -6563,3 +6701,96 @@ def test_repair_budget_gate_can_mark_non_install_group_manual_followup(monkeypat
     assert questions
     assert questions[0][1] == ["try 3 more repairs", "manual follow-up", "stop setup"]
     assert group.status == PlanItemStatus.MANUAL_FOLLOWUP
+
+
+def test_apps_repair_question_timeout_becomes_manual_followup(monkeypatch):
+    profile = UserProfile(apps_to_install=["Example"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.call_model_text = lambda _cfg, _messages: json.dumps(
+        {
+            "action": "question",
+            "question": "Which Example package should be installed?",
+            "choices": ["example-bin", "manual follow-up"],
+            "required": True,
+        }
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    monkeypatch.setattr(orchestrator, "_ask_blocking_question", lambda *_args, **_kwargs: "")
+
+    action = orchestrator._repair_failed_group(
+        SetupStage.APPS,
+        CommandGroup(
+            id="apps-example",
+            stage=SetupStage.APPS,
+            title="Install Example",
+            commands=["yay -S --noconfirm example-bin"],
+        ),
+        GroupFailure("command", "yay -S --noconfirm example-bin", "", "not found", "not found"),
+        repair_attempt=1,
+    )
+
+    assert action["action"] == "manual_followup"
+    assert "timed out" in action["reason"]
+
+
+def test_install_repair_question_timeout_remains_blocking(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="root")
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.call_model_text = lambda _cfg, _messages: json.dumps(
+        {
+            "action": "question",
+            "question": "Which disk should be wiped?",
+            "choices": ["/dev/sda", "stop setup"],
+            "required": True,
+        }
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    monkeypatch.setattr(orchestrator, "_ask_blocking_question", lambda *_args, **_kwargs: "")
+
+    try:
+        orchestrator._repair_failed_group(
+            SetupStage.INSTALL_OR_SKIP,
+            CommandGroup(
+                id="disk",
+                stage=SetupStage.INSTALL_OR_SKIP,
+                title="Partition Disk",
+                commands=["parted -s /dev/sda mklabel gpt"],
+            ),
+            GroupFailure("command", "parted -s /dev/sda mklabel gpt", "", "ambiguous", "ambiguous"),
+            repair_attempt=1,
+        )
+    except RuntimeError as exc:
+        assert "Repair question timed out" in str(exc)
+    else:
+        raise AssertionError("required install repair question must remain blocking")
+
+
+def test_apps_repair_invalid_json_exhaustion_becomes_manual_followup():
+    profile = UserProfile(apps_to_install=["Example"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.call_model_text = lambda _cfg, _messages: "{"
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+
+    action = orchestrator._repair_failed_group(
+        SetupStage.APPS,
+        CommandGroup(
+            id="apps-example",
+            stage=SetupStage.APPS,
+            title="Install Example",
+            commands=["yay -S --noconfirm example-bin"],
+        ),
+        GroupFailure("command", "yay -S --noconfirm example-bin", "", "not found", "not found"),
+        repair_attempt=1,
+    )
+
+    assert action["action"] == "manual_followup"
+    assert "Repair loop exhausted" in action["reason"]

@@ -8,7 +8,7 @@ from quickhatch.setup.preflight import (
 from quickhatch.setup.types import SetupFacts
 
 
-def test_preflight_blocks_pacman_for_aur_only_packages():
+def test_preflight_warns_pacman_for_aur_only_packages():
     facts = SetupFacts(package_manager="pacman", community_helper="yay")
 
     error = preflight_setup_command("sudo pacman -S --noconfirm brave-bin", facts)
@@ -18,7 +18,7 @@ def test_preflight_blocks_pacman_for_aur_only_packages():
     assert any("community/AUR" in item for item in advisories)
 
 
-def test_preflight_blocks_yay_before_helper_exists():
+def test_preflight_warns_yay_before_helper_exists():
     facts = SetupFacts(package_manager="pacman", community_helper="none")
 
     error = preflight_setup_command("yay -S --noconfirm brave-bin", facts)
@@ -40,7 +40,7 @@ def test_preflight_detects_wrapped_aur_helper_before_helper_exists():
     assert arch_community_helpers_in_command(command) == {"yay"}
 
 
-def test_preflight_blocks_wrong_aur_helper_when_another_helper_is_detected():
+def test_preflight_warns_wrong_aur_helper_when_another_helper_is_detected():
     facts = SetupFacts(package_manager="pacman", community_helper="yay")
 
     error = preflight_setup_command("paru -S --noconfirm brave-bin", facts)
@@ -78,7 +78,7 @@ def test_preflight_allows_specific_non_package_pkill():
     assert preflight_setup_command("sudo pkill -TERM my-temporary-helper", facts) is None
 
 
-def test_preflight_blocks_ubuntu_desktop_metapackages_for_debootstrap_setup():
+def test_preflight_warns_ubuntu_desktop_metapackages_for_debootstrap_setup():
     facts = SetupFacts(package_manager="apt", distro_family="ubuntu", is_root=False)
 
     command = (
@@ -104,7 +104,7 @@ def test_preflight_allows_explicit_gnome_core_packages_on_apt():
     )
 
 
-def test_preflight_blocks_virtualbox_guest_additions_iso_installer():
+def test_preflight_warns_virtualbox_guest_additions_iso_installer():
     facts = SetupFacts(package_manager="apt", distro_family="debian")
 
     command = (
@@ -130,7 +130,7 @@ def test_preflight_allows_distro_virtualbox_guest_utility_packages():
     )
 
 
-def test_preflight_blocks_standalone_shell_variable_assignment():
+def test_preflight_warns_standalone_shell_variable_assignment():
     facts = SetupFacts(package_manager="pacman", community_helper="none")
 
     command = "UCODE=$(grep -qi intel /proc/cpuinfo && echo intel-ucode || echo amd-ucode)"
@@ -152,7 +152,7 @@ def test_preflight_allows_variable_assignment_combined_with_use():
     assert error is None
 
 
-def test_preflight_blocks_invalid_pacstrap_noconfirm_flag():
+def test_preflight_warns_invalid_pacstrap_noconfirm_flag():
     facts = SetupFacts(package_manager="pacman", community_helper="none", is_root=True)
 
     error = preflight_setup_command("pacstrap -K --noconfirm /mnt base linux", facts)
@@ -168,7 +168,7 @@ def test_preflight_allows_package_install_without_activation():
     assert preflight_setup_command("yay -S --noconfirm mullvad-vpn-bin", facts) is None
 
 
-def test_preflight_blocks_fake_plasma_dbus_session():
+def test_preflight_warns_fake_plasma_dbus_session():
     facts = SetupFacts(package_manager="pacman", community_helper="yay")
 
     command = "dbus-run-session -- plasma-apply-wallpaperimage ~/wallpaper.jpg"
@@ -179,7 +179,7 @@ def test_preflight_blocks_fake_plasma_dbus_session():
     assert any("dbus-run-session" in item for item in advisories)
 
 
-def test_preflight_blocks_fedora_live_anaconda_over_ssh():
+def test_preflight_warns_fedora_live_anaconda_over_ssh():
     facts = SetupFacts(package_manager="dnf", distro_family="fedora", is_live=True)
 
     command = "sudo dbus-run-session anaconda --kickstart=/tmp/qh.ks --noninteractive -C --liveinst"
@@ -204,7 +204,7 @@ def test_preflight_allows_fedora_live_installroot_path():
     )
 
 
-def test_preflight_blocks_ubuntu_live_interactive_installer_over_ssh():
+def test_preflight_warns_ubuntu_live_interactive_installer_over_ssh():
     facts = SetupFacts(
         package_manager="apt",
         distro_family="debian",
@@ -415,7 +415,7 @@ def test_preflight_allows_sudo_tee_for_root_owned_write():
     assert error is None
 
 
-def test_preflight_blocks_broad_arch_desktop_app_group():
+def test_preflight_warns_broad_arch_desktop_app_group():
     facts = SetupFacts(package_manager="pacman", community_helper="yay", is_root=True)
 
     command = "pacman -S --noconfirm plasma kde-applications papirus-icon-theme"
@@ -511,7 +511,7 @@ def test_preflight_allows_non_root_package_manager_read_only_probes():
     assert preflight_setup_command("pacman -Ss nvidia", facts) is None
 
 
-def test_preflight_blocks_arch_default_nvidia_packages_for_pre_turing_gpu():
+def test_preflight_warns_arch_default_nvidia_packages_for_pre_turing_gpu():
     facts = SetupFacts(
         package_manager="pacman",
         community_helper="yay",
@@ -523,10 +523,12 @@ def test_preflight_blocks_arch_default_nvidia_packages_for_pre_turing_gpu():
         gpu_inventory=["NVIDIA GeForce GTX 1080"],
     )
 
-    error = preflight_setup_command("sudo pacman -S --noconfirm nvidia-open", facts)
+    command = "sudo pacman -S --noconfirm nvidia-open"
+    error = preflight_setup_command(command, facts)
+    advisories = preflight_setup_advisories(command, facts)
 
-    assert error
-    assert "pre-Turing NVIDIA" in error
+    assert error is None
+    assert any("pre-Turing NVIDIA" in item for item in advisories)
 
 
 def test_preflight_allows_arch_nvidia_open_for_rtx_gpu():

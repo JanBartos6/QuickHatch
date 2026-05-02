@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from quickhatch.setup.facts import probe_setup_facts
-from quickhatch.setup.types import DesktopRuntimeState
+from quickhatch.setup.types import DesktopRuntimeState, SetupFacts
 
 
 def test_probe_setup_facts_parses_kscreen_display_runtime_block():
@@ -478,3 +478,22 @@ QH_XRANDR_END
     assert facts.displays[0].primary is True
     assert facts.displays[0].current_mode == "3840x2160"
     assert facts.displays[0].refresh_hz == 60
+
+
+def test_probe_setup_facts_marks_failed_probe_as_stale():
+    fallback = SetupFacts(
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        gpu_vendors=["nvidia"],
+        nvidia_smi_state="ok",
+    )
+
+    def ssh_exec(_host, _user, _command, _key_path, _timeout, _port):
+        return (255, "", "ssh failed")
+
+    facts = probe_setup_facts(ssh_exec, "192.0.2.10", "jan", None, fallback=fallback)
+
+    assert facts.fact_probe_ok is False
+    assert facts.nvidia_smi_state == "ok"
+    assert facts.raw["QH_FACT_PROBE_RC"] == "255"
