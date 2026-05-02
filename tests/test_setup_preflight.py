@@ -350,6 +350,7 @@ def test_preflight_allows_root_owned_config_edit_with_sudo():
         current_user="jan",
         login_user="jan",
         is_root=False,
+        sudo_nopasswd=True,
     )
 
     error = preflight_setup_command(
@@ -403,6 +404,7 @@ def test_preflight_allows_sudo_tee_for_root_owned_write():
         current_user="jan",
         login_user="jan",
         is_root=False,
+        sudo_nopasswd=True,
     )
 
     error = preflight_setup_command(
@@ -457,6 +459,45 @@ def test_preflight_blocks_non_root_package_manager_mutation():
     assert "needs root privileges" in error
 
 
+def test_preflight_blocks_plain_sudo_when_installed_user_lacks_nopasswd():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_live=False,
+        is_root=False,
+        sudo_nopasswd=False,
+    )
+
+    error = preflight_setup_command("sudo pacman -S --noconfirm nvidia-open", facts)
+
+    assert error
+    assert "Passwordless sudo is not available" in error
+    assert "sudo -S" in error
+
+
+def test_preflight_allows_sudo_stdin_when_installed_user_lacks_nopasswd():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_live=False,
+        is_root=False,
+        sudo_nopasswd=False,
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GeForce RTX 3080"],
+    )
+
+    error = preflight_setup_command(
+        "printf '%s\\n' password | sudo -S pacman -S --noconfirm nvidia-open",
+        facts,
+    )
+
+    assert error is None
+
+
 def test_preflight_allows_non_root_package_manager_read_only_probes():
     facts = SetupFacts(
         package_manager="pacman",
@@ -477,6 +518,7 @@ def test_preflight_blocks_arch_default_nvidia_packages_for_pre_turing_gpu():
         current_user="jan",
         login_user="jan",
         is_root=False,
+        sudo_nopasswd=True,
         gpu_vendors=["nvidia"],
         gpu_inventory=["NVIDIA GeForce GTX 1080"],
     )
@@ -494,6 +536,7 @@ def test_preflight_allows_arch_nvidia_open_for_rtx_gpu():
         current_user="jan",
         login_user="jan",
         is_root=False,
+        sudo_nopasswd=True,
         gpu_vendors=["nvidia"],
         gpu_inventory=["NVIDIA GeForce RTX 3080"],
     )

@@ -297,6 +297,48 @@ def _has_root_privilege(tokens: list[str], facts: SetupFacts) -> bool:
     return True
 
 
+def _sudo_has_noninteractive_auth(tokens: list[str], sudo_idx: int) -> bool:
+    idx = sudo_idx + 1
+    while idx < len(tokens):
+        opt = tokens[idx]
+        if opt in {"-S", "--stdin", "-n", "--non-interactive", "-A", "--askpass"}:
+            return True
+        if opt in {"-u", "--user", "-g", "-h", "-D", "-p", "-r", "-t", "-T", "-C", "-R"}:
+            idx += 2
+            continue
+        if opt.startswith("--user="):
+            idx += 1
+            continue
+        if opt.startswith("-") and opt != "-":
+            if any(flag in opt[1:] for flag in ("S", "n", "A")):
+                return True
+            idx += 1
+            continue
+        break
+    return False
+
+
+def _uses_plain_sudo_without_noninteractive_auth(tokens: list[str]) -> bool:
+    idx = 0
+    while idx < len(tokens):
+        token = tokens[idx]
+        if "=" in token and not token.startswith("-") and token.split("=", 1)[0].isidentifier():
+            idx += 1
+            continue
+        if token == "env":
+            idx += 1
+            continue
+        break
+    for sudo_idx, token in enumerate(tokens[idx:], start=idx):
+        if token != "sudo":
+            continue
+        if sudo_idx > idx and tokens[sudo_idx - 1] not in {"|", "|&"}:
+            continue
+        if not _sudo_has_noninteractive_auth(tokens, sudo_idx):
+            return True
+    return False
+
+
 def _is_root_owned_path(token: str) -> bool:
     path = token.strip().strip("'\"")
     if not path:
@@ -804,6 +846,20 @@ def preflight_setup_command(
             raw_tokens = shlex.split(segment, posix=True)
         except ValueError:
             continue
+        if (
+            not facts.is_live
+            and not facts.is_root
+            and bool(facts.current_user or facts.login_user)
+            and (facts.current_user or facts.login_user) != "root"
+            and not facts.sudo_nopasswd
+            and _uses_plain_sudo_without_noninteractive_auth(raw_tokens)
+        ):
+            return (
+                "Passwordless sudo is not available for this installed-system SSH user. "
+                "Plain `sudo` would fail or hang on an invisible password prompt. Bootstrap "
+                "NOPASSWD sudo first, use a deliberate `sudo -S` command with the known "
+                "setup password, or ask the user before continuing."
+            )
         has_root_privilege = _has_root_privilege(raw_tokens, facts)
         tokens = list(raw_tokens)
         tokens = _strip_wrappers(tokens)

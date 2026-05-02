@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import mimetypes
 import re
+import shlex
 import threading
 from collections.abc import Callable
 from copy import deepcopy
@@ -4499,11 +4500,19 @@ def _maybe_bootstrap_nopasswd_sudo(
     if facts.get("is_root") == "yes" or facts.get("sudo_nopasswd") == "yes":
         return facts
     default_pw = profile.default_account_password or "password"
+    sudoers_line = f"{user} ALL=(ALL:ALL) NOPASSWD: ALL"
+    grant_inner = (
+        "set -e; "
+        "install -d -m 755 /etc/sudoers.d; "
+        f"printf '%s\\n' {shlex.quote(sudoers_line)} "
+        "> /etc/sudoers.d/99-quickhatch-nopasswd; "
+        "chmod 440 /etc/sudoers.d/99-quickhatch-nopasswd; "
+        f"grep -qxF {shlex.quote(sudoers_line)} "
+        "/etc/sudoers.d/99-quickhatch-nopasswd"
+    )
     grant_cmd = (
-        f"echo '{default_pw}' | sudo -S -p '' bash -c "
-        f"\"echo '{user} ALL=(ALL:ALL) NOPASSWD: ALL' > "
-        f"/etc/sudoers.d/99-quickhatch-nopasswd && "
-        f'chmod 440 /etc/sudoers.d/99-quickhatch-nopasswd"'
+        f"printf '%s\\n' {shlex.quote(default_pw)} | "
+        f"sudo -k -S -p '' sh -c {shlex.quote(grant_inner)} && sudo -n true"
     )
     rc, _, err = _ssh_exec(host, user, grant_cmd, key_path, timeout=30, port=port)
     if rc == 0:

@@ -14,6 +14,7 @@ from quickhatch.gui.server import (
     _build_setup_repo_search_command,
     _call_setup_model_text,
     _launch_agent,
+    _maybe_bootstrap_nopasswd_sudo,
     _run_setup_agent,
     _setup_runtime_prompt_block,
 )
@@ -160,6 +161,34 @@ class TestSetupRepoSearch:
 
 
 class TestSetupAgentWrapper:
+    def test_sudo_bootstrap_uses_stdin_password_and_verifies_nopasswd(self, monkeypatch):
+        profile = UserProfile()
+        profile.default_account_password = "p'a ss"
+        bridge = BridgeState(profile, persist_path=None)
+        calls: list[str] = []
+
+        def fake_ssh_exec(host, user, command, key_path, *, timeout, port):
+            calls.append(command)
+            return 0, "", ""
+
+        monkeypatch.setattr("quickhatch.gui.server._ssh_exec", fake_ssh_exec)
+
+        facts = _maybe_bootstrap_nopasswd_sudo(
+            "127.0.0.1",
+            "jan",
+            None,
+            profile,
+            bridge,
+            facts={"is_root": "no", "sudo_nopasswd": "no"},
+        )
+
+        assert facts["sudo_nopasswd"] == "yes"
+        assert len(calls) == 1
+        assert "sudo -k -S -p ''" in calls[0]
+        assert "sudo -n true" in calls[0]
+        assert "99-quickhatch-nopasswd" in calls[0]
+        assert "jan ALL=(ALL:ALL) NOPASSWD: ALL" in calls[0]
+
     def test_missing_ip_short_circuits(self, ready_state):
         ready_state.profile.linux_ip = ""
 

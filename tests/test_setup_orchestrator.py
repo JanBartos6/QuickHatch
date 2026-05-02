@@ -349,6 +349,43 @@ def test_live_target_network_reconnect_command_seeds_networkmanager_dhcp():
     assert 'chroot "$qh_root" systemctl enable ssh' in command
 
 
+def test_existing_live_target_user_is_repaired_for_passwordless_sudo():
+    profile = UserProfile()
+    profile.default_account_password = "setup-pass"
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        login_user="root",
+        is_live=True,
+        is_root=True,
+    )
+    commands: list[str] = []
+
+    def ssh_exec(command: str, _timeout: int):
+        commands.append(command)
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator._detect_live_target_root_path = lambda: "/mnt"  # type: ignore[method-assign]
+    orchestrator._detect_live_target_admin_user = lambda _root: "jan"  # type: ignore[method-assign]
+
+    root_path, reconnect_user = orchestrator._ensure_live_install_reconnect_user()
+
+    assert root_path == "/mnt"
+    assert reconnect_user == "jan"
+    assert orchestrator.ctx.created_user == "jan"
+    assert commands
+    ensure_command = commands[0]
+    assert "chpasswd" in ensure_command
+    assert "jan ALL=(ALL:ALL) NOPASSWD: ALL" in ensure_command
+    assert "/etc/sudoers.d/99-quickhatch-nopasswd" in ensure_command
+
+
 def test_fedora_live_media_reaches_research_planning():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
@@ -2256,6 +2293,7 @@ def test_desktop_runtime_group_prompts_then_manual_followup_when_no_display(monk
     facts = SetupFacts(
         current_user="jan",
         login_user="jan",
+        sudo_nopasswd=True,
         display_manager_enabled=True,
         display_manager_active=True,
         desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
@@ -2359,6 +2397,7 @@ def test_mixed_desktop_group_skips_only_runtime_items_without_display(monkeypatc
         package_manager="pacman",
         current_user="jan",
         login_user="jan",
+        sudo_nopasswd=True,
         display_manager_enabled=True,
         display_manager_active=True,
         desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
@@ -2440,6 +2479,8 @@ def test_desktop_stage_starts_enabled_inactive_display_manager():
 
     def ssh_exec(command, _timeout):
         commands.append(command)
+        if "for qh_root in" in command:
+            return (0, "/mnt\n", "")
         return (0, "", "")
 
     orchestrator = SetupOrchestrator(
@@ -2904,6 +2945,8 @@ def test_fedora_nvidia_recovery_group_uses_rpmfusion_and_reboot_path():
     commands: list[str] = []
 
     def ssh_exec(command: str, _timeout: int):
+        if "for qh_root in" in command:
+            return (0, "/mnt\n", "")
         commands.append(command)
         return (0, "", "")
 
@@ -3206,7 +3249,9 @@ def test_live_install_bootstraps_nopasswd_sudo_after_reconnect(tmp_path):
         profile,
         bridge,
         initial_facts,
-        ssh_exec=lambda command, timeout: (0, "", ""),
+        ssh_exec=lambda command, timeout: (
+            (0, "/mnt\n", "") if "for qh_root in" in command else (0, "", "")
+        ),
         wait_for_reconnect=wait_for_reconnect,
         probe_facts=lambda **kwargs: fact_state["facts"],
     )
@@ -4082,6 +4127,8 @@ def test_live_install_failed_pre_reboot_checks_block_before_reconnect():
         )
 
     def ssh_exec(command, _timeout):
+        if "for qh_root in" in command:
+            return (0, "/mnt\n", "")
         if "reboot" in command:
             reboot_commands.append(command)
         return (0, "", "")
@@ -4199,6 +4246,8 @@ def test_live_install_passes_guard_then_reboots_and_reconnects_once():
 
     def ssh_exec(command, _timeout):
         commands.append(command)
+        if "for qh_root in" in command:
+            return (0, "/mnt\n", "")
         return (0, "", "")
 
     def wait_for_reconnect(reconnect_user):
@@ -4326,6 +4375,8 @@ def test_live_install_installs_reconnect_key_before_reboot(tmp_path):
 
     def ssh_exec(command, _timeout):
         commands.append(command)
+        if "for qh_root in" in command:
+            return (0, "/mnt\n", "")
         return (0, "", "")
 
     def wait_for_reconnect(reconnect_user):
@@ -4447,6 +4498,8 @@ def test_live_install_injects_disk_cleanup_before_destructive_partitioning():
 
     def ssh_exec(command, _timeout):
         commands.append(command)
+        if "for qh_root in" in command:
+            return (0, "/mnt\n", "")
         return (0, "", "")
 
     def wait_for_reconnect(reconnect_user):

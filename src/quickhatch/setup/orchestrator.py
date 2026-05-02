@@ -1669,21 +1669,31 @@ class SetupOrchestrator:
         )
 
     def _ensure_live_install_reconnect_user(self) -> tuple[str, str]:
-        if self._valid_target_username(self.ctx.created_user or ""):
-            return "/mnt", str(self.ctx.created_user)
-
-        candidates = self._planned_target_user_candidates()
-        if not candidates and self.runtime.user == "root":
-            return "/mnt", "root"
+        if (
+            self._valid_target_username(self.ctx.created_user or "")
+            and self.ctx.created_user not in _LIVE_SESSION_USER_NAMES
+        ):
+            root_path = self._detect_live_target_root_path()
+            target_user = str(self.ctx.created_user)
+            self._create_live_target_reconnect_user(root_path, target_user)
+            self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})[
+                "target_reconnect_user"
+            ] = target_user
+            return root_path, target_user
 
         root_path = self._detect_live_target_root_path()
         existing_user = self._detect_live_target_admin_user(root_path)
         if existing_user:
+            self._create_live_target_reconnect_user(root_path, existing_user)
             self.ctx.created_user = existing_user
             self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})[
                 "target_reconnect_user"
             ] = existing_user
             return root_path, existing_user
+
+        candidates = self._planned_target_user_candidates()
+        if not candidates and self.runtime.user == "root":
+            return root_path, "root"
 
         if not candidates:
             raise RuntimeError(
@@ -1786,6 +1796,7 @@ class SetupOrchestrator:
         user_q = shlex.quote(target_user)
         password = getattr(self.runtime.profile, "default_account_password", "") or "password"
         password_q = shlex.quote(password)
+        sudoers_line_q = shlex.quote(f"{target_user} ALL=(ALL:ALL) NOPASSWD: ALL")
         command = (
             f"set -e; "
             f"qh_root={root_q}; "
@@ -1804,6 +1815,15 @@ class SetupOrchestrator:
             f'$qh_sudo chroot "$qh_root" useradd -m -G "$qh_group" -s /bin/bash "$qh_user"; '
             f"fi; "
             f'printf "%s:%s\\n" "$qh_user" "$qh_pw" | $qh_sudo chroot "$qh_root" chpasswd; '
+            f'printf "root:%s\\n" "$qh_pw" | $qh_sudo chroot "$qh_root" chpasswd || true; '
+            f'$qh_sudo chroot "$qh_root" install -d -m 755 /etc/sudoers.d; '
+            f"printf '%s\\n' {sudoers_line_q} | "
+            f'$qh_sudo chroot "$qh_root" tee /etc/sudoers.d/99-quickhatch-nopasswd '
+            f">/dev/null; "
+            f'$qh_sudo chroot "$qh_root" chmod 440 '
+            f"/etc/sudoers.d/99-quickhatch-nopasswd; "
+            f'$qh_sudo chroot "$qh_root" grep -qxF {sudoers_line_q} '
+            f"/etc/sudoers.d/99-quickhatch-nopasswd; "
             f'$qh_sudo chroot "$qh_root" install -d -m 700 -o "$qh_user" -g "$qh_user" '
             f'"/home/$qh_user/.ssh"; '
             f'test -d "$qh_root/home/$qh_user"'
