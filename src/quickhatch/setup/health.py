@@ -16,10 +16,25 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from quickhatch.bridge.server import BridgeState
+from quickhatch.config import AIConfig, UserProfile
+
 from .certify import CERTIFIED_FAMILIES, run_vm_certification
 from .failure import classify_failure
+from .orchestrator import SetupOrchestrator, SetupRuntime
 from .preflight import preflight_setup_decisions
-from .types import FailureCategory, PreflightDecisionKind, SetupFacts
+from .types import (
+    AppPlanItem,
+    DesktopDesignState,
+    DesktopRuntimeState,
+    FailureCategory,
+    PlanItemStatus,
+    PreflightDecisionKind,
+    ResearchPlan,
+    SetupFacts,
+    SetupStage,
+    StrategyDecision,
+)
 
 
 def _enum_value(value: Any) -> Any:
@@ -235,6 +250,170 @@ def _run_failure_classifier_checks() -> list[dict[str, Any]]:
     return checks
 
 
+def _dummy_setup_runtime(
+    profile: UserProfile,
+    bridge: BridgeState,
+    facts: SetupFacts,
+    *,
+    ssh_exec: Any | None = None,
+) -> SetupRuntime:
+    return SetupRuntime(
+        profile=profile,
+        bridge=bridge,
+        config=AIConfig(provider="health", model_name="health"),
+        host="127.0.0.1",
+        user=facts.current_user or "jan",
+        ssh_port=22,
+        key_path=None,
+        system_info_fn=lambda: "harness health system info",
+        call_model_text=lambda _cfg, _messages: "{}",
+        probe_facts=lambda **_kwargs: facts,
+        detect_live_env=lambda: (facts.is_live, facts.live_marker or "INSTALLED"),
+        ssh_exec=ssh_exec or (lambda _command, _timeout: (0, "", "")),
+        repo_search=lambda _query: "",
+        community_search=lambda _query: "",
+        web_search=lambda _query, _max_results: "",
+        wait_for_reconnect=lambda reconnect_user: (True, "reconnected", reconnect_user),
+        run_pre_reboot_checks=lambda: (True, [], ""),
+        smoke_test_preboot_script=lambda: None,
+        bootstrap_nopasswd_sudo=lambda current: current,
+        runtime_prompt_block=lambda _current, _is_live: "",
+        migration_plan_md="",
+        distro_primer_md="",
+        native_search_active=False,
+    )
+
+
+def _run_final_audit_semantic_checks() -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    checks.extend(_run_package_final_audit_checks())
+    checks.extend(_run_desktop_final_audit_checks())
+    return checks
+
+
+def _run_package_final_audit_checks() -> list[dict[str, Any]]:
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    installed_packages = "\n".join(
+        [
+            "bitwarden",
+            "claude-desktop-bin",
+            "discord",
+            "git",
+            "github-desktop-bin",
+            "openai-codex",
+            "steam",
+            "stirling-pdf-bin",
+        ]
+    )
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        facts,
+        ssh_exec=lambda _command, _timeout: (0, installed_packages, ""),
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation.",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("plasma"),
+        apps=[
+            AppPlanItem(name="Bitwarden", source="repo", status=PlanItemStatus.INSTALLED),
+            AppPlanItem(name="Claude", source="community", status=PlanItemStatus.INSTALLED),
+            AppPlanItem(name="Codex", source="community", status=PlanItemStatus.INSTALLED),
+            AppPlanItem(name="Discord", source="repo", status=PlanItemStatus.INSTALLED),
+            AppPlanItem(name="Git", source="repo", status=PlanItemStatus.INSTALLED),
+            AppPlanItem(
+                name="GitHub Desktop",
+                source="community",
+                status=PlanItemStatus.INSTALLED,
+            ),
+            AppPlanItem(name="Steam", source="repo", status=PlanItemStatus.INSTALLED),
+            AppPlanItem(name="Stirling-PDF", source="community", status=PlanItemStatus.INSTALLED),
+        ],
+    )
+
+    blockers = orchestrator._verify_planned_packages_installed()
+    final_state = orchestrator.ctx.stage_state.get(SetupStage.FINAL_AUDIT.value, {})
+    checks: list[dict[str, Any]] = []
+    _record(
+        checks,
+        name="final_audit_infers_known_app_aliases",
+        category="final_audit",
+        passed=not blockers and not final_state.get("unverified_installed_apps"),
+        details={
+            "blockers": blockers,
+            "verified_installed_apps": final_state.get("verified_installed_apps", []),
+            "unverified_installed_apps": final_state.get("unverified_installed_apps", []),
+        },
+    )
+    return checks
+
+
+def _run_desktop_final_audit_checks() -> list[dict[str, Any]]:
+    from .audit import audit_stage
+
+    checks: list[dict[str, Any]] = []
+    state = {
+        "persisted_config_written": True,
+        "desktop_design_attempted": True,
+        "wallpaper_attempted": True,
+        "expected_kde_icon_theme": "candy-icons",
+        "expected_kde_wobbly_windows": "true",
+        "expected_kde_magic_lamp": "true",
+    }
+    good_facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        desktop_design=DesktopDesignState(
+            environment="KDE",
+            kde_icon_theme="candy-icons",
+            kde_wobbly_windows="true",
+            kde_magic_lamp="true",
+            kde_wallpaper="file:///home/jan/Pictures/masterpiece.png",
+        ),
+    )
+    good_result = audit_stage(SetupStage.DESKTOP, good_facts, stage_state=state)
+    _record(
+        checks,
+        name="desktop_audit_accepts_verified_kde_design_contract",
+        category="final_audit",
+        passed=good_result.passed,
+        details=asdict(good_result),
+    )
+
+    bad_facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        desktop_design=DesktopDesignState(
+            environment="KDE",
+            kde_icon_theme="breeze",
+            kde_wobbly_windows="",
+            kde_magic_lamp="",
+            kde_wallpaper="file:///home/jan/Pictures/masterpiece.png",
+        ),
+    )
+    bad_result = audit_stage(SetupStage.DESKTOP, bad_facts, stage_state=state)
+    _record(
+        checks,
+        name="desktop_audit_blocks_reset_or_missing_kde_design_contract",
+        category="final_audit",
+        passed=not bad_result.passed
+        and any("KDE icon theme mismatch" in blocker for blocker in bad_result.blockers)
+        and any("KWin wobbly windows was expected" in blocker for blocker in bad_result.blockers),
+        details=asdict(bad_result),
+    )
+    return checks
+
+
 def run_harness_health(
     *,
     root: Path | str | None = None,
@@ -247,6 +426,7 @@ def run_harness_health(
             *_run_certification_dry_run_checks(workspace),
             *_run_preflight_policy_checks(),
             *_run_failure_classifier_checks(),
+            *_run_final_audit_semantic_checks(),
         ]
         failed = [check for check in checks if not check["passed"]]
         return {
