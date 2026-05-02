@@ -134,7 +134,7 @@ def _populate_demo_profile(profile: UserProfile) -> None:
 def main() -> None:
     """Run the QuickHatch migration wizard."""
     parser = argparse.ArgumentParser(description="QuickHatch — Windows to Linux Migration Wizard")
-    subparsers = parser.add_subparsers(dest="command")
+    subparsers = parser.add_subparsers(dest="quickhatch_command")
 
     debug_parser = subparsers.add_parser("debug", help="Replay and promote setup run artifacts")
     debug_subparsers = debug_parser.add_subparsers(dest="debug_command")
@@ -153,6 +153,30 @@ def main() -> None:
     promote_parser.add_argument("--event", required=True)
     promote_parser.add_argument("--name", required=True)
     promote_parser.add_argument("--output-dir", default="tests/generated")
+    preflight_parser = debug_subparsers.add_parser(
+        "preflight",
+        help="Run local preflight decisions for one shell command",
+    )
+    preflight_parser.add_argument("shell_command")
+    preflight_parser.add_argument("--facts", help="SetupFacts JSON or runlog facts event")
+    preflight_parser.add_argument("--shadow", action="store_true")
+    classify_parser = debug_subparsers.add_parser(
+        "classify",
+        help="Classify a command/model failure without SSH",
+    )
+    classify_parser.add_argument("--command", dest="failure_command", default="")
+    classify_parser.add_argument("--rc", type=int)
+    classify_parser.add_argument("--stdout", default="")
+    classify_parser.add_argument("--stderr", default="")
+    classify_parser.add_argument("--detail", default="")
+    adapter_parser = debug_subparsers.add_parser(
+        "adapter-spine",
+        help="Print deterministic family install spine",
+    )
+    adapter_parser.add_argument(
+        "--family", required=True, choices=["arch", "ubuntu", "debian", "fedora"]
+    )
+    adapter_parser.add_argument("--profile")
 
     certify_parser = subparsers.add_parser("certify", help="Run certification tooling")
     certify_subparsers = certify_parser.add_subparsers(dest="certify_command")
@@ -184,10 +208,10 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    if args.command == "debug":
+    if args.quickhatch_command == "debug":
         return _run_debug_command(args)
 
-    if args.command == "certify":
+    if args.quickhatch_command == "certify":
         return _run_certify_command(args)
 
     if args.gui:
@@ -326,10 +350,16 @@ def _run_gui(args) -> None:
 
 
 def _print_json(payload: object) -> None:
-    console.print(json.dumps(payload, indent=2, sort_keys=True, default=str))
+    console.print(json.dumps(payload, indent=2, sort_keys=True, default=str), markup=False)
 
 
 def _run_debug_command(args) -> None:
+    from quickhatch.setup.debugtools import (
+        adapter_spine_payload,
+        classify_debug_payload,
+        load_facts_payload,
+        preflight_debug_payload,
+    )
     from quickhatch.setup.replay import (
         promote_regression_fixture,
         summarize_runlog,
@@ -356,6 +386,29 @@ def _run_debug_command(args) -> None:
             output_dir=Path(args.output_dir),
         )
         print_success(f"Generated regression fixture: {path}")
+        return
+    if args.debug_command == "preflight":
+        _print_json(
+            preflight_debug_payload(
+                args.shell_command,
+                facts=load_facts_payload(args.facts),
+                shadow_mode=bool(args.shadow),
+            )
+        )
+        return
+    if args.debug_command == "classify":
+        _print_json(
+            classify_debug_payload(
+                command=args.failure_command,
+                rc=args.rc,
+                stdout=args.stdout,
+                stderr=args.stderr,
+                detail=args.detail,
+            )
+        )
+        return
+    if args.debug_command == "adapter-spine":
+        _print_json(adapter_spine_payload(family=args.family, profile_path=args.profile))
         return
     raise SystemExit("Missing debug subcommand.")
 
