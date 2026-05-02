@@ -15,9 +15,13 @@ _PATTERNS: tuple[tuple[FailureCategory, tuple[str, ...]], ...] = (
             "name or service not known",
             "network is unreachable",
             "connection timed out",
+            "connection reset by peer",
             "remote end closed connection",
             "failed retrieving file",
             "failed to download",
+            "failed to synchronize all databases",
+            "no servers configured for repository",
+            "could not resolve host",
         ),
     ),
     (

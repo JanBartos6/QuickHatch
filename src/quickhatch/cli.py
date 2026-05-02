@@ -177,6 +177,12 @@ def main() -> None:
         "--family", required=True, choices=["arch", "ubuntu", "debian", "fedora"]
     )
     adapter_parser.add_argument("--profile")
+    health_parser = debug_subparsers.add_parser(
+        "harness-health",
+        help="Run the fast local harness health gate",
+    )
+    health_parser.add_argument("--root")
+    health_parser.add_argument("--keep-artifacts", action="store_true")
 
     certify_parser = subparsers.add_parser("certify", help="Run certification tooling")
     certify_subparsers = certify_parser.add_subparsers(dest="certify_command")
@@ -365,6 +371,7 @@ def _run_debug_command(args) -> None:
     from quickhatch.setup.debugtools import (
         adapter_spine_payload,
         classify_debug_payload,
+        harness_health_payload,
         load_facts_payload,
         preflight_debug_payload,
     )
@@ -417,6 +424,15 @@ def _run_debug_command(args) -> None:
         return
     if args.debug_command == "adapter-spine":
         _print_json(adapter_spine_payload(family=args.family, profile_path=args.profile))
+        return
+    if args.debug_command == "harness-health":
+        payload = harness_health_payload(
+            root=args.root,
+            keep_artifacts=bool(args.keep_artifacts),
+        )
+        _print_json(payload)
+        if not payload.get("success"):
+            raise SystemExit(1)
         return
     raise SystemExit("Missing debug subcommand.")
 

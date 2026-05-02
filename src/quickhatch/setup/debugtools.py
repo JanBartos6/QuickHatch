@@ -11,6 +11,7 @@ from quickhatch.config import UserProfile
 
 from .failure import classify_failure
 from .families import get_family_installer
+from .health import run_harness_health
 from .preflight import preflight_setup_decisions
 from .types import SetupFacts
 
@@ -88,3 +89,11 @@ def adapter_spine_payload(
     installer = get_family_installer(family)
     spine = installer.build_install_spine(facts, profile)
     return asdict(spine)
+
+
+def harness_health_payload(
+    *,
+    root: Path | str | None = None,
+    keep_artifacts: bool = False,
+) -> dict[str, Any]:
+    return run_harness_health(root=root, keep_artifacts=keep_artifacts)

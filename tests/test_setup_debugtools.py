@@ -5,6 +5,7 @@ import json
 from quickhatch.setup.debugtools import (
     adapter_spine_payload,
     classify_debug_payload,
+    harness_health_payload,
     load_facts_payload,
     preflight_debug_payload,
 )
@@ -56,3 +57,11 @@ def test_load_facts_payload_accepts_nested_facts(tmp_path):
 
     assert facts.distro_family == "ubuntu"
     assert facts.package_manager == "apt"
+
+
+def test_harness_health_payload_runs_fast_gate(tmp_path):
+    payload = harness_health_payload(root=tmp_path / "health", keep_artifacts=True)
+
+    assert payload["success"] is True
+    assert payload["failed_count"] == 0
+    assert any(check["name"] == "vpn_activation_is_block" for check in payload["checks"])
