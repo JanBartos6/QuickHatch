@@ -20,6 +20,7 @@ from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, UserProfile
 
 from .certify import CERTIFIED_FAMILIES, run_vm_certification
+from .facts import setup_fact_probe_command
 from .failure import classify_failure
 from .orchestrator import SetupOrchestrator, SetupRuntime
 from .preflight import preflight_setup_decisions
@@ -288,6 +289,7 @@ def _run_final_audit_semantic_checks() -> list[dict[str, Any]]:
     checks: list[dict[str, Any]] = []
     checks.extend(_run_package_final_audit_checks())
     checks.extend(_run_desktop_final_audit_checks())
+    checks.extend(_run_fact_probe_semantic_checks())
     return checks
 
 
@@ -351,6 +353,69 @@ def _run_package_final_audit_checks() -> list[dict[str, Any]]:
             "unverified_installed_apps": final_state.get("unverified_installed_apps", []),
         },
     )
+
+    unknown_runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        facts,
+        ssh_exec=lambda _command, _timeout: (0, "bitwarden\n", ""),
+    )
+    unknown_orchestrator = SetupOrchestrator(unknown_runtime)
+    unknown_orchestrator.ctx.facts = facts
+    unknown_orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation.",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("plasma"),
+        apps=[
+            AppPlanItem(
+                name="Totally Unknown Vendor App",
+                source="manual_followup",
+                status=PlanItemStatus.INSTALLED,
+            )
+        ],
+    )
+    unknown_blockers = unknown_orchestrator._verify_planned_packages_installed()
+    unknown_state = unknown_orchestrator.ctx.stage_state.get(SetupStage.FINAL_AUDIT.value, {})
+    _record(
+        checks,
+        name="final_audit_blocks_unknown_installed_app_without_identifier",
+        category="final_audit",
+        passed=bool(unknown_blockers)
+        and "Totally Unknown Vendor App" in unknown_state.get("unverified_installed_apps", []),
+        details={
+            "blockers": unknown_blockers,
+            "unverified_installed_apps": unknown_state.get("unverified_installed_apps", []),
+        },
+    )
+
+    manual_runtime = _dummy_setup_runtime(profile, bridge, facts)
+    manual_orchestrator = SetupOrchestrator(manual_runtime)
+    manual_orchestrator.ctx.facts = facts
+    manual_orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation.",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("plasma"),
+        apps=[
+            AppPlanItem(
+                name="Totally Unknown Vendor App",
+                source="manual_followup",
+                status=PlanItemStatus.MANUAL_FOLLOWUP,
+                reason="No Linux package found.",
+            )
+        ],
+    )
+    manual_blockers = manual_orchestrator._verify_planned_packages_installed()
+    _record(
+        checks,
+        name="final_audit_ignores_manual_followup_apps_without_identifier",
+        category="final_audit",
+        passed=manual_blockers == [],
+        details={"blockers": manual_blockers},
+    )
     return checks
 
 
@@ -410,6 +475,27 @@ def _run_desktop_final_audit_checks() -> list[dict[str, Any]]:
         and any("KDE icon theme mismatch" in blocker for blocker in bad_result.blockers)
         and any("KWin wobbly windows was expected" in blocker for blocker in bad_result.blockers),
         details=asdict(bad_result),
+    )
+    return checks
+
+
+def _run_fact_probe_semantic_checks() -> list[dict[str, Any]]:
+    command = setup_fact_probe_command()
+    required_fragments = [
+        "qh_kde_config_value()",
+        "kreadconfig6",
+        "QH_KDE_ICON_THEME",
+        "QH_KDE_WOBBLY",
+        "QH_KDE_MAGIC_LAMP",
+    ]
+    missing = [fragment for fragment in required_fragments if fragment not in command]
+    checks: list[dict[str, Any]] = []
+    _record(
+        checks,
+        name="fact_probe_reads_kde_design_with_kreadconfig_fallback",
+        category="final_audit",
+        passed=not missing,
+        details={"missing_fragments": missing},
     )
     return checks
 
