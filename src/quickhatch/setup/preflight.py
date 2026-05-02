@@ -608,6 +608,174 @@ def _uses_virtualbox_guest_iso_installer(cmd: str) -> bool:
     return True
 
 
+def _append_unique(items: list[str], item: str) -> None:
+    if item and item not in items:
+        items.append(item)
+
+
+def preflight_setup_advisories(
+    command: str,
+    facts: SetupFacts,
+    *,
+    allow_network_security_changes: bool = False,
+) -> list[str]:
+    """Return non-blocking guidance for likely setup mistakes.
+
+    These are intentionally advisory. The model is allowed to try commands that
+    are merely likely-wrong or inefficient; the command result and stage audit
+    decide whether repair is needed. Hard blockers stay reserved for lockout,
+    destructive, or deterministic privilege failures.
+    """
+
+    advisories: list[str] = []
+    package_manager = facts.package_manager or "unknown"
+    community_helper = facts.community_helper or "none"
+    if _is_standalone_shell_assignment(command):
+        _append_unique(
+            advisories,
+            "This command only assigns shell variable(s). QuickHatch runs each command "
+            "in a fresh SSH shell, so combine the assignment with the command that uses it.",
+        )
+    if allow_network_security_changes and _activates_network_security_services(command):
+        _append_unique(
+            advisories,
+            "This command activates VPN/firewall services. Continue only because explicit "
+            "network-security consent is enabled; otherwise install packages without starting them.",
+        )
+    if _uses_virtualbox_guest_iso_installer(command):
+        _append_unique(
+            advisories,
+            "VirtualBox Guest Additions ISO installers are kernel-fragile. Prefer "
+            "distro-provided guest utility packages or mark VM integration manual_followup.",
+        )
+    if _uses_fake_plasma_session_wrapper(command):
+        _append_unique(
+            advisories,
+            "`dbus-run-session` creates a throwaway KDE/Plasma bus. Prefer persisted config "
+            "or the logged-in user's real session bus for live theme/wallpaper apply.",
+        )
+    if _uses_ubuntu_live_interactive_installer_from_ssh(command, facts):
+        _append_unique(
+            advisories,
+            "Launching Ubuntu's graphical/live installer over SSH is fragile. Prefer a "
+            "debootstrap/autoinstall path or ask the user to install manually.",
+        )
+    if _uses_fedora_live_anaconda_from_ssh(command, facts):
+        _append_unique(
+            advisories,
+            "Fedora live Anaconda/Kickstart over SSH can block on installer spokes. Prefer "
+            "`dnf --installroot=/mnt` or ask the user for a manual graphical install.",
+        )
+
+    for segment in _split_command_segments(command):
+        try:
+            raw_tokens = shlex.split(segment, posix=True)
+        except ValueError:
+            continue
+        tokens = _strip_wrappers(list(raw_tokens))
+        if not tokens:
+            continue
+        tool = _normalize_tool(tokens[0])
+        if tool == "pacstrap" and "--noconfirm" in tokens:
+            _append_unique(
+                advisories,
+                "`pacstrap` usually does not accept `--noconfirm`; if this fails, retry with "
+                "`pacstrap -K /mnt ...` and concrete provider packages.",
+            )
+        if package_manager == "pacman":
+            if tool in {"apt", "apt-get", "dnf", "zypper"}:
+                _append_unique(
+                    advisories,
+                    f"This target looks Arch-family (`pacman`), so `{tool}` is probably the "
+                    "wrong package manager. Use pacman for repo packages and AUR tooling only "
+                    "for community packages.",
+                )
+            helper_tools = arch_community_helpers_in_command(segment)
+            if helper_tools and community_helper == "none":
+                helper = sorted(helper_tools)[0]
+                _append_unique(
+                    advisories,
+                    f"The command uses `{helper}`, but no AUR helper is detected yet. Install "
+                    "the helper first, build manually, or let the command fail and repair from "
+                    "the actual error.",
+                )
+            mismatched_helpers = sorted(
+                helper for helper in helper_tools if helper != community_helper
+            )
+            if mismatched_helpers and community_helper in {"yay", "paru"}:
+                _append_unique(
+                    advisories,
+                    f"The command uses `{mismatched_helpers[0]}`, but `{community_helper}` is "
+                    "the detected AUR helper. Prefer one helper consistently unless both exist.",
+                )
+            if tool == "pacman":
+                packages = _extract_pacman_install_packages(tokens)
+                broad_groups = [
+                    package for package in packages if package in _ARCH_BROAD_PACKAGE_GROUPS
+                ]
+                if broad_groups:
+                    _append_unique(
+                        advisories,
+                        "Broad Arch desktop application groups can install a large suite. "
+                        "Prefer named apps unless the user explicitly requested the full group: "
+                        + ", ".join(broad_groups),
+                    )
+                aurish = [
+                    package
+                    for package in packages
+                    if package in _ARCH_AUR_ONLY_PACKAGES or package.endswith(_AURISH_SUFFIXES)
+                ]
+                if aurish:
+                    _append_unique(
+                        advisories,
+                        "These look like Arch community/AUR packages and may not resolve with "
+                        "`pacman`: " + ", ".join(aurish),
+                    )
+        elif package_manager == "apt":
+            if tool in {"pacman", "yay", "paru", "dnf", "zypper"}:
+                _append_unique(
+                    advisories,
+                    f"This target looks apt-family, so `{tool}` is probably the wrong package manager.",
+                )
+            if tool in {"apt", "apt-get"}:
+                packages = _extract_apt_install_packages(tokens)
+                desktop_metapackages = [
+                    package for package in packages if package in _UBUNTU_DESKTOP_METAPACKAGES
+                ]
+                if desktop_metapackages:
+                    _append_unique(
+                        advisories,
+                        "Ubuntu desktop metapackages can pull Snap/transitional packages in "
+                        "remote debootstrap-style setup. Prefer explicit GNOME/display-manager "
+                        "packages if noninteractive dpkg blocks.",
+                    )
+        elif package_manager == "dnf" and tool in {
+            "pacman",
+            "yay",
+            "paru",
+            "apt",
+            "apt-get",
+            "zypper",
+        }:
+            _append_unique(
+                advisories,
+                f"This target looks dnf-family, so `{tool}` is probably the wrong package manager.",
+            )
+        elif package_manager == "zypper" and tool in {
+            "pacman",
+            "yay",
+            "paru",
+            "apt",
+            "apt-get",
+            "dnf",
+        }:
+            _append_unique(
+                advisories,
+                f"This target looks zypper-family, so `{tool}` is probably the wrong package manager.",
+            )
+    return advisories
+
+
 def preflight_setup_command(
     command: str,
     facts: SetupFacts,
@@ -617,14 +785,6 @@ def preflight_setup_command(
     """Return a blocking reason for clearly unsafe/impossible setup commands."""
 
     package_manager = facts.package_manager or "unknown"
-    community_helper = facts.community_helper or "none"
-    if _is_standalone_shell_assignment(command):
-        return (
-            "This command only assigns shell variable(s). QuickHatch runs each command in a "
-            "fresh SSH shell, so variables do not persist to later commands. Combine the "
-            "assignment with the command that uses it, e.g. `UCODE=$(...) && pacstrap ... "
-            '"$UCODE"`.'
-        )
     if not allow_network_security_changes and _activates_network_security_services(command):
         return (
             "Do not enable/start VPN or firewall services automatically. Installing the package "
@@ -637,34 +797,6 @@ def preflight_setup_command(
             "PackageKit. They can kill the current SSH command or leave dpkg half-written. "
             "Stop specific services/timers, inspect the lock holder, wait for package work to "
             "finish, or kill only a confirmed stale PID."
-        )
-    if _uses_virtualbox_guest_iso_installer(command):
-        return (
-            "Do not install or run the VirtualBox Guest Additions ISO installer during "
-            "unattended setup. It is kernel-fragile and can leave failed `vboxadd.service` "
-            "units. Use distro-provided guest utility packages only; if they are unavailable "
-            "or incompatible, mark VM guest integration as manual_followup and continue with "
-            "the generic display stack."
-        )
-    if _uses_fake_plasma_session_wrapper(command):
-        return (
-            "Do not use `dbus-run-session` to apply KDE/Plasma theming. It creates a throwaway "
-            "bus, so live apply commands do not affect the user's real desktop session. Use the "
-            "logged-in user's actual session bus or write persisted config and require relogin."
-        )
-    if _uses_ubuntu_live_interactive_installer_from_ssh(command, facts):
-        return (
-            "Do not launch Ubuntu's graphical/live installer interactively over SSH. Use the "
-            "Debian-family debootstrap path for full live installs, or provide a current, "
-            "noninteractive, evidence-backed Subiquity/autoinstall invocation."
-        )
-    if _uses_fedora_live_anaconda_from_ssh(command, facts):
-        return (
-            "Do not launch Fedora live Anaconda/Kickstart as a normal SSH command. On live "
-            "Workstation ISOs local `--kickstart` is not supported for live installations and "
-            "text/cmdline runs can block on installer spokes with no stdin. Use the typed "
-            "`dnf --installroot=/mnt` live-install path instead, or ask the user to run the "
-            "graphical installer manually and continue configure-only after reboot."
         )
 
     for segment in _split_command_segments(command):
@@ -713,94 +845,13 @@ def preflight_setup_command(
                 f"`{tool}` changes system packages and needs root privileges. "
                 "Use `sudo` unless the remote session is already root."
             )
-        if tool == "pacstrap" and "--noconfirm" in tokens:
-            return (
-                "`pacstrap` does not accept `--noconfirm`; that option fails before the "
-                "base install starts. Keep `pacstrap -K /mnt ...` and avoid ambiguous "
-                "provider prompts by naming concrete provider packages when needed."
-            )
         if package_manager == "pacman":
-            if tool in {"apt", "apt-get", "dnf", "zypper"}:
-                return (
-                    f"This target is Arch-family (`pacman`), so `{tool}` is the wrong package "
-                    "manager. Use `pacman` for repo packages and the AUR helper only for AUR."
-                )
-            helper_tools = arch_community_helpers_in_command(segment)
-            if helper_tools and community_helper == "none":
-                helper = sorted(helper_tools)[0]
-                return (
-                    f"The command uses `{helper}` but no AUR helper is installed yet. Install "
-                    "the helper first, or build manually with `makepkg -s` + `pacman -U`."
-                )
-            mismatched_helpers = sorted(
-                helper for helper in helper_tools if helper != community_helper
-            )
-            if mismatched_helpers and community_helper in {"yay", "paru"}:
-                return (
-                    f"The command uses `{mismatched_helpers[0]}`, but the detected AUR helper "
-                    f"is `{community_helper}`. Use `{community_helper}` for AUR packages."
-                )
             if tool == "pacman":
                 packages = _extract_pacman_install_packages(tokens)
-                broad_groups = [
-                    package for package in packages if package in _ARCH_BROAD_PACKAGE_GROUPS
-                ]
-                if broad_groups:
-                    return (
-                        "Do not install broad Arch desktop application groups unless the "
-                        "user explicitly requested the full suite. "
-                        + ", ".join(broad_groups)
-                        + " should be replaced with named requested apps such as kate, "
-                        "konsole, dolphin, spectacle, or ark."
-                    )
-                aur_only = [
-                    package
-                    for package in packages
-                    if package in _ARCH_AUR_ONLY_PACKAGES or package.endswith(_AURISH_SUFFIXES)
-                ]
-                if aur_only:
-                    return (
-                        "Do not pass AUR-only packages to `pacman` on Arch. "
-                        + ", ".join(aur_only)
-                        + " should use an AUR helper or manual `makepkg` flow."
-                    )
                 if not arch_nvidia_official_package_supported(facts, packages):
                     return (
                         "Detected pre-Turing NVIDIA hardware. Do not install the current "
                         "official Arch NVIDIA packages blindly; resolve the supported legacy "
                         "driver path with repo/AUR/web research before mutating drivers."
                     )
-        elif package_manager == "apt" and tool in {"pacman", "yay", "paru", "dnf", "zypper"}:
-            return f"This target uses apt, so `{tool}` is the wrong package manager."
-        elif package_manager == "apt" and tool in {"apt", "apt-get"}:
-            packages = _extract_apt_install_packages(tokens)
-            desktop_metapackages = [
-                package for package in packages if package in _UBUNTU_DESKTOP_METAPACKAGES
-            ]
-            if desktop_metapackages:
-                return (
-                    "Do not install Ubuntu desktop metapackages in debootstrap-driven remote "
-                    "setup. They can pull Firefox/Snap transitional packages that block dpkg "
-                    "noninteractively. Install explicit GNOME/display-manager packages instead "
-                    "(for example gnome-shell, gdm3, ubuntu-session, gnome-terminal, nautilus, "
-                    "gnome-control-center, yaru themes, xdg-desktop-portal-gnome)."
-                )
-        elif package_manager == "dnf" and tool in {
-            "pacman",
-            "yay",
-            "paru",
-            "apt",
-            "apt-get",
-            "zypper",
-        }:
-            return f"This target uses dnf, so `{tool}` is the wrong package manager."
-        elif package_manager == "zypper" and tool in {
-            "pacman",
-            "yay",
-            "paru",
-            "apt",
-            "apt-get",
-            "dnf",
-        }:
-            return f"This target uses zypper, so `{tool}` is the wrong package manager."
     return None

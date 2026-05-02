@@ -28,7 +28,11 @@ from .planner import (
     extract_repair_action,
     extract_research_plan,
 )
-from .preflight import arch_community_helpers_in_command, preflight_setup_command
+from .preflight import (
+    arch_community_helpers_in_command,
+    preflight_setup_advisories,
+    preflight_setup_command,
+)
 from .resolver import build_install_command, nvidia_open_kernel_supported
 from .runlog import SetupRunLogger, redact_sensitive_text, write_executed_commands_script
 from .types import (
@@ -2314,6 +2318,26 @@ class SetupOrchestrator:
             result = final_audit(
                 self.ctx.facts or SetupFacts(), self.ctx.plan, self.ctx.stage_results
             )
+            fresh_audits: dict[str, dict[str, Any]] = {}
+            for fresh_stage in (
+                SetupStage.POSTBOOT_DRIVER,
+                SetupStage.DESKTOP,
+                SetupStage.APPS,
+            ):
+                fresh_result = audit_stage(
+                    fresh_stage,
+                    self.ctx.facts or SetupFacts(),
+                    plan=self.ctx.plan,
+                    stage_state=self.ctx.stage_state.get(fresh_stage.value, {}),
+                )
+                fresh_audits[fresh_stage.value] = asdict(fresh_result)
+                if not fresh_result.passed:
+                    for blocker in fresh_result.blockers:
+                        scoped = f"[{fresh_stage.value}] {blocker}"
+                        if scoped not in result.blockers:
+                            result.blockers.append(scoped)
+                    result.passed = False
+            result.details["fresh_stage_audits"] = fresh_audits
             remote_blockers = self._remote_final_verification()
             result.details["remote_final_verification"] = dict(
                 self.ctx.stage_state.get(SetupStage.FINAL_AUDIT.value, {})
@@ -2356,6 +2380,14 @@ class SetupOrchestrator:
         candidates = [app for app in installed_like if (app.package_name or "").strip()]
         unverifiable = [app.name for app in installed_like if app not in candidates]
         final_state["unverified_installed_apps"] = sorted(unverifiable)
+        if unverifiable:
+            return [
+                "Final package verification cannot verify installed app(s) without package "
+                "names: "
+                + ", ".join(sorted(unverifiable))
+                + ". Provide a package/Flatpak identifier or mark them manual_followup "
+                "before done."
+            ]
         if not candidates:
             return []
         flatpak_candidates = [app for app in candidates if self._app_uses_flatpak(app)]
@@ -2374,7 +2406,11 @@ class SetupOrchestrator:
         }
         query = query_cmds.get(self.ctx.facts.package_manager)
         if not query and package_candidates:
-            return []
+            return [
+                "Final package verification has no package query command for "
+                f"{self.ctx.facts.package_manager}; mark installed apps manual_followup "
+                "or add a verifier before done."
+            ]
         installed: set[str] = set()
         if package_candidates and query:
             final_state["package_verification_ran"] = True
@@ -2738,6 +2774,43 @@ class SetupOrchestrator:
                     command=command,
                 )
                 continue
+            advisories = preflight_setup_advisories(command, self.ctx.facts or SetupFacts())
+            if advisories:
+                advisory_text = "\n".join(f"- {item}" for item in advisories)
+                self.bridge.add_message(
+                    "agent",
+                    f"[harness] ⚠️ Advisory for `{redact_sensitive_text(command)}`\n{advisory_text}",
+                )
+                self.runlog.record(
+                    "command_preflight_advisory",
+                    stage=stage.value,
+                    group_id=group.id,
+                    command=command,
+                    advisories=list(advisories),
+                )
+            if (
+                (self.ctx.facts or SetupFacts()).package_manager == "pacman"
+                and self._uses_arch_community_helper_command(command)
+                and not self._arch_aur_helper_available()
+            ):
+                bootstrap_failure = self._try_bootstrap_arch_aur_helper_for_command(
+                    command,
+                    stage=stage,
+                    group=group,
+                    stage_state=stage_state,
+                )
+                if bootstrap_failure is not None:
+                    return bootstrap_failure
+                command = self._rewrite_arch_community_helper_command(
+                    command, stage=stage, group=group
+                )
+                self.runlog.record(
+                    "command_preflight_recovered",
+                    stage=stage.value,
+                    group_id=group.id,
+                    command=command,
+                    recovery="arch_aur_helper_bootstrap",
+                )
             lint_error = preflight_setup_command(command, self.ctx.facts or SetupFacts())
             if lint_error:
                 bootstrap_failure = self._try_bootstrap_arch_aur_helper_for_command(

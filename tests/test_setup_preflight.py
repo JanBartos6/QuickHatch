@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from quickhatch.setup.preflight import arch_community_helpers_in_command, preflight_setup_command
+from quickhatch.setup.preflight import (
+    arch_community_helpers_in_command,
+    preflight_setup_advisories,
+    preflight_setup_command,
+)
 from quickhatch.setup.types import SetupFacts
 
 
@@ -8,42 +12,42 @@ def test_preflight_blocks_pacman_for_aur_only_packages():
     facts = SetupFacts(package_manager="pacman", community_helper="yay")
 
     error = preflight_setup_command("sudo pacman -S --noconfirm brave-bin", facts)
+    advisories = preflight_setup_advisories("sudo pacman -S --noconfirm brave-bin", facts)
 
-    assert error
-    assert "AUR-only" in error
+    assert error is None
+    assert any("community/AUR" in item for item in advisories)
 
 
 def test_preflight_blocks_yay_before_helper_exists():
     facts = SetupFacts(package_manager="pacman", community_helper="none")
 
     error = preflight_setup_command("yay -S --noconfirm brave-bin", facts)
+    advisories = preflight_setup_advisories("yay -S --noconfirm brave-bin", facts)
 
-    assert error
-    assert "no AUR helper" in error
+    assert error is None
+    assert any("no AUR helper" in item for item in advisories)
 
 
 def test_preflight_detects_wrapped_aur_helper_before_helper_exists():
     facts = SetupFacts(package_manager="pacman", community_helper="none", is_root=True)
 
-    error = preflight_setup_command(
-        "arch-chroot /mnt sudo -u jan bash -lc 'yay -S --noconfirm brave-bin'",
-        facts,
-    )
+    command = "arch-chroot /mnt sudo -u jan bash -lc 'yay -S --noconfirm brave-bin'"
+    error = preflight_setup_command(command, facts)
+    advisories = preflight_setup_advisories(command, facts)
 
-    assert error
-    assert "no AUR helper" in error
-    assert arch_community_helpers_in_command(
-        "arch-chroot /mnt sudo -u jan bash -lc 'yay -S --noconfirm brave-bin'"
-    ) == {"yay"}
+    assert error is None
+    assert any("no AUR helper" in item for item in advisories)
+    assert arch_community_helpers_in_command(command) == {"yay"}
 
 
 def test_preflight_blocks_wrong_aur_helper_when_another_helper_is_detected():
     facts = SetupFacts(package_manager="pacman", community_helper="yay")
 
     error = preflight_setup_command("paru -S --noconfirm brave-bin", facts)
+    advisories = preflight_setup_advisories("paru -S --noconfirm brave-bin", facts)
 
-    assert error
-    assert "detected AUR helper is `yay`" in error
+    assert error is None
+    assert any("detected AUR helper" in item for item in advisories)
 
 
 def test_preflight_blocks_vpn_firewall_activation():
@@ -77,14 +81,15 @@ def test_preflight_allows_specific_non_package_pkill():
 def test_preflight_blocks_ubuntu_desktop_metapackages_for_debootstrap_setup():
     facts = SetupFacts(package_manager="apt", distro_family="ubuntu", is_root=False)
 
-    error = preflight_setup_command(
-        "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ubuntu-desktop-minimal virtualbox-guest-x11",
-        facts,
+    command = (
+        "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "
+        "--no-install-recommends ubuntu-desktop-minimal virtualbox-guest-x11"
     )
+    error = preflight_setup_command(command, facts)
+    advisories = preflight_setup_advisories(command, facts)
 
-    assert error
-    assert "desktop metapackages" in error
-    assert "Firefox/Snap" in error
+    assert error is None
+    assert any("desktop metapackages" in item for item in advisories)
 
 
 def test_preflight_allows_explicit_gnome_core_packages_on_apt():
@@ -102,14 +107,15 @@ def test_preflight_allows_explicit_gnome_core_packages_on_apt():
 def test_preflight_blocks_virtualbox_guest_additions_iso_installer():
     facts = SetupFacts(package_manager="apt", distro_family="debian")
 
-    error = preflight_setup_command(
-        "sudo apt-get install -y virtualbox-guest-additions-iso && sudo /media/cdrom/VBoxLinuxAdditions.run",
-        facts,
+    command = (
+        "sudo apt-get install -y virtualbox-guest-additions-iso && "
+        "sudo /media/cdrom/VBoxLinuxAdditions.run"
     )
+    error = preflight_setup_command(command, facts)
+    advisories = preflight_setup_advisories(command, facts)
 
-    assert error
-    assert "Guest Additions ISO" in error
-    assert "manual_followup" in error
+    assert error is None
+    assert any("Guest Additions ISO" in item for item in advisories)
 
 
 def test_preflight_allows_distro_virtualbox_guest_utility_packages():
@@ -127,13 +133,12 @@ def test_preflight_allows_distro_virtualbox_guest_utility_packages():
 def test_preflight_blocks_standalone_shell_variable_assignment():
     facts = SetupFacts(package_manager="pacman", community_helper="none")
 
-    error = preflight_setup_command(
-        "UCODE=$(grep -qi intel /proc/cpuinfo && echo intel-ucode || echo amd-ucode)",
-        facts,
-    )
+    command = "UCODE=$(grep -qi intel /proc/cpuinfo && echo intel-ucode || echo amd-ucode)"
+    error = preflight_setup_command(command, facts)
+    advisories = preflight_setup_advisories(command, facts)
 
-    assert error
-    assert "variables do not persist" in error
+    assert error is None
+    assert any("fresh SSH shell" in item for item in advisories)
 
 
 def test_preflight_allows_variable_assignment_combined_with_use():
@@ -151,9 +156,10 @@ def test_preflight_blocks_invalid_pacstrap_noconfirm_flag():
     facts = SetupFacts(package_manager="pacman", community_helper="none", is_root=True)
 
     error = preflight_setup_command("pacstrap -K --noconfirm /mnt base linux", facts)
+    advisories = preflight_setup_advisories("pacstrap -K --noconfirm /mnt base linux", facts)
 
-    assert error
-    assert "pacstrap` does not accept `--noconfirm" in error
+    assert error is None
+    assert any("pacstrap" in item and "--noconfirm" in item for item in advisories)
 
 
 def test_preflight_allows_package_install_without_activation():
@@ -165,25 +171,23 @@ def test_preflight_allows_package_install_without_activation():
 def test_preflight_blocks_fake_plasma_dbus_session():
     facts = SetupFacts(package_manager="pacman", community_helper="yay")
 
-    error = preflight_setup_command(
-        "dbus-run-session -- plasma-apply-wallpaperimage ~/wallpaper.jpg", facts
-    )
+    command = "dbus-run-session -- plasma-apply-wallpaperimage ~/wallpaper.jpg"
+    error = preflight_setup_command(command, facts)
+    advisories = preflight_setup_advisories(command, facts)
 
-    assert error
-    assert "dbus-run-session" in error
+    assert error is None
+    assert any("dbus-run-session" in item for item in advisories)
 
 
 def test_preflight_blocks_fedora_live_anaconda_over_ssh():
     facts = SetupFacts(package_manager="dnf", distro_family="fedora", is_live=True)
 
-    error = preflight_setup_command(
-        "sudo dbus-run-session anaconda --kickstart=/tmp/qh.ks --noninteractive -C --liveinst",
-        facts,
-    )
+    command = "sudo dbus-run-session anaconda --kickstart=/tmp/qh.ks --noninteractive -C --liveinst"
+    error = preflight_setup_command(command, facts)
+    advisories = preflight_setup_advisories(command, facts)
 
-    assert error
-    assert "graphical installer" in error
-    assert "dnf --installroot=/mnt" in error
+    assert error is None
+    assert any("Anaconda" in item for item in advisories)
 
 
 def test_preflight_allows_fedora_live_installroot_path():
@@ -209,11 +213,12 @@ def test_preflight_blocks_ubuntu_live_interactive_installer_over_ssh():
         is_live=True,
     )
 
-    error = preflight_setup_command("ubuntu-desktop-bootstrap --try-or-install", facts)
+    command = "ubuntu-desktop-bootstrap --try-or-install"
+    error = preflight_setup_command(command, facts)
+    advisories = preflight_setup_advisories(command, facts)
 
-    assert error
-    assert "graphical/live installer" in error
-    assert "debootstrap" in error
+    assert error is None
+    assert any("Ubuntu" in item and "installer" in item for item in advisories)
 
 
 def test_preflight_allows_ubuntu_live_debootstrap_and_autoinstall():
@@ -411,13 +416,12 @@ def test_preflight_allows_sudo_tee_for_root_owned_write():
 def test_preflight_blocks_broad_arch_desktop_app_group():
     facts = SetupFacts(package_manager="pacman", community_helper="yay", is_root=True)
 
-    error = preflight_setup_command(
-        "pacman -S --noconfirm plasma kde-applications papirus-icon-theme",
-        facts,
-    )
+    command = "pacman -S --noconfirm plasma kde-applications papirus-icon-theme"
+    error = preflight_setup_command(command, facts)
+    advisories = preflight_setup_advisories(command, facts)
 
-    assert error
-    assert "broad Arch desktop application groups" in error
+    assert error is None
+    assert any("Broad Arch desktop" in item for item in advisories)
 
 
 def test_preflight_blocks_non_root_runuser_wrapper():
