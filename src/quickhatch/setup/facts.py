@@ -138,6 +138,27 @@ qh_gui_run() {
     env XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$qh_gui_uid}" DBUS_SESSION_BUS_ADDRESS="${qh_gui_dbus:-unix:path=/run/user/$qh_gui_uid/bus}" WAYLAND_DISPLAY="$qh_gui_wayland" DISPLAY="$qh_gui_display" XAUTHORITY="$qh_gui_xauth" "$@"
   fi
 }
+qh_kde_config_value() {
+  qh_file=$1
+  qh_group=$2
+  qh_key=$3
+  qh_value=$(qh_ini_value "$qh_file" "$qh_group" "$qh_key")
+  if [ -n "$qh_value" ]; then
+    printf '%s\n' "$qh_value"
+    return
+  fi
+  qh_reader=
+  if command -v kreadconfig6 >/dev/null 2>&1; then
+    qh_reader=kreadconfig6
+  elif command -v kreadconfig5 >/dev/null 2>&1; then
+    qh_reader=kreadconfig5
+  elif command -v kreadconfig >/dev/null 2>&1; then
+    qh_reader=kreadconfig
+  fi
+  if [ -n "$qh_reader" ]; then
+    qh_gui_run "$qh_reader" --file "$qh_file" --group "$qh_group" --key "$qh_key" 2>/dev/null
+  fi
+}
 qh_gsettings_value() {
   qh_schema=$1
   qh_key=$2
@@ -156,7 +177,7 @@ qh_xfconf_value() {
     fi
   fi
 }
-qh_kde_color_scheme=$(qh_ini_value "$qh_gui_home/.config/kdeglobals" General ColorScheme)
+qh_kde_color_scheme=$(qh_kde_config_value "$qh_gui_home/.config/kdeglobals" General ColorScheme)
 if [ -z "$qh_kde_color_scheme" ]; then
   qh_kde_color_hash=$(qh_ini_value "$qh_gui_home/.config/kdeglobals" General ColorSchemeHash)
   qh_kde_window_bg=$(qh_ini_value "$qh_gui_home/.config/kdeglobals" "Colors:Window" BackgroundNormal)
@@ -198,10 +219,10 @@ echo 'QH_GUI_DBUS='$qh_gui_dbus
 echo 'QH_SESSION='$qh_gui_type
 echo 'QH_DESKTOP_ENV='$qh_gui_current_desktop
 printf 'QH_KDE_COLOR_SCHEME=%s\n' "$qh_kde_color_scheme"
-printf 'QH_KDE_ICON_THEME=%s\n' "$(qh_ini_value "$qh_gui_home/.config/kdeglobals" Icons Theme)"
-printf 'QH_KDE_CURSOR_THEME=%s\n' "$(qh_ini_value "$qh_gui_home/.config/kcminputrc" Mouse cursorTheme)"
-printf 'QH_KDE_WOBBLY=%s\n' "$(qh_ini_value "$qh_gui_home/.config/kwinrc" Plugins wobblywindowsEnabled)"
-printf 'QH_KDE_MAGIC_LAMP=%s\n' "$(qh_ini_value "$qh_gui_home/.config/kwinrc" Plugins magiclampEnabled)"
+printf 'QH_KDE_ICON_THEME=%s\n' "$(qh_kde_config_value "$qh_gui_home/.config/kdeglobals" Icons Theme)"
+printf 'QH_KDE_CURSOR_THEME=%s\n' "$(qh_kde_config_value "$qh_gui_home/.config/kcminputrc" Mouse cursorTheme)"
+printf 'QH_KDE_WOBBLY=%s\n' "$(qh_kde_config_value "$qh_gui_home/.config/kwinrc" Plugins wobblywindowsEnabled)"
+printf 'QH_KDE_MAGIC_LAMP=%s\n' "$(qh_kde_config_value "$qh_gui_home/.config/kwinrc" Plugins magiclampEnabled)"
 printf 'QH_KDE_WALLPAPER=%s\n' "$qh_kde_wallpaper"
 echo 'QH_GNOME_GTK_THEME='$(qh_gsettings_value org.gnome.desktop.interface gtk-theme)
 echo 'QH_GNOME_ICON_THEME='$(qh_gsettings_value org.gnome.desktop.interface icon-theme)

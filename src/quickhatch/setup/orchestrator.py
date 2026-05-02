@@ -2490,7 +2490,12 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             for app in self.ctx.plan.apps
             if app.status in {PlanItemStatus.INSTALLED, PlanItemStatus.COMPLETED}
         ]
-        candidates = [app for app in installed_like if (app.package_name or "").strip()]
+        candidates = [
+            app
+            for app in installed_like
+            if self._package_name_variants(app.name, app.package_name)
+            or (app.source or "").strip().lower() in {"flatpak", "flathub"}
+        ]
         unverifiable = [app.name for app in installed_like if app not in candidates]
         final_state["unverified_installed_apps"] = sorted(unverifiable)
         if unverifiable:

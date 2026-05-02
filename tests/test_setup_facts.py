@@ -72,6 +72,15 @@ def test_fact_probe_reads_plasma6_serialized_wallpaper_and_palette_hash():
     assert "custom-dark-palette" in command
 
 
+def test_fact_probe_uses_kde_reader_fallback_for_design_config():
+    command = setup_fact_probe_command()
+
+    assert "qh_kde_config_value()" in command
+    assert "kreadconfig6" in command
+    assert "QH_KDE_ICON_THEME=%s\\n' \"$(qh_kde_config_value" in command
+    assert "QH_KDE_WOBBLY=%s\\n' \"$(qh_kde_config_value" in command
+
+
 def test_probe_setup_facts_parses_secure_boot_enabled():
     output = """\
 QH_PM=pacman

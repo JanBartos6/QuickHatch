@@ -6203,6 +6203,65 @@ def test_final_package_verification_accepts_user_profile_source_apps():
     assert "Manual follow-up" not in orchestrator._build_summary()
 
 
+def test_final_package_verification_infers_obvious_package_names_from_app_names():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.ssh_exec = lambda command, _timeout: (
+        0,
+        "\n".join(
+            [
+                "bitwarden",
+                "claude-desktop-bin",
+                "discord",
+                "git",
+                "github-desktop-bin",
+                "openai-codex",
+                "steam",
+                "stirling-pdf-bin",
+            ]
+        ),
+        "",
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation.",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("plasma"),
+        command_groups=[],
+        apps=[
+            AppPlanItem(name="Bitwarden", source="repo", status=PlanItemStatus.INSTALLED),
+            AppPlanItem(name="Claude", source="community", status=PlanItemStatus.INSTALLED),
+            AppPlanItem(name="Codex", source="community", status=PlanItemStatus.INSTALLED),
+            AppPlanItem(name="Discord", source="repo", status=PlanItemStatus.INSTALLED),
+            AppPlanItem(name="Git", source="repo", status=PlanItemStatus.INSTALLED),
+            AppPlanItem(name="GitHub Desktop", source="community", status=PlanItemStatus.INSTALLED),
+            AppPlanItem(name="Steam", source="repo", status=PlanItemStatus.INSTALLED),
+            AppPlanItem(name="Stirling-PDF", source="community", status=PlanItemStatus.INSTALLED),
+        ],
+    )
+
+    blockers = orchestrator._verify_planned_packages_installed()
+
+    final_state = orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value]
+    assert blockers == []
+    assert final_state["verified_installed_apps"] == [
+        "Bitwarden",
+        "Claude",
+        "Codex",
+        "Discord",
+        "Git",
+        "GitHub Desktop",
+        "Steam",
+        "Stirling-PDF",
+    ]
+    assert final_state["unverified_installed_apps"] == []
+
+
 def test_orchestrator_can_convert_failed_verification_into_manual_followup_after_question():
     profile = UserProfile(apps_to_install=["ChatGPT"])
     bridge = BridgeState(profile, persist_path=None)
