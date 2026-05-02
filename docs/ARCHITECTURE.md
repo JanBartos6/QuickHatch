@@ -160,4 +160,4 @@ All scanners have Linux/macOS fallbacks for developing on non-Windows.
 - No Windows→Linux file copying (we never touch user data)
 - No automated Linux install (user installs Linux themselves from USB)
 - No package management abstraction (the LLM generates distro-specific commands)
-- No GUI installer or Tauri desktop app at the moment (the `src-tauri` directory exists but is vestigial)
+- No GUI installer or desktop wrapper at the moment

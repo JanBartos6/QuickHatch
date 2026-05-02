@@ -8,11 +8,6 @@ build/
 *.iso
 .env
 
-# Tauri / Rust
-src-tauri/target/
-node_modules/
-package-lock.json
-
 # Agent temp files
 .quickhatch-prompt.txt
 .quickhatch-agent-cmd.sh

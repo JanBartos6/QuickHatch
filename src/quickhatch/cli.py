@@ -217,9 +217,6 @@ def main() -> None:
     parser.add_argument(
         "--no-browser", action="store_true", help="Don't auto-open browser (GUI mode)"
     )
-    parser.add_argument(
-        "--tauri", action="store_true", help="Machine-readable output for Tauri wrapper"
-    )
     args = parser.parse_args()
 
     if args.quickhatch_command == "debug":
@@ -345,15 +342,10 @@ def _run_gui(args) -> None:
     server, port = make_gui_server(gui_state, port=args.port, host=args.host)
     url = f"http://localhost:{port}"
 
-    if getattr(args, "tauri", False):
-        # Machine-readable output for Tauri to parse the port
-        sys.stdout.write(f"QUICKHATCH_PORT={port}\n")
-        sys.stdout.flush()
-    else:
-        console.print(f"\n[bold green]QuickHatch GUI running at:[/bold green] [cyan]{url}[/cyan]")
-        console.print("[dim]Press Ctrl+C to stop[/dim]\n")
+    console.print(f"\n[bold green]QuickHatch GUI running at:[/bold green] [cyan]{url}[/cyan]")
+    console.print("[dim]Press Ctrl+C to stop[/dim]\n")
 
-    if not args.no_browser and not getattr(args, "tauri", False):
+    if not args.no_browser:
         threading.Timer(0.5, lambda: webbrowser.open(url)).start()
 
     try:
