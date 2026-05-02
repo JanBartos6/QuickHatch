@@ -118,7 +118,7 @@ _ARCH_NVIDIA_HARDENED_OPEN_PACKAGES = (
 )
 _ARCH_ENABLE_MULTILIB_COMMAND = (
     "sudo sed -i "
-    "'/^#\\[multilib\\]/,/^#Include = \\/etc\\/pacman.d\\/mirrorlist/s/^#//' "
+    "'/^#\\?\\[multilib\\]/,/^#\\?Include = \\/etc\\/pacman.d\\/mirrorlist/s/^#//' "
     "/etc/pacman.conf"
 )
 _ARCH_NVIDIA_BOOT_CONFIG_COMMANDS = (

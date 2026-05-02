@@ -2658,6 +2658,8 @@ def test_arch_nvidia_group_rewrites_legacy_driver_install_and_adds_boot_config()
 
     assert commands[0].startswith("sudo sed -i ")
     assert "multilib" in commands[0]
+    assert r"^#\?\[multilib\]" in commands[0]
+    assert r"^#\?Include = \/etc\/pacman.d\/mirrorlist" in commands[0]
     assert (
         "sudo pacman -Syu --needed --noconfirm "
         "linux-headers nvidia-open nvidia-utils lib32-nvidia-utils nvidia-settings"
