@@ -26,6 +26,7 @@ from .orchestrator import SetupOrchestrator, SetupRuntime
 from .preflight import preflight_setup_decisions
 from .types import (
     AppPlanItem,
+    CommandGroup,
     DesktopDesignState,
     DesktopRuntimeState,
     FailureCategory,
@@ -257,6 +258,7 @@ def _dummy_setup_runtime(
     facts: SetupFacts,
     *,
     ssh_exec: Any | None = None,
+    probe_facts: Any | None = None,
 ) -> SetupRuntime:
     return SetupRuntime(
         profile=profile,
@@ -268,7 +270,7 @@ def _dummy_setup_runtime(
         key_path=None,
         system_info_fn=lambda: "harness health system info",
         call_model_text=lambda _cfg, _messages: "{}",
-        probe_facts=lambda **_kwargs: facts,
+        probe_facts=probe_facts or (lambda **_kwargs: facts),
         detect_live_env=lambda: (facts.is_live, facts.live_marker or "INSTALLED"),
         ssh_exec=ssh_exec or (lambda _command, _timeout: (0, "", "")),
         repo_search=lambda _query: "",
@@ -290,6 +292,82 @@ def _run_final_audit_semantic_checks() -> list[dict[str, Any]]:
     checks.extend(_run_package_final_audit_checks())
     checks.extend(_run_desktop_final_audit_checks())
     checks.extend(_run_fact_probe_semantic_checks())
+    return checks
+
+
+def _run_resume_policy_checks() -> list[dict[str, Any]]:
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    stale_facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GA102 [GeForce RTX 3080]"],
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+        nvidia_smi_state="present_but_failing",
+        nvidia_kernel_driver="driver",
+        nvidia_nouveau_bound=False,
+    )
+    healthy_facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GA102 [GeForce RTX 3080]"],
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+        nvidia_smi_state="ok",
+        nvidia_kernel_driver="nvidia",
+        nvidia_nouveau_bound=False,
+        driver_modules=["nvidia", "nvidia_drm"],
+    )
+    executed: list[str] = []
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        stale_facts,
+        ssh_exec=lambda command, _timeout: executed.append(command) or (0, "", ""),
+        probe_facts=lambda **_kwargs: healthy_facts,
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = stale_facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch NVIDIA workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(
+            "nvidia-open",
+            confidence="resolved_official",
+            source="repo",
+            packages=["nvidia-open", "nvidia-utils"],
+        ),
+        desktop_strategy=StrategyDecision("kde", confidence="resolved_official", source="repo"),
+        command_groups=[
+            CommandGroup(
+                id="driver",
+                stage=SetupStage.POSTBOOT_DRIVER,
+                title="NVIDIA Driver & Kernel Configuration",
+                commands=[
+                    "sudo pacman -Syu --needed --noconfirm linux-headers nvidia-open nvidia-utils",
+                    "sudo mkinitcpio -P",
+                ],
+                verification=["nvidia-smi"],
+                packages=["nvidia-open", "nvidia-utils"],
+            )
+        ],
+    )
+    orchestrator._run_postboot_driver()
+    stage_state = orchestrator.ctx.stage_state.get(SetupStage.POSTBOOT_DRIVER.value, {})
+    checks: list[dict[str, Any]] = []
+    _record(
+        checks,
+        name="resume_postboot_driver_audits_before_mutating",
+        category="resume_policy",
+        passed=not executed and stage_state.get("skipped_current_state_already_valid") is True,
+        details={"executed_commands": executed, "stage_state": stage_state},
+    )
     return checks
 
 
@@ -513,6 +591,7 @@ def run_harness_health(
             *_run_preflight_policy_checks(),
             *_run_failure_classifier_checks(),
             *_run_final_audit_semantic_checks(),
+            *_run_resume_policy_checks(),
         ]
         failed = [check for check in checks if not check["passed"]]
         return {

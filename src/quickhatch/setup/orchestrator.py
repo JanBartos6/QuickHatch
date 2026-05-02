@@ -2022,10 +2022,14 @@ class SetupOrchestrator:
             raise RuntimeError(f"Install reboot command failed: {detail[:240]}")
 
     def _run_postboot_driver(self) -> None:
+        if self._skip_stage_if_current_audit_passes(SetupStage.POSTBOOT_DRIVER):
+            return
         self._inject_nvidia_recovery_group_if_needed()
         self._run_stage_groups(SetupStage.POSTBOOT_DRIVER)
 
     def _run_desktop(self) -> None:
+        if self._skip_stage_if_current_audit_passes(SetupStage.DESKTOP):
+            return
         self._run_stage_groups(SetupStage.DESKTOP, audit_after=False)
         self._ensure_display_manager_started()
         stage_state = self.ctx.stage_state.setdefault(SetupStage.DESKTOP.value, {})
@@ -2044,6 +2048,37 @@ class SetupOrchestrator:
                 stage_state=stage_state,
             )
         self._record_stage_result(result)
+
+    def _skip_stage_if_current_audit_passes(self, stage: SetupStage) -> bool:
+        if self.ctx.facts is None or self.ctx.plan is None:
+            return False
+        self._refresh_facts(stage=stage)
+        stage_state = self.ctx.stage_state.setdefault(stage.value, {})
+        if stage == SetupStage.DESKTOP:
+            self._update_desktop_display_audit_state(stage_state)
+        if stage == SetupStage.APPS:
+            self._mark_unanswered_optional_slow_apps_manual_followup()
+        result = audit_stage(
+            stage,
+            self.ctx.facts or SetupFacts(),
+            plan=self.ctx.plan,
+            stage_state=stage_state,
+        )
+        if not result.passed:
+            return False
+        stage_state["skipped_current_state_already_valid"] = True
+        self._record_stage_result(result)
+        self.bridge.add_message(
+            "agent",
+            f"[harness] {stage.value} already satisfies audit after fact refresh; "
+            "skipping planned mutation commands.",
+        )
+        self.runlog.record(
+            "stage_skipped_current_audit_passed",
+            stage=stage.value,
+            result=asdict(result),
+        )
+        return True
 
     def _ensure_display_manager_started(self) -> None:
         facts = self.ctx.facts

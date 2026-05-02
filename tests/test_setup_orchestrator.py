@@ -2966,6 +2966,142 @@ def test_arch_nvidia_recovery_group_is_injected_when_postboot_plan_is_missing():
     assert orchestrator.ctx.stage_results[-1].passed is True
 
 
+def test_postboot_driver_resume_audits_before_mutating_when_driver_is_healthy():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    stale_facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GA102 [GeForce RTX 3080]"],
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+        nvidia_smi_state="present_but_failing",
+        nvidia_kernel_driver="driver",
+        nvidia_nouveau_bound=False,
+    )
+    healthy_facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GA102 [GeForce RTX 3080]"],
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+        nvidia_smi_state="ok",
+        nvidia_kernel_driver="nvidia",
+        nvidia_nouveau_bound=False,
+        driver_modules=["nvidia", "nvidia_drm"],
+    )
+    executed: list[str] = []
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        stale_facts,
+        ssh_exec=lambda command, _timeout: executed.append(command) or (0, "", ""),
+        probe_facts=lambda **_kwargs: healthy_facts,
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = stale_facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch NVIDIA workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(
+            "nvidia-open",
+            confidence="resolved_official",
+            source="repo",
+            packages=["nvidia-open", "nvidia-utils"],
+        ),
+        desktop_strategy=StrategyDecision("kde", confidence="resolved_official", source="repo"),
+        command_groups=[
+            CommandGroup(
+                id="driver",
+                stage=SetupStage.POSTBOOT_DRIVER,
+                title="NVIDIA Driver & Kernel Configuration",
+                commands=[
+                    "sudo pacman -Syu --needed --noconfirm linux-headers nvidia-open nvidia-utils",
+                    "sudo mkinitcpio -P",
+                ],
+                verification=["nvidia-smi"],
+                packages=["nvidia-open", "nvidia-utils"],
+            )
+        ],
+    )
+
+    orchestrator._run_postboot_driver()
+
+    assert executed == []
+    assert orchestrator.ctx.stage_results[-1].passed is True
+    assert (
+        orchestrator.ctx.stage_state[SetupStage.POSTBOOT_DRIVER.value][
+            "skipped_current_state_already_valid"
+        ]
+        is True
+    )
+    assert any("skipping planned mutation" in msg["content"] for msg in bridge.messages)
+
+
+def test_postboot_driver_resume_runs_when_refreshed_driver_audit_fails():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GA102 [GeForce RTX 3080]"],
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+        nvidia_smi_state="present_but_failing",
+        nvidia_kernel_driver="driver",
+        nvidia_nouveau_bound=False,
+    )
+    executed: list[str] = []
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        facts,
+        ssh_exec=lambda command, _timeout: executed.append(command) or (0, "", ""),
+        probe_facts=lambda **_kwargs: facts,
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch NVIDIA workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(
+            "nvidia-open",
+            confidence="resolved_official",
+            source="repo",
+            packages=["nvidia-open", "nvidia-utils"],
+        ),
+        desktop_strategy=StrategyDecision("kde", confidence="resolved_official", source="repo"),
+        command_groups=[
+            CommandGroup(
+                id="driver",
+                stage=SetupStage.POSTBOOT_DRIVER,
+                title="NVIDIA Driver & Kernel Configuration",
+                commands=["echo repair-nvidia"],
+                verification=[],
+                packages=["nvidia-open", "nvidia-utils"],
+            )
+        ],
+    )
+
+    try:
+        orchestrator._run_postboot_driver()
+    except RuntimeError as exc:
+        assert "nvidia-smi is not healthy" in str(exc)
+    else:
+        raise AssertionError("unhealthy NVIDIA facts should still block after repair")
+
+    assert executed
+    assert "echo repair-nvidia" in executed
+
+
 def test_ubuntu_nvidia_recovery_group_is_injected_when_postboot_plan_is_missing():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
