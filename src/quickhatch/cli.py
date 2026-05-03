@@ -193,6 +193,12 @@ def main() -> None:
     )
     latest_parser.add_argument("--root")
     latest_parser.add_argument("--summary-only", action="store_true")
+    scan_parser = debug_subparsers.add_parser(
+        "scan-runlogs",
+        help="Aggregate diagnostics across setup run artifacts",
+    )
+    scan_parser.add_argument("--root")
+    scan_parser.add_argument("--limit", type=int, default=50)
 
     certify_parser = subparsers.add_parser("certify", help="Run certification tooling")
     certify_subparsers = certify_parser.add_subparsers(dest="certify_command")
@@ -381,6 +387,7 @@ def _run_debug_command(args) -> None:
     from quickhatch.setup.replay import (
         find_latest_runlog,
         promote_regression_fixture,
+        scan_runlogs,
         summarize_runlog,
         summarize_stage,
     )
@@ -455,6 +462,9 @@ def _run_debug_command(args) -> None:
         else:
             console.print("[bold]QuickHatch latest setup run[/bold]")
             _print_json(payload)
+        return
+    if args.debug_command == "scan-runlogs":
+        _print_json(asdict(scan_runlogs(Path(args.root) if args.root else None, limit=args.limit)))
         return
     raise SystemExit("Missing debug subcommand.")
 

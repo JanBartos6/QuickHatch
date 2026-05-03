@@ -44,6 +44,16 @@ class RunReplaySummary:
     final_status: str = "unknown"
 
 
+@dataclass
+class RunlogScanSummary:
+    root: str
+    run_count: int = 0
+    event_count: int = 0
+    failure_categories: dict[str, int] = field(default_factory=dict)
+    diagnostic_categories: dict[str, int] = field(default_factory=dict)
+    runs: list[dict[str, Any]] = field(default_factory=list)
+
+
 def load_run_events(path: Path | str) -> list[dict[str, Any]]:
     source = Path(path)
     events: list[dict[str, Any]] = []
@@ -127,7 +137,16 @@ def summarize_events(events: list[dict[str, Any]]) -> RunReplaySummary:
         diagnostic = diagnose_event(event, previous_event=previous_event)
         if diagnostic is not None:
             summary.diagnostics.append(diagnostic)
-            if event_failed and diagnostic.category != counted_category:
+            if event_failed and counted_category == "unknown":
+                remaining = summary.failure_categories.get("unknown", 0) - 1
+                if remaining > 0:
+                    summary.failure_categories["unknown"] = remaining
+                else:
+                    summary.failure_categories.pop("unknown", None)
+                summary.failure_categories[diagnostic.category] = (
+                    summary.failure_categories.get(diagnostic.category, 0) + 1
+                )
+            elif event_failed and diagnostic.category != counted_category:
                 summary.failure_categories[diagnostic.category] = (
                     summary.failure_categories.get(diagnostic.category, 0) + 1
                 )
@@ -217,6 +236,19 @@ def _looks_like_driver_runtime_probe(command: str) -> bool:
     )
 
 
+def _classification_category(event: dict[str, Any], *, rc: int) -> str:
+    classification = event.get("failure_classification")
+    if isinstance(classification, dict):
+        return str(classification.get("category") or "unknown")
+    return classify_failure(
+        command=str(event.get("command") or event.get("visible_command") or ""),
+        rc=rc,
+        stdout=str(event.get("stdout_tail") or ""),
+        stderr=str(event.get("stderr_tail") or ""),
+        detail=str(event.get("reason") or event.get("error") or event.get("result") or ""),
+    ).category.value
+
+
 def _looks_like_standalone_assignment(command: str) -> str:
     match = re.match(
         r"^\s*([A-Za-z_][A-Za-z0-9_]*)=(?:\$\(.*\)|`.*`|[^;&|]+)\s*(?:#.*)?$",
@@ -240,6 +272,35 @@ def diagnose_event(
     rc = _event_rc(event)
 
     if event_type == "verification" and rc != 0:
+        if (
+            ("not a mountpoint" in lowered and "/mnt/boot/efi" in lowered)
+            or ("mountpoint" in lowered and "/mnt/boot/efi" in lowered)
+            or ("device or resource busy" in lowered and "/mnt/boot/efi" in lowered)
+        ):
+            return _diagnostic(
+                event,
+                category="efi_mount_layout_conflict",
+                severity="harness_fixable",
+                reason=(
+                    "The verification expected an EFI mountpoint that was not present, usually "
+                    "after mixing /boot and /boot/efi layouts across attempts."
+                ),
+                suggested_next=(
+                    "Use one family-specific EFI mount layout and verify it with findmnt before "
+                    "bootloader work."
+                ),
+            )
+        if "lsblk:" in lowered and "not a block device" in lowered:
+            return _diagnostic(
+                event,
+                category="invalid_lsblk_mount_verification",
+                severity="harness_fixable",
+                reason="The verification passed a mountpoint path to lsblk as if it were a block device.",
+                suggested_next=(
+                    "Use `findmnt --target <mountpoint>` or `mountpoint -q` for mount checks; "
+                    "use lsblk only on device paths."
+                ),
+            )
         if "/mnt/etc/fstab" in lowered and (
             "grep" in lowered or "awk" in lowered or "findmnt" in lowered
         ):
@@ -270,15 +331,71 @@ def diagnose_event(
                     "install_or_skip checks limited to packages, initramfs, bootloader, SSH."
                 ),
             )
+        if any(path in lowered for path in ("/usr/share/themes", "/usr/share/icons")):
+            return _diagnostic(
+                event,
+                category="desktop_asset_path_probe",
+                severity="repairable",
+                reason=(
+                    "The verification assumes an exact theme/icon asset path. Desktop packages "
+                    "often install different directory names or only provide config fragments."
+                ),
+                suggested_next=(
+                    "Verify the persisted desktop design contract or search installed theme/icon "
+                    "directories case-insensitively instead of failing on one hardcoded path."
+                ),
+            )
+        if "kreadconfig" in lowered and "unknown option" in lowered:
+            return _diagnostic(
+                event,
+                category="quoted_shell_pipeline",
+                severity="harness_fixable",
+                reason=(
+                    "A shell pipeline/operator appears to have been quoted as an argument, so "
+                    "the verifier executed the wrong command."
+                ),
+                suggested_next=(
+                    "Generate verification commands as shell snippets with operators outside "
+                    "quoted arguments, or split the read and grep into separate commands."
+                ),
+            )
+        if "parted" in lowered and "print" in lowered and "grep" in lowered:
+            return _diagnostic(
+                event,
+                category="partition_layout_verification_failed",
+                severity="repairable",
+                reason="The partition layout verification did not find the expected partition signature.",
+                suggested_next=(
+                    "Refresh lsblk/blkid/parted facts for the selected disk and repair the "
+                    "deterministic partition layout, rather than changing disks."
+                ),
+            )
+        if "/mnt/boot/grub" in lowered and ("test -f" in lowered or "[ -f" in lowered):
+            return _diagnostic(
+                event,
+                category="bootloader_artifact_missing",
+                severity="harness_fixable",
+                reason="The expected bootloader config artifact was missing in the target root.",
+                suggested_next=(
+                    "Run the family adapter bootloader hook with bind mounts and then verify "
+                    "all acceptable bootloader artifact paths for that family."
+                ),
+            )
+        if "systemctl" in lowered and ("inactive" in lowered or "disabled" in lowered):
+            return _diagnostic(
+                event,
+                category="service_not_active_or_enabled",
+                severity="repairable",
+                reason="A service verification found the service inactive or disabled.",
+                suggested_next=(
+                    "Classify whether the service is required, optional, or VM-only; enable "
+                    "required services and move optional/VM-only services to manual follow-up."
+                ),
+            )
 
     if event_type == "command" and rc != 0:
-        classification = classify_failure(
-            command=command,
-            rc=rc,
-            stdout=str(event.get("stdout_tail") or ""),
-            stderr=str(event.get("stderr_tail") or ""),
-        )
-        if classification.category.value == "package_missing":
+        category = _classification_category(event, rc=rc)
+        if category == "package_missing":
             return _diagnostic(
                 event,
                 category="package_missing",
@@ -287,6 +404,301 @@ def diagnose_event(
                 suggested_next=(
                     "Treat this as a model/package-resolution repair, not a harness block; "
                     "drop or replace the missing target and continue required base setup."
+                ),
+            )
+        if category == "package_conflict":
+            return _diagnostic(
+                event,
+                category="package_conflict",
+                severity="repairable",
+                reason="The package manager reported conflicting packages or files.",
+                suggested_next=(
+                    "Isolate the conflicting package, keep already-installed packages, and move "
+                    "non-required conflicting apps to manual_followup instead of retrying the "
+                    "whole group."
+                ),
+            )
+        if (
+            "already mounted" in lowered
+            or "not a mountpoint" in lowered
+            or ("mountpoint" in lowered and "/mnt/boot/efi" in lowered)
+            or ("device or resource busy" in lowered and "/mnt/boot/efi" in lowered)
+        ):
+            if "/mnt/boot/efi" in lowered or "/mnt/boot" in lowered:
+                return _diagnostic(
+                    event,
+                    category="efi_mount_layout_conflict",
+                    severity="harness_fixable",
+                    reason=(
+                        "The install flow reused or nested the EFI mountpoint incorrectly, "
+                        "usually by mixing /boot and /boot/efi layouts across repair attempts."
+                    ),
+                    suggested_next=(
+                        "Unmount the selected target tree recursively, recreate one family-specific "
+                        "EFI mount layout, and verify it with findmnt before bootloader work."
+                    ),
+                )
+            return _diagnostic(
+                event,
+                category="target_mount_state_conflict",
+                severity="repairable",
+                reason=(
+                    "The target root or partition was already mounted from a previous attempt."
+                ),
+                suggested_next=(
+                    "Refresh mount facts, unmount only the selected target tree/partitions, "
+                    "then retry the same deterministic mount layout."
+                ),
+            )
+        if "connection closed by" in lowered:
+            return _diagnostic(
+                event,
+                category="ssh_connection_dropped",
+                severity="workflow",
+                reason="The SSH connection closed during a command.",
+                suggested_next=(
+                    "Refresh facts after reconnect and do not infer command success from the "
+                    "interrupted SSH session."
+                ),
+            )
+        if "partition(s)" in lowered and "being used" in lowered:
+            return _diagnostic(
+                event,
+                category="target_disk_busy",
+                severity="repairable",
+                reason="The selected disk still had mounted/in-use partitions.",
+                suggested_next=(
+                    "Run a target-disk mount/holder cleanup for the selected disk before "
+                    "partitioning; do not guess a different disk."
+                ),
+            )
+        if "could not stat device" in lowered and "no such file or directory" in lowered:
+            return _diagnostic(
+                event,
+                category="empty_or_invalid_target_disk",
+                severity="harness_fixable",
+                reason="The generated disk-selection shell produced an empty or invalid device path.",
+                suggested_next=(
+                    "Use normalized SetupFacts target-disk selection or ask the user; never let "
+                    "a blank DISK variable reach partitioning commands."
+                ),
+            )
+        if category == "bootloader" and any(
+            needle in lowered
+            for needle in (
+                "failed to get canonical path of `airootfs'",
+                "failed to get canonical path of 'airootfs'",
+                "cannot find a device for /boot",
+                "is /dev mounted",
+                "guessing the root device failed",
+            )
+        ):
+            return _diagnostic(
+                event,
+                category="bootloader_chroot_bind_mounts",
+                severity="harness_fixable",
+                reason=(
+                    "Bootloader installation ran inside a target root without the required "
+                    "/dev, /proc, /sys, or /run bind mounts/device context."
+                ),
+                suggested_next=(
+                    "Use the deterministic family adapter bootloader hook: bind mount live "
+                    "pseudo-filesystems before grub-install/grub2-install and verify fallback "
+                    "EFI removable boot files."
+                ),
+            )
+        if "cannot open /etc/passwd" in lowered or "invalid user:" in lowered:
+            return _diagnostic(
+                event,
+                category="chroot_before_base_or_user",
+                severity="harness_fixable",
+                reason=(
+                    "A chroot/user operation ran before the target base system or target user "
+                    "existed."
+                ),
+                suggested_next=(
+                    "Gate user/password/SSH ownership commands on a successful base install and "
+                    "`test -f /mnt/etc/passwd`; create the user inside the target before chown."
+                ),
+            )
+        if "chroot:" in lowered and "operation not permitted" in lowered:
+            return _diagnostic(
+                event,
+                category="chroot_privilege_or_target_state",
+                severity="harness_fixable",
+                reason="A chroot command failed because privileges or target-root state were invalid.",
+                suggested_next=(
+                    "Run chroot operations through the family adapter with root privileges, "
+                    "bind mounts, and a verified target root."
+                ),
+            )
+        if "printf:" in lowered and "invalid format character" in lowered:
+            return _diagnostic(
+                event,
+                category="shell_printf_format_bug",
+                severity="harness_fixable",
+                reason=(
+                    "A generated installer/config file used shell printf with unescaped percent "
+                    "characters from the payload."
+                ),
+                suggested_next=(
+                    "Generate multi-line installer files with a quoted heredoc (`cat <<'EOF'`) "
+                    "or `printf '%s\\n'` per literal line, never raw printf format strings."
+                ),
+            )
+        if "mkfs.fat" in lowered and "command not found" in lowered:
+            return _diagnostic(
+                event,
+                category="missing_filesystem_tool",
+                severity="harness_fixable",
+                reason="The live environment does not have the filesystem formatter required by the plan.",
+                suggested_next=(
+                    "Install or include the family-specific formatter package before formatting "
+                    "(for example dosfstools for FAT/EFI), or choose an available filesystem."
+                ),
+            )
+        if "flatpak system operation" in lowered and "not allowed for user" in lowered:
+            return _diagnostic(
+                event,
+                category="flatpak_scope_permission",
+                severity="repairable",
+                reason="A system-scope Flatpak command was attempted without sufficient privileges.",
+                suggested_next=(
+                    "Use `sudo flatpak` for system installs or `flatpak --user` with user remotes, "
+                    "then verify the same scope."
+                ),
+            )
+        if "couldn't open temporary file" in lowered and "permission denied" in lowered:
+            return _diagnostic(
+                event,
+                category="missing_privilege_for_system_edit",
+                severity="repairable",
+                reason="A system config edit was attempted without write privileges.",
+                suggested_next=(
+                    "Use sudo/root/chroot deliberately for root-owned files, or bootstrap "
+                    "noninteractive sudo before running system edits."
+                ),
+            )
+        if "are the same file" in lowered and "/etc/resolv.conf" in lowered:
+            return _diagnostic(
+                event,
+                category="resolv_conf_bind_mount_noop",
+                severity="repairable",
+                reason="The target resolv.conf copy was a no-op because source and target resolved to the same file.",
+                suggested_next=(
+                    "Refresh target mount facts and only copy resolv.conf when source and target "
+                    "are distinct regular files."
+                ),
+            )
+        if "add-apt-repository" in lowered and "command not found" in lowered:
+            return _diagnostic(
+                event,
+                category="missing_repository_tool",
+                severity="repairable",
+                reason="The requested repository helper is not installed in the target environment.",
+                suggested_next=(
+                    "Install the helper package first or write the repository/source file "
+                    "directly through the family adapter."
+                ),
+            )
+        if (
+            "anaconda" in lowered
+            or "liveinst" in lowered
+            or "ubuntu-desktop-bootstrap" in lowered
+            or "ubiquity" in lowered
+            or "subiquity" in lowered
+        ) and (
+            category in {"display_session", "timeout"}
+            or "dbus" in lowered
+            or "timed out" in lowered
+            or "connection refused" in lowered
+        ):
+            return _diagnostic(
+                event,
+                category="interactive_live_installer_over_ssh",
+                severity="harness_fixable",
+                reason=(
+                    "A graphical/live installer path was attempted over SSH and failed or hung "
+                    "on GUI/DBus/session assumptions."
+                ),
+                suggested_next=(
+                    "Use deterministic family install spines for live installs. Treat graphical "
+                    "installer flows as manual install mode, not automated SSH setup."
+                ),
+            )
+        if "debconf" in lowered and (
+            "unable to initialize frontend" in lowered or "falling back to frontend" in lowered
+        ):
+            return _diagnostic(
+                event,
+                category="apt_debconf_interactive",
+                severity="harness_fixable",
+                reason=(
+                    "An apt/dpkg command reached an interactive debconf frontend in a non-TTY "
+                    "SSH setup run."
+                ),
+                suggested_next=(
+                    "Normalize apt/dpkg commands with `DEBIAN_FRONTEND=noninteractive`, dpkg "
+                    "options, package lock handling, and explicit repair of interrupted dpkg."
+                ),
+            )
+        if "resource temporarily unavailable" in lowered and (
+            "dpkg" in lowered or "apt" in lowered
+        ):
+            return _diagnostic(
+                event,
+                category="package_database_lock",
+                severity="repairable",
+                reason="The package database was locked or another dpkg/apt process was active.",
+                suggested_next=(
+                    "Wait for package-manager locks or stop a specific stale service/PID; never "
+                    "use broad pkill patterns against package managers."
+                ),
+            )
+        if "dpkg" in lowered and (
+            "not configured yet" in lowered or "dependency problems" in lowered
+        ):
+            return _diagnostic(
+                event,
+                category="apt_interrupted_dpkg_state",
+                severity="repairable",
+                reason="dpkg/apt is in an interrupted or partially configured state.",
+                suggested_next=(
+                    "Run noninteractive `dpkg --configure -a` and `apt-get -f install` with "
+                    "lock handling before attempting new package groups."
+                ),
+            )
+        if "package" in lowered and "was not found" in lowered:
+            return _diagnostic(
+                event,
+                category="package_missing",
+                severity="repairable",
+                reason="A package query or install referenced a package that is not installed or available.",
+                suggested_next=(
+                    "Resolve the correct package identifier or treat the app/feature as "
+                    "manual_followup; do not keep retrying the same package name."
+                ),
+            )
+        if "release signed by unknown key" in lowered:
+            return _diagnostic(
+                event,
+                category="bootstrap_keyring_missing",
+                severity="harness_fixable",
+                reason="The bootstrap source requires keyring/trust setup before debootstrap can verify it.",
+                suggested_next=(
+                    "Install/use the family keyring or explicitly select a trusted bootstrap "
+                    "source; only use no-check-gpg as a deliberate fallback."
+                ),
+            )
+        if "opening repository /var/lib/flatpak/repo" in lowered:
+            return _diagnostic(
+                event,
+                category="flatpak_repo_not_initialized",
+                severity="repairable",
+                reason="Flatpak verification queried a system repo that is not initialized.",
+                suggested_next=(
+                    "Initialize the same Flatpak scope used for install, or verify user-scope "
+                    "Flatpaks with `flatpak --user list`."
                 ),
             )
         if "lsblk:" in lowered and ("unknown column" in lowered or "unknown columns" in lowered):
@@ -298,6 +710,17 @@ def diagnose_event(
                 suggested_next=(
                     "Prefer stable `lsblk -dnpo NAME,TYPE,SIZE,RM,ROTA` probes and tolerate "
                     "missing optional columns."
+                ),
+            )
+        if "lsblk:" in lowered and "not a block device" in lowered:
+            return _diagnostic(
+                event,
+                category="invalid_lsblk_mount_verification",
+                severity="harness_fixable",
+                reason="The verification passed a mountpoint path to lsblk as if it were a block device.",
+                suggested_next=(
+                    "Use `findmnt --target <mountpoint>` or `mountpoint -q` for mount checks; "
+                    "use lsblk only on device paths."
                 ),
             )
         if previous_event is not None:
@@ -345,6 +768,60 @@ def diagnose_event(
         )
 
     return None
+
+
+def scan_runlogs(
+    root: Path | str | None = None,
+    *,
+    limit: int = 50,
+) -> RunlogScanSummary:
+    target_root = Path(root) if root else Path.home() / ".quickhatch" / "setup-runs"
+    result = RunlogScanSummary(root=str(target_root))
+    if not target_root.exists():
+        return result
+    paths = sorted(
+        (path for path in target_root.glob("*.jsonl") if path.is_file()),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    for path in paths:
+        try:
+            summary = summarize_runlog(path)
+        except ValueError:
+            continue
+        if (
+            summary.command_count == 0
+            and summary.failed_verification_count == 0
+            and not summary.blockers
+            and summary.event_count < 20
+        ):
+            continue
+        result.run_count += 1
+        result.event_count += summary.event_count
+        for category, count in summary.failure_categories.items():
+            result.failure_categories[category] = result.failure_categories.get(category, 0) + count
+        for diagnostic in summary.diagnostics:
+            result.diagnostic_categories[diagnostic.category] = (
+                result.diagnostic_categories.get(diagnostic.category, 0) + 1
+            )
+        if len(result.runs) < limit:
+            result.runs.append(
+                {
+                    "path": str(path),
+                    "run_id": summary.run_id,
+                    "event_count": summary.event_count,
+                    "command_count": summary.command_count,
+                    "failed_command_count": summary.failed_command_count,
+                    "failed_verification_count": summary.failed_verification_count,
+                    "blocking_question_timeout_count": summary.blocking_question_timeout_count,
+                    "last_failure_event_id": summary.last_failure_event_id,
+                    "last_failure_type": summary.last_failure_type,
+                    "last_failure_command": summary.last_failure_command,
+                    "diagnostics": [asdict(item) for item in summary.diagnostics[:10]],
+                    "blockers": summary.blockers[:10],
+                }
+            )
+    return result
 
 
 def find_latest_runlog(

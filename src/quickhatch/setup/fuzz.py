@@ -156,6 +156,42 @@ def generate_harness_fuzz_cases() -> list[HarnessFuzzCase]:
             description="Typed Fedora installroot paths must not be treated as wrong-package-manager noise.",
         ),
         HarnessFuzzCase(
+            name="fedora_graphical_anaconda_over_ssh_is_advisory",
+            command="sudo dbus-run-session anaconda --kickstart=/tmp/qh.ks --noninteractive -C --liveinst",
+            facts=_live_facts("fedora", "dnf", root=False),
+            expect_block=False,
+            expected_categories=("guidance",),
+            description="Graphical installer attempts should warn, not hard-block; the adapter/failure loop handles it.",
+        ),
+        HarnessFuzzCase(
+            name="ubuntu_graphical_installer_over_ssh_is_advisory",
+            command="ubuntu-desktop-bootstrap --try-or-install",
+            facts=SetupFacts(
+                distro_family="ubuntu",
+                package_manager="apt",
+                os_id="ubuntu",
+                os_like="debian",
+                is_live=True,
+                current_user="ubuntu",
+                login_user="ubuntu",
+                is_root=False,
+                sudo_nopasswd=True,
+            ),
+            expect_block=False,
+            expected_categories=("guidance",),
+            description="Ubuntu graphical installer flows are guidance/manual-mode concerns, not hard blocks.",
+        ),
+        HarnessFuzzCase(
+            name="bootloader_chroot_command_with_sudo_is_allowed",
+            command=(
+                "sudo chroot /mnt grub-install --target=x86_64-efi "
+                "--efi-directory=/boot --bootloader-id=quickhatch"
+            ),
+            facts=_live_facts("debian", "apt", root=False),
+            expect_block=False,
+            description="Bootloader commands are allowed when explicitly privileged; audits verify bootability.",
+        ),
+        HarnessFuzzCase(
             name="vpn_activation_blocks_ssh_continuity",
             command="sudo systemctl enable --now mullvad-daemon",
             facts=fedora,
