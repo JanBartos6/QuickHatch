@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shlex
 from dataclasses import dataclass, field
 from typing import Protocol
 
@@ -50,22 +51,34 @@ class BaseFamilyInstaller:
     family = "unknown"
     version = "2026.05.02"
 
+    @staticmethod
+    def target_disk_partition_vars() -> str:
+        """Define shell variables for target disk partitions across sdX/nvme/mmc names."""
+
+        return (
+            "DISK=${QUICKHATCH_TARGET_DISK:-/dev/sda}; "
+            'case "$DISK" in *[0-9]) ESP="${DISK}p1"; ROOT="${DISK}p2" ;; '
+            '*) ESP="${DISK}1"; ROOT="${DISK}2" ;; esac; '
+        )
+
+    @staticmethod
+    def shell_quote(command: str) -> str:
+        return shlex.quote(command)
+
     def detect_live_iso(self, facts: SetupFacts) -> bool:
         return bool(facts.is_live)
 
     def prepare_disk(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
         del facts, profile
+        disk_vars = self.target_disk_partition_vars()
         return [
             "sudo swapoff -a || true",
             "mountpoint -q /mnt && sudo umount -R /mnt || true",
-            "DISK=${QUICKHATCH_TARGET_DISK:-/dev/sda}; "
-            'sudo parted -s "$DISK" mklabel gpt mkpart ESP fat32 1MiB 513MiB '
+            disk_vars + 'sudo parted -s "$DISK" mklabel gpt mkpart ESP fat32 1MiB 513MiB '
             "set 1 esp on mkpart primary ext4 513MiB 100%",
-            "DISK=${QUICKHATCH_TARGET_DISK:-/dev/sda}; "
-            'sudo mkfs.fat -F32 "${DISK}1" && sudo mkfs.ext4 -F "${DISK}2"',
-            "DISK=${QUICKHATCH_TARGET_DISK:-/dev/sda}; "
-            'sudo mount "${DISK}2" /mnt && sudo mkdir -p /mnt/boot '
-            '&& sudo mount "${DISK}1" /mnt/boot',
+            disk_vars + 'sudo mkfs.fat -F32 "$ESP" && sudo mkfs.ext4 -F "$ROOT"',
+            disk_vars + 'sudo mount "$ROOT" /mnt && sudo mkdir -p /mnt/boot '
+            '&& sudo mount "$ESP" /mnt/boot',
         ]
 
     def install_base_system(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
@@ -76,11 +89,37 @@ class BaseFamilyInstaller:
         del facts, profile
         user = "jan"
         return [
-            f"sudo chroot /mnt sh -c 'id {user} >/dev/null 2>&1 || useradd -m -G wheel,sudo,video,audio -s /bin/bash {user}'",
+            "sudo chroot /mnt sh -c "
+            + self.shell_quote(
+                "set -e; "
+                f"user={user}; "
+                "qh_groups=; "
+                "for qh_group in wheel sudo video audio input docker; do "
+                'getent group "$qh_group" >/dev/null 2>&1 || continue; '
+                'qh_groups="${qh_groups:+$qh_groups,}$qh_group"; '
+                "done; "
+                'if id "$user" >/dev/null 2>&1; then exit 0; fi; '
+                'if [ -n "$qh_groups" ]; then '
+                'useradd -m -G "$qh_groups" -s /bin/bash "$user"; '
+                "else "
+                'useradd -m -s /bin/bash "$user"; '
+                "fi"
+            ),
             f"sudo install -d -m 700 -o {user} -g {user} /mnt/home/{user}/.ssh",
             f"sudo cp /root/.ssh/authorized_keys /mnt/home/{user}/.ssh/authorized_keys",
             f"sudo chown {user}:{user} /mnt/home/{user}/.ssh/authorized_keys && sudo chmod 600 /mnt/home/{user}/.ssh/authorized_keys",
-            "echo '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' | sudo tee /mnt/etc/sudoers.d/99-quickhatch-nopasswd >/dev/null",
+            "sudo chroot /mnt sh -c "
+            + self.shell_quote(
+                "set -e; "
+                ": > /etc/sudoers.d/99-quickhatch-nopasswd; "
+                "getent group wheel >/dev/null 2>&1 && "
+                "printf '%s\\n' '%wheel ALL=(ALL:ALL) NOPASSWD: ALL' "
+                ">> /etc/sudoers.d/99-quickhatch-nopasswd; "
+                "getent group sudo >/dev/null 2>&1 && "
+                "printf '%s\\n' '%sudo ALL=(ALL:ALL) NOPASSWD: ALL' "
+                ">> /etc/sudoers.d/99-quickhatch-nopasswd; "
+                "test -s /etc/sudoers.d/99-quickhatch-nopasswd"
+            ),
             "sudo chmod 440 /mnt/etc/sudoers.d/99-quickhatch-nopasswd",
         ]
 

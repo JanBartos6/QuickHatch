@@ -13,6 +13,7 @@ class FedoraInstaller(BaseFamilyInstaller):
 
     def install_base_system(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
         del facts, profile
+        disk_vars = self.target_disk_partition_vars()
         return [
             "sudo dnf --installroot=/mnt --releasever=$(rpm -E %fedora) "
             "--setopt=install_weak_deps=False --nodocs install -y "
@@ -21,10 +22,14 @@ class FedoraInstaller(BaseFamilyInstaller):
             "sudo dnf --installroot=/mnt clean all",
             "sudo mkdir -p /mnt/etc",
             "sudo sh -c 'findmnt -R /mnt -o SOURCE,TARGET,FSTYPE,OPTIONS -n > /tmp/qh-mounts'",
-            "sudo sh -c 'blkid -s UUID -o value /dev/sda2 | "
-            'awk "{print \\"UUID=\\"$1\\" / ext4 defaults 0 1\\"}" > /mnt/etc/fstab\'',
-            "sudo sh -c 'blkid -s UUID -o value /dev/sda1 | "
-            'awk "{print \\"UUID=\\"$1\\" /boot vfat umask=0077 0 2\\"}" >> /mnt/etc/fstab\'',
+            disk_vars
+            + 'ROOT_UUID=$(sudo blkid -s UUID -o value "$ROOT") && '
+            + 'printf "UUID=%s / ext4 defaults 0 1\\n" "$ROOT_UUID" | '
+            + "sudo tee /mnt/etc/fstab >/dev/null",
+            disk_vars
+            + 'ESP_UUID=$(sudo blkid -s UUID -o value "$ESP") && '
+            + 'printf "UUID=%s /boot vfat umask=0077 0 2\\n" "$ESP_UUID" | '
+            + "sudo tee -a /mnt/etc/fstab >/dev/null",
             "echo quickhatch | sudo tee /mnt/etc/hostname >/dev/null",
             "sudo chroot /mnt systemctl enable NetworkManager sshd",
         ]

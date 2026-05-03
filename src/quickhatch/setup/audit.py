@@ -67,6 +67,8 @@ def audit_stage(
         details["vulkan_devices"] = list(facts.vulkan_devices)
         details["vaapi_state"] = facts.vaapi_state
         details["rocm_state"] = facts.rocm_state
+        details["driver_manual_followup"] = False
+        details["driver_research_needed"] = False
         if (
             "nvidia" in facts.gpu_vendors
             and plan is not None
@@ -75,9 +77,9 @@ def audit_stage(
                 or plan.driver_strategy.source == "manual_followup"
             )
         ):
-            blockers.append(
-                "NVIDIA driver strategy still requires manual follow-up; do not declare "
-                "driver setup complete until it is explicitly installed, skipped, or verified."
+            details["driver_manual_followup"] = True
+            details["driver_manual_followup_reason"] = (
+                "NVIDIA driver strategy requires explicit manual follow-up."
             )
         if "nvidia" in facts.gpu_vendors and not facts.fact_probe_ok:
             blockers.append(
@@ -91,9 +93,9 @@ def audit_stage(
             and plan.driver_strategy.source != "manual_followup"
             and not expected
         ):
-            blockers.append(
-                "NVIDIA driver strategy is marked resolved but contains no driver packages; "
-                "re-research the target driver path before continuing."
+            details["driver_research_needed"] = True
+            details["driver_research_reason"] = (
+                "NVIDIA driver strategy is marked resolved but contains no driver packages."
             )
         if "nvidia" in facts.gpu_vendors and expected and facts.nvidia_smi_state != "ok":
             blockers.append("NVIDIA verification is incomplete: nvidia-smi is not healthy yet.")
@@ -147,6 +149,7 @@ def audit_stage(
         if state.get("display_manual_followup_reason"):
             details["display_manual_followup_reason"] = state.get("display_manual_followup_reason")
         details["display_preferences"] = list(state.get("display_preferences", []) or [])
+        details["desktop_manual_followups"] = list(state.get("manual_followups", []) or [])
         details["remote_displays"] = [
             {
                 "name": display.name,
@@ -165,25 +168,31 @@ def audit_stage(
             )
         if not _desktop_persistence_satisfied(facts, state):
             blockers.append("Desktop configuration was not persisted yet.")
+        desktop_followups: list[str] = []
         if state.get("desktop_design_attempted") and not _has_desktop_design_signal(facts):
-            blockers.append(
+            desktop_followups.append(
                 "Desktop design config was attempted, but no configured theme/icon/"
                 "wallpaper state was detected in the target user session."
             )
         if state.get("wallpaper_attempted") and not _has_wallpaper_signal(facts):
-            blockers.append(
+            desktop_followups.append(
                 "Wallpaper apply/configuration was attempted, but no target wallpaper "
                 "state was detected."
             )
         if plan and _plan_mentions_wallpaper(plan) and not _has_wallpaper_signal(facts):
-            blockers.append(
+            desktop_followups.append(
                 "Desktop plan mentions wallpaper, but the target desktop wallpaper was "
                 "not verified in the active desktop environment."
             )
-        blockers.extend(_desktop_design_contract_blockers(facts, state))
+        desktop_followups.extend(_desktop_design_contract_blockers(facts, state))
+        display_followups = [str(item) for item in (state.get("display_preference_blockers") or [])]
+        desktop_followups.extend(display_followups)
+        details["desktop_design_manual_followups"] = desktop_followups
+        details["display_preference_manual_followups"] = display_followups
+        if state.get("strict_desktop_design_contract"):
+            blockers.extend(desktop_followups)
         if facts.desktop_runtime_state == DesktopRuntimeState.BLOCKED_DRIVER_OR_DISPLAY_STACK:
             blockers.append("Desktop apply is blocked by the current driver or display stack.")
-        blockers.extend(str(item) for item in (state.get("display_preference_blockers") or []))
 
     elif stage == SetupStage.APPS:
         pending_slow = [

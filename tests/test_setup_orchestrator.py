@@ -850,7 +850,9 @@ def test_pending_login_display_preferences_become_manual_followup():
     orchestrator._update_desktop_display_audit_state(state)
 
     assert state["display_manual_followup"] is True
-    assert state["display_preference_blockers"] == []
+    assert any(
+        "could not be runtime-verified" in item for item in state["display_preference_blockers"]
+    )
     assert "1280x800@60Hz" in str(state["display_manual_followup_reason"])
 
 
@@ -2139,7 +2141,7 @@ def test_final_package_verification_accepts_repo_repair_for_flatpak_planned_app(
     assert any("flatpak list --app --columns=application --user" in cmd for cmd in commands)
 
 
-def test_desktop_display_audit_blocks_resolution_mismatch():
+def test_desktop_display_audit_records_resolution_mismatch_as_followup():
     profile = UserProfile()
     profile.hardware.displays = [
         DisplayInfo(
@@ -2164,8 +2166,12 @@ def test_desktop_display_audit_blocks_resolution_mismatch():
     orchestrator._update_desktop_display_audit_state(state)
     result = audit_stage(SetupStage.DESKTOP, facts, stage_state=state)
 
-    assert not result.passed
-    assert any("Display mode mismatch" in blocker for blocker in result.blockers)
+    assert result.passed
+    assert state["display_manual_followup"] is True
+    assert any(
+        "Display mode mismatch" in blocker
+        for blocker in result.details["display_preference_manual_followups"]
+    )
 
 
 def test_desktop_commands_record_kde_design_contract():
@@ -2207,7 +2213,7 @@ def test_same_user_wrapper_strip_preserves_shell_pipelines():
     )
 
 
-def test_desktop_run_prompts_on_display_mismatch_then_manual_followup(monkeypatch):
+def test_desktop_run_records_display_mismatch_as_manual_followup(monkeypatch):
     profile = UserProfile()
     profile.hardware.displays = [
         DisplayInfo(
@@ -2251,9 +2257,8 @@ def test_desktop_run_prompts_on_display_mismatch_then_manual_followup(monkeypatc
     assert result.stage == SetupStage.DESKTOP
     assert result.passed
     assert state["display_manual_followup"] is True
-    assert state["display_preference_blockers"] == []
-    assert questions and "Display mode mismatch" in questions[0]
-    assert any("Display tuning left for manual follow-up" in m["content"] for m in bridge.messages)
+    assert any("Display mode mismatch" in item for item in state["display_preference_blockers"])
+    assert questions == []
 
 
 def test_desktop_run_retry_rechecks_display_mismatch(monkeypatch):
@@ -2336,7 +2341,7 @@ def test_desktop_display_audit_accepts_matching_resolution_and_refresh():
     assert state["display_preference_blockers"] == []
 
 
-def test_desktop_display_audit_blocks_unverified_display_preferences():
+def test_desktop_display_audit_records_unverified_display_preferences_as_followup():
     profile = UserProfile()
     profile.hardware.displays = [
         DisplayInfo(
@@ -2361,8 +2366,11 @@ def test_desktop_display_audit_blocks_unverified_display_preferences():
     orchestrator._update_desktop_display_audit_state(state)
     result = audit_stage(SetupStage.DESKTOP, facts, stage_state=state)
 
-    assert not result.passed
-    assert any("could not be runtime-verified" in blocker for blocker in result.blockers)
+    assert result.passed
+    assert any(
+        "could not be runtime-verified" in blocker
+        for blocker in result.details["display_preference_manual_followups"]
+    )
 
 
 def test_desktop_runtime_commands_are_wrapped_with_real_gui_environment():
@@ -2429,7 +2437,9 @@ def test_desktop_runtime_group_prompts_then_manual_followup_when_no_display(monk
     result = audit_stage(SetupStage.DESKTOP, facts, stage_state=state)
 
     assert state["display_manual_followup"]
-    assert state["display_preference_blockers"] == []
+    assert any(
+        "could not be runtime-verified" in item for item in state["display_preference_blockers"]
+    )
     assert result.passed
 
 
@@ -3040,6 +3050,55 @@ def test_postboot_driver_resume_audits_before_mutating_when_driver_is_healthy():
         is True
     )
     assert any("skipping planned mutation" in msg["content"] for msg in bridge.messages)
+
+
+def test_apps_resume_audits_before_mutating_when_apps_are_resolved():
+    profile = UserProfile(apps_to_install=["Git"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="ubuntu",
+        package_manager="apt",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    executed: list[str] = []
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        facts,
+        ssh_exec=lambda command, _timeout: executed.append(command) or (0, "", ""),
+        probe_facts=lambda **_kwargs: facts,
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Ubuntu workstation",
+        distro_family="ubuntu",
+        package_manager="apt",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("gnome"),
+        apps=[AppPlanItem(name="Git", package_name="git", status=PlanItemStatus.INSTALLED)],
+        command_groups=[
+            CommandGroup(
+                id="apps",
+                stage=SetupStage.APPS,
+                title="Install Apps",
+                commands=["sudo apt-get install -y git"],
+                packages=["git"],
+            )
+        ],
+    )
+
+    orchestrator._run_apps()
+
+    assert executed == []
+    assert orchestrator.ctx.stage_results[-1].passed is True
+    assert (
+        orchestrator.ctx.stage_state[SetupStage.APPS.value]["skipped_current_state_already_valid"]
+        is True
+    )
+    assert any("apps already satisfies audit" in msg["content"] for msg in bridge.messages)
 
 
 def test_postboot_driver_resume_runs_when_refreshed_driver_audit_fails():
@@ -6129,7 +6188,7 @@ def test_orchestrator_retries_malformed_repair_json():
     assert "Verified installed: Brave" in summary
 
 
-def test_final_audit_blocks_when_completed_app_package_is_missing():
+def test_final_audit_records_missing_completed_app_package_as_followup():
     profile = UserProfile(apps_to_install=["Brave"])
     bridge = BridgeState(profile, persist_path=None)
     facts = _with_verified_kde_icon(
@@ -6237,10 +6296,11 @@ def test_final_audit_blocks_when_completed_app_package_is_missing():
         native_search_active=False,
     )
 
-    summary = SetupOrchestrator(runtime).run()
+    orchestrator = SetupOrchestrator(runtime)
+    summary = orchestrator.run()
 
-    assert "final package verification failed" in summary.lower()
-    assert "Brave" in summary
+    assert "manual follow-up: brave" in summary.lower()
+    assert orchestrator.ctx.stage_results[-1].passed is True
 
 
 def test_setup_summary_only_claims_verified_installed_apps():
@@ -6667,7 +6727,6 @@ def test_orchestrator_can_convert_failed_verification_into_manual_followup_after
                 bridge.answer_question(pending[0].id, "manual follow-up")
                 return
             time.sleep(0.01)
-        raise AssertionError("Timed out waiting for blocking repair question.")
 
     helper = threading.Thread(target=answer_pending_question)
     helper.start()

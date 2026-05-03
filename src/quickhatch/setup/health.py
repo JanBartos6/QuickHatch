@@ -22,6 +22,7 @@ from quickhatch.config import AIConfig, UserProfile
 from .certify import CERTIFIED_FAMILIES, run_vm_certification
 from .facts import setup_fact_probe_command
 from .failure import classify_failure
+from .families import get_family_installer
 from .orchestrator import SetupOrchestrator, SetupRuntime
 from .preflight import preflight_setup_decisions
 from .types import (
@@ -379,8 +380,22 @@ def _run_app_stage_prefilter_checks() -> list[dict[str, Any]]:
             "sudo pacman -S --noconfirm git python",
             "sudo pacman -S --noconfirm python",
         ),
-        ("ubuntu", "apt", "sudo apt-get install -y git python3", "sudo apt-get install -y python3"),
-        ("debian", "apt", "sudo apt-get install -y git python3", "sudo apt-get install -y python3"),
+        (
+            "ubuntu",
+            "apt",
+            "sudo apt-get install -y git python3",
+            "sudo env DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=2 "
+            "-o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 "
+            "-o Acquire::ForceIPv4=true install -y python3",
+        ),
+        (
+            "debian",
+            "apt",
+            "sudo apt-get install -y git python3",
+            "sudo env DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=2 "
+            "-o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 "
+            "-o Acquire::ForceIPv4=true install -y python3",
+        ),
         ("fedora", "dnf", "sudo dnf install -y git python3", "sudo dnf install -y python3"),
     ]
     checks: list[dict[str, Any]] = []
@@ -426,6 +441,7 @@ def _run_app_stage_prefilter_checks() -> list[dict[str, Any]]:
         )
         orchestrator._run_stage_groups(SetupStage.APPS, audit_after=False)
         expected_package = "python" if package_manager == "pacman" else "python3"
+        exact_filtered_command_seen = expected in executed
         filtered_install_seen = any(
             expected_package in remote_command and "git" not in remote_command
             for remote_command in executed
@@ -434,7 +450,9 @@ def _run_app_stage_prefilter_checks() -> list[dict[str, Any]]:
             checks,
             name=f"apps_prefilter_skips_installed_packages_{family}",
             category="apps_prefilter",
-            passed=filtered_install_seen and command not in executed,
+            passed=exact_filtered_command_seen
+            and filtered_install_seen
+            and command not in executed,
             details={
                 "executed_commands": executed,
                 "expected_filtered_command": expected,
@@ -531,13 +549,20 @@ def _run_package_final_audit_checks() -> list[dict[str, Any]]:
     unknown_state = unknown_orchestrator.ctx.stage_state.get(SetupStage.FINAL_AUDIT.value, {})
     _record(
         checks,
-        name="final_audit_blocks_unknown_installed_app_without_identifier",
+        name="final_audit_records_unknown_installed_app_without_identifier_as_followup",
         category="final_audit",
-        passed=bool(unknown_blockers)
-        and "Totally Unknown Vendor App" in unknown_state.get("unverified_installed_apps", []),
+        passed=unknown_blockers == []
+        and {
+            "app": "Totally Unknown Vendor App",
+            "reason": "installed package was not found under the planned identifiers",
+        }
+        in unknown_state.get("app_verification_manual_followups", []),
         details={
             "blockers": unknown_blockers,
             "unverified_installed_apps": unknown_state.get("unverified_installed_apps", []),
+            "app_verification_manual_followups": unknown_state.get(
+                "app_verification_manual_followups", []
+            ),
         },
     )
 
@@ -620,11 +645,17 @@ def _run_desktop_final_audit_checks() -> list[dict[str, Any]]:
     bad_result = audit_stage(SetupStage.DESKTOP, bad_facts, stage_state=state)
     _record(
         checks,
-        name="desktop_audit_blocks_reset_or_missing_kde_design_contract",
+        name="desktop_audit_records_reset_or_missing_kde_design_contract_as_followup",
         category="final_audit",
-        passed=not bad_result.passed
-        and any("KDE icon theme mismatch" in blocker for blocker in bad_result.blockers)
-        and any("KWin wobbly windows was expected" in blocker for blocker in bad_result.blockers),
+        passed=bad_result.passed
+        and any(
+            "KDE icon theme mismatch" in blocker
+            for blocker in bad_result.details.get("desktop_design_manual_followups", [])
+        )
+        and any(
+            "KWin wobbly windows was expected" in blocker
+            for blocker in bad_result.details.get("desktop_design_manual_followups", [])
+        ),
         details=asdict(bad_result),
     )
     return checks
@@ -651,6 +682,38 @@ def _run_fact_probe_semantic_checks() -> list[dict[str, Any]]:
     return checks
 
 
+def _run_family_spine_semantic_checks() -> list[dict[str, Any]]:
+    checks: list[dict[str, Any]] = []
+    for family in CERTIFIED_FAMILIES:
+        installer = get_family_installer(family)
+        spine = installer.build_install_spine(
+            SetupFacts(distro_family=family, is_live=True),
+            UserProfile(),
+        )
+        joined = "\n".join(spine.commands)
+        hardcoded_partition_paths = [path for path in ("/dev/sda1", "/dev/sda2") if path in joined]
+        _record(
+            checks,
+            name=f"family_spine_uses_partition_path_helper_{family}",
+            category="family_spine",
+            passed=(
+                'case "$DISK" in *[0-9]) ESP="${DISK}p1"; ROOT="${DISK}p2"' in joined
+                and not hardcoded_partition_paths
+            ),
+            details={"hardcoded_partition_paths": hardcoded_partition_paths},
+        )
+        _record(
+            checks,
+            name=f"family_spine_uses_conditional_recovery_groups_{family}",
+            category="family_spine",
+            passed="-G wheel,sudo" not in joined
+            and "getent group wheel" in joined
+            and "getent group sudo" in joined,
+            details={},
+        )
+    return checks
+
+
 def run_harness_health(
     *,
     root: Path | str | None = None,
@@ -665,6 +728,7 @@ def run_harness_health(
             *_run_failure_classifier_checks(),
             *_run_final_audit_semantic_checks(),
             *_run_resume_policy_checks(),
+            *_run_family_spine_semantic_checks(),
             *_run_app_stage_prefilter_checks(),
         ]
         failed = [check for check in checks if not check["passed"]]

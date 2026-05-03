@@ -2029,8 +2029,11 @@ class SetupOrchestrator:
             raise RuntimeError(f"Install reboot command failed: {detail[:240]}")
 
     def _run_postboot_driver(self) -> None:
-        if self._skip_stage_if_current_audit_passes(SetupStage.POSTBOOT_DRIVER):
-            return
+        if self.ctx.facts is not None:
+            self._refresh_facts(stage=SetupStage.POSTBOOT_DRIVER)
+        if not self._needs_nvidia_recovery_group(self.ctx.facts or SetupFacts()):
+            if self._skip_stage_if_current_audit_passes(SetupStage.POSTBOOT_DRIVER):
+                return
         self._inject_nvidia_recovery_group_if_needed()
         self._run_stage_groups(SetupStage.POSTBOOT_DRIVER)
 
@@ -2151,10 +2154,17 @@ class SetupOrchestrator:
                 + " could not be runtime-verified before graphical login; display manager "
                 "is enabled, so treat display tuning as post-login/manual follow-up."
             )
-        if stage_state.get("display_manual_followup"):
-            stage_state["display_preference_blockers"] = []
-        else:
-            stage_state["display_preference_blockers"] = self._display_preference_blockers(prefs)
+        blockers = self._display_preference_blockers(prefs)
+        stage_state["display_preference_blockers"] = blockers
+        if blockers:
+            reason = "Display tuning left for manual follow-up: " + " | ".join(blockers)
+            stage_state["display_manual_followup"] = True
+            stage_state["display_manual_followup_reason"] = reason
+            manual_followups = list(stage_state.get("manual_followups") or [])
+            item = {"reason": reason}
+            if item not in manual_followups:
+                manual_followups.append(item)
+            stage_state["manual_followups"] = manual_followups
 
     def _resolve_display_preference_blockers(self, stage_state: dict[str, Any]) -> bool:
         blockers = [str(item) for item in (stage_state.get("display_preference_blockers") or [])]
@@ -2394,6 +2404,8 @@ class SetupOrchestrator:
             return None
 
     def _run_apps(self) -> None:
+        if self._skip_stage_if_current_audit_passes(SetupStage.APPS):
+            return
         self._synthesize_missing_app_command_groups()
         self._run_stage_groups(SetupStage.APPS)
 
@@ -2541,13 +2553,11 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         unverifiable = [app.name for app in installed_like if app not in candidates]
         final_state["unverified_installed_apps"] = sorted(unverifiable)
         if unverifiable:
-            return [
-                "Final package verification cannot verify installed app(s) without package "
-                "names: "
-                + ", ".join(sorted(unverifiable))
-                + ". Provide a package/Flatpak identifier or mark them manual_followup "
-                "before done."
-            ]
+            self._record_app_verification_manual_followup(
+                final_state,
+                unverifiable,
+                "missing package/Flatpak identifiers",
+            )
         if not candidates:
             return []
         flatpak_candidates = [app for app in candidates if self._app_uses_flatpak(app)]
@@ -2566,11 +2576,15 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         }
         query = query_cmds.get(self.ctx.facts.package_manager)
         if not query and package_candidates:
-            return [
-                "Final package verification has no package query command for "
-                f"{self.ctx.facts.package_manager}; mark installed apps manual_followup "
-                "or add a verifier before done."
-            ]
+            self._record_app_verification_manual_followup(
+                final_state,
+                [app.name for app in package_candidates],
+                f"no package query command for {self.ctx.facts.package_manager}",
+            )
+            package_candidates = []
+            candidates = flatpak_candidates
+            if not candidates:
+                return []
         installed: set[str] = set()
         # Query the native package DB even for Flatpak-planned apps when possible.
         # Repairs may choose a faster/better repo package while the original plan item
@@ -2618,11 +2632,25 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         final_state["unverified_installed_apps"] = sorted({*unverifiable, *missing})
         if not missing:
             return []
-        return [
-            "Final package verification failed for installed app(s): "
-            + ", ".join(sorted(missing))
-            + ". Re-check exact package names or mark them manual_followup before done."
-        ]
+        self._record_app_verification_manual_followup(
+            final_state,
+            missing,
+            "installed package was not found under the planned identifiers",
+        )
+        return []
+
+    @staticmethod
+    def _record_app_verification_manual_followup(
+        final_state: dict[str, Any],
+        app_names: list[str],
+        reason: str,
+    ) -> None:
+        manual = list(final_state.get("app_verification_manual_followups") or [])
+        for app_name in sorted(set(app_names)):
+            item = {"app": app_name, "reason": reason}
+            if item not in manual:
+                manual.append(item)
+        final_state["app_verification_manual_followups"] = manual
 
     def _query_installed_flatpaks(self) -> set[str]:
         final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})

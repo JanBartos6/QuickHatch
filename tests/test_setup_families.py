@@ -28,6 +28,10 @@ def test_family_adapters_generate_deterministic_install_spines(family, expected_
     assert spine.adapter_version
     assert expected_probe in joined
     assert spine.verification
+    assert 'case "$DISK" in *[0-9]) ESP="${DISK}p1"; ROOT="${DISK}p2"' in joined
+    assert "-G wheel,sudo" not in joined
+    assert "getent group wheel" in joined
+    assert "getent group sudo" in joined
 
 
 @pytest.mark.parametrize(
@@ -46,3 +50,18 @@ def test_family_adapters_generate_package_queries(family, query_probe):
 
     assert command.startswith(query_probe)
     assert "firefox" in command
+
+
+def test_fedora_adapter_fstab_uses_selected_target_disk_partitions():
+    installer = get_family_installer("fedora")
+
+    commands = installer.install_base_system(
+        SetupFacts(distro_family="fedora", is_live=True),
+        UserProfile(),
+    )
+    joined = "\n".join(commands)
+
+    assert 'blkid -s UUID -o value "$ROOT"' in joined
+    assert 'blkid -s UUID -o value "$ESP"' in joined
+    assert "/dev/sda1" not in joined
+    assert "/dev/sda2" not in joined

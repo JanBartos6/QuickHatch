@@ -16,7 +16,7 @@ When fixing setup, package, driver, desktop, or audit behavior:
 - Add at least one regression test for the observed failure.
 - Add cross-family coverage when the behavior is package-manager or distro-family dependent.
 - Add or extend `quickhatch debug harness-health` when the issue could waste a real install run.
-- Keep hard blocks limited to safety/recovery boundaries: disk wipe ambiguity, bootability, SSH continuity, recovery user/sudo, wrong target root, or destructive commands outside the selected target.
+- Keep hard blocks limited to safety/recovery boundaries: disk wipe ambiguity, bootability, SSH continuity, recovery user/sudo, package database integrity, wrong target root, or destructive commands outside the selected target.
 - Package/app/theme resolution problems should normally be advisory, repairable, skipped as already satisfied, or explicit manual follow-up.
 
 If a fix is intentionally family-specific, explain why in the function/test name or nearby comment.
@@ -30,6 +30,7 @@ Hard blocks are allowed only for:
 - Reboot before bootability checks pass.
 - SSH continuity or reconnectability risk.
 - Missing recovery path: no root password, no sudo-capable user, or no known noninteractive sudo path.
+- Package database integrity risk, such as broad `pkill`/`killall` against package-manager processes that can leave dpkg/rpm/pacman state half-written.
 - Destructive commands outside the selected target disk/root.
 - VPN/firewall service activation that could cut off the remote session without explicit user consent.
 

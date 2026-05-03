@@ -11,7 +11,7 @@ from quickhatch.setup.types import (
 )
 
 
-def test_desktop_audit_blocks_design_attempt_without_observed_design_state():
+def test_desktop_audit_records_design_attempt_without_observed_design_state_as_followup():
     facts = SetupFacts(
         distro_family="arch",
         package_manager="pacman",
@@ -28,8 +28,11 @@ def test_desktop_audit_blocks_design_attempt_without_observed_design_state():
         },
     )
 
-    assert not result.passed
-    assert any("no configured theme/icon/wallpaper state" in item for item in result.blockers)
+    assert result.passed
+    assert any(
+        "no configured theme/icon/wallpaper state" in item
+        for item in result.details["desktop_design_manual_followups"]
+    )
 
 
 def test_desktop_audit_accepts_stock_desktop_with_enabled_display_manager():
@@ -103,7 +106,7 @@ def test_desktop_audit_accepts_observed_design_state():
     assert result.details["desktop_design"]["kde_color_scheme"] == "SweetMars"
 
 
-def test_desktop_audit_blocks_expected_icon_reset_to_default():
+def test_desktop_audit_records_expected_icon_reset_as_manual_followup():
     facts = SetupFacts(
         distro_family="arch",
         package_manager="pacman",
@@ -130,11 +133,14 @@ def test_desktop_audit_blocks_expected_icon_reset_to_default():
         },
     )
 
-    assert not result.passed
-    assert any("KDE icon theme mismatch" in item for item in result.blockers)
+    assert result.passed
+    assert any(
+        "KDE icon theme mismatch" in item
+        for item in result.details["desktop_design_manual_followups"]
+    )
 
 
-def test_desktop_audit_blocks_expected_wallpaper_missing():
+def test_desktop_audit_records_expected_wallpaper_missing_as_manual_followup():
     facts = SetupFacts(
         distro_family="arch",
         package_manager="pacman",
@@ -159,11 +165,14 @@ def test_desktop_audit_blocks_expected_wallpaper_missing():
         },
     )
 
-    assert not result.passed
-    assert any("KDE wallpaper mismatch" in item for item in result.blockers)
+    assert result.passed
+    assert any(
+        "KDE wallpaper mismatch" in item
+        for item in result.details["desktop_design_manual_followups"]
+    )
 
 
-def test_desktop_audit_blocks_missing_expected_icon_value():
+def test_desktop_audit_records_missing_expected_icon_value_as_manual_followup():
     facts = SetupFacts(
         distro_family="arch",
         package_manager="pacman",
@@ -187,8 +196,11 @@ def test_desktop_audit_blocks_missing_expected_icon_value():
         },
     )
 
-    assert not result.passed
-    assert any("KDE icon theme was expected" in item for item in result.blockers)
+    assert result.passed
+    assert any(
+        "KDE icon theme was expected" in item
+        for item in result.details["desktop_design_manual_followups"]
+    )
 
 
 def test_desktop_audit_ignores_dynamic_shell_wallpaper_expectation():
@@ -247,7 +259,7 @@ def test_desktop_audit_accepts_observed_xfce_design_state():
     assert result.details["desktop_design"]["xfce_icon_theme"] == "Papirus"
 
 
-def test_desktop_audit_blocks_wallpaper_attempt_without_wallpaper_state():
+def test_desktop_audit_records_wallpaper_attempt_without_wallpaper_state_as_followup():
     facts = SetupFacts(
         distro_family="arch",
         package_manager="pacman",
@@ -266,8 +278,11 @@ def test_desktop_audit_blocks_wallpaper_attempt_without_wallpaper_state():
         },
     )
 
-    assert not result.passed
-    assert any("Wallpaper apply/configuration was attempted" in item for item in result.blockers)
+    assert result.passed
+    assert any(
+        "Wallpaper apply/configuration was attempted" in item
+        for item in result.details["desktop_design_manual_followups"]
+    )
 
 
 def test_desktop_audit_accepts_plasma6_wallpaper_and_breeze_dark_palette_fallback():
@@ -339,8 +354,11 @@ def test_desktop_audit_does_not_treat_gnome_wallpaper_as_kde_wallpaper():
         },
     )
 
-    assert not result.passed
-    assert any("plan mentions wallpaper" in item for item in result.blockers)
+    assert result.passed
+    assert any(
+        "plan mentions wallpaper" in item
+        for item in result.details["desktop_design_manual_followups"]
+    )
 
 
 def test_driver_audit_surfaces_secure_boot_for_failed_nvidia_stack():
@@ -395,7 +413,7 @@ def test_driver_audit_does_not_require_nvidia_for_amd_only_system():
     assert result.passed
 
 
-def test_driver_audit_blocks_unresolved_legacy_nvidia_strategy():
+def test_driver_audit_records_unresolved_legacy_nvidia_strategy_as_manual_followup():
     facts = SetupFacts(
         distro_family="arch",
         package_manager="pacman",
@@ -419,8 +437,8 @@ def test_driver_audit_blocks_unresolved_legacy_nvidia_strategy():
 
     result = audit_stage(SetupStage.POSTBOOT_DRIVER, facts, plan=plan)
 
-    assert not result.passed
-    assert any("manual follow-up" in item for item in result.blockers)
+    assert result.passed
+    assert result.details["driver_manual_followup"] is True
 
 
 def test_driver_audit_blocks_stale_nvidia_probe_even_if_previous_state_was_healthy():
@@ -454,7 +472,7 @@ def test_driver_audit_blocks_stale_nvidia_probe_even_if_previous_state_was_healt
     assert any("stale" in item for item in result.blockers)
 
 
-def test_driver_audit_blocks_resolved_nvidia_strategy_without_packages():
+def test_driver_audit_records_resolved_nvidia_strategy_without_packages_for_research():
     facts = SetupFacts(
         distro_family="arch",
         package_manager="pacman",
@@ -478,8 +496,8 @@ def test_driver_audit_blocks_resolved_nvidia_strategy_without_packages():
 
     result = audit_stage(SetupStage.POSTBOOT_DRIVER, facts, plan=plan)
 
-    assert not result.passed
-    assert any("contains no driver packages" in item for item in result.blockers)
+    assert result.passed
+    assert result.details["driver_research_needed"] is True
 
 
 def test_driver_audit_blocks_modern_radeon_bound_to_legacy_driver():
