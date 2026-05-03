@@ -1555,6 +1555,88 @@ def test_apps_stage_synthesizes_missing_repo_install_group():
     assert any("Added missing app install group" in msg["content"] for msg in bridge.messages)
 
 
+def test_apps_repair_group_cannot_reintroduce_installed_packages(monkeypatch):
+    profile = UserProfile(apps_to_install=["Docker Desktop", "LM Studio", "Cursor", "Steam"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        community_helper="yay",
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="apps",
+        stage=SetupStage.APPS,
+        title="Applications and Dev Tools",
+        commands=["yay -S --noconfirm docker-desktop lm-studio-bin"],
+        verification=["pacman -Q docker-desktop lm-studio-bin"],
+        packages=["docker-desktop", "lm-studio-bin"],
+    )
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch app setup",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="kde"),
+        command_groups=[group],
+        apps=[
+            AppPlanItem(name="Docker Desktop", package_name="docker-desktop", source="aur"),
+            AppPlanItem(name="LM Studio", package_name="lm-studio-bin", source="aur"),
+            AppPlanItem(name="Cursor", package_name="cursor-bin", source="aur"),
+            AppPlanItem(name="Steam", package_name="steam", source="repo"),
+        ],
+    )
+    executed_commands: list[str] = []
+    executions = {"count": 0}
+
+    def query_installed(packages, _facts):
+        if "cursor-bin" in packages or "steam" in packages:
+            return {"cursor-bin", "steam"}
+        return set()
+
+    def execute_group(_stage, current_group, _state):
+        executions["count"] += 1
+        executed_commands.extend(current_group.commands)
+        if executions["count"] == 1:
+            return GroupFailure(
+                "command",
+                current_group.commands[0],
+                "",
+                "conflicting dependencies",
+                "docker-desktop-debug conflict",
+            )
+        return None
+
+    def repair_group(_stage, _failed_group, _failure, *, repair_attempt):
+        assert repair_attempt == 1
+        return {
+            "action": "retry_group",
+            "group": CommandGroup(
+                id="apps-repair",
+                stage=SetupStage.APPS,
+                title="Applications and Dev Tools",
+                commands=["yay -S --noconfirm docker-desktop lmstudio-bin cursor-bin steam"],
+                verification=["command -v cursor && command -v steam"],
+                packages=["docker-desktop", "lmstudio-bin", "cursor-bin", "steam"],
+            ),
+        }
+
+    monkeypatch.setattr(orchestrator, "_query_installed_native_packages", query_installed)
+    monkeypatch.setattr(orchestrator, "_execute_group", execute_group)
+    monkeypatch.setattr(orchestrator, "_repair_failed_group", repair_group)
+
+    orchestrator._run_stage_groups(SetupStage.APPS, audit_after=False)
+
+    assert executed_commands == [
+        "yay -S --noconfirm docker-desktop lm-studio-bin",
+        "yay -S --needed --noconfirm docker-desktop lmstudio-bin",
+    ]
+
+
 def test_apps_stage_marks_unsupported_community_source_manual_followup():
     profile = UserProfile(apps_to_install=["Brave"])
     bridge = BridgeState(profile, persist_path=None)
@@ -6491,7 +6573,7 @@ def test_apps_stage_filters_already_installed_packages_from_install_command():
     orchestrator._run_stage_groups(SetupStage.APPS, audit_after=False)
 
     assert any("pacman -Qq" in command for command in executed)
-    assert "sudo pacman -S --noconfirm python" in executed
+    assert "sudo pacman -S --needed --noconfirm python" in executed
     assert "sudo pacman -S --noconfirm git python" not in executed
 
 

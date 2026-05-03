@@ -1071,16 +1071,16 @@ class SetupOrchestrator:
             if self.bridge.stop_requested:
                 raise RuntimeError("Agent stopped by user.")
             current_group = group
-            if stage == SetupStage.APPS:
-                filtered_group = self._filter_installed_app_group(current_group, stage_state)
-                if filtered_group is None:
-                    current_group.status = PlanItemStatus.COMPLETED
-                    self._mark_group_completion(current_group, stage=stage)
-                    continue
-                current_group = filtered_group
             repair_attempts = 0
             repair_budget = self._group_repair_budget(stage)
             while True:
+                if stage == SetupStage.APPS:
+                    filtered_group = self._filter_installed_app_group(current_group, stage_state)
+                    if filtered_group is None:
+                        current_group.status = PlanItemStatus.COMPLETED
+                        self._mark_group_completion(current_group, stage=stage)
+                        break
+                    current_group = filtered_group
                 if stage == SetupStage.DESKTOP and not self._desktop_runtime_ready_or_followup(
                     current_group, stage_state
                 ):
@@ -3558,7 +3558,7 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
     def _filter_installed_app_group(
         self, group: CommandGroup, stage_state: dict[str, Any]
     ) -> CommandGroup | None:
-        if self.ctx.facts is None or not group.packages or group.id.endswith("-missing-only"):
+        if self.ctx.facts is None or not group.packages:
             return group
         installed = self._query_installed_native_packages(group.packages, self.ctx.facts)
         if not installed:
@@ -3671,7 +3671,7 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         )
         if not filtered_payload:
             return ""
-        return shlex.join(filtered)
+        return shlex.join(self._add_no_reinstall_flag(filtered, facts.package_manager))
 
     @staticmethod
     def _install_payload_tokens_for_package_manager(
@@ -3723,6 +3723,29 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                 continue
             break
         return stripped
+
+    @staticmethod
+    def _add_no_reinstall_flag(tokens: list[str], package_manager: str) -> list[str]:
+        """Prefer package-manager flags that skip already-satisfied targets.
+
+        This is deliberately generic: it applies to supported package managers by
+        command shape, not to app names. It reduces wasted repair work if a model
+        still broadens an install command after QuickHatch has package facts.
+        """
+
+        updated = list(tokens)
+        stripped = SetupOrchestrator._strip_command_wrappers(updated)
+        prefix_len = len(updated) - len(stripped)
+
+        if package_manager == "pacman" or any(
+            tool in stripped for tool in ("pacman", "yay", "paru")
+        ):
+            for idx, token in enumerate(stripped):
+                if token == "-S" or token.startswith("-S"):
+                    if "--needed" not in updated:
+                        updated.insert(prefix_len + idx + 1, "--needed")
+                    break
+        return updated
 
     def _mark_apps_manual_followup_by_names(self, names: list[str], reason: str) -> None:
         if self.ctx.plan is None:

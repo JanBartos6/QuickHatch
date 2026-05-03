@@ -378,7 +378,7 @@ def _run_app_stage_prefilter_checks() -> list[dict[str, Any]]:
             "arch",
             "pacman",
             "sudo pacman -S --noconfirm git python",
-            "sudo pacman -S --noconfirm python",
+            "sudo pacman -S --needed --noconfirm python",
         ),
         (
             "ubuntu",
