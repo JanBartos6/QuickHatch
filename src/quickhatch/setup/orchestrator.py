@@ -973,13 +973,23 @@ class SetupOrchestrator:
                     int(payload.get("max_results", 5) or 5),
                 )
             elif action == "question":
+                required = bool(payload.get("required", True))
                 answer = self._ask_blocking_question(
                     str(payload.get("question", "")).strip(),
                     choices=payload.get("choices"),
                     stage=SetupStage.RESEARCH_AND_PLAN,
-                    context={"planner_question": True},
+                    context={"planner_question": True, "required": required},
                     timeout=float(payload.get("timeout_seconds", 600) or 600),
                 )
+                if required and not str(answer or "").strip():
+                    self.runlog.record(
+                        "planner_required_question_unanswered",
+                        stage=SetupStage.RESEARCH_AND_PLAN.value,
+                        question=str(payload.get("question", "")).strip(),
+                    )
+                    raise RuntimeError(
+                        "Required planning question was not answered; setup cannot continue safely."
+                    )
                 result = f"[question answer]\n{answer or 'no answer'}"
             else:
                 last_planner_error = f"Unsupported planner action: {action}"
@@ -1014,6 +1024,15 @@ class SetupOrchestrator:
                 context={"question": question},
                 timeout=float(question.get("timeout_seconds", 600) or 600),
             )
+            if not str(answer or "").strip():
+                self.runlog.record(
+                    "planner_required_question_unanswered",
+                    stage=SetupStage.RESEARCH_AND_PLAN.value,
+                    question=str(question.get("question", "")).strip(),
+                )
+                raise RuntimeError(
+                    "Required planning question was not answered; setup cannot continue safely."
+                )
             question["answer"] = answer
         result = audit_stage(
             SetupStage.RESEARCH_AND_PLAN,
@@ -1253,7 +1272,7 @@ class SetupOrchestrator:
             self._record_stage_result(result)
             return
         if self.ctx.facts:
-            installer = get_family_installer(self.ctx.facts.os_id or self.ctx.facts.distro_family)
+            installer = get_family_installer(self._family_adapter_key(self.ctx.facts))
             spine = installer.build_install_spine(self.ctx.facts, self.profile)
             install_state = self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})
             install_state["family_adapter"] = {
@@ -2091,8 +2110,6 @@ class SetupOrchestrator:
         stage_state = self.ctx.stage_state.setdefault(stage.value, {})
         if stage == SetupStage.DESKTOP:
             self._update_desktop_display_audit_state(stage_state)
-        if stage == SetupStage.APPS:
-            self._mark_unanswered_optional_slow_apps_manual_followup()
         result = audit_stage(
             stage,
             self.ctx.facts or SetupFacts(),
@@ -2114,6 +2131,25 @@ class SetupOrchestrator:
             result=asdict(result),
         )
         return True
+
+    @staticmethod
+    def _family_adapter_key(facts: SetupFacts) -> str:
+        family = (facts.distro_family or "").strip().lower()
+        if family in {"arch", "ubuntu", "debian", "fedora"}:
+            return family
+        os_id = (facts.os_id or "").strip().lower()
+        if os_id in {"arch", "ubuntu", "debian", "fedora"}:
+            return os_id
+        package_manager = (facts.package_manager or "").strip().lower()
+        if package_manager == "pacman":
+            return "arch"
+        if package_manager == "dnf":
+            return "fedora"
+        if package_manager == "apt":
+            if os_id == "ubuntu" or "ubuntu" in (facts.os_like or "").lower():
+                return "ubuntu"
+            return "debian"
+        return family or os_id or "unknown"
 
     def _ensure_display_manager_started(self) -> None:
         facts = self.ctx.facts
@@ -2429,9 +2465,9 @@ class SetupOrchestrator:
             return None
 
     def _run_apps(self) -> None:
+        self._synthesize_missing_app_command_groups()
         if self._skip_stage_if_current_audit_passes(SetupStage.APPS):
             return
-        self._synthesize_missing_app_command_groups()
         self._run_stage_groups(SetupStage.APPS)
 
     def _run_final_audit(self) -> AuditResult:
@@ -2445,9 +2481,8 @@ class SetupOrchestrator:
                 blockers=["No research plan exists for final audit."],
             )
         else:
-            result = final_audit(
-                self.ctx.facts or SetupFacts(), self.ctx.plan, self.ctx.stage_results
-            )
+            latest_results = self._latest_stage_results(exclude_final=True)
+            result = final_audit(self.ctx.facts or SetupFacts(), self.ctx.plan, latest_results)
             fresh_audits: dict[str, dict[str, Any]] = {}
             for fresh_stage in (
                 SetupStage.POSTBOOT_DRIVER,
@@ -2460,13 +2495,11 @@ class SetupOrchestrator:
                     plan=self.ctx.plan,
                     stage_state=self.ctx.stage_state.get(fresh_stage.value, {}),
                 )
+                latest_results = [item for item in latest_results if item.stage != fresh_stage] + [
+                    fresh_result
+                ]
                 fresh_audits[fresh_stage.value] = asdict(fresh_result)
-                if not fresh_result.passed:
-                    for blocker in fresh_result.blockers:
-                        scoped = f"[{fresh_stage.value}] {blocker}"
-                        if scoped not in result.blockers:
-                            result.blockers.append(scoped)
-                    result.passed = False
+            result = final_audit(self.ctx.facts or SetupFacts(), self.ctx.plan, latest_results)
             result.details["fresh_stage_audits"] = fresh_audits
             remote_blockers = self._remote_final_verification()
             result.details["remote_final_verification"] = dict(
@@ -2484,6 +2517,14 @@ class SetupOrchestrator:
             stage=SetupStage.FINAL_AUDIT.value,
         )
         return result
+
+    def _latest_stage_results(self, *, exclude_final: bool = False) -> list[AuditResult]:
+        latest: dict[SetupStage, AuditResult] = {}
+        for result in self.ctx.stage_results:
+            if exclude_final and result.stage == SetupStage.FINAL_AUDIT:
+                continue
+            latest[result.stage] = result
+        return list(latest.values())
 
     def _remote_final_verification(self) -> list[str]:
         if self.ctx.plan is None or self.ctx.facts is None:
@@ -2583,6 +2624,15 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                 unverifiable,
                 "missing package/Flatpak identifiers",
             )
+            required_unverifiable = [
+                app.name for app in installed_like if app not in candidates and app.required
+            ]
+            if required_unverifiable:
+                return [
+                    "Required app(s) were claimed installed/completed but cannot be verified "
+                    "without package or Flatpak identifiers: "
+                    + ", ".join(sorted(required_unverifiable))
+                ]
         if not candidates:
             return []
         flatpak_candidates = [app for app in candidates if self._app_uses_flatpak(app)]
@@ -2662,6 +2712,15 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             missing,
             "installed package was not found under the planned identifiers",
         )
+        required_missing = [
+            app.name for app in candidates if app.name in set(missing) and app.required
+        ]
+        if required_missing:
+            return [
+                "Required app(s) were claimed installed/completed but package verification "
+                "did not find them under the planned identifiers: "
+                + ", ".join(sorted(required_missing))
+            ]
         return []
 
     @staticmethod
@@ -2727,15 +2786,23 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                 continue
             dashed = normalized.replace(" ", "-")
             compact = normalized.replace(" ", "")
+            compact_separators = re.sub(r"[\s_-]+", "", normalized)
             variants.update(
                 {
                     normalized,
                     dashed,
                     compact,
+                    compact_separators,
                     f"{dashed}-bin",
                     f"{dashed}-git",
                 }
             )
+            for suffix in ("-bin", "-git"):
+                if dashed.endswith(suffix):
+                    base = dashed[: -len(suffix)]
+                    compact_base = re.sub(r"[\s_-]+", "", base)
+                    if compact_base:
+                        variants.add(f"{compact_base}{suffix}")
         for key in {app_name.strip().lower(), package_name.strip().lower()}:
             variants.update(_APP_PACKAGE_ALIASES.get(key, set()))
         return {variant for variant in variants if variant}
@@ -3632,10 +3699,15 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
     ) -> CommandGroup | None:
         if self.ctx.facts is None or not group.packages:
             return group
-        installed = self._query_installed_native_packages(group.packages, self.ctx.facts)
+        query_packages = self._app_group_package_query_candidates(group)
+        installed = self._query_installed_native_packages(query_packages, self.ctx.facts)
         if not installed:
             return group
-        installed_in_group = {package for package in group.packages if package in installed}
+        installed_in_group = {
+            package
+            for package in group.packages
+            if self._planned_package_is_installed(package, installed, group)
+        }
         if not installed_in_group:
             return group
         missing = [package for package in group.packages if package not in installed]
@@ -3684,6 +3756,48 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         repaired.commands = rewritten_commands
         repaired.packages = missing
         return repaired
+
+    def _app_group_package_query_candidates(self, group: CommandGroup) -> list[str]:
+        candidates: list[str] = []
+        for package in group.packages:
+            if package and package not in candidates:
+                candidates.append(package)
+        if self.ctx.plan is None:
+            return candidates
+        group_packages = {package.lower() for package in group.packages}
+        title = group.title.lower()
+        for app in self.ctx.plan.apps:
+            variants = self._package_name_variants(app.name, app.package_name)
+            if not variants:
+                continue
+            if (
+                variants.intersection(group_packages)
+                or app.name.lower() in title
+                or (app.package_name or "").lower() in group_packages
+            ):
+                for variant in sorted(variants):
+                    if variant not in candidates:
+                        candidates.append(variant)
+        return candidates
+
+    def _planned_package_is_installed(
+        self, package: str, installed_packages: set[str], group: CommandGroup
+    ) -> bool:
+        if package in installed_packages:
+            return True
+        variants = self._package_name_variants("", package)
+        if self.ctx.plan is not None:
+            package_lower = package.lower()
+            title = group.title.lower()
+            for app in self.ctx.plan.apps:
+                app_variants = self._package_name_variants(app.name, app.package_name)
+                if (
+                    package_lower in app_variants
+                    or app.name.lower() in title
+                    or (app.package_name or "").lower() == package_lower
+                ):
+                    variants.update(app_variants)
+        return bool(variants.intersection(installed_packages))
 
     def _query_installed_native_packages(self, packages: list[str], facts: SetupFacts) -> set[str]:
         package_list = [package for package in dict.fromkeys(packages) if package]

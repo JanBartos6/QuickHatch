@@ -32,14 +32,19 @@ class FedoraInstaller(BaseFamilyInstaller):
             + "sudo tee -a /mnt/etc/fstab >/dev/null",
             "echo quickhatch | sudo tee /mnt/etc/hostname >/dev/null",
             "sudo chroot /mnt systemctl enable NetworkManager sshd",
+            "sudo touch /mnt/.autorelabel || true",
         ]
 
     def install_bootloader(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
         del facts, profile
         return [
-            "sudo mount --bind /dev /mnt/dev && sudo mount --bind /proc /mnt/proc && sudo mount --bind /sys /mnt/sys",
-            "sudo chroot /mnt grub2-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch --recheck || true",
-            "sudo chroot /mnt grub2-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch --removable --no-nvram --recheck || true",
+            "for qh_bind in dev dev/pts proc sys run; do "
+            "sudo mkdir -p /mnt/$qh_bind; "
+            "mountpoint -q /mnt/$qh_bind || sudo mount --bind /$qh_bind /mnt/$qh_bind; "
+            "done",
+            "sudo chroot /mnt sh -c '"
+            "grub2-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch --recheck "
+            "|| grub2-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch --removable --no-nvram --recheck'",
             "sudo chroot /mnt grub2-mkconfig -o /boot/grub2/grub.cfg",
             "sudo chroot /mnt dracut --regenerate-all -f",
         ]

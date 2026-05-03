@@ -54,16 +54,28 @@ _NETWORK_SECURITY_SERVICE_TOKENS = frozenset(
 )
 _PACKAGE_PROCESS_NAMES = frozenset(
     {
+        "apk",
         "apt",
         "apt-get",
         "apt.systemd.daily",
         "debconf",
+        "dnf",
         "dpkg",
+        "emerge",
+        "makepkg",
         "packagekit",
         "packagekitd",
+        "pacman",
+        "paru",
+        "rpm",
+        "rpm-ostree",
         "snapd",
         "unattended-upgrade",
         "unattended-upgrades",
+        "xbps-install",
+        "yay",
+        "yum",
+        "zypper",
     }
 )
 _UBUNTU_DESKTOP_METAPACKAGES = frozenset({"ubuntu-desktop", "ubuntu-desktop-minimal"})
@@ -600,17 +612,43 @@ def _activates_network_security_services(cmd: str) -> bool:
             continue
         tool = _normalize_tool(tokens[0])
         args = [token.lower() for token in tokens[1:]]
+        if tool in {"bash", "sh", "zsh", "fish"}:
+            payload = _shell_c_payload(tokens)
+            if payload and _activates_network_security_services(payload):
+                return True
         if tool == "systemctl" and args:
-            verb = args[0]
-            if verb in {"enable", "start", "restart", "try-restart"} and any(
+            non_option_args = [arg for arg in args if not arg.startswith("-")]
+            verb = non_option_args[0] if non_option_args else ""
+            if verb in {"enable", "start", "restart", "try-restart", "reload"} and any(
                 any(token.startswith(service) for service in _NETWORK_SECURITY_SERVICE_TOKENS)
-                for token in args[1:]
+                for token in non_option_args[1:]
+            ):
+                return True
+            if "--now" in args and any(
+                any(token.startswith(service) for service in _NETWORK_SECURITY_SERVICE_TOKENS)
+                for token in non_option_args
             ):
                 return True
         if tool == "ufw" and args and args[0] in {"enable", "reload"}:
             return True
         if tool in {"firewall-cmd", "nft", "iptables", "ip6tables"}:
-            if any(word in lower_segment for word in ("enable", "reload", "default", "policy")):
+            if any(
+                word in lower_segment
+                for word in (
+                    "add rule",
+                    "delete",
+                    "drop",
+                    "enable",
+                    "flush",
+                    "policy",
+                    "reject",
+                    "reload",
+                    "remove",
+                    "set-default",
+                    "--set-default",
+                    "--remove-service",
+                )
+            ):
                 return True
     return False
 
@@ -626,6 +664,10 @@ def _uses_broad_package_process_kill(cmd: str) -> bool:
         if not tokens:
             continue
         tool = _normalize_tool(tokens[0])
+        if tool in {"bash", "sh", "zsh", "fish"}:
+            payload = _shell_c_payload(tokens)
+            if payload and _uses_broad_package_process_kill(payload):
+                return True
         if tool not in {"pkill", "killall"}:
             continue
         args = [token.lower() for token in tokens[1:]]
@@ -636,6 +678,32 @@ def _uses_broad_package_process_kill(cmd: str) -> bool:
             return True
         if "-f" in args or "--full" in args or "|" in haystack or ".*" in haystack:
             return True
+    return False
+
+
+def _installed_system_disk_or_bootstrap_mutation(tool: str, tokens: list[str]) -> bool:
+    """Return true for live-install/disk-spine commands on an installed system."""
+
+    if tool in {
+        "blkdiscard",
+        "debootstrap",
+        "fdisk",
+        "parted",
+        "partprobe",
+        "partx",
+        "sfdisk",
+        "sgdisk",
+        "wipefs",
+    }:
+        return True
+    if tool.startswith("mkfs"):
+        return True
+    if tool == "mount":
+        return _mount_command_requires_root(tokens)
+    if tool in {"arch-chroot", "chroot"}:
+        return any(
+            arg in {"/mnt", "/target", "/mnt/sysroot", "/mnt/sysimage"} for arg in tokens[1:]
+        )
     return False
 
 
@@ -830,6 +898,7 @@ def preflight_setup_command(
     facts: SetupFacts,
     *,
     allow_network_security_changes: bool = False,
+    _depth: int = 0,
 ) -> str | None:
     """Return a blocking reason for clearly unsafe/impossible setup commands."""
 
@@ -872,12 +941,36 @@ def preflight_setup_command(
         if not tokens:
             continue
         tool = _normalize_tool(tokens[0])
+        if tool in {"bash", "sh", "zsh", "fish"} and _depth < 4:
+            payload = _shell_c_payload(tokens)
+            if payload:
+                nested_error = preflight_setup_command(
+                    payload,
+                    facts,
+                    allow_network_security_changes=allow_network_security_changes,
+                    _depth=_depth + 1,
+                )
+                if nested_error:
+                    return nested_error
+            continue
         if tool in {"runuser", "su"} and not has_root_privilege:
             return (
                 f"`{tool}` may not be used by a non-root setup session without an "
                 "interactive password prompt. If the target user is already the SSH user, "
                 "run the inner command directly; otherwise use `sudo -u ...` only when "
                 "NOPASSWD sudo is available."
+            )
+        if (
+            not facts.is_live
+            and has_root_privilege
+            and _installed_system_disk_or_bootstrap_mutation(tool, tokens)
+        ):
+            return (
+                f"`{tool}` is a live-install/disk/bootstrap operation but this target is an "
+                "installed system. Do not repartition, format, mount an install target, "
+                "debootstrap/pacstrap, or chroot into /mnt from configure-only/post-install "
+                "setup unless the user explicitly restarted from a live ISO and confirmed "
+                "the target disk."
             )
         redirected_target = _root_owned_redirection_target(segment)
         if redirected_target and not has_root_privilege:
@@ -919,6 +1012,8 @@ def _decision_category(reason: str) -> str:
     if "passwordless sudo" in lower or "invisible password prompt" in lower:
         return "sudo_password"
     if "changes disks, mounts, boot files, or chroot state" in lower:
+        return "disk_boot_safety"
+    if "live-install/disk/bootstrap operation" in lower or "do not repartition" in lower:
         return "disk_boot_safety"
     if "root-owned" in lower or "needs root privileges" in lower or "non-root" in lower:
         return "privilege_precondition"
@@ -999,8 +1094,8 @@ def preflight_setup_decisions(
     category = _decision_category(reason)
     kind = (
         PreflightDecisionKind.BLOCK
-        if _hard_block_category(category) and not (shadow_mode and category != "ssh_continuity")
-        else PreflightDecisionKind.SHADOW
+        if _hard_block_category(category)
+        else (PreflightDecisionKind.SHADOW if shadow_mode else PreflightDecisionKind.SHADOW)
     )
     decisions.append(
         PreflightDecision(

@@ -30,7 +30,9 @@ def test_preflight_warns_yay_before_helper_exists():
 
 
 def test_preflight_detects_wrapped_aur_helper_before_helper_exists():
-    facts = SetupFacts(package_manager="pacman", community_helper="none", is_root=True)
+    facts = SetupFacts(
+        package_manager="pacman", community_helper="none", is_root=True, is_live=True
+    )
 
     command = "arch-chroot /mnt sudo -u jan bash -lc 'yay -S --noconfirm brave-bin'"
     error = preflight_setup_command(command, facts)
@@ -60,6 +62,32 @@ def test_preflight_blocks_vpn_firewall_activation():
     assert "VPN or firewall" in error
 
 
+def test_preflight_blocks_shell_wrapped_vpn_firewall_activation():
+    facts = SetupFacts(package_manager="pacman", community_helper="yay")
+
+    error = preflight_setup_command(
+        "sudo bash -lc 'systemctl --now enable mullvad-daemon'",
+        facts,
+    )
+
+    assert error
+    assert "VPN or firewall" in error
+
+
+def test_preflight_blocks_firewall_rule_mutations():
+    facts = SetupFacts(package_manager="dnf", distro_family="fedora")
+
+    for command in (
+        "sudo systemctl --now enable firewalld",
+        "sudo iptables -P INPUT DROP",
+        "sudo nft add rule inet filter input drop",
+        "sudo firewall-cmd --remove-service=ssh --permanent",
+    ):
+        error = preflight_setup_command(command, facts)
+        assert error, command
+        assert "VPN or firewall" in error
+
+
 def test_preflight_blocks_broad_package_process_kill():
     facts = SetupFacts(package_manager="apt", distro_family="ubuntu", is_root=False)
 
@@ -71,6 +99,18 @@ def test_preflight_blocks_broad_package_process_kill():
     assert error
     assert "broad `pkill`" in error
     assert "dpkg half-written" in error
+
+
+def test_preflight_blocks_shell_wrapped_package_process_kill_for_major_families():
+    facts = SetupFacts(package_manager="pacman", distro_family="arch", is_root=False)
+
+    error = preflight_setup_command(
+        "sudo bash -c 'pkill -9 -f \"pacman|makepkg|yay|dnf|rpm\"'",
+        facts,
+    )
+
+    assert error
+    assert "broad `pkill`" in error
 
 
 def test_preflight_allows_specific_non_package_pkill():
@@ -316,6 +356,29 @@ def test_preflight_allows_live_disk_mutation_with_sudo():
 
     assert preflight_setup_command("sudo sgdisk --zap-all /dev/sda", facts) is None
     assert preflight_setup_command("sudo mount --bind /dev /mnt/dev", facts) is None
+
+
+def test_preflight_blocks_installed_system_disk_or_live_install_mutations_even_with_sudo():
+    facts = SetupFacts(
+        package_manager="pacman",
+        distro_family="arch",
+        is_live=False,
+        is_root=False,
+        sudo_nopasswd=True,
+        current_user="jan",
+        login_user="jan",
+    )
+
+    for command in (
+        "sudo wipefs -a /dev/sda",
+        "sudo mkfs.ext4 -F /dev/sda2",
+        "sudo mount /dev/sda2 /mnt",
+        "sudo debootstrap noble /mnt http://archive.ubuntu.com/ubuntu",
+        "sudo bash -c 'wipefs -a /dev/sda'",
+    ):
+        error = preflight_setup_command(command, facts)
+        assert error, command
+        assert "installed system" in error or "needs root privileges" in error
 
 
 def test_preflight_allows_fedora_installed_anaconda_probe():
@@ -610,6 +673,27 @@ def test_typed_preflight_keeps_sudo_password_prompt_as_hard_block():
     )
 
     decisions = preflight_setup_decisions("sudo pacman -S --noconfirm nvidia-open", facts)
+
+    assert any(item.kind == PreflightDecisionKind.BLOCK for item in decisions)
+    assert any(item.category == "sudo_password" for item in decisions)
+
+
+def test_typed_preflight_keeps_hard_safety_blocks_hard_in_shadow_mode():
+    facts = SetupFacts(
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_live=False,
+        is_root=False,
+        sudo_nopasswd=False,
+    )
+
+    decisions = preflight_setup_decisions(
+        "sudo pacman -S --noconfirm nvidia-open",
+        facts,
+        shadow_mode=True,
+    )
 
     assert any(item.kind == PreflightDecisionKind.BLOCK for item in decisions)
     assert any(item.category == "sudo_password" for item in decisions)

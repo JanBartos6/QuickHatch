@@ -5,6 +5,8 @@ import threading
 import time
 from pathlib import Path
 
+import pytest
+
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, DisplayInfo, UserProfile
 from quickhatch.setup.audit import audit_stage
@@ -668,12 +670,13 @@ def test_unanswered_optional_slow_apps_become_manual_followup_before_apps_audit(
         ],
     )
 
-    orchestrator._run_apps()
+    with pytest.raises(RuntimeError, match="Required apps need manual follow-up"):
+        orchestrator._run_apps()
 
     assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.MANUAL_FOLLOWUP
     assert "Optional slow app" in orchestrator.ctx.plan.apps[0].reason
     assert orchestrator.ctx.stage_results[-1].stage == SetupStage.APPS
-    assert orchestrator.ctx.stage_results[-1].passed is True
+    assert orchestrator.ctx.stage_results[-1].passed is False
     assert "Optional slow apps still need user confirmation" not in " ".join(
         orchestrator.ctx.stage_results[-1].blockers
     )
@@ -1132,7 +1135,7 @@ def test_model_call_retry_keeps_legacy_test_callbacks_supported():
 def test_reconnect_key_accepts_verified_key_after_transient_failure(monkeypatch):
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
-    facts = SetupFacts(current_user="root", login_user="root", is_root=True)
+    facts = SetupFacts(current_user="root", login_user="root", is_root=True, is_live=True)
     calls: list[str] = []
     monkeypatch.setattr("quickhatch.setup.orchestrator.time.sleep", lambda _seconds: None)
 
@@ -1227,7 +1230,7 @@ def test_live_reconnect_key_creates_planned_target_user_when_repair_skipped_it()
 def test_reconnect_key_retries_after_transient_disconnect(monkeypatch):
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
-    facts = SetupFacts(current_user="root", login_user="root", is_root=True)
+    facts = SetupFacts(current_user="root", login_user="root", is_root=True, is_live=True)
     install_attempts = {"count": 0}
     monkeypatch.setattr("quickhatch.setup.orchestrator.time.sleep", lambda _seconds: None)
 
@@ -1285,7 +1288,7 @@ def test_reconnect_key_tolerates_extended_transient_disconnect(monkeypatch):
 def test_group_command_retries_transient_ssh_transport_failure(monkeypatch):
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
-    facts = SetupFacts(current_user="root", login_user="root", is_root=True)
+    facts = SetupFacts(current_user="root", login_user="root", is_root=True, is_live=True)
     attempts = {"count": 0}
     monkeypatch.setattr("quickhatch.setup.orchestrator.time.sleep", lambda _seconds: None)
 
@@ -1637,6 +1640,46 @@ def test_apps_repair_group_cannot_reintroduce_installed_packages(monkeypatch):
     ]
 
 
+def test_app_prefilter_treats_installed_alias_variant_as_satisfied(monkeypatch):
+    profile = UserProfile(apps_to_install=["LM Studio"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        community_helper="yay",
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="apps",
+        stage=SetupStage.APPS,
+        title="Install LM Studio",
+        commands=["yay -S --noconfirm lm-studio-bin"],
+        verification=["pacman -Q lm-studio-bin"],
+        packages=["lm-studio-bin"],
+    )
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch app setup",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="kde"),
+        command_groups=[group],
+        apps=[AppPlanItem(name="LM Studio", package_name="lm-studio-bin", source="aur")],
+    )
+
+    def query_installed(packages, _facts):
+        assert "lmstudio-bin" in packages
+        return {"lmstudio-bin"}
+
+    monkeypatch.setattr(orchestrator, "_query_installed_native_packages", query_installed)
+
+    assert orchestrator._filter_installed_app_group(group, {}) is None
+
+
 def test_apps_stage_marks_unsupported_community_source_manual_followup():
     profile = UserProfile(apps_to_install=["Brave"])
     bridge = BridgeState(profile, persist_path=None)
@@ -1666,7 +1709,8 @@ def test_apps_stage_marks_unsupported_community_source_manual_followup():
         ],
     )
 
-    orchestrator._run_apps()
+    with pytest.raises(RuntimeError, match="Required apps need manual follow-up"):
+        orchestrator._run_apps()
 
     assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.MANUAL_FOLLOWUP
     assert "not supported automatically" in orchestrator.ctx.plan.apps[0].reason
@@ -4118,7 +4162,7 @@ def test_orchestrator_blocks_on_required_planning_question():
 
     summary = SetupOrchestrator(runtime).run()
 
-    assert "unanswered required questions" in summary.lower()
+    assert "required planning question was not answered" in summary.lower()
     setup_run = bridge.snapshot_setup_run()
     assert setup_run["status"] == "blocked"
     pending = bridge.get_pending_questions()
@@ -6352,7 +6396,7 @@ def test_orchestrator_retries_malformed_repair_json():
     assert "Verified installed: Brave" in summary
 
 
-def test_final_audit_records_missing_completed_app_package_as_followup():
+def test_final_audit_blocks_missing_required_completed_app_package():
     profile = UserProfile(apps_to_install=["Brave"])
     bridge = BridgeState(profile, persist_path=None)
     facts = _with_verified_kde_icon(
@@ -6463,8 +6507,9 @@ def test_final_audit_records_missing_completed_app_package_as_followup():
     orchestrator = SetupOrchestrator(runtime)
     summary = orchestrator.run()
 
-    assert "manual follow-up: brave" in summary.lower()
-    assert orchestrator.ctx.stage_results[-1].passed is True
+    assert orchestrator.ctx.stage_results[-1].passed is False
+    assert "Required app" in "; ".join(orchestrator.ctx.stage_results[-1].blockers)
+    assert "setup stopped during final audit" in summary.lower()
 
 
 def test_setup_summary_only_claims_verified_installed_apps():
@@ -6927,7 +6972,7 @@ def test_orchestrator_can_convert_failed_verification_into_manual_followup_after
     finally:
         helper.join(timeout=2)
 
-    assert "Manual follow-up: ChatGPT" in summary
+    assert "Required apps need manual follow-up" in summary
 
 
 def test_orchestrator_marks_app_repair_question_timeout_manual_followup():
@@ -7055,7 +7100,7 @@ def test_orchestrator_marks_app_repair_question_timeout_manual_followup():
 
     summary = SetupOrchestrator(runtime).run()
 
-    assert "Manual follow-up: Brave" in summary
+    assert "Required apps need manual follow-up" in summary
     pending = bridge.get_pending_questions()
     assert pending == []
 

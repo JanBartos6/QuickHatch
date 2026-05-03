@@ -205,6 +205,18 @@ def audit_stage(
             for app in (plan.apps if plan else [])
             if app.required and app.status in {PlanItemStatus.PENDING, PlanItemStatus.IN_PROGRESS}
         ]
+        required_followup = [
+            app.name
+            for app in (plan.apps if plan else [])
+            if app.required
+            and app.status
+            in {
+                PlanItemStatus.BLOCKED,
+                PlanItemStatus.FAILED,
+                PlanItemStatus.MANUAL_FOLLOWUP,
+                PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION,
+            }
+        ]
         if pending_slow:
             blockers.append(
                 "Optional slow apps still need user confirmation: "
@@ -212,6 +224,11 @@ def audit_stage(
             )
         if unresolved:
             blockers.append("Required apps are still unresolved: " + ", ".join(sorted(unresolved)))
+        if required_followup:
+            blockers.append(
+                "Required apps need manual follow-up or failed setup: "
+                + ", ".join(sorted(required_followup))
+            )
         details["apps"] = {app.name: app.status.value for app in (plan.apps if plan else [])}
 
     elif stage == SetupStage.FINAL_AUDIT:

@@ -460,7 +460,9 @@ def test_replay_diagnoses_common_command_failures_from_mined_runs(tmp_path):
 
 
 def test_scan_runlogs_aggregates_diagnostics(tmp_path):
-    run = tmp_path / "real.jsonl"
+    nested = tmp_path / "certification" / "arch" / "latest"
+    nested.mkdir(parents=True)
+    run = nested / "real.jsonl"
     run.write_text(
         "\n".join(
             json.dumps(event)
@@ -484,3 +486,26 @@ def test_scan_runlogs_aggregates_diagnostics(tmp_path):
     assert summary.run_count == 1
     assert summary.diagnostic_categories["fragile_fstab_verification"] == 1
     assert summary.runs[0]["path"] == str(run)
+
+
+def test_replay_summary_surfaces_failed_final_audit_blockers(tmp_path):
+    run = tmp_path / "failed-final.jsonl"
+    run.write_text(
+        json.dumps(
+            {
+                "event_type": "final_audit",
+                "event_id": "final:000001",
+                "run_id": "final",
+                "result": {
+                    "passed": False,
+                    "blockers": ["Required app verification failed"],
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    summary = summarize_runlog(run)
+
+    assert "Required app verification failed" in summary.blockers
+    assert summary.last_failure_type == "final_audit"

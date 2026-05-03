@@ -20,6 +20,11 @@ class DebianInstaller(BaseFamilyInstaller):
             "sudo apt-get install -y debootstrap arch-install-scripts grub-efi-amd64",
             f"sudo debootstrap --arch=amd64 {self.suite} /mnt {self.mirror}",
             "sudo genfstab -U /mnt | sudo tee -a /mnt/etc/fstab >/dev/null",
+            "for qh_bind in dev dev/pts proc sys run; do "
+            "sudo mkdir -p /mnt/$qh_bind; "
+            "mountpoint -q /mnt/$qh_bind || sudo mount --bind /$qh_bind /mnt/$qh_bind; "
+            "done",
+            "test -s /etc/resolv.conf && sudo cp -L /etc/resolv.conf /mnt/etc/resolv.conf || true",
             "sudo chroot /mnt sh -c 'apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y linux-image-amd64 sudo network-manager openssh-server grub-efi-amd64'",
             "sudo chroot /mnt systemctl enable NetworkManager ssh",
             "echo quickhatch | sudo tee /mnt/etc/hostname >/dev/null",
@@ -28,7 +33,10 @@ class DebianInstaller(BaseFamilyInstaller):
     def install_bootloader(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
         del facts, profile
         return [
-            "sudo mount --bind /dev /mnt/dev && sudo mount --bind /proc /mnt/proc && sudo mount --bind /sys /mnt/sys",
+            "for qh_bind in dev dev/pts proc sys run; do "
+            "sudo mkdir -p /mnt/$qh_bind; "
+            "mountpoint -q /mnt/$qh_bind || sudo mount --bind /$qh_bind /mnt/$qh_bind; "
+            "done",
             "sudo chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch --recheck",
             "sudo chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch --removable --no-nvram --recheck",
             "sudo chroot /mnt update-grub",

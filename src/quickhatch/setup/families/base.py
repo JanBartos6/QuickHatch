@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import shlex
 from dataclasses import dataclass, field
 from typing import Protocol
@@ -56,7 +57,7 @@ class BaseFamilyInstaller:
         """Define shell variables for target disk partitions across sdX/nvme/mmc names."""
 
         return (
-            "DISK=${QUICKHATCH_TARGET_DISK:-/dev/sda}; "
+            "DISK=${QUICKHATCH_TARGET_DISK:?QuickHatch target disk is required}; "
             'case "$DISK" in *[0-9]) ESP="${DISK}p1"; ROOT="${DISK}p2" ;; '
             '*) ESP="${DISK}1"; ROOT="${DISK}2" ;; esac; '
         )
@@ -64,6 +65,13 @@ class BaseFamilyInstaller:
     @staticmethod
     def shell_quote(command: str) -> str:
         return shlex.quote(command)
+
+    @staticmethod
+    def target_user(profile: UserProfile) -> str:
+        candidate = (getattr(profile, "linux_user", "") or "").strip().lower()
+        if candidate and candidate != "root" and re.fullmatch(r"[a-z_][a-z0-9_-]{0,30}", candidate):
+            return candidate[:31]
+        return "jan"
 
     def detect_live_iso(self, facts: SetupFacts) -> bool:
         return bool(facts.is_live)
@@ -86,8 +94,9 @@ class BaseFamilyInstaller:
         return []
 
     def configure_user_ssh_sudo(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
-        del facts, profile
-        user = "jan"
+        del facts
+        user = self.target_user(profile)
+        user_q = shlex.quote(user)
         return [
             "sudo chroot /mnt sh -c "
             + self.shell_quote(
@@ -105,9 +114,18 @@ class BaseFamilyInstaller:
                 'useradd -m -s /bin/bash "$user"; '
                 "fi"
             ),
-            f"sudo install -d -m 700 -o {user} -g {user} /mnt/home/{user}/.ssh",
-            f"sudo cp /root/.ssh/authorized_keys /mnt/home/{user}/.ssh/authorized_keys",
-            f"sudo chown {user}:{user} /mnt/home/{user}/.ssh/authorized_keys && sudo chmod 600 /mnt/home/{user}/.ssh/authorized_keys",
+            f"qh_user={user_q}; "
+            "qh_auth_src=/root/.ssh/authorized_keys; "
+            'if [ ! -s "$qh_auth_src" ]; then '
+            "qh_auth_src=$(find /root /home -maxdepth 3 -path '*/.ssh/authorized_keys' "
+            "-size +0c -print -quit 2>/dev/null); "
+            "fi; "
+            'test -n "$qh_auth_src" && test -s "$qh_auth_src"; '
+            'qh_uid=$(sudo chroot /mnt id -u "$qh_user"); '
+            'qh_gid=$(sudo chroot /mnt id -g "$qh_user"); '
+            'sudo install -d -m 700 -o "$qh_uid" -g "$qh_gid" "/mnt/home/$qh_user/.ssh"; '
+            'sudo install -m 600 -o "$qh_uid" -g "$qh_gid" "$qh_auth_src" '
+            '"/mnt/home/$qh_user/.ssh/authorized_keys"',
             "sudo chroot /mnt sh -c "
             + self.shell_quote(
                 "set -e; "
@@ -141,7 +159,8 @@ class BaseFamilyInstaller:
             "test -s /mnt/etc/fstab",
             "find /mnt/boot -maxdepth 2 -type f \\( -name 'vmlinuz*' -o -name 'initramfs*' -o -name 'initrd*' \\) | grep -q .",
             "find /mnt/boot -maxdepth 4 -type f \\( -iname 'grub*.efi' -o -iname 'bootx64.efi' \\) | grep -q .",
-            "grep -Eq '^(root|[^:]+):[^!*]' /mnt/etc/shadow",
+            "find /mnt/home -maxdepth 3 -path '*/.ssh/authorized_keys' -size +0c | grep -q .",
+            "test -s /mnt/etc/sudoers.d/99-quickhatch-nopasswd",
         ]
 
     def post_reboot_package_query(self, packages: list[str], facts: SetupFacts) -> str:

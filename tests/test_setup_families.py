@@ -28,10 +28,14 @@ def test_family_adapters_generate_deterministic_install_spines(family, expected_
     assert spine.adapter_version
     assert expected_probe in joined
     assert spine.verification
+    assert "QUICKHATCH_TARGET_DISK:?QuickHatch target disk is required" in joined
     assert 'case "$DISK" in *[0-9]) ESP="${DISK}p1"; ROOT="${DISK}p2"' in joined
     assert "-G wheel,sudo" not in joined
     assert "getent group wheel" in joined
     assert "getent group sudo" in joined
+    assert "find /root /home -maxdepth 3 -path '*/.ssh/authorized_keys'" in joined
+    assert "grep -Eq '^(root|[^:]+):[^!*]' /mnt/etc/shadow" not in "\n".join(spine.verification)
+    assert "99-quickhatch-nopasswd" in "\n".join(spine.verification)
 
 
 @pytest.mark.parametrize(

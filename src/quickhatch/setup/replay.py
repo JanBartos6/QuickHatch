@@ -171,6 +171,16 @@ def summarize_events(events: list[dict[str, Any]]) -> RunReplaySummary:
                 summary.last_failure_event_id = str(event.get("event_id") or "")
                 summary.last_failure_type = event_type
                 summary.last_failure_command = command
+        if event_type == "final_audit":
+            result = event.get("result")
+            if isinstance(result, dict) and result.get("passed") is False:
+                blockers = result.get("blockers")
+                if isinstance(blockers, list):
+                    for blocker in blockers:
+                        summary.blockers.append(str(blocker))
+                summary.last_failure_event_id = str(event.get("event_id") or "")
+                summary.last_failure_type = event_type
+                summary.last_failure_command = command
         if event_type in {"run_finished", "setup_run_finished", "final_audit"}:
             summary.final_status = str(event.get("status") or event.get("summary") or event_type)
         previous_event = event
@@ -780,7 +790,7 @@ def scan_runlogs(
     if not target_root.exists():
         return result
     paths = sorted(
-        (path for path in target_root.glob("*.jsonl") if path.is_file()),
+        (path for path in target_root.rglob("*.jsonl") if path.is_file()),
         key=lambda path: path.stat().st_mtime,
         reverse=True,
     )
@@ -832,7 +842,7 @@ def find_latest_runlog(
     target_root = Path(root) if root else Path.home() / ".quickhatch" / "setup-runs"
     if not target_root.exists():
         return None
-    candidates = [path for path in target_root.glob("*.jsonl") if path.is_file()]
+    candidates = [path for path in target_root.rglob("*.jsonl") if path.is_file()]
     if not candidates:
         return None
     if not prefer_real_runs:
