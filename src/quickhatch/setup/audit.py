@@ -16,6 +16,21 @@ from .types import (
 )
 
 
+def _coerce_plan_bool(value: Any, default: bool = False) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    if isinstance(value, (int, float)):
+        return value != 0
+    text = str(value).strip().lower()
+    if text in {"1", "true", "yes", "y", "on", "required"}:
+        return True
+    if text in {"0", "false", "no", "n", "off", "optional", "skip"}:
+        return False
+    return default
+
+
 def audit_stage(
     stage: SetupStage,
     facts: SetupFacts,
@@ -39,7 +54,8 @@ def audit_stage(
         if plan is None:
             blockers.append("No research plan was produced.")
         elif any(
-            bool(q.get("required", True)) and not str(q.get("answer", "") or "").strip()
+            _coerce_plan_bool(q.get("required", True), default=True)
+            and not str(q.get("answer", "") or "").strip()
             for q in plan.unresolved_questions
         ):
             blockers.append("Research plan still has unanswered required questions.")
@@ -92,10 +108,16 @@ def audit_stage(
             and plan.driver_strategy.confidence != "manual_followup_required"
             and plan.driver_strategy.source != "manual_followup"
             and not expected
+            and facts.nvidia_smi_state != "ok"
         ):
             details["driver_research_needed"] = True
             details["driver_research_reason"] = (
                 "NVIDIA driver strategy is marked resolved but contains no driver packages."
+            )
+            blockers.append(
+                "NVIDIA driver strategy is marked resolved but contains no driver packages "
+                "and nvidia-smi is not already healthy. Re-research the driver plan or mark "
+                "driver setup as explicit manual follow-up."
             )
         if "nvidia" in facts.gpu_vendors and expected and facts.nvidia_smi_state != "ok":
             blockers.append("NVIDIA verification is incomplete: nvidia-smi is not healthy yet.")
@@ -213,9 +235,15 @@ def audit_stage(
             in {
                 PlanItemStatus.BLOCKED,
                 PlanItemStatus.FAILED,
-                PlanItemStatus.MANUAL_FOLLOWUP,
                 PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION,
             }
+        ]
+        required_manual_without_reason = [
+            app.name
+            for app in (plan.apps if plan else [])
+            if app.required
+            and app.status == PlanItemStatus.MANUAL_FOLLOWUP
+            and not str(app.reason or "").strip()
         ]
         if pending_slow:
             blockers.append(
@@ -226,8 +254,13 @@ def audit_stage(
             blockers.append("Required apps are still unresolved: " + ", ".join(sorted(unresolved)))
         if required_followup:
             blockers.append(
-                "Required apps need manual follow-up or failed setup: "
+                "Required apps are blocked, failed, or still waiting for confirmation: "
                 + ", ".join(sorted(required_followup))
+            )
+        if required_manual_without_reason:
+            blockers.append(
+                "Required apps marked manual follow-up need an explicit reason: "
+                + ", ".join(sorted(required_manual_without_reason))
             )
         details["apps"] = {app.name: app.status.value for app in (plan.apps if plan else [])}
 

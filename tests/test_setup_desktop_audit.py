@@ -496,7 +496,8 @@ def test_driver_audit_records_resolved_nvidia_strategy_without_packages_for_rese
 
     result = audit_stage(SetupStage.POSTBOOT_DRIVER, facts, plan=plan)
 
-    assert result.passed
+    assert not result.passed
+    assert "contains no driver packages" in "; ".join(result.blockers)
     assert result.details["driver_research_needed"] is True
 
 

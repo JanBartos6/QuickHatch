@@ -31,6 +31,7 @@ from .planner import (
     extract_research_plan,
 )
 from .preflight import (
+    _split_command_segments,
     arch_community_helpers_in_command,
     preflight_setup_decisions,
 )
@@ -457,7 +458,7 @@ _COMMUNITY_APP_SOURCES = {
 _APP_PACKAGE_ALIASES: dict[str, set[str]] = {
     "brave": {"brave", "brave-bin", "brave-browser", "brave-browser-bin"},
     "brave browser": {"brave", "brave-bin", "brave-browser", "brave-browser-bin"},
-    "cursor": {"cursor", "cursor-bin", "visual-studio-code-bin"},
+    "cursor": {"cursor", "cursor-bin"},
     "github desktop": {"github-desktop", "github-desktop-bin"},
     "lm studio": {"lm-studio", "lm-studio-bin", "lmstudio", "lmstudio-bin"},
     "mullvad": {"mullvad", "mullvad-vpn", "mullvad-vpn-bin", "mullvad-vpn-daemon-bin"},
@@ -473,6 +474,22 @@ _APP_PACKAGE_ALIASES: dict[str, set[str]] = {
     "claude": {"claude", "claude-desktop-bin", "claude-desktop"},
     "codex": {"codex", "openai-codex", "openai-codex-desktop", "codex-desktop-bin"},
 }
+
+
+def _coerce_model_bool(value: Any, default: bool = False) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    if isinstance(value, (int, float)):
+        return value != 0
+    text = str(value).strip().lower()
+    if text in {"1", "true", "yes", "y", "on", "required"}:
+        return True
+    if text in {"0", "false", "no", "n", "off", "optional", "skip"}:
+        return False
+    return default
+
 
 _INSTALLED_NONROOT_PRIVILEGED_STAGES = {
     SetupStage.POSTBOOT_DRIVER,
@@ -973,7 +990,7 @@ class SetupOrchestrator:
                     int(payload.get("max_results", 5) or 5),
                 )
             elif action == "question":
-                required = bool(payload.get("required", True))
+                required = _coerce_model_bool(payload.get("required", True), default=True)
                 answer = self._ask_blocking_question(
                     str(payload.get("question", "")).strip(),
                     choices=payload.get("choices"),
@@ -1015,7 +1032,7 @@ class SetupOrchestrator:
             )
         self.bridge.update_setup_run(planning_complete=True)
         for question in self.ctx.plan.unresolved_questions:
-            if not bool(question.get("required", True)):
+            if not _coerce_model_bool(question.get("required", True), default=True):
                 continue
             answer = self._ask_blocking_question(
                 str(question.get("question", "")).strip(),
@@ -1191,6 +1208,12 @@ class SetupOrchestrator:
                             new_budget=repair_budget,
                         )
                     elif decision == "manual_followup":
+                        if stage == SetupStage.INSTALL_OR_SKIP:
+                            raise RuntimeError(
+                                "Live install/base bootstrapping cannot be deferred to manual "
+                                "follow-up inside the automated install stage. Stop, repair the "
+                                "install command group, or ask the user before rebooting."
+                            )
                         current_group.status = PlanItemStatus.MANUAL_FOLLOWUP
                         self._mark_group_manual_followup(
                             current_group,
@@ -1230,6 +1253,11 @@ class SetupOrchestrator:
                     current_group = repair_outcome["group"]
                     continue
                 if action == "manual_followup":
+                    if stage == SetupStage.INSTALL_OR_SKIP:
+                        raise RuntimeError(
+                            "Live install/base bootstrapping cannot be marked manual follow-up; "
+                            "the target would not be boot/reconnect safe."
+                        )
                     current_group.status = PlanItemStatus.MANUAL_FOLLOWUP
                     reason = str(repair_outcome.get("reason", "") or failure.detail)
                     self._mark_group_manual_followup(
@@ -1272,9 +1300,50 @@ class SetupOrchestrator:
             self._record_stage_result(result)
             return
         if self.ctx.facts:
+            install_state = self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})
+            if self.ctx.facts.target_root_mounted:
+                ok, failures, summary = self._run_pre_reboot_checks_with_retries()
+                self.runlog.record(
+                    "live_install_resume_precheck",
+                    stage=SetupStage.INSTALL_OR_SKIP.value,
+                    passed=ok,
+                    failures=failures,
+                    summary=summary,
+                )
+                if ok:
+                    install_state["pre_reboot_checks_passed"] = True
+                    self.bridge.add_message(
+                        "agent",
+                        "[harness] Existing live-install target already passes bootability "
+                        "checks; skipping destructive disk/base install commands.",
+                    )
+                    self._ensure_reconnect_ssh_key()
+                    self._issue_install_reboot()
+                    reconnect_user = self.ctx.created_user or self.runtime.user
+                    reconnected, fresh_info, new_user = self.runtime.wait_for_reconnect(
+                        reconnect_user
+                    )
+                    install_state["reconnected_after_install"] = reconnected
+                    if not reconnected:
+                        raise RuntimeError("Target did not reconnect after install reboot.")
+                    if new_user:
+                        self.runtime.user = new_user
+                    self.ctx.system_info = fresh_info
+                    self._refresh_facts(stage=SetupStage.INSTALL_OR_SKIP)
+                    if self.ctx.facts and self.ctx.facts.is_live:
+                        raise RuntimeError(
+                            "Target reconnected but still appears to be the live environment."
+                        )
+                    result = audit_stage(
+                        SetupStage.INSTALL_OR_SKIP,
+                        self.ctx.facts or SetupFacts(),
+                        plan=self.ctx.plan,
+                        stage_state=install_state,
+                    )
+                    self._record_stage_result(result)
+                    return
             installer = get_family_installer(self._family_adapter_key(self.ctx.facts))
             spine = installer.build_install_spine(self.ctx.facts, self.profile)
-            install_state = self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})
             install_state["family_adapter"] = {
                 "family": spine.family,
                 "adapter_version": spine.adapter_version,
@@ -1289,6 +1358,7 @@ class SetupOrchestrator:
                 commands=spine.commands,
                 verification=spine.verification,
             )
+            self._enforce_live_family_install_spine(spine.commands, spine.verification)
         self._run_stage_groups(SetupStage.INSTALL_OR_SKIP, audit_after=False)
         install_state = self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})
         if install_state.get("installer_reboot_observed"):
@@ -2075,6 +2145,11 @@ class SetupOrchestrator:
     def _run_postboot_driver(self) -> None:
         if self.ctx.facts is not None:
             self._refresh_facts(stage=SetupStage.POSTBOOT_DRIVER)
+        if self.ctx.facts is not None and not self.ctx.facts.fact_probe_ok:
+            raise RuntimeError(
+                "Fresh setup facts could not be collected, so driver-stage mutations are "
+                "blocked. Reconnect and refresh facts before changing drivers."
+            )
         if not self._needs_nvidia_recovery_group(self.ctx.facts or SetupFacts()):
             if self._skip_stage_if_current_audit_passes(SetupStage.POSTBOOT_DRIVER):
                 return
@@ -2110,6 +2185,21 @@ class SetupOrchestrator:
         stage_state = self.ctx.stage_state.setdefault(stage.value, {})
         if stage == SetupStage.DESKTOP:
             self._update_desktop_display_audit_state(stage_state)
+            has_pending_desktop_work = any(
+                group.status
+                in {
+                    PlanItemStatus.PENDING,
+                    PlanItemStatus.IN_PROGRESS,
+                    PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION,
+                }
+                for group in self._iter_stage_groups(stage)
+            )
+            if has_pending_desktop_work and not (
+                stage_state.get("desktop_design_attempted")
+                or stage_state.get("wallpaper_attempted")
+                or stage_state.get("strict_desktop_design_contract")
+            ):
+                return False
         result = audit_stage(
             stage,
             self.ctx.facts or SetupFacts(),
@@ -2150,6 +2240,61 @@ class SetupOrchestrator:
                 return "ubuntu"
             return "debian"
         return family or os_id or "unknown"
+
+    def _enforce_live_family_install_spine(
+        self, commands: list[str], verification: list[str]
+    ) -> None:
+        if self.ctx.plan is None or self.ctx.facts is None or not self.ctx.facts.is_live:
+            return
+        install_groups = self._iter_stage_groups(SetupStage.INSTALL_OR_SKIP)
+        planned_commands = [command for group in install_groups for command in group.commands]
+        disks = self._extract_destructive_target_disks(planned_commands)
+        install_state = self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})
+        if len(disks) != 1:
+            install_state["family_adapter_spine_enforced"] = False
+            install_state["family_adapter_spine_reason"] = (
+                "No single explicit target disk was found in the researched install plan."
+            )
+            self.runlog.record(
+                "family_adapter_spine_not_enforced",
+                stage=SetupStage.INSTALL_OR_SKIP.value,
+                reason=install_state["family_adapter_spine_reason"],
+                detected_disks=disks,
+            )
+            raise RuntimeError(
+                "Live install cannot continue without exactly one explicit confirmed target "
+                "disk in the research plan. Stop and ask the user to choose the disk from "
+                "`lsblk`; do not run model-invented partitioning commands."
+            )
+        disk_assignment = f"QUICKHATCH_TARGET_DISK={shlex.quote(disks[0])}; "
+        spine_group = CommandGroup(
+            id="quickhatch-family-install-spine",
+            stage=SetupStage.INSTALL_OR_SKIP,
+            title="Deterministic family live-install spine",
+            commands=[disk_assignment + command for command in commands],
+            verification=[disk_assignment + item for item in verification],
+            rationale=(
+                "QuickHatch owns disk/base/boot/reconnect mechanics; the model plan supplies "
+                "the confirmed target disk and later stages."
+            ),
+            source="family_adapter",
+        )
+        self.ctx.plan.command_groups = [
+            group
+            for group in self.ctx.plan.command_groups
+            if group.stage != SetupStage.INSTALL_OR_SKIP
+        ]
+        self.ctx.plan.command_groups.insert(0, spine_group)
+        install_state["family_adapter_spine_enforced"] = True
+        install_state["family_adapter_target_disk"] = disks[0]
+        self.runlog.record(
+            "family_adapter_spine_enforced",
+            stage=SetupStage.INSTALL_OR_SKIP.value,
+            target_disk=disks[0],
+            replaced_group_count=len(install_groups),
+            command_count=len(commands),
+            verification_count=len(verification),
+        )
 
     def _ensure_display_manager_started(self) -> None:
         facts = self.ctx.facts
@@ -2640,7 +2785,8 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         query_cmds = {
             "pacman": "pacman -Qq",
             "apt": (
-                "dpkg-query -W -f='${Package}\\n' 2>/dev/null; "
+                "dpkg-query -W -f='${db:Status-Abbrev} ${Package}\\n' 2>/dev/null "
+                "| awk '$1 == \"ii\" {print $2}'; "
                 "snap list 2>/dev/null | awk 'NR>1 {print $1}'"
             ),
             "dnf": "rpm -qa --queryformat '%{NAME}\\n'",
@@ -2739,9 +2885,18 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
     def _query_installed_flatpaks(self) -> set[str]:
         final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
         final_state["flatpak_verification_ran"] = True
+        facts = self.ctx.facts or SetupFacts()
+        login_user = (facts.login_user or facts.current_user or "").strip()
+        extra_user_probe = ""
+        if login_user and login_user != "root" and login_user != facts.current_user:
+            extra_user_probe = (
+                f"sudo -u {shlex.quote(login_user)} flatpak list --app "
+                "--columns=application --user 2>/dev/null || true; "
+            )
         command = (
             "if command -v flatpak >/dev/null 2>&1; then "
             "flatpak list --app --columns=application --user 2>/dev/null || true; "
+            f"{extra_user_probe}"
             "flatpak list --app --columns=application --system 2>/dev/null || true; "
             "fi"
         )
@@ -2872,7 +3027,11 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             stderr_tail=(stderr or "")[-800:],
         )
         if rc != 0:
-            return []
+            return [
+                "systemctl --failed could not be queried successfully "
+                f"(rc={rc}; {(stderr or stdout or '').strip()[:200]}). "
+                "Verify systemd health before declaring setup complete."
+            ]
         failed_units = [
             line.strip()
             for line in (stdout or "").splitlines()
@@ -3678,7 +3837,8 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         if pm == "apt":
             return " && ".join(
                 (
-                    f"(dpkg-query -W {shlex.quote(package)} >/dev/null 2>&1 "
+                    f"(dpkg-query -W -f='${{db:Status-Abbrev}}\\n' {shlex.quote(package)} "
+                    "2>/dev/null | grep -qx 'ii ' "
                     f"|| snap list {shlex.quote(package)} >/dev/null 2>&1)"
                 )
                 for package in packages
@@ -3697,7 +3857,10 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
     def _filter_installed_app_group(
         self, group: CommandGroup, stage_state: dict[str, Any]
     ) -> CommandGroup | None:
-        if self.ctx.facts is None or not group.packages:
+        if self.ctx.facts is None:
+            return group
+        planned_packages = self._app_group_planned_packages(group)
+        if not planned_packages:
             return group
         query_packages = self._app_group_package_query_candidates(group)
         installed = self._query_installed_native_packages(query_packages, self.ctx.facts)
@@ -3705,12 +3868,16 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             return group
         installed_in_group = {
             package
-            for package in group.packages
+            for package in planned_packages
             if self._planned_package_is_installed(package, installed, group)
         }
         if not installed_in_group:
             return group
-        missing = [package for package in group.packages if package not in installed]
+        missing = [
+            package
+            for package in planned_packages
+            if not self._planned_package_is_installed(package, installed, group)
+        ]
         rewritten_commands: list[str] = []
         changed = False
         for command in group.commands:
@@ -3733,8 +3900,21 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             original_commands=list(group.commands),
             rewritten_commands=rewritten_commands,
         )
+        self._mark_apps_installed_by_prefilter(installed_in_group, installed, group)
         if not changed:
-            return group
+            if not missing:
+                self.bridge.add_message(
+                    "agent",
+                    "[harness] App group already installed; skipping package install command(s): "
+                    + ", ".join(sorted(installed_in_group)),
+                )
+                return None
+            replacement = build_install_command(missing, group.source, self.ctx.facts)
+            if replacement:
+                rewritten_commands = [replacement]
+                changed = True
+            else:
+                return group
         if not rewritten_commands:
             self.bridge.add_message(
                 "agent",
@@ -3754,17 +3934,49 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         repaired.id = f"{group.id}-missing-only"
         repaired.title = f"{group.title} (missing packages only)"
         repaired.commands = rewritten_commands
+        repaired.verification = []
         repaired.packages = missing
         return repaired
 
+    def _app_group_planned_packages(self, group: CommandGroup) -> list[str]:
+        packages: list[str] = []
+        for package in group.packages:
+            if package and package not in packages:
+                packages.append(package)
+        for command in group.commands:
+            for package in self._install_payload_tokens_for_command(command):
+                if package and package not in packages:
+                    packages.append(package)
+        return packages
+
+    def _install_payload_tokens_for_command(self, command: str) -> list[str]:
+        if "|" in command:
+            return []
+        segments = _split_command_segments(command)
+        if len(segments) > 1:
+            packages: list[str] = []
+            for segment in segments:
+                for package in self._install_payload_tokens_for_command(segment):
+                    if package not in packages:
+                        packages.append(package)
+            return packages
+        try:
+            tokens = shlex.split(command)
+        except ValueError:
+            return []
+        return self._install_payload_tokens_for_package_manager(
+            tokens, (self.ctx.facts or SetupFacts()).package_manager
+        )
+
     def _app_group_package_query_candidates(self, group: CommandGroup) -> list[str]:
         candidates: list[str] = []
-        for package in group.packages:
+        planned_packages = self._app_group_planned_packages(group)
+        for package in planned_packages:
             if package and package not in candidates:
                 candidates.append(package)
         if self.ctx.plan is None:
             return candidates
-        group_packages = {package.lower() for package in group.packages}
+        group_packages = {package.lower() for package in planned_packages}
         title = group.title.lower()
         for app in self.ctx.plan.apps:
             variants = self._package_name_variants(app.name, app.package_name)
@@ -3788,16 +4000,39 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         variants = self._package_name_variants("", package)
         if self.ctx.plan is not None:
             package_lower = package.lower()
-            title = group.title.lower()
             for app in self.ctx.plan.apps:
                 app_variants = self._package_name_variants(app.name, app.package_name)
                 if (
                     package_lower in app_variants
-                    or app.name.lower() in title
                     or (app.package_name or "").lower() == package_lower
                 ):
                     variants.update(app_variants)
         return bool(variants.intersection(installed_packages))
+
+    def _mark_apps_installed_by_prefilter(
+        self,
+        installed_in_group: set[str],
+        installed_packages: set[str],
+        group: CommandGroup,
+    ) -> None:
+        if self.ctx.plan is None:
+            return
+        for app in self.ctx.plan.apps:
+            if app.status in {
+                PlanItemStatus.INSTALLED,
+                PlanItemStatus.MANUAL_FOLLOWUP,
+                PlanItemStatus.EXPLICITLY_SKIPPED,
+            }:
+                continue
+            variants = self._package_name_variants(app.name, app.package_name)
+            app_matches_group = bool(
+                variants.intersection(installed_in_group)
+                or variants.intersection(installed_packages)
+            )
+            if not app_matches_group:
+                continue
+            app.status = PlanItemStatus.INSTALLED
+            app.reason = app.reason or "Already installed before this app command group ran."
 
     def _query_installed_native_packages(self, packages: list[str], facts: SetupFacts) -> set[str]:
         package_list = [package for package in dict.fromkeys(packages) if package]
@@ -3805,7 +4040,10 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             return set()
         checks = {
             "pacman": 'pacman -Qq "$p" >/dev/null 2>&1',
-            "apt": ('dpkg-query -W "$p" >/dev/null 2>&1 || snap list "$p" >/dev/null 2>&1'),
+            "apt": (
+                "dpkg-query -W -f='${db:Status-Abbrev}\\n' \"$p\" 2>/dev/null "
+                "| grep -qx 'ii ' || snap list \"$p\" >/dev/null 2>&1"
+            ),
             "dnf": 'rpm -q "$p" >/dev/null 2>&1',
             "zypper": 'rpm -q "$p" >/dev/null 2>&1',
             "apk": 'apk info -e "$p" >/dev/null 2>&1',
@@ -5847,6 +6085,32 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             return None
         stage_state["arch_aur_helper_bootstrap_attempted"] = True
         bootstrap_command = self._arch_yay_bootstrap_command()
+        blocking_decisions = [
+            decision
+            for decision in preflight_setup_decisions(
+                bootstrap_command,
+                facts,
+                shadow_mode=os.environ.get("QUICKHATCH_PREFLIGHT_SHADOW") == "1",
+            )
+            if decision.kind == PreflightDecisionKind.BLOCK
+        ]
+        if blocking_decisions:
+            detail = blocking_decisions[0].reason
+            self.runlog.record(
+                "arch_aur_helper_bootstrap_preflight_blocked",
+                stage=stage.value,
+                group_id=group.id,
+                command=bootstrap_command,
+                decision=_preflight_decision_payload(blocking_decisions[0]),
+                blocked_command=command,
+            )
+            return GroupFailure(
+                failure_type="preflight",
+                command=bootstrap_command,
+                stdout="",
+                stderr="",
+                detail=detail,
+            )
         self.bridge.add_message(
             "agent",
             "AUR helper is missing; installing `yay` before retrying the planned community command.",
@@ -6240,7 +6504,9 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                     timeout=float(action.get("timeout_seconds", 600) or 600),
                 )
                 if not answer:
-                    if not bool(action.get("required", True)) or stage in {
+                    if not _coerce_model_bool(
+                        action.get("required", True), default=True
+                    ) or stage in {
                         SetupStage.DESKTOP,
                         SetupStage.APPS,
                     }:
@@ -6389,6 +6655,7 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
     ) -> None:
         if not self.ctx.plan:
             return
+        self.ctx.stage_state.setdefault(stage.value, {})["failed_verifications"] = []
         if stage != SetupStage.APPS:
             if stage == SetupStage.POSTBOOT_DRIVER and self.ctx.facts:
                 if "nvidia" in self.ctx.facts.gpu_vendors:

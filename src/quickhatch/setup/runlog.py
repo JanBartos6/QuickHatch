@@ -31,7 +31,26 @@ def redact_sensitive_text(value: str) -> str:
     text = _SENSITIVE_JSON_FIELD_RE.sub(r'\1"***REDACTED***"', value)
     text = _SENSITIVE_LINE_RE.sub(lambda m: f"{m.group(1)}=***REDACTED***", text)
     text = re.sub(
+        r"\b(qh_pw|password|root_pw|user_pw)=('(?:[^']*)'|\"(?:[^\"]*)\"|[^\s;]+)",
+        r"\1=***REDACTED***",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(
         r"echo\s+['\"][^:'\"]+:[^'\"]+['\"]\s*\|\s*chpasswd",
+        "echo '***REDACTED***' | chpasswd",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(
+        r"(?:echo|printf)\s+[^\n|]+?\|\s*(?:[^\n;|]*\s)?chpasswd",
+        "echo '***REDACTED***' | chpasswd",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(
+        r"(?:echo|printf)\s+[^\n|]+?\|\s*(?:sudo|\$[A-Za-z_][A-Za-z0-9_]*)?\s*"
+        r"(?:chroot\s+(?:\"[^\"]+\"|'[^']+'|\S+)\s+)?chpasswd",
         "echo '***REDACTED***' | chpasswd",
         text,
         flags=re.IGNORECASE,

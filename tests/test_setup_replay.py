@@ -46,6 +46,60 @@ def test_replay_loader_reconstructs_summary(tmp_path):
     assert summary.blockers == ["blocked for test"]
 
 
+def test_latest_runlog_prefers_newer_malformed_real_run(tmp_path):
+    old_path = tmp_path / "old.jsonl"
+    old_path.write_text(
+        json.dumps({"event_type": "run_started", "run_id": "old"}) + "\n",
+        encoding="utf-8",
+    )
+    new_path = tmp_path / "new.jsonl"
+    new_path.write_text(
+        json.dumps({"event_type": "run_started", "run_id": "new"}) + "\n{bad",
+        encoding="utf-8",
+    )
+
+    assert find_latest_runlog(tmp_path) == new_path
+    scanned = scan_runlogs(tmp_path)
+    assert scanned.failure_categories["runlog_jsonl_decode_error"] == 1
+
+
+def test_replay_classifies_failed_verification_and_shadow_preflight():
+    summary = summarize_runlog_from_events(
+        [
+            {
+                "event_type": "verification",
+                "stage": "postboot_driver",
+                "command": "nvidia-smi",
+                "rc": 1,
+                "stderr_tail": (
+                    "NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver"
+                ),
+            },
+            {
+                "event_type": "command_preflight_decision",
+                "stage": "apps",
+                "decisions": [
+                    {
+                        "kind": "shadow",
+                        "category": "package_manager_mismatch",
+                        "reason": "wrong package manager",
+                    }
+                ],
+            },
+        ]
+    )
+
+    assert summary.failed_verification_count == 1
+    assert summary.failure_categories
+    assert "package_manager_mismatch" in summary.failure_categories
+
+
+def summarize_runlog_from_events(events):
+    from quickhatch.setup.replay import summarize_events
+
+    return summarize_events(events)
+
+
 def test_stage_replay_filters_group(tmp_path):
     path = tmp_path / "run.jsonl"
     path.write_text(
@@ -486,6 +540,44 @@ def test_scan_runlogs_aggregates_diagnostics(tmp_path):
     assert summary.run_count == 1
     assert summary.diagnostic_categories["fragile_fstab_verification"] == 1
     assert summary.runs[0]["path"] == str(run)
+
+
+def test_scan_runlogs_keeps_failed_vm_certification_artifacts(tmp_path):
+    nested = tmp_path / "certification" / "arch" / "latest"
+    nested.mkdir(parents=True)
+    run = nested / "certification-run.jsonl"
+    run.write_text(
+        json.dumps(
+            {
+                "event_type": "vm_certification_finished",
+                "event_id": "cert:000001",
+                "run_id": "cert",
+                "success": False,
+                "exit_code": 1,
+                "error": "installer failed",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    summary = scan_runlogs(tmp_path)
+
+    assert summary.run_count == 1
+    assert summary.failure_categories["vm_certification_failed"] == 1
+    assert "VM certification failed: installer failed" in summary.runs[0]["blockers"]
+
+
+def test_scan_runlogs_surfaces_malformed_jsonl_instead_of_dropping_run(tmp_path):
+    nested = tmp_path / "setup-runs" / "bad"
+    nested.mkdir(parents=True)
+    run = nested / "run.jsonl"
+    run.write_text('{"event_type": "run_started"}\n{"event_type": ', encoding="utf-8")
+
+    summary = scan_runlogs(tmp_path)
+
+    assert summary.run_count == 1
+    assert summary.failure_categories["runlog_jsonl_decode_error"] == 1
+    assert any("malformed JSONL" in blocker for blocker in summary.runs[0]["blockers"])
 
 
 def test_replay_summary_surfaces_failed_final_audit_blockers(tmp_path):

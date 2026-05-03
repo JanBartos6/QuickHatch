@@ -11,6 +11,9 @@ from .base import BaseFamilyInstaller
 class FedoraInstaller(BaseFamilyInstaller):
     family = "fedora"
 
+    def efi_mountpoint(self) -> str:
+        return "/mnt/boot/efi"
+
     def install_base_system(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
         del facts, profile
         disk_vars = self.target_disk_partition_vars()
@@ -28,7 +31,7 @@ class FedoraInstaller(BaseFamilyInstaller):
             + "sudo tee /mnt/etc/fstab >/dev/null",
             disk_vars
             + 'ESP_UUID=$(sudo blkid -s UUID -o value "$ESP") && '
-            + 'printf "UUID=%s /boot vfat umask=0077 0 2\\n" "$ESP_UUID" | '
+            + 'printf "UUID=%s /boot/efi vfat umask=0077 0 2\\n" "$ESP_UUID" | '
             + "sudo tee -a /mnt/etc/fstab >/dev/null",
             "echo quickhatch | sudo tee /mnt/etc/hostname >/dev/null",
             "sudo chroot /mnt systemctl enable NetworkManager sshd",
@@ -43,10 +46,17 @@ class FedoraInstaller(BaseFamilyInstaller):
             "mountpoint -q /mnt/$qh_bind || sudo mount --bind /$qh_bind /mnt/$qh_bind; "
             "done",
             "sudo chroot /mnt sh -c '"
-            "grub2-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch --recheck "
-            "|| grub2-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch --removable --no-nvram --recheck'",
-            "sudo chroot /mnt grub2-mkconfig -o /boot/grub2/grub.cfg",
+            "mkdir -p /boot/efi/EFI/BOOT; "
+            "if [ -f /boot/efi/EFI/fedora/shimx64.efi ]; then "
+            "cp -f /boot/efi/EFI/fedora/shimx64.efi /boot/efi/EFI/BOOT/BOOTX64.EFI; "
+            "elif [ -f /boot/efi/EFI/fedora/grubx64.efi ]; then "
+            "cp -f /boot/efi/EFI/fedora/grubx64.efi /boot/efi/EFI/BOOT/BOOTX64.EFI; "
+            "else "
+            "grub2-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=quickhatch --removable --no-nvram --recheck; "
+            "fi; "
+            "test -f /boot/efi/EFI/BOOT/BOOTX64.EFI'",
             "sudo chroot /mnt dracut --regenerate-all -f",
+            "sudo chroot /mnt grub2-mkconfig -o /boot/grub2/grub.cfg",
         ]
 
     def post_reboot_package_query(self, packages: list[str], facts: SetupFacts) -> str:

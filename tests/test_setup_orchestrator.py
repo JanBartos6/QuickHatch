@@ -5,8 +5,6 @@ import threading
 import time
 from pathlib import Path
 
-import pytest
-
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, DisplayInfo, UserProfile
 from quickhatch.setup.audit import audit_stage
@@ -670,13 +668,12 @@ def test_unanswered_optional_slow_apps_become_manual_followup_before_apps_audit(
         ],
     )
 
-    with pytest.raises(RuntimeError, match="Required apps need manual follow-up"):
-        orchestrator._run_apps()
+    orchestrator._run_apps()
 
     assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.MANUAL_FOLLOWUP
     assert "Optional slow app" in orchestrator.ctx.plan.apps[0].reason
     assert orchestrator.ctx.stage_results[-1].stage == SetupStage.APPS
-    assert orchestrator.ctx.stage_results[-1].passed is False
+    assert orchestrator.ctx.stage_results[-1].passed is True
     assert "Optional slow apps still need user confirmation" not in " ".join(
         orchestrator.ctx.stage_results[-1].blockers
     )
@@ -1709,8 +1706,7 @@ def test_apps_stage_marks_unsupported_community_source_manual_followup():
         ],
     )
 
-    with pytest.raises(RuntimeError, match="Required apps need manual follow-up"):
-        orchestrator._run_apps()
+    orchestrator._run_apps()
 
     assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.MANUAL_FOLLOWUP
     assert "not supported automatically" in orchestrator.ctx.plan.apps[0].reason
@@ -1758,7 +1754,8 @@ def test_apt_package_verification_accepts_snap_backed_apps():
 
     command = SetupOrchestrator._package_verification_command(["thunderbird"], facts)
 
-    assert "dpkg-query -W thunderbird" in command
+    assert "dpkg-query -W -f=" in command
+    assert "thunderbird" in command
     assert "snap list thunderbird" in command
 
 
@@ -1794,7 +1791,9 @@ def test_apps_launcher_verification_uses_package_query_for_apt_snap_apps():
     failure = orchestrator._execute_group(SetupStage.APPS, group, {})
 
     assert failure is None
-    assert any("dpkg-query -W thunderbird" in command for command in commands_seen)
+    assert any(
+        "dpkg-query -W -f=" in command and "thunderbird" in command for command in commands_seen
+    )
     assert any("snap list thunderbird" in command for command in commands_seen)
     assert all("thunderbird --version" not in command for command in commands_seen)
 
@@ -3823,6 +3822,14 @@ def test_live_install_bootstraps_nopasswd_sudo_after_reconnect(tmp_path):
         package_manager="pacman",
         driver_strategy=StrategyDecision(strategy="none"),
         desktop_strategy=StrategyDecision(strategy="none"),
+        command_groups=[
+            CommandGroup(
+                id="install",
+                stage=SetupStage.INSTALL_OR_SKIP,
+                title="Confirm target disk",
+                commands=["parted -s /dev/sda mklabel gpt"],
+            )
+        ],
     )
 
     orchestrator._run_install_or_skip()
@@ -4662,7 +4669,7 @@ def test_live_install_failed_pre_reboot_checks_block_before_reconnect():
                 "id": "install-1",
                 "stage": "install_or_skip",
                 "title": "Install base system",
-                "commands": ["echo install base", "reboot"],
+                "commands": ["parted -s /dev/sda mklabel gpt", "echo install base", "reboot"],
                 "verification": [],
                 "rationale": "",
                 "source": "repo",
@@ -4763,7 +4770,7 @@ def test_live_install_passes_guard_then_reboots_and_reconnects_once():
                 "id": "install-1",
                 "stage": "install_or_skip",
                 "title": "Install base system",
-                "commands": ["echo install base", "reboot"],
+                "commands": ["parted -s /dev/sda mklabel gpt", "echo install base", "reboot"],
                 "verification": [],
                 "rationale": "",
                 "source": "repo",
@@ -4891,6 +4898,7 @@ def test_live_install_installs_reconnect_key_before_reboot(tmp_path):
                 "stage": "install_or_skip",
                 "title": "Install base system",
                 "commands": [
+                    "parted -s /dev/sda mklabel gpt",
                     "arch-chroot /mnt useradd -m -G wheel -s /bin/bash jan",
                     "reboot",
                 ],
@@ -4983,7 +4991,7 @@ def test_live_install_installs_reconnect_key_before_reboot(tmp_path):
     key_command = next(command for command in commands if "authorized_keys" in command)
     reboot_command = next(command for command in commands if "reboot" in command)
     assert commands.index(key_command) < commands.index(reboot_command)
-    assert public_key in key_command
+    assert "/mnt/home/$qh_user/.ssh/authorized_keys" in key_command
     assert "Arch live install" in summary
 
 
@@ -5104,22 +5112,13 @@ def test_live_install_injects_disk_cleanup_before_destructive_partitioning():
 
     summary = SetupOrchestrator(runtime).run()
 
-    parted_index = commands.index("parted -s /dev/sda mklabel gpt")
-    assert commands[parted_index - 5] == "sudo swapoff -a || true"
-    assert (
-        commands[parted_index - 4]
-        == "mountpoint -q /mnt/sysimage && sudo umount -R /mnt/sysimage || true"
-    )
-    assert (
-        commands[parted_index - 3]
-        == "mountpoint -q /mnt/sysroot && sudo umount -R /mnt/sysroot || true"
-    )
-    assert commands[parted_index - 2] == "mountpoint -q /mnt && sudo umount -R /mnt || true"
-    assert "lsblk -lnpo NAME /dev/sda" in commands[parted_index - 1]
-    assert 'sudo umount "$p"' in commands[parted_index - 1]
-    assert "umount -R /mnt" not in commands
-    messages = [message["content"] for message in bridge.messages]
-    assert "`parted -s /dev/sda mklabel gpt`" in messages
+    parted_index = next(index for index, command in enumerate(commands) if "mklabel gpt" in command)
+    before_parted = commands[:parted_index]
+    assert any(command.endswith("sudo swapoff -a || true") for command in before_parted)
+    assert any("umount -R /mnt" in command for command in before_parted)
+    assert any("lsblk -lnpo NAME /dev/sda" in command for command in before_parted)
+    assert "QUICKHATCH_TARGET_DISK=/dev/sda" in commands[parted_index]
+    assert "parted -s" in commands[parted_index]
     assert "Arch live install" in summary
 
 
@@ -5702,15 +5701,15 @@ def test_group_failure_message_redacts_ssh_key_comment():
         "Command failed",
         (
             "grep -qxF 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFAKE "
-            "honz.bartos@example.test' ~/.ssh/authorized_keys"
+            "user@example.test' ~/.ssh/authorized_keys"
         ),
         1,
         "",
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFAKE honz.bartos@example.test",
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFAKE user@example.test",
     )
 
     assert "AAAAC3" not in message
-    assert "honz.bartos@example.test" not in message
+    assert "user@example.test" not in message
     assert "ssh-key ***REDACTED***" in message
 
 
@@ -6704,6 +6703,141 @@ def test_apps_stage_filters_already_installed_packages_from_install_command():
     assert "sudo pacman -S --noconfirm git python" not in executed
 
 
+def test_apps_stage_skips_complex_install_command_when_all_targets_installed():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="ubuntu", package_manager="apt", current_user="jan")
+    executed: list[str] = []
+
+    def ssh_exec(command: str, _timeout: int):
+        executed.append(command)
+        if "INSTALLED:" in command:
+            return (0, "INSTALLED:git\n", "")
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Ubuntu workstation.",
+        distro_family="ubuntu",
+        package_manager="apt",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("gnome"),
+        command_groups=[
+            CommandGroup(
+                id="apps",
+                stage=SetupStage.APPS,
+                title="Install Git",
+                commands=["sudo apt-get update && sudo apt-get install -y git"],
+                packages=["git"],
+            )
+        ],
+    )
+
+    orchestrator._run_stage_groups(SetupStage.APPS, audit_after=False)
+
+    assert any("INSTALLED:" in command for command in executed)
+    assert "sudo apt-get update && sudo apt-get install -y git" not in executed
+
+
+def test_apps_stage_uses_aliases_when_filtering_missing_packages():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        sudo_nopasswd=True,
+    )
+    executed: list[str] = []
+
+    def ssh_exec(command: str, _timeout: int):
+        executed.append(command)
+        if "pacman -Qq" in command:
+            return (0, "INSTALLED:lmstudio-bin\nMISSING:docker-desktop\n", "")
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation.",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("plasma"),
+        command_groups=[
+            CommandGroup(
+                id="apps",
+                stage=SetupStage.APPS,
+                title="Install apps",
+                commands=["sudo pacman -S --noconfirm lm-studio-bin docker-desktop"],
+                packages=["lm-studio-bin", "docker-desktop"],
+            )
+        ],
+        apps=[AppPlanItem(name="LM Studio", package_name="lm-studio-bin", source="repo")],
+    )
+
+    orchestrator._run_stage_groups(SetupStage.APPS, audit_after=False)
+
+    assert any(
+        "docker-desktop" in command and "lm-studio-bin" not in command for command in executed
+    )
+    assert "sudo pacman -S --noconfirm lm-studio-bin docker-desktop" not in executed
+
+
+def test_apps_stage_marks_prefiltered_apps_installed_and_clears_stale_verification():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        sudo_nopasswd=True,
+    )
+    executed: list[str] = []
+
+    def ssh_exec(command: str, _timeout: int):
+        executed.append(command)
+        if "pacman -Qq" in command:
+            return (0, "INSTALLED:git\nMISSING:python\n", "")
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    git_app = AppPlanItem(name="Git", package_name="git", source="repo")
+    python_app = AppPlanItem(name="Python", package_name="python", source="repo")
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation.",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("plasma"),
+        command_groups=[
+            CommandGroup(
+                id="apps",
+                stage=SetupStage.APPS,
+                title="Install Git and Python",
+                commands=["sudo pacman -S --noconfirm git python"],
+                verification=["pacman -Q git python"],
+                packages=["git", "python"],
+            )
+        ],
+        apps=[git_app, python_app],
+    )
+
+    orchestrator._run_stage_groups(SetupStage.APPS, audit_after=False)
+
+    assert git_app.status == PlanItemStatus.INSTALLED
+    assert any(command == "sudo pacman -S --needed --noconfirm python" for command in executed)
+    assert "pacman -Q git python" not in executed
+
+
 def test_apps_stage_filters_already_installed_packages_across_package_managers():
     cases = [
         ("apt", "sudo apt-get install -y git python3", "sudo apt-get install -y python3"),
@@ -6972,7 +7106,7 @@ def test_orchestrator_can_convert_failed_verification_into_manual_followup_after
     finally:
         helper.join(timeout=2)
 
-    assert "Required apps need manual follow-up" in summary
+    assert "Manual follow-up: ChatGPT" in summary
 
 
 def test_orchestrator_marks_app_repair_question_timeout_manual_followup():
@@ -7100,7 +7234,7 @@ def test_orchestrator_marks_app_repair_question_timeout_manual_followup():
 
     summary = SetupOrchestrator(runtime).run()
 
-    assert "Required apps need manual follow-up" in summary
+    assert "Manual follow-up: Brave" in summary
     pending = bridge.get_pending_questions()
     assert pending == []
 

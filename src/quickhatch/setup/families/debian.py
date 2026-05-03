@@ -13,6 +13,9 @@ class DebianInstaller(BaseFamilyInstaller):
     suite = "trixie"
     mirror = "http://deb.debian.org/debian"
 
+    def efi_mountpoint(self) -> str:
+        return "/mnt/boot/efi"
+
     def install_base_system(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
         del facts, profile
         return [
@@ -37,8 +40,10 @@ class DebianInstaller(BaseFamilyInstaller):
             "sudo mkdir -p /mnt/$qh_bind; "
             "mountpoint -q /mnt/$qh_bind || sudo mount --bind /$qh_bind /mnt/$qh_bind; "
             "done",
-            "sudo chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch --recheck",
-            "sudo chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch --removable --no-nvram --recheck",
+            "sudo chroot /mnt sh -c '"
+            "grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=quickhatch --recheck "
+            "|| grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=quickhatch --removable --no-nvram --recheck; "
+            "test -f /boot/efi/EFI/BOOT/BOOTX64.EFI -o -f /boot/efi/EFI/quickhatch/grubx64.efi'",
             "sudo chroot /mnt update-grub",
             "sudo chroot /mnt update-initramfs -u -k all",
         ]

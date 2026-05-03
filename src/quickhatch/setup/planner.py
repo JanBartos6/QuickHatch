@@ -197,6 +197,21 @@ def _coerce_stage(value: str) -> SetupStage:
         raise ResearchPlanValidationError(f"Unknown setup stage: {value}") from exc
 
 
+def _coerce_bool(value: Any, default: bool = False) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    if isinstance(value, (int, float)):
+        return value != 0
+    text = str(value).strip().lower()
+    if text in {"1", "true", "yes", "y", "on", "required"}:
+        return True
+    if text in {"0", "false", "no", "n", "off", "optional", "skip"}:
+        return False
+    return default
+
+
 def _coerce_status(value: str | None) -> PlanItemStatus:
     if not value:
         return PlanItemStatus.PENDING
@@ -427,8 +442,8 @@ def _parse_command_group(item: Any) -> CommandGroup:
         raise ResearchPlanValidationError(
             "Each command group needs id, title, stage, and at least one command."
         )
-    optional = bool(item.get("optional", False))
-    optional_slow = bool(item.get("optional_slow", False)) and optional
+    optional = _coerce_bool(item.get("optional", False), default=False)
+    optional_slow = _coerce_bool(item.get("optional_slow", False), default=False) and optional
     return CommandGroup(
         id=gid,
         stage=stage,
@@ -477,7 +492,8 @@ def _normalize_app_items(raw: Any, requested: list[str]) -> list[AppPlanItem]:
             str(item.get("source", "manual_followup") or "manual_followup")
         )
         optional_slow = (
-            bool(item.get("optional_slow", False)) or package_name in _OPTIONAL_SLOW_PACKAGES
+            _coerce_bool(item.get("optional_slow", False), default=False)
+            or package_name in _OPTIONAL_SLOW_PACKAGES
         )
         status = _coerce_status(item.get("status"))
         if status in {
@@ -497,7 +513,9 @@ def _normalize_app_items(raw: Any, requested: list[str]) -> list[AppPlanItem]:
                 package_name=package_name,
                 source=source,
                 status=status,
-                required=bool(item.get("required", name in requested)),
+                required=_coerce_bool(
+                    item.get("required", name in requested), default=name in requested
+                ),
                 optional_slow=optional_slow,
                 reason=str(item.get("reason", "") or ""),
                 evidence=_parse_evidence(
@@ -737,7 +755,7 @@ def extract_repair_action(
             "action": action,
             "question": question,
             "choices": payload.get("choices"),
-            "required": bool(payload.get("required", True)),
+            "required": _coerce_bool(payload.get("required", True), default=True),
             "timeout_seconds": float(payload.get("timeout_seconds", 600) or 600),
         }
     if action == "manual_followup":

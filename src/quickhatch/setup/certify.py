@@ -8,9 +8,11 @@ can validate family/profile/snapshot wiring without mutating a real VM.
 from __future__ import annotations
 
 import json
+import shlex
 import shutil
 import subprocess
 import time
+import uuid
 from dataclasses import asdict
 from pathlib import Path
 
@@ -34,21 +36,28 @@ CERTIFICATION_SNAPSHOTS = [
 
 
 def _timestamp() -> str:
-    return time.strftime("%Y%m%d-%H%M%S")
+    millis = int((time.time() % 1) * 1000)
+    return f"{time.strftime('%Y%m%d-%H%M%S')}-{millis:03d}-{uuid.uuid4().hex[:6]}"
 
 
 def _shell_comment(text: str) -> str:
     return "\n".join(f"# {line}" if line else "#" for line in str(text).splitlines())
 
 
-def build_certification_script(family: str, commands: list[str], verification: list[str]) -> str:
+def build_certification_script(
+    family: str,
+    commands: list[str],
+    verification: list[str],
+    *,
+    target_disk: str = "/dev/sda",
+) -> str:
     lines = [
         "#!/usr/bin/env bash",
         "set -euo pipefail",
         "",
         _shell_comment(f"QuickHatch VM certification install spine for {family}"),
         "export QUICKHATCH_VM_CERTIFY=1",
-        "export QUICKHATCH_TARGET_DISK=${QUICKHATCH_TARGET_DISK:-/dev/sda}",
+        f"export QUICKHATCH_TARGET_DISK=${{QUICKHATCH_TARGET_DISK:-{shlex.quote(target_disk)}}}",
         "",
     ]
     for idx, command in enumerate(commands, start=1):
@@ -172,8 +181,9 @@ def run_vm_certification(
     dry_run: bool = False,
     ssh_user: str = "root",
     ssh_key: str | None = None,
-    post_reboot_user: str = "jan",
+    post_reboot_user: str | None = None,
     require_post_reboot: bool = True,
+    target_disk: str | None = None,
 ) -> CertificationResult:
     normalized_family = (family or "").lower()
     artifact_dir = Path(root) / normalized_family / _timestamp()
@@ -198,12 +208,21 @@ def run_vm_certification(
             )
         except Exception as exc:
             blockers.append(f"Could not load profile JSON: {exc}")
+    effective_post_reboot_user = (
+        post_reboot_user or getattr(loaded_profile, "linux_user", None) or "jan"
+    )
 
     adapter = get_family_installer(normalized_family)
     facts = SetupFacts(distro_family=normalized_family, is_live=True)
     spine = adapter.build_install_spine(facts, loaded_profile)
     post_reboot_audit = adapter.final_boot_audit(SetupFacts(distro_family=normalized_family))
-    script = build_certification_script(normalized_family, spine.commands, spine.verification)
+    effective_target_disk = target_disk or ("/dev/vda" if backend == "qemu" else "/dev/sda")
+    script = build_certification_script(
+        normalized_family,
+        spine.commands,
+        spine.verification,
+        target_disk=effective_target_disk,
+    )
     script_path = artifact_dir / "certify-install.sh"
     script_path.write_text(script, encoding="utf-8")
     (artifact_dir / "final-facts.json").write_text(
@@ -216,6 +235,7 @@ def run_vm_certification(
         family=normalized_family,
         backend=backend,
         dry_run=dry_run,
+        target_disk=effective_target_disk,
         adapter=spine.family,
         adapter_version=spine.adapter_version,
         command_count=len(spine.commands),
@@ -252,7 +272,7 @@ def run_vm_certification(
             ssh_key=effective_ssh_key,
             progress=_progress,
             backend=backend,
-            post_reboot_user=post_reboot_user,
+            post_reboot_user=effective_post_reboot_user,
             post_reboot_commands=post_reboot_audit,
             require_post_reboot=require_post_reboot,
             live_bootstrap_command=live_bootstrap_command,
@@ -272,6 +292,22 @@ def run_vm_certification(
 
     status = "blocked" if blockers else ("dry_run" if dry_run else "passed")
     success = not blockers and (dry_run or bool(vm_result and vm_result.success))
+    if blockers and vm_result is None:
+        _append_event(
+            artifact_dir,
+            "certification_blocked",
+            success=False,
+            status=status,
+            blockers=blockers,
+        )
+    elif dry_run:
+        _append_event(
+            artifact_dir,
+            "certification_finished",
+            success=success,
+            status=status,
+            blockers=blockers,
+        )
     summary = {
         "family": normalized_family,
         "backend": backend,
@@ -290,7 +326,8 @@ def run_vm_certification(
         "ssh_user": ssh_user,
         "ssh_key": str(effective_ssh_key) if effective_ssh_key else "",
         "generated_ssh_key": generated_key,
-        "post_reboot_user": post_reboot_user,
+        "target_disk": effective_target_disk,
+        "post_reboot_user": effective_post_reboot_user,
         "require_post_reboot": require_post_reboot,
         "manual_intervention_required": False,
         "screenshots": [],

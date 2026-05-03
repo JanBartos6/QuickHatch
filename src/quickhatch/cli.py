@@ -212,7 +212,11 @@ def main() -> None:
     vm_parser.add_argument("--dry-run", action="store_true")
     vm_parser.add_argument("--ssh-user", default="root")
     vm_parser.add_argument("--ssh-key")
-    vm_parser.add_argument("--post-reboot-user", default="jan")
+    vm_parser.add_argument(
+        "--target-disk",
+        help="Target disk inside the VM (defaults to /dev/sda for VirtualBox, /dev/vda for QEMU).",
+    )
+    vm_parser.add_argument("--post-reboot-user", default=None)
     vm_parser.add_argument(
         "--no-post-reboot",
         action="store_true",
@@ -481,6 +485,7 @@ def _run_certify_command(args) -> None:
             dry_run=args.dry_run,
             ssh_user=args.ssh_user,
             ssh_key=args.ssh_key,
+            target_disk=args.target_disk,
             post_reboot_user=args.post_reboot_user,
             require_post_reboot=not args.no_post_reboot,
         )

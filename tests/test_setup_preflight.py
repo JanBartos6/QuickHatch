@@ -714,3 +714,142 @@ def test_typed_preflight_keeps_disk_boot_safety_as_hard_block():
 
     assert any(item.kind == PreflightDecisionKind.BLOCK for item in decisions)
     assert any(item.category == "disk_boot_safety" for item in decisions)
+
+
+def test_preflight_blocks_installed_system_destructive_block_device_writes():
+    facts = SetupFacts(
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        is_live=False,
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+
+    for command in (
+        "sudo dd if=/dev/zero of=/dev/sda bs=1M count=1",
+        "sudo cryptsetup luksFormat /dev/sda2",
+        "sudo mkswap /dev/sda3",
+        "sudo shred -n1 /dev/sda",
+    ):
+        decisions = preflight_setup_decisions(command, facts)
+        assert any(item.kind == PreflightDecisionKind.BLOCK for item in decisions), command
+        assert any(item.category == "disk_boot_safety" for item in decisions), command
+
+
+def test_preflight_blocks_plain_sudo_inside_shell_control_flow_without_nopasswd():
+    facts = SetupFacts(
+        package_manager="apt",
+        current_user="jan",
+        login_user="jan",
+        is_live=False,
+        is_root=False,
+        sudo_nopasswd=False,
+    )
+
+    for command in (
+        "if sudo apt-get update; then echo ok; fi",
+        "until sudo apt-get update; do sleep 1; done",
+        "while ! sudo apt-get update; do sleep 1; done",
+    ):
+        decisions = preflight_setup_decisions(command, facts)
+        assert any(item.kind == PreflightDecisionKind.BLOCK for item in decisions), command
+        assert any(item.category == "sudo_password" for item in decisions), command
+
+
+def test_preflight_blocks_direct_ssh_or_network_lockout_commands():
+    facts = SetupFacts(
+        package_manager="dnf",
+        current_user="jan",
+        login_user="jan",
+        is_live=False,
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+
+    for command in (
+        "sudo systemctl disable --now sshd",
+        "sudo nmcli networking off",
+        "sudo ip route del default",
+        "sudo ip link set eth0 down",
+        "sudo ufw default deny incoming",
+    ):
+        decisions = preflight_setup_decisions(command, facts)
+        assert any(item.kind == PreflightDecisionKind.BLOCK for item in decisions), command
+        assert any(item.category == "ssh_continuity" for item in decisions), command
+
+
+def test_preflight_allows_firewall_diagnostic_pipelines():
+    facts = SetupFacts(
+        package_manager="apt",
+        current_user="jan",
+        login_user="jan",
+        is_live=False,
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+
+    for command in (
+        "sudo nft list ruleset | grep drop",
+        "sudo iptables -S | grep DROP",
+        "sudo iptables -L -n -v",
+        "sudo firewall-cmd --list-all | grep remove",
+    ):
+        decisions = preflight_setup_decisions(command, facts)
+        assert not any(item.kind == PreflightDecisionKind.BLOCK for item in decisions), command
+
+
+def test_preflight_blocks_network_lockout_wrappers_and_newlines():
+    facts = SetupFacts(
+        package_manager="apt",
+        current_user="jan",
+        login_user="jan",
+        is_live=False,
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+
+    for command in (
+        "sudo systemctl restart sshd",
+        "sudo service ssh restart",
+        "sudo loginctl terminate-user jan",
+        "sudo reboot",
+        "echo ok\nsudo systemctl stop NetworkManager",
+        "sudo nmcli connection down quickhatch-wired-dhcp",
+        "sudo ip addr flush dev eth0",
+    ):
+        decisions = preflight_setup_decisions(command, facts)
+        assert any(item.kind == PreflightDecisionKind.BLOCK for item in decisions), command
+        assert any(item.category == "ssh_continuity" for item in decisions), command
+
+
+def test_preflight_blocks_sudo_shell_redirection_to_root_path():
+    facts = SetupFacts(
+        package_manager="apt",
+        current_user="jan",
+        login_user="jan",
+        is_live=False,
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+
+    decisions = preflight_setup_decisions("sudo echo nameserver 1.1.1.1 > /etc/resolv.conf", facts)
+
+    assert any(item.kind == PreflightDecisionKind.SHADOW for item in decisions)
+    assert any(item.category == "privilege_precondition" for item in decisions)
+
+
+def test_preflight_blocks_plain_doas_on_installed_system():
+    facts = SetupFacts(
+        package_manager="dnf",
+        current_user="jan",
+        login_user="jan",
+        is_live=False,
+        is_root=False,
+        sudo_nopasswd=False,
+    )
+
+    decisions = preflight_setup_decisions("doas dnf install -y git", facts)
+
+    assert any(item.kind == PreflightDecisionKind.BLOCK for item in decisions)
+    assert any(item.category == "sudo_password" for item in decisions)

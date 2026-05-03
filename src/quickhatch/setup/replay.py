@@ -71,6 +71,31 @@ def load_run_events(path: Path | str) -> list[dict[str, Any]]:
     return events
 
 
+def load_run_events_tolerant(path: Path | str) -> list[dict[str, Any]]:
+    source = Path(path)
+    events: list[dict[str, Any]] = []
+    for line_no, line in enumerate(source.read_text(encoding="utf-8").splitlines(), start=1):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            events.append(
+                {
+                    "event_id": f"{source.stem}:{line_no:06d}",
+                    "event_type": "jsonl_decode_error",
+                    "path": str(source),
+                    "line_no": line_no,
+                }
+            )
+            continue
+        if isinstance(event, dict):
+            event.setdefault("event_id", f"{source.stem}:{line_no:06d}")
+            events.append(event)
+    return events
+
+
 def summarize_events(events: list[dict[str, Any]]) -> RunReplaySummary:
     summary = RunReplaySummary(event_count=len(events))
     seen_stages: set[str] = set()
@@ -115,7 +140,59 @@ def summarize_events(events: list[dict[str, Any]]) -> RunReplaySummary:
                 rc = 0
             if rc != 0:
                 summary.failed_verification_count += 1
+                category = _classification_category(event, rc=rc)
+                counted_category = category
+                summary.failure_categories[category] = (
+                    summary.failure_categories.get(category, 0) + 1
+                )
                 event_failed = True
+        elif event_type == "vm_certification_finished":
+            if not bool(event.get("success")):
+                event_failed = True
+                category = "vm_certification_failed"
+                counted_category = category
+                summary.failure_categories[category] = (
+                    summary.failure_categories.get(category, 0) + 1
+                )
+                detail = str(event.get("error") or event.get("exit_code") or "").strip()
+                summary.blockers.append(
+                    "VM certification failed" + (f": {detail}" if detail else ".")
+                )
+        elif event_type == "certification_blocked":
+            event_failed = True
+            category = "vm_certification_blocked"
+            counted_category = category
+            summary.failure_categories[category] = summary.failure_categories.get(category, 0) + 1
+            blockers = event.get("blockers")
+            if isinstance(blockers, list):
+                summary.blockers.extend(str(item) for item in blockers)
+            else:
+                summary.blockers.append("VM certification blocked before execution.")
+        elif event_type == "jsonl_decode_error":
+            event_failed = True
+            category = "runlog_jsonl_decode_error"
+            counted_category = category
+            summary.failure_categories[category] = summary.failure_categories.get(category, 0) + 1
+            summary.blockers.append(
+                f"Runlog contains malformed JSONL at line {event.get('line_no')}."
+            )
+        elif event_type == "command_preflight_decision":
+            decisions = event.get("decisions")
+            if isinstance(decisions, list):
+                for decision in decisions:
+                    if not isinstance(decision, dict):
+                        continue
+                    kind = str(decision.get("kind") or "")
+                    if kind not in {"block", "shadow"}:
+                        continue
+                    category = str(decision.get("category") or "preflight")
+                    counted_category = category
+                    summary.failure_categories[category] = (
+                        summary.failure_categories.get(category, 0) + 1
+                    )
+                    if kind == "block":
+                        event_failed = True
+                    break
         elif event_type == "blocking_question_timeout":
             summary.blocking_question_timeout_count += 1
             event_failed = True
@@ -280,6 +357,28 @@ def diagnose_event(
     lowered = _event_text(event).lower()
     stage = str(event.get("stage") or "")
     rc = _event_rc(event)
+
+    if event_type == "command_preflight_decision":
+        decisions = event.get("decisions")
+        if isinstance(decisions, list):
+            for decision in decisions:
+                if not isinstance(decision, dict):
+                    continue
+                kind = str(decision.get("kind") or "")
+                if kind not in {"block", "shadow"}:
+                    continue
+                category = str(decision.get("category") or "preflight")
+                reason = str(decision.get("reason") or "Preflight decision recorded.")
+                return _diagnostic(
+                    event,
+                    category=category,
+                    severity="harness_fixable" if kind == "shadow" else "blocked",
+                    reason=reason,
+                    suggested_next=str(
+                        decision.get("suggested_next")
+                        or "Review whether this should be advisory, shadow, or a real safety block."
+                    ),
+                )
 
     if event_type == "verification" and rc != 0:
         if (
@@ -796,7 +895,7 @@ def scan_runlogs(
     )
     for path in paths:
         try:
-            summary = summarize_runlog(path)
+            summary = summarize_events(load_run_events_tolerant(path))
         except ValueError:
             continue
         if (
@@ -850,10 +949,7 @@ def find_latest_runlog(
 
     scored: list[tuple[int, float, Path]] = []
     for path in candidates:
-        try:
-            events = load_run_events(path)
-        except ValueError:
-            continue
+        events = load_run_events_tolerant(path)
         summary = summarize_events(events)
         event_types = {str(event.get("event_type") or "") for event in events}
         real_run_score = 0

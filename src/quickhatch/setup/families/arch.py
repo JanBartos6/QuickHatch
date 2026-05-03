@@ -28,8 +28,10 @@ class ArchInstaller(BaseFamilyInstaller):
     def install_bootloader(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
         del facts, profile
         return [
-            "sudo arch-chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch --recheck",
-            "sudo arch-chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch --removable --no-nvram --recheck",
+            "sudo arch-chroot /mnt sh -c '"
+            "grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch --recheck "
+            "|| grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch --removable --no-nvram --recheck; "
+            "test -f /boot/EFI/BOOT/BOOTX64.EFI -o -f /boot/EFI/quickhatch/grubx64.efi'",
             "sudo arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg",
             "sudo arch-chroot /mnt mkinitcpio -P",
         ]

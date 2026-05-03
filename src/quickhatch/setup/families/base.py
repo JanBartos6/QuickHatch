@@ -76,17 +76,30 @@ class BaseFamilyInstaller:
     def detect_live_iso(self, facts: SetupFacts) -> bool:
         return bool(facts.is_live)
 
+    def efi_mountpoint(self) -> str:
+        return "/mnt/boot"
+
     def prepare_disk(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
         del facts, profile
         disk_vars = self.target_disk_partition_vars()
+        efi_mount = shlex.quote(self.efi_mountpoint())
         return [
             "sudo swapoff -a || true",
             "mountpoint -q /mnt && sudo umount -R /mnt || true",
             disk_vars + 'sudo parted -s "$DISK" mklabel gpt mkpart ESP fat32 1MiB 513MiB '
             "set 1 esp on mkpart primary ext4 513MiB 100%",
+            disk_vars
+            + 'sudo partprobe "$DISK" 2>/dev/null || true; '
+            + 'sudo blockdev --rereadpt "$DISK" 2>/dev/null || true; '
+            + "sudo udevadm settle 2>/dev/null || true; "
+            + 'for qh_part in "$ESP" "$ROOT"; do '
+            + 'for qh_i in $(seq 1 40); do [ -b "$qh_part" ] && break; '
+            + "sleep 0.25; sudo udevadm settle 2>/dev/null || true; done; "
+            + 'test -b "$qh_part"; '
+            + "done",
             disk_vars + 'sudo mkfs.fat -F32 "$ESP" && sudo mkfs.ext4 -F "$ROOT"',
-            disk_vars + 'sudo mount "$ROOT" /mnt && sudo mkdir -p /mnt/boot '
-            '&& sudo mount "$ESP" /mnt/boot',
+            disk_vars + f'sudo mount "$ROOT" /mnt && sudo mkdir -p {efi_mount} '
+            f'&& sudo mount "$ESP" {efi_mount}',
         ]
 
     def install_base_system(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
@@ -97,6 +110,9 @@ class BaseFamilyInstaller:
         del facts
         user = self.target_user(profile)
         user_q = shlex.quote(user)
+        password = getattr(profile, "default_account_password", "") or "password"
+        root_chpasswd = shlex.quote(f"root:{password}")
+        user_chpasswd = shlex.quote(f"{user}:{password}")
         return [
             "sudo chroot /mnt sh -c "
             + self.shell_quote(
@@ -114,6 +130,8 @@ class BaseFamilyInstaller:
                 'useradd -m -s /bin/bash "$user"; '
                 "fi"
             ),
+            "sudo chroot /mnt sh -c " + self.shell_quote(f"echo {root_chpasswd} | chpasswd"),
+            "sudo chroot /mnt sh -c " + self.shell_quote(f"echo {user_chpasswd} | chpasswd"),
             f"qh_user={user_q}; "
             "qh_auth_src=/root/.ssh/authorized_keys; "
             'if [ ! -s "$qh_auth_src" ]; then '

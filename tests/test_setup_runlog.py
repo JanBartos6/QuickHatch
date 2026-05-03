@@ -35,7 +35,7 @@ def test_runlog_redacts_sensitive_values(tmp_path):
             '{"default_account_password": "hunter2"}\n'
             "password: hunter2\n"
             "echo 'jan:hunter2' | chpasswd\n"
-            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFAKE honz.bartos@example.test"
+            "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFAKE user@example.test"
         ),
     )
 
@@ -45,7 +45,7 @@ def test_runlog_redacts_sensitive_values(tmp_path):
     assert "sk-secret" not in serialized
     assert "hunter2" not in serialized
     assert "AAAAC3" not in serialized
-    assert "honz.bartos@example.test" not in serialized
+    assert "user@example.test" not in serialized
     assert entry["profile"]["api_key"] == "***REDACTED***"
     assert entry["profile"]["default_account_password"] == "***REDACTED***"
 
@@ -53,14 +53,24 @@ def test_runlog_redacts_sensitive_values(tmp_path):
 def test_redact_sensitive_text_removes_ssh_public_key_comment():
     text = (
         "grep -qxF 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFAKE "
-        "honz.bartos@example.test' ~/.ssh/authorized_keys"
+        "user@example.test' ~/.ssh/authorized_keys"
     )
 
     redacted = redact_sensitive_text(text)
 
     assert "AAAAC3" not in redacted
-    assert "honz.bartos@example.test" not in redacted
+    assert "user@example.test" not in redacted
     assert "ssh-key ***REDACTED***" in redacted
+
+
+def test_redact_sensitive_text_removes_chroot_chpasswd_variables():
+    text = 'qh_pw=hunter2; printf \'%s\\n\' "$qh_pw" | $qh_sudo chroot "$qh_root" chpasswd'
+
+    redacted = redact_sensitive_text(text)
+
+    assert "hunter2" not in redacted
+    assert "qh_pw=***REDACTED***" in redacted
+    assert "echo '***REDACTED***' | chpasswd" in redacted
 
 
 def test_executed_commands_script_contains_successful_commands_only(tmp_path):

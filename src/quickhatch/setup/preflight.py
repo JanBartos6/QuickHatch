@@ -185,7 +185,7 @@ def _split_command_segments(cmd: str) -> list[str]:
             current = []
             idx += 2
             continue
-        if char == ";":
+        if char == ";" or char == "\n" or char == "&":
             segment = "".join(current).strip()
             if segment:
                 segments.append(segment)
@@ -330,6 +330,22 @@ def _sudo_has_noninteractive_auth(tokens: list[str], sudo_idx: int) -> bool:
     return False
 
 
+def _doas_has_noninteractive_auth(tokens: list[str], doas_idx: int) -> bool:
+    idx = doas_idx + 1
+    while idx < len(tokens):
+        opt = tokens[idx]
+        if opt in {"-n", "--non-interactive"}:
+            return True
+        if opt in {"-u", "-C", "-L"}:
+            idx += 2
+            continue
+        if opt.startswith("-") and opt != "-":
+            idx += 1
+            continue
+        break
+    return False
+
+
 def _uses_plain_sudo_without_noninteractive_auth(tokens: list[str]) -> bool:
     idx = 0
     while idx < len(tokens):
@@ -344,11 +360,37 @@ def _uses_plain_sudo_without_noninteractive_auth(tokens: list[str]) -> bool:
     for sudo_idx, token in enumerate(tokens[idx:], start=idx):
         if token != "sudo":
             continue
-        if sudo_idx > idx and tokens[sudo_idx - 1] not in {"|", "|&"}:
+        previous = tokens[sudo_idx - 1] if sudo_idx > 0 else ""
+        previous_two = tokens[sudo_idx - 2 : sudo_idx] if sudo_idx >= 2 else []
+        if previous in {"which", "type", "-v"} or previous_two == ["command", "-v"]:
             continue
         if not _sudo_has_noninteractive_auth(tokens, sudo_idx):
             return True
     return False
+
+
+def _uses_plain_doas_without_noninteractive_auth(tokens: list[str]) -> bool:
+    idx = 0
+    while idx < len(tokens):
+        token = tokens[idx]
+        if "=" in token and not token.startswith("-") and token.split("=", 1)[0].isidentifier():
+            idx += 1
+            continue
+        if token == "env":
+            idx += 1
+            continue
+        break
+    for doas_idx, token in enumerate(tokens[idx:], start=idx):
+        if token == "doas" and not _doas_has_noninteractive_auth(tokens, doas_idx):
+            return True
+    return False
+
+
+def _tokens_before_pipeline(tokens: list[str]) -> list[str]:
+    for idx, token in enumerate(tokens):
+        if token in {"|", "|&"}:
+            return tokens[:idx]
+    return tokens
 
 
 def _is_root_owned_path(token: str) -> bool:
@@ -459,20 +501,23 @@ def _package_tool_mutates_system(tool: str, tokens: list[str]) -> bool:
                 continue
             if arg.startswith("-Q"):
                 continue
-            if arg in {"-S", "-Sy", "-Syu", "-Syyu", "-R", "-Rs", "-Rns", "-U"}:
+            if arg in {"-S", "-Sy", "-Syu", "-Syyu", "-R", "-Rs", "-Rns", "-U", "-D"}:
                 return True
-            if arg.startswith(("-S", "-R", "-U")):
+            if arg.startswith(("-S", "-R", "-U", "-D")):
                 return True
         return False
     if tool in {"apt", "apt-get"}:
         mutating_verbs = {
             "autoremove",
+            "build-dep",
             "clean",
             "dist-upgrade",
             "full-upgrade",
             "install",
             "purge",
+            "reinstall",
             "remove",
+            "satisfy",
             "upgrade",
             "update",
         }
@@ -484,12 +529,16 @@ def _package_tool_mutates_system(tool: str, tokens: list[str]) -> bool:
             "groupinstall",
             "install",
             "makecache",
+            "reinstall",
             "remove",
+            "erase",
             "swap",
             "update",
             "upgrade",
         }
-        return any(arg.lower() in mutating_verbs for arg in args if not arg.startswith("-"))
+        if any(arg.lower() in mutating_verbs for arg in args if not arg.startswith("-")):
+            return True
+        return any(args[idx : idx + 2] == ["module", "enable"] for idx in range(len(args) - 1))
     if tool == "zypper":
         mutating_verbs = {
             "addrepo",
@@ -602,16 +651,19 @@ def _is_standalone_shell_assignment(command: str) -> bool:
 
 def _activates_network_security_services(cmd: str) -> bool:
     for segment in _split_command_segments(cmd):
-        lower_segment = segment.lower()
         try:
             tokens = shlex.split(segment, posix=True)
         except ValueError:
-            tokens = lower_segment.split()
+            tokens = segment.lower().split()
         tokens = _strip_wrappers(tokens)
         if not tokens:
             continue
+        tokens = _tokens_before_pipeline(tokens)
+        if not tokens:
+            continue
         tool = _normalize_tool(tokens[0])
-        args = [token.lower() for token in tokens[1:]]
+        raw_args = tokens[1:]
+        args = [token.lower() for token in raw_args]
         if tool in {"bash", "sh", "zsh", "fish"}:
             payload = _shell_c_payload(tokens)
             if payload and _activates_network_security_services(payload):
@@ -632,24 +684,130 @@ def _activates_network_security_services(cmd: str) -> bool:
         if tool == "ufw" and args and args[0] in {"enable", "reload"}:
             return True
         if tool in {"firewall-cmd", "nft", "iptables", "ip6tables"}:
-            if any(
-                word in lower_segment
-                for word in (
-                    "add rule",
-                    "delete",
-                    "drop",
-                    "enable",
-                    "flush",
-                    "policy",
-                    "reject",
-                    "reload",
-                    "remove",
-                    "set-default",
-                    "--set-default",
-                    "--remove-service",
-                )
+            if _firewall_command_mutates(tool, raw_args):
+                return True
+    return False
+
+
+def _firewall_command_mutates(tool: str, args: list[str]) -> bool:
+    if not args:
+        return False
+    if tool == "firewall-cmd":
+        return any(
+            arg in {"--reload", "--complete-reload"}
+            or arg.startswith(("--add-", "--remove-"))
+            or arg.startswith("--set-default")
+            for arg in args
+        )
+    if tool == "nft":
+        return args[0] in {"add", "delete", "destroy", "flush", "insert", "replace"} or any(
+            arg in {"drop", "reject"} for arg in args
+        )
+    if tool in {"iptables", "ip6tables"}:
+        mutating_flags = {"-A", "-D", "-I", "-R", "-F", "-P", "-X", "-N", "-E", "-Z"}
+        mutating_long_flags = {
+            "--append",
+            "--delete",
+            "--insert",
+            "--replace",
+            "--flush",
+            "--policy",
+            "--delete-chain",
+            "--new-chain",
+            "--rename-chain",
+            "--zero",
+        }
+        return any(arg in mutating_flags or arg in mutating_long_flags for arg in args)
+    return False
+
+
+def _cuts_off_remote_access(cmd: str) -> bool:
+    for segment in _split_command_segments(cmd):
+        try:
+            tokens = shlex.split(segment, posix=True)
+        except ValueError:
+            tokens = segment.lower().split()
+        tokens = _strip_wrappers(tokens)
+        if not tokens:
+            continue
+        tokens = _tokens_before_pipeline(tokens)
+        if not tokens:
+            continue
+        tool = _normalize_tool(tokens[0])
+        raw_args = tokens[1:]
+        args = [token.lower() for token in raw_args]
+        if tool in {"bash", "sh", "zsh", "fish"}:
+            payload = _shell_c_payload(tokens)
+            if payload and _cuts_off_remote_access(payload):
+                return True
+        if tool in {"reboot", "poweroff", "halt"}:
+            return True
+        if tool == "shutdown" and args:
+            return True
+        if tool == "systemctl" and args:
+            non_option_args = [arg for arg in args if not arg.startswith("-")]
+            verb = non_option_args[0] if non_option_args else ""
+            services = non_option_args[1:]
+            if verb in {
+                "disable",
+                "mask",
+                "stop",
+                "restart",
+                "try-restart",
+                "reload-or-restart",
+            } and any(
+                service.startswith(("ssh", "sshd", "networkmanager", "network-manager"))
+                for service in services
             ):
                 return True
+            if verb in {"poweroff", "reboot", "halt", "suspend", "hibernate"}:
+                return True
+            if "--now" in args and any(
+                service.startswith(("ssh", "sshd", "networkmanager", "network-manager"))
+                for service in non_option_args
+            ):
+                return True
+        if tool == "service" and len(args) >= 2:
+            service = args[0]
+            verb = args[1]
+            if service.startswith(
+                ("ssh", "sshd", "networkmanager", "network-manager")
+            ) and verb in {
+                "stop",
+                "restart",
+                "reload",
+                "force-reload",
+            }:
+                return True
+        if (
+            tool == "loginctl"
+            and args
+            and args[0]
+            in {
+                "terminate-user",
+                "kill-user",
+                "terminate-session",
+                "kill-session",
+            }
+        ):
+            return True
+        if tool == "nmcli" and args[:2] == ["networking", "off"]:
+            return True
+        if tool == "nmcli" and args[:2] == ["connection", "down"]:
+            return True
+        if tool == "ip" and len(args) >= 3:
+            if args[:2] == ["link", "set"] and args[-1] == "down":
+                return True
+            if args[:3] == ["route", "del", "default"]:
+                return True
+            if args[:2] == ["addr", "flush"]:
+                return True
+        if tool == "ufw" and args[:3] == ["default", "deny", "incoming"]:
+            return True
+        if tool in {"iptables", "ip6tables", "nft", "firewall-cmd"} and _firewall_command_mutates(
+            tool, raw_args
+        ):
+            return True
     return False
 
 
@@ -684,6 +842,7 @@ def _uses_broad_package_process_kill(cmd: str) -> bool:
 def _installed_system_disk_or_bootstrap_mutation(tool: str, tokens: list[str]) -> bool:
     """Return true for live-install/disk-spine commands on an installed system."""
 
+    token_text = " ".join(tokens[1:]).lower()
     if tool in {
         "blkdiscard",
         "debootstrap",
@@ -695,6 +854,14 @@ def _installed_system_disk_or_bootstrap_mutation(tool: str, tokens: list[str]) -
         "sgdisk",
         "wipefs",
     }:
+        return True
+    if tool == "dd" and re.search(r"(?:^|\s)of=/dev/(?:sd|vd|xvd|nvme|mmcblk|hd)", token_text):
+        return True
+    if tool == "shred" and any(token.startswith("/dev/") for token in tokens[1:]):
+        return True
+    if tool == "cryptsetup" and any(arg.lower() in {"luksformat", "erase"} for arg in tokens[1:]):
+        return True
+    if tool == "mkswap" and any(token.startswith("/dev/") for token in tokens[1:]):
         return True
     if tool.startswith("mkfs"):
         return True
@@ -908,6 +1075,12 @@ def preflight_setup_command(
             "is fine, but activating VPN/firewall services can change routing, DNS, firewall "
             "policy, or kill-switch behavior and cut off remote access."
         )
+    if not allow_network_security_changes and _cuts_off_remote_access(command):
+        return (
+            "Do not stop or disable SSH/network services, drop the default route, bring the "
+            "active network link down, or apply firewall defaults that can cut off remote "
+            "access during setup. Ask the user or defer this to manual follow-up."
+        )
     if _uses_broad_package_process_kill(command):
         return (
             "Do not use broad `pkill`/`killall` patterns against apt/dpkg/debconf/snapd/"
@@ -934,6 +1107,18 @@ def preflight_setup_command(
                 "Plain `sudo` would fail or hang on an invisible password prompt. Bootstrap "
                 "NOPASSWD sudo first, use a deliberate `sudo -S` command with the known "
                 "setup password, or ask the user before continuing."
+            )
+        if (
+            not facts.is_live
+            and not facts.is_root
+            and bool(facts.current_user or facts.login_user)
+            and (facts.current_user or facts.login_user) != "root"
+            and _uses_plain_doas_without_noninteractive_auth(raw_tokens)
+        ):
+            return (
+                "`doas` may require an interactive password prompt on this installed-system "
+                "SSH session. Use a non-interactive privilege path, bootstrap passwordless "
+                "sudo/doas first, or ask the user before continuing."
             )
         has_root_privilege = _has_root_privilege(raw_tokens, facts)
         tokens = list(raw_tokens)
@@ -973,7 +1158,8 @@ def preflight_setup_command(
                 "the target disk."
             )
         redirected_target = _root_owned_redirection_target(segment)
-        if redirected_target and not has_root_privilege:
+        shell_owns_redirection = facts.is_root or (facts.current_user or facts.login_user) == "root"
+        if redirected_target and not shell_owns_redirection:
             return (
                 f"`{segment}` redirects shell output into root-owned path "
                 f"`{redirected_target}` but the shell is not running as root. Shell "
@@ -1009,7 +1195,11 @@ def _decision_category(reason: str) -> str:
         return "ssh_continuity"
     if "pkill" in lower or "dpkg half-written" in lower or "packagekit" in lower:
         return "package_database_integrity"
-    if "passwordless sudo" in lower or "invisible password prompt" in lower:
+    if (
+        "passwordless sudo" in lower
+        or "invisible password prompt" in lower
+        or "interactive password prompt" in lower
+    ):
         return "sudo_password"
     if "changes disks, mounts, boot files, or chroot state" in lower:
         return "disk_boot_safety"

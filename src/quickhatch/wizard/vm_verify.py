@@ -509,7 +509,7 @@ def run_script_in_vm(
         str(ssh_port),
         *key_args,
         f"{ssh_user}@127.0.0.1",
-        "sudo QUICKHATCH_VM_VERIFY=1 bash -x /tmp/install.sh 2>&1 | tail -c 200000",
+        "bash -lc 'set -o pipefail; sudo QUICKHATCH_VM_VERIFY=1 bash -x /tmp/install.sh 2>&1 | tail -c 200000'",
     ]
     _ = common  # silence unused
     rc = _run(ssh_cmd, timeout=1800)  # 30 min hard cap

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from quickhatch.setup.certify import run_vm_certification
+from quickhatch.setup.replay import scan_runlogs
 from quickhatch.wizard.vm_verify import VerifyResult
 
 
@@ -27,6 +28,52 @@ def test_vm_certification_dry_run_writes_artifacts(tmp_path):
     assert (next(artifact_dir.iterdir()) / "summary.json").exists()
 
 
+def test_vm_certification_qemu_defaults_to_virtio_disk(tmp_path):
+    iso = tmp_path / "arch.iso"
+    profile = tmp_path / "profile.json"
+    iso.write_text("fake iso", encoding="utf-8")
+    profile.write_text(json.dumps({}), encoding="utf-8")
+
+    result = run_vm_certification(
+        family="arch",
+        iso=iso,
+        profile=profile,
+        root=tmp_path / "certification",
+        backend="qemu",
+        dry_run=True,
+    )
+
+    artifact = next((tmp_path / "certification" / "arch").iterdir())
+    assert result.success
+    assert "QUICKHATCH_TARGET_DISK=${QUICKHATCH_TARGET_DISK:-/dev/vda}" in (
+        artifact / "certify-install.sh"
+    ).read_text(encoding="utf-8")
+
+
+def test_vm_certification_artifact_dirs_do_not_collide(tmp_path):
+    iso = tmp_path / "arch.iso"
+    profile = tmp_path / "profile.json"
+    iso.write_text("fake iso", encoding="utf-8")
+    profile.write_text(json.dumps({}), encoding="utf-8")
+
+    first = run_vm_certification(
+        family="arch",
+        iso=iso,
+        profile=profile,
+        root=tmp_path / "certification",
+        dry_run=True,
+    )
+    second = run_vm_certification(
+        family="arch",
+        iso=iso,
+        profile=profile,
+        root=tmp_path / "certification",
+        dry_run=True,
+    )
+
+    assert first.artifact_dir != second.artifact_dir
+
+
 def test_vm_certification_blocks_missing_iso(tmp_path):
     profile = tmp_path / "profile.json"
     profile.write_text(json.dumps({}), encoding="utf-8")
@@ -42,6 +89,37 @@ def test_vm_certification_blocks_missing_iso(tmp_path):
     assert not result.success
     assert result.status == "blocked"
     assert result.blockers
+    scanned = scan_runlogs(tmp_path / "certification")
+    assert scanned.failure_categories["vm_certification_blocked"] == 1
+
+
+def test_vm_certification_defaults_post_reboot_user_from_profile(monkeypatch, tmp_path):
+    iso = tmp_path / "arch.iso"
+    profile = tmp_path / "profile.json"
+    iso.write_text("fake iso", encoding="utf-8")
+    profile.write_text(json.dumps({"linux_user": "alice"}), encoding="utf-8")
+    calls = []
+
+    def _fake_verify(*args, **kwargs):
+        calls.append((args, kwargs))
+        return VerifyResult(success=True, backend="virtualbox", exit_code=0, stages=[])
+
+    monkeypatch.setattr("quickhatch.setup.certify.verify_install_script", _fake_verify)
+    monkeypatch.setattr(
+        "quickhatch.setup.certify._prepare_certification_key",
+        lambda *a, **k: ("cert-key", "ssh-ed25519 AAAA quickhatch", ""),
+    )
+
+    result = run_vm_certification(
+        family="arch",
+        iso=iso,
+        profile=profile,
+        root=tmp_path / "certification",
+        dry_run=False,
+    )
+
+    assert result.success
+    assert calls[0][1]["post_reboot_user"] == "alice"
 
 
 def test_vm_certification_live_backend_success_is_automated(monkeypatch, tmp_path):
