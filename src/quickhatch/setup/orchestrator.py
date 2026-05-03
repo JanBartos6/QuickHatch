@@ -276,6 +276,30 @@ _STANDALONE_ASSIGNMENT_RE = re.compile(
     r"^\s*(?:export\s+)?[A-Za-z_][A-Za-z0-9_]*=\$\(.+\)\s*$"
     r"|^\s*(?:export\s+)?(?:[A-Za-z_][A-Za-z0-9_]*=\S+\s*)+\s*$"
 )
+_ASSIGNMENT_NAME_RE = re.compile(r"(?:^|[;&|]\s*)(?:export\s+)?(?P<name>[A-Za-z_][A-Za-z0-9_]*)=")
+_STATEFUL_ASSIGNMENT_PREFIX_RE = re.compile(
+    r"^\s*(?:export\s+)?[A-Za-z_][A-Za-z0-9_]*=", re.IGNORECASE
+)
+_STATEFUL_ASSIGNMENT_REAL_COMMAND_RE = re.compile(
+    r"\b(?:"
+    r"parted|mkfs(?:\.[A-Za-z0-9_-]+)?|mount|umount|pacstrap|genfstab|"
+    r"arch-chroot|chroot|pacman|apt-get|apt|dnf5?|zypper|apk|xbps-install|"
+    r"emerge|grub-install|grub-mkconfig|bootctl|systemctl|tee|printf|echo|"
+    r"sed|cp|mv|rm|curl|wget|dd|wipefs|sgdisk"
+    r")\b",
+    re.IGNORECASE,
+)
+_INSTALL_ROOT_FSTAB_VERIFY_COMMAND = (
+    "test -f /mnt/etc/fstab && awk "
+    + shlex.quote('$1 !~ /^#/ && $2 == "/" { found=1 } END { exit(found ? 0 : 1) }')
+    + " /mnt/etc/fstab"
+)
+_PREBOOT_DRIVER_RUNTIME_VERIFY_RE = re.compile(
+    r"\b(?:nvidia-smi|vulkaninfo|lsmod)\b"
+    r"|\bmodinfo\s+(?:nvidia|nvidia_drm|nvidia_uvm|nvidia_modeset|amdgpu|i915|nouveau)\b"
+    r"|/sys/module/(?:nvidia|nvidia_drm|nvidia_uvm|nvidia_modeset|amdgpu|i915|nouveau)/",
+    re.IGNORECASE,
+)
 _PACMAN_QI_SINGLE_RE = re.compile(
     r"^(?:sudo\s+)?pacman\s+-Qi\s+(?P<name>[A-Za-z0-9@._+:-]+)\s*$",
     re.IGNORECASE,
@@ -3215,6 +3239,32 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             verification = self._normalize_package_verification_command(
                 verification, stage=stage, group=group
             )
+            normalized_verification = self._normalize_install_root_fstab_verification(
+                verification, stage=stage
+            )
+            if normalized_verification != verification:
+                self.runlog.record(
+                    "verification_normalized",
+                    stage=stage.value,
+                    group_id=group.id,
+                    original=verification,
+                    normalized=normalized_verification,
+                    reason="install-stage fstab root checks must be field-aware and target-root scoped",
+                )
+                verification = normalized_verification
+            normalized_verification = self._normalize_preboot_driver_runtime_verification(
+                verification, stage=stage
+            )
+            if normalized_verification != verification:
+                self.runlog.record(
+                    "verification_normalized",
+                    stage=stage.value,
+                    group_id=group.id,
+                    original=verification,
+                    normalized=normalized_verification,
+                    reason="driver runtime/module probes are postboot checks, not live-install bootability checks",
+                )
+                verification = normalized_verification
             normalized_verification = self._normalize_sysfs_module_parameter_verification(
                 verification, stage=stage
             )
@@ -3333,6 +3383,27 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             f"{match.group('prefix')}sudo cat "
             f"{shlex.quote(match.group('path'))}{match.group('rest')}"
         )
+
+    def _normalize_install_root_fstab_verification(self, command: str, *, stage: SetupStage) -> str:
+        facts = self.ctx.facts or SetupFacts()
+        lowered = (command or "").lower()
+        if stage != SetupStage.INSTALL_OR_SKIP or not facts.is_live:
+            return command
+        if "/mnt/etc/fstab" not in lowered:
+            return command
+        if not any(marker in lowered for marker in ("grep", "awk", "findmnt", " / ")):
+            return command
+        return _INSTALL_ROOT_FSTAB_VERIFY_COMMAND
+
+    def _normalize_preboot_driver_runtime_verification(
+        self, command: str, *, stage: SetupStage
+    ) -> str:
+        facts = self.ctx.facts or SetupFacts()
+        if stage != SetupStage.INSTALL_OR_SKIP or not facts.is_live:
+            return command
+        if not _PREBOOT_DRIVER_RUNTIME_VERIFY_RE.search(command or ""):
+            return command
+        return "true"
 
     @staticmethod
     def _normalize_pre_format_partition_verification(command: str, *, group: CommandGroup) -> str:
@@ -4799,19 +4870,88 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
     def _combine_standalone_assignments(commands: list[str]) -> list[str]:
         combined: list[str] = []
         pending_assignment = ""
+        pending_variables: set[str] = set()
+        pending_separator = " && "
         for command in commands:
             stripped = (command or "").strip()
             if pending_assignment:
-                combined.append(f"{pending_assignment} && {stripped}")
+                if not pending_variables or SetupOrchestrator._references_any_variable(
+                    stripped, pending_variables
+                ):
+                    combined.append(f"{pending_assignment}{pending_separator}{stripped}")
+                else:
+                    combined.append(pending_assignment)
+                    combined.append(command)
                 pending_assignment = ""
+                pending_variables = set()
+                pending_separator = " && "
                 continue
             if _STANDALONE_ASSIGNMENT_RE.fullmatch(stripped):
                 pending_assignment = stripped
+                pending_variables = set()
+                pending_separator = " && "
+                continue
+            stateful_variables = SetupOrchestrator._stateful_assignment_prelude_variables(stripped)
+            if stateful_variables:
+                pending_assignment = stripped.rstrip(";")
+                pending_variables = stateful_variables
+                pending_separator = "; "
                 continue
             combined.append(command)
         if pending_assignment:
             combined.append(pending_assignment)
         return combined
+
+    @staticmethod
+    def _stateful_assignment_prelude_variables(command: str) -> set[str]:
+        """Detect shell-state setup that must be joined to the next SSH command.
+
+        Examples include `DISK=$(...) && [ -n "$DISK" ] || DISK=/dev/sda`.
+        This is not a mutating command by itself, but running it in a separate
+        SSH session drops the variable and breaks the following command.
+        """
+
+        stripped = (command or "").strip()
+        if not _STATEFUL_ASSIGNMENT_PREFIX_RE.match(stripped):
+            return set()
+        variables = {match.group("name") for match in _ASSIGNMENT_NAME_RE.finditer(stripped)}
+        if not variables or _STANDALONE_ASSIGNMENT_RE.fullmatch(stripped):
+            return set()
+        surface = SetupOrchestrator._strip_command_substitutions(stripped)
+        surface = re.sub(r"'[^']*'|\"[^\"]*\"", "", surface)
+        if _STATEFUL_ASSIGNMENT_REAL_COMMAND_RE.search(surface):
+            return set()
+        return variables
+
+    @staticmethod
+    def _strip_command_substitutions(command: str) -> str:
+        output: list[str] = []
+        index = 0
+        length = len(command or "")
+        while index < length:
+            if command.startswith("$(", index):
+                depth = 1
+                index += 2
+                while index < length and depth:
+                    if command.startswith("$(", index):
+                        depth += 1
+                        index += 2
+                        continue
+                    if command[index] == ")":
+                        depth -= 1
+                    index += 1
+                output.append("$(...)")
+                continue
+            output.append(command[index])
+            index += 1
+        return "".join(output)
+
+    @staticmethod
+    def _references_any_variable(command: str, variables: set[str]) -> bool:
+        for variable in variables:
+            if re.search(rf"\$(?:\{{{re.escape(variable)}\}}|{re.escape(variable)}\b)", command):
+                return True
+        return False
 
     def _wrap_desktop_runtime_command(self, command: str, *, stage: SetupStage) -> str:
         if stage != SetupStage.DESKTOP or not self._command_needs_desktop_runtime_env(command):

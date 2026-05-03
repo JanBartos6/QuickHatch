@@ -2775,6 +2775,51 @@ def test_fstab_boot_verification_uses_field_aware_check():
     assert '$2 == "/boot"' in command
 
 
+def test_install_root_fstab_verification_normalizes_fragile_pipeline():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        is_live=True,
+        is_root=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    command = orchestrator._normalize_install_root_fstab_verification(
+        "awk '$2 == \"/\"' /mnt/etc/fstab | grep -q ' / '",
+        stage=SetupStage.INSTALL_OR_SKIP,
+    )
+
+    assert command.startswith("test -f /mnt/etc/fstab && awk ")
+    assert '$2 == "/"' in command
+    assert command.endswith(" /mnt/etc/fstab")
+
+
+def test_install_root_fstab_verification_normalizes_bad_findmnt_probe():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        is_live=True,
+        is_root=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    command = orchestrator._normalize_install_root_fstab_verification(
+        "findmnt -rnc -o TARGET -T /mnt/etc/fstab | grep -q '^/$'",
+        stage=SetupStage.INSTALL_OR_SKIP,
+    )
+
+    assert command.startswith("test -f /mnt/etc/fstab && awk ")
+    assert '$2 == "/"' in command
+
+
 def test_standalone_assignment_combines_with_next_command():
     commands = SetupOrchestrator._combine_standalone_assignments(
         [
@@ -2786,6 +2831,43 @@ def test_standalone_assignment_combines_with_next_command():
     assert commands == [
         'UCODE=$(grep -qi intel /proc/cpuinfo && echo intel-ucode || echo amd-ucode) && pacstrap -K /mnt base linux "$UCODE"'
     ]
+
+
+def test_stateful_assignment_prelude_combines_with_variable_using_next_command():
+    prelude = 'DISK=$(lsblk -bdno NAME,SIZE | awk \'$2 > 1000 {print "/dev/"$1; exit}\') && [ -n "$DISK" ] || DISK=/dev/sda'
+
+    commands = SetupOrchestrator._combine_standalone_assignments(
+        [prelude, 'parted -s "$DISK" mklabel gpt']
+    )
+
+    assert commands == [f'{prelude}; parted -s "$DISK" mklabel gpt']
+
+
+def test_preboot_driver_runtime_verification_is_deferred_to_postboot_stage():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        is_live=True,
+        is_root=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+
+    assert (
+        orchestrator._normalize_preboot_driver_runtime_verification(
+            "arch-chroot /mnt modinfo nvidia_uvm", stage=SetupStage.INSTALL_OR_SKIP
+        )
+        == "true"
+    )
+    assert (
+        orchestrator._normalize_preboot_driver_runtime_verification(
+            "nvidia-smi", stage=SetupStage.POSTBOOT_DRIVER
+        )
+        == "nvidia-smi"
+    )
 
 
 def test_pre_reboot_checks_retry_transient_ssh_disconnect(monkeypatch):
