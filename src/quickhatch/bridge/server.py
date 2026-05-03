@@ -76,6 +76,7 @@ class BridgeState:
             "waiting_for_input": False,
             "active_question_id": "",
             "planning_complete": False,
+            "runlog_path": "",
             "executed_script_path": "",
         }
         # Where to persist suggestions/messages. Pass None to disable
@@ -252,6 +253,8 @@ class BridgeState:
             self.setup_run["waiting_for_input"] = False
         if self.setup_run.get("status") in {"running", "waiting_for_input", "stopping"}:
             self.setup_run["status"] = "stopped"
+        self.setup_run.setdefault("runlog_path", "")
+        self.setup_run.setdefault("executed_script_path", "")
 
     def hard_reset(self, *, profile: UserProfile | None = None) -> None:
         """Wipe all in-memory bridge runtime state and delete the persisted file.
@@ -278,6 +281,7 @@ class BridgeState:
                 "waiting_for_input": False,
                 "active_question_id": "",
                 "planning_complete": False,
+                "runlog_path": "",
                 "executed_script_path": "",
             }
         if self._persist_path is None:
@@ -431,6 +435,7 @@ class BridgeState:
                     "waiting_for_input": False,
                     "active_question_id": "",
                     "planning_complete": False,
+                    "runlog_path": "",
                     "executed_script_path": "",
                 }
             data = self._serialize_payload_locked()
@@ -522,6 +527,7 @@ class BridgeState:
                 "waiting_for_input": False,
                 "active_question_id": "",
                 "planning_complete": False,
+                "runlog_path": "",
                 "executed_script_path": "",
             }
             data = self._serialize_payload_locked()

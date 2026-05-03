@@ -23,6 +23,7 @@ from .certify import CERTIFIED_FAMILIES, run_vm_certification
 from .facts import setup_fact_probe_command
 from .failure import classify_failure
 from .families import get_family_installer
+from .fuzz import run_harness_fuzz
 from .orchestrator import SetupOrchestrator, SetupRuntime
 from .preflight import preflight_setup_decisions
 from .types import (
@@ -248,6 +249,28 @@ def _run_failure_classifier_checks() -> list[dict[str, Any]]:
                 "stderr": scenario["stderr"],
                 "expected": scenario["expected"],
                 "actual": payload,
+            },
+        )
+    return checks
+
+
+def _run_harness_fuzz_checks() -> list[dict[str, Any]]:
+    payload = run_harness_fuzz()
+    checks: list[dict[str, Any]] = []
+    for result in payload.get("results", []):
+        _record(
+            checks,
+            name=str(result.get("name") or "unnamed_fuzz_case"),
+            category="harness_fuzz",
+            passed=bool(result.get("passed")),
+            details={
+                "command": result.get("command"),
+                "expect_block": result.get("expect_block"),
+                "blocked": result.get("blocked"),
+                "expected_categories": result.get("expected_categories"),
+                "actual_categories": result.get("actual_categories"),
+                "reason": result.get("reason"),
+                "decisions": result.get("decisions"),
             },
         )
     return checks
@@ -725,6 +748,7 @@ def run_harness_health(
         checks = [
             *_run_certification_dry_run_checks(workspace),
             *_run_preflight_policy_checks(),
+            *_run_harness_fuzz_checks(),
             *_run_failure_classifier_checks(),
             *_run_final_audit_semantic_checks(),
             *_run_resume_policy_checks(),

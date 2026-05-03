@@ -613,3 +613,20 @@ def test_typed_preflight_keeps_sudo_password_prompt_as_hard_block():
 
     assert any(item.kind == PreflightDecisionKind.BLOCK for item in decisions)
     assert any(item.category == "sudo_password" for item in decisions)
+
+
+def test_typed_preflight_keeps_disk_boot_safety_as_hard_block():
+    facts = SetupFacts(
+        package_manager="apt",
+        distro_family="ubuntu",
+        current_user="ubuntu",
+        login_user="ubuntu",
+        is_live=True,
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+
+    decisions = preflight_setup_decisions("sgdisk --zap-all /dev/sda", facts)
+
+    assert any(item.kind == PreflightDecisionKind.BLOCK for item in decisions)
+    assert any(item.category == "disk_boot_safety" for item in decisions)

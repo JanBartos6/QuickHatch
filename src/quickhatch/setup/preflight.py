@@ -918,10 +918,10 @@ def _decision_category(reason: str) -> str:
         return "package_database_integrity"
     if "passwordless sudo" in lower or "invisible password prompt" in lower:
         return "sudo_password"
+    if "changes disks, mounts, boot files, or chroot state" in lower:
+        return "disk_boot_safety"
     if "root-owned" in lower or "needs root privileges" in lower or "non-root" in lower:
         return "privilege_precondition"
-    if "disks" in lower or "mounts" in lower or "boot files" in lower or "chroot" in lower:
-        return "disk_boot_safety"
     return "setup_precondition"
 
 

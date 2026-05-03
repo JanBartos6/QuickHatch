@@ -183,6 +183,16 @@ def main() -> None:
     )
     health_parser.add_argument("--root")
     health_parser.add_argument("--keep-artifacts", action="store_true")
+    debug_subparsers.add_parser(
+        "fuzz-harness",
+        help="Run deterministic adversarial harness policy fuzzing",
+    )
+    latest_parser = debug_subparsers.add_parser(
+        "latest-run",
+        help="Find and summarize the latest real setup run artifact",
+    )
+    latest_parser.add_argument("--root")
+    latest_parser.add_argument("--summary-only", action="store_true")
 
     certify_parser = subparsers.add_parser("certify", help="Run certification tooling")
     certify_subparsers = certify_parser.add_subparsers(dest="certify_command")
@@ -363,11 +373,13 @@ def _run_debug_command(args) -> None:
     from quickhatch.setup.debugtools import (
         adapter_spine_payload,
         classify_debug_payload,
+        fuzz_harness_payload,
         harness_health_payload,
         load_facts_payload,
         preflight_debug_payload,
     )
     from quickhatch.setup.replay import (
+        find_latest_runlog,
         promote_regression_fixture,
         summarize_runlog,
         summarize_stage,
@@ -425,6 +437,24 @@ def _run_debug_command(args) -> None:
         _print_json(payload)
         if not payload.get("success"):
             raise SystemExit(1)
+        return
+    if args.debug_command == "fuzz-harness":
+        payload = fuzz_harness_payload()
+        _print_json(payload)
+        if not payload.get("success"):
+            raise SystemExit(1)
+        return
+    if args.debug_command == "latest-run":
+        runlog = find_latest_runlog(Path(args.root) if args.root else None)
+        if runlog is None:
+            raise SystemExit("No setup runlogs found.")
+        summary = asdict(summarize_runlog(runlog))
+        payload = {"path": str(runlog), "summary": summary}
+        if args.summary_only:
+            _print_json(payload)
+        else:
+            console.print("[bold]QuickHatch latest setup run[/bold]")
+            _print_json(payload)
         return
     raise SystemExit("Missing debug subcommand.")
 

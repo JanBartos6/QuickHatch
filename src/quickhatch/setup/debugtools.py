@@ -11,6 +11,7 @@ from quickhatch.config import UserProfile
 
 from .failure import classify_failure
 from .families import get_family_installer
+from .fuzz import run_harness_fuzz
 from .health import run_harness_health
 from .preflight import preflight_setup_decisions
 from .types import SetupFacts
@@ -97,3 +98,7 @@ def harness_health_payload(
     keep_artifacts: bool = False,
 ) -> dict[str, Any]:
     return run_harness_health(root=root, keep_artifacts=keep_artifacts)
+
+
+def fuzz_harness_payload() -> dict[str, Any]:
+    return run_harness_fuzz()

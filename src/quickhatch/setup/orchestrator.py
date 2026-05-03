@@ -667,6 +667,7 @@ class SetupOrchestrator:
             waiting_for_input=False,
             active_question_id="",
             planning_complete=False,
+            runlog_path=str(self.runlog.path),
         )
         self.runlog.record("run_started", host=self.runtime.host, user=self.runtime.user)
 

@@ -5,6 +5,7 @@ import json
 from quickhatch.setup.debugtools import (
     adapter_spine_payload,
     classify_debug_payload,
+    fuzz_harness_payload,
     harness_health_payload,
     load_facts_payload,
     preflight_debug_payload,
@@ -64,4 +65,15 @@ def test_harness_health_payload_runs_fast_gate(tmp_path):
 
     assert payload["success"] is True
     assert payload["failed_count"] == 0
-    assert any(check["name"] == "vpn_activation_is_block" for check in payload["checks"])
+
+
+def test_fuzz_harness_payload_runs_without_ssh():
+    payload = fuzz_harness_payload()
+
+    assert payload["success"] is True
+    assert payload["case_count"] >= 10
+    assert payload["false_blocks"] == []
+    assert payload["missed_blocks"] == []
+    assert any(
+        result["name"] == "vpn_activation_blocks_ssh_continuity" for result in payload["results"]
+    )
