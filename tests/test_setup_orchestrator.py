@@ -7723,6 +7723,141 @@ def test_final_audit_runs_focused_repair_loop(monkeypatch):
     assert result.details["final_audit_repairs"][0]["executed"] is True
 
 
+def _final_audit_ready_orchestrator(model_response: str) -> SetupOrchestrator:
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = _with_verified_kde_icon(
+        SetupFacts(
+            distro_family="arch",
+            package_manager="pacman",
+            current_user="jan",
+            desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        )
+    )
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.call_model_text = lambda _cfg, _messages: model_response
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("none"),
+        command_groups=[],
+    )
+    orchestrator.ctx.stage_results = [
+        AuditResult(stage=stage, passed=True)
+        for stage in (
+            SetupStage.CONNECT_AND_PROBE,
+            SetupStage.RESEARCH_AND_PLAN,
+            SetupStage.INSTALL_OR_SKIP,
+            SetupStage.POSTBOOT_DRIVER,
+            SetupStage.DESKTOP,
+            SetupStage.APPS,
+        )
+    ]
+    orchestrator.ctx.stage_state[SetupStage.DESKTOP.value] = {"persisted_config_written": True}
+    return orchestrator
+
+
+def test_final_audit_repair_budget_exhaustion_becomes_manual_followup(monkeypatch):
+    orchestrator = _final_audit_ready_orchestrator("{")
+    monkeypatch.setattr(
+        orchestrator,
+        "_remote_final_verification",
+        lambda: ["Final marker file is missing."],
+    )
+
+    result = orchestrator._run_final_audit()
+
+    repairs = result.details["final_audit_repairs"]
+    assert result.final_status == FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
+    assert repairs[0]["action"] == "manual_followup"
+    assert "Repair loop exhausted" in repairs[0]["reason"]
+
+
+def test_final_audit_manual_followup_repair_action_is_not_fatal(monkeypatch):
+    orchestrator = _final_audit_ready_orchestrator(
+        json.dumps({"action": "manual_followup", "reason": "Leave the marker to the user."})
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_remote_final_verification",
+        lambda: ["Final marker file is missing."],
+    )
+
+    result = orchestrator._run_final_audit()
+
+    assert result.passed is True
+    assert result.blockers == []
+    assert result.final_status == FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
+    assert result.details["final_audit_repairs"][0]["action"] == "manual_followup"
+
+
+def test_final_audit_repair_group_dangerous_raw_shell_blocks_without_capability(monkeypatch):
+    orchestrator = _final_audit_ready_orchestrator(
+        json.dumps(
+            {
+                "action": "retry_group",
+                "group": {
+                    "id": "unsafe-final-repair",
+                    "stage": "apps",
+                    "title": "Unsafe Final Repair",
+                    "commands": ["mkfs.ext4 -F /dev/sda1"],
+                    "verification": [],
+                    "evidence": [
+                        {
+                            "source_type": "local_state",
+                            "summary": "Final marker missing; this repair is intentionally unsafe.",
+                            "confidence": 0.9,
+                        }
+                    ],
+                },
+            }
+        )
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_remote_final_verification",
+        lambda: ["Final marker file is missing."],
+    )
+
+    result = orchestrator._run_final_audit()
+
+    repair = result.details["final_audit_repairs"][0]
+    assert repair["action"] == "retry_group"
+    assert repair["executed"] is False
+    assert "explicit QuickHatch capability" in repair["error"]
+    assert result.final_status == FinalSetupStatus.SUCCESS_WITH_WARNINGS
+
+
+def test_final_audit_fatal_fstab_bootloader_and_ssh_findings_remain_blocked(monkeypatch):
+    orchestrator = _final_audit_ready_orchestrator("{}")
+    orchestrator.ctx.stage_results = [
+        *orchestrator.ctx.stage_results,
+        AuditResult(
+            stage=SetupStage.INSTALL_OR_SKIP,
+            passed=False,
+            blockers=[
+                "fstab root entry is missing",
+                "No bootloader installed in /boot",
+                "SSH did not reconnect after reboot",
+            ],
+        ),
+    ]
+    monkeypatch.setattr(orchestrator, "_remote_final_verification", lambda: [])
+
+    result = orchestrator._run_final_audit()
+
+    assert result.passed is False
+    assert result.final_status == FinalSetupStatus.BLOCKED
+    assert "fstab root entry is missing" in result.blockers
+    assert "No bootloader installed in /boot" in result.blockers
+    assert "SSH did not reconnect after reboot" in result.blockers
+    assert "final_audit_repairs" not in result.details
+
+
 def test_apps_repair_question_timeout_becomes_manual_followup(monkeypatch):
     profile = UserProfile(apps_to_install=["Example"])
     bridge = BridgeState(profile, persist_path=None)

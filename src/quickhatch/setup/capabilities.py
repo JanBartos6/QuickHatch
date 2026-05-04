@@ -26,7 +26,11 @@ CAPABILITY_KINDS = frozenset(
 
 DISK_INVENTORY_COMMAND = "lsblk -o NAME,SIZE,MODEL,SERIAL,TYPE,FSTYPE,FSVER,LABEL,UUID,MOUNTPOINTS"
 
-_DEVICE_RE = r"/dev/(?:disk/by-id/[^\s;|&\"']+|(?:sd|vd|xvd|hd)[a-z]\d*|nvme\d+n\d+(?:p\d+)?|mmcblk\d+(?:p\d+)?)"
+_DEVICE_RE = (
+    r"/dev/(?:disk/by-(?:id|uuid|label|partuuid|path)/[^\s;|&\"']+|"
+    r"mapper/[^\s;|&\"']+|[A-Za-z0-9_.+-]+/[^\s;|&\"']+|"
+    r"(?:sd|vd|xvd|hd)[a-z]\d*|nvme\d+n\d+(?:p\d+)?|mmcblk\d+(?:p\d+)?)"
+)
 _TARGET_ROOT_RE = r"(?:/mnt|/target|/mnt/target|/mnt/sysroot|/mnt/sysimage)(?:/\S*|\b|\*)"
 _TARGET_ROOT_ALIASES = {
     "/mnt": "/target-root",
@@ -255,16 +259,159 @@ def _shell_payloads(command: str) -> list[str]:
     return payloads
 
 
+_SIMPLE_ASSIGN_RE = re.compile(
+    r"(?<![\w$])(?P<name>[A-Za-z_][A-Za-z0-9_]*)="
+    r"(?P<value>\"[^\"]*\"|'[^']*'|[^\s;&|]+)"
+)
+_VAR_REF_RE = re.compile(
+    r"\$(?:\{(?P<braced>[A-Za-z_][A-Za-z0-9_]*)\}|(?P<plain>[A-Za-z_][A-Za-z0-9_]*))"
+)
+
+
+def _strip_assignment_quotes(value: str) -> str:
+    text = str(value or "").strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in {"'", '"'}:
+        return text[1:-1]
+    return text
+
+
+def _expand_var_refs(text: str, values: dict[str, str]) -> str:
+    expanded = str(text or "")
+    for _ in range(4):
+        changed = False
+
+        def replace(match: re.Match[str]) -> str:
+            nonlocal changed
+            name = match.group("braced") or match.group("plain") or ""
+            if name in values:
+                changed = True
+                return values[name]
+            return match.group(0)
+
+        next_text = _VAR_REF_RE.sub(replace, expanded)
+        expanded = next_text
+        if not changed:
+            break
+    return expanded
+
+
+def _expand_simple_shell_variables(text: str) -> str:
+    """Resolve simple shell assignments before high-blast-radius scanning.
+
+    This intentionally supports only deterministic local assignments such as
+    ``DISK=/dev/sda; ROOT=${DISK}1``. Anything more dynamic remains visible as
+    an unresolved variable and is handled by the ambiguous high-blast fallback.
+    """
+
+    source = str(text or "")
+    values: dict[str, str] = {}
+    for _ in range(4):
+        changed = False
+        for match in _SIMPLE_ASSIGN_RE.finditer(source):
+            name = match.group("name")
+            value = _strip_assignment_quotes(match.group("value"))
+            value = _expand_var_refs(value, values)
+            if values.get(name) != value:
+                values[name] = value
+                changed = True
+        if not changed:
+            break
+    if not values:
+        return source
+    return _expand_var_refs(source, values)
+
+
+def _expanded_shell_scans(command: str) -> list[str]:
+    scans: list[str] = []
+    seen: set[str] = set()
+    for item in [str(command or ""), *_shell_payloads(str(command or ""))]:
+        expanded = _expand_simple_shell_variables(item)
+        if expanded and expanded not in seen:
+            scans.append(expanded)
+            seen.add(expanded)
+    return scans
+
+
+def _ambiguous_variable_requirement(item: str) -> list[dict[str, str]]:
+    if not re.search(r"\$(?:\{|[A-Za-z_])", item or ""):
+        return []
+    if re.search(r"\bmkfs(?:\.[\w+-]+)?\b", item, re.I):
+        return [
+            {
+                "kind": "format_filesystem",
+                "target": "",
+                "reason": "ambiguous variable filesystem format target",
+            }
+        ]
+    if re.search(r"\bcryptsetup\b[^;&|]*\bluksformat\b", item, re.I):
+        return [
+            {
+                "kind": "format_filesystem",
+                "target": "",
+                "reason": "ambiguous variable LUKS format target",
+            }
+        ]
+    if re.search(r"\bcryptsetup\b[^;&|]*\bopen\b", item, re.I):
+        return [
+            {
+                "kind": "mount_target",
+                "target": "",
+                "reason": "ambiguous variable LUKS open target",
+            }
+        ]
+    if re.search(r"\bdd\b[^;&|]*\bof=", item, re.I):
+        return [
+            {
+                "kind": "disk_partition",
+                "target": "",
+                "reason": "ambiguous variable raw block-device write target",
+            }
+        ]
+    if re.search(r"\bmount\b(?!point\b)[^;&|]*" + _TARGET_ROOT_RE, item, re.I):
+        target_match = re.search(_TARGET_ROOT_RE, item, re.I)
+        return [
+            {
+                "kind": "mount_target",
+                "target": target_match.group(0) if target_match else "",
+                "reason": "ambiguous variable target-root mount source",
+            }
+        ]
+    if re.search(
+        r"\b(?:parted|sgdisk|sfdisk|fdisk|wipefs|blkdiscard|pvcreate|pvremove|vgcreate|vgremove|lvcreate|lvremove)\b",
+        item,
+        re.I,
+    ):
+        return [
+            {
+                "kind": "disk_partition",
+                "target": "",
+                "reason": "ambiguous variable disk metadata mutation target",
+            }
+        ]
+    if re.search(r"\befibootmgr\b", item, re.I):
+        return [
+            {
+                "kind": "bootloader_install",
+                "target": "/boot",
+                "reason": "ambiguous variable EFI boot mutation target",
+            }
+        ]
+    return []
+
+
 def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
     """Return capability requirements for dangerous shell snippets."""
 
     requirements: list[dict[str, str]] = []
     text = str(command or "")
-    scan = [text, *_shell_payloads(text)]
+    scan = _expanded_shell_scans(text)
     for item in scan:
         lowered = item.lower()
+        before = len(requirements)
         for match in re.finditer(
-            r"\bmkfs(?:\.[\w+-]+)?\b(?:[^;&|]*)\s(?P<target>" + _DEVICE_RE + r")", item, re.I
+            r"\bmkfs(?:\.[\w+-]+)?\b(?:[^;&|]*)\s[\"']?(?P<target>" + _DEVICE_RE + r")[\"']?",
+            item,
+            re.I,
         ):
             requirements.append(
                 {
@@ -274,9 +421,9 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                 }
             )
         for match in re.finditer(
-            r"\bcryptsetup\b[^;&|]*(?:luksformat|luksFormat)\b[^;&|]*(?P<target>"
+            r"\bcryptsetup\b[^;&|]*(?:luksformat|luksFormat)\b[^;&|]*[\"']?(?P<target>"
             + _DEVICE_RE
-            + r")",
+            + r")[\"']?",
             item,
             re.I,
         ):
@@ -285,6 +432,30 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     "kind": "format_filesystem",
                     "target": match.group("target"),
                     "reason": "LUKS format command",
+                }
+            )
+        for match in re.finditer(
+            r"\bcryptsetup\b[^;&|]*\bopen\b[^;&|]*[\"']?(?P<target>" + _DEVICE_RE + r")[\"']?",
+            item,
+            re.I,
+        ):
+            requirements.append(
+                {
+                    "kind": "mount_target",
+                    "target": match.group("target"),
+                    "reason": "LUKS open target mapping",
+                }
+            )
+        for match in re.finditer(
+            r"\bparted\b[^;&|]*[\"']?(?P<target>" + _DEVICE_RE + r")[\"']?[^;&|]*\brm\b",
+            item,
+            re.I,
+        ):
+            requirements.append(
+                {
+                    "kind": "disk_partition",
+                    "target": match.group("target"),
+                    "reason": "partition removal command",
                 }
             )
         for match in re.finditer(
@@ -302,7 +473,28 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     "reason": "partition table mutation command",
                 }
             )
-        for match in re.finditer(r"\bwipefs\b[^;&|]*(?P<target>" + _DEVICE_RE + r")", item, re.I):
+        fdisk_write = (
+            re.search(r"\bfdisk\b", item, re.I)
+            and _first_device(item)
+            and (
+                "<<" in item
+                or re.search(r"\b(?:printf|echo|cat)\b[^|]*\|\s*(?:sudo\s+)?fdisk\b", item, re.I)
+                or re.search(r"(?:\\n|\n)w(?:\\n|\n|$)", item)
+            )
+        )
+        if fdisk_write and not re.search(r"\bfdisk\b[^;&|]*\s-l\b", item, re.I):
+            requirements.append(
+                {
+                    "kind": "disk_partition",
+                    "target": _first_device(item),
+                    "reason": "interactive fdisk write flow",
+                }
+            )
+        for match in re.finditer(
+            r"\bwipefs\b[^;&|]*[\"']?(?P<target>" + _DEVICE_RE + r")[\"']?",
+            item,
+            re.I,
+        ):
             requirements.append(
                 {
                     "kind": "disk_partition",
@@ -310,9 +502,9 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     "reason": "wipefs disk signature mutation",
                 }
             )
-        for tool in ("blkdiscard", "pvcreate"):
+        for tool in ("blkdiscard", "pvcreate", "pvremove"):
             for match in re.finditer(
-                rf"\b{tool}\b[^;&|]*(?P<target>{_DEVICE_RE})",
+                rf"\b{tool}\b[^;&|]*[\"']?(?P<target>{_DEVICE_RE})[\"']?",
                 item,
                 re.I,
             ):
@@ -324,7 +516,19 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     }
                 )
         for match in re.finditer(
-            r"\bdd\b[^;&|]*\bof=(?P<target>" + _DEVICE_RE + r")",
+            r"\b(?:vgcreate|lvcreate|lvremove|vgremove)\b[^;&|]*",
+            item,
+            re.I,
+        ):
+            requirements.append(
+                {
+                    "kind": "disk_partition",
+                    "target": _first_device(match.group(0)),
+                    "reason": "LVM metadata mutation",
+                }
+            )
+        for match in re.finditer(
+            r"\bdd\b[^;&|]*\bof=[\"']?(?P<target>" + _DEVICE_RE + r")[\"']?",
             item,
             re.I,
         ):
@@ -337,8 +541,9 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
             )
         for match in re.finditer(
             r"\bmount\b(?!point\b)[^;&|]*(?P<source>"
+            + r"[\"']?"
             + _DEVICE_RE
-            + r")[^;&|]*(?P<target>"
+            + r"[\"']?)[^;&|]*(?P<target>"
             + _TARGET_ROOT_RE
             + r")",
             item,
@@ -373,6 +578,18 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     "kind": "bootloader_install",
                     "target": _first_device(item) or "/boot",
                     "reason": "EFI boot entry creation",
+                }
+            )
+        if re.search(
+            r"\befibootmgr\b[^\n;|&]*(?:\s-B\b|--delete-bootnum\b|\s-o\b|--bootorder\b|\s-n\b|--bootnext\b)",
+            item,
+            re.I,
+        ):
+            requirements.append(
+                {
+                    "kind": "bootloader_install",
+                    "target": _first_device(item) or "/boot",
+                    "reason": "EFI boot entry/order mutation",
                 }
             )
         if re.search(
@@ -434,6 +651,8 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     "reason": "package database repair",
                 }
             )
+        if len(requirements) == before:
+            requirements.extend(_ambiguous_variable_requirement(item))
     return _dedupe_requirements(requirements)
 
 

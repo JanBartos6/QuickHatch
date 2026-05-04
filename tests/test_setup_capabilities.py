@@ -146,6 +146,67 @@ def test_broad_high_blast_radius_shell_requires_capability() -> None:
         assert "explicit QuickHatch capability" in error
 
 
+def test_variable_expanded_high_blast_radius_shell_requires_capability() -> None:
+    facts = SetupFacts(is_live=True, is_root=True)
+    commands = (
+        'TARGET=/dev/sda1; mkfs.ext4 -F "$TARGET"',
+        'DISK=/dev/sda; ROOT=${DISK}1; mkfs.ext4 -F "$ROOT"',
+        'ROOT=/dev/sda1; mount "$ROOT" /mnt',
+        'DISK=/dev/sda; dd if=/dev/zero of="$DISK" bs=1M count=1',
+    )
+
+    for command in commands:
+        error = preflight_setup_command(command, facts)
+        assert error, command
+        assert "explicit QuickHatch capability" in error
+
+    requirements = dangerous_command_requirements(
+        'DISK=/dev/sda; ROOT=${DISK}1; mkfs.ext4 -F "$ROOT"'
+    )
+    assert any(
+        item["kind"] == "format_filesystem" and item["target"] == "/dev/sda1"
+        for item in requirements
+    )
+
+
+def test_ambiguous_variable_high_blast_radius_shell_requires_capability() -> None:
+    facts = SetupFacts(is_live=True, is_root=True)
+    commands = (
+        'mkfs.ext4 -F "$ROOT"',
+        'mount "$ROOT" /mnt',
+        'dd if=/dev/zero of="$DISK" bs=1M count=1',
+    )
+
+    for command in commands:
+        error = preflight_setup_command(command, facts)
+        assert error, command
+        assert "explicit QuickHatch capability" in error
+
+
+def test_mapper_luks_lvm_fdisk_and_efi_mutations_require_capability() -> None:
+    facts = SetupFacts(is_live=True, is_root=True)
+    commands = (
+        "mkfs.ext4 /dev/mapper/cryptroot",
+        "mount /dev/mapper/cryptroot /mnt",
+        "cryptsetup open /dev/sda2 cryptroot",
+        "vgcreate vg0 /dev/sda2",
+        "lvcreate -L 20G -n root vg0",
+        "lvremove -y /dev/vg0/root",
+        "vgremove -y vg0",
+        "pvremove -y /dev/sda2",
+        "parted -s /dev/sda rm 1",
+        "printf 'd\\nw\\n' | fdisk /dev/sda",
+        "fdisk /dev/sda <<EOF\np\nw\nEOF",
+        "efibootmgr -b 0003 -B",
+        "efibootmgr -o 0003,0001",
+    )
+
+    for command in commands:
+        error = preflight_setup_command(command, facts)
+        assert error, command
+        assert "explicit QuickHatch capability" in error
+
+
 def test_dangerous_operation_preview_is_required_for_grants() -> None:
     operation = SetupOperation(kind="format_partition", target="/dev/sda1", filesystem="ext4")
     preview = build_operation_preview(

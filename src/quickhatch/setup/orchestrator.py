@@ -2870,6 +2870,10 @@ class SetupOrchestrator:
             self._refresh_facts(stage=SetupStage.FINAL_AUDIT)
         if repairs:
             result.details["final_audit_repairs"] = repairs
+            if result.final_status != FinalSetupStatus.BLOCKED and any(
+                repair.get("action") == "manual_followup" for repair in repairs
+            ):
+                result.final_status = FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
         if result.final_status is None:
             result.final_status = self._final_status_from_findings(result)
         self.ctx.stage_results.append(result)
