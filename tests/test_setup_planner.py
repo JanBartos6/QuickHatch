@@ -129,6 +129,35 @@ def test_extract_research_plan_parses_valid_json():
     assert plan.apps[1].status == PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION
 
 
+def test_extract_research_plan_accepts_typed_operations_without_commands():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["command_groups"] = [
+        {
+            "id": "format-root",
+            "stage": "install_or_skip",
+            "title": "Format confirmed Linux root partition",
+            "operations": [
+                {
+                    "kind": "format_partition",
+                    "target": "/dev/nvme1n1p2",
+                    "filesystem": "ext4",
+                    "options": {"role": "root"},
+                }
+            ],
+            "commands": [],
+            "verification": ["test -b /dev/nvme1n1p2"],
+        }
+    ]
+
+    plan = extract_research_plan(json.dumps(payload), profile)
+
+    group = plan.command_groups[0]
+    assert group.commands == []
+    assert group.operations[0].kind == "format_partition"
+    assert group.operations[0].target == "/dev/nvme1n1p2"
+
+
 def test_extract_research_plan_normalizes_external_repo_app_sources():
     profile = UserProfile()
     profile.apps_to_install = ["Brave", "VLC media player"]

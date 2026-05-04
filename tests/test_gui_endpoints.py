@@ -104,6 +104,10 @@ class TestProfileEndpoint:
                 "linux_ip": "1.2.3.4",
                 "linux_user": "bob",
                 "remote_setup_mode": "configure_only",
+                "install_profile": "configure_existing",
+                "install_encryption": "luks",
+                "install_filesystem": "btrfs",
+                "install_partition_notes": "Use mapped partitions only.",
                 "export_executed_setup_script": True,
             },
         )
@@ -112,6 +116,10 @@ class TestProfileEndpoint:
         assert data["profile"]["linux_ip"] == "1.2.3.4"
         assert data["profile"]["linux_user"] == "bob"
         assert data["profile"]["remote_setup_mode"] == "configure_only"
+        assert data["profile"]["install_profile"] == "configure_existing"
+        assert data["profile"]["install_encryption"] == "luks"
+        assert data["profile"]["install_filesystem"] == "btrfs"
+        assert data["profile"]["install_partition_notes"] == "Use mapped partitions only."
         assert data["profile"]["export_executed_setup_script"] is True
 
     def test_update_reports_changed_false_for_noop(self, server, monkeypatch):
@@ -147,6 +155,23 @@ class TestProfileEndpoint:
         data = json.loads(body)
         assert status == 200
         assert data["profile"]["remote_setup_mode"] == "auto"
+
+    def test_invalid_install_profile_fields_fall_back_to_safe_defaults(self, server):
+        status, body = _post(
+            server["port"],
+            "/wizard/update",
+            {
+                "install_profile": "format_everything",
+                "install_encryption": "mystery",
+                "install_filesystem": "zfs",
+            },
+        )
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["profile"]["install_profile"] == "auto"
+        assert data["profile"]["install_encryption"] == "recommended"
+        assert data["profile"]["install_filesystem"] == "recommended"
 
     def test_reset_remote_setup_clears_only_setup_connection_fields(self, server):
         bridge = server["bridge"]

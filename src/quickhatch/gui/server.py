@@ -20,7 +20,14 @@ from typing import Any
 from urllib.parse import unquote, urlparse
 
 from quickhatch.bridge.server import BridgeState
-from quickhatch.config import AIConfig, UserProfile
+from quickhatch.config import (
+    INSTALL_ENCRYPTION_VALUES,
+    INSTALL_FILESYSTEM_VALUES,
+    INSTALL_PROFILE_VALUES,
+    AIConfig,
+    UserProfile,
+    generate_setup_password,
+)
 from quickhatch.gallery.library import (
     find_gallery_entries,
     gallery_asset_path,
@@ -342,6 +349,10 @@ class GUIState:
             "linux_ip",
             "linux_user",
             "remote_setup_mode",
+            "install_profile",
+            "install_encryption",
+            "install_filesystem",
+            "install_partition_notes",
             "target_hardware_override",
             "default_account_password",
             "ssh_public_key_path",
@@ -474,6 +485,33 @@ class GUIState:
                 if mode not in {"auto", "wipe_and_reinstall", "configure_only"}:
                     mode = "auto"
                 changed |= self._set_if_changed(self.profile, "remote_setup_mode", mode)
+            if "install_profile" in updates:
+                value = self._coerce_str(updates["install_profile"]) or "auto"
+                if value not in INSTALL_PROFILE_VALUES:
+                    value = "auto"
+                changed |= self._set_if_changed(self.profile, "install_profile", value)
+                if value == "configure_existing":
+                    changed |= self._set_if_changed(
+                        self.profile,
+                        "remote_setup_mode",
+                        "configure_only",
+                    )
+            if "install_encryption" in updates:
+                value = self._coerce_str(updates["install_encryption"]) or "recommended"
+                if value not in INSTALL_ENCRYPTION_VALUES:
+                    value = "recommended"
+                changed |= self._set_if_changed(self.profile, "install_encryption", value)
+            if "install_filesystem" in updates:
+                value = self._coerce_str(updates["install_filesystem"]) or "recommended"
+                if value not in INSTALL_FILESYSTEM_VALUES:
+                    value = "recommended"
+                changed |= self._set_if_changed(self.profile, "install_filesystem", value)
+            if "install_partition_notes" in updates:
+                changed |= self._set_if_changed(
+                    self.profile,
+                    "install_partition_notes",
+                    self._coerce_str(updates["install_partition_notes"]) or "",
+                )
             if "target_hardware_override" in updates:
                 changed |= self._set_if_changed(
                     self.profile,
@@ -484,7 +522,9 @@ class GUIState:
                 changed |= self._set_if_changed(
                     self.profile,
                     "default_account_password",
-                    self._coerce_str(updates["default_account_password"]) or "password",
+                    self._coerce_str(updates["default_account_password"])
+                    or self.profile.default_account_password
+                    or generate_setup_password(),
                 )
             if "ssh_public_key_path" in updates:
                 changed |= self._set_if_changed(
@@ -625,8 +665,78 @@ def _prepare_ai_secret_update(gui_state: GUIState, updates: dict[str, Any]) -> d
 def _remote_setup_mode_block(profile: UserProfile) -> str:
     """Explicit user intent for destructive vs non-destructive setup."""
     mode = getattr(profile, "remote_setup_mode", "auto") or "auto"
+    install_profile = getattr(profile, "install_profile", "auto") or "auto"
+    encryption = getattr(profile, "install_encryption", "recommended") or "recommended"
+    filesystem = getattr(profile, "install_filesystem", "recommended") or "recommended"
+    notes = (getattr(profile, "install_partition_notes", "") or "").strip()
+    install_lines = [
+        "== INSTALL TARGET PROFILE ==",
+        f"- install_profile: {install_profile}",
+        f"- install_encryption: {encryption}",
+        f"- install_filesystem: {filesystem}",
+    ]
+    if notes:
+        install_lines.append(f"- install_partition_notes: {notes}")
+    install_lines.extend(
+        [
+            "- First public version rule: never shrink Windows partitions automatically.",
+            "- Dangerous disk/boot/fstab/reboot/package-DB/network-security work should be represented as typed operations.",
+            "- Raw destructive shell without a matching QuickHatch capability will be blocked.",
+            "- Package names, themes, and optional apps are repair/manual-follow-up concerns, not reasons to derail a safe install.",
+            "",
+        ]
+    )
+    if install_profile == "configure_existing":
+        install_lines.extend(
+            [
+                "Install profile behavior:",
+                "- Configure existing Linux install only.",
+                "- Do not partition, format, wipe, or reinstall the distribution.",
+                "- Do not reinstall the bootloader unless a boot repair is explicitly required and safely confirmed.",
+                "",
+            ]
+        )
+    elif install_profile == "full_disk_wipe":
+        install_lines.extend(
+            [
+                "Install profile behavior:",
+                "- A fresh install may erase exactly one explicitly confirmed target disk.",
+                "- Require disk inventory, dry-run preview, and typed confirmation like `ERASE /dev/...` before erasing data.",
+                "",
+            ]
+        )
+    elif install_profile == "second_disk_install":
+        install_lines.extend(
+            [
+                "Install profile behavior:",
+                "- Install Linux only on a separate explicitly confirmed disk.",
+                "- Preserve the existing Windows/current-OS disk.",
+                "",
+            ]
+        )
+    elif install_profile == "dual_boot_free_space":
+        install_lines.extend(
+            [
+                "Install profile behavior:",
+                "- Use only already-created free/unallocated space or explicitly mapped Linux partitions.",
+                "- Do not shrink Windows partitions.",
+                "- Do not delete or format NTFS, BitLocker, Windows recovery, or existing EFI partitions.",
+                "",
+            ]
+        )
+    elif install_profile == "manual_partition_mapping":
+        install_lines.extend(
+            [
+                "Install profile behavior:",
+                "- Advanced/manual mapping mode.",
+                "- Format only partitions explicitly mapped and confirmed by the user.",
+                "",
+            ]
+        )
+    prefix = "\n".join(install_lines)
     if mode == "wipe_and_reinstall":
         return (
+            prefix + "\n"
             "== REMOTE SETUP MODE ==\n"
             "User selected: WIPE TARGET DISK AND REINSTALL FROM SCRATCH.\n\n"
             "This is an explicit destructive mode. Rules:\n"
@@ -640,6 +750,7 @@ def _remote_setup_mode_block(profile: UserProfile) -> str:
         )
     if mode == "configure_only":
         return (
+            prefix + "\n"
             "== REMOTE SETUP MODE ==\n"
             "User selected: CONFIGURE EXISTING INSTALL ONLY.\n\n"
             "This mode is non-destructive. Rules:\n"
@@ -649,6 +760,7 @@ def _remote_setup_mode_block(profile: UserProfile) -> str:
             "- Focus only on drivers, desktop, apps, services, and user configuration.\n\n"
         )
     return (
+        prefix + "\n"
         "== REMOTE SETUP MODE ==\n"
         "User selected: AUTO.\n\n"
         "Default behavior rules:\n"
@@ -4499,7 +4611,7 @@ def _maybe_bootstrap_nopasswd_sudo(
     """
     if facts.get("is_root") == "yes" or facts.get("sudo_nopasswd") == "yes":
         return facts
-    default_pw = profile.default_account_password or "password"
+    default_pw = profile.default_account_password or generate_setup_password()
     sudoers_line = f"{user} ALL=(ALL:ALL) NOPASSWD: ALL"
     grant_inner = (
         "set -e; "
@@ -4525,7 +4637,7 @@ def _maybe_bootstrap_nopasswd_sudo(
         return facts
     bridge.add_message(
         "agent",
-        "⚠️ Could not grant NOPASSWD sudo at startup. If the current account still requires a password, any plain `sudo` command may time out unless the model uses the known default password explicitly.",
+        "⚠️ Could not grant NOPASSWD sudo at startup. If the current account still requires a password, any plain `sudo` command may time out unless the model uses the per-run temporary account password explicitly.",
     )
     if err.strip():
         bridge.add_message("agent", f"Startup sudo bootstrap stderr: {err.strip()[:240]}")
@@ -6769,10 +6881,10 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
             "- Keep optional desktop clients and heavyweight wrappers in separate commands from core tools.\n"
             "- If the user asks to skip one package from a batch, immediately reissue a reduced command;\n"
             "  do not keep the skipped package in the transaction.\n\n"
-            "DEFAULT ACCOUNT PASSWORD:\n"
-            f"Set BOTH the root account AND the primary user account's password to the literal\n"
-            f"string `{profile.default_account_password}` during install. This is a KNOWN CONSTANT —\n"
-            "it lets the harness pipe it to `sudo -S` during first post-reboot connect to grant\n"
+            "TEMPORARY ACCOUNT PASSWORD:\n"
+            f"Set BOTH the root account AND the primary user account's password to the generated\n"
+            f"per-run string `{profile.default_account_password}` during install. This lets the harness\n"
+            "pipe it to `sudo -S` during first post-reboot connect to grant\n"
             "NOPASSWD sudo, so subsequent commands don't hang on an invisible sudo prompt (SSH\n"
             "has no pty). Use one of these patterns inside chroot:\n"
             f"  echo 'root:{profile.default_account_password}' | chpasswd\n"
@@ -7700,14 +7812,13 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
                         # prompt/logic treats the session as installed.
                         is_live = False
                         # Auto-grant NOPASSWD sudo to the reconnect user
-                        # using the known default password. Without
-                        # this, every subsequent `sudo` command hangs on
-                        # an invisible password prompt (SSH has no pty).
-                        # The agent is instructed in the system prompt
-                        # to set both root and user passwords to the
-                        # literal profile.default_account_password
-                        # during install, so this pipe-and-tee is safe.
-                        default_pw = profile.default_account_password or "password"
+                        # using the per-run temporary account password.
+                        # Without this, every subsequent `sudo` command
+                        # hangs on an invisible password prompt (SSH has
+                        # no pty). The agent is instructed in the system
+                        # prompt to set this generated password during
+                        # install, so this pipe-and-tee is safe.
+                        default_pw = profile.default_account_password or generate_setup_password()
                         nopasswd_cmd = (
                             f"echo '{default_pw}' | sudo -S -p '' bash -c "
                             f"\"echo '{user} ALL=(ALL:ALL) NOPASSWD: ALL' > "
@@ -7722,13 +7833,13 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
                                 "agent",
                                 "✓ Granted NOPASSWD sudo to "
                                 f"'{user}' via /etc/sudoers.d/99-quickhatch-nopasswd "
-                                "using the default account password. Subsequent sudo "
+                                "using the per-run temporary account password. Subsequent sudo "
                                 "commands will not prompt.",
                             )
                         else:
                             bridge.add_message(
                                 "agent",
-                                "⚠️ Could not auto-grant NOPASSWD sudo (default password "
+                                "⚠️ Could not auto-grant NOPASSWD sudo (temporary password "
                                 "may not have been set during install). `sudo` commands "
                                 "will hang on invisible prompts until the agent grants "
                                 "passwordless sudo manually. Remember to pipe the correct "
@@ -7763,7 +7874,7 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
                                 f"Run any sudo command freely — no prompt will appear. "
                                 f"REMINDER: include a 'CHANGE YOUR PASSWORD IMMEDIATELY' "
                                 f"block in your final summary so the user rotates the "
-                                f"default password ('{default_pw}') on first login."
+                                f"temporary password ('{default_pw}') on first login."
                             )
                             pending_feedback.append("\n\n".join(refresh_bits))
                         results_log.append(f"**`{cmd}`** — OK (reconnected)")

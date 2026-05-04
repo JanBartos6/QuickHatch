@@ -3,11 +3,36 @@
 from __future__ import annotations
 
 import json
+import secrets
 import threading
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
 _CHECKPOINT_WRITE_LOCK = threading.Lock()
+
+INSTALL_PROFILE_VALUES = frozenset(
+    {
+        "auto",
+        "configure_existing",
+        "full_disk_wipe",
+        "second_disk_install",
+        "dual_boot_free_space",
+        "manual_partition_mapping",
+    }
+)
+INSTALL_ENCRYPTION_VALUES = frozenset({"recommended", "none", "luks"})
+INSTALL_FILESYSTEM_VALUES = frozenset({"recommended", "ext4", "btrfs"})
+
+
+def generate_setup_password() -> str:
+    """Generate a temporary setup password for chroot/sudo bootstrap paths."""
+
+    return "qh-" + secrets.token_urlsafe(18)
+
+
+def _validated_choice(value: object, allowed: frozenset[str], default: str) -> str:
+    text = str(value or "").strip()
+    return text if text in allowed else default
 
 
 def _checkpoint_path() -> Path:
@@ -163,6 +188,12 @@ class UserProfile:
     # "configure_only" = never repartition/reformat; just configure the
     #   current installed system
     remote_setup_mode: str = "auto"
+    # Structured install layout intent. This is more specific than
+    # remote_setup_mode and drives capability checks for destructive work.
+    install_profile: str = "auto"
+    install_encryption: str = "recommended"
+    install_filesystem: str = "recommended"
+    install_partition_notes: str = ""
     # When enabled, the staged setup executor writes a best-effort shell
     # replay file from the commands that actually succeeded during Remote
     # Setup. Intended for inspection and repeated installs on identical
@@ -176,15 +207,9 @@ class UserProfile:
     # decisions track the target, not the host. Users set this via a
     # button on the Scan step.
     target_hardware_override: str = ""
-    # Default password for the root account AND the primary user
-    # account created during install. Known constant so the agent can
-    # pipe it to `sudo -S` during first post-reboot connect (no tty
-    # over SSH — see common-pre-reboot-rules.md). MUST be changed by
-    # the user on first login. The setup flow shows a loud "CHANGE
-    # YOUR PASSWORD NOW" banner in the summary to drive that home.
-    # Stored on the profile (not a constant) so a future UI can let
-    # the user pick a different default if they want.
-    default_account_password: str = "password"
+    # Temporary password for the root account AND the primary user account
+    # created during install, used only for first post-reboot sudo bootstrap.
+    default_account_password: str = field(default_factory=generate_setup_password)
     completed_steps: list[str] = field(default_factory=list)
 
     def save_checkpoint(self, path: Path | None = None) -> Path:
@@ -359,10 +384,26 @@ class UserProfile:
                 linux_ip=data.get("linux_ip", "") or "",
                 linux_user=data.get("linux_user", "") or "",
                 remote_setup_mode=data.get("remote_setup_mode", "auto") or "auto",
+                install_profile=_validated_choice(
+                    data.get("install_profile", "auto"),
+                    INSTALL_PROFILE_VALUES,
+                    "auto",
+                ),
+                install_encryption=_validated_choice(
+                    data.get("install_encryption", "recommended"),
+                    INSTALL_ENCRYPTION_VALUES,
+                    "recommended",
+                ),
+                install_filesystem=_validated_choice(
+                    data.get("install_filesystem", "recommended"),
+                    INSTALL_FILESYSTEM_VALUES,
+                    "recommended",
+                ),
+                install_partition_notes=data.get("install_partition_notes", "") or "",
                 export_executed_setup_script=bool(data.get("export_executed_setup_script", False)),
                 target_hardware_override=data.get("target_hardware_override", "") or "",
-                default_account_password=data.get("default_account_password", "password")
-                or "password",
+                default_account_password=data.get("default_account_password")
+                or generate_setup_password(),
                 completed_steps=list(data.get("completed_steps", []) or []),
             )
         except Exception as exc:

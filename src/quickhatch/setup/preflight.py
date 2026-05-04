@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 import shlex
 
+from .capabilities import CapabilityStore, dangerous_command_requirements
 from .resolver import arch_nvidia_official_package_supported
 from .types import PreflightDecision, PreflightDecisionKind, SetupFacts
 
@@ -1065,9 +1066,28 @@ def preflight_setup_command(
     facts: SetupFacts,
     *,
     allow_network_security_changes: bool = False,
+    capability_store: CapabilityStore | None = None,
+    disk_inventory: str = "",
     _depth: int = 0,
 ) -> str | None:
     """Return a blocking reason for clearly unsafe/impossible setup commands."""
+
+    for requirement in dangerous_command_requirements(command):
+        kind = requirement["kind"]
+        target = requirement.get("target", "")
+        if kind == "network_security_change" and allow_network_security_changes:
+            continue
+        if capability_store and capability_store.allows(
+            kind=kind,
+            target=target,
+            disk_inventory=disk_inventory,
+        ):
+            continue
+        return (
+            f"Dangerous operation requires an explicit QuickHatch capability: "
+            f"{kind} target={target or '<none>'}. Raw shell cannot bypass the typed "
+            "operation/confirmation system."
+        )
 
     if not allow_network_security_changes and _activates_network_security_services(command):
         return (
@@ -1133,6 +1153,8 @@ def preflight_setup_command(
                     payload,
                     facts,
                     allow_network_security_changes=allow_network_security_changes,
+                    capability_store=capability_store,
+                    disk_inventory=disk_inventory,
                     _depth=_depth + 1,
                 )
                 if nested_error:
@@ -1193,6 +1215,16 @@ def _decision_category(reason: str) -> str:
     lower = (reason or "").lower()
     if "vpn" in lower or "firewall" in lower or "cut off remote access" in lower:
         return "ssh_continuity"
+    if "requires an explicit quickhatch capability" in lower:
+        if any(token in lower for token in ("format_filesystem", "disk_partition")):
+            return "disk_boot_safety"
+        if "network_security_change" in lower:
+            return "ssh_continuity"
+        if "controlled_reboot" in lower:
+            return "ssh_continuity"
+        if "package_db_repair" in lower:
+            return "package_database_integrity"
+        return "capability_required"
     if "pkill" in lower or "dpkg half-written" in lower or "packagekit" in lower:
         return "package_database_integrity"
     if (
@@ -1242,6 +1274,7 @@ def _hard_block_category(category: str) -> bool:
         "package_database_integrity",
         "sudo_password",
         "disk_boot_safety",
+        "capability_required",
     }
 
 
@@ -1251,6 +1284,8 @@ def preflight_setup_decisions(
     *,
     allow_network_security_changes: bool = False,
     shadow_mode: bool = False,
+    capability_store: CapabilityStore | None = None,
+    disk_inventory: str = "",
 ) -> list[PreflightDecision]:
     """Return typed preflight decisions for setup commands.
 
@@ -1278,6 +1313,8 @@ def preflight_setup_decisions(
         command,
         facts,
         allow_network_security_changes=allow_network_security_changes,
+        capability_store=capability_store,
+        disk_inventory=disk_inventory,
     )
     if not reason:
         return decisions

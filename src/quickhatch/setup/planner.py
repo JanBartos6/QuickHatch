@@ -10,6 +10,7 @@ from typing import Any
 from quickhatch.analysis.app_catalog import selected_app_catalog_context
 from quickhatch.config import UserProfile
 
+from .operations import parse_setup_operation
 from .types import (
     AppPlanItem,
     CommandGroup,
@@ -438,9 +439,13 @@ def _parse_command_group(item: Any) -> CommandGroup:
     cleaned_commands = _clean_shell_commands(
         item.get("commands", []), field_name=f"command_groups[{gid or title or '?'}].commands"
     )
-    if not gid or not title or not cleaned_commands:
+    operations = _parse_operations(
+        item.get("operations", []),
+        field_name=f"command_groups[{gid or title or '?'}].operations",
+    )
+    if not gid or not title or (not cleaned_commands and not operations):
         raise ResearchPlanValidationError(
-            "Each command group needs id, title, stage, and at least one command."
+            "Each command group needs id, title, stage, and at least one command or operation."
         )
     optional = _coerce_bool(item.get("optional", False), default=False)
     optional_slow = _coerce_bool(item.get("optional_slow", False), default=False) and optional
@@ -449,6 +454,7 @@ def _parse_command_group(item: Any) -> CommandGroup:
         stage=stage,
         title=title,
         commands=cleaned_commands,
+        operations=operations,
         verification=_clean_shell_commands(
             item.get("verification", []),
             field_name=f"command_groups[{gid or title or '?'}].verification",
@@ -464,6 +470,22 @@ def _parse_command_group(item: Any) -> CommandGroup:
             field_name=f"command_groups[{gid or title or '?'}].evidence",
         ),
     )
+
+
+def _parse_operations(raw: Any, *, field_name: str) -> list[Any]:
+    if raw is None:
+        return []
+    if isinstance(raw, dict):
+        raw = [raw]
+    if not isinstance(raw, list):
+        raise ResearchPlanValidationError(f"{field_name} must be a list of operations.")
+    operations = []
+    for index, item in enumerate(raw):
+        try:
+            operations.append(parse_setup_operation(item, field_name=f"{field_name}[{index}]"))
+        except ValueError as exc:
+            raise ResearchPlanValidationError(str(exc)) from exc
+    return operations
 
 
 def _parse_command_groups(raw: Any) -> list[CommandGroup]:
@@ -642,7 +664,8 @@ def build_research_prompt(
         "- package_manager (string)\n"
         "- driver_strategy (object: strategy, confidence, source, packages, services, notes, evidence)\n"
         "- desktop_strategy (object: strategy, confidence, source, packages, services, notes, evidence)\n"
-        "- command_groups (non-empty list; each item: id, stage, title, commands, verification, rationale, source, packages, optional, optional_slow, evidence)\n"
+        "- command_groups (non-empty list; each item: id, stage, title, commands, operations, verification, rationale, source, packages, optional, optional_slow, evidence)\n"
+        "- operations are typed setup intents for dangerous work: {kind, target, filesystem, mountpoint, options}. Supported kinds: partition_disk, format_partition, mount_partition, write_fstab, install_bootloader, create_user, enable_network_reconnect, install_ssh_key, controlled_reboot, network_security_change, package_db_repair.\n"
         "- apps (list; each item: name, package_name, source, status, required, optional_slow, reason, evidence)\n"
         "- evidence entries are objects: {source_type, summary, query, url, title, confidence}. Use source_type values such as repo_search, community_search, web_search, provider_native_search, official_docs, distro_primer, selected_app_catalog, local_facts, or user_profile.\n"
         "- unresolved_questions (list of objects with question, required, choices)\n"
@@ -658,6 +681,9 @@ def build_research_prompt(
         "- Do not ask the user for raw SSH key content. If ssh_key_status.public_key_path_configured is true, QuickHatch already has the public key path and will enforce authorized_keys continuity during guarded reboot. Your plan should create the target user and enable sshd, but QuickHatch handles final key copying/validation.\n"
         "- Put driver/GPU work under postboot_driver, display manager/theme/runtime desktop work under desktop, and requested application installs under apps.\n"
         "- No mutating work can happen before research_and_plan finishes.\n"
+        "- The current install profile is in USER PROFILE as install_profile/install_encryption/install_filesystem/install_partition_notes. configure_existing means no partitioning/formatting/reinstall. full_disk_wipe may erase one explicitly confirmed target disk. second_disk_install must preserve the current Windows/system disk. dual_boot_free_space may only use existing free space or explicitly mapped Linux partitions and must never shrink Windows. manual_partition_mapping may format only explicitly confirmed mapped partitions.\n"
+        "- Prefer typed `operations` for disk, bootloader, fstab, controlled reboot, package DB repair, and VPN/firewall activation. Raw destructive shell without an exact QuickHatch capability will be blocked even if it is wrapped in bash/sh, heredocs, pipes, or semicolon chains.\n"
+        "- Normal package/app/theme/diagnostic commands remain shell commands. Package-name mistakes should be allowed to fail and repaired; they are not safety hazards unless they corrupt package DB state or threaten boot/reconnect.\n"
         "- Do not optimize for or replay any prior QuickHatch run. Treat the current normalized facts, user profile, migration plan, and distro primer as the only target. The target may be a VM, laptop, desktop, non-NVIDIA GPU, no discrete GPU, no reachable GUI session, a different package manager, or an already-installed configure-only system.\n"
         "- For VM guest drivers, trust virtualization/system_vendor/product_name facts over generic GPU adapter labels. Example: VirtualBox with VMSVGA may report a `VMware SVGA` display adapter; if VM integration is needed, use distro-provided VirtualBox guest utility packages, not VMware tools.\n"
         "- VM guest additions are optional unless the user explicitly requested VM integration. Do not install `virtualbox-guest-additions-iso`, do not run or recommend `VBoxLinuxAdditions.run`, and do not compile Guest Additions from the ISO during unattended setup; that path is kernel-fragile and can leave failed `vboxadd.service` units. If distro-provided guest packages are unavailable or fail against the current kernel, mark VM guest integration as manual_followup and continue with the generic display stack.\n"
@@ -833,8 +859,9 @@ def build_repair_prompt(
         "- Do not repair VM guest integration by installing `virtualbox-guest-additions-iso`, running or recommending `VBoxLinuxAdditions.run`, or compiling Guest Additions from the ISO. If official distro packages are missing, incompatible with the current kernel, or leave `vboxadd.service` failed, emit manual_followup for VM integration instead of keeping it as a required setup blocker; the follow-up should say to use distro docs/packages or skip advanced VM integration.\n"
         "- If you emit retry_group, include evidence on the replacement group unless the failure was purely local state/permissions. Evidence entries use {source_type, summary, query, url, title, confidence}.\n"
         "- If a desktop wrapper or other slow optional app is the problem, prefer manual_followup unless truly necessary.\n"
+        "- If repair needs disk, bootloader, fstab, controlled reboot, package DB surgery, or VPN/firewall activation, emit typed operations in the replacement group. Raw destructive shell without a matching QuickHatch capability will be blocked.\n"
         "- For Ubuntu/Debian desktop repairs after debootstrap, do NOT use `ubuntu-desktop` or `ubuntu-desktop-minimal`. Use explicit GNOME/display-manager packages instead. Do not add Firefox/Mozilla repos or Snap just to repair a basic desktop unless the user explicitly requested that stack.\n"
-        "- If you emit retry_group, keep it scoped to this stage and include at least one command.\n"
+        "- If you emit retry_group, keep it scoped to this stage and include at least one command or typed operation.\n"
         "- Each retry command item runs as its own SSH execution. Do NOT emit heredoc syntax such as `<<EOF`/`EOF_CHROOT`; use explicit `arch-chroot /mnt sh -c '...'` commands or direct `/mnt` edits.\n"
         "- Do not emit standalone shell variable assignments as retry commands; combine assignment and use in the same command because each command gets a fresh SSH shell.\n"
         "- Do not repair Arch base install by adding `--noconfirm` to `pacstrap`; `pacstrap` rejects that flag. Keep `pacstrap -K /mnt ...` and fix package/provider ambiguity directly.\n"

@@ -7,8 +7,9 @@ import shlex
 from dataclasses import dataclass, field
 from typing import Protocol
 
-from quickhatch.config import UserProfile
+from quickhatch.config import UserProfile, generate_setup_password
 
+from ..operations import SetupOperation
 from ..types import SetupFacts
 
 
@@ -44,6 +45,10 @@ class FamilyInstaller(Protocol):
     def service_query(self, services: list[str], facts: SetupFacts) -> str: ...
 
     def final_boot_audit(self, facts: SetupFacts) -> list[str]: ...
+
+    def render_operation(
+        self, operation: SetupOperation, facts: SetupFacts, profile: UserProfile
+    ) -> list[str]: ...
 
     def build_install_spine(self, facts: SetupFacts, profile: UserProfile) -> InstallSpine: ...
 
@@ -110,7 +115,7 @@ class BaseFamilyInstaller:
         del facts
         user = self.target_user(profile)
         user_q = shlex.quote(user)
-        password = getattr(profile, "default_account_password", "") or "password"
+        password = getattr(profile, "default_account_password", "") or generate_setup_password()
         root_chpasswd = shlex.quote(f"root:{password}")
         user_chpasswd = shlex.quote(f"{user}:{password}")
         return [
@@ -196,6 +201,66 @@ class BaseFamilyInstaller:
             "find /boot -maxdepth 3 -type f \\( -name 'vmlinuz*' -o -name 'initramfs*' -o -name 'initrd*' \\) | grep -q .",
             "systemctl is-system-running --wait || true",
         ]
+
+    def render_operation(
+        self, operation: SetupOperation, facts: SetupFacts, profile: UserProfile
+    ) -> list[str]:
+        del facts
+        sudo = "sudo "
+        target = shlex.quote(operation.target)
+        mountpoint = shlex.quote(operation.mountpoint)
+        filesystem = (operation.filesystem or "ext4").lower()
+        if operation.kind == "partition_disk":
+            return [
+                f"{sudo}parted -s {target} mklabel gpt "
+                "mkpart ESP fat32 1MiB 513MiB set 1 esp on "
+                "mkpart primary ext4 513MiB 100%"
+            ]
+        if operation.kind == "format_partition":
+            if filesystem == "btrfs":
+                return [f"{sudo}mkfs.btrfs -f {target}"]
+            if filesystem in {"fat32", "vfat"}:
+                return [f"{sudo}mkfs.fat -F32 {target}"]
+            return [f"{sudo}mkfs.ext4 -F {target}"]
+        if operation.kind == "mount_partition":
+            return [f"{sudo}mkdir -p {mountpoint} && {sudo}mount {target} {mountpoint}"]
+        if operation.kind == "write_fstab":
+            root = shlex.quote(str(operation.options.get("root", "/mnt")))
+            return [f"{sudo}genfstab -U {root} | {sudo}tee {root}/etc/fstab >/dev/null"]
+        if operation.kind == "install_bootloader":
+            efi_dir = str(operation.options.get("efi_directory", self.efi_mountpoint()))
+            if efi_dir == "/mnt":
+                efi_dir = "/"
+            elif efi_dir.startswith("/mnt/"):
+                efi_dir = efi_dir[4:]
+            efi = shlex.quote(efi_dir)
+            return [
+                f"{sudo}chroot /mnt grub-install --target=x86_64-efi "
+                f"--efi-directory={efi} --bootloader-id=quickhatch --recheck",
+                f"{sudo}chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg",
+            ]
+        if operation.kind == "create_user":
+            user = self.target_user(profile)
+            return [
+                f"{sudo}chroot /mnt id {shlex.quote(user)} >/dev/null 2>&1 || {sudo}chroot /mnt useradd -m -s /bin/bash {shlex.quote(user)}"
+            ]
+        if operation.kind == "enable_network_reconnect":
+            return [f"{sudo}chroot /mnt systemctl enable NetworkManager ssh sshd || true"]
+        if operation.kind == "install_ssh_key":
+            user = self.target_user(profile)
+            return [
+                f"{sudo}install -d -m 700 /mnt/home/{shlex.quote(user)}/.ssh",
+                f"test -s /root/.ssh/authorized_keys && {sudo}install -m 600 /root/.ssh/authorized_keys /mnt/home/{shlex.quote(user)}/.ssh/authorized_keys",
+            ]
+        if operation.kind == "controlled_reboot":
+            return [f"{sudo}reboot"]
+        if operation.kind == "network_security_change":
+            command = str(operation.options.get("command", "")).strip()
+            return [command] if command else []
+        if operation.kind == "package_db_repair":
+            command = str(operation.options.get("command", "")).strip()
+            return [command] if command else []
+        raise ValueError(f"Unsupported setup operation: {operation.kind}")
 
     def build_install_spine(self, facts: SetupFacts, profile: UserProfile) -> InstallSpine:
         commands = [

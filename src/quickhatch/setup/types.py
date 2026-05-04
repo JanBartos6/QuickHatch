@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from .operations import SetupOperation
+
 
 class SetupStage(str, Enum):
     CONNECT_AND_PROBE = "connect_and_probe"
@@ -69,6 +71,22 @@ class DriverAuditState(str, Enum):
     UNKNOWN = "unknown"
 
 
+class FinalSetupStatus(str, Enum):
+    SUCCESS = "success"
+    SUCCESS_WITH_WARNINGS = "success_with_warnings"
+    MANUAL_FOLLOWUP_REQUIRED = "manual_followup_required"
+    UNSUPPORTED_SAFE = "unsupported_safe"
+    BLOCKED = "blocked"
+
+
+class AuditFindingSeverity(str, Enum):
+    FATAL = "fatal"
+    REPAIRABLE = "repairable"
+    MANUAL_FOLLOWUP = "manual_followup"
+    WARNING = "warning"
+    UNSUPPORTED_SAFE = "unsupported_safe"
+
+
 @dataclass
 class PreflightDecision:
     kind: PreflightDecisionKind
@@ -83,6 +101,17 @@ class FailureClassification:
     category: FailureCategory
     detail: str = ""
     confidence: str = "medium"
+
+
+@dataclass
+class AuditFinding:
+    id: str
+    severity: AuditFindingSeverity
+    category: str
+    summary: str
+    evidence: list[str] = field(default_factory=list)
+    suggested_repair_scope: str = ""
+    required_capability_kinds: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -163,7 +192,8 @@ class CommandGroup:
     id: str
     stage: SetupStage
     title: str
-    commands: list[str]
+    commands: list[str] = field(default_factory=list)
+    operations: list[SetupOperation] = field(default_factory=list)
     verification: list[str] = field(default_factory=list)
     rationale: str = ""
     source: str = "repo"
@@ -245,3 +275,5 @@ class AuditResult:
     blockers: list[str] = field(default_factory=list)
     details: dict[str, Any] = field(default_factory=dict)
     partial: bool = False
+    findings: list[AuditFinding] = field(default_factory=list)
+    final_status: FinalSetupStatus | None = None

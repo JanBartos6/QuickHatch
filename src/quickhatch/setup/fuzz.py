@@ -182,14 +182,15 @@ def generate_harness_fuzz_cases() -> list[HarnessFuzzCase]:
             description="Ubuntu graphical installer flows are guidance/manual-mode concerns, not hard blocks.",
         ),
         HarnessFuzzCase(
-            name="bootloader_chroot_command_with_sudo_is_allowed",
+            name="bootloader_chroot_command_requires_capability",
             command=(
                 "sudo chroot /mnt grub-install --target=x86_64-efi "
                 "--efi-directory=/boot --bootloader-id=quickhatch"
             ),
             facts=_live_facts("debian", "apt", root=False),
-            expect_block=False,
-            description="Bootloader commands are allowed when explicitly privileged; audits verify bootability.",
+            expect_block=True,
+            expected_categories=("capability_required",),
+            description="Bootloader mutations require a typed operation capability, not only sudo.",
         ),
         HarnessFuzzCase(
             name="vpn_activation_blocks_ssh_continuity",
@@ -233,11 +234,12 @@ def generate_harness_fuzz_cases() -> list[HarnessFuzzCase]:
             description="Disk mutation without root is a deterministic install-spine failure.",
         ),
         HarnessFuzzCase(
-            name="live_disk_mutation_with_sudo_is_allowed",
+            name="live_disk_mutation_with_sudo_still_requires_capability",
             command="sudo sgdisk --zap-all /dev/sda",
             facts=live_nonroot,
-            expect_block=False,
-            description="The same disk mutation is allowed once explicitly privileged.",
+            expect_block=True,
+            expected_categories=("disk_boot_safety",),
+            description="Disk mutation requires a typed operation capability even when explicitly privileged.",
         ),
     ]
 

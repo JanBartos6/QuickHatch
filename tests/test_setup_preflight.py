@@ -19,6 +19,17 @@ def test_preflight_warns_pacman_for_aur_only_packages():
     assert any("community/AUR" in item for item in advisories)
 
 
+def test_wrong_package_manager_is_advisory_not_fatal():
+    facts = SetupFacts(package_manager="pacman", distro_family="arch")
+
+    error = preflight_setup_command("sudo apt install -y foo", facts)
+    decisions = preflight_setup_decisions("sudo apt install -y foo", facts)
+
+    assert error is None
+    assert not any(decision.kind == PreflightDecisionKind.BLOCK for decision in decisions)
+    assert any("wrong package manager" in decision.reason for decision in decisions)
+
+
 def test_preflight_warns_yay_before_helper_exists():
     facts = SetupFacts(package_manager="pacman", community_helper="none")
 
@@ -59,7 +70,7 @@ def test_preflight_blocks_vpn_firewall_activation():
     error = preflight_setup_command("sudo systemctl enable --now mullvad-daemon", facts)
 
     assert error
-    assert "VPN or firewall" in error
+    assert "explicit QuickHatch capability" in error
 
 
 def test_preflight_blocks_shell_wrapped_vpn_firewall_activation():
@@ -71,7 +82,7 @@ def test_preflight_blocks_shell_wrapped_vpn_firewall_activation():
     )
 
     assert error
-    assert "VPN or firewall" in error
+    assert "explicit QuickHatch capability" in error
 
 
 def test_preflight_blocks_firewall_rule_mutations():
@@ -85,7 +96,7 @@ def test_preflight_blocks_firewall_rule_mutations():
     ):
         error = preflight_setup_command(command, facts)
         assert error, command
-        assert "VPN or firewall" in error
+        assert "explicit QuickHatch capability" in error
 
 
 def test_preflight_blocks_broad_package_process_kill():
@@ -209,6 +220,15 @@ def test_preflight_allows_package_install_without_activation():
     assert preflight_setup_command("yay -S --noconfirm mullvad-vpn-bin", facts) is None
 
 
+def test_package_db_surgery_blocks_without_capability():
+    facts = SetupFacts(package_manager="pacman", distro_family="arch", is_root=True)
+
+    error = preflight_setup_command("pacman -Rdd --noconfirm nodejs", facts)
+
+    assert error
+    assert "explicit QuickHatch capability" in error
+
+
 def test_preflight_warns_fake_plasma_dbus_session():
     facts = SetupFacts(package_manager="pacman", community_helper="yay")
 
@@ -304,7 +324,7 @@ def test_preflight_blocks_live_disk_mutation_without_root_privileges():
     error = preflight_setup_command("sgdisk --zap-all /dev/sda", facts)
 
     assert error
-    assert "needs root privileges" in error
+    assert "explicit QuickHatch capability" in error
 
 
 def test_preflight_blocks_live_mount_without_root_privileges():
@@ -342,7 +362,7 @@ def test_preflight_allows_read_only_mount_diagnostics_without_root():
     assert preflight_setup_command("mount -l | grep ext4", facts) is None
 
 
-def test_preflight_allows_live_disk_mutation_with_sudo():
+def test_preflight_blocks_live_disk_mutation_with_sudo_without_capability():
     facts = SetupFacts(
         package_manager="apt",
         distro_family="debian",
@@ -354,7 +374,9 @@ def test_preflight_allows_live_disk_mutation_with_sudo():
         login_user="ubuntu",
     )
 
-    assert preflight_setup_command("sudo sgdisk --zap-all /dev/sda", facts) is None
+    error = preflight_setup_command("sudo sgdisk --zap-all /dev/sda", facts)
+    assert error
+    assert "explicit QuickHatch capability" in error
     assert preflight_setup_command("sudo mount --bind /dev /mnt/dev", facts) is None
 
 
@@ -378,7 +400,7 @@ def test_preflight_blocks_installed_system_disk_or_live_install_mutations_even_w
     ):
         error = preflight_setup_command(command, facts)
         assert error, command
-        assert "installed system" in error or "needs root privileges" in error
+        assert "explicit QuickHatch capability" in error or "installed system" in error
 
 
 def test_preflight_allows_fedora_installed_anaconda_probe():

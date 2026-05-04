@@ -1181,6 +1181,11 @@ function buildProfileFromDraft(baseProfile){
   if(draft.additional_info!==undefined)profile.additional_info=draft.additional_info||'';
   if(draft.linux_ip!==undefined)profile.linux_ip=draft.linux_ip||'';
   if(draft.linux_user!==undefined)profile.linux_user=draft.linux_user||'';
+  if(draft.install_profile!==undefined)profile.install_profile=draft.install_profile||'auto';
+  if(draft.install_encryption!==undefined)profile.install_encryption=draft.install_encryption||'recommended';
+  if(draft.install_filesystem!==undefined)profile.install_filesystem=draft.install_filesystem||'recommended';
+  if(draft.install_partition_notes!==undefined)profile.install_partition_notes=draft.install_partition_notes||'';
+  if(profile.install_profile==='configure_existing')profile.remote_setup_mode='configure_only';
   if(draft.export_executed_setup_script!==undefined)profile.export_executed_setup_script=!!draft.export_executed_setup_script;
   if(draft.ssh_public_key_path!==undefined)profile.ssh_public_key_path=draft.ssh_public_key_path||null;
   if(draft.ai_config&&typeof draft.ai_config==='object'){
@@ -1970,6 +1975,10 @@ const stepRenderers={
     const anotherMachine=draftOr('preferences.another_machine', (prefs.another_machine||''));
     const designDesc=draftOr('preferences.desktop_look', prefs.desktop_look||'');
     const distroPref=draftOr('preferences.distro_preference', prefs.distro_preference||'');
+    const installProfile=draftOr('install_profile', state.profile.install_profile||'auto');
+    const installEncryption=draftOr('install_encryption', state.profile.install_encryption||'recommended');
+    const installFilesystem=draftOr('install_filesystem', state.profile.install_filesystem||'recommended');
+    const installPartitionNotes=draftOr('install_partition_notes', state.profile.install_partition_notes||'');
     const customize=isCustomizeMode();
     content().innerHTML=`
       <div class="card">
@@ -1991,6 +2000,57 @@ const stepRenderers={
         ${customize?'':`<div class="field">
           <label>Preferred Linux distribution <span class="muted" style="font-weight:400">(optional)</span></label>
           <input type="text" id="distroPref" value="${escHtml(distroPref)}" placeholder="Leave blank and the AI will recommend one based on your hardware" oninput="persistQuestionnaireDraft()">
+        </div>`}
+
+        ${customize?'':`
+        <div class="field">
+          <label>Install target</label>
+          <div class="choice-grid" id="installProfileChoice">
+            <div class="choice${installProfile==='configure_existing'?' selected':''}" data-value="configure_existing" onclick="selectChoice('installProfileChoice',this)">
+              <div class="title">Configure an existing Linux install</div>
+              <div class="desc">No disk changes. Installs apps, drivers, themes, and settings on an already-installed Linux system.</div>
+            </div>
+            <div class="choice${installProfile==='full_disk_wipe'?' selected':''}" data-value="full_disk_wipe" onclick="selectChoice('installProfileChoice',this)">
+              <div class="title">Erase one whole disk and install Linux</div>
+              <div class="desc">May wipe one explicitly confirmed target disk and install Linux there.</div>
+            </div>
+            <div class="choice${installProfile==='second_disk_install'?' selected':''}" data-value="second_disk_install" onclick="selectChoice('installProfileChoice',this)">
+              <div class="title">Install Linux on another disk</div>
+              <div class="desc">Keep the current Windows/system disk untouched. Installs Linux on a separate explicitly confirmed disk.</div>
+            </div>
+            <div class="choice${installProfile==='dual_boot_free_space'?' selected':''}" data-value="dual_boot_free_space" onclick="selectChoice('installProfileChoice',this)">
+              <div class="title">Dual boot using free space</div>
+              <div class="desc">Use pre-created unallocated/free space. QuickHatch must not shrink Windows or delete existing Windows partitions.</div>
+            </div>
+            <div class="choice${installProfile==='manual_partition_mapping'?' selected':''}" data-value="manual_partition_mapping" onclick="selectChoice('installProfileChoice',this)">
+              <div class="title">Advanced/manual partition mapping</div>
+              <div class="desc">Only for users who know exactly which partitions should be used.</div>
+            </div>
+          </div>
+          <div class="info-box info-warn" style="margin-top:var(--s3)">
+            <strong>Advanced mode</strong>
+            <p style="margin:var(--s1) 0 0 0">Select manual mapping only if you are confident with Linux partitioning. QuickHatch will require explicit confirmation before formatting any mapped partition.</p>
+          </div>
+          <div class="conn-grid" style="margin-top:var(--s3)">
+            <div class="field">
+              <label>Encryption</label>
+              <select id="installEncryption" onchange="persistQuestionnaireDraft()">
+                <option value="recommended"${installEncryption==='recommended'?' selected':''}>Recommended</option>
+                <option value="none"${installEncryption==='none'?' selected':''}>No encryption</option>
+                <option value="luks"${installEncryption==='luks'?' selected':''}>LUKS encryption</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Filesystem</label>
+              <select id="installFilesystem" onchange="persistQuestionnaireDraft()">
+                <option value="recommended"${installFilesystem==='recommended'?' selected':''}>Recommended</option>
+                <option value="ext4"${installFilesystem==='ext4'?' selected':''}>ext4 — simple and stable</option>
+                <option value="btrfs"${installFilesystem==='btrfs'?' selected':''}>btrfs — snapshots and modern features</option>
+              </select>
+            </div>
+          </div>
+          <textarea id="installPartitionNotes" rows="3" placeholder="Optional partition notes, exact disk/partition hints, or manual mapping details…" oninput="persistQuestionnaireDraft()">${escHtml(installPartitionNotes)}</textarea>
+          <div class="muted" style="font-size:var(--t-xs);margin-top:var(--s2)">QuickHatch will not automatically shrink Windows volumes or delete existing Windows partitions in the first public version.</div>
         </div>`}
 
         ${customize?'':`
@@ -2424,6 +2484,17 @@ const stepRenderers={
     const ip=state.profile.linux_ip||'';
     const user=state.profile.linux_user||'';
     const remoteSetupMode=state.profile.remote_setup_mode||'auto';
+    const installProfile=state.profile.install_profile||'auto';
+    const installEncryption=state.profile.install_encryption||'recommended';
+    const installFilesystem=state.profile.install_filesystem||'recommended';
+    const installProfileLabels={
+      auto:'Auto',
+      configure_existing:'Configure existing Linux install',
+      full_disk_wipe:'Erase one whole disk and install Linux',
+      second_disk_install:'Install Linux on another disk',
+      dual_boot_free_space:'Dual boot using free space',
+      manual_partition_mapping:'Advanced/manual partition mapping',
+    };
     const exportExecutedScript=!!state.profile.export_executed_setup_script;
     const port=location.port;
     const hasConn=ip&&user;
@@ -2433,6 +2504,11 @@ const stepRenderers={
       <div class="card">
         <h2>Remote setup</h2>
         <p class="subtitle">SSH into the target machine and apply the plan. Enter the IP and username printed by <code>quickstart.sh</code> — then test the connection before starting.</p>
+
+        <div class="info-box" style="margin-bottom:var(--s4)">
+          <strong>Install target: ${escHtml(installProfileLabels[installProfile]||installProfile)}</strong>
+          <p style="margin:var(--s1) 0 0 0">Encryption: <code>${escHtml(installEncryption)}</code> · Filesystem: <code>${escHtml(installFilesystem)}</code>. Disk/format/boot operations require exact capability confirmation before execution.</p>
+        </div>
 
         <div class="conn-grid">
           <div class="field"><label>IP address</label>
@@ -2880,6 +2956,7 @@ function selectChoice(gid,elem){
   elem.classList.add('selected');
   if(gid==='aiChoice') showAIExtra(elem.dataset.value);
   if(gid==='dataTransfer') persistAppsDataDraft();
+  if(gid==='installProfileChoice') persistQuestionnaireDraft();
 }
 function aiAvailabilityCallout(provider){
   const local = ['local_lmstudio','local_ollama','codex'].includes(provider);
@@ -3071,12 +3148,26 @@ function persistQuestionnaireDraft(){
   const grid=el('anotherMachineGrid');
   const sel=grid?grid.querySelector('.pill.selected'):null;
   const anotherMachine=sel?sel.dataset.value:(state.profile?.preferences?.another_machine||'');
+  const installProfile=getSelected('installProfileChoice')||(state.profile?.install_profile||'auto');
+  const installEncryption=((el('installEncryption')||{}).value||state.profile?.install_encryption||'recommended');
+  const installFilesystem=((el('installFilesystem')||{}).value||state.profile?.install_filesystem||'recommended');
+  const installPartitionNotes=((el('installPartitionNotes')||{}).value||'').trim();
   setDraftValue('preferences.desktop_look', designDesc);
   setDraftValue('preferences.use_cases_text', useCasesText);
   setDraftValue('preferences.distro_preference', distroPref);
   setDraftValue('preferences.another_machine', anotherMachine||'');
+  setDraftValue('install_profile', installProfile);
+  setDraftValue('install_encryption', installEncryption);
+  setDraftValue('install_filesystem', installFilesystem);
+  setDraftValue('install_partition_notes', installPartitionNotes);
+  if(installProfile==='configure_existing')setDraftValue('remote_setup_mode','configure_only');
   setDraftValue('preferences.gallery_picks', [...(state.galleryPinned||[])]);
   queueAutosave('questionnaire', ()=>saveProfile({
+    install_profile:installProfile,
+    install_encryption:installEncryption,
+    install_filesystem:installFilesystem,
+    install_partition_notes:installPartitionNotes,
+    ...(installProfile==='configure_existing'?{remote_setup_mode:'configure_only'}:{}),
     preferences:{
       desktop_look:designDesc,
       use_cases:useCasesText?useCasesText.split(',').map(s=>s.trim()).filter(Boolean):[],
@@ -3204,6 +3295,10 @@ async function submitPrefs(){
     wallpaper_style:'',
     gallery_picks:[...(state.galleryPinned||[])],
   };
+  const installProfile=getSelected('installProfileChoice')||(state.profile.install_profile||'auto');
+  const installEncryption=((el('installEncryption')||{}).value||state.profile.install_encryption||'recommended');
+  const installFilesystem=((el('installFilesystem')||{}).value||state.profile.install_filesystem||'recommended');
+  const installPartitionNotes=((el('installPartitionNotes')||{}).value||'').trim();
   // If the user just flipped to 'no' (offline single-machine), the
   // previously-picked data_transfer_method becomes nonsensical (no
   // live agent to run scp/cloud CLI). Clear it so the migration plan
@@ -3212,11 +3307,24 @@ async function submitPrefs(){
   if(anotherMachine==='no'&&state.profile.data_transfer_method){
     extra.data_transfer_method='';
   }
-  await saveProfile({preferences:prefs,...extra});
+  if(installProfile==='configure_existing')extra.remote_setup_mode='configure_only';
+  await saveProfile({
+    preferences:prefs,
+    install_profile:installProfile,
+    install_encryption:installEncryption,
+    install_filesystem:installFilesystem,
+    install_partition_notes:installPartitionNotes,
+    ...extra,
+  });
   clearDraftValue('preferences.desktop_look');
   clearDraftValue('preferences.use_cases_text');
   clearDraftValue('preferences.distro_preference');
   clearDraftValue('preferences.another_machine');
+  clearDraftValue('install_profile');
+  clearDraftValue('install_encryption');
+  clearDraftValue('install_filesystem');
+  clearDraftValue('install_partition_notes');
+  clearDraftValue('remote_setup_mode');
   clearDraftValue('preferences.gallery_picks');
   // Step list depends on another_machine: refresh now so the next
   // render shows the correct subsequent steps.
@@ -4151,6 +4259,16 @@ function exportExecutedSetupScriptEnabled(){
   return !!((el('exportExecutedSetupScript')||{}).checked);
 }
 
+function setupInstallProfilePayload(){
+  const profile=state.profile||{};
+  return {
+    install_profile:profile.install_profile||'auto',
+    install_encryption:profile.install_encryption||'recommended',
+    install_filesystem:profile.install_filesystem||'recommended',
+    install_partition_notes:profile.install_partition_notes||'',
+  };
+}
+
 async function setExportExecutedSetupScript(enabled){
   if(state.profile)state.profile.export_executed_setup_script=!!enabled;
   setDraftValue('export_executed_setup_script', !!enabled);
@@ -4168,6 +4286,7 @@ async function saveLinuxConn(){
     linux_ip:ip,
     linux_user:user,
     remote_setup_mode:remoteSetupMode,
+    ...setupInstallProfilePayload(),
     export_executed_setup_script:exportExecutedSetupScriptEnabled(),
   });
   state._sshTestOk=false;
@@ -4188,6 +4307,7 @@ async function launchSetupAgent(){
       linux_ip:(el('linuxIp')||{}).value?.trim?.()||'',
       linux_user:(el('linuxUser')||{}).value?.trim?.()||'',
       remote_setup_mode:state.profile.remote_setup_mode||'auto',
+      ...setupInstallProfilePayload(),
       export_executed_setup_script:exportExecutedSetupScriptEnabled(),
     },{silentError:true,toast:false});
     const data=await api('/wizard/launch-agent','POST',{phase:'setup'});
@@ -4230,6 +4350,7 @@ async function testLinuxConn(){
     linux_ip:ip,
     linux_user:user,
     remote_setup_mode:remoteSetupMode,
+    ...setupInstallProfilePayload(),
     export_executed_setup_script:exportExecutedSetupScriptEnabled(),
   });
   try{
@@ -4324,7 +4445,15 @@ async function setRemoteSetupMode(mode){
     if(!ok)return;
   }
   state.profile.remote_setup_mode=mode;
-  await saveProfile({remote_setup_mode:mode},{silentError:true});
+  const update={remote_setup_mode:mode};
+  if(mode==='configure_only'){
+    state.profile.install_profile='configure_existing';
+    update.install_profile='configure_existing';
+  }else if(mode==='wipe_and_reinstall'&&state.profile.install_profile==='configure_existing'){
+    state.profile.install_profile='full_disk_wipe';
+    update.install_profile='full_disk_wipe';
+  }
+  await saveProfile(update,{silentError:true});
   state._sshTestOk=false;
   stepRenderers.setup();
 }

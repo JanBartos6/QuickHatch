@@ -4,6 +4,7 @@ import pytest
 
 from quickhatch.config import UserProfile
 from quickhatch.setup.families import get_family_installer
+from quickhatch.setup.operations import SetupOperation
 from quickhatch.setup.types import SetupFacts
 
 
@@ -69,3 +70,25 @@ def test_fedora_adapter_fstab_uses_selected_target_disk_partitions():
     assert 'blkid -s UUID -o value "$ESP"' in joined
     assert "/dev/sda1" not in joined
     assert "/dev/sda2" not in joined
+
+
+@pytest.mark.parametrize("family", ["arch", "ubuntu", "debian", "fedora"])
+def test_family_adapters_render_common_typed_operations(family):
+    installer = get_family_installer(family)
+    profile = UserProfile(linux_user="alex")
+    facts = SetupFacts(distro_family=family, is_live=True)
+
+    format_commands = installer.render_operation(
+        SetupOperation(kind="format_partition", target="/dev/sda2", filesystem="ext4"),
+        facts,
+        profile,
+    )
+    user_commands = installer.render_operation(
+        SetupOperation(kind="create_user", target="alex"),
+        facts,
+        profile,
+    )
+
+    assert any("mkfs.ext4" in command for command in format_commands)
+    assert any("useradd" in command for command in user_commands)
+    assert "jan" not in "\n".join(user_commands)

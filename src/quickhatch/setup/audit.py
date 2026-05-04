@@ -7,8 +7,11 @@ from dataclasses import asdict
 from typing import Any
 
 from .types import (
+    AuditFinding,
+    AuditFindingSeverity,
     AuditResult,
     DesktopRuntimeState,
+    FinalSetupStatus,
     PlanItemStatus,
     ResearchPlan,
     SetupFacts,
@@ -281,7 +284,112 @@ def audit_stage(
                 flattened.append(str(blocker))
         blockers = flattened
 
-    return AuditResult(stage=stage, passed=not blockers, blockers=blockers, details=details)
+    findings = [_finding_from_blocker(stage, blocker) for blocker in blockers]
+    final_status = (
+        _final_status_from_findings(findings) if stage == SetupStage.FINAL_AUDIT else None
+    )
+    if stage == SetupStage.FINAL_AUDIT:
+        passed = not any(finding.severity == AuditFindingSeverity.FATAL for finding in findings)
+        result_blockers = [
+            finding.summary
+            for finding in findings
+            if finding.severity == AuditFindingSeverity.FATAL
+        ]
+    else:
+        passed = not findings
+        result_blockers = [finding.summary for finding in findings]
+    return AuditResult(
+        stage=stage,
+        passed=passed,
+        blockers=result_blockers,
+        details=details,
+        findings=findings,
+        final_status=final_status,
+    )
+
+
+def _finding_from_blocker(stage: SetupStage, blocker: str) -> AuditFinding:
+    text = str(blocker or "").strip()
+    category = _finding_category(text)
+    severity = _finding_severity(stage, category, text)
+    return AuditFinding(
+        id=f"{stage.value}:{category}:{abs(hash(text)) % 100000}",
+        severity=severity,
+        category=category,
+        summary=text,
+        evidence=[text] if text else [],
+        suggested_repair_scope=_repair_scope_for_category(category),
+        required_capability_kinds=_capabilities_for_category(category),
+    )
+
+
+def findings_from_blockers(stage: SetupStage, blockers: list[str]) -> list[AuditFinding]:
+    return [_finding_from_blocker(stage, blocker) for blocker in blockers]
+
+
+def _finding_category(text: str) -> str:
+    lower = text.lower()
+    if "fstab" in lower:
+        return "fstab"
+    if "bootloader" in lower or "grub" in lower or "initramfs" in lower or "kernel" in lower:
+        return "bootability"
+    if "ssh" in lower or "reconnect" in lower:
+        return "ssh_reconnect"
+    if "nvidia" in lower or "secure boot" in lower or "nouveau" in lower:
+        return "driver"
+    if "wallpaper" in lower or "theme" in lower or "desktop design" in lower or "display" in lower:
+        return "desktop"
+    if "app" in lower or "package" in lower:
+        return "apps"
+    if "question" in lower:
+        return "blocking_question"
+    return "setup"
+
+
+def _finding_severity(stage: SetupStage, category: str, text: str) -> AuditFindingSeverity:
+    lower = text.lower()
+    if category in {"fstab", "bootability", "ssh_reconnect", "blocking_question"}:
+        return AuditFindingSeverity.FATAL
+    if category == "apps" and "required app" in lower:
+        return AuditFindingSeverity.FATAL
+    if category == "driver" and ("secure boot" in lower or "manual follow-up" in lower):
+        return AuditFindingSeverity.UNSUPPORTED_SAFE
+    if category in {"desktop", "apps", "driver"}:
+        return AuditFindingSeverity.MANUAL_FOLLOWUP
+    if stage == SetupStage.FINAL_AUDIT:
+        return AuditFindingSeverity.REPAIRABLE
+    return AuditFindingSeverity.FATAL
+
+
+def _repair_scope_for_category(category: str) -> str:
+    return {
+        "fstab": "repair target fstab only",
+        "bootability": "repair kernel/initramfs/bootloader only",
+        "ssh_reconnect": "repair SSH or sudo continuity only",
+        "driver": "repair or mark driver manual follow-up",
+        "desktop": "repair persisted desktop config or mark cosmetic manual follow-up",
+        "apps": "repair package identifiers or mark app manual follow-up",
+    }.get(category, "repair this finding only")
+
+
+def _capabilities_for_category(category: str) -> list[str]:
+    if category == "fstab":
+        return ["write_fstab"]
+    if category == "bootability":
+        return ["bootloader_install"]
+    return []
+
+
+def _final_status_from_findings(findings: list[AuditFinding]) -> FinalSetupStatus:
+    if any(finding.severity == AuditFindingSeverity.FATAL for finding in findings):
+        return FinalSetupStatus.BLOCKED
+    if any(finding.severity == AuditFindingSeverity.MANUAL_FOLLOWUP for finding in findings):
+        return FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
+    if any(finding.severity == AuditFindingSeverity.UNSUPPORTED_SAFE for finding in findings):
+        return FinalSetupStatus.UNSUPPORTED_SAFE
+    if findings:
+        return FinalSetupStatus.SUCCESS_WITH_WARNINGS
+    return FinalSetupStatus.SUCCESS
 
 
 def _has_desktop_design_signal(facts: SetupFacts) -> bool:

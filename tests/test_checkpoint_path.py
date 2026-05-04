@@ -91,12 +91,49 @@ class TestCheckpointPath:
         profile.target_hardware_override = "Install for a Ryzen 7 box with RTX 4070."
         profile.default_account_password = "hunter2"
         profile.remote_setup_mode = "wipe_and_reinstall"
+        profile.install_profile = "second_disk_install"
+        profile.install_encryption = "luks"
+        profile.install_filesystem = "btrfs"
+        profile.install_partition_notes = "Linux target is /dev/nvme1n1."
         profile.save_checkpoint()
         loaded = UserProfile.load_checkpoint()
         assert loaded is not None
         assert loaded.target_hardware_override == profile.target_hardware_override
         assert loaded.default_account_password == "hunter2"
         assert loaded.remote_setup_mode == "wipe_and_reinstall"
+        assert loaded.install_profile == "second_disk_install"
+        assert loaded.install_encryption == "luks"
+        assert loaded.install_filesystem == "btrfs"
+        assert loaded.install_partition_notes == "Linux target is /dev/nvme1n1."
+
+    def test_old_checkpoint_defaults_new_install_profile_fields(self, fake_home):
+        path = fake_home / ".quickhatch-checkpoint.json"
+        payload = {
+            "preferences": {},
+            "ai_config": {},
+            "hardware": {},
+            "apps": [],
+            "files_summary": {},
+            "windows_settings": {},
+            "ssh_public_key_path": None,
+            "additional_info": "",
+            "apps_to_install": [],
+            "data_description": "",
+            "data_transfer_method": "",
+            "linux_ip": "",
+            "linux_user": "",
+            "remote_setup_mode": "auto",
+            "completed_steps": [],
+        }
+        path.write_text(json.dumps(payload), encoding="utf-8")
+
+        loaded = UserProfile.load_checkpoint()
+
+        assert loaded is not None
+        assert loaded.install_profile == "auto"
+        assert loaded.install_encryption == "recommended"
+        assert loaded.install_filesystem == "recommended"
+        assert loaded.install_partition_notes == ""
 
     def test_malformed_nested_app_row_does_not_drop_whole_profile(self, fake_home):
         path = fake_home / ".quickhatch-checkpoint.json"

@@ -16,9 +16,18 @@ from pathlib import Path
 from typing import Any
 
 from quickhatch.bridge.server import BridgeState
-from quickhatch.config import AIConfig, UserProfile
+from quickhatch.config import AIConfig, UserProfile, generate_setup_password
 
-from .audit import audit_stage, final_audit
+from .attempts import build_attempt_signature, is_diagnostic_command
+from .audit import audit_stage, final_audit, findings_from_blockers
+from .capabilities import (
+    DISK_INVENTORY_COMMAND,
+    CapabilityStore,
+    build_operation_preview,
+    canonicalize_target,
+    dangerous_command_requirements,
+    dual_boot_blocks_operation,
+)
 from .facts import describe_fact_changes
 from .failure import classify_failure
 from .families import get_family_installer
@@ -42,6 +51,7 @@ from .types import (
     AuditResult,
     CommandGroup,
     DesktopRuntimeState,
+    FinalSetupStatus,
     PlanItemStatus,
     PreflightDecisionKind,
     ResearchPlan,
@@ -578,6 +588,8 @@ class SetupExecutionContext:
     stage_state: dict[str, dict[str, Any]] = field(default_factory=dict)
     results_log: list[str] = field(default_factory=list)
     created_user: str | None = None
+    capability_store: CapabilityStore | None = None
+    last_disk_inventory: str = ""
 
 
 @dataclass
@@ -607,6 +619,10 @@ class SetupOrchestrator:
         self.bridge = runtime.bridge
         self.profile = runtime.profile
         self.ctx = SetupExecutionContext(run_id=str(uuid.uuid4())[:8])
+        self.ctx.capability_store = CapabilityStore(
+            run_id=self.ctx.run_id,
+            install_profile=getattr(self.profile, "install_profile", "auto") or "auto",
+        )
         self.runlog = SetupRunLogger(self.ctx.run_id)
 
     def run(self) -> str:
@@ -1181,6 +1197,10 @@ class SetupOrchestrator:
                     self._mark_group_completion(current_group, stage=stage)
                     self._refresh_facts(stage=stage)
                     break
+                if failure.failure_type == "safe_abort":
+                    raise RuntimeError(
+                        str(stage_state.get("safe_abort") or failure.detail or "Safe abort.")
+                    )
                 if failure.failure_type == "live_reboot_required":
                     raise RuntimeError(failure.detail)
                 auto_repaired = self._auto_repair_missing_repo_targets(
@@ -1946,7 +1966,10 @@ class SetupOrchestrator:
     def _create_live_target_reconnect_user(self, root_path: str, target_user: str) -> None:
         root_q = shlex.quote(root_path)
         user_q = shlex.quote(target_user)
-        password = getattr(self.runtime.profile, "default_account_password", "") or "password"
+        password = (
+            getattr(self.runtime.profile, "default_account_password", "")
+            or generate_setup_password()
+        )
         password_q = shlex.quote(password)
         sudoers_line_q = shlex.quote(f"{target_user} ALL=(ALL:ALL) NOPASSWD: ALL")
         command = (
@@ -2295,6 +2318,49 @@ class SetupOrchestrator:
             command_count=len(commands),
             verification_count=len(verification),
         )
+        self._grant_family_spine_capabilities(disks[0], spine_group.commands)
+
+    def _grant_family_spine_capabilities(self, target_disk: str, commands: list[str]) -> None:
+        store = self.ctx.capability_store
+        if store is None:
+            return
+        preview_id = f"preview-family-spine-{self.ctx.run_id}"
+        requirements: dict[tuple[str, str], str] = {}
+        for command in commands:
+            for requirement in dangerous_command_requirements(command):
+                target = requirement.get("target") or ""
+                if requirement.get("kind") == "disk_partition" and not target:
+                    target = target_disk
+                requirements[(requirement["kind"], target)] = requirement.get("reason", "")
+        if not requirements:
+            return
+        self.runlog.record(
+            "dangerous_operation_preview",
+            stage=SetupStage.INSTALL_OR_SKIP.value,
+            group_id="quickhatch-family-install-spine",
+            preview={
+                "preview_id": preview_id,
+                "operation": {"kind": "family_install_spine", "target": target_disk},
+                "rendered_commands": commands,
+                "install_profile": getattr(self.profile, "install_profile", "auto") or "auto",
+                "confirmation_token": f"HARNESS-SPINE {target_disk}",
+                "one_time_use": False,
+                "erases_data": True,
+                "disk_inventory": self.ctx.last_disk_inventory,
+            },
+        )
+        for (kind, target), reason in sorted(requirements.items()):
+            store.grant(
+                kind=kind,
+                target=target,
+                confirmation_text=f"HARNESS-SPINE {target_disk}",
+                confirmation_id=preview_id,
+                reason=reason or "deterministic family install spine",
+                source="harness_generated",
+                one_time_use=False,
+                ttl_seconds=1800,
+                preview_id=preview_id,
+            )
 
     def _ensure_display_manager_started(self) -> None:
         facts = self.ctx.facts
@@ -2651,17 +2717,46 @@ class SetupOrchestrator:
                 self.ctx.stage_state.get(SetupStage.FINAL_AUDIT.value, {})
             )
             if remote_blockers:
-                result.blockers.extend(remote_blockers)
-                result.passed = False
+                result.findings.extend(
+                    findings_from_blockers(SetupStage.FINAL_AUDIT, remote_blockers)
+                )
+                result.blockers = [
+                    finding.summary
+                    for finding in result.findings
+                    if finding.severity.value == "fatal"
+                ]
+                result.passed = not result.blockers
+                result.final_status = self._final_status_from_findings(result)
                 result.details["remote_final_verification_blockers"] = remote_blockers
+        if result.final_status is None:
+            result.final_status = self._final_status_from_findings(result)
         self.ctx.stage_results.append(result)
         self.runlog.record("final_audit", result=asdict(result))
+        status = "blocked" if result.final_status == FinalSetupStatus.BLOCKED else "done"
         self.bridge.update_setup_run(
             blockers=list(result.blockers),
-            status="blocked" if not result.passed else "done",
+            status=status,
             stage=SetupStage.FINAL_AUDIT.value,
+            final_status=result.final_status.value if result.final_status else "",
         )
         return result
+
+    @staticmethod
+    def _final_status_from_findings(result: AuditResult) -> FinalSetupStatus:
+        severities = {finding.severity for finding in result.findings}
+        severity_values = {
+            str(severity.value if hasattr(severity, "value") else severity)
+            for severity in severities
+        }
+        if "fatal" in severity_values:
+            return FinalSetupStatus.BLOCKED
+        if "manual_followup" in severity_values:
+            return FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
+        if "unsupported_safe" in severity_values:
+            return FinalSetupStatus.UNSUPPORTED_SAFE
+        if result.findings:
+            return FinalSetupStatus.SUCCESS_WITH_WARNINGS
+        return FinalSetupStatus.SUCCESS
 
     def _latest_stage_results(self, *, exclude_final: bool = False) -> list[AuditResult]:
         latest: dict[SetupStage, AuditResult] = {}
@@ -3193,7 +3288,16 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             stage=stage.value,
             group=asdict(group),
         )
-        commands = self._commands_for_group(stage, group)
+        operation_commands = self._prepare_group_operations(stage, group, stage_state)
+        if operation_commands is None:
+            return GroupFailure(
+                failure_type="safe_abort",
+                command="typed setup operation",
+                stdout="",
+                stderr="",
+                detail="Dangerous operation was safely aborted before execution.",
+            )
+        commands = [*operation_commands, *self._commands_for_group(stage, group)]
         for command in commands:
             command = self._rewrite_arch_community_helper_command(command, stage=stage, group=group)
             visible_command = command
@@ -3218,6 +3322,8 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                 command,
                 self.ctx.facts or SetupFacts(),
                 shadow_mode=shadow_preflight,
+                capability_store=self.ctx.capability_store,
+                disk_inventory=self.ctx.last_disk_inventory,
             )
             visible_decisions = [
                 decision
@@ -3271,6 +3377,8 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                     command,
                     self.ctx.facts or SetupFacts(),
                     shadow_mode=shadow_preflight,
+                    capability_store=self.ctx.capability_store,
+                    disk_inventory=self.ctx.last_disk_inventory,
                 )
                 if decision.kind == PreflightDecisionKind.BLOCK
             ]
@@ -3295,6 +3403,8 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                             command,
                             self.ctx.facts or SetupFacts(),
                             shadow_mode=shadow_preflight,
+                            capability_store=self.ctx.capability_store,
+                            disk_inventory=self.ctx.last_disk_inventory,
                         )
                         if decision.kind == PreflightDecisionKind.BLOCK
                     ]
@@ -3374,6 +3484,23 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                 ),
             )
             if rc != 0:
+                signature = build_attempt_signature(
+                    stage=stage.value,
+                    group_id=group.id,
+                    group_title=group.title,
+                    command=visible_command,
+                    stdout=stdout,
+                    stderr=stderr,
+                    detail=stderr.strip() or stdout.strip(),
+                )
+                self.runlog.record(
+                    "attempt_signature",
+                    stage=stage.value,
+                    group_id=group.id,
+                    command=visible_command,
+                    signature=asdict(signature),
+                    diagnostic=is_diagnostic_command(visible_command),
+                )
                 if self._looks_like_live_installer_reboot_disconnect(
                     stage, visible_command, stdout, stderr
                 ):
@@ -3438,6 +3565,7 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                     stderr=stderr,
                     detail=detail,
                 )
+            self._consume_capabilities_for_command(command, stage=stage, group=group)
             self._update_from_command(visible_command, stdout, stderr, stage=stage)
         try:
             self._maybe_reboot_for_nvidia_driver(stage, group, stage_state)
@@ -3591,6 +3719,227 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                     detail=detail,
                 )
         return None
+
+    def _prepare_group_operations(
+        self,
+        stage: SetupStage,
+        group: CommandGroup,
+        stage_state: dict[str, Any],
+    ) -> list[str] | None:
+        del stage_state
+        if not group.operations:
+            return []
+        facts = self.ctx.facts or SetupFacts()
+        family = facts.distro_family or facts.os_id or self.runtime.target_distro_family
+        installer = get_family_installer(family)
+        commands: list[str] = []
+        for operation in group.operations:
+            try:
+                rendered = installer.render_operation(operation, facts, self.profile)
+            except Exception as exc:
+                self._safe_abort(
+                    stage=stage,
+                    reason=f"Could not render typed operation {operation.kind}: {exc}",
+                    group=group,
+                )
+                return None
+            capability_kind = operation.capability_kind
+            canonical_target = canonicalize_target(
+                operation.target or operation.mountpoint,
+                inventory=self.ctx.last_disk_inventory,
+            )
+            if capability_kind:
+                if not self._authorize_operation(
+                    stage=stage,
+                    group=group,
+                    operation=operation,
+                    rendered=rendered,
+                    capability_kind=capability_kind,
+                    canonical_target=canonical_target,
+                ):
+                    return None
+            self.runlog.record(
+                "operation_rendered",
+                stage=stage.value,
+                group_id=group.id,
+                operation=asdict(operation),
+                rendered_commands=rendered,
+                capability_kind=capability_kind,
+            )
+            commands.extend(rendered)
+        return commands
+
+    def _authorize_operation(
+        self,
+        *,
+        stage: SetupStage,
+        group: CommandGroup,
+        operation: Any,
+        rendered: list[str],
+        capability_kind: str,
+        canonical_target: str,
+    ) -> bool:
+        store = self.ctx.capability_store
+        if store is None:
+            return False
+        disk_inventory = self.ctx.last_disk_inventory
+        if operation.kind in {"partition_disk", "format_partition"}:
+            disk_inventory = self._refresh_disk_inventory(stage=stage, group_id=group.id)
+            if getattr(self.profile, "install_profile", "auto") == "dual_boot_free_space":
+                reason = dual_boot_blocks_operation(operation, disk_inventory)
+                if reason:
+                    self._safe_abort(stage=stage, group=group, reason=reason)
+                    return False
+        existing = store.allows(
+            kind=capability_kind,
+            target=canonical_target,
+            disk_inventory=disk_inventory,
+        )
+        if existing:
+            self.runlog.record(
+                "capability_reused",
+                stage=stage.value,
+                group_id=group.id,
+                capability_id=existing.id,
+                operation=asdict(operation),
+            )
+            return True
+        preview = build_operation_preview(
+            operation=operation,
+            rendered_commands=rendered,
+            install_profile=getattr(self.profile, "install_profile", "auto") or "auto",
+            canonical_target=canonical_target,
+            disk_inventory=disk_inventory,
+        )
+        self.runlog.record(
+            "dangerous_operation_preview",
+            stage=stage.value,
+            group_id=group.id,
+            preview=asdict(preview),
+        )
+        preview_text = self._format_operation_preview(preview)
+        self.bridge.add_message("agent", preview_text)
+        answer = self._ask_blocking_question(
+            (
+                "Confirm the dangerous setup operation exactly as shown.\n\n"
+                f"Required token: `{preview.confirmation_token}`"
+            ),
+            choices=[preview.confirmation_token, "skip/manual follow-up"],
+            stage=stage,
+            context={
+                "group_id": group.id,
+                "operation": asdict(operation),
+                "preview_id": preview.preview_id,
+            },
+            timeout=1800,
+        )
+        if (answer or "").strip() != preview.confirmation_token:
+            self._safe_abort(
+                stage=stage,
+                group=group,
+                reason="Dangerous operation was not confirmed with the required token.",
+            )
+            return False
+        grant = store.grant(
+            kind=capability_kind,
+            target=canonical_target,
+            confirmation_text=answer,
+            confirmation_id=preview.preview_id,
+            reason=f"User confirmed {operation.kind} for {canonical_target}",
+            disk_inventory=disk_inventory,
+            preview_id=preview.preview_id,
+        )
+        self.runlog.record(
+            "capability_granted",
+            stage=stage.value,
+            group_id=group.id,
+            capability=asdict(grant),
+        )
+        return True
+
+    def _refresh_disk_inventory(self, *, stage: SetupStage, group_id: str) -> str:
+        rc, stdout, stderr = self.runtime.ssh_exec(DISK_INVENTORY_COMMAND, 60)
+        inventory = stdout.strip()
+        self.ctx.last_disk_inventory = inventory
+        self.runlog.record(
+            "disk_inventory",
+            stage=stage.value,
+            group_id=group_id,
+            command=DISK_INVENTORY_COMMAND,
+            rc=rc,
+            stdout_tail=(stdout or "")[-2000:],
+            stderr_tail=(stderr or "")[-500:],
+        )
+        return inventory
+
+    @staticmethod
+    def _format_operation_preview(preview: Any) -> str:
+        commands = "\n".join(
+            f"- `{redact_sensitive_text(cmd)}`" for cmd in preview.rendered_commands
+        )
+        inventory = (
+            "\n\nDisk inventory:\n```text\n" + preview.disk_inventory.strip()[:4000] + "\n```"
+            if preview.disk_inventory
+            else ""
+        )
+        return (
+            "[harness] Dangerous-operation preview\n"
+            f"- operation: `{preview.operation.get('kind')}`\n"
+            f"- target: `{preview.operation.get('target') or preview.operation.get('mountpoint')}`\n"
+            f"- install profile: `{preview.install_profile}`\n"
+            f"- erases data: `{preview.erases_data}`\n"
+            f"- one-time capability: `{preview.one_time_use}`\n"
+            f"- required confirmation token: `{preview.confirmation_token}`\n"
+            "Rendered command(s):\n"
+            f"{commands}"
+            f"{inventory}"
+        )
+
+    def _safe_abort(self, *, stage: SetupStage, group: CommandGroup | None, reason: str) -> None:
+        facts_payload = asdict(self.ctx.facts or SetupFacts())
+        self.ctx.stage_state.setdefault(stage.value, {})["safe_abort"] = reason
+        self.runlog.record(
+            "safe_abort",
+            stage=stage.value,
+            group_id=group.id if group else "",
+            reason=reason,
+            facts=facts_payload,
+            disk_inventory=self.ctx.last_disk_inventory,
+        )
+        self.bridge.add_message(
+            "agent",
+            (
+                "🛑 Safe abort: "
+                + reason
+                + "\nNo further destructive setup operations will run until this is resolved."
+            ),
+        )
+
+    def _consume_capabilities_for_command(
+        self, command: str, *, stage: SetupStage, group: CommandGroup
+    ) -> None:
+        store = self.ctx.capability_store
+        if store is None:
+            return
+        for requirement in dangerous_command_requirements(command):
+            grant = store.allows(
+                kind=requirement["kind"],
+                target=requirement.get("target", ""),
+                disk_inventory=self.ctx.last_disk_inventory,
+            )
+            if not grant:
+                continue
+            store.consume(grant.id)
+            self.runlog.record(
+                "capability_consumed",
+                stage=stage.value,
+                group_id=group.id,
+                command=command,
+                capability_id=grant.id,
+                kind=grant.kind,
+                target=grant.target,
+                consumed=grant.consumed,
+            )
 
     def _normalize_sysfs_module_parameter_verification(
         self, command: str, *, stage: SetupStage
