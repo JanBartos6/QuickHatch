@@ -27,6 +27,7 @@ CAPABILITY_KINDS = frozenset(
 DISK_INVENTORY_COMMAND = "lsblk -o NAME,SIZE,MODEL,SERIAL,TYPE,FSTYPE,FSVER,LABEL,UUID,MOUNTPOINTS"
 
 _DEVICE_RE = r"/dev/(?:disk/by-id/[^\s;|&\"']+|(?:sd|vd|xvd|hd)[a-z]\d*|nvme\d+n\d+(?:p\d+)?|mmcblk\d+(?:p\d+)?)"
+_TARGET_ROOT_RE = r"(?:/mnt|/target|/mnt/target|/mnt/sysroot|/mnt/sysimage)(?:/\S*|\b|\*)"
 _TARGET_ROOT_ALIASES = {
     "/mnt": "/target-root",
     "/target": "/target-root",
@@ -273,6 +274,20 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                 }
             )
         for match in re.finditer(
+            r"\bcryptsetup\b[^;&|]*(?:luksformat|luksFormat)\b[^;&|]*(?P<target>"
+            + _DEVICE_RE
+            + r")",
+            item,
+            re.I,
+        ):
+            requirements.append(
+                {
+                    "kind": "format_filesystem",
+                    "target": match.group("target"),
+                    "reason": "LUKS format command",
+                }
+            )
+        for match in re.finditer(
             r"\b(?:parted|sgdisk|sfdisk|fdisk)\b[^;&|]*(?:mklabel|mkpart|zap|delete|--zap-all|-Z|-o)\b[^;&|]*(?P<target>"
             + _DEVICE_RE
             + r")?",
@@ -295,9 +310,70 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     "reason": "wipefs disk signature mutation",
                 }
             )
+        for tool in ("blkdiscard", "pvcreate"):
+            for match in re.finditer(
+                rf"\b{tool}\b[^;&|]*(?P<target>{_DEVICE_RE})",
+                item,
+                re.I,
+            ):
+                requirements.append(
+                    {
+                        "kind": "disk_partition",
+                        "target": match.group("target"),
+                        "reason": f"{tool} disk metadata mutation",
+                    }
+                )
+        for match in re.finditer(
+            r"\bdd\b[^;&|]*\bof=(?P<target>" + _DEVICE_RE + r")",
+            item,
+            re.I,
+        ):
+            requirements.append(
+                {
+                    "kind": "disk_partition",
+                    "target": match.group("target"),
+                    "reason": "raw block-device write",
+                }
+            )
+        for match in re.finditer(
+            r"\bmount\b(?!point\b)[^;&|]*(?P<source>"
+            + _DEVICE_RE
+            + r")[^;&|]*(?P<target>"
+            + _TARGET_ROOT_RE
+            + r")",
+            item,
+            re.I,
+        ):
+            requirements.append(
+                {
+                    "kind": "mount_target",
+                    "target": match.group("target"),
+                    "reason": "target-root mount operation",
+                }
+            )
+        for match in re.finditer(
+            r"\bumount\b[^;&|]*(?P<target>" + _TARGET_ROOT_RE + r")",
+            item,
+            re.I,
+        ):
+            requirements.append(
+                {
+                    "kind": "mount_target",
+                    "target": match.group("target"),
+                    "reason": "target-root unmount operation",
+                }
+            )
         if re.search(r"\b(?:grub-install|grub2-install|bootctl\s+install)\b", item, re.I):
             requirements.append(
                 {"kind": "bootloader_install", "target": "/boot", "reason": "bootloader install"}
+            )
+        if re.search(r"\befibootmgr\b[^\n;|&]*(?:\s-c\b|--create\b)", item, re.I):
+            requirements.append(
+                {
+                    "kind": "bootloader_install",
+                    "target": _first_device(item) or "/boot",
+                    "reason": "EFI boot entry creation",
+                }
             )
         if re.search(
             r"\b(?:genfstab\b|/etc/fstab\b|/mnt/etc/fstab\b|/target/etc/fstab\b)", item, re.I
@@ -308,6 +384,19 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
         if re.search(r"\b(?:systemctl\s+)?reboot\b|\bshutdown\s+-r\b|\binit\s+6\b", item, re.I):
             requirements.append(
                 {"kind": "controlled_reboot", "target": "", "reason": "controlled reboot"}
+            )
+        if re.search(
+            r"\brm\b[^\n;|&]*(?:-[A-Za-z]*r[A-Za-z]*f|-[A-Za-z]*f[A-Za-z]*r)[^\n;|&]*"
+            + _TARGET_ROOT_RE,
+            item,
+            re.I,
+        ):
+            requirements.append(
+                {
+                    "kind": "disk_partition",
+                    "target": "/target-root",
+                    "reason": "recursive destructive remove under target root",
+                }
             )
         firewall_mutates = (
             re.search(

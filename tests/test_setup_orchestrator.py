@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -16,10 +17,12 @@ from quickhatch.setup.orchestrator import (
 )
 from quickhatch.setup.types import (
     AppPlanItem,
+    AuditResult,
     CommandGroup,
     DesktopDesignState,
     DesktopRuntimeState,
     DisplayRuntimeInfo,
+    FinalSetupStatus,
     PlanItemStatus,
     ResearchPlan,
     SetupFacts,
@@ -486,6 +489,47 @@ def _dummy_setup_runtime(
         distro_primer_md="",
         native_search_active=native_search_active,
     )
+
+
+def _run_with_live_install_answers(orchestrator: SetupOrchestrator, bridge: BridgeState) -> str:
+    if not orchestrator.profile.ssh_public_key_path:
+        key_path = Path(tempfile.gettempdir()) / "quickhatch-test.pub"
+        key_path.write_text("ssh-ed25519 AAAATEST quickhatch\n", encoding="utf-8")
+        orchestrator.profile.ssh_public_key_path = str(key_path)
+    done = threading.Event()
+
+    def answer_questions() -> None:
+        seen: set[str] = set()
+        while not done.is_set():
+            for question in bridge.get_pending_questions():
+                if question.id in seen:
+                    continue
+                text = question.question.lower()
+                answer = ""
+                erase_choice = next(
+                    (
+                        choice
+                        for choice in (question.choices or [])
+                        if isinstance(choice, str) and choice.startswith("ERASE ")
+                    ),
+                    "",
+                )
+                if erase_choice:
+                    answer = erase_choice
+                elif "which linux username" in text:
+                    answer = "jan"
+                if answer:
+                    seen.add(question.id)
+                    bridge.answer_question(question.id, answer)
+            time.sleep(0.01)
+
+    helper = threading.Thread(target=answer_questions)
+    helper.start()
+    try:
+        return orchestrator.run()
+    finally:
+        done.set()
+        helper.join(timeout=2)
 
 
 def test_systemd_health_ignores_transient_coredump_helpers():
@@ -3766,8 +3810,9 @@ def test_nvidia_reboot_failure_enters_group_repair_path():
     assert "reboot denied" in failure.detail
 
 
-def test_live_install_bootstraps_nopasswd_sudo_after_reconnect(tmp_path):
+def test_live_install_bootstraps_nopasswd_sudo_after_reconnect(tmp_path, monkeypatch):
     profile = UserProfile()
+    profile.linux_user = "jan"
     pubkey = tmp_path / "quickhatch.pub"
     pubkey.write_text("ssh-ed25519 AAAATEST quickhatch\n", encoding="utf-8")
     profile.ssh_public_key_path = str(pubkey)
@@ -3831,12 +3876,67 @@ def test_live_install_bootstraps_nopasswd_sudo_after_reconnect(tmp_path):
             )
         ],
     )
+    monkeypatch.setattr(
+        orchestrator,
+        "_ask_blocking_question",
+        lambda *_args, **_kwargs: "ERASE /dev/sda",
+    )
 
     orchestrator._run_install_or_skip()
 
     assert bootstrap_calls == ["jan"]
     assert orchestrator.ctx.facts is not None
     assert orchestrator.ctx.facts.sudo_nopasswd is True
+
+
+def test_live_family_spine_requires_typed_disk_confirmation(monkeypatch):
+    profile = UserProfile()
+    profile.linux_user = "jan"
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        login_user="root",
+        is_root=True,
+        is_live=True,
+    )
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(
+            profile,
+            bridge,
+            facts,
+            ssh_exec=lambda command, timeout: (0, "sda 512G disk\n", ""),
+        )
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch live install",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("none"),
+        command_groups=[
+            CommandGroup(
+                id="install",
+                stage=SetupStage.INSTALL_OR_SKIP,
+                title="Partition",
+                commands=["parted -s /dev/sda mklabel gpt"],
+            )
+        ],
+    )
+    monkeypatch.setattr(orchestrator, "_ask_blocking_question", lambda *_args, **_kwargs: "")
+
+    try:
+        orchestrator._enforce_live_family_install_spine(
+            ['DISK=/dev/sda; parted -s "$DISK" mklabel gpt'],
+            [],
+        )
+    except RuntimeError as exc:
+        assert "disk erase confirmation" in str(exc).lower()
+    else:
+        raise AssertionError("family spine should require typed disk confirmation")
+    assert orchestrator.ctx.stage_state[SetupStage.INSTALL_OR_SKIP.value]["safe_abort"]
 
 
 def test_arch_aur_helper_bootstrap_is_injected_before_yay_when_missing():
@@ -4732,7 +4832,7 @@ def test_live_install_failed_pre_reboot_checks_block_before_reconnect():
         native_search_active=False,
     )
 
-    summary = SetupOrchestrator(runtime).run()
+    summary = _run_with_live_install_answers(SetupOrchestrator(runtime), bridge)
 
     assert "kernel missing" in summary
     assert reconnect_calls["count"] == 0
@@ -4856,7 +4956,7 @@ def test_live_install_passes_guard_then_reboots_and_reconnects_once():
         native_search_active=False,
     )
 
-    summary = SetupOrchestrator(runtime).run()
+    summary = _run_with_live_install_answers(SetupOrchestrator(runtime), bridge)
 
     assert reconnect_calls["count"] == 1
     assert commands.count("reboot") == 0
@@ -4986,7 +5086,7 @@ def test_live_install_installs_reconnect_key_before_reboot(tmp_path):
         native_search_active=False,
     )
 
-    summary = SetupOrchestrator(runtime).run()
+    summary = _run_with_live_install_answers(SetupOrchestrator(runtime), bridge)
 
     key_command = next(command for command in commands if "authorized_keys" in command)
     reboot_command = next(command for command in commands if "reboot" in command)
@@ -5110,7 +5210,7 @@ def test_live_install_injects_disk_cleanup_before_destructive_partitioning():
         native_search_active=False,
     )
 
-    summary = SetupOrchestrator(runtime).run()
+    summary = _run_with_live_install_answers(SetupOrchestrator(runtime), bridge)
 
     parted_index = next(index for index, command in enumerate(commands) if "mklabel gpt" in command)
     before_parted = commands[:parted_index]
@@ -7496,6 +7596,131 @@ def test_repair_budget_gate_can_mark_non_install_group_manual_followup(monkeypat
     assert questions
     assert questions[0][1] == ["try 3 more repairs", "manual follow-up", "stop setup"]
     assert group.status == PlanItemStatus.MANUAL_FOLLOWUP
+
+
+def test_identical_noncritical_repair_loop_becomes_manual_followup(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    group = CommandGroup(
+        id="theme",
+        stage=SetupStage.DESKTOP,
+        title="Apply theme",
+        commands=["yay -S --noconfirm missing-theme"],
+        verification=["test -d /usr/share/themes/missing-theme"],
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("plasma"),
+        command_groups=[group],
+    )
+    executions = {"count": 0}
+
+    def execute_group(_stage, _group, _state):
+        executions["count"] += 1
+        return GroupFailure(
+            "command",
+            "yay -S --noconfirm missing-theme",
+            "",
+            "error: target not found: missing-theme",
+            "package missing",
+        )
+
+    monkeypatch.setattr(orchestrator, "_execute_group", execute_group)
+    monkeypatch.setattr(
+        orchestrator,
+        "_repair_failed_group",
+        lambda _stage, failed_group, _failure, *, repair_attempt: {
+            "action": "retry_group",
+            "group": failed_group,
+        },
+    )
+
+    orchestrator._run_stage_groups(SetupStage.DESKTOP, audit_after=False)
+
+    assert executions["count"] == 3
+    assert group.status == PlanItemStatus.MANUAL_FOLLOWUP
+    assert "manual_followups" in orchestrator.ctx.stage_state[SetupStage.DESKTOP.value]
+
+
+def test_final_audit_runs_focused_repair_loop(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = _with_verified_kde_icon(
+        SetupFacts(
+            distro_family="arch",
+            package_manager="pacman",
+            current_user="jan",
+            desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+        )
+    )
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.call_model_text = lambda _cfg, _messages: json.dumps(
+        {
+            "action": "retry_group",
+            "group": {
+                "id": "repair-final-marker",
+                "stage": "apps",
+                "title": "Repair final marker",
+                "commands": ["touch ~/.quickhatch-final-marker"],
+                "verification": [],
+                "evidence": [
+                    {
+                        "source_type": "local_state",
+                        "summary": "Final audit reported a missing marker.",
+                        "confidence": 0.95,
+                    }
+                ],
+            },
+        }
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("none"),
+        command_groups=[],
+    )
+    orchestrator.ctx.stage_results = [
+        AuditResult(stage=stage, passed=True)
+        for stage in (
+            SetupStage.CONNECT_AND_PROBE,
+            SetupStage.RESEARCH_AND_PLAN,
+            SetupStage.INSTALL_OR_SKIP,
+            SetupStage.POSTBOOT_DRIVER,
+            SetupStage.DESKTOP,
+            SetupStage.APPS,
+        )
+    ]
+    orchestrator.ctx.stage_state[SetupStage.DESKTOP.value] = {"persisted_config_written": True}
+    repaired = {"done": False}
+    monkeypatch.setattr(
+        orchestrator,
+        "_remote_final_verification",
+        lambda: [] if repaired["done"] else ["Final marker file is missing."],
+    )
+
+    def execute_group(stage, group, stage_state):
+        assert stage == SetupStage.APPS
+        assert group.id == "repair-final-marker"
+        repaired["done"] = True
+        return None
+
+    monkeypatch.setattr(orchestrator, "_execute_group", execute_group)
+
+    result = orchestrator._run_final_audit()
+
+    assert repaired["done"] is True
+    assert result.final_status == FinalSetupStatus.SUCCESS
+    assert result.details["final_audit_repairs"][0]["executed"] is True
 
 
 def test_apps_repair_question_timeout_becomes_manual_followup(monkeypatch):

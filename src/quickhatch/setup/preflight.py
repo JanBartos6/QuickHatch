@@ -1216,7 +1216,16 @@ def _decision_category(reason: str) -> str:
     if "vpn" in lower or "firewall" in lower or "cut off remote access" in lower:
         return "ssh_continuity"
     if "requires an explicit quickhatch capability" in lower:
-        if any(token in lower for token in ("format_filesystem", "disk_partition")):
+        if any(
+            token in lower
+            for token in (
+                "format_filesystem",
+                "disk_partition",
+                "mount_target",
+                "write_fstab",
+                "bootloader_install",
+            )
+        ):
             return "disk_boot_safety"
         if "network_security_change" in lower:
             return "ssh_continuity"

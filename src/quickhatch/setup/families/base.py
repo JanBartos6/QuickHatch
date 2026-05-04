@@ -76,7 +76,7 @@ class BaseFamilyInstaller:
         candidate = (getattr(profile, "linux_user", "") or "").strip().lower()
         if candidate and candidate != "root" and re.fullmatch(r"[a-z_][a-z0-9_-]{0,30}", candidate):
             return candidate[:31]
-        return "jan"
+        return "quickhatch"
 
     def detect_live_iso(self, facts: SetupFacts) -> bool:
         return bool(facts.is_live)

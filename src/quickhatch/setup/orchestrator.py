@@ -23,6 +23,7 @@ from .audit import audit_stage, final_audit, findings_from_blockers
 from .capabilities import (
     DISK_INVENTORY_COMMAND,
     CapabilityStore,
+    DangerousOperationPreview,
     build_operation_preview,
     canonicalize_target,
     dangerous_command_requirements,
@@ -48,6 +49,8 @@ from .resolver import build_install_command, nvidia_open_kernel_supported
 from .runlog import SetupRunLogger, redact_sensitive_text, write_executed_commands_script
 from .types import (
     AppPlanItem,
+    AuditFinding,
+    AuditFindingSeverity,
     AuditResult,
     CommandGroup,
     DesktopRuntimeState,
@@ -605,6 +608,7 @@ class SetupOrchestrator:
     """Execute staged remote setup with typed plans and audits."""
 
     DEFAULT_GROUP_REPAIRS = 3
+    FINAL_AUDIT_REPAIRS = 2
     GROUP_REPAIR_BUDGETS = {
         SetupStage.INSTALL_OR_SKIP: 3,
         SetupStage.POSTBOOT_DRIVER: 6,
@@ -1209,7 +1213,37 @@ class SetupOrchestrator:
                 if auto_repaired is not None:
                     current_group = auto_repaired
                     continue
-                repair_attempts += 1
+                attempt_decision = self._register_repair_attempt_signature(
+                    stage,
+                    current_group,
+                    failure,
+                    stage_state,
+                )
+                if attempt_decision["loop_exhausted"]:
+                    reason = (
+                        "Repeated identical repair loop detected for "
+                        f"'{current_group.title}': {attempt_decision['summary']}"
+                    )
+                    if stage in {
+                        SetupStage.APPS,
+                        SetupStage.DESKTOP,
+                        SetupStage.POSTBOOT_DRIVER,
+                    }:
+                        current_group.status = PlanItemStatus.MANUAL_FOLLOWUP
+                        self._mark_group_manual_followup(
+                            current_group,
+                            stage=stage,
+                            reason=reason,
+                            app_names=[],
+                        )
+                        self.bridge.add_message(
+                            "agent",
+                            f"⚠️ {reason}. Leaving this non-install group as manual follow-up.",
+                        )
+                        break
+                    raise RuntimeError(reason)
+                if attempt_decision["consumes_budget"]:
+                    repair_attempts += 1
                 if repair_attempts > repair_budget:
                     decision = self._ask_repair_budget_extension(
                         stage,
@@ -1255,18 +1289,19 @@ class SetupOrchestrator:
                         f"Stage {stage.value} exhausted repair attempts for '{current_group.title}': {failure.detail}"
                     )
                 current_group.status = PlanItemStatus.FAILED
+                display_attempt = max(1, repair_attempts)
                 self.bridge.add_message(
                     "agent",
                     (
                         f"Repairing '{current_group.title}' after {failure.failure_type} "
-                        f"failure (attempt {repair_attempts}/{repair_budget})…"
+                        f"failure (attempt {display_attempt}/{repair_budget})…"
                     ),
                 )
                 repair_outcome = self._repair_failed_group(
                     stage,
                     current_group,
                     failure,
-                    repair_attempt=repair_attempts,
+                    repair_attempt=display_attempt,
                 )
                 action = str(repair_outcome.get("action", ""))
                 if action == "retry_group":
@@ -1303,6 +1338,56 @@ class SetupOrchestrator:
                 self._mark_unanswered_optional_slow_apps_manual_followup()
             result = audit_stage(stage, self.ctx.facts, plan=self.ctx.plan, stage_state=stage_state)
             self._record_stage_result(result)
+
+    def _register_repair_attempt_signature(
+        self,
+        stage: SetupStage,
+        group: CommandGroup,
+        failure: GroupFailure,
+        stage_state: dict[str, Any],
+    ) -> dict[str, Any]:
+        signature = build_attempt_signature(
+            stage=stage.value,
+            group_id=group.id,
+            group_title=group.title,
+            command=failure.command,
+            stdout=failure.stdout,
+            stderr=failure.stderr,
+            detail=failure.detail,
+        )
+        diagnostic = is_diagnostic_command(failure.command)
+        loop_key = "|".join(str(part) for part in signature.loop_key)
+        counts = stage_state.setdefault("attempt_loop_counts", {})
+        count = int(counts.get(loop_key, 0) or 0) + 1
+        counts[loop_key] = count
+        consumes_budget = not diagnostic or count >= 3
+        loop_exhausted = count >= 3 and not diagnostic
+        summary = (
+            f"{signature.failure_category}/{signature.operation}/{signature.tool}"
+            + (f" packages={','.join(signature.packages)}" if signature.packages else "")
+            + (f" target={signature.target}" if signature.target else "")
+            + f" strategy={signature.strategy}"
+        )
+        self.runlog.record(
+            "repair_attempt_signature",
+            stage=stage.value,
+            group_id=group.id,
+            command=failure.command,
+            signature=asdict(signature),
+            loop_key=list(signature.loop_key),
+            same_loop_count=count,
+            diagnostic=diagnostic,
+            consumes_budget=consumes_budget,
+            loop_exhausted=loop_exhausted,
+        )
+        return {
+            "signature": signature,
+            "same_loop_count": count,
+            "diagnostic": diagnostic,
+            "consumes_budget": consumes_budget,
+            "loop_exhausted": loop_exhausted,
+            "summary": summary,
+        }
 
     def _run_install_or_skip(self) -> None:
         if self.ctx.facts and not self.ctx.facts.is_live:
@@ -1362,6 +1447,7 @@ class SetupOrchestrator:
                     )
                     self._record_stage_result(result)
                     return
+            self._ensure_live_install_target_user()
             installer = get_family_installer(self._family_adapter_key(self.ctx.facts))
             spine = installer.build_install_spine(self.ctx.facts, self.profile)
             install_state["family_adapter"] = {
@@ -1425,6 +1511,46 @@ class SetupOrchestrator:
             stage_state=self.ctx.stage_state[SetupStage.INSTALL_OR_SKIP.value],
         )
         self._record_stage_result(result)
+
+    def _ensure_live_install_target_user(self) -> None:
+        candidate = (getattr(self.profile, "linux_user", "") or "").strip().lower()
+        if self._valid_target_username(candidate):
+            self.profile.linux_user = candidate
+            self.ctx.created_user = candidate
+            return
+        for attempt in range(1, 4):
+            answer = self._ask_blocking_question(
+                (
+                    "Which Linux username should QuickHatch create on the installed "
+                    "system? Use lowercase letters, digits, `_` or `-`; do not use `root`."
+                ),
+                choices=None,
+                stage=SetupStage.INSTALL_OR_SKIP,
+                context={"target_username_required": True, "attempt": attempt},
+                timeout=1800,
+            )
+            candidate = (answer or "").strip().lower()
+            if self._valid_target_username(candidate):
+                self.profile.linux_user = candidate
+                self.ctx.created_user = candidate
+                self.runlog.record(
+                    "target_user_confirmed",
+                    stage=SetupStage.INSTALL_OR_SKIP.value,
+                    username=candidate,
+                )
+                return
+            self.bridge.add_message(
+                "agent",
+                "⚠️ Invalid Linux username. Expected lowercase letters, digits, `_` or `-`, "
+                "starting with a letter or `_`, and not `root`.",
+            )
+        raise RuntimeError("Fresh install requires a valid target Linux username.")
+
+    @staticmethod
+    def _valid_target_username(candidate: str) -> bool:
+        return bool(
+            candidate and candidate != "root" and re.fullmatch(r"[a-z_][a-z0-9_-]{0,30}", candidate)
+        )
 
     def _run_pre_reboot_checks_with_retries(self) -> tuple[bool, list[str], str]:
         last_result: tuple[bool, list[str], str] = (False, [], "")
@@ -2326,6 +2452,11 @@ class SetupOrchestrator:
             return
         preview_id = f"preview-family-spine-{self.ctx.run_id}"
         requirements: dict[tuple[str, str], str] = {}
+        disk_inventory = self._refresh_disk_inventory(
+            stage=SetupStage.INSTALL_OR_SKIP,
+            group_id="quickhatch-family-install-spine",
+        )
+        canonical_disk = canonicalize_target(target_disk, inventory=disk_inventory)
         for command in commands:
             for requirement in dangerous_command_requirements(command):
                 target = requirement.get("target") or ""
@@ -2334,32 +2465,69 @@ class SetupOrchestrator:
                 requirements[(requirement["kind"], target)] = requirement.get("reason", "")
         if not requirements:
             return
+        confirmation_token = f"ERASE {canonical_disk}"
+        preview = DangerousOperationPreview(
+            preview_id=preview_id,
+            operation={"kind": "family_install_spine", "target": canonical_disk},
+            rendered_commands=commands,
+            install_profile=getattr(self.profile, "install_profile", "auto") or "auto",
+            confirmation_token=confirmation_token,
+            one_time_use=False,
+            erases_data=True,
+            disk_inventory=disk_inventory,
+        )
         self.runlog.record(
             "dangerous_operation_preview",
             stage=SetupStage.INSTALL_OR_SKIP.value,
             group_id="quickhatch-family-install-spine",
-            preview={
-                "preview_id": preview_id,
-                "operation": {"kind": "family_install_spine", "target": target_disk},
-                "rendered_commands": commands,
-                "install_profile": getattr(self.profile, "install_profile", "auto") or "auto",
-                "confirmation_token": f"HARNESS-SPINE {target_disk}",
-                "one_time_use": False,
-                "erases_data": True,
-                "disk_inventory": self.ctx.last_disk_inventory,
-            },
+            preview=asdict(preview),
         )
+        self.bridge.add_message("agent", self._format_operation_preview(preview))
+        answer = self._ask_blocking_question(
+            (
+                "QuickHatch is about to run the deterministic live-install spine. "
+                "This will erase the selected target disk.\n\n"
+                f"Required token: `{confirmation_token}`"
+            ),
+            choices=[confirmation_token, "stop setup"],
+            stage=SetupStage.INSTALL_OR_SKIP,
+            context={
+                "group_id": "quickhatch-family-install-spine",
+                "target_disk": canonical_disk,
+                "preview_id": preview_id,
+            },
+            timeout=1800,
+        )
+        if (answer or "").strip() != confirmation_token:
+            self._safe_abort(
+                stage=SetupStage.INSTALL_OR_SKIP,
+                group=None,
+                reason=(
+                    "Deterministic live-install spine was not confirmed with the "
+                    f"required token `{confirmation_token}`."
+                ),
+            )
+            raise RuntimeError(
+                "Live install stopped because disk erase confirmation was not provided."
+            )
         for (kind, target), reason in sorted(requirements.items()):
-            store.grant(
+            grant = store.grant(
                 kind=kind,
                 target=target,
-                confirmation_text=f"HARNESS-SPINE {target_disk}",
+                confirmation_text=answer,
                 confirmation_id=preview_id,
                 reason=reason or "deterministic family install spine",
-                source="harness_generated",
+                source="user_confirmed",
                 one_time_use=False,
                 ttl_seconds=1800,
+                disk_inventory=disk_inventory,
                 preview_id=preview_id,
+            )
+            self.runlog.record(
+                "capability_granted",
+                stage=SetupStage.INSTALL_OR_SKIP.value,
+                group_id="quickhatch-family-install-spine",
+                capability=asdict(grant),
             )
 
     def _ensure_display_manager_started(self) -> None:
@@ -2683,6 +2851,39 @@ class SetupOrchestrator:
 
     def _run_final_audit(self) -> AuditResult:
         self.bridge.update_setup_run(stage=SetupStage.FINAL_AUDIT.value, status="running")
+        final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
+        repairs: list[dict[str, Any]] = []
+        result = AuditResult(stage=SetupStage.FINAL_AUDIT, passed=False)
+        for repair_attempt in range(self.FINAL_AUDIT_REPAIRS + 1):
+            result = self._compute_final_audit_result()
+            repairable = self._repairable_final_findings(result)
+            if not repairable or repair_attempt >= self.FINAL_AUDIT_REPAIRS:
+                break
+            repaired = self._repair_final_audit_findings(
+                repairable,
+                repair_attempt=repair_attempt + 1,
+                final_state=final_state,
+            )
+            repairs.append(repaired)
+            if not repaired.get("executed"):
+                break
+            self._refresh_facts(stage=SetupStage.FINAL_AUDIT)
+        if repairs:
+            result.details["final_audit_repairs"] = repairs
+        if result.final_status is None:
+            result.final_status = self._final_status_from_findings(result)
+        self.ctx.stage_results.append(result)
+        self.runlog.record("final_audit", result=asdict(result))
+        status = "blocked" if result.final_status == FinalSetupStatus.BLOCKED else "done"
+        self.bridge.update_setup_run(
+            blockers=list(result.blockers),
+            status=status,
+            stage=SetupStage.FINAL_AUDIT.value,
+            final_status=result.final_status.value if result.final_status else "",
+        )
+        return result
+
+    def _compute_final_audit_result(self) -> AuditResult:
         if self.ctx.facts is not None:
             self._refresh_facts(stage=SetupStage.FINAL_AUDIT)
         if self.ctx.plan is None:
@@ -2730,16 +2931,97 @@ class SetupOrchestrator:
                 result.details["remote_final_verification_blockers"] = remote_blockers
         if result.final_status is None:
             result.final_status = self._final_status_from_findings(result)
-        self.ctx.stage_results.append(result)
-        self.runlog.record("final_audit", result=asdict(result))
-        status = "blocked" if result.final_status == FinalSetupStatus.BLOCKED else "done"
-        self.bridge.update_setup_run(
-            blockers=list(result.blockers),
-            status=status,
-            stage=SetupStage.FINAL_AUDIT.value,
-            final_status=result.final_status.value if result.final_status else "",
-        )
         return result
+
+    @staticmethod
+    def _repairable_final_findings(result: AuditResult) -> list[AuditFinding]:
+        return [
+            finding
+            for finding in result.findings
+            if finding.severity == AuditFindingSeverity.REPAIRABLE
+        ]
+
+    def _repair_final_audit_findings(
+        self,
+        findings: list[AuditFinding],
+        *,
+        repair_attempt: int,
+        final_state: dict[str, Any],
+    ) -> dict[str, Any]:
+        summaries = [finding.summary for finding in findings]
+        repair_stage = self._final_audit_repair_stage(findings)
+        group = CommandGroup(
+            id=f"final-audit-repair-{repair_attempt}",
+            stage=repair_stage,
+            title="Focused final audit repair",
+            commands=[],
+            verification=[],
+            evidence=[{"finding": summary} for summary in summaries],
+        )
+        failure = GroupFailure(
+            failure_type="final_audit",
+            command="final audit",
+            stdout="",
+            stderr="",
+            detail="; ".join(summaries[:5]),
+        )
+        self.bridge.add_message(
+            "agent",
+            (
+                "Final audit found repairable issue(s); requesting a focused repair "
+                f"plan (attempt {repair_attempt}/{self.FINAL_AUDIT_REPAIRS})…"
+            ),
+        )
+        try:
+            outcome = self._repair_failed_group(
+                repair_stage,
+                group,
+                failure,
+                repair_attempt=repair_attempt,
+            )
+        except RuntimeError as exc:
+            record = {"executed": False, "error": str(exc), "findings": summaries}
+            final_state.setdefault("final_audit_repair_failures", []).append(record)
+            self.runlog.record("final_audit_repair_failed", **record)
+            return record
+        action = str(outcome.get("action", ""))
+        record: dict[str, Any] = {
+            "executed": False,
+            "action": action,
+            "findings": summaries,
+        }
+        if action == "manual_followup":
+            record["reason"] = str(outcome.get("reason", "") or "manual follow-up")
+            final_state.setdefault("manual_followups", []).append(
+                {"reason": record["reason"], "findings": summaries}
+            )
+            self.runlog.record("final_audit_repair_manual_followup", **record)
+            return record
+        if action != "retry_group":
+            record["error"] = f"Unsupported final-audit repair action: {action}"
+            self.runlog.record("final_audit_repair_failed", **record)
+            return record
+        repair_group = outcome["group"]
+        repair_failure = self._execute_group(repair_stage, repair_group, final_state)
+        record["executed"] = repair_failure is None
+        record["stage"] = repair_stage.value
+        record["group"] = asdict(repair_group)
+        if repair_failure is not None:
+            record["error"] = repair_failure.detail
+        final_state.setdefault("final_audit_repairs", []).append(record)
+        self.runlog.record("final_audit_repair_executed", **record)
+        return record
+
+    @staticmethod
+    def _final_audit_repair_stage(findings: list[AuditFinding]) -> SetupStage:
+        categories = {finding.category for finding in findings}
+        if categories & {"fstab", "bootability", "ssh_reconnect"}:
+            return SetupStage.INSTALL_OR_SKIP
+        if "driver" in categories:
+            return SetupStage.POSTBOOT_DRIVER
+        if "desktop" in categories:
+            return SetupStage.DESKTOP
+        return SetupStage.APPS
 
     @staticmethod
     def _final_status_from_findings(result: AuditResult) -> FinalSetupStatus:

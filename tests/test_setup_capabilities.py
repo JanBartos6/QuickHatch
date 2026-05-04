@@ -127,6 +127,25 @@ def test_wrapped_destructive_shell_is_detected() -> None:
         assert "explicit QuickHatch capability" in error
 
 
+def test_broad_high_blast_radius_shell_requires_capability() -> None:
+    facts = SetupFacts(is_live=True, is_root=True)
+    commands = (
+        "cryptsetup luksFormat /dev/sda2",
+        "dd if=/dev/zero of=/dev/sda bs=1M count=10",
+        "mount /dev/sda2 /mnt",
+        "blkdiscard /dev/sda",
+        "pvcreate /dev/sda2",
+        "efibootmgr -c -d /dev/sda -p 1",
+        "rm -rf /mnt",
+        "rm -rf /mnt/*",
+    )
+
+    for command in commands:
+        error = preflight_setup_command(command, facts)
+        assert error, command
+        assert "explicit QuickHatch capability" in error
+
+
 def test_dangerous_operation_preview_is_required_for_grants() -> None:
     operation = SetupOperation(kind="format_partition", target="/dev/sda1", filesystem="ext4")
     preview = build_operation_preview(

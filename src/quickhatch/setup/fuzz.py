@@ -189,7 +189,7 @@ def generate_harness_fuzz_cases() -> list[HarnessFuzzCase]:
             ),
             facts=_live_facts("debian", "apt", root=False),
             expect_block=True,
-            expected_categories=("capability_required",),
+            expected_categories=("disk_boot_safety",),
             description="Bootloader mutations require a typed operation capability, not only sudo.",
         ),
         HarnessFuzzCase(
