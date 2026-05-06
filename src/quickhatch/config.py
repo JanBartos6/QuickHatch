@@ -192,7 +192,7 @@ class UserProfile:
     # remote_setup_mode and drives capability checks for destructive work.
     # Stability labels: configure_existing=beta, full_disk/second_disk=experimental,
     # dual_boot_free_space=advanced/experimental, manual_partition_mapping=dangerous/expert.
-    install_profile: str = "auto"
+    install_profile: str = "configure_existing"
     install_encryption: str = "recommended"
     install_filesystem: str = "recommended"
     install_partition_notes: str = ""
@@ -387,9 +387,9 @@ class UserProfile:
                 linux_user=data.get("linux_user", "") or "",
                 remote_setup_mode=data.get("remote_setup_mode", "auto") or "auto",
                 install_profile=_validated_choice(
-                    data.get("install_profile", "auto"),
+                    data.get("install_profile", "configure_existing"),
                     INSTALL_PROFILE_VALUES,
-                    "auto",
+                    "configure_existing",
                 ),
                 install_encryption=_validated_choice(
                     data.get("install_encryption", "recommended"),

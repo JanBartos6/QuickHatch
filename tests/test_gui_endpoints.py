@@ -169,7 +169,7 @@ class TestProfileEndpoint:
         data = json.loads(body)
 
         assert status == 200
-        assert data["profile"]["install_profile"] == "auto"
+        assert data["profile"]["install_profile"] == "configure_existing"
         assert data["profile"]["install_encryption"] == "recommended"
         assert data["profile"]["install_filesystem"] == "recommended"
 

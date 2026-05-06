@@ -486,9 +486,9 @@ class GUIState:
                     mode = "auto"
                 changed |= self._set_if_changed(self.profile, "remote_setup_mode", mode)
             if "install_profile" in updates:
-                value = self._coerce_str(updates["install_profile"]) or "auto"
+                value = self._coerce_str(updates["install_profile"]) or "configure_existing"
                 if value not in INSTALL_PROFILE_VALUES:
-                    value = "auto"
+                    value = "configure_existing"
                 changed |= self._set_if_changed(self.profile, "install_profile", value)
                 if value == "configure_existing":
                     changed |= self._set_if_changed(
@@ -665,7 +665,9 @@ def _prepare_ai_secret_update(gui_state: GUIState, updates: dict[str, Any]) -> d
 def _remote_setup_mode_block(profile: UserProfile) -> str:
     """Explicit user intent for destructive vs non-destructive setup."""
     mode = getattr(profile, "remote_setup_mode", "auto") or "auto"
-    install_profile = getattr(profile, "install_profile", "auto") or "auto"
+    install_profile = (
+        getattr(profile, "install_profile", "configure_existing") or "configure_existing"
+    )
     encryption = getattr(profile, "install_encryption", "recommended") or "recommended"
     filesystem = getattr(profile, "install_filesystem", "recommended") or "recommended"
     notes = (getattr(profile, "install_partition_notes", "") or "").strip()

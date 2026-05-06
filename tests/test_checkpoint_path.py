@@ -130,7 +130,7 @@ class TestCheckpointPath:
         loaded = UserProfile.load_checkpoint()
 
         assert loaded is not None
-        assert loaded.install_profile == "auto"
+        assert loaded.install_profile == "configure_existing"
         assert loaded.install_encryption == "recommended"
         assert loaded.install_filesystem == "recommended"
         assert loaded.install_partition_notes == ""

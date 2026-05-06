@@ -111,6 +111,15 @@ Any command that prompts for input — sudo password, `makepkg` confirm,
 `pacstrap` selection menu — silently hangs because the prompt is
 invisible and stdin is closed. Three rules:
 
+All user-specific examples below MUST use the confirmed Linux username
+from the setup profile. Do not assume any default username.
+Set `QUICKHATCH_TARGET_USER` to the confirmed target username before using
+these snippets:
+
+```bash
+QUICKHATCH_TARGET_USER="<confirmed-linux-username>"
+```
+
 ### sudo prompts are invisible
 
 A user running under `sudo` without a pty will see the command block
@@ -139,12 +148,12 @@ Build and install separately:
 
 ```bash
 # Build only (no -i flag)
-arch-chroot /mnt /bin/bash -c \
-  'cd /home/jan/yay-bin && sudo -u jan makepkg -s --noconfirm'
+arch-chroot /mnt env QUICKHATCH_TARGET_USER="$QUICKHATCH_TARGET_USER" /bin/bash -c \
+  'cd "/home/$QUICKHATCH_TARGET_USER/yay-bin" && sudo -u "$QUICKHATCH_TARGET_USER" makepkg -s --noconfirm'
 
 # Then install the built pkg.tar.zst as root — no sudo prompt
-arch-chroot /mnt /bin/bash -c \
-  'pacman -U --noconfirm /home/jan/yay-bin/yay-bin-*.pkg.tar.zst'
+arch-chroot /mnt env QUICKHATCH_TARGET_USER="$QUICKHATCH_TARGET_USER" /bin/bash -c \
+  'pacman -U --noconfirm "/home/$QUICKHATCH_TARGET_USER"/yay-bin/yay-bin-*.pkg.tar.zst'
 ```
 
 ### yay / paru with `--sudoloop` / `--sudo`
@@ -153,10 +162,10 @@ Once an AUR helper IS installed, its own flags handle the pty issue:
 
 ```bash
 # yay:  --sudoloop keeps sudo credentials alive in the background
-arch-chroot /mnt sudo -u jan yay -S --noconfirm --sudoloop <pkg>
+arch-chroot /mnt sudo -u "$QUICKHATCH_TARGET_USER" yay -S --noconfirm --sudoloop <pkg>
 
 # paru: similar
-arch-chroot /mnt sudo -u jan paru -S --noconfirm --skipreview <pkg>
+arch-chroot /mnt sudo -u "$QUICKHATCH_TARGET_USER" paru -S --noconfirm --skipreview <pkg>
 ```
 
 Still requires NOPASSWD sudoers OR a pre-populated sudo timestamp,
@@ -169,7 +178,7 @@ prompts, `ssh-keygen` without `-N ""`, `passwd` without a piped
 password, or `dpkg-reconfigure` — will hang silently. Every
 interactive input must be either:
 - Piped in: `echo -e "yes\nyes" | command`
-- Fed via flag: `useradd --password $(openssl passwd -6 "$pw") jan`
+- Fed via flag: `useradd --password $(openssl passwd -6 "$pw") "$QUICKHATCH_TARGET_USER"`
 - Pre-set in config: `DEBIAN_FRONTEND=noninteractive apt install ...`
 - Or skipped entirely
 

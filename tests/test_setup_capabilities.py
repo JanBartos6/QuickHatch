@@ -146,6 +146,21 @@ def test_broad_high_blast_radius_shell_requires_capability() -> None:
         assert "explicit QuickHatch capability" in error
 
 
+def test_uuid_label_mounts_to_target_root_require_capability() -> None:
+    facts = SetupFacts(is_live=True, is_root=True)
+    commands = (
+        "mount UUID=1111-2222 /mnt",
+        "mount LABEL=rootfs /target",
+        "mount -U 1111-2222 /mnt/sysroot",
+        "mount -L rootfs /mnt/target",
+    )
+
+    for command in commands:
+        error = preflight_setup_command(command, facts)
+        assert error, command
+        assert "explicit QuickHatch capability" in error
+
+
 def test_variable_expanded_high_blast_radius_shell_requires_capability() -> None:
     facts = SetupFacts(is_live=True, is_root=True)
     commands = (

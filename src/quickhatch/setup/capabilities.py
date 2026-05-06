@@ -557,6 +557,22 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                 }
             )
         for match in re.finditer(
+            r"\bmount\b(?!point\b)[^;&|]*"
+            + r"(?:UUID=[^\s;|&\"']+|LABEL=[^\s;|&\"']+|-[UL]\s+[^\s;|&\"']+)"
+            + r"[^;&|]*(?P<target>"
+            + _TARGET_ROOT_RE
+            + r")",
+            item,
+            re.I,
+        ):
+            requirements.append(
+                {
+                    "kind": "mount_target",
+                    "target": match.group("target"),
+                    "reason": "target-root UUID/LABEL mount operation",
+                }
+            )
+        for match in re.finditer(
             r"\bumount\b[^;&|]*(?P<target>" + _TARGET_ROOT_RE + r")",
             item,
             re.I,

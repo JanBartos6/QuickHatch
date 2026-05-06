@@ -1181,7 +1181,7 @@ function buildProfileFromDraft(baseProfile){
   if(draft.additional_info!==undefined)profile.additional_info=draft.additional_info||'';
   if(draft.linux_ip!==undefined)profile.linux_ip=draft.linux_ip||'';
   if(draft.linux_user!==undefined)profile.linux_user=draft.linux_user||'';
-  if(draft.install_profile!==undefined)profile.install_profile=draft.install_profile||'auto';
+  if(draft.install_profile!==undefined)profile.install_profile=draft.install_profile||'configure_existing';
   if(draft.install_encryption!==undefined)profile.install_encryption=draft.install_encryption||'recommended';
   if(draft.install_filesystem!==undefined)profile.install_filesystem=draft.install_filesystem||'recommended';
   if(draft.install_partition_notes!==undefined)profile.install_partition_notes=draft.install_partition_notes||'';
@@ -1975,7 +1975,7 @@ const stepRenderers={
     const anotherMachine=draftOr('preferences.another_machine', (prefs.another_machine||''));
     const designDesc=draftOr('preferences.desktop_look', prefs.desktop_look||'');
     const distroPref=draftOr('preferences.distro_preference', prefs.distro_preference||'');
-    const installProfile=draftOr('install_profile', state.profile.install_profile||'auto');
+    const installProfile=draftOr('install_profile', state.profile.install_profile||'configure_existing');
     const installEncryption=draftOr('install_encryption', state.profile.install_encryption||'recommended');
     const installFilesystem=draftOr('install_filesystem', state.profile.install_filesystem||'recommended');
     const installPartitionNotes=draftOr('install_partition_notes', state.profile.install_partition_notes||'');
@@ -2484,7 +2484,7 @@ const stepRenderers={
     const ip=state.profile.linux_ip||'';
     const user=state.profile.linux_user||'';
     const remoteSetupMode=state.profile.remote_setup_mode||'auto';
-    const installProfile=state.profile.install_profile||'auto';
+    const installProfile=state.profile.install_profile||'configure_existing';
     const installEncryption=state.profile.install_encryption||'recommended';
     const installFilesystem=state.profile.install_filesystem||'recommended';
     const installProfileLabels={
@@ -3148,7 +3148,7 @@ function persistQuestionnaireDraft(){
   const grid=el('anotherMachineGrid');
   const sel=grid?grid.querySelector('.pill.selected'):null;
   const anotherMachine=sel?sel.dataset.value:(state.profile?.preferences?.another_machine||'');
-  const installProfile=getSelected('installProfileChoice')||(state.profile?.install_profile||'auto');
+  const installProfile=getSelected('installProfileChoice')||(state.profile?.install_profile||'configure_existing');
   const installEncryption=((el('installEncryption')||{}).value||state.profile?.install_encryption||'recommended');
   const installFilesystem=((el('installFilesystem')||{}).value||state.profile?.install_filesystem||'recommended');
   const installPartitionNotes=((el('installPartitionNotes')||{}).value||'').trim();
@@ -3295,7 +3295,7 @@ async function submitPrefs(){
     wallpaper_style:'',
     gallery_picks:[...(state.galleryPinned||[])],
   };
-  const installProfile=getSelected('installProfileChoice')||(state.profile.install_profile||'auto');
+  const installProfile=getSelected('installProfileChoice')||(state.profile.install_profile||'configure_existing');
   const installEncryption=((el('installEncryption')||{}).value||state.profile.install_encryption||'recommended');
   const installFilesystem=((el('installFilesystem')||{}).value||state.profile.install_filesystem||'recommended');
   const installPartitionNotes=((el('installPartitionNotes')||{}).value||'').trim();
@@ -4262,7 +4262,7 @@ function exportExecutedSetupScriptEnabled(){
 function setupInstallProfilePayload(){
   const profile=state.profile||{};
   return {
-    install_profile:profile.install_profile||'auto',
+    install_profile:profile.install_profile||'configure_existing',
     install_encryption:profile.install_encryption||'recommended',
     install_filesystem:profile.install_filesystem||'recommended',
     install_partition_notes:profile.install_partition_notes||'',
