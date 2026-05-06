@@ -679,6 +679,7 @@ def _remote_setup_mode_block(profile: UserProfile) -> str:
         install_lines.append(f"- install_partition_notes: {notes}")
     install_lines.extend(
         [
+            "- Stability labels: configure-existing is beta; fresh full-disk installs are experimental; dual boot is advanced/experimental; manual partition mapping is dangerous/expert-only.",
             "- First public version rule: never shrink Windows partitions automatically.",
             "- Dangerous disk/boot/fstab/reboot/package-DB/network-security work should be represented as typed operations.",
             "- Raw destructive shell without a matching QuickHatch capability will be blocked.",
@@ -690,7 +691,7 @@ def _remote_setup_mode_block(profile: UserProfile) -> str:
         install_lines.extend(
             [
                 "Install profile behavior:",
-                "- Configure existing Linux install only.",
+                "- Configure existing Linux install only (beta).",
                 "- Do not partition, format, wipe, or reinstall the distribution.",
                 "- Do not reinstall the bootloader unless a boot repair is explicitly required and safely confirmed.",
                 "",
@@ -700,7 +701,7 @@ def _remote_setup_mode_block(profile: UserProfile) -> str:
         install_lines.extend(
             [
                 "Install profile behavior:",
-                "- A fresh install may erase exactly one explicitly confirmed target disk.",
+                "- Experimental fresh-install path: may erase exactly one explicitly confirmed target disk.",
                 "- Require disk inventory, dry-run preview, and typed confirmation like `ERASE /dev/...` before erasing data.",
                 "",
             ]
@@ -709,7 +710,7 @@ def _remote_setup_mode_block(profile: UserProfile) -> str:
         install_lines.extend(
             [
                 "Install profile behavior:",
-                "- Install Linux only on a separate explicitly confirmed disk.",
+                "- Experimental fresh-install path: install Linux only on a separate explicitly confirmed disk.",
                 "- Preserve the existing Windows/current-OS disk.",
                 "",
             ]
@@ -718,6 +719,7 @@ def _remote_setup_mode_block(profile: UserProfile) -> str:
         install_lines.extend(
             [
                 "Install profile behavior:",
+                "- Advanced/experimental dual-boot path.",
                 "- Use only already-created free/unallocated space or explicitly mapped Linux partitions.",
                 "- Do not shrink Windows partitions.",
                 "- Do not delete or format NTFS, BitLocker, Windows recovery, or existing EFI partitions.",
@@ -728,7 +730,7 @@ def _remote_setup_mode_block(profile: UserProfile) -> str:
         install_lines.extend(
             [
                 "Install profile behavior:",
-                "- Advanced/manual mapping mode.",
+                "- Dangerous/expert-only manual mapping mode.",
                 "- Format only partitions explicitly mapped and confirmed by the user.",
                 "",
             ]
@@ -739,7 +741,7 @@ def _remote_setup_mode_block(profile: UserProfile) -> str:
             prefix + "\n"
             "== REMOTE SETUP MODE ==\n"
             "User selected: WIPE TARGET DISK AND REINSTALL FROM SCRATCH.\n\n"
-            "This is an explicit destructive mode. Rules:\n"
+            "This is an explicit destructive experimental mode. Rules:\n"
             "- If you are in a LIVE environment, you MAY repartition/reformat and wipe the "
             "chosen target disk, but ONLY after showing `lsblk -f` and getting explicit disk "
             "confirmation from the user in bridge chat.\n"
@@ -753,7 +755,7 @@ def _remote_setup_mode_block(profile: UserProfile) -> str:
             prefix + "\n"
             "== REMOTE SETUP MODE ==\n"
             "User selected: CONFIGURE EXISTING INSTALL ONLY.\n\n"
-            "This mode is non-destructive. Rules:\n"
+            "This beta mode is non-destructive. Rules:\n"
             "- NEVER repartition, mkfs, wipe disks, or reinstall the distro.\n"
             "- If you detect a LIVE environment, stop and tell the user to either boot into "
             "their installed system or switch the wizard to wipe-and-reinstall mode.\n"
@@ -764,7 +766,8 @@ def _remote_setup_mode_block(profile: UserProfile) -> str:
         "== REMOTE SETUP MODE ==\n"
         "User selected: AUTO.\n\n"
         "Default behavior rules:\n"
-        "- In a LIVE environment, you may perform a fresh install if needed, but destructive "
+        "- Configure-existing work is beta.\n"
+        "- In a LIVE environment, you may perform an experimental fresh install if needed, but destructive "
         "disk changes still require explicit disk confirmation from the user after showing "
         "`lsblk -f`.\n"
         "- On an INSTALLED system, do not wipe disks; continue with post-install configuration.\n\n"

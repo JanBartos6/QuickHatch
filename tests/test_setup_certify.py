@@ -25,7 +25,9 @@ def test_vm_certification_dry_run_writes_artifacts(tmp_path):
     assert result.status == "dry_run"
     artifact_dir = tmp_path / "certification" / "ubuntu"
     assert artifact_dir.exists()
-    assert (next(artifact_dir.iterdir()) / "summary.json").exists()
+    artifact = next(artifact_dir.iterdir())
+    assert (artifact / "summary.json").exists()
+    assert b"\r\n" not in (artifact / "certify-install.sh").read_bytes()
 
 
 def test_vm_certification_qemu_defaults_to_virtio_disk(tmp_path):
@@ -122,6 +124,35 @@ def test_vm_certification_defaults_post_reboot_user_from_profile(monkeypatch, tm
     assert calls[0][1]["post_reboot_user"] == "alice"
 
 
+def test_vm_certification_defaults_post_reboot_user_to_quickhatch(monkeypatch, tmp_path):
+    iso = tmp_path / "fedora.iso"
+    profile = tmp_path / "profile.json"
+    iso.write_text("fake iso", encoding="utf-8")
+    profile.write_text(json.dumps({}), encoding="utf-8")
+    calls = []
+
+    def _fake_verify(*args, **kwargs):
+        calls.append((args, kwargs))
+        return VerifyResult(success=True, backend="virtualbox", exit_code=0, stages=[])
+
+    monkeypatch.setattr("quickhatch.setup.certify.verify_install_script", _fake_verify)
+    monkeypatch.setattr(
+        "quickhatch.setup.certify._prepare_certification_key",
+        lambda *a, **k: ("cert-key", "ssh-ed25519 AAAA quickhatch", ""),
+    )
+
+    result = run_vm_certification(
+        family="fedora",
+        iso=iso,
+        profile=profile,
+        root=tmp_path / "certification",
+        dry_run=False,
+    )
+
+    assert result.success
+    assert calls[0][1]["post_reboot_user"] == "quickhatch"
+
+
 def test_vm_certification_live_backend_success_is_automated(monkeypatch, tmp_path):
     iso = tmp_path / "fedora.iso"
     profile = tmp_path / "profile.json"
@@ -159,7 +190,7 @@ def test_vm_certification_live_backend_success_is_automated(monkeypatch, tmp_pat
     verify_kwargs = calls[0][1]
     assert script_path.name == "certify-install.sh"
     assert "dnf --installroot" in script_path.read_text(encoding="utf-8")
-    assert verify_kwargs["post_reboot_user"] == "jan"
+    assert verify_kwargs["post_reboot_user"] == "quickhatch"
     assert verify_kwargs["require_post_reboot"] is True
     assert verify_kwargs["post_reboot_commands"]
     assert "authorized_keys" in verify_kwargs["live_bootstrap_command"]

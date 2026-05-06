@@ -157,8 +157,32 @@ class TestSettingsScanner:
 
 
 # ---------------------------------------------------------------------------
-# hardware — display scanner
+# hardware - GPU and display scanners
 # ---------------------------------------------------------------------------
+
+
+class TestGpuScanner:
+    def test_linux_lspci_mm_parser_keeps_vendor_and_device(self, monkeypatch):
+        from quickhatch.scanners import hardware as hardware_mod
+
+        output = (
+            '00:02.0 "VGA compatible controller" "Intel Corporation" '
+            '"Alder Lake-P GT2 [Iris Xe Graphics]" -r0a "Lenovo" "Device"\n'
+        )
+
+        def fake_run(*_args, **_kwargs):
+            return SimpleNamespace(stdout=output)
+
+        monkeypatch.setattr(sys, "platform", "linux")
+        monkeypatch.setattr(hardware_mod.subprocess, "run", fake_run)
+        monkeypatch.setattr(hardware_mod, "_get_linux_gpu_vram", lambda _name: None)
+        monkeypatch.setattr(hardware_mod, "_get_linux_gpu_driver", lambda _name: None)
+
+        gpus = hardware_mod._get_gpus()
+
+        assert len(gpus) == 1
+        assert gpus[0].name == "Intel Corporation Alder Lake-P GT2 [Iris Xe Graphics]"
+        assert gpus[0].vendor == "intel"
 
 
 class TestDisplayScanner:

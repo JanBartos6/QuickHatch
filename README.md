@@ -29,6 +29,17 @@ This project is experimental. It is NOT recommended for running against your mai
 
 ---
 
+## Setup mode status
+
+| Mode | Status | Notes |
+|---|---|---|
+| Configure existing Linux | Beta | No partitioning or reinstall. Intended for apps, drivers, desktop, services, and user config on an already-installed system. |
+| Fresh install, full disk | Experimental | May erase one explicitly confirmed target disk after VM testing, disk inventory, dry-run preview, and typed confirmation. |
+| Dual boot | Advanced / experimental | QuickHatch must not shrink Windows or delete Windows/BitLocker/recovery partitions; use only pre-created free space or explicit mappings. |
+| Manual partition mapping | Dangerous / expert | Only for users who know exactly which partitions should be formatted, mounted, or preserved. |
+
+---
+
 ## What it does
 
 1. **Scans your Windows system** — apps (winget + registry), hardware, installed fonts, browser profiles, disk layout, etc.

@@ -208,11 +208,15 @@ def run_vm_certification(
             )
         except Exception as exc:
             blockers.append(f"Could not load profile JSON: {exc}")
-    effective_post_reboot_user = (
-        post_reboot_user or getattr(loaded_profile, "linux_user", None) or "jan"
-    )
-
     adapter = get_family_installer(normalized_family)
+    if post_reboot_user:
+        effective_post_reboot_user = post_reboot_user
+    elif hasattr(adapter, "target_user"):
+        effective_post_reboot_user = adapter.target_user(loaded_profile)  # type: ignore[attr-defined]
+    else:
+        effective_post_reboot_user = (
+            getattr(loaded_profile, "linux_user", "") or ""
+        ).strip() or "quickhatch"
     facts = SetupFacts(distro_family=normalized_family, is_live=True)
     spine = adapter.build_install_spine(facts, loaded_profile)
     post_reboot_audit = adapter.final_boot_audit(SetupFacts(distro_family=normalized_family))
@@ -224,7 +228,7 @@ def run_vm_certification(
         target_disk=effective_target_disk,
     )
     script_path = artifact_dir / "certify-install.sh"
-    script_path.write_text(script, encoding="utf-8")
+    script_path.write_text(script, encoding="utf-8", newline="\n")
     (artifact_dir / "final-facts.json").write_text(
         json.dumps(asdict(facts), indent=2, sort_keys=True, default=str),
         encoding="utf-8",

@@ -7,6 +7,7 @@ build/
 .quickhatch-checkpoint.json
 *.iso
 .env
+.quickhatch/
 
 # Agent temp files
 .quickhatch-prompt.txt

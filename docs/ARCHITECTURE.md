@@ -77,6 +77,17 @@ src/quickhatch/
 
 ## Two distinct modes
 
+### Setup mode maturity
+
+Remote setup has different maturity levels depending on how much disk state it can change:
+
+| Mode | Status | Boundary |
+|---|---|---|
+| Configure existing Linux | Beta | Configure packages, drivers, desktop, services, and user state on an installed target. No partitioning, formatting, or distro reinstall. |
+| Fresh install, full disk | Experimental | Full-disk live-ISO install on one explicitly confirmed target disk. Requires typed dangerous-operation capabilities before disk/boot/fstab changes. |
+| Dual boot | Advanced / experimental | Use only pre-created free space or explicit mappings. Never shrink Windows or delete NTFS, BitLocker, recovery, or existing EFI partitions automatically. |
+| Manual partition mapping | Dangerous / expert | Only execute exact user-confirmed partition operations; wrong input can destroy data. |
+
 ### Analysis phase (pre-install)
 
 1. User runs `python -m quickhatch --gui`.

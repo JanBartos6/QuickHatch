@@ -109,6 +109,13 @@ def _vendor_from_name(name: str) -> str:
     return "unknown"
 
 
+def _parse_lspci_mm_device_name(line: str) -> str:
+    parts = line.split('"')
+    if len(parts) >= 6:
+        return f"{parts[3]} {parts[5]}".strip()
+    return line.split(None, 1)[1] if " " in line else line
+
+
 def _get_gpus() -> list[GPUInfo]:
     """Detect GPUs."""
     gpus = []
@@ -177,12 +184,7 @@ def _get_gpus() -> list[GPUInfo]:
                 lower = line.lower()
                 if "vga" in lower or "3d" in lower or "display" in lower:
                     # lspci -mm format: Slot "Class" "Vendor" "Device" ...
-                    parts = line.split('"')
-                    if len(parts) >= 8:
-                        name = f"{parts[5]} {parts[7]}"  # Vendor + Device
-                    else:
-                        name = line.split(None, 1)[1] if " " in line else line
-                    name = name.strip()
+                    name = _parse_lspci_mm_device_name(line).strip()
                     if name:
                         vram = _get_linux_gpu_vram(name)
                         driver = _get_linux_gpu_driver(name)

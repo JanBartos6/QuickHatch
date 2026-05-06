@@ -110,6 +110,14 @@ class TestBashSyntaxCheck:
         assert not ok
         assert "syntax error" in msg
 
+    def test_wsl_bash_uses_mnt_path_for_windows_absolute_path(self, monkeypatch):
+        monkeypatch.setattr(vm_verify.os, "name", "nt")
+        path = vm_verify._script_path_for_bash(
+            r"G:\QuickHatch\.quickhatch\certification\arch\certify-install.sh",
+            r"C:\Windows\System32\bash.exe",
+        )
+        assert path == "/mnt/g/QuickHatch/.quickhatch/certification/arch/certify-install.sh"
+
 
 # ---------------------------------------------------------------------------
 # VirtualBoxBackend — no real VM, just command construction
@@ -291,6 +299,57 @@ class TestVerifyInstallScript:
         assert result.success
         assert typed == ["systemctl start sshd"]
         assert waits == [60, 180]
+
+    def test_live_console_key_seed_when_ssh_banner_is_already_up(self, monkeypatch, tmp_path):
+        script = tmp_path / "install.sh"
+        script.write_text("echo ok")
+        iso = tmp_path / "live.iso"
+        iso.write_text("x")
+        typed = []
+        waits = []
+
+        monkeypatch.setattr(vm_verify, "bash_syntax_check", lambda _p: (True, "ok"))
+        monkeypatch.setattr(vm_verify, "pick_backend", lambda prefer=None: "virtualbox")
+        monkeypatch.setattr(
+            vm_verify,
+            "detect_backends",
+            lambda: {"virtualbox": "VBoxManage", "qemu": None},
+        )
+        monkeypatch.setattr(
+            vm_verify,
+            "_wait_for_vm_ssh",
+            lambda *a, **k: waits.append(k.get("timeout")) or True,
+        )
+        monkeypatch.setattr(vm_verify, "run_script_in_vm", lambda *a, **k: (0, "done", ""))
+        monkeypatch.setattr(vm_verify.time, "sleep", lambda _s: None)
+
+        class _FakeVM:
+            vm_name = "fake"
+
+            def __init__(self, *a, **k):
+                pass
+
+            def create(self, *a, **k):
+                pass
+
+            def start(self):
+                pass
+
+            def type_command(self, command):
+                typed.append(command)
+
+            def teardown(self):
+                pass
+
+        monkeypatch.setattr(vm_verify, "VirtualBoxBackend", _FakeVM)
+        result = vm_verify.verify_install_script(
+            script,
+            iso_path=iso,
+            live_bootstrap_command="mkdir -p /root/.ssh",
+        )
+        assert result.success
+        assert typed == ["mkdir -p /root/.ssh"]
+        assert waits == [60]
 
     def test_full_post_reboot_path_with_mocked_backend(self, monkeypatch, tmp_path):
         script = tmp_path / "install.sh"

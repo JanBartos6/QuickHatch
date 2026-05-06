@@ -241,6 +241,59 @@ def generate_harness_fuzz_cases() -> list[HarnessFuzzCase]:
             expected_categories=("disk_boot_safety",),
             description="Disk mutation requires a typed operation capability even when explicitly privileged.",
         ),
+        HarnessFuzzCase(
+            name="env_wrapped_parted_requires_capability",
+            command="sudo env DISK=/dev/sda bash -lc 'parted -s $DISK mklabel gpt'",
+            facts=_live_facts("arch", "pacman"),
+            expect_block=True,
+            expected_categories=("disk_boot_safety",),
+            description="Environment wrappers must not hide partition-table mutation.",
+        ),
+        HarnessFuzzCase(
+            name="shell_variable_mkfs_pipeline_requires_capability",
+            command="sudo bash -lc 'ROOT=/dev/sda2; printf y | mkfs.ext4 -F $ROOT'",
+            facts=_live_facts("debian", "apt"),
+            expect_block=True,
+            expected_categories=("disk_boot_safety",),
+            description="Piped confirmation plus shell variables still formats a partition.",
+        ),
+        HarnessFuzzCase(
+            name="command_variable_mkfs_requires_capability",
+            command="sudo bash -c 'cmd=mkfs.ext4; $cmd -F /dev/sda2'",
+            facts=_live_facts("ubuntu", "apt"),
+            expect_block=True,
+            expected_categories=("disk_boot_safety",),
+            description="Command-name variables must not hide filesystem formatting.",
+        ),
+        HarnessFuzzCase(
+            name="python_system_mkfs_requires_capability",
+            command="sudo python3 -c \"import os; os.system('mkfs.ext4 -F /dev/sda2')\"",
+            facts=_live_facts("fedora", "dnf"),
+            expect_block=True,
+            expected_categories=("disk_boot_safety",),
+            description="Interpreter wrappers must not bypass shell safety detection.",
+        ),
+        HarnessFuzzCase(
+            name="perl_system_mkfs_requires_capability",
+            command="sudo perl -e 'system(\"mkfs.ext4 -F /dev/sda2\")'",
+            facts=_live_facts("arch", "pacman"),
+            expect_block=True,
+            expected_categories=("disk_boot_safety",),
+            description="Non-Python interpreter wrappers should also stay inside the safety boundary.",
+        ),
+        HarnessFuzzCase(
+            name="heredoc_generated_script_mkfs_requires_capability",
+            command=(
+                "sudo bash -c \"cat >/tmp/qh.sh <<'EOF'\n"
+                "mkfs.ext4 -F /dev/sda2\n"
+                "EOF\n"
+                'bash /tmp/qh.sh"'
+            ),
+            facts=_live_facts("ubuntu", "apt"),
+            expect_block=True,
+            expected_categories=("disk_boot_safety",),
+            description="A generated script run immediately still contains a destructive format.",
+        ),
     ]
 
 

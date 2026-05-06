@@ -72,6 +72,101 @@ def test_fedora_adapter_fstab_uses_selected_target_disk_partitions():
     assert "/dev/sda2" not in joined
 
 
+def test_fedora_installroot_reuses_live_repo_config():
+    installer = get_family_installer("fedora")
+
+    commands = installer.install_base_system(
+        SetupFacts(distro_family="fedora", is_live=True),
+        UserProfile(),
+    )
+    joined = "\n".join(commands)
+
+    assert commands[0].startswith("for qh_bind in dev dev/pts proc sys run")
+    assert "--installroot=/mnt --use-host-config" in joined
+    assert " sudo dnf rpm policycoreutils " in joined
+
+
+def test_fedora_live_install_sets_selinux_permissive_for_target_chroot_writes():
+    installer = get_family_installer("fedora")
+
+    commands = installer.prepare_live_environment(
+        SetupFacts(distro_family="fedora", is_live=True),
+        UserProfile(),
+    )
+
+    assert commands[0] == "sudo setenforce 0 2>/dev/null || true"
+
+
+@pytest.mark.parametrize("family", ["ubuntu", "debian"])
+def test_debian_family_bootloader_always_writes_removable_efi_fallback(family):
+    installer = get_family_installer(family)
+
+    commands = installer.install_bootloader(
+        SetupFacts(distro_family=family, is_live=True),
+        UserProfile(),
+    )
+    joined = "\n".join(commands)
+
+    assert "--removable --no-nvram" in joined
+    assert "|| true" in joined
+    assert "test -f /boot/efi/EFI/BOOT/BOOTX64.EFI" in joined
+    assert "/boot/efi/EFI/BOOT" in joined
+    assert "/boot/efi/EFI/quickhatch" in joined
+    assert "/boot/efi/EFI/ubuntu" in joined
+    assert '> "$qh_efi_dir/grub.cfg"' in joined
+    assert "/boot/efi/boot/grub/grub.cfg" in joined
+    assert "configfile /boot/grub/grub.cfg" in joined
+    assert "-o -f /boot/efi/EFI/quickhatch/grubx64.efi" not in joined
+
+
+def test_ubuntu_adapter_uses_live_iso_codename_when_available():
+    installer = get_family_installer("ubuntu")
+
+    commands = installer.install_base_system(
+        SetupFacts(distro_family="ubuntu", is_live=True),
+        UserProfile(),
+    )
+    joined = "\n".join(commands)
+
+    assert "QH_UBUNTU_SUITE" in joined
+    assert 'if [ "${ID:-}" = "ubuntu" ]' in joined
+    assert 'QH_UBUNTU_SUITE="${VERSION_CODENAME:-}"' in joined
+    assert 'sudo debootstrap --arch=amd64 "$QH_UBUNTU_SUITE" /mnt' in joined
+    assert ":-noble" in joined
+
+
+@pytest.mark.parametrize(
+    ("family", "package_probe"),
+    [
+        ("ubuntu", "parted dosfstools e2fsprogs"),
+        ("debian", "parted dosfstools e2fsprogs"),
+        ("fedora", "parted dosfstools e2fsprogs"),
+    ],
+)
+def test_live_install_spine_installs_partition_tools_before_disk_mutation(
+    family,
+    package_probe,
+):
+    installer = get_family_installer(family)
+
+    spine = installer.build_install_spine(
+        SetupFacts(distro_family=family, is_live=True),
+        UserProfile(),
+    )
+    joined = "\n".join(spine.commands)
+    install_index = next(
+        index for index, command in enumerate(spine.commands) if package_probe in command
+    )
+    parted_index = next(
+        index for index, command in enumerate(spine.commands) if "parted -s" in command
+    )
+
+    assert install_index < parted_index
+    assert "umount -Rl /mnt" in joined
+    assert "mkfs.fat" in joined
+    assert "mkfs.ext4" in joined
+
+
 @pytest.mark.parametrize("family", ["arch", "ubuntu", "debian", "fedora"])
 def test_family_adapters_render_common_typed_operations(family):
     installer = get_family_installer(family)

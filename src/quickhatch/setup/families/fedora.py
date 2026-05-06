@@ -11,6 +11,13 @@ from .base import BaseFamilyInstaller
 class FedoraInstaller(BaseFamilyInstaller):
     family = "fedora"
 
+    def prepare_live_environment(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
+        del facts, profile
+        return [
+            "sudo setenforce 0 2>/dev/null || true",
+            "sudo dnf install -y parted dosfstools e2fsprogs util-linux systemd-udev",
+        ]
+
     def efi_mountpoint(self) -> str:
         return "/mnt/boot/efi"
 
@@ -18,10 +25,14 @@ class FedoraInstaller(BaseFamilyInstaller):
         del facts, profile
         disk_vars = self.target_disk_partition_vars()
         return [
-            "sudo dnf --installroot=/mnt --releasever=$(rpm -E %fedora) "
+            "for qh_bind in dev dev/pts proc sys run; do "
+            "sudo mkdir -p /mnt/$qh_bind; "
+            "mountpoint -q /mnt/$qh_bind || sudo mount --bind /$qh_bind /mnt/$qh_bind; "
+            "done",
+            "sudo dnf --installroot=/mnt --use-host-config --releasever=$(rpm -E %fedora) "
             "--setopt=install_weak_deps=False --nodocs install -y "
-            "fedora-release systemd kernel-core kernel-modules sudo NetworkManager "
-            "openssh-server grub2-efi-x64 grub2-tools shim efibootmgr",
+            "fedora-release systemd kernel-core kernel-modules sudo dnf rpm policycoreutils "
+            "NetworkManager openssh-server grub2-efi-x64 grub2-tools shim efibootmgr",
             "sudo dnf --installroot=/mnt clean all",
             "sudo mkdir -p /mnt/etc",
             "sudo sh -c 'findmnt -R /mnt -o SOURCE,TARGET,FSTYPE,OPTIONS -n > /tmp/qh-mounts'",

@@ -183,13 +183,15 @@ class UserProfile:
     linux_user: str = ""
     # Remote setup intent for the last step of the wizard.
     # "auto" = current default behavior
-    # "wipe_and_reinstall" = destructive reinstall is explicitly allowed,
+    # "wipe_and_reinstall" = experimental destructive reinstall is explicitly allowed,
     #   but only from a live environment after disk confirmation
-    # "configure_only" = never repartition/reformat; just configure the
+    # "configure_only" = beta configure-existing path; never repartition/reformat; just configure the
     #   current installed system
     remote_setup_mode: str = "auto"
     # Structured install layout intent. This is more specific than
     # remote_setup_mode and drives capability checks for destructive work.
+    # Stability labels: configure_existing=beta, full_disk/second_disk=experimental,
+    # dual_boot_free_space=advanced/experimental, manual_partition_mapping=dangerous/expert.
     install_profile: str = "auto"
     install_encryption: str = "recommended"
     install_filesystem: str = "recommended"

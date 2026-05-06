@@ -13,6 +13,14 @@ class DebianInstaller(BaseFamilyInstaller):
     suite = "trixie"
     mirror = "http://deb.debian.org/debian"
 
+    def prepare_live_environment(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
+        del facts, profile
+        return [
+            "sudo apt-get update",
+            "sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y "
+            "parted dosfstools e2fsprogs util-linux udev",
+        ]
+
     def efi_mountpoint(self) -> str:
         return "/mnt/boot/efi"
 
@@ -41,9 +49,17 @@ class DebianInstaller(BaseFamilyInstaller):
             "mountpoint -q /mnt/$qh_bind || sudo mount --bind /$qh_bind /mnt/$qh_bind; "
             "done",
             "sudo chroot /mnt sh -c '"
-            "grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=quickhatch --recheck "
-            "|| grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=quickhatch --removable --no-nvram --recheck; "
-            "test -f /boot/efi/EFI/BOOT/BOOTX64.EFI -o -f /boot/efi/EFI/quickhatch/grubx64.efi'",
+            "grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=quickhatch --recheck || true; "
+            "grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=quickhatch --removable --no-nvram --recheck; "
+            "for qh_efi_dir in /boot/efi/EFI/BOOT /boot/efi/EFI/quickhatch /boot/efi/EFI/ubuntu; do "
+            'mkdir -p "$qh_efi_dir"; '
+            'printf "%s\\n" "search --file --set=root /boot/grub/grub.cfg" '
+            '"configfile /boot/grub/grub.cfg" > "$qh_efi_dir/grub.cfg"; '
+            "done; "
+            "mkdir -p /boot/efi/boot/grub; "
+            'printf "%s\\n" "search --file --set=root /boot/grub/grub.cfg" '
+            '"configfile /boot/grub/grub.cfg" > /boot/efi/boot/grub/grub.cfg; '
+            "test -f /boot/efi/EFI/BOOT/BOOTX64.EFI'",
             "sudo chroot /mnt update-grub",
             "sudo chroot /mnt update-initramfs -u -k all",
         ]

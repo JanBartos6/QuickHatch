@@ -2,6 +2,13 @@
 
 The safest way to try QuickHatch is against a disposable VirtualBox VM. This guide sets up an Arch Linux VM you can migrate into — snapshot before each test so you can replay from a known state.
 
+## Mode status
+
+- **Configure existing Linux:** beta. Use this for post-install package, driver, desktop, service, and user configuration.
+- **Fresh full-disk install:** experimental. It can erase the selected VM disk and must stay behind VM testing, disk inventory, dry-run preview, and typed confirmation.
+- **Dual boot:** advanced / experimental. Test only with throwaway disks and pre-created free space; QuickHatch must not shrink Windows automatically.
+- **Manual partition mapping:** dangerous / expert. Use only when every target partition is disposable or explicitly mapped and backed up.
+
 ## Prerequisites
 
 - VirtualBox 7.x installed and on PATH (or known path — examples use `G:\VirtualBox\VBoxManage.exe`)

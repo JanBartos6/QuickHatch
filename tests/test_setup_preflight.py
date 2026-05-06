@@ -738,6 +738,15 @@ def test_typed_preflight_keeps_disk_boot_safety_as_hard_block():
     assert any(item.category == "disk_boot_safety" for item in decisions)
 
 
+def test_typed_preflight_keeps_parted_disk_boot_safety_above_privilege_shadow():
+    facts = SetupFacts(current_user="jan", login_user="jan", is_root=False)
+
+    decisions = preflight_setup_decisions("parted -s /dev/sda mklabel gpt", facts)
+
+    assert decisions[0].kind == PreflightDecisionKind.BLOCK
+    assert decisions[0].category == "disk_boot_safety"
+
+
 def test_preflight_blocks_installed_system_destructive_block_device_writes():
     facts = SetupFacts(
         package_manager="pacman",

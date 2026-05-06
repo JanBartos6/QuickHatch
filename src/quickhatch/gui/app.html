@@ -2007,23 +2007,23 @@ const stepRenderers={
           <label>Install target</label>
           <div class="choice-grid" id="installProfileChoice">
             <div class="choice${installProfile==='configure_existing'?' selected':''}" data-value="configure_existing" onclick="selectChoice('installProfileChoice',this)">
-              <div class="title">Configure an existing Linux install</div>
+              <div class="title">Configure an existing Linux install (beta)</div>
               <div class="desc">No disk changes. Installs apps, drivers, themes, and settings on an already-installed Linux system.</div>
             </div>
             <div class="choice${installProfile==='full_disk_wipe'?' selected':''}" data-value="full_disk_wipe" onclick="selectChoice('installProfileChoice',this)">
-              <div class="title">Erase one whole disk and install Linux</div>
+              <div class="title">Erase one whole disk and install Linux (experimental)</div>
               <div class="desc">May wipe one explicitly confirmed target disk and install Linux there.</div>
             </div>
             <div class="choice${installProfile==='second_disk_install'?' selected':''}" data-value="second_disk_install" onclick="selectChoice('installProfileChoice',this)">
-              <div class="title">Install Linux on another disk</div>
+              <div class="title">Install Linux on another disk (experimental)</div>
               <div class="desc">Keep the current Windows/system disk untouched. Installs Linux on a separate explicitly confirmed disk.</div>
             </div>
             <div class="choice${installProfile==='dual_boot_free_space'?' selected':''}" data-value="dual_boot_free_space" onclick="selectChoice('installProfileChoice',this)">
-              <div class="title">Dual boot using free space</div>
+              <div class="title">Dual boot using free space (advanced / experimental)</div>
               <div class="desc">Use pre-created unallocated/free space. QuickHatch must not shrink Windows or delete existing Windows partitions.</div>
             </div>
             <div class="choice${installProfile==='manual_partition_mapping'?' selected':''}" data-value="manual_partition_mapping" onclick="selectChoice('installProfileChoice',this)">
-              <div class="title">Advanced/manual partition mapping</div>
+              <div class="title">Manual partition mapping (dangerous / expert)</div>
               <div class="desc">Only for users who know exactly which partitions should be used.</div>
             </div>
           </div>
@@ -2489,11 +2489,11 @@ const stepRenderers={
     const installFilesystem=state.profile.install_filesystem||'recommended';
     const installProfileLabels={
       auto:'Auto',
-      configure_existing:'Configure existing Linux install',
-      full_disk_wipe:'Erase one whole disk and install Linux',
-      second_disk_install:'Install Linux on another disk',
-      dual_boot_free_space:'Dual boot using free space',
-      manual_partition_mapping:'Advanced/manual partition mapping',
+      configure_existing:'Configure existing Linux install (beta)',
+      full_disk_wipe:'Erase one whole disk and install Linux (experimental)',
+      second_disk_install:'Install Linux on another disk (experimental)',
+      dual_boot_free_space:'Dual boot using free space (advanced / experimental)',
+      manual_partition_mapping:'Manual partition mapping (dangerous / expert)',
     };
     const exportExecutedScript=!!state.profile.export_executed_setup_script;
     const port=location.port;
@@ -2523,15 +2523,15 @@ const stepRenderers={
           <label>Remote setup mode</label>
           <div class="stack-h" style="gap:var(--s2);flex-wrap:wrap">
             <button type="button" class="btn ${remoteSetupMode==='auto'?'btn-primary':'btn-ghost'}" onclick="setRemoteSetupMode('auto')">Auto</button>
-            <button type="button" class="btn ${remoteSetupMode==='configure_only'?'btn-primary':'btn-ghost'}" onclick="setRemoteSetupMode('configure_only')">Configure only</button>
-            <button type="button" class="btn ${remoteSetupMode==='wipe_and_reinstall'?'btn-danger':'btn-ghost'}" onclick="setRemoteSetupMode('wipe_and_reinstall')">Wipe + reinstall</button>
+            <button type="button" class="btn ${remoteSetupMode==='configure_only'?'btn-primary':'btn-ghost'}" onclick="setRemoteSetupMode('configure_only')">Configure only (beta)</button>
+            <button type="button" class="btn ${remoteSetupMode==='wipe_and_reinstall'?'btn-danger':'btn-ghost'}" onclick="setRemoteSetupMode('wipe_and_reinstall')">Wipe + reinstall (experimental)</button>
           </div>
           <div class="muted" style="font-size:var(--t-sm);margin-top:var(--s2)">
             ${remoteSetupMode==='wipe_and_reinstall'
-              ?'Destructive mode is armed. In a live environment the agent may wipe the selected target disk, but only after showing <code>lsblk -f</code> and getting explicit disk confirmation.'
-              :remoteSetupMode==='configure_only'
-              ?'Safe mode. The agent must not repartition or reinstall the distro; it should only configure the current installed system.'
-              :'Default mode. On a live ISO the agent may install Linux if needed after explicit disk confirmation; on an installed system it should continue with post-install configuration.'}
+              ?'Experimental destructive mode is armed. In a live environment the agent may wipe the selected target disk, but only after showing <code>lsblk -f</code> and getting explicit disk confirmation.'
+            :remoteSetupMode==='configure_only'
+              ?'Beta configure-existing mode. The agent must not repartition or reinstall the distro; it should only configure the current installed system.'
+              :'Default mode. Configure-existing work is beta; fresh full-disk installs remain experimental and require explicit disk confirmation.'}
           </div>
         </div>
 

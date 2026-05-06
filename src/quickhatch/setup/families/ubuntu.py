@@ -18,7 +18,15 @@ class UbuntuInstaller(DebianInstaller):
         return [
             "sudo apt-get update",
             "sudo apt-get install -y debootstrap arch-install-scripts grub-efi-amd64",
-            f"sudo debootstrap --arch=amd64 {self.suite} /mnt {self.mirror}",
+            "QH_UBUNTU_SUITE=${QUICKHATCH_UBUNTU_SUITE:-}; "
+            'if [ -z "$QH_UBUNTU_SUITE" ] && [ -r /etc/os-release ]; then '
+            ". /etc/os-release; "
+            'if [ "${ID:-}" = "ubuntu" ]; then '
+            'QH_UBUNTU_SUITE="${VERSION_CODENAME:-}"; '
+            "fi; "
+            "fi; "
+            f'QH_UBUNTU_SUITE="${{QH_UBUNTU_SUITE:-{self.suite}}}"; '
+            f'sudo debootstrap --arch=amd64 "$QH_UBUNTU_SUITE" /mnt {self.mirror}',
             "sudo genfstab -U /mnt | sudo tee -a /mnt/etc/fstab >/dev/null",
             "for qh_bind in dev dev/pts proc sys run; do "
             "sudo mkdir -p /mnt/$qh_bind; "

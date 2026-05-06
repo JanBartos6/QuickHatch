@@ -20,6 +20,7 @@ from importlib import resources
 from typing import Any
 
 _GALLERY_PACKAGE = "quickhatch.data"
+_AUTO_APPLY_LICENSE_STATUSES = {"permissive"}
 
 
 def _load_gallery() -> list[dict[str, Any]]:
@@ -48,6 +49,10 @@ def _find_entry(recipe_id: str) -> dict[str, Any] | None:
         if entry.get("id") == recipe_id:
             return entry
     return None
+
+
+def _license_allows_auto_apply(entry: dict[str, Any]) -> bool:
+    return _stringy(entry.get("license_status")).lower() in _AUTO_APPLY_LICENSE_STATUSES
 
 
 def _stringy(value: Any) -> str:
@@ -115,6 +120,8 @@ def recipe_apply_block(gallery_picks: list[str] | None) -> str:
         return ""
     entry = _find_entry(gallery_picks[0])
     if entry is None:
+        return ""
+    if not _license_allows_auto_apply(entry):
         return ""
 
     pairs = _applicable_fields(entry)

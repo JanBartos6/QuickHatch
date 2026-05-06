@@ -170,12 +170,44 @@ def bash_syntax_check(script_path: Path) -> tuple[bool, str]:
     if not bash:
         return True, "bash not available, syntax check skipped"
     try:
-        proc = _run([bash, "-n", str(script_path)], timeout=30)
+        proc = _run([bash, "-n", _script_path_for_bash(script_path, bash)], timeout=30)
     except (subprocess.TimeoutExpired, OSError) as exc:
         return False, f"syntax check error: {exc}"
     if proc.returncode == 0:
         return True, "bash -n passed"
     return False, (proc.stderr or proc.stdout or "syntax error").strip()[:500]
+
+
+def _script_path_for_bash(script_path: os.PathLike[str] | str, bash_path: str) -> str:
+    """Return a script path in the format understood by the detected bash.
+
+    Windows hosts commonly resolve `bash.exe` to WSL. Passing a path with
+    backslashes makes bash treat them as escapes, and passing `G:/...` is not
+    valid inside WSL. Normalize those paths before the syntax gate runs.
+    """
+
+    path_text = os.fspath(script_path)
+    posix_path = path_text.replace("\\", "/")
+
+    if os.name != "nt":
+        return posix_path
+
+    windows_absolute = len(posix_path) >= 3 and posix_path[1:3] == ":/"
+    if not windows_absolute:
+        try:
+            posix_path = str(Path(path_text).resolve()).replace("\\", "/")
+            windows_absolute = len(posix_path) >= 3 and posix_path[1:3] == ":/"
+        except OSError:
+            pass
+
+    bash_normalized = bash_path.replace("\\", "/").lower()
+    if windows_absolute and (
+        bash_normalized.endswith("/system32/bash.exe")
+        or bash_normalized.endswith("/sysnative/bash.exe")
+    ):
+        return f"/mnt/{posix_path[0].lower()}{posix_path[2:]}"
+
+    return posix_path
 
 
 # ---------------------------------------------------------------------------
@@ -482,12 +514,23 @@ def run_script_in_vm(
     key_args = ["-i", ssh_key] if ssh_key else []
 
     progress("Copying install.sh into VM")
+    non_interactive_ssh_options = [
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "NumberOfPasswordPrompts=0",
+        "-o",
+        "ConnectTimeout=10",
+        "-o",
+        "ConnectionAttempts=3",
+    ]
     scp_cmd = [
         scp,
         "-o",
         "StrictHostKeyChecking=no",
         "-o",
         "UserKnownHostsFile=/dev/null",
+        *non_interactive_ssh_options,
         "-P",
         str(ssh_port),
         *key_args,
@@ -505,6 +548,7 @@ def run_script_in_vm(
         "StrictHostKeyChecking=no",
         "-o",
         "UserKnownHostsFile=/dev/null",
+        *non_interactive_ssh_options,
         "-p",
         str(ssh_port),
         *key_args,
@@ -538,7 +582,13 @@ def run_command_in_vm(
         "-o",
         "UserKnownHostsFile=/dev/null",
         "-o",
+        "BatchMode=yes",
+        "-o",
+        "NumberOfPasswordPrompts=0",
+        "-o",
         "ConnectTimeout=10",
+        "-o",
+        "ConnectionAttempts=3",
         "-p",
         str(ssh_port),
         *key_args,
@@ -652,6 +702,13 @@ def verify_install_script(
                 vm_name=vm.vm_name,
                 wait_seconds=live_bootstrap_wait_seconds,
             )
+        elif live_bootstrap_command and hasattr(vm, "type_command"):
+            progress("VM SSH is up; seeding live-console SSH key before scp")
+            try:
+                vm.type_command(live_bootstrap_command)  # type: ignore[attr-defined]
+                time.sleep(5)
+            except Exception as exc:
+                progress(f"Live SSH key seeding failed while typing command: {exc}")
         if not ssh_ready:
             result.error = "VM never answered on SSH (boot or network failed)"
             return result

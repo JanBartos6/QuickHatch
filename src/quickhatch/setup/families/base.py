@@ -28,6 +28,8 @@ class FamilyInstaller(Protocol):
 
     def detect_live_iso(self, facts: SetupFacts) -> bool: ...
 
+    def prepare_live_environment(self, facts: SetupFacts, profile: UserProfile) -> list[str]: ...
+
     def prepare_disk(self, facts: SetupFacts, profile: UserProfile) -> list[str]: ...
 
     def install_base_system(self, facts: SetupFacts, profile: UserProfile) -> list[str]: ...
@@ -84,13 +86,17 @@ class BaseFamilyInstaller:
     def efi_mountpoint(self) -> str:
         return "/mnt/boot"
 
+    def prepare_live_environment(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
+        del facts, profile
+        return []
+
     def prepare_disk(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
         del facts, profile
         disk_vars = self.target_disk_partition_vars()
         efi_mount = shlex.quote(self.efi_mountpoint())
         return [
             "sudo swapoff -a || true",
-            "mountpoint -q /mnt && sudo umount -R /mnt || true",
+            "mountpoint -q /mnt && { sudo umount -R /mnt || sudo umount -Rl /mnt || true; } || true",
             disk_vars + 'sudo parted -s "$DISK" mklabel gpt mkpart ESP fat32 1MiB 513MiB '
             "set 1 esp on mkpart primary ext4 513MiB 100%",
             disk_vars
@@ -264,6 +270,7 @@ class BaseFamilyInstaller:
 
     def build_install_spine(self, facts: SetupFacts, profile: UserProfile) -> InstallSpine:
         commands = [
+            *self.prepare_live_environment(facts, profile),
             *self.prepare_disk(facts, profile),
             *self.install_base_system(facts, profile),
             *self.configure_user_ssh_sudo(facts, profile),
