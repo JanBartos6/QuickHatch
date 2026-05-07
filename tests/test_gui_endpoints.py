@@ -156,6 +156,36 @@ class TestProfileEndpoint:
         assert status == 200
         assert data["profile"]["remote_setup_mode"] == "configure_only"
 
+    def test_remote_setup_mode_auto_sets_install_profile_auto(self, server):
+        server["gui_state"].profile.remote_setup_mode = "configure_only"
+        server["gui_state"].profile.install_profile = "configure_existing"
+
+        status, body = _post(
+            server["port"],
+            "/wizard/update",
+            {"remote_setup_mode": "auto"},
+        )
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["profile"]["remote_setup_mode"] == "auto"
+        assert data["profile"]["install_profile"] == "auto"
+
+    def test_wipe_mode_from_auto_arms_full_disk_install_profile(self, server):
+        server["gui_state"].profile.remote_setup_mode = "auto"
+        server["gui_state"].profile.install_profile = "auto"
+
+        status, body = _post(
+            server["port"],
+            "/wizard/update",
+            {"remote_setup_mode": "wipe_and_reinstall"},
+        )
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["profile"]["remote_setup_mode"] == "wipe_and_reinstall"
+        assert data["profile"]["install_profile"] == "full_disk_wipe"
+
     def test_invalid_install_profile_fields_fall_back_to_safe_defaults(self, server):
         status, body = _post(
             server["port"],

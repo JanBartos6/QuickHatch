@@ -486,8 +486,26 @@ class GUIState:
             if "remote_setup_mode" in updates:
                 mode = self._coerce_str(updates["remote_setup_mode"]) or "auto"
                 if mode not in {"auto", "wipe_and_reinstall", "configure_only"}:
-                    mode = "auto"
+                    mode = "configure_only"
                 changed |= self._set_if_changed(self.profile, "remote_setup_mode", mode)
+                if "install_profile" not in updates:
+                    if mode == "auto":
+                        changed |= self._set_if_changed(self.profile, "install_profile", "auto")
+                    elif mode == "configure_only":
+                        changed |= self._set_if_changed(
+                            self.profile,
+                            "install_profile",
+                            "configure_existing",
+                        )
+                    elif mode == "wipe_and_reinstall" and self.profile.install_profile in {
+                        "auto",
+                        "configure_existing",
+                    }:
+                        changed |= self._set_if_changed(
+                            self.profile,
+                            "install_profile",
+                            "full_disk_wipe",
+                        )
                 setup_intent_changed = True
             if "install_profile" in updates:
                 value = self._coerce_str(updates["install_profile"]) or "configure_existing"

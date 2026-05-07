@@ -4446,10 +4446,13 @@ async function setRemoteSetupMode(mode){
   }
   state.profile.remote_setup_mode=mode;
   const update={remote_setup_mode:mode};
-  if(mode==='configure_only'){
+  if(mode==='auto'){
+    state.profile.install_profile='auto';
+    update.install_profile='auto';
+  }else if(mode==='configure_only'){
     state.profile.install_profile='configure_existing';
     update.install_profile='configure_existing';
-  }else if(mode==='wipe_and_reinstall'&&state.profile.install_profile==='configure_existing'){
+  }else if(mode==='wipe_and_reinstall'&&['auto','configure_existing'].includes(state.profile.install_profile)){
     state.profile.install_profile='full_disk_wipe';
     update.install_profile='full_disk_wipe';
   }
