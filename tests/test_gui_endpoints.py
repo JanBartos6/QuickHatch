@@ -725,10 +725,15 @@ class TestBridgeEndpoints:
 
         assert status == 200
         assert data["status"] == "ok"
-        assert bridge.messages == []
+        assert data["stopping"] is True
+        assert [m["content"] for m in bridge.messages] == [
+            "Setup log cleared. Stop requested for the active setup run; wait for it to stop before starting fresh."
+        ]
+        assert bridge.messages[0]["phase"] == "setup"
+        assert bridge.stop_requested is True
         assert bridge.snapshot_setup_run()["run_id"] == "run123"
         assert bridge.snapshot_setup_run()["stage"] == "apps"
-        assert bridge.snapshot_setup_run()["status"] == "running"
+        assert bridge.snapshot_setup_run()["status"] == "stopping"
 
     def test_post_suggest_adds_suggestion(self, server):
         _post(

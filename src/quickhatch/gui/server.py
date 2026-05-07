@@ -1929,11 +1929,24 @@ def make_gui_server(
 
             elif self.path == "/wizard/clear-setup-log":
                 self._read_json()  # drain request body
-                bridge_state.clear_phase_log(
-                    "setup",
-                    reset_setup_run=not gui_state.agent_thread_running(),
-                )
-                self._send_json({"status": "ok"})
+                agent_running = gui_state.agent_thread_running()
+                if agent_running:
+                    bridge_state.request_stop()
+                    bridge_state.clear_phase_log(
+                        "setup",
+                        reset_setup_run=False,
+                        clear_stop_requested=False,
+                    )
+                    bridge_state.update_setup_run(status="stopping", waiting_for_input=False)
+                    bridge_state.add_message(
+                        "agent",
+                        "Setup log cleared. Stop requested for the active setup run; wait for it to stop before starting fresh.",
+                        phase="setup",
+                    )
+                    self._send_json({"status": "ok", "stopping": True})
+                else:
+                    bridge_state.clear_phase_log("setup")
+                    self._send_json({"status": "ok", "stopping": False})
 
             elif self.path == "/wizard/reset-remote-setup":
                 self._read_json()  # drain request body

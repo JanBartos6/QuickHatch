@@ -326,6 +326,25 @@ class TestSetupRunState:
         assert setup_run["planning_complete"] is True
         assert state.messages == []
 
+    def test_clear_setup_log_can_preserve_stop_request_for_active_setup_run(self, state):
+        state.update_setup_run(run_id="run123", stage="apps", status="stopping")
+        state.stop_requested = True
+        state.set_current_phase("setup")
+        state.add_message("agent", "old setup line", phase="setup")
+
+        state.clear_phase_log(
+            "setup",
+            reset_setup_run=False,
+            clear_stop_requested=False,
+        )
+        setup_run = state.snapshot_setup_run()
+
+        assert setup_run["run_id"] == "run123"
+        assert setup_run["status"] == "stopping"
+        assert state.stop_requested is True
+        assert state.current_phase == "setup"
+        assert state.messages == []
+
 
 class TestThreadSafety:
     def test_concurrent_add_suggestion(self, state):

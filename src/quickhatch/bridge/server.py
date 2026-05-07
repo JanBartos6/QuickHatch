@@ -409,7 +409,13 @@ class BridgeState:
             self.agent_done = False
             self._persist()
 
-    def clear_phase_log(self, phase: str, *, reset_setup_run: bool = True) -> None:
+    def clear_phase_log(
+        self,
+        phase: str,
+        *,
+        reset_setup_run: bool = True,
+        clear_stop_requested: bool = True,
+    ) -> None:
         """Clear message/question runtime associated with one agent phase.
 
         Intended for UI-level "clear this run's log" actions. This is
@@ -423,8 +429,9 @@ class BridgeState:
             self.messages[:] = [m for m in self.messages if (m.get("phase") or "") != target]
             self._clear_unanswered_questions_locked()
             self.agent_done = False
-            self.stop_requested = False
-            if self.current_phase == target:
+            if clear_stop_requested:
+                self.stop_requested = False
+            if self.current_phase == target and reset_setup_run:
                 self.current_phase = ""
             if target == "setup" and reset_setup_run:
                 self.setup_run = {
