@@ -3947,6 +3947,22 @@ def _launch_agent(
                 "message": "An agent is already running. Click Stop first (or wait for it).",
             }
 
+        if provider in {"api_openai", "api_anthropic", "api_gemini", "api_grok"}:
+            endpoint = config.endpoint or ""
+            if not config.api_key:
+                try:
+                    config.api_key = load_api_key(provider, endpoint)
+                except Exception:
+                    config.api_key = None
+            if not config.api_key:
+                return {
+                    "status": "error",
+                    "message": (
+                        "Missing API key for the selected cloud provider. "
+                        "Go back to AI setup and enter or reconnect the key before starting."
+                    ),
+                }
+
         if provider == "codex":
             import subprocess
             import sys

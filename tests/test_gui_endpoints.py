@@ -829,6 +829,26 @@ class TestAnswerEndpoint:
 
 
 class TestAgentLaunchAdmission:
+    def test_launch_rejects_missing_cloud_api_key_before_spawning_worker(self, server):
+        bridge = server["bridge"]
+        gui_state = server["gui_state"]
+        gui_state.profile.ai_config.provider = "api_gemini"
+        gui_state.profile.ai_config.endpoint = (
+            "https://generativelanguage.googleapis.com/v1beta/openai"
+        )
+        gui_state.profile.ai_config.model_name = "gemini-flash-latest"
+        gui_state.profile.ai_config.api_key = None
+
+        status, body = _post(server["port"], "/wizard/launch-agent", {"phase": "setup"})
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["status"] == "error"
+        assert "Missing API key" in data["message"]
+        assert gui_state._agent_thread is None
+        assert bridge.agent_connected is False
+        assert bridge.snapshot_setup_run()["status"] != "running"
+
     def test_launch_rejection_does_not_mutate_bridge_state(self, server):
         bridge = server["bridge"]
         gui_state = server["gui_state"]
