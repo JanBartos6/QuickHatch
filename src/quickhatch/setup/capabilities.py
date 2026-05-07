@@ -335,7 +335,7 @@ def _expanded_shell_scans(command: str) -> list[str]:
 def _ambiguous_variable_requirement(item: str) -> list[dict[str, str]]:
     if not re.search(r"\$(?:\{|[A-Za-z_])", item or ""):
         return []
-    if re.search(r"\bmkfs(?:\.[\w+-]+)?\b", item, re.I):
+    if re.search(r"\b(?:mkfs(?:\.[\w+-]+)?|mkswap)\b", item, re.I):
         return [
             {
                 "kind": "format_filesystem",
@@ -343,12 +343,12 @@ def _ambiguous_variable_requirement(item: str) -> list[dict[str, str]]:
                 "reason": "ambiguous variable filesystem format target",
             }
         ]
-    if re.search(r"\bcryptsetup\b[^;&|]*\bluksformat\b", item, re.I):
+    if re.search(r"\bcryptsetup\b[^;&|]*\b(?:luksformat|erase|lukserase)\b", item, re.I):
         return [
             {
                 "kind": "format_filesystem",
                 "target": "",
-                "reason": "ambiguous variable LUKS format target",
+                "reason": "ambiguous variable LUKS format/erase target",
             }
         ]
     if re.search(r"\bcryptsetup\b[^;&|]*\bopen\b", item, re.I):
@@ -377,7 +377,7 @@ def _ambiguous_variable_requirement(item: str) -> list[dict[str, str]]:
             }
         ]
     if re.search(
-        r"\b(?:parted|sgdisk|sfdisk|fdisk|wipefs|blkdiscard|pvcreate|pvremove|vgcreate|vgremove|lvcreate|lvremove)\b",
+        r"\b(?:parted|sgdisk|sfdisk|fdisk|wipefs|blkdiscard|pvcreate|pvremove|vgcreate|vgremove|lvcreate|lvremove|shred)\b",
         item,
         re.I,
     ):
@@ -421,7 +421,19 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                 }
             )
         for match in re.finditer(
-            r"\bcryptsetup\b[^;&|]*(?:luksformat|luksFormat)\b[^;&|]*[\"']?(?P<target>"
+            r"\bmkswap\b(?:[^;&|]*)\s[\"']?(?P<target>" + _DEVICE_RE + r")[\"']?",
+            item,
+            re.I,
+        ):
+            requirements.append(
+                {
+                    "kind": "format_filesystem",
+                    "target": match.group("target"),
+                    "reason": "swap format command",
+                }
+            )
+        for match in re.finditer(
+            r"\bcryptsetup\b[^;&|]*(?:luksformat|luksFormat|erase|luksErase)\b[^;&|]*[\"']?(?P<target>"
             + _DEVICE_RE
             + r")[\"']?",
             item,
@@ -431,7 +443,7 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                 {
                     "kind": "format_filesystem",
                     "target": match.group("target"),
-                    "reason": "LUKS format command",
+                    "reason": "LUKS format/erase command",
                 }
             )
         for match in re.finditer(
@@ -473,6 +485,35 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     "reason": "partition table mutation command",
                 }
             )
+        for match in re.finditer(
+            r"\bparted\b[^;&|]*(?P<target>" + _DEVICE_RE + r")[^;&|]*\bset\b",
+            item,
+            re.I,
+        ):
+            requirements.append(
+                {
+                    "kind": "disk_partition",
+                    "target": match.group("target"),
+                    "reason": "partition flag mutation command",
+                }
+            )
+        sfdisk_write = (
+            re.search(r"\bsfdisk\b", item, re.I)
+            and _first_device(item)
+            and (
+                "<<" in item
+                or re.search(r"\b(?:printf|echo|cat)\b[^|]*\|\s*(?:sudo\s+)?sfdisk\b", item, re.I)
+                or re.search(r"\bsfdisk\b(?![^;&|]*\s(?:--dump|-d|--list|-l)\b)", item, re.I)
+            )
+        )
+        if sfdisk_write:
+            requirements.append(
+                {
+                    "kind": "disk_partition",
+                    "target": _first_device(item),
+                    "reason": "sfdisk partition table write flow",
+                }
+            )
         fdisk_write = (
             re.search(r"\bfdisk\b", item, re.I)
             and _first_device(item)
@@ -502,7 +543,7 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     "reason": "wipefs disk signature mutation",
                 }
             )
-        for tool in ("blkdiscard", "pvcreate", "pvremove"):
+        for tool in ("blkdiscard", "pvcreate", "pvremove", "shred"):
             for match in re.finditer(
                 rf"\b{tool}\b[^;&|]*[\"']?(?P<target>{_DEVICE_RE})[\"']?",
                 item,
@@ -614,6 +655,18 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
             requirements.append(
                 {"kind": "write_fstab", "target": "/target-root/etc/fstab", "reason": "fstab write"}
             )
+        if re.search(
+            r"\b(?:cp|install)\b[^\n;|&]*(?:/mnt|/target|/mnt/target|/mnt/sysroot|/mnt/sysimage)/etc/fstab\b",
+            item,
+            re.I,
+        ):
+            requirements.append(
+                {
+                    "kind": "write_fstab",
+                    "target": "/target-root/etc/fstab",
+                    "reason": "fstab file replacement",
+                }
+            )
         if re.search(r"\b(?:systemctl\s+)?reboot\b|\bshutdown\s+-r\b|\binit\s+6\b", item, re.I):
             requirements.append(
                 {"kind": "controlled_reboot", "target": "", "reason": "controlled reboot"}
@@ -633,13 +686,13 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
             )
         firewall_mutates = (
             re.search(
-                r"\b(?:ufw\s+enable|systemctl\s+(?:enable|start|restart|--now\s+enable).*(?:mullvad|wg-quick|firewalld|nftables)|wg-quick\s+up)\b",
+                r"\b(?:ufw\s+enable|systemctl\s+(?:enable|start|restart|--now\s+enable).*(?:mullvad|wg-quick|firewalld|nftables|ufw|openvpn)|wg-quick\s+up)\b",
                 item,
                 re.I,
             )
             or re.search(r"\bnft\s+(?:add|delete|destroy|flush|insert|replace)\b", item, re.I)
             or re.search(
-                r"\biptables\b[^\n;|&]*(?:\s-[ADIRFPNXZ]\b|--(?:append|delete|insert|replace|flush|policy|delete-chain|new-chain|zero)\b)",
+                r"\b(?:iptables|ip6tables)\b[^\n;|&]*(?:\s-[ADIRFPNXZ]\b|--(?:append|delete|insert|replace|flush|policy|delete-chain|new-chain|zero)\b)",
                 item,
             )
             or re.search(
@@ -657,7 +710,7 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                 }
             )
         if re.search(
-            r"(?:\brpm\s+--rebuilddb\b|\bdpkg\s+--configure\b|(?:^|\s)-rdd(?:\s|$)|--nodeps\b|\brm\s+-f\s+/var/lib/(?:pacman|dpkg|rpm))",
+            r"(?:\brpm\s+--rebuilddb\b|\bdpkg\s+--configure\b|(?:^|\s)-rdd(?:\s|$)|--nodeps\b|\brm\s+-[A-Za-z]*f[A-Za-z]*\s+/var/lib/(?:pacman|dpkg|rpm)|\brm\s+-[A-Za-z]*r[A-Za-z]*f[A-Za-z]*\s+/var/lib/(?:pacman|dpkg|rpm)|\brm\s+-[A-Za-z]*f[A-Za-z]*r[A-Za-z]*\s+/var/lib/(?:pacman|dpkg|rpm))",
             lowered,
         ):
             requirements.append(

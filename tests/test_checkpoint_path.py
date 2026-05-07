@@ -135,6 +135,34 @@ class TestCheckpointPath:
         assert loaded.install_filesystem == "recommended"
         assert loaded.install_partition_notes == ""
 
+    def test_checkpoint_normalizes_destructive_profile_without_wipe_mode(self, fake_home):
+        path = fake_home / ".quickhatch-checkpoint.json"
+        payload = {
+            "preferences": {},
+            "ai_config": {},
+            "hardware": {},
+            "apps": [],
+            "files_summary": {},
+            "windows_settings": {},
+            "ssh_public_key_path": None,
+            "additional_info": "",
+            "apps_to_install": [],
+            "data_description": "",
+            "data_transfer_method": "",
+            "linux_ip": "",
+            "linux_user": "",
+            "remote_setup_mode": "auto",
+            "install_profile": "full_disk_wipe",
+            "completed_steps": [],
+        }
+        path.write_text(json.dumps(payload), encoding="utf-8")
+
+        loaded = UserProfile.load_checkpoint()
+
+        assert loaded is not None
+        assert loaded.remote_setup_mode == "configure_only"
+        assert loaded.install_profile == "configure_existing"
+
     def test_malformed_nested_app_row_does_not_drop_whole_profile(self, fake_home):
         path = fake_home / ".quickhatch-checkpoint.json"
         payload = {

@@ -23,7 +23,9 @@ from quickhatch.wizard.vm_verify import (
     verify_install_script,
 )
 
+from .capabilities import CapabilityStore, dangerous_command_requirements
 from .families import get_family_installer
+from .preflight import preflight_setup_command
 from .types import CertificationResult, SetupFacts
 
 CERTIFIED_FAMILIES = {"arch", "ubuntu", "debian", "fedora"}
@@ -109,12 +111,88 @@ def _write_vm_result(artifact_dir: Path, result: VerifyResult) -> None:
 
 def _append_event(artifact_dir: Path, event_type: str, **payload: object) -> None:
     event = {
+        "event_id": payload.pop("event_id", f"cert-{uuid.uuid4().hex[:12]}"),
         "timestamp": time.time(),
         "event_type": event_type,
         **payload,
     }
     with (artifact_dir / "certification-run.jsonl").open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(event, sort_keys=True, default=str) + "\n")
+
+
+def _preflight_certification_spine(
+    *,
+    artifact_dir: Path,
+    commands: list[str],
+    facts: SetupFacts,
+    install_profile: str,
+    target_disk: str,
+) -> list[str]:
+    """Run the VM install spine through the same safety gate used by setup runs.
+
+    Certification uses deterministic family adapters, so it may create harness
+    grants instead of user grants, but it must still surface every dangerous
+    command as a capability-backed preflight event.
+    """
+
+    blockers: list[str] = []
+    disk_inventory = f"NAME SIZE TYPE MOUNTPOINTS\n{target_disk} unknown disk\n"
+    store = CapabilityStore(
+        run_id=f"certification-{artifact_dir.name}",
+        install_profile=install_profile or "full_disk_wipe",
+    )
+    for command_index, command in enumerate(commands, start=1):
+        requirements = dangerous_command_requirements(command)
+        capability_ids: list[str] = []
+        for requirement_index, requirement in enumerate(requirements, start=1):
+            preview_id = f"cert-preview-{command_index}-{requirement_index}"
+            grant = store.grant(
+                kind=requirement["kind"],
+                target=requirement.get("target", ""),
+                confirmation_text=("VM certification deterministic install spine dry-run preview."),
+                confirmation_id=f"VM-CERT {target_disk}",
+                reason=requirement.get("reason", "VM certification install spine"),
+                source="harness_generated",
+                one_time_use=False,
+                disk_inventory=disk_inventory,
+                preview_id=preview_id,
+            )
+            capability_ids.append(grant.id)
+            _append_event(
+                artifact_dir,
+                "capability_granted",
+                stage="certification",
+                command_index=command_index,
+                command=command,
+                requirement=requirement,
+                capability_id=grant.id,
+                capability_kind=grant.kind,
+                capability_target=grant.target,
+                dry_run_preview_id=preview_id,
+                confirmation_id=grant.confirmation_id,
+                one_time_use=grant.one_time_use,
+                source=grant.source,
+            )
+        error = preflight_setup_command(
+            command,
+            facts,
+            capability_store=store,
+            disk_inventory=disk_inventory,
+        )
+        _append_event(
+            artifact_dir,
+            "certification_preflight_checked",
+            stage="certification",
+            command_index=command_index,
+            command=command,
+            parsed_requirements=requirements,
+            capability_ids=capability_ids,
+            blocked=bool(error),
+            error=error or "",
+        )
+        if error:
+            blockers.append(f"Certification preflight blocked command {command_index}: {error}")
+    return blockers
 
 
 def _public_key_for_private_key(private_key: Path) -> tuple[str, str]:
@@ -217,7 +295,14 @@ def run_vm_certification(
         effective_post_reboot_user = (
             getattr(loaded_profile, "linux_user", "") or ""
         ).strip() or "quickhatch"
-    facts = SetupFacts(distro_family=normalized_family, is_live=True)
+    facts = SetupFacts(
+        distro_family=normalized_family,
+        is_live=True,
+        is_root=True,
+        current_user="root",
+        login_user="root",
+        sudo_nopasswd=True,
+    )
     spine = adapter.build_install_spine(facts, loaded_profile)
     post_reboot_audit = adapter.final_boot_audit(SetupFacts(distro_family=normalized_family))
     effective_target_disk = target_disk or ("/dev/vda" if backend == "qemu" else "/dev/sda")
@@ -246,6 +331,18 @@ def run_vm_certification(
         verification_count=len(spine.verification),
         post_reboot_audit_count=len(post_reboot_audit),
     )
+    if not blockers:
+        blockers.extend(
+            _preflight_certification_spine(
+                artifact_dir=artifact_dir,
+                commands=spine.commands,
+                facts=facts,
+                install_profile=(
+                    getattr(loaded_profile, "install_profile", "") or "full_disk_wipe"
+                ),
+                target_disk=effective_target_disk,
+            )
+        )
 
     vm_result: VerifyResult | None = None
     effective_ssh_key = ssh_key
@@ -290,6 +387,10 @@ def run_vm_certification(
             exit_code=vm_result.exit_code,
             stages=vm_result.stages,
             error=vm_result.error,
+            stdout_tail=vm_result.stdout_tail,
+            stderr_tail=vm_result.stderr_tail,
+            summary=vm_result.summary(),
+            vm_name=vm_result.vm_name,
         )
         if not vm_result.success:
             blockers.append(vm_result.error or vm_result.summary())

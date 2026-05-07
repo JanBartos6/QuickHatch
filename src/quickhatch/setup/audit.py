@@ -274,6 +274,46 @@ def audit_stage(
             for result in prior_results
             if not getattr(result, "passed", False) and getattr(result, "blockers", None)
         )
+        if plan:
+            followup_app_statuses = {
+                PlanItemStatus.MANUAL_FOLLOWUP,
+                PlanItemStatus.BLOCKED,
+                PlanItemStatus.FAILED,
+                PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION,
+            }
+            fatal_required_app_failures = [
+                app.name
+                for app in plan.apps
+                if app.required and app.status in {PlanItemStatus.BLOCKED, PlanItemStatus.FAILED}
+            ]
+            fatal_required_app_names = set(fatal_required_app_failures)
+            app_followups = [
+                app.name
+                for app in plan.apps
+                if app.status in followup_app_statuses and app.name not in fatal_required_app_names
+            ]
+            if fatal_required_app_failures:
+                blockers.append(
+                    "Required app failed or blocked: "
+                    + ", ".join(sorted(fatal_required_app_failures))
+                )
+            if app_followups:
+                blockers.append(
+                    "Manual follow-up app(s) remain: " + ", ".join(sorted(app_followups))
+                )
+            followup_groups = [
+                group.title or group.id
+                for group in plan.command_groups
+                if group.status
+                in {
+                    PlanItemStatus.MANUAL_FOLLOWUP,
+                    PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION,
+                }
+            ]
+            if followup_groups:
+                blockers.append(
+                    "Manual follow-up setup item(s) remain: " + ", ".join(sorted(followup_groups))
+                )
         if facts.waiting_for_input:
             blockers.append("A blocking user question is still unresolved.")
         flattened: list[str] = []

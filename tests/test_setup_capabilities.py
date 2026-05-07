@@ -135,7 +135,21 @@ def test_broad_high_blast_radius_shell_requires_capability() -> None:
         "mount /dev/sda2 /mnt",
         "blkdiscard /dev/sda",
         "pvcreate /dev/sda2",
+        "mkswap /dev/sda3",
+        "shred -n1 /dev/sda",
+        "cryptsetup erase /dev/sda2",
+        "cryptsetup luksErase /dev/sda2",
+        "parted -s /dev/sda set 1 boot on",
+        "printf ',,L,*\\n' | sfdisk /dev/sda",
         "efibootmgr -c -d /dev/sda -p 1",
+        "efibootmgr -b 0003 -B",
+        "efibootmgr -o 0003,0001",
+        "sudo install -m 644 /tmp/fstab /mnt/etc/fstab",
+        "sudo cp /tmp/fstab /target/etc/fstab",
+        "sudo rm -rf /var/lib/dpkg/updates",
+        "sudo rm -rf /var/lib/pacman/db.lck",
+        "systemctl enable --now ufw",
+        "ip6tables -P INPUT DROP",
         "rm -rf /mnt",
         "rm -rf /mnt/*",
     )
@@ -182,6 +196,29 @@ def test_variable_expanded_high_blast_radius_shell_requires_capability() -> None
         item["kind"] == "format_filesystem" and item["target"] == "/dev/sda1"
         for item in requirements
     )
+
+
+def test_confirmed_mount_target_capability_allows_target_root_mount() -> None:
+    facts = SetupFacts(is_live=True, is_root=True)
+    store = CapabilityStore(run_id="run-1", install_profile="full_disk_wipe")
+    store.grant(
+        kind="mount_target",
+        target="/mnt",
+        confirmation_text="MOUNT /mnt",
+        confirmation_id="preview-1",
+        reason="test mount grant",
+        source="harness_generated",
+        one_time_use=False,
+        preview_id="preview-1",
+    )
+
+    error = preflight_setup_command(
+        "sudo mount /dev/sda2 /mnt",
+        facts,
+        capability_store=store,
+    )
+
+    assert error is None
 
 
 def test_ambiguous_variable_high_blast_radius_shell_requires_capability() -> None:

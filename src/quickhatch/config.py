@@ -20,8 +20,12 @@ INSTALL_PROFILE_VALUES = frozenset(
         "manual_partition_mapping",
     }
 )
+DESTRUCTIVE_INSTALL_PROFILE_VALUES = frozenset(
+    INSTALL_PROFILE_VALUES - {"auto", "configure_existing"}
+)
 INSTALL_ENCRYPTION_VALUES = frozenset({"recommended", "none", "luks"})
 INSTALL_FILESYSTEM_VALUES = frozenset({"recommended", "ext4", "btrfs"})
+REMOTE_SETUP_MODE_VALUES = frozenset({"auto", "wipe_and_reinstall", "configure_only"})
 
 
 def generate_setup_password() -> str:
@@ -33,6 +37,30 @@ def generate_setup_password() -> str:
 def _validated_choice(value: object, allowed: frozenset[str], default: str) -> str:
     text = str(value or "").strip()
     return text if text in allowed else default
+
+
+def normalize_setup_intent(
+    remote_setup_mode: object,
+    install_profile: object,
+) -> tuple[str, str]:
+    """Keep destructive install intent explicit and visible.
+
+    A destructive install profile is only meaningful after the user has armed
+    wipe/reinstall mode. Missing, invalid, or hidden-destructive combinations
+    collapse to the safe configure-existing path.
+    """
+
+    mode = _validated_choice(remote_setup_mode, REMOTE_SETUP_MODE_VALUES, "auto")
+    profile = _validated_choice(
+        install_profile,
+        INSTALL_PROFILE_VALUES,
+        "configure_existing",
+    )
+    if profile == "configure_existing":
+        return "configure_only", profile
+    if profile in DESTRUCTIVE_INSTALL_PROFILE_VALUES and mode != "wipe_and_reinstall":
+        return "configure_only", "configure_existing"
+    return mode, profile
 
 
 def _checkpoint_path() -> Path:
@@ -370,6 +398,10 @@ class UserProfile:
             hw.displays = [
                 d for d in (_safe_init(DisplayInfo, d) for d in hw_raw.get("displays", [])) if d
             ]
+            remote_setup_mode, install_profile = normalize_setup_intent(
+                data.get("remote_setup_mode", "auto"),
+                data.get("install_profile", "configure_existing"),
+            )
 
             return cls(
                 preferences=_safe_init(Preferences, data.get("preferences", {})) or Preferences(),
@@ -385,12 +417,8 @@ class UserProfile:
                 data_transfer_method=data.get("data_transfer_method", "") or "",
                 linux_ip=data.get("linux_ip", "") or "",
                 linux_user=data.get("linux_user", "") or "",
-                remote_setup_mode=data.get("remote_setup_mode", "auto") or "auto",
-                install_profile=_validated_choice(
-                    data.get("install_profile", "configure_existing"),
-                    INSTALL_PROFILE_VALUES,
-                    "configure_existing",
-                ),
+                remote_setup_mode=remote_setup_mode,
+                install_profile=install_profile,
                 install_encryption=_validated_choice(
                     data.get("install_encryption", "recommended"),
                     INSTALL_ENCRYPTION_VALUES,

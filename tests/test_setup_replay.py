@@ -94,6 +94,31 @@ def test_replay_classifies_failed_verification_and_shadow_preflight():
     assert "package_manager_mismatch" in summary.failure_categories
 
 
+def test_replay_classifies_structured_audit_findings():
+    summary = summarize_runlog_from_events(
+        [
+            {
+                "event_type": "final_audit",
+                "status": "manual_followup_required",
+                "result": {
+                    "passed": True,
+                    "findings": [
+                        {
+                            "id": "apps-1",
+                            "severity": "manual_followup",
+                            "category": "apps",
+                            "summary": "Optional app unavailable.",
+                        }
+                    ],
+                },
+            }
+        ]
+    )
+
+    assert summary.audit_findings["manual_followup:apps"] == 1
+    assert summary.failure_categories["manual_followup:apps"] == 1
+
+
 def summarize_runlog_from_events(events):
     from quickhatch.setup.replay import summarize_events
 

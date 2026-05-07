@@ -7829,7 +7829,7 @@ def test_final_audit_repair_group_dangerous_raw_shell_blocks_without_capability(
     assert repair["action"] == "retry_group"
     assert repair["executed"] is False
     assert "explicit QuickHatch capability" in repair["error"]
-    assert result.final_status == FinalSetupStatus.SUCCESS_WITH_WARNINGS
+    assert result.final_status == FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
 
 
 def test_final_audit_fatal_fstab_bootloader_and_ssh_findings_remain_blocked(monkeypatch):

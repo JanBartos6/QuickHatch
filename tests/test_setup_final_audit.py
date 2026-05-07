@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from quickhatch.setup.audit import final_audit
 from quickhatch.setup.types import (
+    AppPlanItem,
     AuditFindingSeverity,
     AuditResult,
     FinalSetupStatus,
@@ -115,3 +116,49 @@ def test_final_audit_can_report_success_with_warnings() -> None:
     )
 
     assert result.final_status == FinalSetupStatus.SUCCESS
+
+
+def test_final_audit_plan_manual_followup_items_change_status() -> None:
+    plan = _plan()
+    plan.apps = [
+        AppPlanItem(
+            name="Spotify",
+            status=PlanItemStatus.MANUAL_FOLLOWUP,
+            reason="Package unavailable on this distro.",
+        )
+    ]
+
+    result = final_audit(
+        SetupFacts(package_manager="pacman", current_user="jan"),
+        plan,
+        [],
+    )
+
+    assert result.passed is True
+    assert result.final_status == FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
+    assert any(
+        finding.severity == AuditFindingSeverity.MANUAL_FOLLOWUP and finding.category == "apps"
+        for finding in result.findings
+    )
+
+
+def test_final_audit_required_failed_app_blocks() -> None:
+    plan = _plan()
+    plan.apps = [
+        AppPlanItem(
+            name="Required Tool",
+            required=True,
+            status=PlanItemStatus.FAILED,
+            reason="Required package unavailable.",
+        )
+    ]
+
+    result = final_audit(
+        SetupFacts(package_manager="pacman", current_user="jan"),
+        plan,
+        [],
+    )
+
+    assert result.passed is False
+    assert result.final_status == FinalSetupStatus.BLOCKED
+    assert any(finding.severity == AuditFindingSeverity.FATAL for finding in result.findings)

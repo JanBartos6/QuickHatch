@@ -27,6 +27,7 @@ from quickhatch.config import (
     AIConfig,
     UserProfile,
     generate_setup_password,
+    normalize_setup_intent,
 )
 from quickhatch.gallery.library import (
     find_gallery_entries,
@@ -50,6 +51,7 @@ from quickhatch.setup import (
 from quickhatch.setup import (
     probe_setup_facts as _probe_typed_setup_facts,
 )
+from quickhatch.setup.capabilities import dangerous_command_requirements
 
 
 def _ssh_public_to_private_key_path(public_key_path: str | None) -> Path | None:
@@ -480,22 +482,26 @@ class GUIState:
                     "linux_user",
                     self._coerce_str(updates["linux_user"]) or "",
                 )
+            setup_intent_changed = False
             if "remote_setup_mode" in updates:
                 mode = self._coerce_str(updates["remote_setup_mode"]) or "auto"
                 if mode not in {"auto", "wipe_and_reinstall", "configure_only"}:
                     mode = "auto"
                 changed |= self._set_if_changed(self.profile, "remote_setup_mode", mode)
+                setup_intent_changed = True
             if "install_profile" in updates:
                 value = self._coerce_str(updates["install_profile"]) or "configure_existing"
                 if value not in INSTALL_PROFILE_VALUES:
                     value = "configure_existing"
                 changed |= self._set_if_changed(self.profile, "install_profile", value)
-                if value == "configure_existing":
-                    changed |= self._set_if_changed(
-                        self.profile,
-                        "remote_setup_mode",
-                        "configure_only",
-                    )
+                setup_intent_changed = True
+            if setup_intent_changed:
+                mode, profile = normalize_setup_intent(
+                    self.profile.remote_setup_mode,
+                    self.profile.install_profile,
+                )
+                changed |= self._set_if_changed(self.profile, "remote_setup_mode", mode)
+                changed |= self._set_if_changed(self.profile, "install_profile", profile)
             if "install_encryption" in updates:
                 value = self._coerce_str(updates["install_encryption"]) or "recommended"
                 if value not in INSTALL_ENCRYPTION_VALUES:
@@ -1943,7 +1949,8 @@ def make_gui_server(
                 with gui_state.lock:
                     gui_state.profile.linux_ip = ""
                     gui_state.profile.linux_user = ""
-                    gui_state.profile.remote_setup_mode = "auto"
+                    gui_state.profile.remote_setup_mode = "configure_only"
+                    gui_state.profile.install_profile = "configure_existing"
                     gui_state.profile.save_checkpoint()
                 bridge_state.clear_phase_log("setup")
                 self._send_json(
@@ -4876,6 +4883,16 @@ def _preflight_setup_command(
     feed the model real target output instead of being stopped by stale rules.
     """
 
+    for requirement in dangerous_command_requirements(cmd):
+        kind = requirement["kind"]
+        target = requirement.get("target", "")
+        if kind == "network_security_change" and allow_network_security_changes:
+            continue
+        return (
+            f"Dangerous operation requires an explicit QuickHatch capability: "
+            f"{kind} target={target or '<none>'}. Raw shell cannot bypass the typed "
+            "operation/confirmation system."
+        )
     if not allow_network_security_changes and _activates_network_security_services(cmd):
         return (
             "Do not enable/start VPN or firewall services automatically. "

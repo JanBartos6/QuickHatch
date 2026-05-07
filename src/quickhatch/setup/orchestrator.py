@@ -2870,6 +2870,29 @@ class SetupOrchestrator:
             self._refresh_facts(stage=SetupStage.FINAL_AUDIT)
         if repairs:
             result.details["final_audit_repairs"] = repairs
+            failed_repairs = [
+                repair
+                for repair in repairs
+                if not repair.get("executed") and repair.get("action") != "manual_followup"
+            ]
+            if failed_repairs and result.final_status != FinalSetupStatus.BLOCKED:
+                result.findings.append(
+                    AuditFinding(
+                        id="final_audit:repair_failed",
+                        severity=AuditFindingSeverity.MANUAL_FOLLOWUP,
+                        category="setup",
+                        summary=(
+                            "Final audit repair could not be applied safely; "
+                            "manual follow-up is required."
+                        ),
+                        evidence=[
+                            str(item.get("error") or item.get("action") or "repair failed")
+                            for item in failed_repairs
+                        ],
+                        suggested_repair_scope="review final audit repair failure",
+                    )
+                )
+                result.final_status = FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
             if result.final_status != FinalSetupStatus.BLOCKED and any(
                 repair.get("action") == "manual_followup" for repair in repairs
             ):
@@ -2878,7 +2901,15 @@ class SetupOrchestrator:
             result.final_status = self._final_status_from_findings(result)
         self.ctx.stage_results.append(result)
         self.runlog.record("final_audit", result=asdict(result))
-        status = "blocked" if result.final_status == FinalSetupStatus.BLOCKED else "done"
+        if result.final_status == FinalSetupStatus.BLOCKED:
+            status = "blocked"
+        elif result.final_status in {
+            FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED,
+            FinalSetupStatus.UNSUPPORTED_SAFE,
+        }:
+            status = result.final_status.value
+        else:
+            status = "done"
         self.bridge.update_setup_run(
             blockers=list(result.blockers),
             status=status,
@@ -4030,8 +4061,13 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                 )
                 return None
             capability_kind = operation.capability_kind
+            capability_target = (
+                operation.mountpoint
+                if operation.kind == "mount_partition"
+                else operation.target or operation.mountpoint
+            )
             canonical_target = canonicalize_target(
-                operation.target or operation.mountpoint,
+                capability_target,
                 inventory=self.ctx.last_disk_inventory,
             )
             if capability_kind:

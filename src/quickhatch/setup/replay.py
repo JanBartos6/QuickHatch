@@ -37,6 +37,7 @@ class RunReplaySummary:
     model_failure_count: int = 0
     blockers: list[str] = field(default_factory=list)
     failure_categories: dict[str, int] = field(default_factory=dict)
+    audit_findings: dict[str, int] = field(default_factory=dict)
     last_failure_event_id: str = ""
     last_failure_type: str = ""
     last_failure_command: str = ""
@@ -210,6 +211,21 @@ def summarize_events(events: list[dict[str, Any]]) -> RunReplaySummary:
         }:
             summary.model_failure_count += 1
             event_failed = True
+
+        if event_type in {"final_audit", "stage_audit"}:
+            result = event.get("result")
+            findings = result.get("findings") if isinstance(result, dict) else None
+            if isinstance(findings, list):
+                for finding in findings:
+                    if not isinstance(finding, dict):
+                        continue
+                    severity = str(finding.get("severity") or "").lower()
+                    category = str(finding.get("category") or "audit")
+                    key = f"{severity or 'unknown'}:{category}"
+                    summary.audit_findings[key] = summary.audit_findings.get(key, 0) + 1
+                    if severity in {"fatal", "repairable", "manual_followup"}:
+                        event_failed = True
+                        summary.failure_categories[key] = summary.failure_categories.get(key, 0) + 1
 
         diagnostic = diagnose_event(event, previous_event=previous_event)
         if diagnostic is not None:

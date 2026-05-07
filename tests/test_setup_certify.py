@@ -28,6 +28,12 @@ def test_vm_certification_dry_run_writes_artifacts(tmp_path):
     artifact = next(artifact_dir.iterdir())
     assert (artifact / "summary.json").exists()
     assert b"\r\n" not in (artifact / "certify-install.sh").read_bytes()
+    events = [
+        json.loads(line)
+        for line in (artifact / "certification-run.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert any(event["event_type"] == "certification_preflight_checked" for event in events)
+    assert any(event["event_type"] == "capability_granted" for event in events)
 
 
 def test_vm_certification_qemu_defaults_to_virtio_disk(tmp_path):
@@ -209,6 +215,8 @@ def test_vm_certification_live_backend_failure_records_artifact(monkeypatch, tmp
             backend="virtualbox",
             exit_code=255,
             error="VM never answered on SSH",
+            stdout_tail="last stdout line",
+            stderr_tail="last stderr line",
             stages=["syntax-check", "vm-created"],
         ),
     )
@@ -231,3 +239,10 @@ def test_vm_certification_live_backend_failure_records_artifact(monkeypatch, tmp
     artifact = next((tmp_path / "certification" / "arch").iterdir())
     assert (artifact / "vm-result.json").exists()
     assert (artifact / "certification-run.jsonl").exists()
+    events = [
+        json.loads(line)
+        for line in (artifact / "certification-run.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    finished = next(event for event in events if event["event_type"] == "vm_certification_finished")
+    assert finished["stdout_tail"] == "last stdout line"
+    assert finished["stderr_tail"] == "last stderr line"

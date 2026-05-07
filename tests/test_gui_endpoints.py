@@ -146,7 +146,7 @@ class TestProfileEndpoint:
         assert status == 200
         assert data["profile"]["linux_ip"] == "10.0.0.5"
 
-    def test_invalid_remote_setup_mode_falls_back_to_auto(self, server):
+    def test_invalid_remote_setup_mode_falls_back_to_safe_configure_only(self, server):
         status, body = _post(
             server["port"],
             "/wizard/update",
@@ -154,7 +154,7 @@ class TestProfileEndpoint:
         )
         data = json.loads(body)
         assert status == 200
-        assert data["profile"]["remote_setup_mode"] == "auto"
+        assert data["profile"]["remote_setup_mode"] == "configure_only"
 
     def test_invalid_install_profile_fields_fall_back_to_safe_defaults(self, server):
         status, body = _post(
@@ -179,6 +179,7 @@ class TestProfileEndpoint:
         gui_state.profile.linux_ip = "192.168.50.162"
         gui_state.profile.linux_user = "jan"
         gui_state.profile.remote_setup_mode = "wipe_and_reinstall"
+        gui_state.profile.install_profile = "full_disk_wipe"
         gui_state.profile.additional_info = "keep me"
         bridge.add_message("agent", "setup goes away", phase="setup")
         bridge.add_message("agent", "analysis stays", phase="analysis")
@@ -191,10 +192,38 @@ class TestProfileEndpoint:
         assert data["status"] == "ok"
         assert gui_state.profile.linux_ip == ""
         assert gui_state.profile.linux_user == ""
-        assert gui_state.profile.remote_setup_mode == "auto"
+        assert gui_state.profile.remote_setup_mode == "configure_only"
+        assert gui_state.profile.install_profile == "configure_existing"
         assert gui_state.profile.additional_info == "keep me"
         assert [m["content"] for m in bridge.messages] == ["analysis stays"]
         assert bridge.get_pending_questions() == []
+
+    def test_destructive_install_profile_requires_wipe_mode_confirmation(self, server):
+        status, body = _post(
+            server["port"],
+            "/wizard/update",
+            {"install_profile": "full_disk_wipe"},
+        )
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["profile"]["remote_setup_mode"] == "configure_only"
+        assert data["profile"]["install_profile"] == "configure_existing"
+
+    def test_destructive_install_profile_is_allowed_with_wipe_mode_confirmation(self, server):
+        status, body = _post(
+            server["port"],
+            "/wizard/update",
+            {
+                "remote_setup_mode": "wipe_and_reinstall",
+                "install_profile": "second_disk_install",
+            },
+        )
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["profile"]["remote_setup_mode"] == "wipe_and_reinstall"
+        assert data["profile"]["install_profile"] == "second_disk_install"
 
     def test_restore_profile_rehydrates_sparse_state_and_preserves_live_api_key(self, server):
         server["gui_state"].profile.ai_config.provider = "api"
