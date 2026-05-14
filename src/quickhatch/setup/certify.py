@@ -264,6 +264,9 @@ def run_vm_certification(
     target_disk: str | None = None,
 ) -> CertificationResult:
     normalized_family = (family or "").lower()
+    effective_live_ssh_user = (
+        "user" if ssh_user == "root" and normalized_family == "debian" else ssh_user
+    )
     artifact_dir = Path(root) / normalized_family / _timestamp()
     artifact_dir.mkdir(parents=True, exist_ok=True)
 
@@ -361,6 +364,16 @@ def run_vm_certification(
 
     if not blockers and not dry_run:
         progress_log = artifact_dir / "progress.log"
+        graphical_live_bootstrap_users = {
+            "debian": "user",
+            "fedora": "liveuser",
+            "ubuntu": "ubuntu",
+        }
+        graphical_live_bootstrap_user = graphical_live_bootstrap_users.get(
+            normalized_family,
+            "",
+        )
+        live_bootstrap_wait_seconds = 120 if graphical_live_bootstrap_user else 45
 
         def _progress(message: str) -> None:
             with progress_log.open("a", encoding="utf-8") as handle:
@@ -369,7 +382,7 @@ def run_vm_certification(
         vm_result = verify_install_script(
             script_path,
             iso_path=iso_path,
-            ssh_user=ssh_user,
+            ssh_user=effective_live_ssh_user,
             ssh_key=effective_ssh_key,
             progress=_progress,
             backend=backend,
@@ -377,6 +390,8 @@ def run_vm_certification(
             post_reboot_commands=post_reboot_audit,
             require_post_reboot=require_post_reboot,
             live_bootstrap_command=live_bootstrap_command,
+            live_bootstrap_user=graphical_live_bootstrap_user,
+            live_bootstrap_wait_seconds=live_bootstrap_wait_seconds,
         )
         _write_vm_result(artifact_dir, vm_result)
         _append_event(
@@ -428,7 +443,7 @@ def run_vm_certification(
         "certification_script": str(script_path),
         "runlog": str(artifact_dir / "certification-run.jsonl"),
         "final_facts": str(artifact_dir / "final-facts.json"),
-        "ssh_user": ssh_user,
+        "ssh_user": effective_live_ssh_user,
         "ssh_key": str(effective_ssh_key) if effective_ssh_key else "",
         "generated_ssh_key": generated_key,
         "target_disk": effective_target_disk,

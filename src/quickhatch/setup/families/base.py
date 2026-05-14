@@ -12,6 +12,43 @@ from quickhatch.config import UserProfile, generate_setup_password
 from ..operations import SetupOperation
 from ..types import SetupFacts
 
+_LINUX_USERNAME_RE = re.compile(r"[a-z_][a-z0-9_-]{0,30}")
+_USERNAME_NOTE_PATTERNS = (
+    re.compile(
+        r"\b(?:my\s+)?(?:linux\s+)?(?:user(?:name)?|login|account)\s*"
+        r"(?:is|=|:|should\s+be|to|as)\s*"
+        r"([a-z_][a-z0-9_-]{0,30})\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:use|set|create|make)\s+(?:the\s+|my\s+)?(?:linux\s+)?"
+        r"(?:user(?:name)?|login|account)\s+(?:to\s+|as\s+)?"
+        r"([a-z_][a-z0-9_-]{0,30})\b",
+        re.IGNORECASE,
+    ),
+)
+
+
+def _normalize_linux_username(value: str) -> str:
+    candidate = (value or "").strip().lower()
+    if candidate and candidate != "root" and _LINUX_USERNAME_RE.fullmatch(candidate):
+        return candidate[:31]
+    return ""
+
+
+def _explicit_username_from_notes(notes: str) -> str:
+    text = (notes or "").strip()
+    if not text:
+        return ""
+    for pattern in _USERNAME_NOTE_PATTERNS:
+        match = pattern.search(text)
+        if not match:
+            continue
+        candidate = _normalize_linux_username(match.group(1))
+        if candidate:
+            return candidate
+    return ""
+
 
 @dataclass
 class InstallSpine:
@@ -75,9 +112,15 @@ class BaseFamilyInstaller:
 
     @staticmethod
     def target_user(profile: UserProfile) -> str:
-        candidate = (getattr(profile, "linux_user", "") or "").strip().lower()
-        if candidate and candidate != "root" and re.fullmatch(r"[a-z_][a-z0-9_-]{0,30}", candidate):
-            return candidate[:31]
+        candidate = _normalize_linux_username(getattr(profile, "install_username", "") or "")
+        if candidate:
+            return candidate
+        candidate = _normalize_linux_username(getattr(profile, "linux_user", "") or "")
+        if candidate:
+            return candidate
+        candidate = _explicit_username_from_notes(getattr(profile, "additional_info", "") or "")
+        if candidate:
+            return candidate
         return "quickhatch"
 
     def detect_live_iso(self, facts: SetupFacts) -> bool:

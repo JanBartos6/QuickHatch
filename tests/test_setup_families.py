@@ -135,6 +135,21 @@ def test_ubuntu_adapter_uses_live_iso_codename_when_available():
     assert ":-noble" in joined
 
 
+@pytest.mark.parametrize("family", ["ubuntu", "debian"])
+def test_debian_family_apt_commands_wait_for_package_manager_locks(family):
+    installer = get_family_installer(family)
+
+    spine = installer.build_install_spine(
+        SetupFacts(distro_family=family, is_live=True),
+        UserProfile(),
+    )
+    joined = "\n".join(spine.commands)
+
+    assert "DPkg::Lock::Timeout=300" in joined
+    assert "apt-get install -y" not in joined
+    assert "apt-get -o DPkg::Lock::Timeout=300 install -y" in joined
+
+
 @pytest.mark.parametrize(
     ("family", "package_probe"),
     [
@@ -187,3 +202,54 @@ def test_family_adapters_render_common_typed_operations(family):
     assert any("mkfs.ext4" in command for command in format_commands)
     assert any("useradd" in command for command in user_commands)
     assert "jan" not in "\n".join(user_commands)
+
+
+def test_family_adapter_uses_explicit_username_note_when_ssh_user_is_root():
+    installer = get_family_installer("arch")
+    profile = UserProfile(linux_user="root", additional_info="my username is tom")
+
+    spine = installer.build_install_spine(
+        SetupFacts(distro_family="arch", is_live=True),
+        profile,
+    )
+    joined = "\n".join(spine.commands)
+
+    assert installer.target_user(profile) == "tom"
+    assert "user=tom;" in joined
+    assert "qh_user=tom;" in joined
+    assert "/home/$qh_user/.ssh" in joined
+    assert "user=quickhatch;" not in joined
+
+
+def test_family_adapter_prefers_install_username_over_ssh_login_user():
+    installer = get_family_installer("arch")
+    profile = UserProfile(linux_user="root", install_username="tom")
+
+    spine = installer.build_install_spine(
+        SetupFacts(distro_family="arch", is_live=True),
+        profile,
+    )
+    joined = "\n".join(spine.commands)
+
+    assert installer.target_user(profile) == "tom"
+    assert "user=tom;" in joined
+    assert "qh_user=tom;" in joined
+    assert "user=quickhatch;" not in joined
+
+
+def test_family_adapter_does_not_parse_vague_user_notes_as_username():
+    installer = get_family_installer("arch")
+
+    assert (
+        installer.target_user(
+            UserProfile(
+                linux_user="root",
+                additional_info="Install user apps, NVIDIA driver, and the neon theme.",
+            )
+        )
+        == "quickhatch"
+    )
+    assert (
+        installer.target_user(UserProfile(linux_user="root", additional_info="username: root"))
+        == "quickhatch"
+    )

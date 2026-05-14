@@ -95,6 +95,7 @@ class TestCheckpointPath:
         profile.install_encryption = "luks"
         profile.install_filesystem = "btrfs"
         profile.install_partition_notes = "Linux target is /dev/nvme1n1."
+        profile.install_username = "tom"
         profile.save_checkpoint()
         loaded = UserProfile.load_checkpoint()
         assert loaded is not None
@@ -105,6 +106,7 @@ class TestCheckpointPath:
         assert loaded.install_encryption == "luks"
         assert loaded.install_filesystem == "btrfs"
         assert loaded.install_partition_notes == "Linux target is /dev/nvme1n1."
+        assert loaded.install_username == "tom"
 
     def test_old_checkpoint_defaults_new_install_profile_fields(self, fake_home):
         path = fake_home / ".quickhatch-checkpoint.json"
@@ -133,6 +135,7 @@ class TestCheckpointPath:
         assert loaded.install_profile == "configure_existing"
         assert loaded.install_encryption == "recommended"
         assert loaded.install_filesystem == "recommended"
+        assert loaded.install_username == ""
         assert loaded.install_partition_notes == ""
 
     def test_checkpoint_normalizes_destructive_profile_without_wipe_mode(self, fake_home):

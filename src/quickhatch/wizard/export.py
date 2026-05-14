@@ -90,6 +90,7 @@ def generate_start_here(profile: UserProfile, *, include_install_script: bool) -
     distro = profile.preferences.distro_preference or "your chosen distro"
     offline_mode = (profile.preferences.another_machine or "").strip().lower() == "no"
     quickstart_block = _quickstart_usb_finder_block()
+    simple_quickstart_block = _quickstart_simple_mount_block()
 
     lines = [
         "# QuickHatch Start Here",
@@ -153,7 +154,16 @@ def generate_start_here(profile: UserProfile, *, include_install_script: bool) -
                 "",
                 "1. Copy the whole QuickHatch export folder to a second USB drive.",
                 "2. Boot the target ISO and get online.",
-                "3. Plug in the bundle USB and paste this whole block:",
+                "3. Plug in the bundle USB. If it appears as `/dev/sdb1`, use the simple path:",
+                "",
+                "```sh",
+                simple_quickstart_block,
+                "```",
+                "",
+                "Use the path printed by `find` if your bundle folder name differs.",
+                "If `/dev/sdb1` is not the bundle USB, run `lsblk -f` and mount the correct partition instead.",
+                "",
+                "Finder fallback:",
                 "",
                 "```sh",
                 quickstart_block,
@@ -174,25 +184,44 @@ def generate_start_here(profile: UserProfile, *, include_install_script: bool) -
     return "\n".join(lines) + "\n"
 
 
+def _quickstart_simple_mount_block() -> str:
+    return """mkdir -p /mnt/usb
+mount /dev/sdb1 /mnt/usb
+QH_START=$(find /mnt/usb -name quickstart.sh -print -quit)
+[ -n "$QH_START" ] || { echo "quickstart.sh not found on /mnt/usb"; exit 1; }
+bash "$QH_START"
+"""
+
+
 def _quickstart_usb_finder_block() -> str:
     """Return the one-paste target command block for finding the bundle USB.
 
     The block is intentionally POSIX-sh compatible and mounts candidate
-    partitions read-only. `quickstart.sh` resolves its own directory, so
-    there is no need to copy, cd, or chmod before running it.
+    partitions read-only. If it finds the bundle, `quickstart.sh` resolves
+    its own directory and runs in place.
     """
     return """SUDO=
 [ "$(id -u)" = 0 ] || SUDO=sudo
 QH_MNT=/mnt/quickhatch-bundle
-for d in . "$PWD" /run/media/*/* /media/*/* /mnt/* /tmp/quickhatch /var/tmp/quickhatch; do
-  if [ -f "$d/quickstart.sh" ] && { [ -f "$d/quickhatch-profile.json" ] || [ -f "$d/quickhatch-handoff.json" ]; }; then
+
+qh_bundle_here() {
+  [ -f "$1/quickstart.sh" ] && {
+    [ -f "$1/quickhatch-profile.json" ] ||
+    [ -f "$1/quickhatch-handoff.json" ]
+  }
+}
+
+for d in . "$PWD" /run/media/*/* /media/*/* /mnt/* \\
+  /tmp/quickhatch /var/tmp/quickhatch; do
+  if qh_bundle_here "$d"; then
     bash "$d/quickstart.sh"; exit $?
   fi
 done
+
 $SUDO mkdir -p "$QH_MNT"
 for p in $(lsblk -rpno NAME,TYPE | awk '$2=="part"{print $1}'); do
   $SUDO mount -o ro "$p" "$QH_MNT" 2>/dev/null || continue
-  if [ -f "$QH_MNT/quickstart.sh" ] && { [ -f "$QH_MNT/quickhatch-profile.json" ] || [ -f "$QH_MNT/quickhatch-handoff.json" ]; }; then
+  if qh_bundle_here "$QH_MNT"; then
     bash "$QH_MNT/quickstart.sh"; exit $?
   fi
   $SUDO umount "$QH_MNT" 2>/dev/null || true
@@ -451,6 +480,18 @@ fi
 """
         + key_block
         + r"""
+# --- Ensure SSH accepts the QuickHatch key on live/root sessions ---
+if command -v sshd >/dev/null 2>&1 && [ "$(id -u)" = "0" ]; then
+    mkdir -p /etc/ssh/sshd_config.d
+    {
+        echo "PubkeyAuthentication yes"
+        echo "AuthorizedKeysFile .ssh/authorized_keys"
+        if [ "$IS_LIVE" = "yes" ]; then
+            echo "PermitRootLogin prohibit-password"
+        fi
+    } > /etc/ssh/sshd_config.d/99-quickhatch-pubkey.conf
+fi
+
 # --- Enable + start the SSH daemon across init systems ---
 START_OK=no
 if command -v systemctl >/dev/null 2>&1; then

@@ -305,6 +305,16 @@ class TestSetupRunState:
         assert setup_run["blockers"] == []
         assert state.messages == []
 
+    def test_clear_setup_log_removes_setup_runtime_suggestions(self, state):
+        state.add_suggestion("plan", "Plan", "keep analysis plan")
+        state.add_suggestion("progress", "Progress", "drop command history")
+        state.add_suggestion("setup", "Setup", "drop setup summary")
+        state.add_suggestion("setup_progress", "Setup Progress", "drop setup details")
+
+        state.clear_phase_log("setup")
+
+        assert [(s.category, s.title) for s in state.snapshot_suggestions()] == [("plan", "Plan")]
+
     def test_clear_setup_log_can_preserve_active_setup_run_state(self, state):
         state.update_setup_run(
             run_id="run123",
@@ -344,6 +354,26 @@ class TestSetupRunState:
         assert state.stop_requested is True
         assert state.current_phase == "setup"
         assert state.messages == []
+
+    def test_clear_setup_log_removes_legacy_unphased_setup_status_lines(self, state):
+        state.add_message(
+            "agent",
+            (
+                "Finished: Arch Linux system with NVIDIA RTX 3080. Verified installed: "
+                "Docker. Manual follow-up: Docker Desktop."
+            ),
+            phase="",
+        )
+        state.add_message(
+            "agent",
+            "Stop requested — finishing current step and exiting.",
+            phase="",
+        )
+        state.add_message("agent", "Analysis note to keep", phase="")
+
+        state.clear_phase_log("setup")
+
+        assert [message["content"] for message in state.messages] == ["Analysis note to keep"]
 
 
 class TestThreadSafety:

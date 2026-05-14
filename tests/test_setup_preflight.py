@@ -483,6 +483,24 @@ def test_preflight_allows_root_owned_shell_redirection_for_root_session():
     assert error is None
 
 
+def test_preflight_allows_sudo_shell_redirection_when_shell_runs_as_root():
+    facts = SetupFacts(
+        package_manager="apt",
+        current_user="jan",
+        login_user="jan",
+        is_live=False,
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+
+    error = preflight_setup_command(
+        "sudo sh -c 'printf %s nameserver > /etc/resolv.conf'",
+        facts,
+    )
+
+    assert error is None
+
+
 def test_preflight_allows_sudo_tee_for_root_owned_write():
     facts = SetupFacts(
         package_manager="pacman",

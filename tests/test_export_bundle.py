@@ -12,7 +12,7 @@ from quickhatch.gui.server import GUIState, _run_export
 
 def test_run_export_cleans_generated_outputs_and_writes_start_here(monkeypatch, tmp_path):
     profile = UserProfile()
-    profile.preferences.another_machine = "no"
+    profile.preferences.another_machine = "yes"
 
     ssh_dir = tmp_path / "ssh"
     ssh_dir.mkdir()
@@ -52,13 +52,16 @@ def test_run_export_cleans_generated_outputs_and_writes_start_here(monkeypatch, 
     assert not (output_dir / "old-key.pub").exists()
 
     start_here = (output_dir / "START_HERE.md").read_text(encoding="utf-8")
-    assert "install.sh" in start_here
     assert "quickstart.sh" in start_here
+    assert "mount /dev/sdb1 /mnt/usb" in start_here
+    assert 'bash "$QH_START"' in start_here
 
     quickstart = (output_dir / "quickstart.sh").read_text(encoding="utf-8")
     assert "stale-quickstart" not in quickstart
     assert "99-quickhatch-live-nopasswd" in quickstart
     assert "NOPASSWD: ALL" in quickstart
+    assert "99-quickhatch-pubkey.conf" in quickstart
+    assert "PermitRootLogin prohibit-password" in quickstart
     assert 'SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$SCRIPT_PATH")" && pwd -P)' in quickstart
     assert 'KEY_FILE="$SCRIPT_DIR"/quickhatch_ed25519.pub' in quickstart
     install_script = (output_dir / "install.sh").read_text(encoding="utf-8")

@@ -151,6 +151,77 @@ class TestVirtualBoxBackend:
         vm = vm_verify.VirtualBoxBackend("VBoxManage")
         vm.teardown()  # must not raise
 
+    def test_type_command_uses_layout_independent_scancodes(self, monkeypatch):
+        calls: list[list[str]] = []
+
+        def _fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            return _mk_completed(0)
+
+        monkeypatch.setattr(vm_verify, "_run", _fake_run)
+        monkeypatch.setattr(vm_verify.time, "sleep", lambda _s: None)
+        vm = vm_verify.VirtualBoxBackend("VBoxManage")
+        vm.type_command("echo ok >/tmp/qh")
+
+        assert all("keyboardputstring" not in call for call in calls)
+        joined = " ".join(" ".join(call) for call in calls)
+        assert "keyboardputscancode" in joined
+        assert "34" in joined  # `>` is Shift+period on a US keyboard.
+
+    def test_type_command_keeps_shifted_scancodes_atomic_across_chunks(self, monkeypatch):
+        calls: list[list[str]] = []
+
+        def _fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            return _mk_completed(0)
+
+        monkeypatch.setattr(vm_verify, "_run", _fake_run)
+        monkeypatch.setattr(vm_verify.time, "sleep", lambda _s: None)
+        vm = vm_verify.VirtualBoxBackend("VBoxManage")
+        vm.type_command(("a" * 15) + ">")
+
+        scancode_payloads = [call[4:] for call in calls if "keyboardputscancode" in call]
+        assert ["2a", "34", "b4", "aa"] in scancode_payloads
+
+    def test_press_enter_sends_enter_scancode(self, monkeypatch):
+        calls: list[list[str]] = []
+
+        def _fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            return _mk_completed(0)
+
+        monkeypatch.setattr(vm_verify, "_run", _fake_run)
+        vm = vm_verify.VirtualBoxBackend("VBoxManage")
+        vm.press_enter()
+
+        assert calls == [["VBoxManage", "controlvm", vm.vm_name, "keyboardputscancode", "1c", "9c"]]
+
+    def test_switch_to_tty_sends_ctrl_alt_function_key(self, monkeypatch):
+        calls: list[list[str]] = []
+
+        def _fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            return _mk_completed(0)
+
+        monkeypatch.setattr(vm_verify, "_run", _fake_run)
+        vm = vm_verify.VirtualBoxBackend("VBoxManage")
+        vm.switch_to_tty(3)
+
+        assert calls == [
+            [
+                "VBoxManage",
+                "controlvm",
+                vm.vm_name,
+                "keyboardputscancode",
+                "1d",
+                "38",
+                "3d",
+                "bd",
+                "b8",
+                "9d",
+            ]
+        ]
+
 
 # ---------------------------------------------------------------------------
 # QemuBackend
@@ -174,6 +245,81 @@ class TestQemuBackend:
         vm.create(iso)
         assert any("create" in c for c in calls[0])
         assert vm.disk_path is not None
+
+
+# ---------------------------------------------------------------------------
+# run_script_in_vm
+# ---------------------------------------------------------------------------
+
+
+class TestRunScriptInVm:
+    def test_retries_legacy_scp_when_sftp_subsystem_is_missing(
+        self,
+        monkeypatch,
+        tmp_path,
+    ):
+        script = tmp_path / "install.sh"
+        script.write_text("echo ok", encoding="utf-8")
+        calls: list[list[str]] = []
+        progress: list[str] = []
+
+        def _fake_which(name):
+            return name if name in {"ssh", "scp"} else None
+
+        def _fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            if cmd[0] == "scp" and "-O" not in cmd:
+                return _mk_completed(
+                    255,
+                    stderr="subsystem request failed on channel 0\nscp: Connection closed",
+                )
+            return _mk_completed(0, stdout="done")
+
+        monkeypatch.setattr(vm_verify.shutil, "which", _fake_which)
+        monkeypatch.setattr(vm_verify, "_run", _fake_run)
+
+        rc, out, err = vm_verify.run_script_in_vm(
+            script,
+            "root",
+            22022,
+            "key",
+            progress=progress.append,
+        )
+
+        scp_calls = [call for call in calls if call[0] == "scp"]
+        assert rc == 0
+        assert out == "done"
+        assert err == ""
+        assert len(scp_calls) == 2
+        assert "-O" not in scp_calls[0]
+        assert "-O" in scp_calls[1]
+        assert any("legacy scp mode" in message for message in progress)
+
+
+class TestSshKeyAuthWait:
+    def test_waits_for_key_auth_after_ssh_port_opens(self, monkeypatch):
+        attempts = [False, False, True]
+        now = [0.0]
+
+        def _fake_ready(*args, **kwargs):
+            return attempts.pop(0)
+
+        def _fake_sleep(seconds):
+            now[0] += seconds
+
+        monkeypatch.setattr(vm_verify, "_vm_ssh_key_auth_ready", _fake_ready)
+        monkeypatch.setattr(vm_verify.time, "time", lambda: now[0])
+        monkeypatch.setattr(vm_verify.time, "sleep", _fake_sleep)
+
+        assert vm_verify._wait_for_vm_ssh_key_auth(
+            "user",
+            22022,
+            "key",
+            timeout=20,
+            interval=5,
+        )
+        assert now[0] == 10
+        assert attempts == []
 
 
 # ---------------------------------------------------------------------------
@@ -283,6 +429,9 @@ class TestVerifyInstallScript:
             def start(self):
                 pass
 
+            def press_enter(self):
+                pass
+
             def type_command(self, command):
                 typed.append(command)
 
@@ -298,7 +447,69 @@ class TestVerifyInstallScript:
         )
         assert result.success
         assert typed == ["systemctl start sshd"]
-        assert waits == [60, 180]
+        assert waits == [60, 600]
+
+    def test_live_console_bootstrap_can_login_to_graphical_live_tty(self, monkeypatch, tmp_path):
+        script = tmp_path / "install.sh"
+        script.write_text("echo ok")
+        iso = tmp_path / "live.iso"
+        iso.write_text("x")
+        typed = []
+        tty_switches = []
+        waits = []
+
+        monkeypatch.setattr(vm_verify, "bash_syntax_check", lambda _p: (True, "ok"))
+        monkeypatch.setattr(vm_verify, "pick_backend", lambda prefer=None: "virtualbox")
+        monkeypatch.setattr(
+            vm_verify,
+            "detect_backends",
+            lambda: {"virtualbox": "VBoxManage", "qemu": None},
+        )
+
+        def _fake_wait(*args, **kwargs):
+            waits.append(kwargs.get("timeout"))
+            return len(waits) > 1
+
+        monkeypatch.setattr(vm_verify, "_wait_for_vm_ssh", _fake_wait)
+        monkeypatch.setattr(vm_verify, "run_script_in_vm", lambda *a, **k: (0, "done", ""))
+        monkeypatch.setattr(vm_verify.time, "sleep", lambda _s: None)
+
+        class _FakeVM:
+            vm_name = "fake"
+
+            def __init__(self, *a, **k):
+                pass
+
+            def create(self, *a, **k):
+                pass
+
+            def start(self):
+                pass
+
+            def press_enter(self):
+                pass
+
+            def switch_to_tty(self, tty):
+                tty_switches.append(tty)
+
+            def type_command(self, command):
+                typed.append(command)
+
+            def teardown(self):
+                pass
+
+        monkeypatch.setattr(vm_verify, "VirtualBoxBackend", _FakeVM)
+        result = vm_verify.verify_install_script(
+            script,
+            iso_path=iso,
+            live_bootstrap_command="systemctl start sshd",
+            live_bootstrap_user="liveuser",
+            live_bootstrap_wait_seconds=0,
+        )
+
+        assert result.success
+        assert tty_switches == [3]
+        assert typed == ["liveuser", "systemctl start sshd"]
 
     def test_live_console_key_seed_when_ssh_banner_is_already_up(self, monkeypatch, tmp_path):
         script = tmp_path / "install.sh"
@@ -333,6 +544,9 @@ class TestVerifyInstallScript:
                 pass
 
             def start(self):
+                pass
+
+            def press_enter(self):
                 pass
 
             def type_command(self, command):
@@ -473,7 +687,7 @@ class TestVerifyInstallScript:
         monkeypatch.setattr(
             vm_verify,
             "run_script_in_vm",
-            lambda *a, **k: (105, "skipped hw", ""),
+            lambda *a, **k: (105, "[quickhatch-vm-soft-pass]\nskipped hw", ""),
         )
 
         class _FakeVM:
@@ -493,8 +707,56 @@ class TestVerifyInstallScript:
 
         monkeypatch.setattr(vm_verify, "QemuBackend", _FakeVM)
         result = vm_verify.verify_install_script(script, iso_path=iso)
-        assert result.success  # 105 is in soft-pass range
+        assert result.success
         assert result.exit_code == 105
+
+    def test_package_manager_exit_100_is_not_soft_pass_without_marker(
+        self,
+        monkeypatch,
+        tmp_path,
+    ):
+        script = tmp_path / "install.sh"
+        script.write_text("echo ok")
+        iso = tmp_path / "live.iso"
+        iso.write_text("x")
+        monkeypatch.setattr(vm_verify, "bash_syntax_check", lambda _p: (True, "ok"))
+        monkeypatch.setattr(vm_verify, "pick_backend", lambda prefer=None: "virtualbox")
+        monkeypatch.setattr(
+            vm_verify,
+            "detect_backends",
+            lambda: {"virtualbox": "VBoxManage", "qemu": None},
+        )
+        monkeypatch.setattr(vm_verify, "_wait_for_vm_ssh", lambda *a, **k: True)
+        monkeypatch.setattr(
+            vm_verify,
+            "run_script_in_vm",
+            lambda *a, **k: (
+                100,
+                "E: Could not get lock /var/lib/dpkg/lock-frontend",
+                "",
+            ),
+        )
+
+        class _FakeVM:
+            vm_name = "fake"
+
+            def __init__(self, *a, **k):
+                pass
+
+            def create(self, *a, **k):
+                pass
+
+            def start(self):
+                pass
+
+            def teardown(self):
+                pass
+
+        monkeypatch.setattr(vm_verify, "VirtualBoxBackend", _FakeVM)
+        result = vm_verify.verify_install_script(script, iso_path=iso)
+        assert not result.success
+        assert result.exit_code == 100
+        assert "dpkg/lock-frontend" in result.error
 
     def test_vanilla_iso_auth_failure_gives_actionable_error(self, monkeypatch, tmp_path):
         """SSH answered but scp failed on auth — user needs ISO-prep guidance."""
@@ -584,6 +846,7 @@ class TestVmAwarePromptBlock:
         block = vm_verify.vm_aware_prompt_block(True)
         assert "QUICKHATCH_VM_VERIFY" in block
         assert "exit_code=105" in block
+        assert "[quickhatch-vm-soft-pass]" in block
         assert "hardware" in block.lower()
         assert "Do not write a VM-only happy path" in block
         assert "assumes Arch/KDE/NVIDIA" in block
@@ -657,19 +920,27 @@ class TestPasteSnippet:
         snippet = vm_verify.build_key_paste_snippet("ssh-ed25519 AAAA foo@bar")
         assert "ssh-ed25519 AAAA foo@bar" in snippet
         assert "/root/.ssh/authorized_keys" in snippet
+        assert "$qh_home/.ssh/authorized_keys" in snippet
         assert "READY" in snippet
 
     def test_snippet_strips_newlines(self):
         snippet = vm_verify.build_key_paste_snippet("ssh-ed25519 AAAA\nfoo\r\n")
-        assert "\n" not in snippet.split("echo '")[1].split("'")[0]
+        assert "\n" not in snippet
         assert "ssh-ed25519 AAAAfoo" in snippet
 
     def test_snippet_covers_multiple_init_systems(self):
         s = vm_verify.build_key_paste_snippet("k")
         # At least systemctl + rc-service + service — covers systemd, OpenRC, sysvinit
         assert "systemctl start sshd" in s
-        assert "rc-service sshd start" in s
-        assert "service ssh start" in s
+        assert 'qh_rc="${qh_rc}-service"' in s
+        assert '"$qh_rc" sshd start' in s
+        assert 'qh_svc="${qh_svc}vice"' in s
+        assert '"$qh_svc" ssh start' in s
+
+    def test_snippet_falls_back_to_blank_password_sudo_for_live_isos(self):
+        snippet = vm_verify.build_key_paste_snippet("k")
+        assert "sudo -n true" in snippet
+        assert "sudo -S sh -c" in snippet
 
 
 class TestAssistedFlow:

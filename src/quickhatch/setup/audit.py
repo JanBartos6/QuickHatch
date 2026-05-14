@@ -290,7 +290,13 @@ def audit_stage(
             app_followups = [
                 app.name
                 for app in plan.apps
-                if app.status in followup_app_statuses and app.name not in fatal_required_app_names
+                if app.status in followup_app_statuses
+                and app.name not in fatal_required_app_names
+                and not app_manual_followup_satisfied_by_verified(
+                    app.name,
+                    app.package_name,
+                    state.get("verified_installed_apps", []) or [],
+                )
             ]
             if fatal_required_app_failures:
                 blockers.append(
@@ -365,6 +371,45 @@ def _finding_from_blocker(stage: SetupStage, blocker: str) -> AuditFinding:
 
 def findings_from_blockers(stage: SetupStage, blockers: list[str]) -> list[AuditFinding]:
     return [_finding_from_blocker(stage, blocker) for blocker in blockers]
+
+
+def app_manual_followup_satisfied_by_verified(
+    app_name: str, package_name: str, verified_names: list[str] | set[str] | tuple[str, ...]
+) -> bool:
+    """Return true when a manual app row is just an alias of a verified app.
+
+    The planner can carry both a Windows display name and the resolved Linux app
+    name. For example, `Spotify - Music and Podcasts` may remain as a manual
+    row while the resolved `Spotify` package is verified. Do not let those
+    display-name aliases create a false manual-follow-up finding.
+    """
+
+    aliases = _manual_followup_app_aliases(app_name, package_name)
+    verified_aliases: set[str] = set()
+    for name in verified_names:
+        verified_aliases.update(_manual_followup_app_aliases(str(name), ""))
+    return bool(aliases and verified_aliases and aliases.intersection(verified_aliases))
+
+
+def _manual_followup_app_aliases(app_name: str, package_name: str) -> set[str]:
+    aliases: set[str] = set()
+    for value in (app_name, package_name):
+        normalized = _normalize_app_alias(value)
+        if not normalized:
+            continue
+        aliases.add(normalized)
+        if normalized.endswith(" media player"):
+            aliases.add(normalized.removesuffix(" media player").strip())
+        if normalized.endswith(" music and podcasts"):
+            aliases.add(normalized.removesuffix(" music and podcasts").strip())
+    return {alias for alias in aliases if alias}
+
+
+def _normalize_app_alias(value: str) -> str:
+    text = str(value or "").strip().lower()
+    text = re.sub(r"\([^)]*\)", " ", text)
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
 
 
 def _finding_category(text: str) -> str:

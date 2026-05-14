@@ -8,6 +8,7 @@ setup runs depend on, so harness regressions can be caught in seconds.
 from __future__ import annotations
 
 import json
+import shlex
 import shutil
 import tempfile
 from collections.abc import Iterator
@@ -174,6 +175,21 @@ def _run_preflight_policy_checks() -> list[dict[str, Any]]:
             "expected_kind": PreflightDecisionKind.BLOCK.value,
             "expected_category": "ssh_continuity",
         },
+        {
+            "name": "sudo_shell_redirection_runs_as_root",
+            "command": "sudo sh -c 'printf %s nameserver > /etc/resolv.conf'",
+            "facts": SetupFacts(
+                distro_family="ubuntu",
+                package_manager="apt",
+                current_user="jan",
+                login_user="jan",
+                is_live=False,
+                is_root=False,
+                sudo_nopasswd=True,
+            ),
+            "expected_kind": "",
+            "expected_category": "",
+        },
     ]
     checks: list[dict[str, Any]] = []
     for scenario in scenarios:
@@ -184,11 +200,14 @@ def _run_preflight_policy_checks() -> list[dict[str, Any]]:
                 scenario["facts"],
             )
         ]
-        passed = any(
-            decision["kind"] == scenario["expected_kind"]
-            and decision["category"] == scenario["expected_category"]
-            for decision in decisions
-        )
+        if scenario["expected_kind"]:
+            passed = any(
+                decision["kind"] == scenario["expected_kind"]
+                and decision["category"] == scenario["expected_category"]
+                for decision in decisions
+            )
+        else:
+            passed = decisions == []
         _record(
             checks,
             name=str(scenario["name"]),
@@ -393,6 +412,67 @@ def _run_resume_policy_checks() -> list[dict[str, Any]]:
         details={"executed_commands": executed, "stage_state": stage_state},
     )
     return checks
+
+
+def _run_command_normalization_checks() -> list[dict[str, Any]]:
+    cases = [
+        ("arch", "pacman", "sudo -u jan pacman -S --noconfirm vlc", {"pacman"}, {"-S"}),
+        ("ubuntu", "apt", "sudo -u jan apt-get install -y git", {"apt", "apt-get"}, {"install"}),
+        ("debian", "apt", "sudo -u jan apt install -y git", {"apt", "apt-get"}, {"install"}),
+        ("fedora", "dnf", "sudo -u jan dnf install -y git", {"dnf"}, {"install"}),
+    ]
+    checks: list[dict[str, Any]] = []
+    for family, package_manager, command, tools, mutating_tokens in cases:
+        profile = UserProfile()
+        bridge = BridgeState(profile, persist_path=None)
+        facts = SetupFacts(
+            distro_family=family,
+            package_manager=package_manager,
+            current_user="jan",
+            login_user="jan",
+            sudo_nopasswd=True,
+        )
+        runtime = _dummy_setup_runtime(profile, bridge, facts)
+        orchestrator = SetupOrchestrator(runtime)
+        orchestrator.ctx.facts = facts
+        group = CommandGroup(
+            id=f"normalize-{family}",
+            stage=SetupStage.APPS,
+            title="Normalize package install",
+            commands=[command],
+        )
+        normalized = orchestrator._commands_for_group(SetupStage.APPS, group)
+        _record(
+            checks,
+            name=f"root_package_manager_not_run_as_target_user_{family}",
+            category="command_normalization",
+            passed=all("sudo -u jan" not in item for item in normalized)
+            and _contains_root_package_manager_mutation(normalized, tools, mutating_tokens),
+            details={"original_command": command, "normalized_commands": normalized},
+        )
+    return checks
+
+
+def _contains_root_package_manager_mutation(
+    commands: list[str],
+    tools: set[str],
+    mutating_tokens: set[str],
+) -> bool:
+    mutating_tokens_lc = {token.lower() for token in mutating_tokens}
+    for command in commands:
+        try:
+            tokens = shlex.split(command, posix=True)
+        except ValueError:
+            continue
+        for idx, token in enumerate(tokens):
+            tool = token.rsplit("/", 1)[-1].lower()
+            if tool not in tools:
+                continue
+            if any(part in {"-u", "--user"} or part.startswith("--user=") for part in tokens[:idx]):
+                continue
+            if any(part.lower() in mutating_tokens_lc for part in tokens[idx + 1 :]):
+                return True
+    return False
 
 
 def _run_app_stage_prefilter_checks() -> list[dict[str, Any]]:
@@ -752,6 +832,7 @@ def run_harness_health(
             *_run_failure_classifier_checks(),
             *_run_final_audit_semantic_checks(),
             *_run_resume_policy_checks(),
+            *_run_command_normalization_checks(),
             *_run_family_spine_semantic_checks(),
             *_run_app_stage_prefilter_checks(),
         ]

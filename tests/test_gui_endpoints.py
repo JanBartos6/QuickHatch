@@ -103,6 +103,7 @@ class TestProfileEndpoint:
             {
                 "linux_ip": "1.2.3.4",
                 "linux_user": "bob",
+                "install_username": "tom",
                 "remote_setup_mode": "configure_only",
                 "install_profile": "configure_existing",
                 "install_encryption": "luks",
@@ -115,6 +116,7 @@ class TestProfileEndpoint:
         data = json.loads(body)
         assert data["profile"]["linux_ip"] == "1.2.3.4"
         assert data["profile"]["linux_user"] == "bob"
+        assert data["profile"]["install_username"] == "tom"
         assert data["profile"]["remote_setup_mode"] == "configure_only"
         assert data["profile"]["install_profile"] == "configure_existing"
         assert data["profile"]["install_encryption"] == "luks"
@@ -139,6 +141,13 @@ class TestProfileEndpoint:
         assert status == 200
         assert data["changed"] is True
         assert calls == [1]
+
+    def test_update_normalizes_install_username(self, server):
+        status, body = _post(server["port"], "/wizard/update", {"install_username": " Tom "})
+        data = json.loads(body)
+
+        assert status == 200
+        assert data["profile"]["install_username"] == "tom"
 
     def test_update_returns_authoritative_normalized_profile(self, server):
         status, body = _post(server["port"], "/wizard/update", {"linux_ip": "10.0.0.5/24"})
@@ -276,6 +285,7 @@ class TestProfileEndpoint:
                     "data_transfer_method": "external_drive",
                     "linux_ip": "192.168.50.162",
                     "linux_user": "jan",
+                    "install_username": "tom",
                     "target_hardware_override": "single RTX 3080 target",
                     "default_account_password": "password",
                     "completed_steps": ["welcome", "ai_setup", "scan"],
@@ -287,6 +297,7 @@ class TestProfileEndpoint:
         assert data["status"] == "ok"
         assert data["profile"]["linux_ip"] == "192.168.50.162"
         assert data["profile"]["linux_user"] == "jan"
+        assert data["profile"]["install_username"] == "tom"
         assert data["profile"]["completed_steps"] == ["welcome", "ai_setup", "scan"]
         assert server["gui_state"].profile.additional_info == "restored"
         assert server["bridge"].profile.linux_user == "jan"
@@ -728,6 +739,8 @@ class TestBridgeEndpoints:
         bridge = server["bridge"]
         bridge.add_message("agent", "analysis stays", phase="analysis")
         bridge.add_message("agent", "setup goes away", phase="setup")
+        bridge.add_suggestion("plan", "Plan", "analysis stays")
+        bridge.add_suggestion("progress", "Progress", "setup memory goes away")
         bridge.add_question("Need disk confirmation?")
 
         status, body = _post(server["port"], "/wizard/clear-setup-log", {})
@@ -736,9 +749,24 @@ class TestBridgeEndpoints:
         assert status == 200
         assert data["status"] == "ok"
         assert [m["content"] for m in bridge.messages] == ["analysis stays"]
+        assert [(s.category, s.title) for s in bridge.snapshot_suggestions()] == [("plan", "Plan")]
         assert bridge.get_pending_questions() == []
         assert bridge.agent_done is False
         assert bridge.stop_requested is False
+
+    def test_setup_context_excludes_previous_setup_progress(self, server):
+        bridge = server["bridge"]
+        bridge.add_suggestion("plan", "Plan", "analysis plan")
+        bridge.add_suggestion("distro", "Distro", "analysis distro")
+        bridge.add_suggestion("progress", "Progress", "old setup commands")
+        bridge.add_suggestion("setup", "Setup", "old setup result")
+
+        context = server_mod._setup_context_suggestions(bridge)
+
+        assert [(s.category, s.title) for s in context] == [
+            ("plan", "Plan"),
+            ("distro", "Distro"),
+        ]
 
     def test_clear_setup_log_preserves_running_setup_state(self, server):
         bridge = server["bridge"]
@@ -784,8 +812,9 @@ class TestStopEndpoint:
 
     def test_stop_adds_status_message(self, server):
         _post(server["port"], "/wizard/stop-agent")
-        msgs = [m["content"] for m in server["bridge"].messages]
-        assert any("Stop requested" in m for m in msgs)
+        msgs = server["bridge"].messages
+        assert any("Stop requested" in m["content"] for m in msgs)
+        assert all(m["phase"] == "setup" for m in msgs if "Stop requested" in m["content"])
 
 
 class TestChatEndpoint:
@@ -828,8 +857,27 @@ class TestAnswerEndpoint:
         assert "unknown question_id" in data["message"]
 
 
+class TestAnalysisRetryMessages:
+    def test_rate_limit_retry_message_names_http_429(self):
+        msg = server_mod._analysis_retry_message(
+            "Recommended Distribution",
+            attempt=1,
+            elapsed=1,
+            wait=3,
+            exc=RuntimeError(
+                "429 Client Error: Too Many Requests for url: "
+                "https://generativelanguage.googleapis.com/v1beta/models/x:generateContent"
+            ),
+        )
+
+        assert "API rate limited" in msg
+        assert "HTTP 429" in msg
+        assert "retrying in 3s" in msg
+
+
 class TestAgentLaunchAdmission:
-    def test_launch_rejects_missing_cloud_api_key_before_spawning_worker(self, server):
+    def test_launch_rejects_missing_cloud_api_key_before_spawning_worker(self, server, monkeypatch):
+        monkeypatch.setattr(server_mod, "load_api_key", lambda provider, endpoint: None)
         bridge = server["bridge"]
         gui_state = server["gui_state"]
         gui_state.profile.ai_config.provider = "api_gemini"

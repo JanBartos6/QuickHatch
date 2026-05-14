@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 import shlex
+from dataclasses import replace
 
 from .capabilities import CapabilityStore, dangerous_command_requirements
 from .resolver import arch_nvidia_official_package_supported
@@ -308,6 +309,18 @@ def _has_root_privilege(tokens: list[str], facts: SetupFacts) -> bool:
             continue
         return True
     return True
+
+
+def _root_shell_facts(facts: SetupFacts, *, has_root_privilege: bool) -> SetupFacts:
+    if not has_root_privilege:
+        return facts
+    return replace(
+        facts,
+        current_user="root",
+        login_user="root",
+        is_root=True,
+        sudo_nopasswd=True,
+    )
 
 
 def _sudo_has_noninteractive_auth(tokens: list[str], sudo_idx: int) -> bool:
@@ -1151,7 +1164,7 @@ def preflight_setup_command(
             if payload:
                 nested_error = preflight_setup_command(
                     payload,
-                    facts,
+                    _root_shell_facts(facts, has_root_privilege=has_root_privilege),
                     allow_network_security_changes=allow_network_security_changes,
                     capability_store=capability_store,
                     disk_inventory=disk_inventory,

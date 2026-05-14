@@ -128,6 +128,17 @@ def _phrase_fallback_allowed(alias_norm: str) -> bool:
     return len(tokens) > 1 or alias_norm not in _GENERIC_SINGLE_TOKEN_ALIASES
 
 
+def _entry_rank(entry: AppCatalogEntry) -> tuple[int, int, int]:
+    source_score = 0
+    if entry.id.startswith("legacy:") or entry.source_hint == "curated":
+        source_score = 30
+    elif entry.id.startswith("override:") or entry.source_hint == "override":
+        source_score = 40
+    confidence_score = {"high": 3, "medium": 2, "low": 1}.get(entry.confidence.lower(), 0)
+    compatibility_score = 10 if entry.compatibility != "unknown" else 0
+    return source_score, compatibility_score, confidence_score
+
+
 def _entry_from_mapping(raw: dict[str, Any]) -> AppCatalogEntry | None:
     name = str(raw.get("name") or "").strip()
     app_id = str(raw.get("id") or name).strip()
@@ -236,23 +247,8 @@ def load_catalog() -> tuple[AppCatalogEntry, ...]:
     return tuple(entries)
 
 
-def match_catalog_entry(app_name: str) -> AppCatalogEntry | None:
-    """Return the best catalog entry for a scanned app name."""
-
-    normalized = _normalize_name(app_name)
-    if not normalized:
-        return None
-
-    def rank(entry: AppCatalogEntry) -> tuple[int, int, int]:
-        source_score = 0
-        if entry.id.startswith("legacy:") or entry.source_hint == "curated":
-            source_score = 30
-        elif entry.id.startswith("override:") or entry.source_hint == "override":
-            source_score = 40
-        confidence_score = {"high": 3, "medium": 2, "low": 1}.get(entry.confidence.lower(), 0)
-        compatibility_score = 10 if entry.compatibility != "unknown" else 0
-        return source_score, compatibility_score, confidence_score
-
+@lru_cache(maxsize=8)
+def _catalog_exact_index(_cache_key: object) -> dict[str, AppCatalogEntry]:
     exact: dict[str, AppCatalogEntry] = {}
     for entry in load_catalog():
         for alias in (entry.name, *entry.match_names):
@@ -260,25 +256,49 @@ def match_catalog_entry(app_name: str) -> AppCatalogEntry | None:
             if not alias_norm:
                 continue
             current = exact.get(alias_norm)
-            if current is None or rank(entry) > rank(current):
+            if current is None or _entry_rank(entry) > _entry_rank(current):
                 exact[alias_norm] = entry
+    return exact
+
+
+@lru_cache(maxsize=8)
+def _catalog_phrase_candidates(_cache_key: object) -> tuple[tuple[str, AppCatalogEntry], ...]:
+    candidates: list[tuple[str, AppCatalogEntry]] = []
+    seen: set[tuple[str, str]] = set()
+    for entry in load_catalog():
+        for alias in (entry.name, *entry.match_names):
+            alias_norm = _normalize_name(alias)
+            if not _phrase_fallback_allowed(alias_norm):
+                continue
+            key = (alias_norm, entry.id)
+            if key in seen:
+                continue
+            seen.add(key)
+            candidates.append((alias_norm, entry))
+    candidates.sort(key=lambda item: _entry_rank(item[1]), reverse=True)
+    return tuple(candidates)
+
+
+def match_catalog_entry(app_name: str) -> AppCatalogEntry | None:
+    """Return the best catalog entry for a scanned app name."""
+
+    normalized = _normalize_name(app_name)
+    if not normalized:
+        return None
+
+    cache_key = load_catalog
+    exact = _catalog_exact_index(cache_key)
     if normalized in exact:
         return exact[normalized]
 
     # Phrase-level fallback for scanned names like "Brave Browser" or
     # "Mozilla Firefox ESR". Avoid one/two-letter aliases and do not match
     # arbitrary substrings inside larger words ("git" in "LegitApp").
-    best: AppCatalogEntry | None = None
-    for entry in load_catalog():
-        for alias in (entry.name, *entry.match_names):
-            alias_norm = _normalize_name(alias)
-            if not _phrase_fallback_allowed(alias_norm):
-                continue
-            pattern = rf"(?<![a-z0-9]){re.escape(alias_norm)}(?![a-z0-9])"
-            if re.search(pattern, normalized):
-                if best is None or rank(entry) > rank(best):
-                    best = entry
-    return best
+    padded = f" {normalized} "
+    for alias_norm, entry in _catalog_phrase_candidates(cache_key):
+        if f" {alias_norm} " in padded:
+            return entry
+    return None
 
 
 def is_gaming_launcher_or_tool(app_name: str) -> bool:

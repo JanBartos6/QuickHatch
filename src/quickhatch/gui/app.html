@@ -720,12 +720,13 @@ code{background:var(--surface-alt);padding:1px 5px;border-radius:4px;font-size:.
 .guide-steps{display:flex;flex-direction:column;gap:var(--s2);margin:var(--s4) 0}
 .guide-step{display:flex;align-items:flex-start;gap:var(--s3);padding:var(--s3) var(--s4);background:var(--surface);border-radius:var(--r-md);border:1px solid var(--border)}
 .guide-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:var(--t-xs);font-weight:700;background:var(--primary);color:var(--bg);flex-shrink:0;margin-top:1px;font-variant-numeric:tabular-nums}
-.guide-text{font-size:var(--t-sm);color:var(--text);line-height:var(--leading)}
+.guide-text{font-size:var(--t-sm);color:var(--text);line-height:var(--leading);min-width:0;max-width:100%}
 .guide-text span{display:block;color:var(--text-muted);font-size:var(--t-xs);margin-top:var(--s1)}
 .copyable-code{position:relative;margin:var(--s2) 0}
 .copyable-code .btn-copy-code{position:absolute;top:var(--s2);right:var(--s2);z-index:1}
 .copyable-code .md-code,
 .copyable-code .code-block{margin:0;padding-top:calc(var(--s3) + 28px)}
+.guide-text .copyable-code,.guide-text .md-code,.guide-text .code-block{max-width:100%}
 
 /* ── Done screen ── */
 .done-screen{text-align:center;padding:var(--s5) 0}
@@ -1181,6 +1182,7 @@ function buildProfileFromDraft(baseProfile){
   if(draft.additional_info!==undefined)profile.additional_info=draft.additional_info||'';
   if(draft.linux_ip!==undefined)profile.linux_ip=draft.linux_ip||'';
   if(draft.linux_user!==undefined)profile.linux_user=draft.linux_user||'';
+  if(draft.install_username!==undefined)profile.install_username=draft.install_username||'';
   if(draft.install_profile!==undefined)profile.install_profile=draft.install_profile||'configure_existing';
   if(draft.install_encryption!==undefined)profile.install_encryption=draft.install_encryption||'recommended';
   if(draft.install_filesystem!==undefined)profile.install_filesystem=draft.install_filesystem||'recommended';
@@ -1397,6 +1399,14 @@ async function saveProfile(updates, opts){
   else if(state.profile){
     writeProfileShadow(state.profile);
   }
+  const requestedKeyStorage=!!(
+    updates&&updates.ai_config&&updates.ai_config.remember_api_key&&updates.ai_config.api_key
+  );
+  if(requestedKeyStorage&&resp.api_key_stored===false){
+    const msg=resp.api_key_storage_message
+      || 'Could not store the API key on this PC. It will only work until the server restarts.';
+    toast(msg+' The key is active for this server session.', 'error', 6200);
+  }
   if(opts&&opts.toast!==false&&opts&&opts.toast)toast(opts.toast,'success');
   return resp;
 }
@@ -1462,21 +1472,36 @@ function galleryHasVerified(){return galleryEntries().some(entry=>entry.verified
 const QUICKHATCH_USB_LAUNCH_COMMANDS=`SUDO=
 [ "$(id -u)" = 0 ] || SUDO=sudo
 QH_MNT=/mnt/quickhatch-bundle
-for d in . "$PWD" /run/media/*/* /media/*/* /mnt/* /tmp/quickhatch /var/tmp/quickhatch; do
-  if [ -f "$d/quickstart.sh" ] && { [ -f "$d/quickhatch-profile.json" ] || [ -f "$d/quickhatch-handoff.json" ]; }; then
+
+qh_bundle_here() {
+  [ -f "$1/quickstart.sh" ] && {
+    [ -f "$1/quickhatch-profile.json" ] ||
+    [ -f "$1/quickhatch-handoff.json" ]
+  }
+}
+
+for d in . "$PWD" /run/media/*/* /media/*/* /mnt/* \\
+  /tmp/quickhatch /var/tmp/quickhatch; do
+  if qh_bundle_here "$d"; then
     bash "$d/quickstart.sh"; exit $?
   fi
 done
+
 $SUDO mkdir -p "$QH_MNT"
 for p in $(lsblk -rpno NAME,TYPE | awk '$2=="part"{print $1}'); do
   $SUDO mount -o ro "$p" "$QH_MNT" 2>/dev/null || continue
-  if [ -f "$QH_MNT/quickstart.sh" ] && { [ -f "$QH_MNT/quickhatch-profile.json" ] || [ -f "$QH_MNT/quickhatch-handoff.json" ]; }; then
+  if qh_bundle_here "$QH_MNT"; then
     bash "$QH_MNT/quickstart.sh"; exit $?
   fi
   $SUDO umount "$QH_MNT" 2>/dev/null || true
 done
 echo "QuickHatch bundle not found. Check the bundle USB with: lsblk -f"
 exit 1`;
+const QUICKHATCH_USB_SIMPLE_COMMANDS=`mkdir -p /mnt/usb
+mount /dev/sdb1 /mnt/usb
+QH_START=$(find /mnt/usb -name quickstart.sh -print -quit)
+[ -n "$QH_START" ] || { echo "quickstart.sh not found on /mnt/usb"; exit 1; }
+bash "$QH_START"`;
 const DISTRO_USB_GUIDES={
   generic:{
     family:'generic',
@@ -1976,6 +2001,7 @@ const stepRenderers={
     const designDesc=draftOr('preferences.desktop_look', prefs.desktop_look||'');
     const distroPref=draftOr('preferences.distro_preference', prefs.distro_preference||'');
     const installProfile=draftOr('install_profile', state.profile.install_profile||'configure_existing');
+    const installUsername=draftOr('install_username', state.profile.install_username||'');
     const installEncryption=draftOr('install_encryption', state.profile.install_encryption||'recommended');
     const installFilesystem=draftOr('install_filesystem', state.profile.install_filesystem||'recommended');
     const installPartitionNotes=draftOr('install_partition_notes', state.profile.install_partition_notes||'');
@@ -2030,6 +2056,11 @@ const stepRenderers={
           <div class="info-box info-warn" style="margin-top:var(--s3)">
             <strong>Advanced mode</strong>
             <p style="margin:var(--s1) 0 0 0">Select manual mapping only if you are confident with Linux partitioning. QuickHatch will require explicit confirmation before formatting any mapped partition.</p>
+          </div>
+          <div class="field" style="margin-top:var(--s3)">
+            <label>Desired Linux username</label>
+            <input type="text" id="installUsername" value="${escHtml(installUsername)}" placeholder="e.g. tom" oninput="persistQuestionnaireDraft()">
+            <div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">This is the account QuickHatch creates on the installed system. The later Remote Setup SSH username may still be <code>root</code> on a live ISO.</div>
           </div>
           <div class="conn-grid" style="margin-top:var(--s3)">
             <div class="field">
@@ -2317,7 +2348,7 @@ const stepRenderers={
             <div class="guide-step"><div class="guide-num">2</div><div class="guide-text">Boot from USB<span>Enter BIOS/UEFI (F2, F12, Del, or Esc during boot) and move the USB to the top of the boot order.</span></div></div>
             <div class="guide-step"><div class="guide-num">3</div><div class="guide-text">${guide.liveBootLabel}<span>${guide.liveBootHint}</span></div></div>
             <div class="guide-step"><div class="guide-num">4</div><div class="guide-text">Get online<span>${guide.onlineHint}</span></div></div>
-            <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">Plug in the QuickHatch bundle USB and paste one block<span>${guide.mountHint} The command below first checks auto-mounted drives, then mounts candidate partitions read-only until it finds the QuickHatch bundle.</span>${codeBlockHtml(QUICKHATCH_USB_LAUNCH_COMMANDS)}<div class="muted" style="font-size:var(--t-xs);margin-top:var(--s2)">No <code>cp</code>, <code>cd</code>, <code>chmod</code>, or device-name guessing required in the common path. Do not rely on <code>scp</code> yet — SSH only comes online after <code>quickstart.sh</code> runs.</div></div></div>
+            <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">Mount the QuickHatch bundle USB and run <code>quickstart.sh</code><span>${guide.mountHint} If your bundle USB is <code>/dev/sdb1</code>, this is the common path. The block finds <code>quickstart.sh</code> inside whatever QuickHatch output folder name is on the USB.</span>${codeBlockHtml(QUICKHATCH_USB_SIMPLE_COMMANDS)}<div class="muted" style="font-size:var(--t-xs);margin-top:var(--s2)">If <code>/dev/sdb1</code> is not the bundle USB, run <code>lsblk -f</code> and mount the correct partition instead. Do not rely on <code>scp</code> yet — SSH only comes online after <code>quickstart.sh</code> runs.</div><details><summary>Finder fallback</summary><span>Use this if the simple mount path does not find <code>quickstart.sh</code>.</span>${codeBlockHtml(QUICKHATCH_USB_LAUNCH_COMMANDS)}</details></div></div>
             ${step6}
           </div>
         </div>
@@ -2514,8 +2545,8 @@ const stepRenderers={
           <div class="field"><label>IP address</label>
             <input type="text" id="linuxIp" value="${escHtml(ip)}" placeholder="e.g. 192.168.1.42 or 127.0.0.1:2222" oninput="invalidateSshTest()">
           </div>
-          <div class="field"><label>Username</label>
-            <input type="text" id="linuxUser" value="${escHtml(user)}" placeholder="e.g. jan" oninput="invalidateSshTest()">
+          <div class="field"><label>SSH username</label>
+            <input type="text" id="linuxUser" value="${escHtml(user)}" placeholder="e.g. root on the live ISO" oninput="invalidateSshTest()">
           </div>
         </div>
 
@@ -2743,12 +2774,13 @@ function suggestionUi(scope){
   const key=scope||'default';
   state._suggestionUi=state._suggestionUi||{};
   if(!state._suggestionUi[key]){
-    state._suggestionUi[key]={manual:{},known:[],lastSignature:'',autoOpenKey:''};
+    state._suggestionUi[key]={manual:{},known:[],lastSignature:'',autoOpenKey:'',openKey:''};
   }
   return state._suggestionUi[key];
 }
 function isSuggestionOpen(scope,key){
   const ui=suggestionUi(scope);
+  if(ui.openKey)return key===ui.openKey;
   if(Object.prototype.hasOwnProperty.call(ui.manual,key))return !!ui.manual[key];
   return key===ui.autoOpenKey;
 }
@@ -2757,7 +2789,22 @@ function rememberSuggestionToggle(evt,scope){
   if(!details||details.dataset.ready!=='1')return;
   const key=details.dataset.suggestionKey||'';
   if(!key)return;
-  suggestionUi(scope).manual[key]=details.open;
+  const ui=suggestionUi(scope);
+  ui.manual[key]=details.open;
+  if(details.open){
+    ui.openKey=key;
+    const container=details.parentElement;
+    if(container){
+      container.querySelectorAll('details.suggestion[data-suggestion-key]').forEach(other=>{
+        if(other===details||!other.open)return;
+        const otherKey=other.dataset.suggestionKey||'';
+        other.open=false;
+        if(otherKey)ui.manual[otherKey]=false;
+      });
+    }
+  }else if(ui.openKey===key){
+    ui.openKey='';
+  }
 }
 function wireSuggestionToggles(container,scope){
   if(!container)return;
@@ -2775,8 +2822,13 @@ function renderSuggestionList(suggestions,scope){
   if(signature!==ui.lastSignature){
     const known=new Set(ui.known||[]);
     const added=keys.filter(k=>!known.has(k));
-    if(added.length)ui.autoOpenKey=added[added.length-1];
-    else if(!keys.includes(ui.autoOpenKey))ui.autoOpenKey=keys[keys.length-1]||'';
+    if(added.length){
+      ui.autoOpenKey=added[added.length-1];
+      ui.openKey=ui.autoOpenKey;
+    }else if(!keys.includes(ui.openKey)){
+      ui.autoOpenKey=keys[keys.length-1]||'';
+      ui.openKey=ui.autoOpenKey;
+    }
     ui.known=keys;
     ui.lastSignature=signature;
     Object.keys(ui.manual).forEach(k=>{if(!keys.includes(k))delete ui.manual[k]});
@@ -2853,6 +2905,21 @@ function renderMd(s){
   let text=s.replace(/```(\w*)\n([\s\S]*?)```/g,(_,lang,code)=>{
     blocks.push(renderCopyableCodeBlock(code,'md-code'));
     return PH(blocks.length-1);
+  });
+
+  // 1b) Some models emit malformed code blocks as:
+  //     bash
+  //         sudo pacman -Syu
+  // or just an indented block. Render those as copyable code too.
+  text=text.replace(/(^|\n)(?:[ \t]*(bash|sh|shell|zsh|powershell|ps1|ini|conf|text)\s*\n)?((?:[ \t]{4,}.*(?:\n|$))+)/gm,(m,prefix,lang,code)=>{
+    const cleaned=code
+      .split('\n')
+      .map(line=>line.replace(/^[ \t]{4}/,''))
+      .join('\n')
+      .trimEnd();
+    if(!cleaned.trim())return m;
+    blocks.push(renderCopyableCodeBlock(cleaned,'md-code'));
+    return prefix+PH(blocks.length-1);
   });
 
   // 2) Extract and render tables (pipe-delimited)
@@ -2993,6 +3060,20 @@ function providerSupportsNativeSearch(provider){
   return ['api_openai','api_anthropic','api_gemini','api_grok'].includes(provider);
 }
 
+function sortProviderModels(provider, models){
+  const list=[...(models||[])];
+  if(provider!=='api_gemini')return list.sort();
+  const rank=(m)=>{
+    const id=String(m||'').toLowerCase();
+    if(id==='gemini-2.5-flash')return 0;
+    if(id==='gemini-2.5-flash-lite')return 1;
+    if(id.includes('-latest'))return 20;
+    if(id.includes('preview')||id.includes('experimental'))return 30;
+    return 10;
+  };
+  return list.sort((a,b)=>(rank(a)-rank(b))||String(a).localeCompare(String(b)));
+}
+
 function hasStoredAIKey(provider, endpoint){
   const ai=state.profile?.ai_config||{};
   return !!(ai.api_key==='***SET***'&&ai.provider===provider&&(ai.endpoint||'')===(endpoint||''));
@@ -3034,6 +3115,9 @@ async function showAIExtra(provider){
     const checked=(nativeSearchValue!==undefined ? !!nativeSearchValue : (state.profile?.ai_config?.native_search)!==false)?'checked':'';
     html+='<label class="check" style="margin-top:var(--s2)"><input type="checkbox" id="aiNativeSearch" '+checked+'> <span>Use provider-native web search when available</span></label>'+
       '<div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">On by default. For OpenAI, Claude, Gemini, and Grok, QuickHatch will let the provider handle search and will suppress its own harness search tools.</div>';
+    if(provider==='api_gemini'){
+      html+='<div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">For Gemini with search enabled, prefer explicit stable IDs like gemini-2.5-flash. Latest aliases can move into a different Search grounding quota bucket.</div>';
+    }
   }
   if(spec.docs){
     html+='<div class="muted" style="font-size:var(--t-xs);margin-top:var(--s1)">Model list from <a href="'+escHtml(spec.docs)+'" target="_blank" rel="noopener">'+escHtml(spec.docsLabel)+'</a>.</div>';
@@ -3109,7 +3193,7 @@ async function fetchAIModels(){
     if(d.status==='ok'){
       // For OpenAI-compat endpoints, drop embedding-only models from the
       // picker — they can't do chat completions and just confuse the user.
-      models=(d.models||[]).filter(m=>!/embed|embedding/i.test(m));
+      models=sortProviderModels(provider,(d.models||[]).filter(m=>!/embed|embedding/i.test(m)));
     }else{
       errMsg=d.message||'unknown error';
     }
@@ -3149,6 +3233,7 @@ function persistQuestionnaireDraft(){
   const sel=grid?grid.querySelector('.pill.selected'):null;
   const anotherMachine=sel?sel.dataset.value:(state.profile?.preferences?.another_machine||'');
   const installProfile=getSelected('installProfileChoice')||(state.profile?.install_profile||'configure_existing');
+  const installUsername=((el('installUsername')||{}).value||state.profile?.install_username||'').trim().toLowerCase();
   const installEncryption=((el('installEncryption')||{}).value||state.profile?.install_encryption||'recommended');
   const installFilesystem=((el('installFilesystem')||{}).value||state.profile?.install_filesystem||'recommended');
   const installPartitionNotes=((el('installPartitionNotes')||{}).value||'').trim();
@@ -3157,6 +3242,7 @@ function persistQuestionnaireDraft(){
   setDraftValue('preferences.distro_preference', distroPref);
   setDraftValue('preferences.another_machine', anotherMachine||'');
   setDraftValue('install_profile', installProfile);
+  setDraftValue('install_username', installUsername);
   setDraftValue('install_encryption', installEncryption);
   setDraftValue('install_filesystem', installFilesystem);
   setDraftValue('install_partition_notes', installPartitionNotes);
@@ -3164,6 +3250,7 @@ function persistQuestionnaireDraft(){
   setDraftValue('preferences.gallery_picks', [...(state.galleryPinned||[])]);
   queueAutosave('questionnaire', ()=>saveProfile({
     install_profile:installProfile,
+    install_username:installUsername,
     install_encryption:installEncryption,
     install_filesystem:installFilesystem,
     install_partition_notes:installPartitionNotes,
@@ -3296,6 +3383,7 @@ async function submitPrefs(){
     gallery_picks:[...(state.galleryPinned||[])],
   };
   const installProfile=getSelected('installProfileChoice')||(state.profile.install_profile||'configure_existing');
+  const installUsername=((el('installUsername')||{}).value||state.profile.install_username||'').trim().toLowerCase();
   const installEncryption=((el('installEncryption')||{}).value||state.profile.install_encryption||'recommended');
   const installFilesystem=((el('installFilesystem')||{}).value||state.profile.install_filesystem||'recommended');
   const installPartitionNotes=((el('installPartitionNotes')||{}).value||'').trim();
@@ -3311,6 +3399,7 @@ async function submitPrefs(){
   await saveProfile({
     preferences:prefs,
     install_profile:installProfile,
+    install_username:installUsername,
     install_encryption:installEncryption,
     install_filesystem:installFilesystem,
     install_partition_notes:installPartitionNotes,
@@ -3321,6 +3410,7 @@ async function submitPrefs(){
   clearDraftValue('preferences.distro_preference');
   clearDraftValue('preferences.another_machine');
   clearDraftValue('install_profile');
+  clearDraftValue('install_username');
   clearDraftValue('install_encryption');
   clearDraftValue('install_filesystem');
   clearDraftValue('install_partition_notes');
@@ -4262,6 +4352,7 @@ function exportExecutedSetupScriptEnabled(){
 function setupInstallProfilePayload(){
   const profile=state.profile||{};
   return {
+    install_username:(el('installUsername')||{}).value?.trim?.().toLowerCase?.()||profile.install_username||'',
     install_profile:profile.install_profile||'configure_existing',
     install_encryption:profile.install_encryption||'recommended',
     install_filesystem:profile.install_filesystem||'recommended',
@@ -4280,11 +4371,13 @@ async function setExportExecutedSetupScript(enabled){
 async function saveLinuxConn(){
   const ip=el('linuxIp').value.trim();
   const user=el('linuxUser').value.trim();
+  const installUsername=(el('installUsername')||{}).value?.trim?.().toLowerCase?.()||'';
   const remoteSetupMode=state.profile.remote_setup_mode||'auto';
   if(!ip||!user){toast('Enter IP and username first','error');return;}
   await saveProfile({
     linux_ip:ip,
     linux_user:user,
+    install_username:installUsername,
     remote_setup_mode:remoteSetupMode,
     ...setupInstallProfilePayload(),
     export_executed_setup_script:exportExecutedSetupScriptEnabled(),
@@ -4306,6 +4399,7 @@ async function launchSetupAgent(){
     await saveProfile({
       linux_ip:(el('linuxIp')||{}).value?.trim?.()||'',
       linux_user:(el('linuxUser')||{}).value?.trim?.()||'',
+      install_username:(el('installUsername')||{}).value?.trim?.().toLowerCase?.()||'',
       remote_setup_mode:state.profile.remote_setup_mode||'auto',
       ...setupInstallProfilePayload(),
       export_executed_setup_script:exportExecutedSetupScriptEnabled(),
@@ -4408,7 +4502,7 @@ async function clearSetupLog(){
 
 async function resetRemoteSetup(){
   const ok=window.confirm(
-    'Reset Remote Setup? This clears the saved IP, username, setup transcript, and current setup-state for this step, but keeps the rest of your wizard profile.'
+    'Reset Remote Setup? This clears the saved IP, SSH username, setup transcript, and current setup-state for this step, but keeps the rest of your wizard profile.'
   );
   if(!ok)return;
   try{

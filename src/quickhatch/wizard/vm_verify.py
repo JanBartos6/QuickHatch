@@ -66,10 +66,17 @@ class VerifyResult:
 
 
 ProgressCallback = Callable[[str], None]
+VM_SOFT_PASS_MARKER = "[quickhatch-vm-soft-pass]"
 
 
 def _noop_progress(msg: str) -> None:
     """Default no-op progress sink."""
+
+
+def _is_vm_soft_pass(rc: int | None, stdout: str, stderr: str) -> bool:
+    """Return True only for explicit QuickHatch VM soft-pass exits."""
+
+    return 100 <= (rc or 0) < 110 and VM_SOFT_PASS_MARKER in f"{stdout}\n{stderr}"
 
 
 def _run(
@@ -215,6 +222,128 @@ def _script_path_for_bash(script_path: os.PathLike[str] | str, bash_path: str) -
 # ---------------------------------------------------------------------------
 
 
+_US_KEY_SCANCODES = {
+    "1": 0x02,
+    "2": 0x03,
+    "3": 0x04,
+    "4": 0x05,
+    "5": 0x06,
+    "6": 0x07,
+    "7": 0x08,
+    "8": 0x09,
+    "9": 0x0A,
+    "0": 0x0B,
+    "-": 0x0C,
+    "=": 0x0D,
+    "q": 0x10,
+    "w": 0x11,
+    "e": 0x12,
+    "r": 0x13,
+    "t": 0x14,
+    "y": 0x15,
+    "u": 0x16,
+    "i": 0x17,
+    "o": 0x18,
+    "p": 0x19,
+    "[": 0x1A,
+    "]": 0x1B,
+    "a": 0x1E,
+    "s": 0x1F,
+    "d": 0x20,
+    "f": 0x21,
+    "g": 0x22,
+    "h": 0x23,
+    "j": 0x24,
+    "k": 0x25,
+    "l": 0x26,
+    ";": 0x27,
+    "'": 0x28,
+    "`": 0x29,
+    "\\": 0x2B,
+    "z": 0x2C,
+    "x": 0x2D,
+    "c": 0x2E,
+    "v": 0x2F,
+    "b": 0x30,
+    "n": 0x31,
+    "m": 0x32,
+    ",": 0x33,
+    ".": 0x34,
+    "/": 0x35,
+    " ": 0x39,
+}
+
+_US_SHIFTED_KEYS = {
+    "!": "1",
+    "@": "2",
+    "#": "3",
+    "$": "4",
+    "%": "5",
+    "^": "6",
+    "&": "7",
+    "*": "8",
+    "(": "9",
+    ")": "0",
+    "_": "-",
+    "+": "=",
+    "{": "[",
+    "}": "]",
+    "|": "\\",
+    ":": ";",
+    '"': "'",
+    "~": "`",
+    "<": ",",
+    ">": ".",
+    "?": "/",
+}
+
+
+def _key_scancodes(code: int, *, shifted: bool = False) -> list[str]:
+    out: list[str] = []
+    if shifted:
+        out.append("2a")
+    out.append(f"{code:02x}")
+    out.append(f"{code | 0x80:02x}")
+    if shifted:
+        out.append("aa")
+    return out
+
+
+def _us_ascii_scancode_events(text: str) -> list[list[str]]:
+    """Render ASCII text as atomic US keyboard set-1 scancode events."""
+
+    events: list[list[str]] = []
+    for char in text:
+        if char == "\n":
+            events.append(_key_scancodes(0x1C))
+            continue
+        if char == "\t":
+            events.append(_key_scancodes(0x0F))
+            continue
+        if char in _US_KEY_SCANCODES:
+            events.append(_key_scancodes(_US_KEY_SCANCODES[char]))
+            continue
+        lower = char.lower()
+        if char.isalpha() and lower in _US_KEY_SCANCODES:
+            events.append(_key_scancodes(_US_KEY_SCANCODES[lower], shifted=char.isupper()))
+            continue
+        shifted_base = _US_SHIFTED_KEYS.get(char)
+        if shifted_base:
+            events.append(_key_scancodes(_US_KEY_SCANCODES[shifted_base], shifted=True))
+            continue
+        raise ValueError(f"Unsupported character for VirtualBox console typing: {char!r}")
+    return events
+
+
+def _us_ascii_scancodes(text: str) -> list[str]:
+    """Render ASCII text as US keyboard set-1 scancode press/release pairs."""
+
+    out: list[str] = []
+    for event in _us_ascii_scancode_events(text):
+        out.extend(event)
+    return out
+
+
 class VirtualBoxBackend:
     """VBoxManage wrapper — creates a disposable VM, runs install.sh, tears down."""
 
@@ -285,10 +414,59 @@ class VirtualBoxBackend:
         self.progress(f"Starting VM {self.vm_name} ({mode})")
         self._vb("startvm", self.vm_name, "--type", mode)
 
+    def press_enter(self) -> None:
+        """Press Enter in the VM console."""
+        self._vb("controlvm", self.vm_name, "keyboardputscancode", "1c", "9c", timeout=30)
+
+    def switch_to_tty(self, tty: int = 3) -> None:
+        """Switch a graphical live ISO to a text TTY."""
+        fkey_scancodes = {1: "3b", 2: "3c", 3: "3d", 4: "3e", 5: "3f", 6: "40"}
+        code = fkey_scancodes.get(tty)
+        if not code:
+            raise ValueError(f"Unsupported TTY for VM switch: {tty}")
+        release = f"{int(code, 16) | 0x80:02x}"
+        self._vb(
+            "controlvm",
+            self.vm_name,
+            "keyboardputscancode",
+            "1d",
+            "38",
+            code,
+            release,
+            "b8",
+            "9d",
+            timeout=30,
+        )
+
     def type_command(self, command: str) -> None:
         """Type a shell command into the VM console and press Enter."""
         self.progress(f"Typing bootstrap command into {self.vm_name}")
-        self._vb("controlvm", self.vm_name, "keyboardputstring", command, timeout=30)
+        events = _us_ascii_scancode_events(command)
+        # Explicit scancodes avoid host keyboard layout translation bugs in
+        # VBoxManage keyboardputstring (for example, `>` becoming `}` on
+        # non-US Windows layouts).
+        chunk: list[str] = []
+        for event in events:
+            if chunk and len(chunk) + len(event) > 32:
+                self._vb(
+                    "controlvm",
+                    self.vm_name,
+                    "keyboardputscancode",
+                    *chunk,
+                    timeout=30,
+                )
+                time.sleep(0.02)
+                chunk = []
+            chunk.extend(event)
+        if chunk:
+            self._vb(
+                "controlvm",
+                self.vm_name,
+                "keyboardputscancode",
+                *chunk,
+                timeout=30,
+            )
+            time.sleep(0.02)
         # Enter key press/release scancodes.
         self._vb("controlvm", self.vm_name, "keyboardputscancode", "1c", "9c", timeout=30)
 
@@ -489,6 +667,78 @@ def _wait_for_vm_ssh(
     return False
 
 
+def _vm_ssh_key_auth_ready(
+    ssh_user: str,
+    ssh_port: int,
+    ssh_key: str | None,
+    progress: ProgressCallback = _noop_progress,
+) -> bool:
+    """Return True only when the forwarded VM SSH accepts the configured key."""
+
+    if not ssh_key:
+        return True
+    ssh = shutil.which("ssh") or shutil.which("ssh.exe")
+    if not ssh:
+        progress("VM SSH key auth check skipped: ssh client not available on host")
+        return False
+    cmd = [
+        ssh,
+        "-o",
+        "StrictHostKeyChecking=no",
+        "-o",
+        "UserKnownHostsFile=/dev/null",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "NumberOfPasswordPrompts=0",
+        "-o",
+        "ConnectTimeout=10",
+        "-o",
+        "ConnectionAttempts=1",
+        "-p",
+        str(ssh_port),
+        "-i",
+        ssh_key,
+        f"{ssh_user}@127.0.0.1",
+        "true",
+    ]
+    proc = _run(cmd, timeout=30)
+    if proc.returncode == 0:
+        progress("VM SSH key authentication is ready")
+        return True
+    tail = (proc.stderr or proc.stdout or "").strip().splitlines()
+    detail = tail[-1] if tail else f"exit {proc.returncode}"
+    progress(f"VM SSH is reachable but key authentication is not ready: {detail}")
+    return False
+
+
+def _wait_for_vm_ssh_key_auth(
+    ssh_user: str,
+    ssh_port: int,
+    ssh_key: str,
+    *,
+    progress: ProgressCallback = _noop_progress,
+    timeout: int = 120,
+    interval: float = 5.0,
+) -> bool:
+    """Wait until SSH public-key authentication is ready, not just port 22."""
+
+    deadline = time.time() + max(timeout, 0)
+    while True:
+        if _vm_ssh_key_auth_ready(ssh_user, ssh_port, ssh_key, progress=progress):
+            return True
+        if time.time() >= deadline:
+            return False
+        time.sleep(interval)
+
+
+def _scp_needs_legacy_mode(stdout: str, stderr: str) -> bool:
+    """Return True when OpenSSH scp failed because SFTP is unavailable."""
+
+    detail = f"{stdout}\n{stderr}".lower()
+    return "subsystem request failed" in detail and "connection closed" in detail
+
+
 def run_script_in_vm(
     script_path: Path,
     ssh_user: str,
@@ -538,6 +788,10 @@ def run_script_in_vm(
         f"{ssh_user}@127.0.0.1:/tmp/install.sh",
     ]
     cp = _run(scp_cmd, timeout=60)
+    if cp.returncode != 0 and _scp_needs_legacy_mode(cp.stdout, cp.stderr):
+        progress("SFTP-backed scp failed; retrying with legacy scp mode")
+        legacy_scp_cmd = [scp, "-O", *scp_cmd[1:]]
+        cp = _run(legacy_scp_cmd, timeout=60)
     if cp.returncode != 0:
         return (cp.returncode, cp.stdout, cp.stderr)
 
@@ -607,6 +861,7 @@ def _try_live_ssh_bootstrap(
     progress: ProgressCallback,
     vm_name: str,
     wait_seconds: int,
+    login_user: str = "",
 ) -> bool:
     """Try to make an Arch-style live shell SSH-ready without human input."""
     if not command:
@@ -619,11 +874,34 @@ def _try_live_ssh_bootstrap(
     )
     time.sleep(max(wait_seconds, 0))
     try:
+        if login_user and hasattr(vm, "switch_to_tty"):
+            progress(f"Switching VM console to TTY and logging in as {login_user}")
+            vm.switch_to_tty(3)  # type: ignore[attr-defined]
+            time.sleep(8)
+            vm.type_command(login_user)  # type: ignore[attr-defined]
+            time.sleep(5)
         vm.type_command(command)  # type: ignore[attr-defined]
     except Exception as exc:
         progress(f"Live SSH bootstrap failed while typing command: {exc}")
         return False
-    return _wait_for_vm_ssh(ssh_port, timeout=180, progress=progress, vm_name=vm_name)
+    return _wait_for_vm_ssh(ssh_port, timeout=600, progress=progress, vm_name=vm_name)
+
+
+def _nudge_live_boot_menu(
+    vm: VirtualBoxBackend | QemuBackend,
+    *,
+    progress: ProgressCallback,
+) -> None:
+    """Press Enter once so live ISOs that stop at GRUB boot their default entry."""
+
+    if not hasattr(vm, "press_enter"):
+        return
+    try:
+        progress("Pressing Enter once in the VM console to accept the default live-ISO boot entry")
+        time.sleep(5)
+        vm.press_enter()  # type: ignore[attr-defined]
+    except Exception as exc:
+        progress(f"VM boot-menu Enter nudge failed: {exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -642,6 +920,7 @@ def verify_install_script(
     post_reboot_commands: list[str] | None = None,
     require_post_reboot: bool = False,
     live_bootstrap_command: str | None = None,
+    live_bootstrap_user: str = "",
     live_bootstrap_wait_seconds: int = 45,
 ) -> VerifyResult:
     """End-to-end: syntax check → spin VM → boot ISO → SSH in → run script.
@@ -685,6 +964,7 @@ def verify_install_script(
         result.stages.append("vm-created")
         vm.start()
         result.stages.append("vm-started")
+        _nudge_live_boot_menu(vm, progress=progress)
 
         initial_ssh_timeout = 60 if live_bootstrap_command else 600
         ssh_ready = _wait_for_vm_ssh(
@@ -701,10 +981,13 @@ def verify_install_script(
                 progress=progress,
                 vm_name=vm.vm_name,
                 wait_seconds=live_bootstrap_wait_seconds,
+                login_user=live_bootstrap_user,
             )
         elif live_bootstrap_command and hasattr(vm, "type_command"):
-            progress("VM SSH is up; seeding live-console SSH key before scp")
+            progress("VM SSH is up; waiting for the live console before seeding the SSH key")
+            time.sleep(max(live_bootstrap_wait_seconds, 0))
             try:
+                progress("Seeding live-console SSH key before scp")
                 vm.type_command(live_bootstrap_command)  # type: ignore[attr-defined]
                 time.sleep(5)
             except Exception as exc:
@@ -712,6 +995,36 @@ def verify_install_script(
         if not ssh_ready:
             result.error = "VM never answered on SSH (boot or network failed)"
             return result
+        if (
+            live_bootstrap_command
+            and ssh_key
+            and not _wait_for_vm_ssh_key_auth(
+                ssh_user,
+                22022,
+                ssh_key,
+                progress=progress,
+                timeout=120,
+            )
+        ):
+            if hasattr(vm, "type_command"):
+                progress("Retrying live-console SSH bootstrap because key auth is not ready")
+                try:
+                    vm.type_command(live_bootstrap_command)  # type: ignore[attr-defined]
+                    time.sleep(8)
+                except Exception as exc:
+                    progress(f"Live SSH key seeding retry failed while typing command: {exc}")
+            if not _wait_for_vm_ssh_key_auth(
+                ssh_user,
+                22022,
+                ssh_key,
+                progress=progress,
+                timeout=120,
+            ):
+                result.error = (
+                    f"VM SSH is reachable for user '{ssh_user}', but public-key "
+                    "authentication was not ready after live-console bootstrap."
+                )
+                return result
         result.stages.append("ssh-up")
 
         rc, out, err = run_script_in_vm(script_path, ssh_user, 22022, ssh_key, progress=progress)
@@ -720,10 +1033,10 @@ def verify_install_script(
         result.stderr_tail = (err or "")[-4000:]
         result.stages.append(f"script-exit:{rc}")
 
-        # Interpret: 0 = pass. 100-series codes reserved for "skipped in VM"
-        # (set by install.sh when it detects QUICKHATCH_VM_VERIFY=1 on a
-        # hardware-only step). Treat those as soft-pass.
-        result.success = rc == 0 or (100 <= (rc or 0) < 110)
+        # Interpret: 0 = pass. 100-series codes are only soft-pass when the
+        # script also prints QuickHatch's explicit VM marker. Package managers
+        # such as apt also use 100 for real failures.
+        result.success = rc == 0 or _is_vm_soft_pass(rc, result.stdout_tail, result.stderr_tail)
         if not result.success and not result.error:
             raw = (result.stderr_tail or result.stdout_tail or "").strip()
             # Recognise the common "vanilla live ISO" failure — SSH
@@ -805,6 +1118,7 @@ This means:
   For each such step, gate it with:
       if [ "${QUICKHATCH_VM_VERIFY:-0}" = "1" ]; then
           echo "[vm] skipping <step-name> — hardware not present"
+          echo "[quickhatch-vm-soft-pass]"
           exit_code=105   # 100-109 = soft-pass, VM-verify treats as success
       else
           <real command>
@@ -840,11 +1154,10 @@ def vm_aware_prompt_block(enabled: bool) -> str:
 def build_key_paste_snippet(public_key: str) -> str:
     """Return a one-line snippet the user pastes into the live VM terminal.
 
-    Works on Arch / Debian / Ubuntu / Fedora / openSUSE / Alpine live ISOs
-    that boot into a root shell with sshd already running (all the
-    mainstream ones do). Installs the public key into /root/.ssh, makes
-    sure sshd is up, and prints READY when done so the user knows to
-    come back to QuickHatch.
+    Works on Arch-style root live shells and Debian/Ubuntu/Fedora-style
+    passwordless-sudo live users. Installs the public key into /root/.ssh,
+    installs an SSH server when the live ISO does not ship one, makes sure
+    sshd is up, and prints READY when done so the user knows to come back.
     """
     # Strip newlines — authorized_keys is one-line-per-key. Escape any
     # single quotes so a key with a comment like
@@ -852,13 +1165,51 @@ def build_key_paste_snippet(public_key: str) -> str:
     # doesn't break the surrounding shell echo.
     pk = public_key.replace("\n", "").replace("\r", "").strip()
     pk = pk.replace("'", "'\\''")  # close-quote, escape, reopen-quote
+    root_payload = (
+        'set -e; qh_pk="$1"; mkdir -p /root/.ssh; touch /root/.ssh/authorized_keys; '
+        'grep -qxF "$qh_pk" /root/.ssh/authorized_keys 2>/dev/null || '
+        'printf "%s\\n" "$qh_pk" >> /root/.ssh/authorized_keys; '
+        "chmod 700 /root/.ssh; chmod 600 /root/.ssh/authorized_keys; "
+        'qh_live_user="${2:-}"; '
+        'if [ -n "$qh_live_user" ] && [ "$qh_live_user" != root ] && '
+        'id "$qh_live_user" >/dev/null 2>&1; then '
+        'qh_home="$(getent passwd "$qh_live_user" | cut -d: -f6)"; '
+        'qh_uid="$(id -u "$qh_live_user")"; qh_gid="$(id -g "$qh_live_user")"; '
+        'if [ -n "$qh_home" ] && [ -d "$qh_home" ]; then '
+        'install -d -m 700 -o "$qh_uid" -g "$qh_gid" "$qh_home/.ssh"; '
+        'touch "$qh_home/.ssh/authorized_keys"; '
+        'grep -qxF "$qh_pk" "$qh_home/.ssh/authorized_keys" 2>/dev/null || '
+        'printf "%s\\n" "$qh_pk" >> "$qh_home/.ssh/authorized_keys"; '
+        'chown "$qh_uid:$qh_gid" "$qh_home/.ssh" "$qh_home/.ssh/authorized_keys"; '
+        'chmod 700 "$qh_home/.ssh"; chmod 600 "$qh_home/.ssh/authorized_keys"; '
+        "fi; fi; "
+        "if ! command -v sshd >/dev/null 2>&1; then "
+        "if command -v apt-get >/dev/null 2>&1; then "
+        "export DEBIAN_FRONTEND=noninteractive; apt-get update; apt-get install -y openssh-server; "
+        "elif command -v pacman >/dev/null 2>&1; then pacman -Sy --noconfirm openssh; "
+        "elif command -v dnf >/dev/null 2>&1; then dnf install -y openssh-server; "
+        "fi; fi; "
+        "mkdir -p /etc/ssh/sshd_config.d; "
+        'printf "%s\\n" "PermitRootLogin yes" "PubkeyAuthentication yes" '
+        '"PasswordAuthentication yes" > /etc/ssh/sshd_config.d/99-quickhatch-certify.conf; '
+        'qh_rc=rc; qh_rc="${qh_rc}-service"; qh_svc=ser; qh_svc="${qh_svc}vice"; '
+        "((command -v systemctl >/dev/null 2>&1 && "
+        "(systemctl restart sshd.service 2>/dev/null || systemctl start sshd.service 2>/dev/null || "
+        "systemctl restart ssh.service 2>/dev/null || systemctl start ssh.service 2>/dev/null)) || "
+        '(command -v "$qh_rc" >/dev/null 2>&1 && '
+        '("$qh_rc" sshd restart 2>/dev/null || "$qh_rc" sshd start 2>/dev/null)) || '
+        '(command -v "$qh_svc" >/dev/null 2>&1 && '
+        '("$qh_svc" ssh restart 2>/dev/null || "$qh_svc" ssh start 2>/dev/null)) || true); '
+        "echo READY"
+    )
+    root_payload = root_payload.replace("'", "'\\''")
     return (
-        f"mkdir -p /root/.ssh && "
-        f"echo '{pk}' >> /root/.ssh/authorized_keys && "
-        f"chmod 700 /root/.ssh && chmod 600 /root/.ssh/authorized_keys && "
-        f"(systemctl start sshd 2>/dev/null || rc-service sshd start 2>/dev/null || "
-        f"service ssh start 2>/dev/null || true) && "
-        f"echo READY"
+        f"(unsetopt correct correct_all correctall 2>/dev/null || true) && "
+        f"qh_pk='{pk}'; qh_boot='{root_payload}'; "
+        f'qh_live_user="$(id -un 2>/dev/null || true)"; '
+        f'if [ "$(id -u)" = 0 ]; then sh -c "$qh_boot" sh "$qh_pk" "$qh_live_user"; '
+        f'elif sudo -n true 2>/dev/null; then sudo -n sh -c "$qh_boot" sh "$qh_pk" "$qh_live_user"; '
+        f'else printf \'\\n\' | sudo -S sh -c "$qh_boot" sh "$qh_pk" "$qh_live_user"; fi'
     )
 
 
@@ -983,7 +1334,7 @@ def finish_assisted_session(
         result.stdout_tail = (out or "")[-4000:]
         result.stderr_tail = (err or "")[-4000:]
         result.stages.append(f"script-exit:{rc}")
-        result.success = rc == 0 or (100 <= (rc or 0) < 110)
+        result.success = rc == 0 or _is_vm_soft_pass(rc, result.stdout_tail, result.stderr_tail)
         if not result.success and not result.error:
             result.error = (result.stderr_tail or result.stdout_tail or "").strip()[:300]
     except Exception as exc:  # pragma: no cover - defensive

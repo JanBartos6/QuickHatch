@@ -23,6 +23,7 @@ from quickhatch.config import UserProfile
 # On-disk persistence for suggestions and messages. Survives server restarts
 # so an accidentally-killed process doesn't nuke a 20-minute analysis run.
 _SUGGESTIONS_FILE = Path.home() / ".quickhatch-suggestions.json"
+_SETUP_RUNTIME_SUGGESTION_CATEGORIES = frozenset({"progress", "setup", "setup_progress"})
 
 
 @dataclass
@@ -419,14 +420,48 @@ class BridgeState:
         """Clear message/question runtime associated with one agent phase.
 
         Intended for UI-level "clear this run's log" actions. This is
-        non-destructive to the saved profile and does not touch
-        suggestions, because those are shared across analysis/setup and
-        currently have no phase tag. For active setup runs, callers can keep
-        setup_run intact and clear only rendered log history.
+        non-destructive to the saved profile and preserves analysis
+        suggestions. Setup-runtime/progress suggestions are dropped because
+        those are command history from a specific attempt. For active setup
+        runs, callers can keep setup_run intact and clear only rendered log
+        history.
         """
         target = phase or ""
         with self.lock:
-            self.messages[:] = [m for m in self.messages if (m.get("phase") or "") != target]
+
+            def should_keep_message(message: dict[str, Any]) -> bool:
+                if (message.get("phase") or "") == target:
+                    return False
+                if target != "setup":
+                    return True
+                content = str(message.get("content", "") or "")
+                if content.startswith("Stop requested — finishing current step"):
+                    return False
+                if content.startswith("Setup log cleared. Stop requested"):
+                    return False
+                if content.startswith("Migration setup complete!"):
+                    return False
+                if content.startswith("Finished:") and any(
+                    marker in content
+                    for marker in (
+                        "Verified installed:",
+                        "Manual follow-up:",
+                        "Remote setup completed",
+                        "Linux system",
+                        "NVIDIA RTX",
+                    )
+                ):
+                    return False
+                return True
+
+            self.messages[:] = [m for m in self.messages if should_keep_message(m)]
+            if target == "setup":
+                self.suggestions[:] = [
+                    s
+                    for s in self.suggestions
+                    if (getattr(s, "category", "") or "")
+                    not in _SETUP_RUNTIME_SUGGESTION_CATEGORIES
+                ]
             self._clear_unanswered_questions_locked()
             self.agent_done = False
             if clear_stop_requested:

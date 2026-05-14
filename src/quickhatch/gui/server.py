@@ -350,6 +350,7 @@ class GUIState:
             "data_transfer_method",
             "linux_ip",
             "linux_user",
+            "install_username",
             "remote_setup_mode",
             "install_profile",
             "install_encryption",
@@ -481,6 +482,12 @@ class GUIState:
                     self.profile,
                     "linux_user",
                     self._coerce_str(updates["linux_user"]) or "",
+                )
+            if "install_username" in updates:
+                changed |= self._set_if_changed(
+                    self.profile,
+                    "install_username",
+                    (self._coerce_str(updates["install_username"]) or "").strip().lower(),
                 )
             setup_intent_changed = False
             if "remote_setup_mode" in updates:
@@ -695,12 +702,15 @@ def _remote_setup_mode_block(profile: UserProfile) -> str:
     encryption = getattr(profile, "install_encryption", "recommended") or "recommended"
     filesystem = getattr(profile, "install_filesystem", "recommended") or "recommended"
     notes = (getattr(profile, "install_partition_notes", "") or "").strip()
+    install_username = (getattr(profile, "install_username", "") or "").strip()
     install_lines = [
         "== INSTALL TARGET PROFILE ==",
         f"- install_profile: {install_profile}",
         f"- install_encryption: {encryption}",
         f"- install_filesystem: {filesystem}",
     ]
+    if install_username:
+        install_lines.append(f"- install_username: {install_username}")
     if notes:
         install_lines.append(f"- install_partition_notes: {notes}")
     install_lines.extend(
@@ -1941,7 +1951,9 @@ def make_gui_server(
                 if not gui_state.agent_thread_running() and bridge_state.agent_connected:
                     gui_state.mark_agent_stopped()
                 bridge_state.add_message(
-                    "agent", "Stop requested — finishing current step and exiting."
+                    "agent",
+                    "Stop requested — finishing current step and exiting.",
+                    phase="setup",
                 )
                 self._send_json({"status": "ok"})
 
@@ -2810,6 +2822,7 @@ def _analysis_context_profile(
         base["linux_connection"] = {
             "linux_ip": profile.linux_ip,
             "linux_user": profile.linux_user,
+            "install_username": profile.install_username,
         }
         base["ssh_public_key_path"] = profile.ssh_public_key_path
     elif section == "summary":
@@ -2817,6 +2830,7 @@ def _analysis_context_profile(
         base["linux_connection"] = {
             "linux_ip": profile.linux_ip,
             "linux_user": profile.linux_user,
+            "install_username": profile.install_username,
         }
     elif section == "install_script":
         base["hardware"] = asdict(profile.hardware)
@@ -2824,6 +2838,7 @@ def _analysis_context_profile(
         base["linux_connection"] = {
             "linux_ip": profile.linux_ip,
             "linux_user": profile.linux_user,
+            "install_username": profile.install_username,
         }
         base["ssh_public_key_path"] = profile.ssh_public_key_path
 
@@ -3624,6 +3639,41 @@ def _post_openai_compat_timeout(url: str, api_key: str | None, body: dict, *, ti
     return _extract_openai_text(resp.json())
 
 
+def _exception_http_status(exc: Exception) -> int | None:
+    response = getattr(exc, "response", None)
+    status = getattr(response, "status_code", None)
+    if isinstance(status, int):
+        return status
+    match = re.search(r"\b(4\d\d|5\d\d)\b", str(exc))
+    if match:
+        try:
+            return int(match.group(1))
+        except ValueError:
+            return None
+    return None
+
+
+def _analysis_retry_message(
+    title: str,
+    attempt: int,
+    elapsed: int,
+    wait: int,
+    exc: Exception,
+) -> str:
+    status = _exception_http_status(exc)
+    if status == 429:
+        return (
+            f"{title} API rate limited ({attempt}/3) — provider returned HTTP 429 "
+            f"after {elapsed}s, retrying in {wait}s…"
+        )
+    if status in {401, 403}:
+        return (
+            f"{title} API request rejected ({attempt}/3) — provider returned HTTP {status} "
+            f"after {elapsed}s, retrying in {wait}s…"
+        )
+    return f"{title} API call failed ({attempt}/3) — attempt took {elapsed}s, retrying in {wait}s…"
+
+
 def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "") -> None:
     """Run the AI agent in a background thread, posting results to the bridge.
 
@@ -3762,7 +3812,7 @@ def _run_agent_background(gui_state: GUIState, port: int, user_feedback: str = "
                         wait = 3 * (3 ** (attempt - 1))  # 3, 9, 27
                         bridge.add_message(
                             "agent",
-                            f"{title} API call slow ({attempt}/3) — attempt took {elapsed}s, retrying in {wait}s…",
+                            _analysis_retry_message(title, attempt, elapsed, wait, exc),
                         )
                         _t.sleep(wait)
             if content is None:
@@ -6431,6 +6481,26 @@ def _recipe_apply_for_setup(profile: UserProfile) -> str:
         return ""
 
 
+_SETUP_CONTEXT_SUGGESTION_CATEGORIES = frozenset(
+    {"distro", "apps", "drivers", "desktop", "plan", "install_script"}
+)
+
+
+def _setup_context_suggestions(bridge: BridgeState) -> list[Any]:
+    """Return analysis/plan suggestions that are safe to feed into setup.
+
+    Runtime setup/progress suggestions are UI history from a prior attempt.
+    Clear Setup Log removes them, and this filter prevents any leftover or
+    restored runtime snippets from becoming model context on a fresh setup run.
+    """
+
+    return [
+        suggestion
+        for suggestion in bridge.snapshot_suggestions()
+        if (getattr(suggestion, "category", "") or "") in _SETUP_CONTEXT_SUGGESTION_CATEGORIES
+    ]
+
+
 def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = "") -> SetupRuntime:
     bridge = gui_state.bridge
     bridge.set_current_phase("setup")
@@ -6449,20 +6519,21 @@ def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = ""
     native_search_active = _use_provider_native_search(config)
 
     migration_plan_md = ""
-    if bridge.suggestions:
+    setup_context = _setup_context_suggestions(bridge)
+    if setup_context:
         plan_parts = [
             "The migration plan has already been generated during the analysis phase.\n"
             "Use this as your blueprint — do not re-plan from scratch.\n"
         ]
-        for suggestion in bridge.snapshot_suggestions():
+        for suggestion in setup_context:
             plan_parts.append(f"\n### {suggestion.title}\n{suggestion.content}")
         migration_plan_md = "\n".join(plan_parts)
 
     from quickhatch.ai.install_primer import primer_prompt_block, resolve_primer
 
     distro_hint = (profile.preferences.distro_preference or "").strip()
-    if not distro_hint and bridge.suggestions:
-        for suggestion in bridge.snapshot_suggestions():
+    if not distro_hint and setup_context:
+        for suggestion in setup_context:
             if (
                 getattr(suggestion, "category", "") == "distro"
                 or "distribut" in (suggestion.title or "").lower()
@@ -6574,7 +6645,11 @@ def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = ""
                 "sudo_nopasswd": "yes" if facts.sudo_nopasswd else "no",
             },
             is_live,
-            native_search_active=native_search_active,
+            # Typed setup planning uses explicit repo/community/web lookup
+            # actions for auditable current facts. Keep provider-native search
+            # enabled elsewhere, but do not tell the giant setup planner to
+            # attach provider grounding to the full safety prompt.
+            native_search_active=False,
         ),
         migration_plan_md=migration_plan_md
         + (f"\n\n== USER FEEDBACK ==\n{user_feedback.strip()}" if user_feedback.strip() else ""),
@@ -6721,9 +6796,10 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
         # are about to install.
         from quickhatch.ai.install_primer import primer_prompt_block, resolve_primer
 
+        setup_context = _setup_context_suggestions(bridge)
         distro_hint = (profile.preferences.distro_preference or "").strip()
-        if not distro_hint and bridge.suggestions:
-            for s in bridge.snapshot_suggestions():
+        if not distro_hint and setup_context:
+            for s in setup_context:
                 if getattr(s, "category", "") == "distro" or "distribut" in (s.title or "").lower():
                     match = resolve_primer(s.content or "")
                     if match is not None:
@@ -6786,12 +6862,12 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
 
         # Step 4b: Gather any existing migration plan from the analysis phase
         migration_plan_md = ""
-        if bridge.suggestions:
+        if setup_context:
             plan_parts = [
                 "The migration plan has already been generated during the analysis phase.\n"
                 "Use this as your blueprint — do not re-plan from scratch.\n"
             ]
-            for s in bridge.snapshot_suggestions():
+            for s in setup_context:
                 plan_parts.append(f"\n### {s.title}\n{s.content}")
             migration_plan_md = "\n".join(plan_parts)
 

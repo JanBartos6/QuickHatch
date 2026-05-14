@@ -193,6 +193,19 @@ class TestApiKeyClientStorage:
         assert "profile.ai_config.api_key=ai.api_key" not in html
         assert "clean.ai_config.api_key=null" in html
         assert "Remember API key on this PC" in html
+        assert "resp.api_key_stored===false" in html
+        assert "The key is active for this server session." in html
+
+    def test_gemini_search_keeps_default_but_prefers_stable_model_ids(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+
+        assert "Use provider-native web search when available" in html
+        assert "On by default." in html
+        assert "id==='gemini-2.5-flash'" in html
+        assert "Latest aliases can move into a different Search grounding quota bucket." in html
 
 
 class TestBridgeWrapperPaths:
@@ -314,6 +327,9 @@ class TestFrontendProfileSync:
         root = Path(__file__).resolve().parent.parent
         html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
         assert "const canLaunch=!!(hasConn&&state._sshTestOk);" in html
+        assert 'id="installUsername"' in html
+        assert "Desired Linux username" in html
+        assert "install_username" in html
         assert "state._sshTestOk=true;" in html
         assert "state._sshTestOk=false;" in html
         assert (
@@ -357,12 +373,28 @@ class TestFrontendProfileSync:
         root = Path(__file__).resolve().parent.parent
         html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
         assert "Do not rely on <code>scp</code> yet" in html
-        assert "Plug in the QuickHatch bundle USB and paste one block" in html
+        assert "Mount the QuickHatch bundle USB and run <code>quickstart.sh</code>" in html
+        assert "mount /dev/sdb1 /mnt/usb" in html
+        assert "find /mnt/usb -name quickstart.sh -print" in html
+        assert "If <code>/dev/sdb1</code> is not the bundle USB" in html
+        assert "Finder fallback" in html
+        assert "No <code>cp</code>, <code>cd</code>, <code>chmod</code>" not in html
+        assert "mount -o ro" in html
+        assert "qh_bundle_here()" in html
+
+    def test_live_usb_code_block_stays_inside_guide_card(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
         assert (
-            "No <code>cp</code>, <code>cd</code>, <code>chmod</code>, or device-name guessing required"
+            ".guide-text{font-size:var(--t-sm);color:var(--text);line-height:var(--leading);min-width:0;max-width:100%}"
             in html
         )
-        assert "mount -o ro" in html
+        assert (
+            ".guide-text .copyable-code,.guide-text .md-code,.guide-text .code-block{max-width:100%}"
+            in html
+        )
 
     def test_bootable_usb_uses_curated_distro_family_guides(self):
         from pathlib import Path
@@ -491,11 +523,23 @@ class TestFrontendProfileSync:
         assert "function quickHash(s)" in html
         assert "${quickHash(content)}" in html
         assert "function renderSuggestionList(suggestions,scope)" in html
+        assert "openKey:''" in html
+        assert "ui.openKey=key;" in html
+        assert "other.open=false;" in html
         assert "return key===ui.autoOpenKey;" in html
         assert "wireSuggestionToggles(feed,'analysis')" in html
         assert "wireSuggestionToggles(feed,'setup')" in html
         assert "state._lastSugSignature=sig;" in html
         assert "state._lastSetupSugSignature=sig;" in html
+
+    def test_markdown_renderer_handles_loose_indented_code_blocks(self):
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        html = (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+        assert "Some models emit malformed code blocks" in html
+        assert "bash|sh|shell|zsh|powershell|ps1|ini|conf|text" in html
+        assert ".replace(/^[ \\t]{4}/,'')" in html
 
     def test_question_attention_clears_when_pending_questions_empty(self):
         from pathlib import Path
@@ -564,7 +608,8 @@ class TestAnalysisSearchOwnership:
 
         root = Path(__file__).resolve().parent.parent
         server_py = (root / "src/quickhatch/gui/server.py").read_text(encoding="utf-8")
-        assert "attempt took {elapsed}s, retrying in {wait}s" in server_py
+        assert "API rate limited" in server_py
+        assert "attempt took {elapsed}s" in server_py
 
 
 class TestGalleryLicensePolicy:

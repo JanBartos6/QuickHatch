@@ -200,6 +200,78 @@ def test_vm_certification_live_backend_success_is_automated(monkeypatch, tmp_pat
     assert verify_kwargs["require_post_reboot"] is True
     assert verify_kwargs["post_reboot_commands"]
     assert "authorized_keys" in verify_kwargs["live_bootstrap_command"]
+    assert verify_kwargs["live_bootstrap_user"] == "liveuser"
+    assert verify_kwargs["live_bootstrap_wait_seconds"] == 120
+
+
+def test_vm_certification_ubuntu_live_backend_uses_graphical_tty_login(
+    monkeypatch,
+    tmp_path,
+):
+    iso = tmp_path / "ubuntu.iso"
+    profile = tmp_path / "profile.json"
+    iso.write_text("fake iso", encoding="utf-8")
+    profile.write_text(json.dumps({}), encoding="utf-8")
+    calls = []
+
+    def _fake_verify(*args, **kwargs):
+        calls.append((args, kwargs))
+        return VerifyResult(success=True, backend="virtualbox", exit_code=0, stages=[])
+
+    monkeypatch.setattr("quickhatch.setup.certify.verify_install_script", _fake_verify)
+    monkeypatch.setattr(
+        "quickhatch.setup.certify._prepare_certification_key",
+        lambda *a, **k: ("cert-key", "ssh-ed25519 AAAA quickhatch", ""),
+    )
+
+    result = run_vm_certification(
+        family="ubuntu",
+        iso=iso,
+        profile=profile,
+        root=tmp_path / "certification",
+        dry_run=False,
+    )
+
+    assert result.success
+    verify_kwargs = calls[0][1]
+    assert verify_kwargs["live_bootstrap_user"] == "ubuntu"
+    assert verify_kwargs["live_bootstrap_wait_seconds"] == 120
+    assert verify_kwargs["ssh_user"] == "root"
+
+
+def test_vm_certification_debian_live_backend_uses_live_user_tty_login(
+    monkeypatch,
+    tmp_path,
+):
+    iso = tmp_path / "debian.iso"
+    profile = tmp_path / "profile.json"
+    iso.write_text("fake iso", encoding="utf-8")
+    profile.write_text(json.dumps({}), encoding="utf-8")
+    calls = []
+
+    def _fake_verify(*args, **kwargs):
+        calls.append((args, kwargs))
+        return VerifyResult(success=True, backend="virtualbox", exit_code=0, stages=[])
+
+    monkeypatch.setattr("quickhatch.setup.certify.verify_install_script", _fake_verify)
+    monkeypatch.setattr(
+        "quickhatch.setup.certify._prepare_certification_key",
+        lambda *a, **k: ("cert-key", "ssh-ed25519 AAAA quickhatch", ""),
+    )
+
+    result = run_vm_certification(
+        family="debian",
+        iso=iso,
+        profile=profile,
+        root=tmp_path / "certification",
+        dry_run=False,
+    )
+
+    assert result.success
+    verify_kwargs = calls[0][1]
+    assert verify_kwargs["ssh_user"] == "user"
+    assert verify_kwargs["live_bootstrap_user"] == "user"
+    assert verify_kwargs["live_bootstrap_wait_seconds"] == 120
 
 
 def test_vm_certification_live_backend_failure_records_artifact(monkeypatch, tmp_path):

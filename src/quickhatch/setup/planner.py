@@ -105,6 +105,7 @@ _FSTAB_ROOT_GREP_RE = re.compile(
     r"^grep\s+-q(?:e|E)?\s+['\"](?:\\s|\s)*/(?:\\s|\s)*['\"]\s+/mnt/etc/fstab$",
     re.IGNORECASE,
 )
+_VALID_JSON_ESCAPE_CHARS = frozenset('"\\/bfnrtu')
 
 _EXECUTABLE_COMMAND_GROUP_STAGES = {
     SetupStage.INSTALL_OR_SKIP,
@@ -287,28 +288,63 @@ def _normalize_package_source(value: str | None) -> str:
     return str(value or "manual_followup").strip()
 
 
+def _repair_model_json_string_literals(raw: str) -> str:
+    def fix_body(body: str) -> str:
+        out: list[str] = []
+        idx = 0
+        while idx < len(body):
+            char = body[idx]
+            if char == "\\" and idx + 1 < len(body):
+                nxt = body[idx + 1]
+                if nxt in _VALID_JSON_ESCAPE_CHARS:
+                    out.append(char)
+                    out.append(nxt)
+                    idx += 2
+                    continue
+                out.append("\\\\")
+                idx += 1
+                continue
+            out.append(char)
+            idx += 1
+        return "".join(out).replace("\r", "\\r").replace("\n", "\\n").replace("\t", "\\t")
+
+    return re.sub(
+        r'"((?:[^"\\]|\\.)*)"',
+        lambda match: '"' + fix_body(match.group(1)) + '"',
+        raw,
+        flags=re.DOTALL,
+    )
+
+
+def model_json_loads(raw: str) -> dict[str, Any]:
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        data = json.loads(_repair_model_json_string_literals(raw))
+    if not isinstance(data, dict):
+        raise ResearchPlanValidationError("Planner output must be a single JSON object.")
+    return data
+
+
 def _extract_json_payload(text: str) -> dict[str, Any]:
     raw = (text or "").strip()
     if raw.startswith("```"):
         lines = raw.splitlines()
         raw = "\n".join(lines[1:-1] if len(lines) >= 2 else lines)
     try:
-        data = json.loads(raw)
+        return model_json_loads(raw)
     except json.JSONDecodeError as exc:
         start = raw.find("{")
         end = raw.rfind("}")
         if start >= 0 and end > start:
             try:
-                data = json.loads(raw[start : end + 1])
+                return model_json_loads(raw[start : end + 1])
             except json.JSONDecodeError:
                 raise ResearchPlanValidationError(
                     f"Planner did not return valid JSON: {exc}"
                 ) from exc
         else:
             raise ResearchPlanValidationError(f"Planner did not return valid JSON: {exc}") from exc
-    if not isinstance(data, dict):
-        raise ResearchPlanValidationError("Planner output must be a single JSON object.")
-    return data
 
 
 def _parse_strategy(raw: Any, field_name: str) -> StrategyDecision:

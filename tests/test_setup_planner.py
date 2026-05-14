@@ -538,6 +538,17 @@ def test_extract_research_plan_tolerates_prose_around_json():
     assert plan.distro_family == "arch"
 
 
+def test_extract_research_plan_repairs_model_shell_backslash_escapes():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["command_groups"][0]["commands"] = [r'grep -q "\[multilib\]" /etc/pacman.conf']
+    text = json.dumps(payload).replace(r"\\[", r"\[").replace(r"\\]", r"\]")
+
+    plan = extract_research_plan(f"```json\n{text}\n```", profile)
+
+    assert plan.command_groups[0].commands == [r'grep -q "\[multilib\]" /etc/pacman.conf']
+
+
 def test_extract_repair_action_rejects_stage_drift():
     payload = {
         "action": "retry_group",

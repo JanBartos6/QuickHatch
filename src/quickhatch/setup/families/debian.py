@@ -12,12 +12,13 @@ class DebianInstaller(BaseFamilyInstaller):
     family = "debian"
     suite = "trixie"
     mirror = "http://deb.debian.org/debian"
+    apt_get = "apt-get -o DPkg::Lock::Timeout=300"
 
     def prepare_live_environment(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
         del facts, profile
         return [
-            "sudo apt-get update",
-            "sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y "
+            f"sudo {self.apt_get} update",
+            f"sudo env DEBIAN_FRONTEND=noninteractive {self.apt_get} install -y "
             "parted dosfstools e2fsprogs util-linux udev",
         ]
 
@@ -27,8 +28,8 @@ class DebianInstaller(BaseFamilyInstaller):
     def install_base_system(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
         del facts, profile
         return [
-            "sudo apt-get update",
-            "sudo apt-get install -y debootstrap arch-install-scripts grub-efi-amd64",
+            f"sudo {self.apt_get} update",
+            f"sudo {self.apt_get} install -y debootstrap arch-install-scripts grub-efi-amd64",
             f"sudo debootstrap --arch=amd64 {self.suite} /mnt {self.mirror}",
             "sudo genfstab -U /mnt | sudo tee -a /mnt/etc/fstab >/dev/null",
             "for qh_bind in dev dev/pts proc sys run; do "
@@ -36,7 +37,10 @@ class DebianInstaller(BaseFamilyInstaller):
             "mountpoint -q /mnt/$qh_bind || sudo mount --bind /$qh_bind /mnt/$qh_bind; "
             "done",
             "test -s /etc/resolv.conf && sudo cp -L /etc/resolv.conf /mnt/etc/resolv.conf || true",
-            "sudo chroot /mnt sh -c 'apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y linux-image-amd64 sudo network-manager openssh-server grub-efi-amd64'",
+            "sudo chroot /mnt sh -c '"
+            f"{self.apt_get} update && "
+            f"DEBIAN_FRONTEND=noninteractive {self.apt_get} install -y "
+            "linux-image-amd64 sudo network-manager openssh-server grub-efi-amd64'",
             "sudo chroot /mnt systemctl enable NetworkManager ssh",
             "echo quickhatch | sudo tee /mnt/etc/hostname >/dev/null",
         ]

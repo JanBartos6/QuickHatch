@@ -411,6 +411,42 @@ def test_existing_live_target_user_is_repaired_for_passwordless_sudo():
     assert "/etc/sudoers.d/99-quickhatch-nopasswd" in ensure_command
 
 
+def test_desired_install_username_takes_precedence_over_existing_live_target_user():
+    profile = UserProfile()
+    profile.install_username = "tom"
+    profile.default_account_password = "setup-pass"
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        login_user="root",
+        is_live=True,
+        is_root=True,
+    )
+    commands: list[str] = []
+
+    def ssh_exec(command: str, _timeout: int):
+        commands.append(command)
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator._detect_live_target_root_path = lambda: "/mnt"  # type: ignore[method-assign]
+    orchestrator._detect_live_target_admin_user = lambda _root: "quickhatch"  # type: ignore[method-assign]
+
+    root_path, reconnect_user = orchestrator._ensure_live_install_reconnect_user()
+
+    assert root_path == "/mnt"
+    assert reconnect_user == "tom"
+    assert orchestrator.ctx.created_user == "tom"
+    assert commands
+    assert "qh_user=tom" in commands[0]
+    assert "tom ALL=(ALL:ALL) NOPASSWD: ALL" in commands[0]
+
+
 def test_fedora_live_media_reaches_research_planning():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
@@ -2124,6 +2160,46 @@ def test_core_desktop_package_verification_still_blocks():
     assert "plasma-desktop" in failure.command
 
 
+def test_desktop_display_manager_active_verification_accepts_enabled_service():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        init_system="systemd",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    commands_seen: list[str] = []
+
+    def ssh_exec(command, timeout):
+        commands_seen.append(command)
+        if "systemctl is-active sddm" in command and "is-enabled" not in command:
+            return (3, "inactive\n", "")
+        if "systemctl is-enabled sddm" in command:
+            return (0, "enabled\n", "")
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="desktop-core",
+        stage=SetupStage.DESKTOP,
+        title="Install KDE Plasma Desktop",
+        commands=["sudo systemctl enable sddm"],
+        verification=["sudo systemctl is-active sddm"],
+    )
+
+    failure = orchestrator._execute_group(SetupStage.DESKTOP, group, {})
+
+    assert failure is None
+    assert any("systemctl is-enabled sddm" in command for command in commands_seen)
+    assert not any(command.strip() == "sudo systemctl is-active sddm" for command in commands_seen)
+
+
 def test_final_package_verification_accepts_known_package_aliases():
     profile = UserProfile(apps_to_install=["Brave", "Mullvad VPN"])
     bridge = BridgeState(profile, persist_path=None)
@@ -3352,6 +3428,212 @@ def test_apps_resume_audits_before_mutating_when_apps_are_resolved():
     assert any("apps already satisfies audit" in msg["content"] for msg in bridge.messages)
 
 
+def test_desktop_resume_skips_when_display_manager_already_valid():
+    profile = UserProfile()
+    profile.hardware.displays = [
+        DisplayInfo(
+            name="Main display",
+            width_px=3840,
+            height_px=2160,
+            refresh_hz=60.0,
+            scale_percent=175,
+            primary=True,
+        )
+    ]
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="tom",
+        login_user="tom",
+        sudo_nopasswd=True,
+        desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
+        display_manager="sddm",
+        display_manager_enabled=True,
+        display_manager_active=True,
+    )
+    executed: list[str] = []
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        facts,
+        ssh_exec=lambda command, _timeout: executed.append(command) or (0, "", ""),
+        probe_facts=lambda **_kwargs: facts,
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("nvidia"),
+        desktop_strategy=StrategyDecision("plasma"),
+        command_groups=[
+            CommandGroup(
+                id="desktop",
+                stage=SetupStage.DESKTOP,
+                title="Install KDE Plasma Desktop",
+                commands=[
+                    "sudo pacman -S --noconfirm plasma-meta kde-applications sddm",
+                    "yay -S --noconfirm catppuccin-gtk-theme",
+                    "sudo systemctl enable sddm",
+                ],
+                verification=[
+                    (
+                        "systemctl is-active sddm >/dev/null 2>&1 "
+                        "|| systemctl is-enabled sddm >/dev/null 2>&1"
+                    )
+                ],
+            )
+        ],
+    )
+
+    orchestrator._run_desktop()
+
+    assert executed == []
+    assert orchestrator.ctx.stage_results[-1].passed is True
+    assert (
+        orchestrator.ctx.stage_state[SetupStage.DESKTOP.value][
+            "skipped_current_state_already_valid"
+        ]
+        is True
+    )
+    assert any("desktop already satisfies audit" in msg["content"] for msg in bridge.messages)
+
+
+def test_desktop_resume_does_not_skip_mismatched_desktop_family():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="ubuntu",
+        package_manager="apt",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+        desktop_runtime_state=DesktopRuntimeState.PENDING_RELOGIN,
+        display_manager="gdm",
+        display_manager_enabled=True,
+        display_manager_active=True,
+    )
+    executed: list[str] = []
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        facts,
+        ssh_exec=lambda command, _timeout: executed.append(command) or (0, "", ""),
+        probe_facts=lambda **_kwargs: facts,
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Ubuntu workstation",
+        distro_family="ubuntu",
+        package_manager="apt",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("plasma"),
+        command_groups=[
+            CommandGroup(
+                id="desktop",
+                stage=SetupStage.DESKTOP,
+                title="Install KDE Plasma Desktop",
+                commands=["sudo apt-get install -y kde-plasma-desktop sddm"],
+                verification=["systemctl is-enabled sddm"],
+            )
+        ],
+    )
+
+    orchestrator._run_desktop()
+
+    assert any("kde-plasma-desktop" in command for command in executed)
+    assert not orchestrator.ctx.stage_state[SetupStage.DESKTOP.value].get(
+        "skipped_current_state_already_valid"
+    )
+
+
+def test_apps_resume_marks_installed_packages_before_service_only_commands():
+    profile = UserProfile(apps_to_install=["Docker", "GitHub Desktop", "Spotify", "VLC"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="tom",
+        login_user="tom",
+        sudo_nopasswd=True,
+    )
+    executed: list[str] = []
+
+    def ssh_exec(command, _timeout):
+        executed.append(command)
+        if command.startswith("for p in "):
+            return (
+                0,
+                (
+                    "INSTALLED:docker\n"
+                    "INSTALLED:github-desktop-bin\n"
+                    "INSTALLED:spotify\n"
+                    "INSTALLED:vlc\n"
+                ),
+                "",
+            )
+        raise AssertionError(f"unexpected mutation command during app resume: {command}")
+
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        facts,
+        ssh_exec=ssh_exec,
+        probe_facts=lambda **_kwargs: facts,
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("nvidia"),
+        desktop_strategy=StrategyDecision("plasma"),
+        apps=[
+            AppPlanItem(name="Docker", package_name="docker", status=PlanItemStatus.PENDING),
+            AppPlanItem(
+                name="Docker Desktop",
+                package_name="docker-desktop",
+                status=PlanItemStatus.MANUAL_FOLLOWUP,
+                reason="Docker Desktop package is optional/manual follow-up on Arch.",
+            ),
+            AppPlanItem(
+                name="GitHub Desktop",
+                package_name="github-desktop-bin",
+                status=PlanItemStatus.PENDING,
+            ),
+            AppPlanItem(name="Spotify", package_name="spotify", status=PlanItemStatus.PENDING),
+            AppPlanItem(name="VLC", package_name="vlc", status=PlanItemStatus.PENDING),
+        ],
+        command_groups=[
+            CommandGroup(
+                id="apps",
+                stage=SetupStage.APPS,
+                title="Install Requested Applications",
+                commands=[
+                    "sudo systemctl enable --now docker",
+                    "sudo usermod -aG docker tom",
+                ],
+            )
+        ],
+    )
+
+    orchestrator._run_apps()
+
+    assert all(
+        "systemctl enable --now docker" not in command and "usermod -aG docker" not in command
+        for command in executed
+    )
+    assert orchestrator.ctx.stage_results[-1].passed is True
+    assert orchestrator.ctx.stage_state[SetupStage.APPS.value][
+        "already_installed_apps_from_package_db"
+    ] == ["Docker", "GitHub Desktop", "Spotify", "VLC"]
+    assert any("apps already satisfies audit" in msg["content"] for msg in bridge.messages)
+
+
 def test_postboot_driver_resume_runs_when_refreshed_driver_audit_fails():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
@@ -3966,6 +4248,103 @@ def test_arch_aur_helper_bootstrap_is_injected_before_yay_when_missing():
     assert "timedatectl set-ntp true" in commands[0]
     assert "makepkg -s --noconfirm" in commands[0]
     assert commands[1] == "yay -S --noconfirm sweet-mars-kde-theme-git candy-icons-git"
+
+
+def test_model_authored_arch_aur_helper_bootstrap_is_dropped_before_injection():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="none",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="apps",
+        stage=SetupStage.APPS,
+        title="Install requested apps",
+        commands=[
+            "sudo pacman -S --noconfirm docker vlc",
+            "git clone https://aur.archlinux.org/yay.git && cd yay && makepkg -si --noconfirm && cd .. && rm -rf yay",
+            "yay -S --noconfirm spotify github-desktop-bin",
+        ],
+        packages=["docker", "vlc", "spotify", "github-desktop-bin"],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.APPS, group)
+
+    assert "yay-bin.git" in commands[0]
+    assert any(command == "sudo pacman -S --noconfirm docker vlc" for command in commands)
+    assert any(command == "yay -S --noconfirm spotify github-desktop-bin" for command in commands)
+    assert not any("aur.archlinux.org/yay.git" in command for command in commands)
+    assert any(
+        "Skipping model-authored AUR helper bootstrap" in message["content"]
+        for message in bridge.messages
+    )
+
+
+def test_root_package_manager_install_is_not_run_as_target_user():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="tom",
+        login_user="tom",
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="apps",
+        stage=SetupStage.APPS,
+        title="Install requested apps",
+        commands=[
+            "sudo -u tom pacman -S --noconfirm vlc",
+            "sudo -u tom yay -S --noconfirm spotify",
+        ],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.APPS, group)
+
+    assert "sudo pacman -S --noconfirm vlc" in commands
+    assert "sudo -u tom pacman" not in " ".join(commands)
+    assert any("yay -S --noconfirm spotify" in command for command in commands)
+
+
+def test_root_package_manager_user_wrapper_normalization_is_cross_family():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    cases = [
+        ("ubuntu", "apt", "sudo -u jan apt-get install -y git", "sudo apt-get install -y git"),
+        ("debian", "apt", "sudo -u jan apt install -y git", "sudo apt install -y git"),
+        ("fedora", "dnf", "sudo -u jan dnf install -y git", "sudo dnf install -y git"),
+    ]
+    for family, package_manager, command, expected in cases:
+        facts = SetupFacts(
+            distro_family=family,
+            package_manager=package_manager,
+            current_user="jan",
+            login_user="jan",
+            sudo_nopasswd=True,
+        )
+        orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+        orchestrator.ctx.facts = facts
+        group = CommandGroup(
+            id=f"apps-{family}",
+            stage=SetupStage.APPS,
+            title="Install app",
+            commands=[command],
+        )
+
+        commands = orchestrator._commands_for_group(SetupStage.APPS, group)
+
+        assert all("sudo -u jan" not in item for item in commands)
+        assert any(expected in item or " install " in item and " git" in item for item in commands)
 
 
 def test_arch_aur_helper_bootstrap_updates_facts_after_success():
@@ -4640,7 +5019,7 @@ def test_orchestrator_uses_harness_search_during_non_native_planning():
     assert "desktop runtime state is still unknown" in summary.lower()
 
 
-def test_orchestrator_keeps_harness_lookup_available_during_native_planning():
+def test_orchestrator_uses_harness_lookup_instead_of_native_grounding_for_big_planning():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
     facts = SetupFacts(
@@ -4736,7 +5115,7 @@ def test_orchestrator_keeps_harness_lookup_available_during_native_planning():
 
     summary = SetupOrchestrator(runtime).run()
 
-    assert seen_native_flags == [True, True]
+    assert seen_native_flags == [False, False]
     assert seen_searches == ["nvidia open"]
     assert "desktop runtime state is still unknown" in summary.lower()
 
@@ -6662,6 +7041,73 @@ def test_setup_summary_only_claims_verified_installed_apps():
     assert "Skipped: Codex" in summary
 
 
+def test_final_summary_suppresses_verified_windows_app_alias_followups():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="tom")
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    plan = ResearchPlan(
+        target_summary="Arch workstation.",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("plasma"),
+        command_groups=[],
+        apps=[
+            AppPlanItem(
+                name="Docker",
+                package_name="docker",
+                source="repo",
+                status=PlanItemStatus.INSTALLED,
+            ),
+            AppPlanItem(
+                name="Spotify",
+                package_name="spotify",
+                source="community",
+                status=PlanItemStatus.INSTALLED,
+            ),
+            AppPlanItem(
+                name="VLC",
+                package_name="vlc",
+                source="repo",
+                status=PlanItemStatus.INSTALLED,
+            ),
+            AppPlanItem(
+                name="Docker Desktop",
+                package_name="docker-desktop",
+                source="manual_followup",
+                status=PlanItemStatus.MANUAL_FOLLOWUP,
+                reason="Docker Engine was installed instead.",
+            ),
+            AppPlanItem(
+                name="Spotify - Music and Podcasts",
+                source="manual_followup",
+                status=PlanItemStatus.MANUAL_FOLLOWUP,
+                reason="duplicate Windows display name",
+            ),
+            AppPlanItem(
+                name="VLC media player",
+                source="manual_followup",
+                status=PlanItemStatus.MANUAL_FOLLOWUP,
+                reason="duplicate Windows display name",
+            ),
+        ],
+    )
+    final_state = {"verified_installed_apps": ["Docker", "Spotify", "VLC"]}
+    orchestrator.ctx.plan = plan
+    orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value] = final_state
+
+    result = audit_stage(SetupStage.FINAL_AUDIT, facts, plan=plan, stage_state=final_state)
+    summary = orchestrator._build_summary()
+
+    findings = [finding.summary for finding in result.findings]
+    assert findings == ["Manual follow-up app(s) remain: Docker Desktop"]
+    assert "Verified installed: Docker, Spotify, VLC" in summary
+    assert "Manual follow-up: Docker Desktop" in summary
+    assert "Spotify - Music and Podcasts" not in summary
+    assert "VLC media player" not in summary
+
+
 def test_final_package_verification_accepts_user_profile_source_apps():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
@@ -7596,6 +8042,54 @@ def test_repair_budget_gate_can_mark_non_install_group_manual_followup(monkeypat
     assert questions
     assert questions[0][1] == ["try 3 more repairs", "manual follow-up", "stop setup"]
     assert group.status == PlanItemStatus.MANUAL_FOLLOWUP
+
+
+def test_repair_llm_unavailable_marks_desktop_group_manual_followup(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    group = CommandGroup(
+        id="desktop",
+        stage=SetupStage.DESKTOP,
+        title="Install KDE Plasma Desktop",
+        commands=["sudo pacman -S --noconfirm plasma-meta sddm"],
+        verification=["sudo systemctl is-active sddm"],
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("nvidia"),
+        desktop_strategy=StrategyDecision("plasma"),
+        command_groups=[group],
+    )
+
+    monkeypatch.setattr(
+        orchestrator,
+        "_execute_group",
+        lambda _stage, _group, _state: GroupFailure(
+            "verification",
+            "sudo systemctl is-active sddm",
+            "inactive",
+            "",
+            "sddm inactive",
+        ),
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_repair_model_call",
+        lambda _messages: (_ for _ in ()).throw(
+            RuntimeError("Repair LLM call failed after 3 attempts: 429 Too Many Requests")
+        ),
+    )
+
+    orchestrator._run_stage_groups(SetupStage.DESKTOP, audit_after=False)
+
+    assert group.status == PlanItemStatus.MANUAL_FOLLOWUP
+    manual_followups = orchestrator.ctx.stage_state[SetupStage.DESKTOP.value]["manual_followups"]
+    assert "Repair LLM unavailable" in manual_followups[0]["reason"]
 
 
 def test_identical_noncritical_repair_loop_becomes_manual_followup(monkeypatch):

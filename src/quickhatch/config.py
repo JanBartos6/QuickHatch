@@ -209,6 +209,7 @@ class UserProfile:
     data_transfer_method: str = ""
     linux_ip: str = ""
     linux_user: str = ""
+    install_username: str = ""
     # Remote setup intent for the last step of the wizard.
     # "auto" = current default behavior
     # "wipe_and_reinstall" = experimental destructive reinstall is explicitly allowed,
@@ -417,6 +418,7 @@ class UserProfile:
                 data_transfer_method=data.get("data_transfer_method", "") or "",
                 linux_ip=data.get("linux_ip", "") or "",
                 linux_user=data.get("linux_user", "") or "",
+                install_username=data.get("install_username", "") or "",
                 remote_setup_mode=remote_setup_mode,
                 install_profile=install_profile,
                 install_encryption=_validated_choice(

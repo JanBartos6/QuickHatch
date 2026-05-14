@@ -19,7 +19,12 @@ from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, UserProfile, generate_setup_password
 
 from .attempts import build_attempt_signature, is_diagnostic_command
-from .audit import audit_stage, final_audit, findings_from_blockers
+from .audit import (
+    app_manual_followup_satisfied_by_verified,
+    audit_stage,
+    final_audit,
+    findings_from_blockers,
+)
 from .capabilities import (
     DISK_INVENTORY_COMMAND,
     CapabilityStore,
@@ -39,6 +44,7 @@ from .planner import (
     build_research_prompt,
     extract_repair_action,
     extract_research_plan,
+    model_json_loads,
 )
 from .preflight import (
     _split_command_segments,
@@ -140,6 +146,10 @@ _ARCH_ENABLE_MULTILIB_COMMAND = (
     "sudo sed -i "
     "'/^#\\?\\[multilib\\]/,/^#\\?Include = \\/etc\\/pacman.d\\/mirrorlist/s/^#//' "
     "/etc/pacman.conf"
+)
+_ARCH_AUR_HELPER_BOOTSTRAP_RE = re.compile(
+    r"\baur\.archlinux\.org/(?:yay|yay-bin|paru|paru-bin)\.git\b",
+    re.IGNORECASE,
 )
 _ARCH_NVIDIA_BOOT_CONFIG_COMMANDS = (
     "printf '%s\\n' 'blacklist nouveau' 'options nouveau modeset=0' | sudo tee /etc/modprobe.d/blacklist-nouveau.conf >/dev/null",
@@ -875,7 +885,13 @@ class SetupOrchestrator:
 
     def _planner_model_call(self, messages: list[dict[str, str]]) -> str:
         planning_config = copy.copy(self.runtime.config)
-        planning_config.native_search = self.runtime.native_search_active
+        # The setup planner prompt is intentionally large because it carries
+        # safety rules, target facts, distro primers, and command schemas.
+        # Attaching provider-native search to that whole prompt can burn
+        # grounding quota and make the call slow or flaky. Keep the user's
+        # model/provider choice, but route current-fact lookups through the
+        # planner's explicit repo/community/web search actions instead.
+        planning_config.native_search = False
         return self._call_model_with_retries(planning_config, messages, context="planning")
 
     def _parse_planner_json(self, text: str) -> dict[str, Any]:
@@ -884,13 +900,13 @@ class SetupOrchestrator:
             lines = raw.splitlines()
             raw = "\n".join(lines[1:-1] if len(lines) >= 2 else lines)
         try:
-            data = json.loads(raw)
+            data = model_json_loads(raw)
         except json.JSONDecodeError:
             start = raw.find("{")
             end = raw.rfind("}")
             if start < 0 or end <= start:
                 raise
-            data = json.loads(raw[start : end + 1])
+            data = model_json_loads(raw[start : end + 1])
         if not isinstance(data, dict):
             raise RuntimeError("Planner response must be a single JSON object.")
         return data
@@ -916,7 +932,7 @@ class SetupOrchestrator:
                     else ""
                 )
             ),
-            native_search_active=self.runtime.native_search_active,
+            native_search_active=False,
             target_distro_family=self.runtime.target_distro_family,
         )
         self.runlog.record(
@@ -1513,9 +1529,9 @@ class SetupOrchestrator:
         self._record_stage_result(result)
 
     def _ensure_live_install_target_user(self) -> None:
-        candidate = (getattr(self.profile, "linux_user", "") or "").strip().lower()
+        candidate = self._profile_target_username()
         if self._valid_target_username(candidate):
-            self.profile.linux_user = candidate
+            self.profile.install_username = candidate
             self.ctx.created_user = candidate
             return
         for attempt in range(1, 4):
@@ -1531,7 +1547,7 @@ class SetupOrchestrator:
             )
             candidate = (answer or "").strip().lower()
             if self._valid_target_username(candidate):
-                self.profile.linux_user = candidate
+                self.profile.install_username = candidate
                 self.ctx.created_user = candidate
                 self.runlog.record(
                     "target_user_confirmed",
@@ -1551,6 +1567,21 @@ class SetupOrchestrator:
         return bool(
             candidate and candidate != "root" and re.fullmatch(r"[a-z_][a-z0-9_-]{0,30}", candidate)
         )
+
+    def _profile_target_username(self) -> str:
+        try:
+            family = self._family_adapter_key(self.ctx.facts)
+            candidate = get_family_installer(family).target_user(self.profile)
+        except Exception:
+            candidate = ""
+        candidate = (candidate or "").strip().lower()
+        explicit = (getattr(self.profile, "install_username", "") or "").strip().lower()
+        if self._valid_target_username(candidate) and (
+            candidate not in _LIVE_SESSION_USER_NAMES
+            and (candidate != "quickhatch" or self._valid_target_username(explicit))
+        ):
+            return candidate
+        return ""
 
     def _run_pre_reboot_checks_with_retries(self) -> tuple[bool, list[str], str]:
         last_result: tuple[bool, list[str], str] = (False, [], "")
@@ -1980,6 +2011,15 @@ class SetupOrchestrator:
             return root_path, target_user
 
         root_path = self._detect_live_target_root_path()
+        target_user = self._profile_target_username()
+        if target_user:
+            self._create_live_target_reconnect_user(root_path, target_user)
+            self.ctx.created_user = target_user
+            self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})[
+                "target_reconnect_user"
+            ] = target_user
+            return root_path, target_user
+
         existing_user = self._detect_live_target_admin_user(root_path)
         if existing_user:
             self._create_live_target_reconnect_user(root_path, existing_user)
@@ -2075,6 +2115,7 @@ class SetupOrchestrator:
                 candidates.append(user)
 
         add(self.ctx.created_user)
+        add(getattr(self.runtime.profile, "install_username", ""))
         if self.ctx.plan:
             for group in self.ctx.plan.command_groups:
                 if group.stage != SetupStage.INSTALL_OR_SKIP:
@@ -2087,7 +2128,7 @@ class SetupOrchestrator:
 
     @staticmethod
     def _valid_target_username(user: str) -> bool:
-        return bool(re.fullmatch(r"[a-z_][a-z0-9_-]{0,31}", user or ""))
+        return bool(user and user != "root" and re.fullmatch(r"[a-z_][a-z0-9_-]{0,30}", user or ""))
 
     def _create_live_target_reconnect_user(self, root_path: str, target_user: str) -> None:
         root_q = shlex.quote(root_path)
@@ -2334,21 +2375,6 @@ class SetupOrchestrator:
         stage_state = self.ctx.stage_state.setdefault(stage.value, {})
         if stage == SetupStage.DESKTOP:
             self._update_desktop_display_audit_state(stage_state)
-            has_pending_desktop_work = any(
-                group.status
-                in {
-                    PlanItemStatus.PENDING,
-                    PlanItemStatus.IN_PROGRESS,
-                    PlanItemStatus.OPTIONAL_SLOW_PENDING_CONFIRMATION,
-                }
-                for group in self._iter_stage_groups(stage)
-            )
-            if has_pending_desktop_work and not (
-                stage_state.get("desktop_design_attempted")
-                or stage_state.get("wallpaper_attempted")
-                or stage_state.get("strict_desktop_design_contract")
-            ):
-                return False
         result = audit_stage(
             stage,
             self.ctx.facts or SetupFacts(),
@@ -2356,6 +2382,8 @@ class SetupOrchestrator:
             stage_state=stage_state,
         )
         if not result.passed:
+            return False
+        if stage == SetupStage.DESKTOP and not self._desktop_current_state_matches_plan():
             return False
         stage_state["skipped_current_state_already_valid"] = True
         self._record_stage_result(result)
@@ -2369,6 +2397,29 @@ class SetupOrchestrator:
             stage=stage.value,
             result=asdict(result),
         )
+        return True
+
+    def _desktop_current_state_matches_plan(self) -> bool:
+        if self.ctx.plan is None or self.ctx.facts is None:
+            return True
+        desired_text = " ".join(
+            [
+                self.ctx.plan.desktop_strategy.strategy,
+                self.ctx.plan.desktop_strategy.notes,
+                *(
+                    " ".join([group.title, *group.commands, *group.verification])
+                    for group in self._iter_stage_groups(SetupStage.DESKTOP)
+                ),
+            ]
+        ).lower()
+        desktop_env = (self.ctx.facts.desktop_design.environment or "").lower()
+        display_manager = (self.ctx.facts.display_manager or "").lower()
+        if any(token in desired_text for token in ("plasma", "kde", "sddm")):
+            return "kde" in desktop_env or "plasma" in desktop_env or display_manager == "sddm"
+        if any(token in desired_text for token in ("gnome", "gdm")):
+            return "gnome" in desktop_env or display_manager == "gdm"
+        if any(token in desired_text for token in ("xfce", "lightdm")):
+            return "xfce" in desktop_env or display_manager == "lightdm"
         return True
 
     @staticmethod
@@ -2844,6 +2895,7 @@ class SetupOrchestrator:
             return None
 
     def _run_apps(self) -> None:
+        self._mark_installed_apps_from_native_package_db()
         self._synthesize_missing_app_command_groups()
         if self._skip_stage_if_current_audit_passes(SetupStage.APPS):
             return
@@ -3974,6 +4026,23 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                     reason="fstab mount checks must match fields, not whitespace-sensitive text",
                 )
                 verification = normalized_verification
+            normalized_verification = self._normalize_desktop_display_manager_verification(
+                verification,
+                stage=stage,
+            )
+            if normalized_verification != verification:
+                self.runlog.record(
+                    "verification_normalized",
+                    stage=stage.value,
+                    group_id=group.id,
+                    original=verification,
+                    normalized=normalized_verification,
+                    reason=(
+                        "desktop display manager install groups should accept an enabled "
+                        "manager before the final controlled start/poll step"
+                    ),
+                )
+                verification = normalized_verification
             if stage == SetupStage.DESKTOP and not self._desktop_runtime_command_ready_or_followup(
                 verification,
                 group,
@@ -4342,6 +4411,41 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             + shlex.quote(path)
         )
 
+    @staticmethod
+    def _normalize_desktop_display_manager_verification(command: str, *, stage: SetupStage) -> str:
+        if stage != SetupStage.DESKTOP:
+            return command
+        stripped = (command or "").strip()
+        if not stripped:
+            return command
+        try:
+            tokens = shlex.split(stripped, posix=True)
+        except ValueError:
+            return command
+        tokens = SetupOrchestrator._strip_command_wrappers(tokens)
+        if len(tokens) < 3 or tokens[0] != "systemctl" or tokens[1] != "is-active":
+            return command
+        units = [
+            token
+            for token in tokens[2:]
+            if token != "--quiet"
+            and not token.startswith("-")
+            and not token.startswith(">")
+            and token not in {"2>&1", "1>/dev/null"}
+        ]
+        if len(units) != 1:
+            return command
+        unit = units[0]
+        normalized_unit = unit.removesuffix(".service")
+        if normalized_unit not in {"display-manager", "sddm", "gdm", "lightdm", "greetd", "ly"}:
+            return command
+        quoted = shlex.quote(unit)
+        return (
+            f"(systemctl is-active {quoted} >/dev/null 2>&1 || "
+            f"systemctl is-enabled {quoted} >/dev/null 2>&1 || "
+            "systemctl is-enabled display-manager >/dev/null 2>&1)"
+        )
+
     def _synthesize_missing_app_command_groups(self) -> None:
         """Turn resolved app plan rows into executable app groups if the model omitted them."""
 
@@ -4704,6 +4808,66 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                 continue
             app.status = PlanItemStatus.INSTALLED
             app.reason = app.reason or "Already installed before this app command group ran."
+
+    def _mark_installed_apps_from_native_package_db(self) -> None:
+        """Update app plan rows from the target package DB before running app commands.
+
+        Reruns against an already-configured target often receive a fresh plan whose
+        app rows are pending again. A package preflight here lets the normal app
+        audit skip the entire stage before service-only follow-up commands, such as
+        enabling Docker again, can run unnecessarily.
+        """
+
+        if self.ctx.plan is None or self.ctx.facts is None:
+            return
+        candidates: dict[str, AppPlanItem] = {}
+        for app in self.ctx.plan.apps:
+            if app.status in {
+                PlanItemStatus.INSTALLED,
+                PlanItemStatus.COMPLETED,
+                PlanItemStatus.EXPLICITLY_SKIPPED,
+                PlanItemStatus.MANUAL_FOLLOWUP,
+            }:
+                continue
+            variants = self._package_name_variants(app.name, app.package_name)
+            if not variants:
+                continue
+            for variant in sorted(variants):
+                candidates.setdefault(variant, app)
+        if not candidates:
+            return
+        installed = self._query_installed_native_packages(sorted(candidates), self.ctx.facts)
+        if not installed:
+            return
+        marked: list[str] = []
+        for app in self.ctx.plan.apps:
+            if app.status in {
+                PlanItemStatus.INSTALLED,
+                PlanItemStatus.COMPLETED,
+                PlanItemStatus.EXPLICITLY_SKIPPED,
+                PlanItemStatus.MANUAL_FOLLOWUP,
+            }:
+                continue
+            variants = self._package_name_variants(app.name, app.package_name)
+            if not variants.intersection(installed):
+                continue
+            app.status = PlanItemStatus.INSTALLED
+            app.reason = app.reason or "Already installed on target before app stage ran."
+            marked.append(app.name)
+        if not marked:
+            return
+        stage_state = self.ctx.stage_state.setdefault(SetupStage.APPS.value, {})
+        existing = list(stage_state.get("already_installed_apps_from_package_db", []) or [])
+        for app_name in sorted(marked):
+            if app_name not in existing:
+                existing.append(app_name)
+        stage_state["already_installed_apps_from_package_db"] = existing
+        self.runlog.record(
+            "apps_marked_installed_from_package_db",
+            stage=SetupStage.APPS.value,
+            apps=sorted(marked),
+            installed_packages=sorted(installed),
+        )
 
     def _query_installed_native_packages(self, packages: list[str], facts: SetupFacts) -> set[str]:
         package_list = [package for package in dict.fromkeys(packages) if package]
@@ -5141,6 +5305,12 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             self._normalize_fedora_removed_package_command(command, stage=stage, group=group)
             for command in commands
         ]
+        commands = [
+            self._normalize_root_package_manager_run_as_target_user(
+                command, stage=stage, group=group
+            )
+            for command in commands
+        ]
         commands = [self._normalize_mountpoint_probe_command(command) for command in commands]
         commands = self._inject_debian_live_debootstrap_prereqs(stage, group, commands)
         commands = self._prefer_debian_live_cdrom_debootstrap_mirror(stage, group, commands)
@@ -5162,6 +5332,7 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             self._normalize_live_nonroot_chroot_command(command, stage=stage)
             for command in commands
         ]
+        commands = self._drop_model_arch_aur_helper_bootstrap_commands(stage, group, commands)
         if self._is_arch_nvidia_driver_group(stage, group, commands):
             commands = self._normalize_arch_nvidia_commands(commands)
         if self._needs_arch_aur_helper_bootstrap(commands):
@@ -5885,6 +6056,97 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                 reason="gnome-themes-extra is not available on current Fedora releases; GTK/Adwaita theming lives in other packages",
             )
         return rewritten
+
+    def _normalize_root_package_manager_run_as_target_user(
+        self, command: str, *, stage: SetupStage, group: CommandGroup
+    ) -> str:
+        if any(operator in (command or "") for operator in ("&&", "||", ";", "|", "\n")):
+            return command
+        try:
+            tokens = shlex.split(command or "", posix=True)
+        except ValueError:
+            return command
+        if not tokens or tokens[0] != "sudo":
+            return command
+        idx = 1
+        preserved_sudo_options: list[str] = []
+        target_user = ""
+        while idx < len(tokens):
+            token = tokens[idx]
+            if token in {"-u", "--user"} and idx + 1 < len(tokens):
+                target_user = tokens[idx + 1]
+                idx += 2
+                break
+            if token.startswith("--user="):
+                target_user = token.split("=", 1)[1]
+                idx += 1
+                break
+            if token.startswith("-"):
+                preserved_sudo_options.append(token)
+                idx += 1
+                continue
+            return command
+        if not target_user or idx >= len(tokens):
+            return command
+        payload = tokens[idx:]
+        tool = self._payload_root_package_tool(payload)
+        if not tool or not self._payload_package_tool_mutates(tool, payload):
+            return command
+        facts = self.ctx.facts or SetupFacts()
+        if facts.is_root or (facts.current_user or facts.login_user) == "root":
+            rewritten_tokens = payload
+        else:
+            rewritten_tokens = ["sudo", *preserved_sudo_options, *payload]
+        rewritten = shlex.join(rewritten_tokens)
+        if rewritten != command:
+            self.runlog.record(
+                "root_package_manager_user_wrapper_normalized",
+                stage=stage.value,
+                group_id=group.id,
+                original=command,
+                rewritten=rewritten,
+                package_manager_tool=tool,
+                target_user=target_user,
+                reason=(
+                    "Root package manager mutation was wrapped in sudo -u target user; "
+                    "run it with root privileges instead."
+                ),
+            )
+        return rewritten
+
+    @staticmethod
+    def _payload_root_package_tool(tokens: list[str]) -> str:
+        idx = 0
+        while idx < len(tokens):
+            token = tokens[idx]
+            if token == "env" or re.match(r"^[A-Za-z_][A-Za-z0-9_]*=.*$", token):
+                idx += 1
+                continue
+            return token.rsplit("/", 1)[-1]
+        return ""
+
+    @staticmethod
+    def _payload_package_tool_mutates(tool: str, tokens: list[str]) -> bool:
+        normalized = tool.lower()
+        if normalized == "pacman":
+            return any(token.startswith(("-S", "-R", "-U", "-D")) for token in tokens[1:])
+        mutating_subcommands = {
+            "install",
+            "remove",
+            "erase",
+            "upgrade",
+            "full-upgrade",
+            "dist-upgrade",
+            "autoremove",
+            "update",
+            "add",
+            "del",
+            "sync",
+            "merge",
+        }
+        if normalized in {"apt", "apt-get", "dnf", "zypper", "apk", "xbps-install", "emerge"}:
+            return any(token.lower() in mutating_subcommands for token in tokens[1:])
+        return False
 
     @staticmethod
     def _normalize_mountpoint_probe_command(command: str) -> str:
@@ -6660,6 +6922,33 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             return False
         return any(self._uses_arch_community_helper_command(command) for command in commands)
 
+    def _drop_model_arch_aur_helper_bootstrap_commands(
+        self, stage: SetupStage, group: CommandGroup, commands: list[str]
+    ) -> list[str]:
+        facts = self.ctx.facts or SetupFacts()
+        if facts.package_manager != "pacman":
+            return commands
+        kept: list[str] = []
+        dropped: list[str] = []
+        for command in commands:
+            if self._is_model_arch_aur_helper_bootstrap_command(command):
+                dropped.append(command)
+                continue
+            kept.append(command)
+        if dropped:
+            self.bridge.add_message(
+                "agent",
+                "[harness] Skipping model-authored AUR helper bootstrap; QuickHatch "
+                "will use its conflict-safe helper setup when an AUR command needs one.",
+            )
+            self.runlog.record(
+                "arch_aur_helper_bootstrap_dropped",
+                stage=stage.value,
+                group_id=group.id,
+                commands=dropped,
+            )
+        return kept
+
     def _arch_yay_bootstrap_command(self) -> str:
         facts = self.ctx.facts or SetupFacts()
         return _ARCH_ROOT_YAY_BOOTSTRAP_COMMAND if facts.is_root else _ARCH_YAY_BOOTSTRAP_COMMAND
@@ -6668,6 +6957,13 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
     def _is_arch_yay_bootstrap_command(command: str) -> bool:
         lower = command.lower()
         return "quickhatch-yay-bin" in lower and "yay-bin.git" in lower and "makepkg" in lower
+
+    @staticmethod
+    def _is_model_arch_aur_helper_bootstrap_command(command: str) -> bool:
+        lower = (command or "").lower()
+        if SetupOrchestrator._is_arch_yay_bootstrap_command(command):
+            return False
+        return bool(_ARCH_AUR_HELPER_BOOTSTRAP_RE.search(lower) and "makepkg" in lower)
 
     def _arch_aur_helper_available(self) -> bool:
         facts = self.ctx.facts or SetupFacts()
@@ -7106,7 +7402,26 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         messages = [{"role": "user", "content": prompt}]
         search_performed = False
         for turn in range(1, self.MAX_REPAIR_TURNS + 1):
-            response_text = self._repair_model_call(messages)
+            try:
+                response_text = self._repair_model_call(messages)
+            except RuntimeError as exc:
+                if stage in {SetupStage.POSTBOOT_DRIVER, SetupStage.DESKTOP, SetupStage.APPS}:
+                    reason = (
+                        f"Repair LLM unavailable for '{failed_group.title}': {exc}. "
+                        "Leaving this non-install group as manual follow-up instead of "
+                        "blocking setup."
+                    )
+                    self.runlog.record(
+                        "repair_model_unavailable_manual_followup",
+                        stage=stage.value,
+                        group_id=failed_group.id,
+                        repair_attempt=repair_attempt,
+                        repair_turn=turn,
+                        error=str(exc),
+                        reason=reason,
+                    )
+                    return {"action": "manual_followup", "reason": reason}
+                raise
             self.runlog.record(
                 "repair_response",
                 stage=stage.value,
@@ -7707,6 +8022,12 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                 skipped.append(app.name)
                 continue
             if app.status == PlanItemStatus.MANUAL_FOLLOWUP:
+                if app_manual_followup_satisfied_by_verified(
+                    app.name,
+                    app.package_name,
+                    verified_names,
+                ):
+                    continue
                 manual_followup[app.name] = app.reason or "manual follow-up"
                 continue
             if app.status in {PlanItemStatus.COMPLETED, PlanItemStatus.INSTALLED}:
