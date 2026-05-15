@@ -1435,18 +1435,48 @@ def test_non_app_missing_repo_target_is_dropped_for_retry():
     )
 
 
-def test_apps_missing_repo_target_is_not_silently_dropped():
+def test_apps_missing_repo_target_marks_app_manual_and_retries_remaining():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
-    facts = SetupFacts(current_user="jan", login_user="jan", is_root=False)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+    )
     orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
-    command = "sudo pacman -S --noconfirm imaginary-app"
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch apps",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[
+            AppPlanItem(
+                name="VLC",
+                package_name="vlc",
+                source="repo",
+                status=PlanItemStatus.PENDING,
+                required=True,
+            ),
+            AppPlanItem(
+                name="Imaginary App",
+                package_name="imaginary-app",
+                source="repo",
+                status=PlanItemStatus.PENDING,
+                required=True,
+            ),
+        ],
+    )
+    command = "sudo pacman -S --noconfirm vlc imaginary-app"
     group = CommandGroup(
         id="apps",
         stage=SetupStage.APPS,
         title="Install Apps",
         commands=[command],
-        packages=["imaginary-app"],
+        packages=["vlc", "imaginary-app"],
     )
     failure = GroupFailure(
         failure_type="command",
@@ -1458,7 +1488,147 @@ def test_apps_missing_repo_target_is_not_silently_dropped():
 
     repaired = orchestrator._auto_repair_missing_repo_targets(SetupStage.APPS, group, failure)
 
-    assert repaired is None
+    assert repaired is not None
+    assert repaired.commands == ["sudo pacman -S --noconfirm vlc"]
+    assert repaired.packages == ["vlc"]
+    assert repaired.verification == ["pacman -Q vlc"]
+    assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.PENDING
+    assert orchestrator.ctx.plan.apps[1].status == PlanItemStatus.MANUAL_FOLLOWUP
+    assert "unavailable package" in orchestrator.ctx.plan.apps[1].reason
+    assert any("App package target" in msg["content"] for msg in bridge.messages)
+
+
+def test_apps_stage_continues_after_missing_package_without_llm_repair():
+    profile = UserProfile(apps_to_install=["VLC", "Imaginary App"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+    commands_seen: list[str] = []
+
+    def ssh_exec(command, _timeout):
+        commands_seen.append(command)
+        if command.startswith("for p in "):
+            return (1, "", "")
+        if command == "sudo pacman -S --noconfirm vlc imaginary-app":
+            return (1, "", "error: target not found: imaginary-app")
+        return (0, "", "")
+
+    runtime = _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+
+    def fail_model_call(_cfg, _messages):
+        raise AssertionError("app target-not-found repair should not call the LLM")
+
+    runtime.call_model_text = fail_model_call
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch apps",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[
+            AppPlanItem(
+                name="VLC",
+                package_name="vlc",
+                source="repo",
+                status=PlanItemStatus.PENDING,
+                required=True,
+            ),
+            AppPlanItem(
+                name="Imaginary App",
+                package_name="imaginary-app",
+                source="repo",
+                status=PlanItemStatus.PENDING,
+                required=True,
+            ),
+        ],
+        command_groups=[
+            CommandGroup(
+                id="apps",
+                stage=SetupStage.APPS,
+                title="Install Apps",
+                commands=["sudo pacman -S --noconfirm vlc imaginary-app"],
+                verification=["pacman -Q vlc imaginary-app"],
+                packages=["vlc", "imaginary-app"],
+            )
+        ],
+    )
+
+    orchestrator._run_apps()
+
+    assert "sudo pacman -S --noconfirm vlc" in commands_seen
+    assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.INSTALLED
+    assert orchestrator.ctx.plan.apps[1].status == PlanItemStatus.MANUAL_FOLLOWUP
+
+
+def test_apps_missing_repo_target_can_leave_whole_group_manual_followup():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="ubuntu",
+        package_manager="apt",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Ubuntu apps",
+        distro_family="ubuntu",
+        package_manager="apt",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[
+            AppPlanItem(
+                name="Imaginary App",
+                package_name="imaginary-app",
+                source="repo",
+                status=PlanItemStatus.PENDING,
+                required=True,
+            )
+        ],
+    )
+    command = "sudo apt-get install -y imaginary-app"
+    group = CommandGroup(
+        id="apps",
+        stage=SetupStage.APPS,
+        title="Install Apps",
+        commands=[command],
+        packages=["imaginary-app"],
+    )
+    failure = GroupFailure(
+        failure_type="command",
+        command=command,
+        stdout="",
+        stderr="E: Unable to locate package imaginary-app",
+        detail="unable to locate package",
+    )
+
+    repaired = orchestrator._auto_repair_missing_repo_targets(SetupStage.APPS, group, failure)
+
+    assert repaired is not None
+    assert repaired.commands == []
+    assert repaired.packages == []
+    assert repaired.verification == []
+    assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.MANUAL_FOLLOWUP
+    assert "imaginary-app" in orchestrator.ctx.plan.apps[0].reason
+
+
+def test_missing_repo_target_parser_handles_apt_and_dnf_output():
+    assert SetupOrchestrator._missing_repo_targets_from_output(
+        "E: Unable to locate package imaginary-app"
+    ) == {"imaginary-app"}
+    assert SetupOrchestrator._missing_repo_targets_from_output(
+        "No match for argument: missing-one\nUnable to find a match: missing-two missing-three"
+    ) == {"missing-one", "missing-two", "missing-three"}
 
 
 def test_desktop_dmrc_write_counts_as_persisted_config():
@@ -1763,6 +1933,70 @@ def test_apps_stage_matches_catalog_alias_for_selected_app(monkeypatch):
     assert "sudo pacman -S --noconfirm vlc" in commands_seen
     assert orchestrator.ctx.plan.apps[0].package_name == "vlc"
     assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.INSTALLED
+
+
+def test_apps_stage_does_not_promote_catalog_alternative_as_installed(monkeypatch):
+    from quickhatch.setup import orchestrator as orchestrator_module
+
+    profile = UserProfile(apps_to_install=["Adobe Acrobat Reader"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="ada",
+        login_user="ada",
+        sudo_nopasswd=True,
+    )
+    commands_seen: list[str] = []
+
+    def catalog_context(_app_names, scanned_apps=None, distro_family=""):
+        return [
+            {
+                "name": "Adobe Acrobat Reader",
+                "canonical_name": "Adobe Acrobat Reader",
+                "compatibility": "alternative",
+                "alternatives": ["Okular"],
+                "active_install_hint": {
+                    "family": "arch",
+                    "source": "repo",
+                    "packages": ["okular"],
+                    "notes": "Okular is a Linux PDF viewer alternative.",
+                },
+            }
+        ]
+
+    def ssh_exec(command, _timeout):
+        commands_seen.append(command)
+        return (0, "", "")
+
+    monkeypatch.setattr(orchestrator_module, "selected_app_catalog_context", catalog_context)
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="plasma"),
+        apps=[
+            AppPlanItem(
+                name="Adobe Acrobat Reader",
+                source="manual_followup",
+                status=PlanItemStatus.MANUAL_FOLLOWUP,
+                required=True,
+                reason="Planner did not resolve this requested app yet.",
+            )
+        ],
+    )
+
+    orchestrator._run_apps()
+
+    assert commands_seen == []
+    assert orchestrator.ctx.plan.apps[0].package_name == ""
+    assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.MANUAL_FOLLOWUP
+    assert not any("Resolved selected app" in msg["content"] for msg in bridge.messages)
 
 
 def test_apps_repair_group_cannot_reintroduce_installed_packages(monkeypatch):

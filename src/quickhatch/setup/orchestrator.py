@@ -4710,6 +4710,9 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
     ) -> tuple[str, list[str]] | None:
         if not row:
             return None
+        compatibility = str(row.get("compatibility") or "").strip().lower()
+        if compatibility and compatibility != "native":
+            return None
         hint = row.get("active_install_hint")
         if not isinstance(hint, dict):
             return None
@@ -5323,11 +5326,13 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         group: CommandGroup,
         failure: GroupFailure,
     ) -> CommandGroup | None:
-        if stage == SetupStage.APPS or failure.failure_type != "command":
+        if failure.failure_type != "command":
             return None
         missing = self._missing_repo_targets_from_output(failure.stdout, failure.stderr)
         if not missing:
             return None
+        if stage == SetupStage.APPS:
+            return self._auto_repair_missing_app_targets(group, failure, missing)
         repaired_commands: list[str] = []
         changed = False
         for command in group.commands:
@@ -5371,6 +5376,89 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                     "Review or choose alternatives after setup."
                 ),
             }
+        )
+        return repaired_group
+
+    def _auto_repair_missing_app_targets(
+        self,
+        group: CommandGroup,
+        failure: GroupFailure,
+        missing: set[str],
+    ) -> CommandGroup | None:
+        facts = self.ctx.facts or SetupFacts()
+        stage_state = self.ctx.stage_state.setdefault(SetupStage.APPS.value, {})
+        missing_lower = {item.lower() for item in missing}
+        affected_apps: list[str] = []
+        if self.ctx.plan is not None:
+            for app in self.ctx.plan.apps:
+                variants = self._package_name_variants(app.name, app.package_name)
+                if not variants.intersection(missing_lower):
+                    continue
+                app.status = PlanItemStatus.MANUAL_FOLLOWUP
+                app.reason = (
+                    "Package manager reported unavailable package target(s): "
+                    + ", ".join(sorted(missing))
+                    + ". Review the current package name or choose an alternative."
+                )
+                affected_apps.append(app.name)
+
+        repaired_commands: list[str] = []
+        changed = False
+        for command in group.commands:
+            if command == failure.command:
+                repaired = self._drop_missing_targets_from_install_command(
+                    command,
+                    missing,
+                    package_manager=facts.package_manager,
+                )
+                if repaired is not None and repaired != command:
+                    if repaired:
+                        repaired_commands.append(repaired)
+                    changed = True
+                    continue
+            repaired_commands.append(command)
+        if not changed:
+            return None
+
+        remaining_packages = [pkg for pkg in group.packages if pkg.lower() not in missing_lower]
+        repaired_group = copy.deepcopy(group)
+        repaired_group.id = f"{group.id}-without-missing-app-targets"
+        repaired_group.title = f"{group.title} (without unavailable app packages)"
+        repaired_group.commands = repaired_commands
+        repaired_group.packages = remaining_packages
+        repaired_group.verification = (
+            [self._package_verification_command(remaining_packages, facts)]
+            if remaining_packages
+            else []
+        )
+        repaired_group.rationale = (
+            f"{group.rationale}\nQuickHatch moved unavailable app package target(s) "
+            f"{', '.join(sorted(missing))} to manual follow-up so remaining app installs "
+            "can continue without an LLM repair call."
+        ).strip()
+        stage_state.setdefault("manual_followups", []).append(
+            {
+                "group_id": group.id,
+                "apps": sorted(affected_apps),
+                "reason": (
+                    "Unavailable app package target(s) were left for manual follow-up: "
+                    + ", ".join(sorted(missing))
+                ),
+            }
+        )
+        self.bridge.add_message(
+            "agent",
+            "[harness] App package target(s) unavailable; leaving "
+            + ", ".join(sorted(missing))
+            + " for manual follow-up and retrying remaining app packages.",
+        )
+        self.runlog.record(
+            "auto_repair_missing_app_targets",
+            stage=SetupStage.APPS.value,
+            group_id=group.id,
+            missing=sorted(missing),
+            affected_apps=sorted(affected_apps),
+            commands=repaired_commands,
         )
         return repaired_group
 
@@ -5468,24 +5556,60 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
     @staticmethod
     def _missing_repo_targets_from_output(*texts: str) -> set[str]:
         text = "\n".join(str(item or "") for item in texts)
-        return set(re.findall(r"target not found:\s*([A-Za-z0-9@._+:-]+)", text))
+        missing = set(re.findall(r"target not found:\s*([A-Za-z0-9@._+:-]+)", text))
+        missing.update(re.findall(r"Unable to locate package\s+([A-Za-z0-9@._+:-]+)", text))
+        missing.update(re.findall(r"No match for argument:\s*([A-Za-z0-9@._+:-]+)", text))
+        for match in re.findall(r"Unable to find a match:\s*([A-Za-z0-9@._+:\t -]+)", text):
+            missing.update(
+                token
+                for token in re.split(r"\s+", match.strip())
+                if re.fullmatch(r"[A-Za-z0-9@._+:-]+", token or "")
+            )
+        return missing
 
     @staticmethod
-    def _drop_missing_targets_from_install_command(command: str, missing: set[str]) -> str | None:
+    def _drop_missing_targets_from_install_command(
+        command: str,
+        missing: set[str],
+        *,
+        package_manager: str = "",
+    ) -> str | None:
         if any(token in command for token in ("&&", "||", ";", "|", "\n")):
             return None
         try:
             tokens = shlex.split(command)
         except ValueError:
             return None
-        if not tokens or not any(tool in tokens for tool in ("pacman", "pacstrap")):
+        if not tokens:
             return None
-        filtered = [token for token in tokens if token not in missing]
-        if filtered == tokens:
-            return None
-        payload = SetupOrchestrator._install_payload_tokens(filtered)
+        payload = SetupOrchestrator._install_payload_tokens_for_package_manager(
+            tokens,
+            package_manager,
+        )
+        if not payload and any(tool in tokens for tool in ("pacman", "pacstrap")):
+            payload = SetupOrchestrator._install_payload_tokens(tokens)
         if not payload:
             return None
+        missing_lower = {item.lower() for item in missing}
+        filtered: list[str] = []
+        removed = False
+        for token in tokens:
+            if token in payload and token.lower() in missing_lower:
+                removed = True
+                continue
+            filtered.append(token)
+        if not removed:
+            return None
+        if filtered == tokens:
+            return None
+        remaining_payload = SetupOrchestrator._install_payload_tokens_for_package_manager(
+            filtered,
+            package_manager,
+        )
+        if not remaining_payload and any(tool in filtered for tool in ("pacman", "pacstrap")):
+            remaining_payload = SetupOrchestrator._install_payload_tokens(filtered)
+        if not remaining_payload:
+            return ""
         return shlex.join(filtered)
 
     @staticmethod
