@@ -15,6 +15,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+from quickhatch.analysis.app_catalog import selected_app_catalog_context
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, UserProfile, generate_setup_password
 
@@ -1223,6 +1224,15 @@ class SetupOrchestrator:
                     )
                 if failure.failure_type == "live_reboot_required":
                     raise RuntimeError(failure.detail)
+                auto_repaired = self._auto_repair_arch_pacman_fetch_failure(
+                    stage,
+                    current_group,
+                    failure,
+                    stage_state,
+                )
+                if auto_repaired is not None:
+                    current_group = auto_repaired
+                    continue
                 auto_repaired = self._auto_repair_missing_repo_targets(
                     stage, current_group, failure
                 )
@@ -2896,6 +2906,7 @@ class SetupOrchestrator:
 
     def _run_apps(self) -> None:
         self._mark_installed_apps_from_native_package_db()
+        self._resolve_requested_apps_from_catalog()
         self._synthesize_missing_app_command_groups()
         if self._skip_stage_if_current_audit_passes(SetupStage.APPS):
             return
@@ -4563,6 +4574,157 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             groups=[asdict(group) for group in groups],
         )
 
+    def _resolve_requested_apps_from_catalog(self) -> None:
+        """Promote selected app rows when the catalog has a family-specific package hint.
+
+        The planner may conservatively backfill omitted requested apps as
+        manual_followup. That is correct when package truth is unknown, but it
+        should not suppress an executable app stage when QuickHatch already has
+        an active distro-family hint for the selected app.
+        """
+
+        if self.ctx.plan is None or self.ctx.facts is None:
+            return
+        requested_names = [
+            str(name or "").strip()
+            for name in (getattr(self.profile, "apps_to_install", None) or [])
+            if str(name or "").strip()
+        ]
+        if not requested_names:
+            return
+        distro_family = (self.ctx.facts.distro_family or "").strip() or (
+            self.ctx.plan.distro_family or ""
+        ).strip()
+        rows = selected_app_catalog_context(
+            requested_names,
+            getattr(self.profile, "apps", None),
+            distro_family=distro_family,
+        )
+        if not rows:
+            return
+
+        requested_keys = {self._app_catalog_key(name) for name in requested_names}
+        rows_by_key: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            row_values: list[Any] = [row.get("name"), row.get("canonical_name")]
+            row_values.extend(row.get("alternatives") or [])
+            for value in row_values:
+                key = self._app_catalog_key(value)
+                if key:
+                    rows_by_key.setdefault(key, row)
+
+        resolved: list[str] = []
+        existing_keys: set[str] = set()
+        for app in self.ctx.plan.apps:
+            app_key = self._app_catalog_key(app.name)
+            if app_key:
+                existing_keys.add(app_key)
+            row = rows_by_key.get(app_key)
+            if not row:
+                continue
+            row_keys = [
+                self._app_catalog_key(value)
+                for value in [
+                    row.get("name"),
+                    row.get("canonical_name"),
+                    *(row.get("alternatives") or []),
+                ]
+            ]
+            existing_keys.update(key for key in row_keys if key)
+        for app in self.ctx.plan.apps:
+            app_key = self._app_catalog_key(app.name)
+            row = rows_by_key.get(app_key)
+            row_requested_key = self._app_catalog_key(row.get("name") if row else "")
+            if app_key not in requested_keys and row_requested_key not in requested_keys:
+                continue
+            if app.optional_slow:
+                continue
+            if app.status in {
+                PlanItemStatus.INSTALLED,
+                PlanItemStatus.COMPLETED,
+                PlanItemStatus.EXPLICITLY_SKIPPED,
+            }:
+                continue
+            if (
+                app.status in {PlanItemStatus.PENDING, PlanItemStatus.IN_PROGRESS}
+                and app.package_name
+                and self._normalized_app_source(app.source) in {"repo", "community"}
+            ):
+                continue
+            hint = self._active_catalog_package_hint(row)
+            if hint is None:
+                continue
+            source, packages = hint
+            app.source = source
+            app.package_name = packages[0]
+            app.status = PlanItemStatus.PENDING
+            app.required = True
+            app.reason = ""
+            resolved.append(f"{app.name} -> {packages[0]} ({source})")
+
+        for row in rows:
+            requested_key = self._app_catalog_key(row.get("name"))
+            canonical_key = self._app_catalog_key(row.get("canonical_name"))
+            if not requested_key or requested_key not in requested_keys:
+                continue
+            if requested_key in existing_keys or canonical_key in existing_keys:
+                continue
+            hint = self._active_catalog_package_hint(row)
+            if hint is None:
+                continue
+            source, packages = hint
+            app_name = str(row.get("name") or row.get("canonical_name") or "").strip()
+            if not app_name:
+                continue
+            self.ctx.plan.apps.append(
+                AppPlanItem(
+                    name=app_name,
+                    package_name=packages[0],
+                    source=source,
+                    status=PlanItemStatus.PENDING,
+                    required=True,
+                )
+            )
+            existing_keys.update({requested_key, canonical_key})
+            resolved.append(f"{app_name} -> {packages[0]} ({source})")
+
+        if not resolved:
+            return
+        stage_state = self.ctx.stage_state.setdefault(SetupStage.APPS.value, {})
+        stage_state["catalog_resolved_requested_apps"] = sorted(resolved)
+        self.bridge.add_message(
+            "agent",
+            "[harness] Resolved selected app(s) from the distro app catalog: "
+            + ", ".join(sorted(resolved)),
+        )
+        self.runlog.record(
+            "catalog_resolved_requested_apps",
+            stage=SetupStage.APPS.value,
+            apps=sorted(resolved),
+            distro_family=distro_family,
+        )
+
+    def _active_catalog_package_hint(
+        self,
+        row: dict[str, Any] | None,
+    ) -> tuple[str, list[str]] | None:
+        if not row:
+            return None
+        hint = row.get("active_install_hint")
+        if not isinstance(hint, dict):
+            return None
+        source = self._normalized_app_source(str(hint.get("source") or ""))
+        if source not in {"repo", "community"}:
+            return None
+        packages = [
+            str(package or "").strip()
+            for package in (hint.get("packages") or [])
+            if str(package or "").strip()
+        ]
+        if not packages:
+            return None
+        return source, packages
+
     def _app_is_covered_by_app_group(self, app: AppPlanItem) -> bool:
         if self.ctx.plan is None:
             return False
@@ -4579,6 +4741,11 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             ):
                 return True
         return False
+
+    @staticmethod
+    def _app_catalog_key(value: Any) -> str:
+        text = re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+        return re.sub(r"\s+", " ", text)
 
     @staticmethod
     def _normalized_app_source(source: str) -> str:
@@ -5206,6 +5373,97 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             }
         )
         return repaired_group
+
+    def _auto_repair_arch_pacman_fetch_failure(
+        self,
+        stage: SetupStage,
+        group: CommandGroup,
+        failure: GroupFailure,
+        stage_state: dict[str, Any],
+    ) -> CommandGroup | None:
+        facts = self.ctx.facts or SetupFacts()
+        if facts.package_manager != "pacman" or failure.failure_type != "command":
+            return None
+        text = "\n".join([failure.stdout or "", failure.stderr or "", failure.detail or ""]).lower()
+        if "failed retrieving file" not in text or "404" not in text:
+            return None
+        repaired_command = self._arch_pacman_refresh_retry_install_command(failure.command)
+        if not repaired_command:
+            return None
+        key = f"{group.id}:{failure.command}"
+        attempted = set(stage_state.get("arch_pacman_fetch_repairs") or [])
+        if key in attempted:
+            return None
+        attempted.add(key)
+        stage_state["arch_pacman_fetch_repairs"] = sorted(attempted)
+
+        repaired_group = copy.deepcopy(group)
+        repaired_group.id = f"{group.id}-after-pacman-db-refresh"
+        repaired_group.title = f"{group.title} (after pacman database refresh)"
+        repaired_group.commands = [
+            repaired_command if command == failure.command else command
+            for command in group.commands
+        ]
+        repaired_group.rationale = (
+            f"{group.rationale}\nQuickHatch retried this Arch package install with "
+            "`pacman -Syyu` because the target's package database/mirror state produced "
+            "download 404s."
+        ).strip()
+        self.bridge.add_message(
+            "agent",
+            "[harness] Pacman package download returned mirror 404s; retrying with "
+            "a full package database refresh.",
+        )
+        self.runlog.record(
+            "auto_repair_arch_pacman_fetch_failure",
+            stage=stage.value,
+            group_id=group.id,
+            original_command=failure.command,
+            repaired_command=repaired_command,
+        )
+        return repaired_group
+
+    @staticmethod
+    def _arch_pacman_refresh_retry_install_command(command: str) -> str | None:
+        if any(token in command for token in ("&&", "||", ";", "|", "\n")):
+            return None
+        try:
+            tokens = shlex.split(command)
+        except ValueError:
+            return None
+        if not tokens:
+            return None
+        prefix: list[str] = []
+        tool_idx = 0
+        if tokens[0] == "sudo":
+            prefix = ["sudo"]
+            tool_idx = 1
+        if tool_idx >= len(tokens) or tokens[tool_idx].rsplit("/", 1)[-1] != "pacman":
+            return None
+        op_idx = next(
+            (
+                idx
+                for idx, token in enumerate(tokens[tool_idx + 1 :], start=tool_idx + 1)
+                if token.startswith("-") and not token.startswith("--") and "S" in token
+            ),
+            -1,
+        )
+        if op_idx < 0:
+            return None
+        tail = tokens[op_idx + 1 :]
+        payload = [token for token in tail if not token.startswith("-")]
+        if not payload:
+            return None
+        options: list[str] = []
+        for token in [*tokens[tool_idx + 1 : op_idx], *tail]:
+            if not token.startswith("-") or (token.startswith("-") and not token.startswith("--")):
+                continue
+            if token not in options:
+                options.append(token)
+        for required in ("--needed", "--noconfirm"):
+            if required not in options:
+                options.append(required)
+        return shlex.join([*prefix, "pacman", "-Syyu", *options, *payload])
 
     @staticmethod
     def _missing_repo_targets_from_output(*texts: str) -> set[str]:

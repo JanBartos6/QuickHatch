@@ -306,6 +306,30 @@ class TestCuratedCatalog:
         assert rows[0]["active_install_hint"]["packages"] == ["org.example.HintedApp"]
         assert "install_hints" not in rows[0]
 
+    def test_selected_catalog_context_has_arch_hints_for_common_setup_apps(self):
+        from quickhatch.analysis import app_catalog
+
+        rows = app_catalog.selected_app_catalog_context(
+            ["Brave", "Cursor", "GitHub Desktop", "Python", "Steam", "VLC media player"],
+            distro_family="arch",
+        )
+        hints = {row["name"]: row.get("active_install_hint", {}) for row in rows}
+
+        assert hints["Brave"]["packages"] == ["brave-bin"]
+        assert hints["Cursor"]["packages"] == ["cursor-bin"]
+        assert hints["GitHub Desktop"]["packages"] == ["github-desktop-bin"]
+        assert hints["Python"]["packages"] == ["python"]
+        assert hints["Steam"]["packages"] == ["steam"]
+        assert hints["VLC media player"]["packages"] == ["vlc"]
+
+    def test_selected_catalog_context_keeps_mullvad_manual_on_arch(self):
+        from quickhatch.analysis import app_catalog
+
+        rows = app_catalog.selected_app_catalog_context(["Mullvad"], distro_family="arch")
+
+        assert rows[0]["active_install_hint"]["source"] == "manual_followup"
+        assert rows[0]["active_install_hint"]["packages"] == []
+
     def test_catalog_phrase_fallback_rejects_generic_single_token_aliases(self, monkeypatch):
         from quickhatch.analysis import app_catalog
 

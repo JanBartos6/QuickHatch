@@ -1635,6 +1635,136 @@ def test_apps_stage_synthesizes_missing_repo_install_group():
     assert any("Added missing app install group" in msg["content"] for msg in bridge.messages)
 
 
+def test_apps_stage_promotes_selected_manual_followup_from_catalog(monkeypatch):
+    from quickhatch.setup import orchestrator as orchestrator_module
+
+    profile = UserProfile(apps_to_install=["Brave"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="ada",
+        login_user="ada",
+        sudo_nopasswd=True,
+    )
+    commands_seen: list[str] = []
+
+    def catalog_context(app_names, scanned_apps=None, distro_family=""):
+        assert app_names == ["Brave"]
+        assert distro_family == "arch"
+        return [
+            {
+                "name": "Brave",
+                "canonical_name": "Brave",
+                "alternatives": ["Brave Browser"],
+                "active_install_hint": {
+                    "family": "arch",
+                    "source": "community",
+                    "packages": ["brave-bin"],
+                    "notes": "AUR binary package for Brave.",
+                },
+            }
+        ]
+
+    def ssh_exec(command, _timeout):
+        commands_seen.append(command)
+        return (0, "", "")
+
+    monkeypatch.setattr(orchestrator_module, "selected_app_catalog_context", catalog_context)
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="plasma"),
+        apps=[
+            AppPlanItem(
+                name="Brave",
+                source="manual_followup",
+                status=PlanItemStatus.MANUAL_FOLLOWUP,
+                required=True,
+                reason="Planner did not resolve this requested app yet.",
+            )
+        ],
+    )
+
+    orchestrator._run_apps()
+
+    assert "yay -S --noconfirm brave-bin" in commands_seen
+    assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.INSTALLED
+    assert not orchestrator.ctx.stage_state[SetupStage.APPS.value].get(
+        "skipped_current_state_already_valid"
+    )
+    assert any("Resolved selected app" in msg["content"] for msg in bridge.messages)
+
+
+def test_apps_stage_matches_catalog_alias_for_selected_app(monkeypatch):
+    from quickhatch.setup import orchestrator as orchestrator_module
+
+    profile = UserProfile(apps_to_install=["VLC media player"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="ada",
+        login_user="ada",
+        sudo_nopasswd=True,
+    )
+    commands_seen: list[str] = []
+
+    def catalog_context(_app_names, scanned_apps=None, distro_family=""):
+        return [
+            {
+                "name": "VLC media player",
+                "canonical_name": "VLC media player",
+                "alternatives": ["VLC"],
+                "active_install_hint": {
+                    "family": "arch",
+                    "source": "repo",
+                    "packages": ["vlc"],
+                    "notes": "Arch VLC package.",
+                },
+            }
+        ]
+
+    def ssh_exec(command, _timeout):
+        commands_seen.append(command)
+        return (0, "", "")
+
+    monkeypatch.setattr(orchestrator_module, "selected_app_catalog_context", catalog_context)
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="plasma"),
+        apps=[
+            AppPlanItem(
+                name="VLC",
+                source="manual_followup",
+                status=PlanItemStatus.MANUAL_FOLLOWUP,
+                required=True,
+                reason="Planner carried a display-name alias.",
+            )
+        ],
+    )
+
+    orchestrator._run_apps()
+
+    assert "sudo pacman -S --noconfirm vlc" in commands_seen
+    assert orchestrator.ctx.plan.apps[0].package_name == "vlc"
+    assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.INSTALLED
+
+
 def test_apps_repair_group_cannot_reintroduce_installed_packages(monkeypatch):
     profile = UserProfile(apps_to_install=["Docker Desktop", "LM Studio", "Cursor", "Steam"])
     bridge = BridgeState(profile, persist_path=None)
@@ -1790,6 +1920,61 @@ def test_apps_stage_marks_unsupported_community_source_manual_followup():
 
     assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.MANUAL_FOLLOWUP
     assert "not supported automatically" in orchestrator.ctx.plan.apps[0].reason
+
+
+def test_arch_pacman_fetch_404_retries_with_database_refresh():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="ada",
+        login_user="ada",
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="apps",
+        stage=SetupStage.APPS,
+        title="Install requested applications",
+        commands=["sudo pacman -S --needed --noconfirm thunderbird steam bitwarden"],
+        packages=["thunderbird", "steam", "bitwarden"],
+    )
+    failure = GroupFailure(
+        "command",
+        "sudo pacman -S --needed --noconfirm thunderbird steam bitwarden",
+        "",
+        (
+            "error: failed retrieving file 'lib32-vulkan-icd-loader.pkg.tar.zst' "
+            "from mirror.example : The requested URL returned error: 404\n"
+            "error: failed to commit transaction (failed to retrieve some files)"
+        ),
+        "failed to retrieve package files",
+    )
+    stage_state: dict[str, object] = {}
+
+    repaired = orchestrator._auto_repair_arch_pacman_fetch_failure(
+        SetupStage.APPS,
+        group,
+        failure,
+        stage_state,
+    )
+
+    assert repaired is not None
+    assert repaired.commands == [
+        "sudo pacman -Syyu --needed --noconfirm thunderbird steam bitwarden"
+    ]
+    assert repaired.id == "apps-after-pacman-db-refresh"
+    assert (
+        orchestrator._auto_repair_arch_pacman_fetch_failure(
+            SetupStage.APPS,
+            group,
+            failure,
+            stage_state,
+        )
+        is None
+    )
 
 
 def test_pacman_group_verification_falls_back_to_group_query():

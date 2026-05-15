@@ -579,7 +579,29 @@
       "source_hint": "repo_or_vendor",
       "confidence": "high",
       "category": "security",
-      "notes": "Native Linux client exists. Do not enable/start VPN automatically unless the user explicitly asks."
+      "notes": "Native Linux client exists. Do not enable/start VPN automatically unless the user explicitly asks.",
+      "install_hints": {
+        "arch": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "The AUR package may start mullvad-daemon during installation. Leave VPN installation/activation for explicit user confirmation."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Mullvad's current vendor repository/package instructions; do not activate VPN/firewall without explicit confirmation."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Mullvad's current vendor repository/package instructions; do not activate VPN/firewall without explicit confirmation."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Mullvad's current vendor repository/package instructions; do not activate VPN/firewall without explicit confirmation."
+        }
+      }
     },
     {
       "id": "override:nordvpn",
@@ -645,7 +667,31 @@
       "source_hint": "flatpak_or_aur",
       "confidence": "high",
       "category": "development",
-      "notes": "Official GitHub Desktop is not upstream-supported on Linux, but maintained Linux builds exist."
+      "notes": "Official GitHub Desktop is not upstream-supported on Linux, but maintained Linux builds exist.",
+      "install_hints": {
+        "arch": {
+          "source": "community",
+          "packages": [
+            "github-desktop-bin"
+          ],
+          "notes": "AUR package for the maintained GitHub Desktop Linux fork."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Prefer Git CLI unless the current maintained Linux fork package source is verified."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Prefer Git CLI unless the current maintained Linux fork package source is verified."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Prefer Git CLI unless the current maintained Linux fork package source is verified."
+        }
+      }
     },
     {
       "id": "override:cursor",
@@ -662,7 +708,31 @@
       "source_hint": "vendor_appimage_or_aur",
       "confidence": "high",
       "category": "development",
-      "notes": "Native Linux builds exist; exact package source depends on distro."
+      "notes": "Native Linux builds exist; exact package source depends on distro.",
+      "install_hints": {
+        "arch": {
+          "source": "community",
+          "packages": [
+            "cursor-bin"
+          ],
+          "notes": "AUR binary package for Cursor."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the current vendor AppImage/deb only after verifying the official download source."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the current vendor AppImage/deb only after verifying the official download source."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the current vendor AppImage/rpm only after verifying the official download source."
+        }
+      }
     },
     {
       "id": "override:lm-studio",
@@ -680,7 +750,31 @@
       "source_hint": "vendor_appimage_or_aur",
       "confidence": "high",
       "category": "development",
-      "notes": "Linux AppImage exists; package names change, so setup should verify before installing."
+      "notes": "Linux AppImage exists; package names change, so setup should verify before installing.",
+      "install_hints": {
+        "arch": {
+          "source": "community",
+          "packages": [
+            "lmstudio-bin"
+          ],
+          "notes": "AUR binary package for LM Studio. Verify package availability before install if the AUR search disagrees."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the current vendor AppImage after verifying the official source."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the current vendor AppImage after verifying the official source."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the current vendor AppImage after verifying the official source."
+        }
+      }
     },
     {
       "id": "override:openai.chatgpt",
@@ -858,7 +952,31 @@
       "source_hint": "repo_or_flatpak",
       "confidence": "high",
       "category": "gaming-tools",
-      "notes": "Steam is the main Linux gaming launcher; enable Proton for Windows games."
+      "notes": "Steam is the main Linux gaming launcher; enable Proton for Windows games.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "steam"
+          ],
+          "notes": "Arch multilib package."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install from the distro/vendor-supported Steam package path after confirming repositories."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install from Ubuntu's current Steam installer package or vendor path after confirming repositories."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Steam usually requires RPM Fusion/Flatpak; verify current repo setup first."
+        }
+      }
     },
     {
       "id": "override:epic-games-store",
@@ -53647,6 +53765,389 @@
         }
       ],
       "promoted_from_agent_suggestions": true
+    },
+    {
+      "id": "override:brave",
+      "name": "Brave",
+      "match_names": [
+        "Brave",
+        "Brave Browser"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Brave"
+      ],
+      "source_hint": "flatpak_or_aur",
+      "confidence": "high",
+      "category": "browsers",
+      "notes": "Native Linux browser. Use the distro-appropriate package source; Arch can use the AUR binary package.",
+      "install_hints": {
+        "arch": {
+          "source": "community",
+          "packages": [
+            "brave-bin"
+          ],
+          "notes": "AUR binary package for Brave."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Brave's current signed vendor repository instructions or Flatpak after verification."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Brave's current signed vendor repository instructions or Flatpak after verification."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Brave's current signed vendor repository instructions or Flatpak after verification."
+        }
+      }
+    },
+    {
+      "id": "override:python",
+      "name": "Python",
+      "match_names": [
+        "Python",
+        "Python 3"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Python"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "development",
+      "notes": "Use the distro Python 3 package unless the user explicitly asks for pyenv or a custom runtime.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "python"
+          ],
+          "notes": "Arch Python package."
+        },
+        "debian": {
+          "source": "repo",
+          "packages": [
+            "python3"
+          ],
+          "notes": "Debian Python 3 package."
+        },
+        "ubuntu": {
+          "source": "repo",
+          "packages": [
+            "python3"
+          ],
+          "notes": "Ubuntu Python 3 package."
+        },
+        "fedora": {
+          "source": "repo",
+          "packages": [
+            "python3"
+          ],
+          "notes": "Fedora Python 3 package."
+        }
+      }
+    },
+    {
+      "id": "override:spotify",
+      "name": "Spotify",
+      "match_names": [
+        "Spotify",
+        "Spotify - Music and Podcasts"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Spotify"
+      ],
+      "source_hint": "community_or_flatpak",
+      "confidence": "high",
+      "category": "media",
+      "notes": "Spotify has a native Linux client; package source varies by distro.",
+      "install_hints": {
+        "arch": {
+          "source": "community",
+          "packages": [
+            "spotify"
+          ],
+          "notes": "AUR package for Spotify."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Spotify's current signed vendor repository or Flatpak after verification."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Spotify's current signed vendor repository, Snap, or Flatpak after verification."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Flatpak or a verified third-party package source."
+        }
+      }
+    },
+    {
+      "id": "override:discord",
+      "name": "Discord",
+      "match_names": [
+        "Discord"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Discord",
+        "Webcord"
+      ],
+      "source_hint": "repo_or_flatpak",
+      "confidence": "high",
+      "category": "communication",
+      "notes": "Discord has a native Linux client; package source varies by distro.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "discord"
+          ],
+          "notes": "Arch packages Discord in extra."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the current vendor package or Flatpak after verification."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use the current vendor package, Snap, or Flatpak after verification."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Flatpak or a verified third-party package source."
+        }
+      }
+    },
+    {
+      "id": "override:thunderbird",
+      "name": "Thunderbird",
+      "match_names": [
+        "Thunderbird",
+        "Mozilla Thunderbird"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Thunderbird"
+      ],
+      "source_hint": "repo_or_flatpak",
+      "confidence": "high",
+      "category": "communication",
+      "notes": "Thunderbird is packaged by the major distro families.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "thunderbird"
+          ],
+          "notes": "Arch Thunderbird package."
+        },
+        "debian": {
+          "source": "repo",
+          "packages": [
+            "thunderbird"
+          ],
+          "notes": "Debian Thunderbird package."
+        },
+        "ubuntu": {
+          "source": "repo",
+          "packages": [
+            "thunderbird"
+          ],
+          "notes": "Ubuntu Thunderbird package."
+        },
+        "fedora": {
+          "source": "repo",
+          "packages": [
+            "thunderbird"
+          ],
+          "notes": "Fedora Thunderbird package."
+        }
+      }
+    },
+    {
+      "id": "override:localsend",
+      "name": "LocalSend",
+      "match_names": [
+        "LocalSend",
+        "Local Send"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "LocalSend"
+      ],
+      "source_hint": "flatpak_or_aur",
+      "confidence": "high",
+      "category": "utilities",
+      "notes": "LocalSend is available on Linux; package source varies by distro.",
+      "install_hints": {
+        "arch": {
+          "source": "community",
+          "packages": [
+            "localsend-bin"
+          ],
+          "notes": "AUR binary package for LocalSend."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Flatpak or the current upstream package after verification."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Flatpak or the current upstream package after verification."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Use Flatpak or the current upstream package after verification."
+        }
+      }
+    },
+    {
+      "id": "override:stirling-pdf",
+      "name": "Stirling-PDF",
+      "match_names": [
+        "Stirling-PDF",
+        "Stirling PDF",
+        "Stirling PDF Desktop"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "Stirling-PDF",
+        "Stirling-PDF Docker"
+      ],
+      "source_hint": "community_or_container",
+      "confidence": "medium",
+      "category": "utilities",
+      "notes": "Stirling-PDF is commonly run as a container/server app; desktop packages are community-maintained.",
+      "install_hints": {
+        "arch": {
+          "source": "community",
+          "packages": [
+            "stirling-pdf-bin"
+          ],
+          "notes": "AUR binary package. Do not enable a server service unless explicitly requested."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Prefer container/manual deployment after the user confirms service exposure."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Prefer container/manual deployment after the user confirms service exposure."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Prefer container/manual deployment after the user confirms service exposure."
+        }
+      }
+    },
+    {
+      "id": "override:vlc",
+      "name": "VLC media player",
+      "match_names": [
+        "VLC",
+        "VLC media player"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "VLC",
+        "mpv",
+        "Celluloid"
+      ],
+      "source_hint": "repo",
+      "confidence": "high",
+      "category": "media",
+      "notes": "VLC is packaged by the major distro families.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "vlc"
+          ],
+          "notes": "Arch VLC package."
+        },
+        "debian": {
+          "source": "repo",
+          "packages": [
+            "vlc"
+          ],
+          "notes": "Debian VLC package."
+        },
+        "ubuntu": {
+          "source": "repo",
+          "packages": [
+            "vlc"
+          ],
+          "notes": "Ubuntu VLC package."
+        },
+        "fedora": {
+          "source": "repo",
+          "packages": [
+            "vlc"
+          ],
+          "notes": "Fedora VLC package may require enabled multimedia repositories; verify if install fails."
+        }
+      }
+    },
+    {
+      "id": "override:openai-codex",
+      "name": "OpenAI Codex",
+      "match_names": [
+        "Codex",
+        "OpenAI Codex",
+        "Codex CLI"
+      ],
+      "compatibility": "native",
+      "alternatives": [
+        "OpenAI Codex CLI"
+      ],
+      "source_hint": "repo_or_npm",
+      "confidence": "medium",
+      "category": "development",
+      "notes": "Codex is primarily a CLI tool. Use distro package only when available; otherwise leave npm/vendor setup for follow-up.",
+      "install_hints": {
+        "arch": {
+          "source": "repo",
+          "packages": [
+            "openai-codex"
+          ],
+          "notes": "Arch package for OpenAI Codex CLI."
+        },
+        "debian": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install through the current OpenAI-supported path after verifying Node/npm requirements."
+        },
+        "ubuntu": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install through the current OpenAI-supported path after verifying Node/npm requirements."
+        },
+        "fedora": {
+          "source": "manual_followup",
+          "packages": [],
+          "notes": "Install through the current OpenAI-supported path after verifying Node/npm requirements."
+        }
+      }
     }
   ],
   "last_agent_promotion": {
