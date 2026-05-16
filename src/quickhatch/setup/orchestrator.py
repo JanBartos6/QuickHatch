@@ -615,6 +615,17 @@ class GroupFailure:
     detail: str
 
 
+@dataclass
+class AppPackageResolution:
+    app_name: str
+    original_package: str
+    package_name: str
+    source: str
+    command: str
+    verification: str
+    evidence_summary: str
+
+
 class SetupOrchestrator:
     """Execute staged remote setup with typed plans and audits."""
 
@@ -1339,8 +1350,25 @@ class SetupOrchestrator:
                             "Live install/base bootstrapping cannot be marked manual follow-up; "
                             "the target would not be boot/reconnect safe."
                         )
-                    current_group.status = PlanItemStatus.MANUAL_FOLLOWUP
                     reason = str(repair_outcome.get("reason", "") or failure.detail)
+                    if stage == SetupStage.APPS:
+                        missing = self._missing_repo_targets_from_output(
+                            failure.stdout,
+                            failure.stderr,
+                            failure.detail,
+                        )
+                        if missing:
+                            partial_repair = self._auto_repair_missing_app_targets(
+                                current_group,
+                                failure,
+                                missing,
+                                manual_after_repair=True,
+                                manual_reason=reason,
+                            )
+                            if partial_repair is not None:
+                                current_group = partial_repair
+                                continue
+                    current_group.status = PlanItemStatus.MANUAL_FOLLOWUP
                     self._mark_group_manual_followup(
                         current_group,
                         stage=stage,
@@ -4601,8 +4629,10 @@ fi
 
         repo_packages: list[str] = []
         community_packages: list[str] = []
+        flatpak_packages: list[str] = []
         repo_app_names: list[str] = []
         community_app_names: list[str] = []
+        flatpak_app_names: list[str] = []
         for app in pending:
             source = self._normalized_app_source(app.source)
             package_name = (app.package_name or "").strip()
@@ -4628,6 +4658,10 @@ fi
                     app.reason
                     or "Community package source is not supported automatically for this distro."
                 )
+                continue
+            if source in {"flatpak", "flathub"} and package_name:
+                flatpak_packages.append(package_name)
+                flatpak_app_names.append(app.name)
                 continue
             app.status = PlanItemStatus.MANUAL_FOLLOWUP
             app.reason = app.reason or "Planner did not provide a resolvable package source."
@@ -4682,6 +4716,29 @@ fi
                 self._mark_apps_manual_followup_by_names(
                     community_app_names,
                     "No supported community-package helper is available for this target.",
+                )
+        if flatpak_packages:
+            command = self._flatpak_install_command(flatpak_packages)
+            if command:
+                groups.append(
+                    CommandGroup(
+                        id="quickhatch-synth-flatpak-apps",
+                        stage=SetupStage.APPS,
+                        title="Install resolved Flatpak applications",
+                        commands=[command],
+                        verification=[self._flatpak_verification_command(flatpak_packages)],
+                        rationale=(
+                            "QuickHatch synthesized this group because the planner resolved "
+                            "required Flatpak apps but omitted an executable apps command group."
+                        ),
+                        source="flatpak",
+                        packages=flatpak_packages,
+                    )
+                )
+            else:
+                self._mark_apps_manual_followup_by_names(
+                    flatpak_app_names,
+                    "No typed Flatpak install command is available for these app identifiers.",
                 )
         if not groups:
             return
@@ -4840,7 +4897,7 @@ fi
         if not isinstance(hint, dict):
             return None
         source = self._normalized_app_source(str(hint.get("source") or ""))
-        if source not in {"repo", "community"}:
+        if source not in {"repo", "community", "flatpak", "flathub"}:
             return None
         packages = [
             str(package or "").strip()
@@ -4893,6 +4950,22 @@ fi
         if facts.is_root and facts.login_user and facts.login_user != "root":
             return f"sudo -u {shlex.quote(facts.login_user)} {helper} -S --noconfirm {quoted}"
         return f"{helper} -S --noconfirm {quoted}"
+
+    @staticmethod
+    def _flatpak_install_command(packages: list[str]) -> str:
+        quoted = " ".join(shlex.quote(package) for package in packages if package)
+        if not quoted:
+            return ""
+        return f"flatpak install -y flathub {quoted}"
+
+    @staticmethod
+    def _flatpak_verification_command(packages: list[str]) -> str:
+        checks = [
+            f"flatpak list --app --columns=application | grep -Fx {shlex.quote(package)}"
+            for package in packages
+            if package
+        ]
+        return " && ".join(checks) if checks else "true"
 
     @staticmethod
     def _package_verification_command(packages: list[str], facts: SetupFacts) -> str:
@@ -5507,23 +5580,46 @@ fi
         group: CommandGroup,
         failure: GroupFailure,
         missing: set[str],
+        *,
+        manual_after_repair: bool = False,
+        manual_reason: str = "",
     ) -> CommandGroup | None:
         facts = self.ctx.facts or SetupFacts()
-        stage_state = self.ctx.stage_state.setdefault(SetupStage.APPS.value, {})
         missing_lower = {item.lower() for item in missing}
+        failed_payload = self._install_payload_tokens_for_command(failure.command)
+        if not failed_payload:
+            return None
         affected_apps: list[str] = []
         if self.ctx.plan is not None:
             for app in self.ctx.plan.apps:
                 variants = self._package_name_variants(app.name, app.package_name)
                 if not variants.intersection(missing_lower):
                     continue
-                app.status = PlanItemStatus.MANUAL_FOLLOWUP
-                app.reason = (
-                    "Package manager reported unavailable package target(s): "
-                    + ", ".join(sorted(missing))
-                    + ". Review the current package name or choose an alternative."
-                )
                 affected_apps.append(app.name)
+
+        resolutions, unresolved = self._resolve_missing_app_packages(missing, affected_apps)
+        if resolutions:
+            for resolution in resolutions:
+                self._apply_app_package_resolution(resolution)
+        if unresolved and not manual_after_repair:
+            self.runlog.record(
+                "app_missing_package_resolution_deferred_to_repair",
+                stage=SetupStage.APPS.value,
+                group_id=group.id,
+                missing=sorted(unresolved),
+                affected_apps=sorted(affected_apps),
+            )
+            return None
+        if unresolved:
+            self._mark_unresolved_missing_app_packages_manual_followup(
+                unresolved,
+                affected_apps,
+                reason=manual_reason
+                or (
+                    "Package manager reported unavailable app package target(s) after "
+                    "safe search/repair attempts: " + ", ".join(sorted(unresolved))
+                ),
+            )
 
         repaired_commands: list[str] = []
         changed = False
@@ -5540,50 +5636,377 @@ fi
                     changed = True
                     continue
             repaired_commands.append(command)
+        for resolution in resolutions:
+            if resolution.command and resolution.command not in repaired_commands:
+                repaired_commands.append(resolution.command)
+                changed = True
         if not changed:
             return None
 
         remaining_packages = [pkg for pkg in group.packages if pkg.lower() not in missing_lower]
+        remaining_packages.extend(
+            resolution.package_name
+            for resolution in resolutions
+            if resolution.package_name not in remaining_packages
+        )
         repaired_group = copy.deepcopy(group)
         repaired_group.id = f"{group.id}-without-missing-app-targets"
         repaired_group.title = f"{group.title} (without unavailable app packages)"
         repaired_group.commands = repaired_commands
         repaired_group.packages = remaining_packages
-        repaired_group.verification = (
-            [self._package_verification_command(remaining_packages, facts)]
-            if remaining_packages
-            else []
-        )
-        repaired_group.rationale = (
-            f"{group.rationale}\nQuickHatch moved unavailable app package target(s) "
-            f"{', '.join(sorted(missing))} to manual follow-up so remaining app installs "
-            "can continue without an LLM repair call."
-        ).strip()
-        stage_state.setdefault("manual_followups", []).append(
-            {
-                "group_id": group.id,
-                "apps": sorted(affected_apps),
-                "reason": (
-                    "Unavailable app package target(s) were left for manual follow-up: "
-                    + ", ".join(sorted(missing))
-                ),
+        verification = [
+            resolution.verification for resolution in resolutions if resolution.verification
+        ]
+        native_packages = [
+            package
+            for package in remaining_packages
+            if package
+            and not package.lower().startswith(("org.", "com.", "io.", "net."))
+            and package
+            not in {
+                resolution.package_name
+                for resolution in resolutions
+                if resolution.source == "flatpak"
             }
-        )
-        self.bridge.add_message(
-            "agent",
-            "[harness] App package target(s) unavailable; leaving "
-            + ", ".join(sorted(missing))
-            + " for manual follow-up and retrying remaining app packages.",
-        )
+        ]
+        if native_packages:
+            verification.insert(0, self._package_verification_command(native_packages, facts))
+        repaired_group.verification = verification
+        repaired_group.rationale = (
+            f"{group.rationale}\nQuickHatch treated catalog/planner package names as hints. "
+            f"Unavailable app package target(s) {', '.join(sorted(missing))} were removed "
+            "from the failed command; resolved replacements were added when target search "
+            "found safe matches, and unresolved app(s) were left for manual follow-up only "
+            "after repair attempts."
+        ).strip()
+        if unresolved:
+            self.bridge.add_message(
+                "agent",
+                "[harness] App package target(s) unavailable after repair/search; leaving "
+                + ", ".join(sorted(unresolved))
+                + " for manual follow-up and retrying remaining app packages.",
+            )
+        if resolutions:
+            self.bridge.add_message(
+                "agent",
+                "[harness] Resolved stale app package hint(s) from target search: "
+                + ", ".join(
+                    f"{item.original_package} -> {item.package_name} ({item.source})"
+                    for item in resolutions
+                ),
+            )
         self.runlog.record(
             "auto_repair_missing_app_targets",
             stage=SetupStage.APPS.value,
             group_id=group.id,
             missing=sorted(missing),
             affected_apps=sorted(affected_apps),
+            resolved=[asdict(resolution) for resolution in resolutions],
+            unresolved=sorted(unresolved),
             commands=repaired_commands,
         )
         return repaired_group
+
+    def _resolve_missing_app_packages(
+        self,
+        missing: set[str],
+        affected_apps: list[str],
+    ) -> tuple[list[AppPackageResolution], set[str]]:
+        resolutions: list[AppPackageResolution] = []
+        unresolved: set[str] = set()
+        for target in sorted(missing):
+            app = self._app_for_missing_package(target, affected_apps)
+            resolution = self._resolve_single_missing_app_package(target, app)
+            if resolution is None:
+                unresolved.add(target)
+                continue
+            resolutions.append(resolution)
+        return resolutions, unresolved
+
+    def _app_for_missing_package(
+        self,
+        missing_package: str,
+        affected_apps: list[str],
+    ) -> AppPlanItem | None:
+        if self.ctx.plan is None:
+            return None
+        missing_lower = missing_package.lower()
+        affected = {name.lower() for name in affected_apps}
+        for app in self.ctx.plan.apps:
+            variants = self._package_name_variants(app.name, app.package_name)
+            if missing_lower in variants or variants.intersection({missing_lower}):
+                return app
+        for app in self.ctx.plan.apps:
+            if app.name.lower() in affected:
+                return app
+        return None
+
+    def _resolve_single_missing_app_package(
+        self,
+        missing_package: str,
+        app: AppPlanItem | None,
+    ) -> AppPackageResolution | None:
+        facts = self.ctx.facts or SetupFacts()
+        app_name = app.name if app else missing_package
+        queries = self._app_resolution_queries(app_name, missing_package)
+        strategies = self._app_resolution_strategies(facts)
+        for source in strategies:
+            for query in queries:
+                result = self._run_app_resolution_search(source, query, app_name, missing_package)
+                if not result:
+                    continue
+                candidate = self._candidate_from_app_search_result(
+                    result,
+                    source=source,
+                    app_name=app_name,
+                    missing_package=missing_package,
+                )
+                if not candidate or candidate.lower() == missing_package.lower():
+                    continue
+                command = self._install_command_for_resolved_app(candidate, source, facts)
+                verification = self._verification_for_resolved_app(candidate, source, facts)
+                if not command or not verification:
+                    continue
+                return AppPackageResolution(
+                    app_name=app_name,
+                    original_package=missing_package,
+                    package_name=candidate,
+                    source=source,
+                    command=command,
+                    verification=verification,
+                    evidence_summary=f"{source} search for {query!r} returned {candidate!r}",
+                )
+        if self.runtime.native_search_active:
+            for query in queries[:1]:
+                try:
+                    result = self.runtime.web_search(
+                        f"{app_name} Linux package {facts.distro_family or facts.package_manager}",
+                        5,
+                    )
+                except Exception as exc:  # pragma: no cover - defensive logging only
+                    result = f"[web_search error] {exc}"
+                self.runlog.record(
+                    "app_missing_package_web_search",
+                    stage=SetupStage.APPS.value,
+                    app=app_name,
+                    missing=missing_package,
+                    query=query,
+                    result_tail=(result or "")[-1000:],
+                    reason=(
+                        "Provider/native web search is available; result is recorded for "
+                        "the model repair loop, not executed blindly."
+                    ),
+                )
+                break
+        return None
+
+    @staticmethod
+    def _app_resolution_queries(app_name: str, missing_package: str) -> list[str]:
+        queries: list[str] = []
+        for value in (missing_package, app_name):
+            normalized = str(value or "").strip()
+            if normalized and normalized not in queries:
+                queries.append(normalized)
+        return queries
+
+    @staticmethod
+    def _app_resolution_strategies(facts: SetupFacts) -> list[str]:
+        if facts.package_manager == "pacman":
+            return ["repo", "community"]
+        if facts.package_manager in {"apt", "dnf"}:
+            return ["repo", "flatpak"]
+        if facts.package_manager in {"zypper", "apk", "xbps", "emerge"}:
+            return ["repo"]
+        return []
+
+    def _run_app_resolution_search(
+        self,
+        source: str,
+        query: str,
+        app_name: str,
+        missing_package: str,
+    ) -> str:
+        try:
+            if source == "repo":
+                result = self.runtime.repo_search(query)
+            elif source == "community":
+                result = self.runtime.community_search(query)
+            elif source == "flatpak":
+                result = self._flatpak_search(query)
+            else:
+                return ""
+        except Exception as exc:
+            result = f"[{source}_search error] {exc}"
+        self.runlog.record(
+            "app_missing_package_search",
+            stage=SetupStage.APPS.value,
+            source=source,
+            app=app_name,
+            missing=missing_package,
+            query=query,
+            result_tail=(result or "")[-1000:],
+        )
+        return result or ""
+
+    def _flatpak_search(self, query: str) -> str:
+        query_q = shlex.quote(query)
+        command = (
+            "if command -v flatpak >/dev/null 2>&1; then "
+            f"flatpak search --columns=application,name {query_q} 2>/dev/null | sed -n '1,25p'; "
+            "fi"
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 45)
+        self.runlog.record(
+            "app_flatpak_search",
+            stage=SetupStage.APPS.value,
+            command=command,
+            rc=rc,
+            stdout_tail=(stdout or "")[-800:],
+            stderr_tail=(stderr or "")[-800:],
+        )
+        if rc != 0:
+            return ""
+        return stdout or ""
+
+    def _candidate_from_app_search_result(
+        self,
+        result: str,
+        *,
+        source: str,
+        app_name: str,
+        missing_package: str,
+    ) -> str:
+        for line in (result or "").splitlines():
+            candidate = self._package_candidate_from_search_line(line, source)
+            if not candidate:
+                continue
+            if self._candidate_matches_missing_app(
+                candidate,
+                line=line,
+                source=source,
+                app_name=app_name,
+                missing_package=missing_package,
+            ):
+                return candidate
+        return ""
+
+    @staticmethod
+    def _package_candidate_from_search_line(line: str, source: str) -> str:
+        stripped = (line or "").strip()
+        if not stripped or stripped.startswith("["):
+            return ""
+        if source == "flatpak":
+            token = stripped.split(maxsplit=1)[0]
+            return token if "." in token and re.fullmatch(r"[A-Za-z0-9_.-]+", token) else ""
+        if "/" in stripped.split(maxsplit=1)[0]:
+            token = stripped.split(maxsplit=1)[0].split("/", 1)[1]
+            return token if re.fullmatch(r"[A-Za-z0-9@._+:-]+", token) else ""
+        if " - " in stripped:
+            token = stripped.split(" - ", 1)[0].strip()
+            return token if re.fullmatch(r"[A-Za-z0-9@._+:-]+", token) else ""
+        if " : " in stripped:
+            token = stripped.split(" : ", 1)[0].strip()
+            token = re.sub(r"\.(?:x86_64|aarch64|noarch|i686)$", "", token)
+            return token if re.fullmatch(r"[A-Za-z0-9@._+:-]+", token) else ""
+        token = stripped.split(maxsplit=1)[0]
+        return token if re.fullmatch(r"[A-Za-z0-9@._+:-]+", token) else ""
+
+    def _candidate_matches_missing_app(
+        self,
+        candidate: str,
+        *,
+        line: str,
+        source: str,
+        app_name: str,
+        missing_package: str,
+    ) -> bool:
+        variants = self._package_name_variants(app_name, missing_package)
+        variants.update(self._package_name_variants("", missing_package))
+        candidate_lower = candidate.lower()
+        compact_candidate = self._compact_package_token(candidate_lower)
+        compact_variants = {self._compact_package_token(variant) for variant in variants}
+        if candidate_lower in variants or compact_candidate in compact_variants:
+            return True
+        if source == "flatpak":
+            name_tokens = self._meaningful_app_name_tokens(app_name)
+            line_tokens = self._meaningful_app_name_tokens(line)
+            return bool(name_tokens and name_tokens <= line_tokens)
+        return False
+
+    @staticmethod
+    def _compact_package_token(value: str) -> str:
+        return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+    @staticmethod
+    def _meaningful_app_name_tokens(value: str) -> set[str]:
+        tokens = {
+            token for token in re.split(r"[^a-z0-9]+", str(value or "").lower()) if len(token) >= 3
+        }
+        return tokens - {"app", "desktop", "reader", "browser", "linux", "client"}
+
+    def _install_command_for_resolved_app(
+        self,
+        package_name: str,
+        source: str,
+        facts: SetupFacts,
+    ) -> str:
+        if source == "community":
+            return self._community_install_command([package_name], facts)
+        if source == "flatpak":
+            return self._flatpak_install_command([package_name])
+        return build_install_command([package_name], "repo", facts)
+
+    def _verification_for_resolved_app(
+        self,
+        package_name: str,
+        source: str,
+        facts: SetupFacts,
+    ) -> str:
+        if source == "flatpak":
+            return self._flatpak_verification_command([package_name])
+        return self._package_verification_command([package_name], facts)
+
+    def _apply_app_package_resolution(self, resolution: AppPackageResolution) -> None:
+        if self.ctx.plan is None:
+            return
+        for app in self.ctx.plan.apps:
+            if app.name != resolution.app_name:
+                continue
+            app.package_name = resolution.package_name
+            app.source = resolution.source
+            app.status = PlanItemStatus.PENDING
+            app.reason = ""
+            break
+
+    def _mark_unresolved_missing_app_packages_manual_followup(
+        self,
+        unresolved: set[str],
+        affected_apps: list[str],
+        *,
+        reason: str,
+    ) -> None:
+        stage_state = self.ctx.stage_state.setdefault(SetupStage.APPS.value, {})
+        affected_set = {name.lower() for name in affected_apps}
+        unresolved_lower = {item.lower() for item in unresolved}
+        marked: list[str] = []
+        if self.ctx.plan is not None:
+            for app in self.ctx.plan.apps:
+                variants = self._package_name_variants(app.name, app.package_name)
+                if (
+                    not variants.intersection(unresolved_lower)
+                    and app.name.lower() not in affected_set
+                ):
+                    continue
+                app.status = PlanItemStatus.MANUAL_FOLLOWUP
+                app.reason = reason
+                marked.append(app.name)
+        stage_state.setdefault("manual_followups", []).append(
+            {
+                "apps": sorted(marked or affected_apps),
+                "packages": sorted(unresolved),
+                "reason": reason,
+            }
+        )
 
     def _auto_repair_arch_pacman_fetch_failure(
         self,

@@ -645,6 +645,10 @@ def test_build_research_prompt_includes_selected_app_catalog():
     assert "source_hint" in prompt
     assert "Use selected_app_catalog as curated prior knowledge" in prompt
     assert "active_install_hint" in prompt
+    assert "catalog package hints as useful but fallible" in prompt
+    assert "Missing app package strategy" in prompt
+    assert "do not install Okular and mark Adobe Acrobat Reader installed" in prompt
+    assert "VPN/firewall activation requires explicit consent" in prompt
     assert "Executable command_groups may ONLY use" in prompt
     assert "connect_and_probe, research_and_plan, and final_audit are harness-owned" in prompt
     assert "Do not invent stages such as disk_prepare" in prompt
@@ -708,6 +712,11 @@ def test_build_repair_prompt_warns_about_vm_gpu_label_mismatch():
     assert '"virtualization": "oracle"' in prompt
     assert "standalone shell variable assignments" in prompt
     assert "adding `--noconfirm` to `pacstrap`" in prompt
+    assert "Catalog hints are hints, not guarantees" in prompt
+    assert "Manual follow-up is the last resort" in prompt
+    assert "do not run unsafe vendor install scripts blindly" in prompt
+    assert "do not install Okular and mark Adobe Acrobat Reader installed" in prompt
+    assert "Do not enable/start VPN or firewall services as part of app repair" in prompt
 
 
 def test_build_research_prompt_uses_target_distro_over_live_facts(monkeypatch):

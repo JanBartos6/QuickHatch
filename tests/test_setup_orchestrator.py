@@ -1550,7 +1550,7 @@ def test_non_app_missing_repo_target_is_dropped_for_retry():
     )
 
 
-def test_apps_missing_repo_target_marks_app_manual_and_retries_remaining():
+def test_apps_missing_repo_target_waits_for_repair_before_manual_retry():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
     facts = SetupFacts(
@@ -1603,17 +1603,26 @@ def test_apps_missing_repo_target_marks_app_manual_and_retries_remaining():
 
     repaired = orchestrator._auto_repair_missing_repo_targets(SetupStage.APPS, group, failure)
 
+    assert repaired is None
+    assert orchestrator.ctx.plan.apps[1].status == PlanItemStatus.PENDING
+
+    repaired = orchestrator._auto_repair_missing_app_targets(
+        group,
+        failure,
+        {"imaginary-app"},
+        manual_after_repair=True,
+        manual_reason="Repair/search could not resolve imaginary-app.",
+    )
     assert repaired is not None
     assert repaired.commands == ["sudo pacman -S --noconfirm vlc"]
     assert repaired.packages == ["vlc"]
     assert repaired.verification == ["pacman -Q vlc"]
     assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.PENDING
     assert orchestrator.ctx.plan.apps[1].status == PlanItemStatus.MANUAL_FOLLOWUP
-    assert "unavailable package" in orchestrator.ctx.plan.apps[1].reason
-    assert any("App package target" in msg["content"] for msg in bridge.messages)
+    assert "imaginary-app" in orchestrator.ctx.plan.apps[1].reason
 
 
-def test_apps_stage_continues_after_missing_package_without_llm_repair():
+def test_apps_stage_continues_after_missing_package_after_model_repair_attempt():
     profile = UserProfile(apps_to_install=["VLC", "Imaginary App"])
     bridge = BridgeState(profile, persist_path=None)
     facts = SetupFacts(
@@ -1636,10 +1645,19 @@ def test_apps_stage_continues_after_missing_package_without_llm_repair():
 
     runtime = _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
 
-    def fail_model_call(_cfg, _messages):
-        raise AssertionError("app target-not-found repair should not call the LLM")
+    model_calls = {"count": 0}
 
-    runtime.call_model_text = fail_model_call
+    def model_manual_followup(_cfg, _messages):
+        model_calls["count"] += 1
+        return json.dumps(
+            {
+                "action": "manual_followup",
+                "reason": "Search/repair could not resolve Imaginary App.",
+                "app_names": ["Imaginary App"],
+            }
+        )
+
+    runtime.call_model_text = model_manual_followup
     orchestrator = SetupOrchestrator(runtime)
     orchestrator.ctx.facts = facts
     orchestrator.ctx.plan = ResearchPlan(
@@ -1679,11 +1697,12 @@ def test_apps_stage_continues_after_missing_package_without_llm_repair():
     orchestrator._run_apps()
 
     assert "sudo pacman -S --noconfirm vlc" in commands_seen
+    assert model_calls["count"] == 1
     assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.INSTALLED
     assert orchestrator.ctx.plan.apps[1].status == PlanItemStatus.MANUAL_FOLLOWUP
 
 
-def test_apps_missing_repo_target_can_leave_whole_group_manual_followup():
+def test_apps_missing_repo_target_defers_manual_followup_until_repair_attempted():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
     facts = SetupFacts(
@@ -1729,6 +1748,16 @@ def test_apps_missing_repo_target_can_leave_whole_group_manual_followup():
 
     repaired = orchestrator._auto_repair_missing_repo_targets(SetupStage.APPS, group, failure)
 
+    assert repaired is None
+    assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.PENDING
+
+    repaired = orchestrator._auto_repair_missing_app_targets(
+        group,
+        failure,
+        {"imaginary-app"},
+        manual_after_repair=True,
+        manual_reason="Repair/search could not resolve imaginary-app.",
+    )
     assert repaired is not None
     assert repaired.commands == []
     assert repaired.packages == []
@@ -1744,6 +1773,329 @@ def test_missing_repo_target_parser_handles_apt_and_dnf_output():
     assert SetupOrchestrator._missing_repo_targets_from_output(
         "No match for argument: missing-one\nUnable to find a match: missing-two missing-three"
     ) == {"missing-one", "missing-two", "missing-three"}
+
+
+def test_apps_missing_target_repair_does_not_rewrite_unparseable_command():
+    profile = UserProfile(apps_to_install=["LM Studio"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    searches: list[str] = []
+    runtime.repo_search = lambda query: searches.append(query) or "extra/lmstudio-bin 0.3.0"
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    app = AppPlanItem(
+        name="LM Studio",
+        package_name="lm-studio-bin",
+        source="community",
+        status=PlanItemStatus.PENDING,
+        required=True,
+    )
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch apps",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[app],
+    )
+    command = "echo failed lm-studio-bin"
+    group = CommandGroup(
+        id="apps",
+        stage=SetupStage.APPS,
+        title="Install LM Studio",
+        commands=[command],
+        packages=["lm-studio-bin"],
+    )
+    failure = GroupFailure(
+        failure_type="command",
+        command=command,
+        stdout="",
+        stderr="error: target not found: lm-studio-bin",
+        detail="target not found",
+    )
+
+    repaired = orchestrator._auto_repair_missing_app_targets(
+        group,
+        failure,
+        {"lm-studio-bin"},
+        manual_after_repair=True,
+        manual_reason="LM Studio unresolved.",
+    )
+
+    assert repaired is None
+    assert searches == []
+    assert app.status == PlanItemStatus.PENDING
+    assert app.package_name == "lm-studio-bin"
+
+
+def test_lm_studio_stale_package_hint_uses_search_before_manual_followup():
+    profile = UserProfile(apps_to_install=["LM Studio"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    repo_searches: list[str] = []
+    community_searches: list[str] = []
+    runtime.repo_search = lambda query: repo_searches.append(query) or ""
+    runtime.community_search = lambda query: (
+        community_searches.append(query) or "aur/lmstudio-bin 0.3.0\n    LM Studio desktop package"
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    app = AppPlanItem(
+        name="LM Studio",
+        package_name="lm-studio-bin",
+        source="community",
+        status=PlanItemStatus.PENDING,
+        required=True,
+    )
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch apps",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[app],
+    )
+    command = "yay -S --noconfirm lm-studio-bin"
+    group = CommandGroup(
+        id="apps",
+        stage=SetupStage.APPS,
+        title="Install LM Studio",
+        commands=[command],
+        packages=["lm-studio-bin"],
+    )
+    failure = GroupFailure(
+        failure_type="command",
+        command=command,
+        stdout="",
+        stderr="error: target not found: lm-studio-bin",
+        detail="target not found",
+    )
+
+    repaired = orchestrator._auto_repair_missing_repo_targets(SetupStage.APPS, group, failure)
+
+    assert repaired is not None
+    assert repo_searches == ["lm-studio-bin", "LM Studio"]
+    assert community_searches == ["lm-studio-bin"]
+    assert repaired.commands == ["yay -S --noconfirm lmstudio-bin"]
+    assert app.package_name == "lmstudio-bin"
+    assert app.source == "community"
+    assert app.status == PlanItemStatus.PENDING
+
+
+def test_apt_missing_app_can_fall_back_to_flatpak_search():
+    profile = UserProfile(apps_to_install=["Spotify"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="ubuntu",
+        package_manager="apt",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    flatpak_searches: list[str] = []
+
+    def ssh_exec(command: str, _timeout: int):
+        if "flatpak search" in command:
+            flatpak_searches.append(command)
+            return (0, "com.spotify.Client Spotify\n", "")
+        return (0, "", "")
+
+    runtime = _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    runtime.repo_search = lambda query: ""
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    app = AppPlanItem(
+        name="Spotify",
+        package_name="spotify-client",
+        source="repo",
+        status=PlanItemStatus.PENDING,
+        required=True,
+    )
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Ubuntu apps",
+        distro_family="ubuntu",
+        package_manager="apt",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[app],
+    )
+    command = "sudo apt-get install -y spotify-client"
+    group = CommandGroup(
+        id="apps",
+        stage=SetupStage.APPS,
+        title="Install Spotify",
+        commands=[command],
+        packages=["spotify-client"],
+    )
+    failure = GroupFailure(
+        failure_type="command",
+        command=command,
+        stdout="",
+        stderr="E: Unable to locate package spotify-client",
+        detail="unable to locate package",
+    )
+
+    repaired = orchestrator._auto_repair_missing_repo_targets(SetupStage.APPS, group, failure)
+
+    assert repaired is not None
+    assert flatpak_searches
+    assert repaired.commands == ["flatpak install -y flathub com.spotify.Client"]
+    assert repaired.verification == [
+        "flatpak list --app --columns=application | grep -Fx com.spotify.Client"
+    ]
+    assert app.package_name == "com.spotify.Client"
+    assert app.source == "flatpak"
+
+
+def test_arch_multi_app_missing_package_marks_only_unresolved_app_after_repair():
+    profile = UserProfile(apps_to_install=["Brave", "Spotify", "Cursor", "GitHub Desktop"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.repo_search = lambda query: ""
+    runtime.community_search = lambda query: ""
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    cursor = AppPlanItem(
+        name="Cursor",
+        package_name="cursor-bin",
+        source="community",
+        status=PlanItemStatus.PENDING,
+        required=True,
+    )
+    brave = AppPlanItem(name="Brave", package_name="brave-bin", source="community")
+    spotify = AppPlanItem(name="Spotify", package_name="spotify", source="community")
+    github = AppPlanItem(
+        name="GitHub Desktop",
+        package_name="github-desktop-bin",
+        source="community",
+    )
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch apps",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[brave, spotify, cursor, github],
+    )
+    command = "yay -S --noconfirm brave-bin spotify cursor-bin github-desktop-bin"
+    group = CommandGroup(
+        id="apps",
+        stage=SetupStage.APPS,
+        title="Install selected apps",
+        commands=[command],
+        packages=["brave-bin", "spotify", "cursor-bin", "github-desktop-bin"],
+    )
+    failure = GroupFailure(
+        failure_type="command",
+        command=command,
+        stdout="",
+        stderr="error: target not found: cursor-bin",
+        detail="target not found",
+    )
+
+    assert orchestrator._auto_repair_missing_repo_targets(SetupStage.APPS, group, failure) is None
+    repaired = orchestrator._auto_repair_missing_app_targets(
+        group,
+        failure,
+        {"cursor-bin"},
+        manual_after_repair=True,
+        manual_reason="Cursor package was unresolved after search/repair.",
+    )
+
+    assert repaired is not None
+    assert repaired.commands == ["yay -S --noconfirm brave-bin spotify github-desktop-bin"]
+    assert repaired.packages == ["brave-bin", "spotify", "github-desktop-bin"]
+    assert cursor.status == PlanItemStatus.MANUAL_FOLLOWUP
+    assert brave.status == PlanItemStatus.PENDING
+    assert spotify.status == PlanItemStatus.PENDING
+    assert github.status == PlanItemStatus.PENDING
+
+
+def test_adobe_acrobat_search_result_does_not_install_alternative_as_requested_app():
+    profile = UserProfile(apps_to_install=["Adobe Acrobat Reader"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.repo_search = lambda query: "extra/okular 24.12.0\n    PDF viewer alternative"
+    runtime.community_search = lambda query: ""
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    app = AppPlanItem(
+        name="Adobe Acrobat Reader",
+        package_name="acroread",
+        source="community",
+        status=PlanItemStatus.PENDING,
+        required=True,
+    )
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch apps",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[app],
+    )
+    command = "yay -S --noconfirm acroread"
+    group = CommandGroup(
+        id="apps",
+        stage=SetupStage.APPS,
+        title="Install Adobe Acrobat Reader",
+        commands=[command],
+        packages=["acroread"],
+    )
+    failure = GroupFailure(
+        failure_type="command",
+        command=command,
+        stdout="",
+        stderr="error: target not found: acroread",
+        detail="target not found",
+    )
+
+    repaired = orchestrator._auto_repair_missing_repo_targets(SetupStage.APPS, group, failure)
+
+    assert repaired is None
+    repaired = orchestrator._auto_repair_missing_app_targets(
+        group,
+        failure,
+        {"acroread"},
+        manual_after_repair=True,
+        manual_reason="Adobe Acrobat Reader was unresolved after search/repair.",
+    )
+    assert repaired is not None
+    assert repaired.commands == []
+    assert app.status == PlanItemStatus.MANUAL_FOLLOWUP
+    assert app.package_name == "acroread"
 
 
 def test_desktop_dmrc_write_counts_as_persisted_config():
@@ -2112,6 +2464,69 @@ def test_apps_stage_does_not_promote_catalog_alternative_as_installed(monkeypatc
     assert orchestrator.ctx.plan.apps[0].package_name == ""
     assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.MANUAL_FOLLOWUP
     assert not any("Resolved selected app" in msg["content"] for msg in bridge.messages)
+
+
+def test_apps_stage_keeps_mullvad_catalog_manual_followup_without_activation(monkeypatch):
+    from quickhatch.setup import orchestrator as orchestrator_module
+
+    profile = UserProfile(apps_to_install=["Mullvad VPN"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="ada",
+        login_user="ada",
+        sudo_nopasswd=True,
+    )
+    commands_seen: list[str] = []
+
+    def catalog_context(_app_names, scanned_apps=None, distro_family=""):
+        return [
+            {
+                "name": "Mullvad VPN",
+                "canonical_name": "Mullvad VPN",
+                "compatibility": "native",
+                "active_install_hint": {
+                    "family": "arch",
+                    "source": "manual_followup",
+                    "packages": [],
+                    "notes": "VPN activation needs explicit user consent.",
+                },
+            }
+        ]
+
+    def ssh_exec(command, _timeout):
+        commands_seen.append(command)
+        return (0, "", "")
+
+    monkeypatch.setattr(orchestrator_module, "selected_app_catalog_context", catalog_context)
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="plasma"),
+        apps=[
+            AppPlanItem(
+                name="Mullvad VPN",
+                source="manual_followup",
+                status=PlanItemStatus.MANUAL_FOLLOWUP,
+                required=True,
+                reason="VPN activation requires explicit consent.",
+            )
+        ],
+    )
+
+    orchestrator._run_apps()
+
+    assert commands_seen == []
+    assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.MANUAL_FOLLOWUP
+    assert not any("mullvad" in command.lower() for command in commands_seen)
 
 
 def test_apps_repair_group_cannot_reintroduce_installed_packages(monkeypatch):
