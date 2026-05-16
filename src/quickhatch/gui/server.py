@@ -287,6 +287,9 @@ class GUIState:
                 self.bridge.setup_run["status"] = "stopped"
             elif self.bridge.setup_run.get("status") not in {
                 "done",
+                "success_with_warnings",
+                "manual_followup_required",
+                "unsupported_safe",
                 "blocked",
                 "failed",
                 "stopped",
@@ -317,6 +320,9 @@ class GUIState:
                 self.bridge.setup_run["status"] = "stopped"
             elif self.bridge.setup_run.get("status") not in {
                 "done",
+                "success_with_warnings",
+                "manual_followup_required",
+                "unsupported_safe",
                 "blocked",
                 "failed",
                 "stopped",

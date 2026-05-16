@@ -274,6 +274,11 @@ def audit_stage(
             for result in prior_results
             if not getattr(result, "passed", False) and getattr(result, "blockers", None)
         )
+        if facts.is_live:
+            blockers.append(
+                "Target is still reporting a live environment during final audit; "
+                "the installed system has not been proven booted/reconnectable."
+            )
         if plan:
             followup_app_statuses = {
                 PlanItemStatus.MANUAL_FOLLOWUP,
@@ -414,6 +419,8 @@ def _normalize_app_alias(value: str) -> str:
 
 def _finding_category(text: str) -> str:
     lower = text.lower()
+    if "live environment" in lower or "live installer" in lower:
+        return "bootability"
     if "fstab" in lower:
         return "fstab"
     if "bootloader" in lower or "grub" in lower or "initramfs" in lower or "kernel" in lower:

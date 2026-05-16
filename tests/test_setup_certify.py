@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 from quickhatch.setup.certify import run_vm_certification
+from quickhatch.setup.families.base import InstallSpine
 from quickhatch.setup.replay import scan_runlogs
 from quickhatch.wizard.vm_verify import VerifyResult
 
@@ -99,6 +100,52 @@ def test_vm_certification_blocks_missing_iso(tmp_path):
     assert result.blockers
     scanned = scan_runlogs(tmp_path / "certification")
     assert scanned.failure_categories["vm_certification_blocked"] == 1
+
+
+def test_vm_certification_preflight_blocks_same_path_as_live_orchestration(
+    monkeypatch,
+    tmp_path,
+):
+    iso = tmp_path / "arch.iso"
+    profile = tmp_path / "profile.json"
+    iso.write_text("fake iso", encoding="utf-8")
+    profile.write_text(json.dumps({}), encoding="utf-8")
+
+    class UnsafeAdapter:
+        family = "arch"
+        version = "test"
+
+        @staticmethod
+        def target_user(_profile):
+            return "quickhatch"
+
+        def build_install_spine(self, _facts, _profile):
+            return InstallSpine(
+                family="arch",
+                adapter_version="test",
+                commands=["sudo pkill -9 -f 'pacman|makepkg|yay'"],
+                verification=[],
+            )
+
+        def final_boot_audit(self, _facts):
+            return []
+
+    monkeypatch.setattr(
+        "quickhatch.setup.certify.get_family_installer",
+        lambda _family: UnsafeAdapter(),
+    )
+
+    result = run_vm_certification(
+        family="arch",
+        iso=iso,
+        profile=profile,
+        root=tmp_path / "certification",
+        dry_run=True,
+    )
+
+    assert not result.success
+    assert result.status == "blocked"
+    assert any("Certification preflight blocked command" in item for item in result.blockers)
 
 
 def test_vm_certification_defaults_post_reboot_user_from_profile(monkeypatch, tmp_path):

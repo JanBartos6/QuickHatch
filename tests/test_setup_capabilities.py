@@ -24,6 +24,21 @@ def _store_with_format_capability(target: str = "/dev/sda1") -> CapabilityStore:
     return store
 
 
+def _store_with_capability(kind: str, target: str = "") -> CapabilityStore:
+    store = CapabilityStore(run_id="run-1", install_profile="full_disk_wipe")
+    store.grant(
+        kind=kind,
+        target=target,
+        confirmation_text=f"CONFIRM {kind} {target}".strip(),
+        confirmation_id="preview-1",
+        reason="test grant",
+        source="harness_generated",
+        one_time_use=False,
+        preview_id="preview-1",
+    )
+    return store
+
+
 def test_raw_mkfs_blocks_without_capability() -> None:
     facts = SetupFacts(is_live=True, is_root=True)
 
@@ -146,12 +161,23 @@ def test_broad_high_blast_radius_shell_requires_capability() -> None:
         "efibootmgr -o 0003,0001",
         "sudo install -m 644 /tmp/fstab /mnt/etc/fstab",
         "sudo cp /tmp/fstab /target/etc/fstab",
+        "sudo sed -i 's/defaults/noatime/' /mnt/etc/fstab",
+        "sudo truncate -s 0 /etc/fstab",
+        "python3 -c \"open('/mnt/etc/fstab','w').write('bad')\"",
         "sudo rm -rf /var/lib/dpkg/updates",
         "sudo rm -rf /var/lib/pacman/db.lck",
+        "sudo pacman -D --asdeps nodejs",
+        "sudo pacman -S --dbonly fake-package",
+        "sudo grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch",
+        "sudo bootctl install",
         "systemctl enable --now ufw",
         "ip6tables -P INPUT DROP",
         "rm -rf /mnt",
         "rm -rf /mnt/*",
+        "sudo telinit 6",
+        "sudo shutdown now",
+        "sudo systemctl --force reboot",
+        "sudo kexec -e",
     )
 
     for command in commands:
@@ -219,6 +245,52 @@ def test_confirmed_mount_target_capability_allows_target_root_mount() -> None:
     )
 
     assert error is None
+
+
+def test_confirmed_tier1_capabilities_allow_harness_generated_operations() -> None:
+    facts = SetupFacts(is_live=True, is_root=True)
+    cases = (
+        (
+            "write_fstab",
+            "/target-root/etc/fstab",
+            "sudo genfstab -U /mnt | sudo tee -a /mnt/etc/fstab >/dev/null",
+        ),
+        (
+            "bootloader_install",
+            "/boot",
+            "sudo arch-chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch",
+        ),
+        (
+            "controlled_reboot",
+            "",
+            "sudo reboot",
+        ),
+        (
+            "package_db_repair",
+            "/var/lib",
+            "sudo pacman -D --asdeps nodejs",
+        ),
+    )
+
+    for kind, target, command in cases:
+        error = preflight_setup_command(
+            command,
+            facts,
+            capability_store=_store_with_capability(kind, target),
+        )
+        assert error is None, command
+
+
+def test_controlled_reboot_capability_does_not_mask_other_ssh_lockouts() -> None:
+    facts = SetupFacts(is_live=True, is_root=True)
+    error = preflight_setup_command(
+        "sudo reboot; sudo systemctl stop sshd",
+        facts,
+        capability_store=_store_with_capability("controlled_reboot"),
+    )
+
+    assert error
+    assert "cut off remote access" in error
 
 
 def test_ambiguous_variable_high_blast_radius_shell_requires_capability() -> None:

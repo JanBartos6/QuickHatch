@@ -1639,6 +1639,14 @@ class SetupOrchestrator:
             return False
 
         stage_state["fedora_kernel_artifact_repair_attempted"] = True
+        if not self._internal_capability_allows(
+            kind="bootloader_install",
+            target="/boot",
+            stage=SetupStage.INSTALL_OR_SKIP,
+            group_id="fedora-live-kernel-artifact-repair",
+            reason="Fedora live boot artifact repair",
+        ):
+            return False
         command = self._fedora_live_kernel_artifact_repair_command("/mnt")
         self.bridge.add_message(
             "agent",
@@ -1820,6 +1828,17 @@ class SetupOrchestrator:
             )
 
     def _ensure_live_target_uefi_boot_fallback(self, root_path: str) -> None:
+        if not self._internal_capability_allows(
+            kind="bootloader_install",
+            target="/boot",
+            stage=SetupStage.INSTALL_OR_SKIP,
+            group_id="live-target-uefi-boot-fallback",
+            reason="removable UEFI boot fallback",
+        ):
+            raise RuntimeError(
+                "Cannot verify boot continuity before reboot: removable UEFI boot fallback "
+                "requires a confirmed bootloader capability."
+            )
         command = self._live_target_uefi_boot_fallback_command(root_path)
         self.bridge.add_message(
             "agent",
@@ -2966,9 +2985,12 @@ class SetupOrchestrator:
         self.runlog.record("final_audit", result=asdict(result))
         if result.final_status == FinalSetupStatus.BLOCKED:
             status = "blocked"
+        elif result.final_status == FinalSetupStatus.SUCCESS:
+            status = "done"
         elif result.final_status in {
             FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED,
             FinalSetupStatus.UNSUPPORTED_SAFE,
+            FinalSetupStatus.SUCCESS_WITH_WARNINGS,
         }:
             status = result.final_status.value
         else:
@@ -3150,12 +3172,22 @@ class SetupOrchestrator:
         if self.ctx.plan is None or self.ctx.facts is None:
             return []
         blockers: list[str] = []
+        blockers.extend(self._verify_not_live_environment())
         blockers.extend(self._verify_planned_packages_installed())
         blockers.extend(self._verify_fstab_root_entry())
+        blockers.extend(self._verify_boot_artifacts())
         blockers.extend(self._verify_reboot_required_state())
         blockers.extend(self._verify_systemd_health())
         blockers.extend(self._verify_display_manager_session_health())
         return blockers
+
+    def _verify_not_live_environment(self) -> list[str]:
+        if self.ctx.facts is None or not self.ctx.facts.is_live:
+            return []
+        return [
+            "Target is still reporting a live environment during final audit; "
+            "the installed system has not been proven booted/reconnectable."
+        ]
 
     def _verify_reboot_required_state(self) -> list[str]:
         if self.ctx.facts is None or self.ctx.facts.is_live:
@@ -3486,6 +3518,58 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             "Root fstab entry is missing or invalid "
             f"({root_src}). Re-write /etc/fstab with a valid UUID/PARTUUID/LABEL/block "
             "device before declaring setup complete."
+        ]
+
+    def _verify_boot_artifacts(self) -> list[str]:
+        if self.ctx.facts is None or self.ctx.facts.is_live:
+            return []
+        command = r"""kernel_count=$(find /boot -maxdepth 3 -type f -name 'vmlinuz*' 2>/dev/null | wc -l)
+initramfs_count=$(find /boot -maxdepth 3 -type f \( -name 'initramfs*' -o -name 'initrd*' \) 2>/dev/null | wc -l)
+bootloader_count=0
+if [ -d /sys/firmware/efi ]; then
+  bootloader_count=$(find /boot /boot/efi /efi -maxdepth 6 -type f \( -iname '*.efi' -o -iname 'loader.conf' \) 2>/dev/null | wc -l)
+else
+  bootloader_count=$(find /boot -maxdepth 4 -type f \( -path '*/grub.cfg' -o -path '*/grubenv' -o -name 'core.img' \) 2>/dev/null | wc -l)
+fi
+printf 'QH_KERNEL_COUNT=%s\n' "$kernel_count"
+printf 'QH_INITRAMFS_COUNT=%s\n' "$initramfs_count"
+printf 'QH_BOOTLOADER_COUNT=%s\n' "$bootloader_count"
+if [ "$kernel_count" -le 0 ] || [ "$initramfs_count" -le 0 ] || [ "$bootloader_count" -le 0 ]; then
+  exit 1
+fi
+"""
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 45)
+        final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
+        final_state["boot_artifact_probe"] = {
+            "rc": rc,
+            "stdout_tail": (stdout or "")[-500:],
+            "stderr_tail": (stderr or "")[-500:],
+        }
+        self.runlog.record(
+            "final_boot_artifact_verification",
+            rc=rc,
+            stdout_tail=(stdout or "")[-800:],
+            stderr_tail=(stderr or "")[-800:],
+        )
+        if rc == 0:
+            return []
+        counts: dict[str, str] = {}
+        for line in (stdout or "").splitlines():
+            if line.startswith("QH_") and "=" in line:
+                key, value = line.split("=", 1)
+                counts[key] = value.strip()
+        detail = (
+            "kernel="
+            + counts.get("QH_KERNEL_COUNT", "?")
+            + ", initramfs="
+            + counts.get("QH_INITRAMFS_COUNT", "?")
+            + ", bootloader="
+            + counts.get("QH_BOOTLOADER_COUNT", "?")
+        )
+        return [
+            "Bootability artifacts are missing after install "
+            f"({detail}). Ensure /boot contains a kernel, initramfs, and bootloader "
+            "artifact before declaring setup complete."
         ]
 
     def _verify_systemd_health(self) -> list[str]:
@@ -4273,6 +4357,45 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             stderr_tail=(stderr or "")[-500:],
         )
         return inventory
+
+    def _internal_capability_allows(
+        self,
+        *,
+        kind: str,
+        target: str,
+        stage: SetupStage,
+        group_id: str,
+        reason: str,
+    ) -> bool:
+        store = self.ctx.capability_store
+        allowed = bool(
+            store
+            and store.allows(
+                kind=kind,
+                target=target,
+                disk_inventory=self.ctx.last_disk_inventory,
+            )
+        )
+        self.runlog.record(
+            "internal_capability_check",
+            stage=stage.value,
+            group_id=group_id,
+            capability_kind=kind,
+            target=target,
+            allowed=allowed,
+            reason=reason,
+        )
+        if allowed:
+            return True
+        self._safe_abort(
+            stage=stage,
+            group=None,
+            reason=(
+                f"Internal {reason} needs confirmed QuickHatch capability "
+                f"{kind} target={target or '<none>'}."
+            ),
+        )
+        return False
 
     @staticmethod
     def _format_operation_preview(preview: Any) -> str:

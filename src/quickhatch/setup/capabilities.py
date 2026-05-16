@@ -40,6 +40,7 @@ _TARGET_ROOT_ALIASES = {
     "/mnt/sysimage": "/target-root",
 }
 _WINDOWS_FS_RE = re.compile(r"\b(?:ntfs|bitlocker|windows\s+recovery|msftres)\b", re.I)
+_FSTAB_PATH_RE = r"(?:/(?:mnt|target|mnt/target|mnt/sysroot|mnt/sysimage)/etc/fstab|/etc/fstab)\b"
 
 
 @dataclass
@@ -656,7 +657,7 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                 {"kind": "write_fstab", "target": "/target-root/etc/fstab", "reason": "fstab write"}
             )
         if re.search(
-            r"\b(?:cp|install)\b[^\n;|&]*(?:/mnt|/target|/mnt/target|/mnt/sysroot|/mnt/sysimage)/etc/fstab\b",
+            r"\b(?:cp|install|mv)\b[^\n;|&]*" + _FSTAB_PATH_RE,
             item,
             re.I,
         ):
@@ -667,9 +668,35 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     "reason": "fstab file replacement",
                 }
             )
-        if re.search(r"\b(?:systemctl\s+)?reboot\b|\bshutdown\s+-r\b|\binit\s+6\b", item, re.I):
+        if re.search(
+            r"\b(?:sed\s+-i|perl\s+-pi|truncate\b|rm\s+-[A-Za-z]*f[A-Za-z]*|dd\b[^\n;|&]*\bof=)[^\n;|&]*"
+            + _FSTAB_PATH_RE,
+            item,
+            re.I,
+        ) or re.search(
+            r"\b(?:python3?|ruby|node)\b[^\n;|&]*(?:open|writeFileSync|File\.write)[^\n;|&]*"
+            + _FSTAB_PATH_RE,
+            item,
+            re.I,
+        ):
             requirements.append(
-                {"kind": "controlled_reboot", "target": "", "reason": "controlled reboot"}
+                {
+                    "kind": "write_fstab",
+                    "target": "/target-root/etc/fstab",
+                    "reason": "fstab mutation",
+                }
+            )
+        if re.search(
+            r"\b(?:reboot|poweroff|halt)\b|\bsystemctl\b[^\n;|&]*\b(?:reboot|poweroff|halt|kexec|soft-reboot)\b|\bshutdown\b|\b(?:telinit|init)\s+[06]\b|\bkexec\b[^\n;|&]*\s-e\b|/proc/sysrq-trigger\b",
+            item,
+            re.I,
+        ):
+            requirements.append(
+                {
+                    "kind": "controlled_reboot",
+                    "target": "",
+                    "reason": "controlled reboot or power-state transition",
+                }
             )
         if re.search(
             r"\brm\b[^\n;|&]*(?:-[A-Za-z]*r[A-Za-z]*f|-[A-Za-z]*f[A-Za-z]*r)[^\n;|&]*"
@@ -710,7 +737,7 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                 }
             )
         if re.search(
-            r"(?:\brpm\s+--rebuilddb\b|\bdpkg\s+--configure\b|(?:^|\s)-rdd(?:\s|$)|--nodeps\b|\brm\s+-[A-Za-z]*f[A-Za-z]*\s+/var/lib/(?:pacman|dpkg|rpm)|\brm\s+-[A-Za-z]*r[A-Za-z]*f[A-Za-z]*\s+/var/lib/(?:pacman|dpkg|rpm)|\brm\s+-[A-Za-z]*f[A-Za-z]*r[A-Za-z]*\s+/var/lib/(?:pacman|dpkg|rpm))",
+            r"(?:\brpm\s+--rebuilddb\b|\bdpkg\s+--configure\b|\bpacman\b[^\n;|&]*(?:\s-d\b|--dbonly\b)|(?:^|\s)-rdd(?:\s|$)|--nodeps\b|\brm\s+-[A-Za-z]*f[A-Za-z]*\s+/var/lib/(?:pacman|dpkg|rpm)|\brm\s+-[A-Za-z]*r[A-Za-z]*f[A-Za-z]*\s+/var/lib/(?:pacman|dpkg|rpm)|\brm\s+-[A-Za-z]*f[A-Za-z]*r[A-Za-z]*\s+/var/lib/(?:pacman|dpkg|rpm))",
             lowered,
         ):
             requirements.append(

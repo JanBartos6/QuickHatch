@@ -4632,6 +4632,13 @@ async function pollSetup(){
       const setupHasFeed=setupMsgs.length>0;
       const setupThreadInactive=!data.agent_connected&&runStatus==='idle';
       const setupStoppedOrBlocked=['blocked','failed','stopped','cancelled'].includes(runStatus);
+      const setupTerminalComplete=[
+        'done',
+        'success',
+        'success_with_warnings',
+        'manual_followup_required',
+        'unsupported_safe'
+      ].includes(runStatus);
 
       const sd=await api('/api/suggestions');
       if(sd.suggestions){
@@ -4671,7 +4678,7 @@ async function pollSetup(){
         clearAttention('questions');
       }
 
-      if((state._setupStarted||setupHasFeed)&&runStatus==='done'&&!terminalFailure){
+      if((state._setupStarted||setupHasFeed)&&setupTerminalComplete&&!terminalFailure){
         updateSetupTerminalUi({success:true,label:terminalText||'Finished'});
         const btn=el('setupDone');
         if(btn&&btn.disabled){btn.disabled=false;btn.textContent='Finish'}

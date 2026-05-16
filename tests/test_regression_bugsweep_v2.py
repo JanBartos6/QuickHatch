@@ -332,8 +332,10 @@ class TestFrontendProfileSync:
         assert "install_username" in html
         assert "state._sshTestOk=true;" in html
         assert "state._sshTestOk=false;" in html
+        assert "'success_with_warnings'" in html
         assert (
-            "if((state._setupStarted||setupHasFeed)&&runStatus==='done'&&!terminalFailure){" in html
+            "if((state._setupStarted||setupHasFeed)&&setupTerminalComplete&&!terminalFailure){"
+            in html
         )
 
     def test_setup_poll_stops_spinner_on_failed_or_stopped_runs(self):

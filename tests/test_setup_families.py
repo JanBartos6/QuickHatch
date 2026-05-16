@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from quickhatch.config import UserProfile
+from quickhatch.setup.capabilities import dangerous_command_requirements
 from quickhatch.setup.families import get_family_installer
 from quickhatch.setup.operations import SetupOperation
 from quickhatch.setup.types import SetupFacts
@@ -37,6 +38,30 @@ def test_family_adapters_generate_deterministic_install_spines(family, expected_
     assert "find /root /home -maxdepth 3 -path '*/.ssh/authorized_keys'" in joined
     assert "grep -Eq '^(root|[^:]+):[^!*]' /mnt/etc/shadow" not in "\n".join(spine.verification)
     assert "99-quickhatch-nopasswd" in "\n".join(spine.verification)
+
+
+@pytest.mark.parametrize("family", ["arch", "ubuntu", "debian", "fedora"])
+def test_family_install_spines_surface_all_tier1_capability_requirements(family):
+    installer = get_family_installer(family)
+    spine = installer.build_install_spine(
+        SetupFacts(distro_family=family, is_live=True),
+        UserProfile(),
+    )
+    kinds = {
+        requirement["kind"]
+        for command in spine.commands
+        for requirement in dangerous_command_requirements(
+            f"QUICKHATCH_TARGET_DISK=/dev/sda; {command}"
+        )
+    }
+
+    assert {
+        "disk_partition",
+        "format_filesystem",
+        "mount_target",
+        "write_fstab",
+        "bootloader_install",
+    }.issubset(kinds)
 
 
 @pytest.mark.parametrize(

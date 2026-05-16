@@ -17,6 +17,8 @@ from quickhatch.setup.orchestrator import (
 )
 from quickhatch.setup.types import (
     AppPlanItem,
+    AuditFinding,
+    AuditFindingSeverity,
     AuditResult,
     CommandGroup,
     DesktopDesignState,
@@ -631,6 +633,108 @@ def test_fstab_root_verification_accepts_valid_device_entry():
     orchestrator.ctx.facts = facts
 
     assert orchestrator._verify_fstab_root_entry() == []
+
+
+def test_internal_uefi_boot_fallback_requires_bootloader_capability():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="root", login_user="root", is_live=True, is_root=True)
+    called = {"ssh": False}
+
+    def ssh_exec(_command: str, _timeout: int):
+        called["ssh"] = True
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+
+    try:
+        orchestrator._ensure_live_target_uefi_boot_fallback("/mnt")
+    except RuntimeError as exc:
+        assert "bootloader capability" in str(exc)
+    else:
+        raise AssertionError("UEFI boot fallback should require a bootloader capability")
+
+    assert called["ssh"] is False
+
+
+def test_internal_uefi_boot_fallback_runs_with_bootloader_capability():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="root", login_user="root", is_live=True, is_root=True)
+    calls: list[str] = []
+
+    def ssh_exec(command: str, _timeout: int):
+        calls.append(command)
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    assert orchestrator.ctx.capability_store is not None
+    orchestrator.ctx.capability_store.grant(
+        kind="bootloader_install",
+        target="/boot",
+        confirmation_text="CONFIRM install_bootloader /boot",
+        confirmation_id="preview-boot",
+        reason="test boot fallback",
+        source="user_confirmed",
+        one_time_use=False,
+        preview_id="preview-boot",
+    )
+
+    orchestrator._ensure_live_target_uefi_boot_fallback("/mnt")
+
+    assert calls
+    assert "grub-install" in calls[0]
+
+
+def test_final_boot_artifact_verification_blocks_missing_bootloader():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan", is_live=False)
+
+    def ssh_exec(command: str, _timeout: int):
+        assert "QH_BOOTLOADER_COUNT" in command
+        return (
+            1,
+            "QH_KERNEL_COUNT=1\nQH_INITRAMFS_COUNT=1\nQH_BOOTLOADER_COUNT=0\n",
+            "",
+        )
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+
+    blockers = orchestrator._verify_boot_artifacts()
+
+    assert len(blockers) == 1
+    assert "Bootability artifacts are missing" in blockers[0]
+    assert "bootloader=0" in blockers[0]
+
+
+def test_final_boot_artifact_verification_accepts_kernel_initramfs_and_bootloader():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan", is_live=False)
+
+    def ssh_exec(_command: str, _timeout: int):
+        return (
+            0,
+            "QH_KERNEL_COUNT=1\nQH_INITRAMFS_COUNT=1\nQH_BOOTLOADER_COUNT=1\n",
+            "",
+        )
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+
+    assert orchestrator._verify_boot_artifacts() == []
 
 
 def test_systemd_health_still_blocks_real_failed_services():
@@ -1293,6 +1397,17 @@ def test_live_reconnect_key_creates_planned_target_user_when_repair_skipped_it()
 
     orchestrator.runtime.ssh_exec = ssh_exec
     orchestrator._resolve_public_key_text = lambda: "ssh-ed25519 AAAATEST quickhatch"  # type: ignore[method-assign]
+    assert orchestrator.ctx.capability_store is not None
+    orchestrator.ctx.capability_store.grant(
+        kind="bootloader_install",
+        target="/boot",
+        confirmation_text="CONFIRM install_bootloader /boot",
+        confirmation_id="preview-boot",
+        reason="test live reconnect boot fallback",
+        source="user_confirmed",
+        one_time_use=False,
+        preview_id="preview-boot",
+    )
 
     orchestrator._ensure_reconnect_ssh_key()
 
@@ -6287,6 +6402,17 @@ def test_fedora_live_missing_kernel_pre_reboot_gets_artifact_repair():
         )
     )
     orchestrator.ctx.facts = facts
+    assert orchestrator.ctx.capability_store is not None
+    orchestrator.ctx.capability_store.grant(
+        kind="bootloader_install",
+        target="/boot",
+        confirmation_text="CONFIRM install_bootloader /boot",
+        confirmation_id="preview-boot",
+        reason="test fedora boot artifact repair",
+        source="user_confirmed",
+        one_time_use=False,
+        preview_id="preview-boot",
+    )
 
     ok, failures, summary = orchestrator._run_pre_reboot_checks_with_retries()
 
@@ -8706,6 +8832,32 @@ def test_final_audit_manual_followup_repair_action_is_not_fatal(monkeypatch):
     assert result.blockers == []
     assert result.final_status == FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
     assert result.details["final_audit_repairs"][0]["action"] == "manual_followup"
+    assert orchestrator.bridge.snapshot_setup_run()["status"] == "manual_followup_required"
+
+
+def test_final_audit_success_with_warnings_status_is_preserved(monkeypatch):
+    orchestrator = _final_audit_ready_orchestrator("{}")
+    warning = AuditFinding(
+        id="final_audit:test_warning",
+        severity=AuditFindingSeverity.WARNING,
+        category="setup",
+        summary="Non-fatal warning",
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_compute_final_audit_result",
+        lambda: AuditResult(
+            stage=SetupStage.FINAL_AUDIT,
+            passed=True,
+            findings=[warning],
+            final_status=FinalSetupStatus.SUCCESS_WITH_WARNINGS,
+        ),
+    )
+
+    result = orchestrator._run_final_audit()
+
+    assert result.final_status == FinalSetupStatus.SUCCESS_WITH_WARNINGS
+    assert orchestrator.bridge.snapshot_setup_run()["status"] == "success_with_warnings"
 
 
 def test_final_audit_repair_group_dangerous_raw_shell_blocks_without_capability(monkeypatch):

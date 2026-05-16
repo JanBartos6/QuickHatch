@@ -99,6 +99,21 @@ def test_final_audit_blocks_unanswered_questions() -> None:
     assert any(finding.category == "blocking_question" for finding in result.findings)
 
 
+def test_final_audit_blocks_live_environment_success() -> None:
+    result = final_audit(
+        SetupFacts(package_manager="pacman", current_user="root", is_live=True),
+        _plan(),
+        [
+            AuditResult(stage=SetupStage.INSTALL_OR_SKIP, passed=True),
+            AuditResult(stage=SetupStage.POSTBOOT_DRIVER, passed=True),
+        ],
+    )
+
+    assert result.passed is False
+    assert result.final_status == FinalSetupStatus.BLOCKED
+    assert any("live environment" in blocker for blocker in result.blockers)
+
+
 def test_final_audit_can_report_success_with_warnings() -> None:
     plan = _plan()
     plan.apps = []

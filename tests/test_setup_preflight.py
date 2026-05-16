@@ -872,6 +872,26 @@ def test_preflight_blocks_network_lockout_wrappers_and_newlines():
         assert any(item.category == "ssh_continuity" for item in decisions), command
 
 
+def test_network_security_consent_does_not_allow_reboot_or_poweroff():
+    facts = SetupFacts(
+        package_manager="apt",
+        current_user="jan",
+        login_user="jan",
+        is_live=False,
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+
+    for command in ("sudo systemctl poweroff", "sudo shutdown -h now", "sudo reboot"):
+        error = preflight_setup_command(
+            command,
+            facts,
+            allow_network_security_changes=True,
+        )
+        assert error, command
+        assert "explicit QuickHatch capability" in error
+
+
 def test_preflight_blocks_sudo_shell_redirection_to_root_path():
     facts = SetupFacts(
         package_manager="apt",

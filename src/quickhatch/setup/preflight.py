@@ -735,7 +735,7 @@ def _firewall_command_mutates(tool: str, args: list[str]) -> bool:
     return False
 
 
-def _cuts_off_remote_access(cmd: str) -> bool:
+def _cuts_off_remote_access(cmd: str, *, ignore_power_transition: bool = False) -> bool:
     for segment in _split_command_segments(cmd):
         try:
             tokens = shlex.split(segment, posix=True)
@@ -752,11 +752,18 @@ def _cuts_off_remote_access(cmd: str) -> bool:
         args = [token.lower() for token in raw_args]
         if tool in {"bash", "sh", "zsh", "fish"}:
             payload = _shell_c_payload(tokens)
-            if payload and _cuts_off_remote_access(payload):
+            if payload and _cuts_off_remote_access(
+                payload,
+                ignore_power_transition=ignore_power_transition,
+            ):
                 return True
         if tool in {"reboot", "poweroff", "halt"}:
+            if ignore_power_transition:
+                continue
             return True
         if tool == "shutdown" and args:
+            if ignore_power_transition:
+                continue
             return True
         if tool == "systemctl" and args:
             non_option_args = [arg for arg in args if not arg.startswith("-")]
@@ -775,6 +782,8 @@ def _cuts_off_remote_access(cmd: str) -> bool:
             ):
                 return True
             if verb in {"poweroff", "reboot", "halt", "suspend", "hibernate"}:
+                if ignore_power_transition:
+                    continue
                 return True
             if "--now" in args and any(
                 service.startswith(("ssh", "sshd", "networkmanager", "network-manager"))
@@ -1085,6 +1094,7 @@ def preflight_setup_command(
 ) -> str | None:
     """Return a blocking reason for clearly unsafe/impossible setup commands."""
 
+    controlled_reboot_capability_allowed = False
     for requirement in dangerous_command_requirements(command):
         kind = requirement["kind"]
         target = requirement.get("target", "")
@@ -1095,6 +1105,8 @@ def preflight_setup_command(
             target=target,
             disk_inventory=disk_inventory,
         ):
+            if kind == "controlled_reboot":
+                controlled_reboot_capability_allowed = True
             continue
         return (
             f"Dangerous operation requires an explicit QuickHatch capability: "
@@ -1108,7 +1120,10 @@ def preflight_setup_command(
             "is fine, but activating VPN/firewall services can change routing, DNS, firewall "
             "policy, or kill-switch behavior and cut off remote access."
         )
-    if not allow_network_security_changes and _cuts_off_remote_access(command):
+    if not allow_network_security_changes and _cuts_off_remote_access(
+        command,
+        ignore_power_transition=controlled_reboot_capability_allowed,
+    ):
         return (
             "Do not stop or disable SSH/network services, drop the default route, bring the "
             "active network link down, or apply firewall defaults that can cut off remote "
