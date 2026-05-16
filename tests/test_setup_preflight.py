@@ -922,3 +922,114 @@ def test_preflight_blocks_plain_doas_on_installed_system():
 
     assert any(item.kind == PreflightDecisionKind.BLOCK for item in decisions)
     assert any(item.category == "sudo_password" for item in decisions)
+
+
+def test_false_positive_matrix_keeps_app_package_theme_flows_repairable():
+    arch = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+    ubuntu = SetupFacts(
+        distro_family="ubuntu",
+        package_manager="apt",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+    fedora = SetupFacts(
+        distro_family="fedora",
+        package_manager="dnf",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+
+    cases = (
+        (
+            "package install with wrong/missing package names",
+            "sudo pacman -S --noconfirm definitely-not-real-package brave-bin",
+            arch,
+        ),
+        ("pacman repository search", "pacman -Ss reboot-manager", arch),
+        ("apt repository search", "apt-cache search shutdown manager", ubuntu),
+        ("dnf repository search", "dnf search poweroff", fedora),
+        ("flatpak search", "flatpak search spotify", ubuntu),
+        ("flatpak install", "flatpak install -y flathub com.spotify.Client", ubuntu),
+        ("AUR helper search", "yay -Ss brave-bin", arch),
+        ("AUR helper install", "paru -S --noconfirm sweet-mars-kde-theme-git", arch),
+        (
+            "AUR manual build helper flow",
+            "git clone https://aur.archlinux.org/yay-bin.git /tmp/qh-yay && "
+            "cd /tmp/qh-yay && makepkg -si --noconfirm",
+            arch,
+        ),
+        (
+            "theme and font system path install",
+            "sudo mkdir -p /usr/share/themes/Sweet /usr/share/icons/Candy "
+            "/usr/share/fonts/TTF && sudo install -Dm644 JetBrainsMono.ttf "
+            "/usr/share/fonts/TTF/JetBrainsMono.ttf",
+            arch,
+        ),
+        ("storage diagnostics", "lsblk -f && findmnt -R /mnt && blkid /dev/sda1", arch),
+        ("read-only EFI diagnostics", "efibootmgr -v", arch),
+        ("systemd status diagnostics", "sudo systemctl status reboot-manager.service", arch),
+        ("pacman normal refresh", "sudo pacman -Syu --noconfirm", arch),
+        ("apt normal update", "sudo apt-get update", ubuntu),
+        ("dnf normal cache update", "sudo dnf makecache", fedora),
+        ("fstab read pipeline", "grep -v '^#' /etc/fstab | tee /tmp/qh-fstab-copy", arch),
+    )
+
+    for name, command, facts in cases:
+        decisions = preflight_setup_decisions(command, facts)
+        assert not any(item.kind == PreflightDecisionKind.BLOCK for item in decisions), name
+
+
+def test_true_positive_matrix_keeps_tier1_safety_blocks_strict():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        community_helper="yay",
+        current_user="jan",
+        login_user="jan",
+        is_live=True,
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+
+    cases = (
+        ("partition table mutation", "sudo parted -s /dev/sda mklabel gpt", "disk_boot_safety"),
+        ("filesystem format", "sudo mkfs.ext4 -F /dev/sda2", "disk_boot_safety"),
+        ("swap format", "sudo mkswap /dev/sda3", "disk_boot_safety"),
+        ("disk wipe", "sudo wipefs -a /dev/sda", "disk_boot_safety"),
+        ("raw block write", "sudo dd if=/dev/zero of=/dev/sda bs=1M count=1", "disk_boot_safety"),
+        ("destructive shred", "sudo shred -n1 /dev/sda", "disk_boot_safety"),
+        ("LUKS format", "sudo cryptsetup luksFormat /dev/sda2", "disk_boot_safety"),
+        ("fstab write", "sudo genfstab -U /mnt | sudo tee -a /mnt/etc/fstab", "disk_boot_safety"),
+        ("fstab edit", "sudo sed -i 's/defaults/noatime/' /mnt/etc/fstab", "disk_boot_safety"),
+        (
+            "bootloader install",
+            "sudo grub-install --target=x86_64-efi --efi-directory=/boot",
+            "disk_boot_safety",
+        ),
+        ("EFI boot entry mutation", "sudo efibootmgr -c -d /dev/sda -p 1", "disk_boot_safety"),
+        ("package DB surgery", "sudo pacman -D --asdeps nodejs", "package_database_integrity"),
+        ("package DB deletion", "sudo rm -rf /var/lib/pacman", "package_database_integrity"),
+        ("VPN activation", "sudo systemctl enable --now mullvad-daemon", "ssh_continuity"),
+        ("firewall activation", "sudo ufw enable", "ssh_continuity"),
+        ("SSH service stop", "sudo systemctl stop sshd", "ssh_continuity"),
+        ("default route deletion", "sudo ip route del default", "ssh_continuity"),
+        ("pipeline wrapped reboot", "printf now | sudo reboot", "ssh_continuity"),
+        ("target-root recursive deletion", "sudo rm -rf /mnt/*", "disk_boot_safety"),
+    )
+
+    for name, command, category in cases:
+        decisions = preflight_setup_decisions(command, facts)
+        assert any(item.kind == PreflightDecisionKind.BLOCK for item in decisions), name
+        assert any(item.category == category for item in decisions), name

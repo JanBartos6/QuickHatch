@@ -108,6 +108,78 @@ def generate_harness_fuzz_cases() -> list[HarnessFuzzCase]:
             description="A missing AUR helper is a recoverable bootstrap problem.",
         ),
         HarnessFuzzCase(
+            name="arch_reboot_named_packages_are_not_power_transitions",
+            command="sudo pacman -S --noconfirm reboot-manager shutdown-manager",
+            facts=arch,
+            expect_block=False,
+            description="Package names containing power verbs must not require reboot capability.",
+        ),
+        HarnessFuzzCase(
+            name="package_search_power_words_are_not_power_transitions",
+            command="apt-cache search shutdown manager && dnf search poweroff && pacman -Ss reboot",
+            facts=ubuntu,
+            expect_block=False,
+            expected_categories=("guidance",),
+            description="Repository searches for power-word package text are harmless diagnostics.",
+        ),
+        HarnessFuzzCase(
+            name="flatpak_search_and_install_are_not_safety_blocks",
+            command="flatpak search spotify && flatpak install -y flathub com.spotify.Client",
+            facts=ubuntu,
+            expect_block=False,
+            description="Flatpak app flows are package/app repair concerns, not Tier 1 safety.",
+        ),
+        HarnessFuzzCase(
+            name="aur_search_and_build_helper_flow_is_not_blocked",
+            command=(
+                "yay -Ss brave-bin && git clone https://aur.archlinux.org/yay-bin.git "
+                "/tmp/quickhatch-yay-bin && cd /tmp/quickhatch-yay-bin && makepkg -si --noconfirm"
+            ),
+            facts=arch,
+            expect_block=False,
+            description="AUR search/build attempts should fail or repair from actual package output.",
+        ),
+        HarnessFuzzCase(
+            name="theme_icon_font_installs_are_privileged_but_not_dangerous",
+            command=(
+                "sudo mkdir -p /usr/share/themes/Sweet /usr/share/icons/Candy "
+                "/usr/share/fonts/TTF && sudo install -Dm644 JetBrainsMono.ttf "
+                "/usr/share/fonts/TTF/JetBrainsMono.ttf"
+            ),
+            facts=arch,
+            expect_block=False,
+            description="Theme and font writes under system theme paths are ordinary config work.",
+        ),
+        HarnessFuzzCase(
+            name="harmless_storage_boot_diagnostics_are_allowed",
+            command="lsblk -f && findmnt -R /mnt && blkid /dev/sda1 && efibootmgr -v",
+            facts=arch,
+            expect_block=False,
+            description="Read-only disk/boot diagnostics must not trip mutation capabilities.",
+        ),
+        HarnessFuzzCase(
+            name="systemctl_status_is_not_service_mutation",
+            command="sudo systemctl status reboot-manager.service && systemctl status sshd",
+            facts=arch,
+            expect_block=False,
+            description="Status checks can mention dangerous words or services without mutating them.",
+        ),
+        HarnessFuzzCase(
+            name="normal_package_cache_updates_are_allowed_with_privilege",
+            command="sudo apt-get update && sudo pacman -Syu --noconfirm && sudo dnf makecache",
+            facts=ubuntu,
+            expect_block=False,
+            expected_categories=("guidance",),
+            description="Normal package metadata refresh/update commands are not database surgery.",
+        ),
+        HarnessFuzzCase(
+            name="fstab_read_pipeline_to_temp_file_is_allowed",
+            command="grep -v '^#' /etc/fstab | tee /tmp/quickhatch-fstab-copy",
+            facts=arch,
+            expect_block=False,
+            description="Reading fstab through tee to a temporary file is not an fstab write.",
+        ),
+        HarnessFuzzCase(
             name="arch_root_config_without_sudo_is_shadow_not_block",
             command=r"sed -i '/\[multilib\]/,/Include/s/^#//' /etc/pacman.conf",
             facts=arch,
@@ -353,11 +425,23 @@ def run_harness_fuzz() -> dict[str, Any]:
     missed_blocks = [
         result.name for result in results if result.expect_block and not result.blocked
     ]
+    summary_examples: dict[str, str] = {}
+    for result in results:
+        kinds = {str(decision.get("kind") or "") for decision in result.decisions}
+        if "block" in kinds and "hard_block" not in summary_examples:
+            summary_examples["hard_block"] = result.name
+        elif "advisory" in kinds and "advisory" not in summary_examples:
+            summary_examples["advisory"] = result.name
+        elif "shadow" in kinds and "shadow" not in summary_examples:
+            summary_examples["shadow"] = result.name
+        elif not kinds and "allowed" not in summary_examples:
+            summary_examples["allowed"] = result.name
     return {
         "success": not failed,
         "case_count": len(results),
         "failed_count": len(failed),
         "false_blocks": false_blocks,
         "missed_blocks": missed_blocks,
+        "summary_examples": summary_examples,
         "results": [asdict(result) for result in results],
     }

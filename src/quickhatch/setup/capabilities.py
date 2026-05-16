@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import shlex
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -331,6 +332,81 @@ def _expanded_shell_scans(command: str) -> list[str]:
             scans.append(expanded)
             seen.add(expanded)
     return scans
+
+
+def _command_segments(text: str) -> list[str]:
+    return [
+        segment.strip() for segment in re.split(r"(?:[;&|]|\n)+", text or "") if segment.strip()
+    ]
+
+
+def _strip_command_prefix(tokens: list[str]) -> list[str]:
+    idx = 0
+    while idx < len(tokens):
+        token = tokens[idx]
+        if "=" in token and not token.startswith("-") and token.split("=", 1)[0].isidentifier():
+            idx += 1
+            continue
+        if token == "env":
+            idx += 1
+            while (
+                idx < len(tokens)
+                and "=" in tokens[idx]
+                and not tokens[idx].startswith("-")
+                and tokens[idx].split("=", 1)[0].isidentifier()
+            ):
+                idx += 1
+            continue
+        if token == "sudo":
+            idx += 1
+            while idx < len(tokens) and tokens[idx].startswith("-"):
+                option = tokens[idx]
+                idx += 1
+                if option in {
+                    "-C",
+                    "--close-from",
+                    "-D",
+                    "--chdir",
+                    "-g",
+                    "--group",
+                    "-h",
+                    "--host",
+                    "-p",
+                    "--prompt",
+                    "-T",
+                    "--command-timeout",
+                    "-u",
+                    "--user",
+                } and idx < len(tokens):
+                    idx += 1
+            continue
+        break
+    return tokens[idx:]
+
+
+def _power_transition_mutates(item: str) -> bool:
+    for segment in _command_segments(item):
+        try:
+            tokens = shlex.split(segment, posix=True)
+        except ValueError:
+            tokens = segment.split()
+        tokens = _strip_command_prefix(tokens)
+        if not tokens:
+            continue
+        tool = tokens[0].rsplit("/", 1)[-1].lower()
+        args = [arg.lower() for arg in tokens[1:]]
+        if tool in {"reboot", "poweroff", "halt", "shutdown"}:
+            return True
+        if tool == "systemctl":
+            non_option_args = [arg for arg in args if not arg.startswith("-")]
+            verb = non_option_args[0] if non_option_args else ""
+            if verb in {"reboot", "poweroff", "halt", "kexec", "soft-reboot"}:
+                return True
+        if tool in {"telinit", "init"} and args and args[0] in {"0", "6"}:
+            return True
+        if tool == "kexec" and any(arg in {"-e", "--exec"} for arg in args):
+            return True
+    return bool(re.search(r"(?:>\s*)?/proc/sysrq-trigger\b", item or "", re.I))
 
 
 def _ambiguous_variable_requirement(item: str) -> list[dict[str, str]]:
@@ -686,11 +762,7 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     "reason": "fstab mutation",
                 }
             )
-        if re.search(
-            r"\b(?:reboot|poweroff|halt)\b|\bsystemctl\b[^\n;|&]*\b(?:reboot|poweroff|halt|kexec|soft-reboot)\b|\bshutdown\b|\b(?:telinit|init)\s+[06]\b|\bkexec\b[^\n;|&]*\s-e\b|/proc/sysrq-trigger\b",
-            item,
-            re.I,
-        ):
+        if _power_transition_mutates(item):
             requirements.append(
                 {
                     "kind": "controlled_reboot",

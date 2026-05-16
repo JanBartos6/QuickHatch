@@ -19,3 +19,4 @@ def test_harness_fuzzer_detects_false_blocks_and_missed_blocks():
     assert payload["failed_count"] == 0
     assert payload["false_blocks"] == []
     assert payload["missed_blocks"] == []
+    assert {"hard_block", "advisory", "allowed", "shadow"} <= set(payload["summary_examples"])
