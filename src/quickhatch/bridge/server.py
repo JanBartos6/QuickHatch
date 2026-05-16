@@ -26,6 +26,21 @@ _SUGGESTIONS_FILE = Path.home() / ".quickhatch-suggestions.json"
 _SETUP_RUNTIME_SUGGESTION_CATEGORIES = frozenset({"progress", "setup", "setup_progress"})
 
 
+def _empty_setup_run_state() -> dict[str, Any]:
+    return {
+        "run_id": "",
+        "stage": "",
+        "status": "idle",
+        "final_status": "",
+        "blockers": [],
+        "waiting_for_input": False,
+        "active_question_id": "",
+        "planning_complete": False,
+        "runlog_path": "",
+        "executed_script_path": "",
+    }
+
+
 @dataclass
 class PendingQuestion:
     """A question the LLM is asking the user."""
@@ -69,17 +84,7 @@ class BridgeState:
         self.agent_connected = False
         self.agent_done = False
         self.stop_requested = False
-        self.setup_run: dict[str, Any] = {
-            "run_id": "",
-            "stage": "",
-            "status": "idle",
-            "blockers": [],
-            "waiting_for_input": False,
-            "active_question_id": "",
-            "planning_complete": False,
-            "runlog_path": "",
-            "executed_script_path": "",
-        }
+        self.setup_run: dict[str, Any] = _empty_setup_run_state()
         # Where to persist suggestions/messages. Pass None to disable
         # persistence (e.g. in unit tests).
         self._persist_path: Path | None = Path(persist_path) if persist_path else None
@@ -254,6 +259,7 @@ class BridgeState:
             self.setup_run["waiting_for_input"] = False
         if self.setup_run.get("status") in {"running", "waiting_for_input", "stopping"}:
             self.setup_run["status"] = "stopped"
+        self.setup_run.setdefault("final_status", "")
         self.setup_run.setdefault("runlog_path", "")
         self.setup_run.setdefault("executed_script_path", "")
 
@@ -274,17 +280,7 @@ class BridgeState:
             self.current_phase = ""
             self._persist_version += 1
             reset_version = self._persist_version
-            self.setup_run = {
-                "run_id": "",
-                "stage": "",
-                "status": "idle",
-                "blockers": [],
-                "waiting_for_input": False,
-                "active_question_id": "",
-                "planning_complete": False,
-                "runlog_path": "",
-                "executed_script_path": "",
-            }
+            self.setup_run = _empty_setup_run_state()
         if self._persist_path is None:
             return
         with self._persist_write_lock:
@@ -469,17 +465,7 @@ class BridgeState:
             if self.current_phase == target and reset_setup_run:
                 self.current_phase = ""
             if target == "setup" and reset_setup_run:
-                self.setup_run = {
-                    "run_id": "",
-                    "stage": "",
-                    "status": "idle",
-                    "blockers": [],
-                    "waiting_for_input": False,
-                    "active_question_id": "",
-                    "planning_complete": False,
-                    "runlog_path": "",
-                    "executed_script_path": "",
-                }
+                self.setup_run = _empty_setup_run_state()
             data = self._serialize_payload_locked()
         self._write_payload_unlocked(data)
 
@@ -561,17 +547,7 @@ class BridgeState:
             self.agent_done = bool(restored_suggestions)
             self.stop_requested = False
             self.current_phase = ""
-            self.setup_run = {
-                "run_id": "",
-                "stage": "",
-                "status": "idle",
-                "blockers": [],
-                "waiting_for_input": False,
-                "active_question_id": "",
-                "planning_complete": False,
-                "runlog_path": "",
-                "executed_script_path": "",
-            }
+            self.setup_run = _empty_setup_run_state()
             data = self._serialize_payload_locked()
         self._write_payload_unlocked(data)
 

@@ -256,6 +256,19 @@ class TestSetupRunState:
         assert snapshot["blockers"] == ["Need package resolution"]
         assert snapshot["waiting_for_input"] is True
 
+    def test_update_setup_run_preserves_final_status(self, state):
+        state.update_setup_run(
+            run_id="run123",
+            stage="final_audit",
+            status="manual_followup_required",
+            final_status="manual_followup_required",
+        )
+
+        snapshot = state.snapshot_setup_run()
+
+        assert snapshot["status"] == "manual_followup_required"
+        assert snapshot["final_status"] == "manual_followup_required"
+
     def test_restored_setup_run_drops_stale_waiting_state(self, tmp_path):
         persist_path = tmp_path / "bridge.json"
         profile = UserProfile()
@@ -302,6 +315,7 @@ class TestSetupRunState:
         assert setup_run["run_id"] == ""
         assert setup_run["stage"] == ""
         assert setup_run["status"] == "idle"
+        assert setup_run["final_status"] == ""
         assert setup_run["blockers"] == []
         assert state.messages == []
 

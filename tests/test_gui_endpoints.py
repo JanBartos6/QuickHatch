@@ -985,6 +985,7 @@ class TestSetupApiSurface:
             run_id="run123",
             stage="research_and_plan",
             status="waiting_for_input",
+            final_status="manual_followup_required",
             blockers=["Need confirmation"],
             waiting_for_input=True,
             active_question_id="q1",
@@ -998,6 +999,17 @@ class TestSetupApiSurface:
         assert data["setup_run"]["run_id"] == "run123"
         assert data["setup_run"]["stage"] == "research_and_plan"
         assert data["setup_run"]["waiting_for_input"] is True
+        assert data["setup_run"]["final_status"] == "manual_followup_required"
+
+    def test_spa_contains_distinct_final_status_labels(self):
+        html = Path("src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+
+        assert "Completed with warnings" in html
+        assert "Completed; follow-up required" in html
+        assert "Safe but unsupported" in html
+        assert "success_with_warnings" in html
+        assert "manual_followup_required" in html
+        assert "unsupported_safe" in html
 
     def test_pending_questions_exposes_blocking_metadata(self, server):
         q = server["bridge"].add_question(

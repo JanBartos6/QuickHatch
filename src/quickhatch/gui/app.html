@@ -463,6 +463,7 @@ select{cursor:pointer;appearance:none;padding-right:var(--s7);background-image:u
 .agent-phase{font-weight:600;font-size:var(--t-sm);color:var(--text)}
 .agent-phase.done{color:var(--success)}
 .agent-phase.error{color:var(--danger)}
+.agent-phase.warning,.agent-phase.followup,.agent-phase.unsupported{color:var(--warning)}
 .agent-action{
   font-size:var(--t-sm);color:var(--text-muted);margin-top:var(--s1);
   line-height:var(--leading);
@@ -488,6 +489,7 @@ select{cursor:pointer;appearance:none;padding-right:var(--s7);background-image:u
 }
 .agent-panel.done .spinner{display:none}
 .agent-panel.done .agent-head{background:var(--success-soft)}
+.agent-panel.warning .agent-head,.agent-panel.followup .agent-head,.agent-panel.unsupported .agent-head{background:var(--warning-soft)}
 
 /* Timeline (compact past events) */
 .agent-timeline{
@@ -983,6 +985,7 @@ let state={
   _agentDone:false,
   _setupStarted:false,
   _setupDone:false,
+  _setupFinalStatus:'',
   _sshSkipped:false,
   _sshTestOk:false,
   _showOwnKeyInput:false,
@@ -1435,6 +1438,7 @@ async function resetAllData(){
     state._agentDone=false;
     state._setupStarted=false;
     state._setupDone=false;
+    state._setupFinalStatus='';
     state._sshSkipped=false;
     state._sshTestOk=false;
     state._showOwnKeyInput=false;
@@ -2625,7 +2629,7 @@ const stepRenderers={
 
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="state.currentStep--;render()">Back</button>
-          <button class="btn btn-primary" id="setupDone" onclick="completeStep('setup')"${state._setupDone?'':' disabled'}>${state._setupDone?'Finish':'Agent working…'}</button>
+          <button class="btn btn-primary" id="setupDone" onclick="completeStep('setup')"${state._setupDone?'':' disabled'}>${state._setupDone?setupFinalStatusDetails(state._setupFinalStatus).button:'Agent working…'}</button>
         </div>
       </div>`;
     // Always poll once on step entry (same bug-fix as pollBridge).
@@ -2636,11 +2640,13 @@ const stepRenderers={
 function renderDone(){
   const customize=isCustomizeMode();
   const offline=(state.profile?.preferences?.another_machine||'').toLowerCase()==='no';
+  const finalInfo=setupFinalStatusDetails(state._setupFinalStatus);
+  const finalNeedsNotice=finalInfo.kind!=='success';
   content().innerHTML=customize?`
     <div class="card">
       <div class="done-screen">
-        <h2>You're set up</h2>
-        <p class="subtitle" style="margin-top:var(--s1)">The agent has finished tuning your Linux install.</p>
+        <h2>${finalNeedsNotice?finalInfo.doneTitle:"You're set up"}</h2>
+        <p class="subtitle" style="margin-top:var(--s1)">${finalNeedsNotice?finalInfo.doneSubtitle:'The agent has finished tuning your Linux install.'}</p>
         <div class="done-steps">
           <div class="ds"><div class="dn">${icon('check')}</div>System scanned</div>
           <div class="ds"><div class="dn">${icon('check')}</div>Preferences applied</div>
@@ -2650,8 +2656,8 @@ function renderDone(){
     </div>`:`
     <div class="card">
       <div class="done-screen">
-        <h2>${offline?'Bundle ready':'Welcome to Linux'}</h2>
-        <p class="subtitle" style="margin-top:var(--s1)">${offline?'Your migration bundle is ready. Boot the target machine, run the exported scripts, and use the Markdown plan as your checklist.':'The agent finished on the target. Go log in and try it out.'}</p>
+        <h2>${finalNeedsNotice?finalInfo.doneTitle:(offline?'Bundle ready':'Welcome to Linux')}</h2>
+        <p class="subtitle" style="margin-top:var(--s1)">${finalNeedsNotice?finalInfo.doneSubtitle:(offline?'Your migration bundle is ready. Boot the target machine, run the exported scripts, and use the Markdown plan as your checklist.':'The agent finished on the target. Go log in and try it out.')}</p>
         <div class="done-steps">
           <div class="ds"><div class="dn">${icon('check')}</div>System analyzed, apps mapped</div>
           <div class="ds"><div class="dn">${icon('check')}</div>${offline?'Bundle exported with quickstart + plan':'Linux configured remotely'}</div>
@@ -4385,6 +4391,7 @@ async function saveLinuxConn(){
   state._sshTestOk=false;
   state._setupStarted=false;
   state._setupDone=false;
+  state._setupFinalStatus='';
   toast('Connection saved','success');
   const btn=el('saveConnBtn');btn.textContent='Saved';
   const tb=el('testConnBtn');if(tb)tb.disabled=false;
@@ -4408,6 +4415,7 @@ async function launchSetupAgent(){
     if(data.status==='ok'){
       state._setupStarted=true;
       state._setupDone=false;
+      state._setupFinalStatus='';
       const launch=el('setupLaunch');
       const panel=el('setupPanel');
       const stop=el('setupStopBtn');
@@ -4415,7 +4423,7 @@ async function launchSetupAgent(){
       if(panel)panel.classList.remove('hidden');
       if(stop)stop.classList.remove('hidden');
       const spinner=el('setupSpinner'); if(spinner)spinner.classList.remove('hidden');
-      const phase=el('setupPhase'); if(phase){phase.textContent='Connecting…';phase.classList.remove('done','error');}
+      const phase=el('setupPhase'); if(phase){phase.textContent='Connecting…';phase.classList.remove('done','error','warning','followup','unsupported');}
       state._lastSetupMsgCount=-1;state._lastSetupSugCount=0;
       state._lastSetupSugSignature='';
       if(state._suggestionUi)delete state._suggestionUi.setup;
@@ -4475,6 +4483,7 @@ async function clearSetupLog(){
     }
     state._setupStarted=false;
     state._setupDone=false;
+    state._setupFinalStatus='';
     state._lastSetupMsgCount=-1;
     state._lastSetupSugCount=0;
     state._lastSetupSugSignature='';
@@ -4563,6 +4572,44 @@ async function sendSetupChat(){
 }
 
 let setupPollTimer=null;
+function setupFinalStatusDetails(status){
+  const s=String(status||'').toLowerCase();
+  if(s==='success_with_warnings')return{
+    kind:'warning',
+    label:'Completed with warnings',
+    button:'Review warnings',
+    doneTitle:'Completed with warnings',
+    doneSubtitle:'QuickHatch finished, but the final audit recorded non-blocking warnings to review.'
+  };
+  if(s==='manual_followup_required')return{
+    kind:'followup',
+    label:'Completed; follow-up required',
+    button:'Review follow-up',
+    doneTitle:'Follow-up required',
+    doneSubtitle:'QuickHatch reached a safe stopping point, but some app, desktop, driver, or setup items still need manual follow-up.'
+  };
+  if(s==='unsupported_safe')return{
+    kind:'unsupported',
+    label:'Safe but unsupported',
+    button:'Review next steps',
+    doneTitle:'Safe but unsupported',
+    doneSubtitle:'QuickHatch stopped safely because the target needs unsupported or manual action before it should be treated as fully complete.'
+  };
+  if(s==='blocked')return{
+    kind:'error',
+    label:'Setup blocked',
+    button:'Setup blocked',
+    doneTitle:'Setup blocked',
+    doneSubtitle:'A hard blocker remains. Return to Remote setup and review the final audit.'
+  };
+  return{
+    kind:'success',
+    label:'Finished',
+    button:'Finish',
+    doneTitle:'Welcome to Linux',
+    doneSubtitle:'The agent finished on the target. Go log in and try it out.'
+  };
+}
 function latestSetupTerminalText(messages){
   const terminal=messages.slice().reverse().find(m=>/^(Finished:|Migration setup complete!|Stopped\.?$|Error:)/i.test(m.content||''));
   return terminal?(terminal.content||''):'';
@@ -4570,18 +4617,24 @@ function latestSetupTerminalText(messages){
 function isSetupFailureText(text){
   return /setup blocked|agent stopped|stopped|error:/i.test(text||'');
 }
-function updateSetupTerminalUi({success=false, failed=false, label=''}={}){
+function updateSetupTerminalUi({success=false, failed=false, label='', finalStatus=''}={}){
+  const finalInfo=setupFinalStatusDetails(finalStatus);
+  const statusClass=failed?'error':(success?finalInfo.kind:'');
   const spinner=el('setupSpinner'); if(spinner)spinner.classList.add('hidden');
   const stop=el('setupStopBtn'); if(stop)stop.classList.add('hidden');
   const phase=el('setupPhase');
   if(phase){
     if(label)phase.textContent=label.replace(/^Finished:\s*/i,'').split('\n')[0];
+    phase.classList.remove('done','error','warning','followup','unsupported');
     phase.classList.toggle('done', !!success);
     phase.classList.toggle('error', !!failed);
+    if(statusClass&&!['success','error'].includes(statusClass))phase.classList.add(statusClass);
   }
   const panel=el('setupPanel');
   if(panel){
+    panel.classList.remove('warning','followup','unsupported');
     panel.classList.toggle('done', !!success);
+    if(statusClass&&!['success','error'].includes(statusClass))panel.classList.add(statusClass);
     if(label)panel.classList.remove('hidden');
   }
   const launch=el('setupLaunch'); if(launch)launch.classList.remove('hidden');
@@ -4594,10 +4647,11 @@ function updateSetupTerminalUi({success=false, failed=false, label=''}={}){
   const doneBtn=el('setupDone');
   if(doneBtn){
     doneBtn.disabled=!success;
-    doneBtn.textContent=success?'Finish':'Setup stopped';
+    doneBtn.textContent=success?finalInfo.button:'Setup stopped';
   }
   state._setupStarted=false;
   state._setupDone=!!success;
+  state._setupFinalStatus=success ? (finalStatus||'success') : '';
 }
 async function pollSetup(){
   // Same rule as pollBridge: drop any pending reschedule up front
@@ -4619,6 +4673,7 @@ async function pollSetup(){
       renderAgentFeed('setup', setupMsgs, !!data.agent_done);
       const setupRun=data.setup_run||{};
       const runStatus=(setupRun.status||'').toLowerCase();
+      const finalStatus=(setupRun.final_status||runStatus||'').toLowerCase();
       if(data.agent_connected||['running','waiting_for_input','stopping'].includes(runStatus)){
         state._setupStarted=true;
         state._setupDone=false;
@@ -4679,12 +4734,18 @@ async function pollSetup(){
       }
 
       if((state._setupStarted||setupHasFeed)&&setupTerminalComplete&&!terminalFailure){
-        updateSetupTerminalUi({success:true,label:terminalText||'Finished'});
+        const finalInfo=setupFinalStatusDetails(finalStatus);
+        updateSetupTerminalUi({
+          success:true,
+          finalStatus,
+          label:finalInfo.kind==='success' ? (terminalText||finalInfo.label) : finalInfo.label,
+        });
         const btn=el('setupDone');
-        if(btn&&btn.disabled){btn.disabled=false;btn.textContent='Finish'}
+        if(btn&&btn.disabled){btn.disabled=false;btn.textContent=finalInfo.button}
       }else if((state._setupStarted||setupHasFeed)&&(terminalFailure||setupStoppedOrBlocked||setupThreadInactive)){
         updateSetupTerminalUi({
           failed:true,
+          finalStatus,
           label:terminalText||'Setup stopped.',
         });
       }

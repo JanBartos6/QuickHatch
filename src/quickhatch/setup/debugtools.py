@@ -107,3 +107,33 @@ def catalog_health_payload() -> dict[str, Any]:
 
 def fuzz_harness_payload() -> dict[str, Any]:
     return run_harness_fuzz()
+
+
+def release_smoke_payload(
+    *,
+    full_pytest: bool = False,
+    include_certification: bool = True,
+    timeout: int = 300,
+    cwd: Path | str | None = None,
+) -> dict[str, Any]:
+    from .release_smoke import run_release_smoke
+
+    return run_release_smoke(
+        cwd=cwd,
+        full_pytest=full_pytest,
+        include_certification=include_certification,
+        timeout=timeout,
+    )
+
+
+def support_bundle_payload(
+    *,
+    runlog: Path | str | None = None,
+    root: Path | str | None = None,
+    output_dir: Path | str | None = None,
+    out: Path | str | None = None,
+) -> dict[str, Any]:
+    from .support_bundle import export_support_bundle
+
+    result = export_support_bundle(runlog, root=root, output_dir=output_dir, out=out)
+    return asdict(result)

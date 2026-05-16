@@ -10,7 +10,10 @@ from quickhatch.setup.debugtools import (
     harness_health_payload,
     load_facts_payload,
     preflight_debug_payload,
+    release_smoke_payload,
+    support_bundle_payload,
 )
+from quickhatch.setup.runlog import SetupRunLogger
 from quickhatch.setup.types import SetupFacts
 
 
@@ -86,3 +89,40 @@ def test_catalog_health_payload_is_advisory():
     assert payload["success"] is True
     assert "runtime_files" in payload
     assert payload["contract"].startswith("catalog hints are advisory")
+
+
+def test_release_smoke_payload_passes_options(monkeypatch, tmp_path):
+    captured = {}
+
+    def fake_run_release_smoke(**kwargs):
+        captured.update(kwargs)
+        return {"success": True, "checks": []}
+
+    monkeypatch.setattr("quickhatch.setup.release_smoke.run_release_smoke", fake_run_release_smoke)
+
+    payload = release_smoke_payload(
+        cwd=tmp_path,
+        full_pytest=True,
+        include_certification=False,
+        timeout=12,
+    )
+
+    assert payload["success"] is True
+    assert captured == {
+        "cwd": tmp_path,
+        "full_pytest": True,
+        "include_certification": False,
+        "timeout": 12,
+    }
+
+
+def test_support_bundle_payload_exports_zip(tmp_path):
+    logger = SetupRunLogger("run-debug-support", root=tmp_path / "runs")
+    logger.record("run_started", host="127.0.0.1", user="jan")
+    logger.record("command", stage="apps", command="sudo pacman -S git", rc=0)
+
+    payload = support_bundle_payload(runlog=logger.path, output_dir=tmp_path / "support")
+
+    assert payload["status"] == "ok"
+    assert payload["path"].endswith(".zip")
+    assert any((tmp_path / "support").glob("*.zip"))

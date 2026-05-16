@@ -504,6 +504,17 @@ _APP_PACKAGE_ALIASES: dict[str, set[str]] = {
     "claude": {"claude", "claude-desktop-bin", "claude-desktop"},
     "codex": {"codex", "openai-codex", "openai-codex-desktop", "codex-desktop-bin"},
 }
+_WEAK_APP_BINARY_DESKTOP_ALIASES = {
+    "app",
+    "application",
+    "code",
+    "desktop",
+    "github",
+    "launcher",
+    "manager",
+    "python",
+    "studio",
+}
 
 
 def _coerce_model_bool(value: Any, default: bool = False) -> bool:
@@ -746,6 +757,7 @@ class SetupOrchestrator:
             run_id=self.ctx.run_id,
             stage=SetupStage.CONNECT_AND_PROBE.value,
             status="running",
+            final_status="",
             blockers=[],
             waiting_for_input=False,
             active_question_id="",
@@ -3575,8 +3587,12 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             native_packages=self._clean_aliases(aliases.native_packages),
             flatpak_ids=self._clean_aliases(aliases.flatpak_ids),
             snap_names=self._clean_aliases(aliases.snap_names),
-            binaries=self._clean_executable_aliases(aliases.binaries),
-            desktop_entries=self._clean_aliases(aliases.desktop_entries),
+            binaries=self._drop_weak_binary_desktop_aliases(
+                self._clean_executable_aliases(aliases.binaries)
+            ),
+            desktop_entries=self._drop_weak_binary_desktop_aliases(
+                self._clean_aliases(aliases.desktop_entries)
+            ),
         )
 
     def _catalog_family_candidates(self) -> list[str]:
@@ -3640,6 +3656,18 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             and "." not in str(value).strip().strip(".")
         }
 
+    @staticmethod
+    def _drop_weak_binary_desktop_aliases(values: set[str]) -> set[str]:
+        return {
+            value
+            for value in values
+            if value not in _WEAK_APP_BINARY_DESKTOP_ALIASES
+            and not any(
+                value == f"{weak}-bin" or value == f"{weak}-git"
+                for weak in _WEAK_APP_BINARY_DESKTOP_ALIASES
+            )
+        }
+
     def _match_app_verification_signal(
         self,
         app: AppPlanItem,
@@ -3661,7 +3689,11 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             ("verified_app_group", aliases.native_packages, completed_group_tokens),
         )
         for signal, expected, observed in checks:
-            target = self._first_alias_match(expected, observed)
+            target = self._first_alias_match(
+                expected,
+                observed,
+                allow_compact=signal in {"native_package", "verified_app_group"},
+            )
             if not target:
                 continue
             alternative = self._app_is_explicit_alternative(app)
@@ -3675,13 +3707,20 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         return None
 
     @staticmethod
-    def _first_alias_match(expected: set[str], observed: set[str]) -> str:
+    def _first_alias_match(
+        expected: set[str],
+        observed: set[str],
+        *,
+        allow_compact: bool = True,
+    ) -> str:
         if not expected or not observed:
             return ""
         expected_lower = {item.lower() for item in expected}
         observed_lower = {item.lower() for item in observed}
         for item in sorted(expected_lower.intersection(observed_lower)):
             return item
+        if not allow_compact:
+            return ""
         expected_compact = {
             re.sub(r"[^a-z0-9]+", "", item): item for item in sorted(expected_lower)
         }

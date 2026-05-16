@@ -8,7 +8,7 @@ from pathlib import Path
 
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, DisplayInfo, UserProfile
-from quickhatch.setup.audit import audit_stage
+from quickhatch.setup.audit import audit_stage, final_audit
 from quickhatch.setup.orchestrator import (
     GroupFailure,
     SetupOrchestrator,
@@ -3563,6 +3563,241 @@ def test_final_app_verification_stale_catalog_package_is_manual_followup():
     ]
     assert final_state["verified_installed_apps"] == []
     assert final_state["unverified_installed_apps"] == ["Example App"]
+
+
+def _run_final_app_verification_probe(
+    app: AppPlanItem,
+    *,
+    package_stdout: str = "",
+    flatpak_stdout: str = "",
+    snap_stdout: str = "",
+    binary_stdout: str = "",
+    desktop_stdout: str = "",
+) -> tuple[SetupOrchestrator, list[str], list[str]]:
+    profile = UserProfile(apps_to_install=[app.name])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    commands: list[str] = []
+
+    def ssh_exec(command, timeout):
+        commands.append(command)
+        assert timeout == 45
+        if command == "pacman -Qq":
+            return (0, package_stdout, "")
+        if "flatpak list" in command:
+            return (0, flatpak_stdout, "")
+        if "snap list" in command:
+            return (0, snap_stdout, "")
+        if command.startswith("for qh_bin in "):
+            return (0, binary_stdout, "")
+        if 'find "$qh_expanded"' in command:
+            return (0, desktop_stdout, "")
+        raise AssertionError(f"unexpected command: {command}")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[app],
+    )
+
+    blockers = orchestrator._verify_planned_packages_installed()
+    return orchestrator, blockers, commands
+
+
+def test_final_app_verification_rejects_generic_binary_and_desktop_aliases():
+    cases = [
+        (
+            AppPlanItem(
+                name="Visual Studio Code",
+                package_name="code",
+                source="repo",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+            {"binary_stdout": "code\n"},
+        ),
+        (
+            AppPlanItem(
+                name="LM Studio",
+                package_name="lm-studio-bin",
+                source="community",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+            {"desktop_stdout": "studio.desktop\tStudio\tstudio\n"},
+        ),
+        (
+            AppPlanItem(
+                name="GitHub Desktop",
+                package_name="github-desktop",
+                source="community",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+            {"desktop_stdout": "github.desktop\tGitHub\tgithub\n"},
+        ),
+        (
+            AppPlanItem(
+                name="Python",
+                source="repo",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+            {"binary_stdout": "python\n"},
+        ),
+        (
+            AppPlanItem(
+                name="Some Vendor App",
+                package_name="app",
+                source="manual",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+            {"binary_stdout": "app\n"},
+        ),
+        (
+            AppPlanItem(
+                name="Launcher X",
+                package_name="launcher",
+                source="manual",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+            {"desktop_stdout": "launcher.desktop\tLauncher\tlauncher\n"},
+        ),
+    ]
+
+    for app, outputs in cases:
+        orchestrator, blockers, _commands = _run_final_app_verification_probe(
+            app,
+            **outputs,
+        )
+        final_state = orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value]
+
+        assert final_state["verified_installed_apps"] == []
+        assert final_state["unverified_installed_apps"] == [app.name]
+        assert app.name in blockers[0]
+
+
+def test_final_app_verification_keeps_strong_signal_matches():
+    strong_cases = [
+        (
+            AppPlanItem(
+                name="Visual Studio Code",
+                package_name="code",
+                source="repo",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+            {"package_stdout": "code\n"},
+            "native_package",
+        ),
+        (
+            AppPlanItem(
+                name="VLC",
+                package_name="org.videolan.VLC",
+                source="flatpak",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+            {"flatpak_stdout": "org.videolan.VLC\n"},
+            "flatpak",
+        ),
+        (
+            AppPlanItem(
+                name="Code",
+                package_name="code",
+                source="snap",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+            {"snap_stdout": "code\n"},
+            "snap",
+        ),
+        (
+            AppPlanItem(
+                name="Cursor",
+                package_name="cursor-bin",
+                source="community",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+            {"desktop_stdout": "cursor.desktop\tCursor\tcursor\n"},
+            "desktop_entry",
+        ),
+        (
+            AppPlanItem(
+                name="Special Tool",
+                package_name="special-tool",
+                source="manual",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            ),
+            {"binary_stdout": "special-tool\n"},
+            "binary",
+        ),
+    ]
+
+    for app, outputs, expected_signal in strong_cases:
+        orchestrator, blockers, _commands = _run_final_app_verification_probe(
+            app,
+            **outputs,
+        )
+        final_state = orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value]
+
+        assert blockers == []
+        assert final_state["verified_installed_apps"] == [app.name]
+        assert final_state["app_verification_signals"][app.name]["signal"] == expected_signal
+        assert final_state["unverified_installed_apps"] == []
+
+
+def test_final_app_verification_missing_required_app_status_is_manual_followup():
+    app = AppPlanItem(
+        name="Required Tool",
+        package_name="required-tool",
+        source="manual",
+        status=PlanItemStatus.INSTALLED,
+        required=True,
+    )
+    orchestrator, blockers, _commands = _run_final_app_verification_probe(app)
+
+    result = final_audit(
+        orchestrator.ctx.facts or SetupFacts(),
+        orchestrator.ctx.plan,
+        [AuditResult(stage=SetupStage.FINAL_AUDIT, passed=False, blockers=blockers)],
+    )
+
+    assert result.final_status == FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
+    assert result.blockers == []
+    assert result.findings[0].category == "apps"
+
+
+def test_final_app_verification_missing_optional_app_status_exposes_followup():
+    app = AppPlanItem(
+        name="Optional Tool",
+        package_name="optional-tool",
+        source="manual",
+        status=PlanItemStatus.INSTALLED,
+        required=False,
+    )
+    orchestrator, blockers, _commands = _run_final_app_verification_probe(app)
+
+    result = final_audit(
+        orchestrator.ctx.facts or SetupFacts(),
+        orchestrator.ctx.plan,
+        [AuditResult(stage=SetupStage.FINAL_AUDIT, passed=False, blockers=blockers)],
+    )
+
+    assert result.final_status == FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
+    assert result.blockers == []
+    assert result.findings[0].severity == AuditFindingSeverity.MANUAL_FOLLOWUP
 
 
 def test_desktop_display_audit_records_resolution_mismatch_as_followup():
@@ -9508,6 +9743,61 @@ def test_final_audit_success_with_warnings_status_is_preserved(monkeypatch):
 
     assert result.final_status == FinalSetupStatus.SUCCESS_WITH_WARNINGS
     assert orchestrator.bridge.snapshot_setup_run()["status"] == "success_with_warnings"
+
+
+def test_final_audit_bridge_payload_preserves_all_final_statuses():
+    cases = [
+        (FinalSetupStatus.SUCCESS, AuditFindingSeverity.WARNING, "done"),
+        (
+            FinalSetupStatus.SUCCESS_WITH_WARNINGS,
+            AuditFindingSeverity.WARNING,
+            "success_with_warnings",
+        ),
+        (
+            FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED,
+            AuditFindingSeverity.MANUAL_FOLLOWUP,
+            "manual_followup_required",
+        ),
+        (
+            FinalSetupStatus.UNSUPPORTED_SAFE,
+            AuditFindingSeverity.UNSUPPORTED_SAFE,
+            "unsupported_safe",
+        ),
+        (FinalSetupStatus.BLOCKED, AuditFindingSeverity.FATAL, "blocked"),
+    ]
+
+    for final_status, severity, expected_run_status in cases:
+        orchestrator = _final_audit_ready_orchestrator("{}")
+        findings = []
+        blockers = []
+        if final_status != FinalSetupStatus.SUCCESS:
+            finding = AuditFinding(
+                id=f"final_audit:{final_status.value}",
+                severity=severity,
+                category="setup",
+                summary=f"{final_status.value} finding",
+            )
+            findings = [finding]
+            if severity == AuditFindingSeverity.FATAL:
+                blockers = [finding.summary]
+        orchestrator._compute_final_audit_result = (  # type: ignore[method-assign]
+            lambda final_status=final_status, findings=findings, blockers=blockers: AuditResult(
+                stage=SetupStage.FINAL_AUDIT,
+                passed=not blockers,
+                blockers=blockers,
+                findings=findings,
+                final_status=final_status,
+            )
+        )
+
+        result = orchestrator._run_final_audit()
+        setup_run = orchestrator.bridge.snapshot_setup_run()
+
+        assert result.final_status == final_status
+        assert setup_run["status"] == expected_run_status
+        assert setup_run["final_status"] == final_status.value
+        if final_status == FinalSetupStatus.BLOCKED:
+            assert result.passed is False
 
 
 def test_final_audit_repair_group_dangerous_raw_shell_blocks_without_capability(monkeypatch):

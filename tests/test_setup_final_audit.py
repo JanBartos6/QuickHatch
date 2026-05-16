@@ -210,3 +210,53 @@ def test_final_audit_alternative_installed_is_warning() -> None:
 
     assert result.final_status == FinalSetupStatus.SUCCESS_WITH_WARNINGS
     assert result.findings[0].severity == AuditFindingSeverity.WARNING
+
+
+def test_final_audit_status_matrix_preserves_all_terminal_states() -> None:
+    success = final_audit(
+        SetupFacts(package_manager="pacman", current_user="jan"),
+        _plan(),
+        [],
+    )
+    warnings = audit_stage(
+        SetupStage.FINAL_AUDIT,
+        SetupFacts(package_manager="pacman", current_user="jan"),
+        plan=_plan(),
+        stage_state={
+            "verified_alternative_apps": [{"app": "Adobe Acrobat Reader", "alternative": "okular"}]
+        },
+    )
+    manual = final_audit(
+        SetupFacts(package_manager="pacman", current_user="jan"),
+        _plan(),
+        [
+            AuditResult(
+                stage=SetupStage.APPS,
+                passed=False,
+                blockers=["Manual follow-up app(s) remain: Brave"],
+            )
+        ],
+    )
+    unsupported = final_audit(
+        SetupFacts(package_manager="pacman", current_user="jan"),
+        _plan(),
+        [
+            AuditResult(
+                stage=SetupStage.POSTBOOT_DRIVER,
+                passed=False,
+                blockers=["Secure Boot is enabled; NVIDIA modules need manual follow-up."],
+            )
+        ],
+    )
+    blocked = final_audit(
+        SetupFacts(package_manager="pacman", current_user="root", is_live=True),
+        _plan(),
+        [],
+    )
+
+    assert success.final_status == FinalSetupStatus.SUCCESS
+    assert warnings.final_status == FinalSetupStatus.SUCCESS_WITH_WARNINGS
+    assert manual.final_status == FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
+    assert unsupported.final_status == FinalSetupStatus.UNSUPPORTED_SAFE
+    assert blocked.final_status == FinalSetupStatus.BLOCKED
+    assert blocked.passed is False

@@ -303,6 +303,7 @@ class GUIState:
             self.bridge.agent_connected = True
             if phase == "setup":
                 self.bridge.setup_run["status"] = "running"
+                self.bridge.setup_run["final_status"] = ""
         self.bridge.set_current_phase(phase)
 
     def mark_agent_stopped(self, finished_thread: threading.Thread | None = None) -> None:

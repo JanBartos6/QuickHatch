@@ -191,6 +191,26 @@ def main() -> None:
         "catalog-health",
         help="Run advisory app-catalog contract validation",
     )
+    smoke_parser = debug_subparsers.add_parser(
+        "release-smoke",
+        help="Run local non-VM release readiness checks",
+    )
+    smoke_parser.add_argument(
+        "--full-pytest",
+        action="store_true",
+        help="Run the full pytest suite instead of the targeted smoke subset.",
+    )
+    smoke_parser.add_argument(
+        "--skip-certification-dry-runs",
+        action="store_true",
+        help="Skip local certification dry-runs.",
+    )
+    smoke_parser.add_argument(
+        "--timeout",
+        type=int,
+        default=300,
+        help="Per-check timeout in seconds.",
+    )
     latest_parser = debug_subparsers.add_parser(
         "latest-run",
         help="Find and summarize the latest real setup run artifact",
@@ -203,6 +223,18 @@ def main() -> None:
     )
     scan_parser.add_argument("--root")
     scan_parser.add_argument("--limit", type=int, default=50)
+    support_parser = debug_subparsers.add_parser(
+        "support-bundle",
+        aliases=["export-support-bundle"],
+        help="Write a redacted support ZIP for a setup run",
+    )
+    support_parser.add_argument("--runlog", help="Specific setup run JSONL to bundle")
+    support_parser.add_argument("--root", help="Setup runlog root to scan for the latest run")
+    support_parser.add_argument(
+        "--out",
+        help="Exact .zip path or output directory for the generated support bundle",
+    )
+    support_parser.add_argument("--output-dir", help="Directory for the generated support ZIP")
 
     certify_parser = subparsers.add_parser("certify", help="Run certification tooling")
     certify_subparsers = certify_parser.add_subparsers(dest="certify_command")
@@ -216,6 +248,7 @@ def main() -> None:
     vm_parser.add_argument("--dry-run", action="store_true")
     vm_parser.add_argument("--ssh-user", default="root")
     vm_parser.add_argument("--ssh-key")
+    vm_parser.add_argument("--root", default=".quickhatch/certification")
     vm_parser.add_argument(
         "--target-disk",
         help="Target disk inside the VM (defaults to /dev/sda for VirtualBox, /dev/vda for QEMU).",
@@ -392,6 +425,8 @@ def _run_debug_command(args) -> None:
         harness_health_payload,
         load_facts_payload,
         preflight_debug_payload,
+        release_smoke_payload,
+        support_bundle_payload,
     )
     from quickhatch.setup.replay import (
         find_latest_runlog,
@@ -463,6 +498,16 @@ def _run_debug_command(args) -> None:
     if args.debug_command == "catalog-health":
         _print_json(catalog_health_payload())
         return
+    if args.debug_command == "release-smoke":
+        payload = release_smoke_payload(
+            full_pytest=bool(args.full_pytest),
+            include_certification=not bool(args.skip_certification_dry_runs),
+            timeout=args.timeout,
+        )
+        _print_json(payload)
+        if not payload.get("success"):
+            raise SystemExit(1)
+        return
     if args.debug_command == "latest-run":
         runlog = find_latest_runlog(Path(args.root) if args.root else None)
         if runlog is None:
@@ -477,6 +522,16 @@ def _run_debug_command(args) -> None:
         return
     if args.debug_command == "scan-runlogs":
         _print_json(asdict(scan_runlogs(Path(args.root) if args.root else None, limit=args.limit)))
+        return
+    if args.debug_command in {"support-bundle", "export-support-bundle"}:
+        _print_json(
+            support_bundle_payload(
+                runlog=args.runlog,
+                root=args.root,
+                output_dir=args.output_dir,
+                out=args.out,
+            )
+        )
         return
     raise SystemExit("Missing debug subcommand.")
 
@@ -493,6 +548,7 @@ def _run_certify_command(args) -> None:
             dry_run=args.dry_run,
             ssh_user=args.ssh_user,
             ssh_key=args.ssh_key,
+            root=args.root,
             target_disk=args.target_disk,
             post_reboot_user=args.post_reboot_user,
             require_post_reboot=not args.no_post_reboot,

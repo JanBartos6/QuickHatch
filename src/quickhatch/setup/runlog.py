@@ -10,16 +10,28 @@ from pathlib import Path
 from typing import Any
 
 _SENSITIVE_KEY_RE = re.compile(
-    r"(api[_-]?key|token|secret|password|passphrase|private[_-]?key|authorized_keys)",
+    r"(api[_-]?key|access[_-]?key|token|secret|credential|password|passphrase|private[_-]?key|authorized_keys)",
     re.IGNORECASE,
 )
 _SENSITIVE_LINE_RE = re.compile(
-    r"(api[_-]?key|token|secret|password|passphrase)\s*[:=]\s*([^\s,'\"}]+)",
+    r"(api[_-]?key|access[_-]?key|token|secret|credential|password|passphrase|private[_-]?key)\s*[:=]\s*([^\s,'\"}]+)",
+    re.IGNORECASE,
+)
+_SENSITIVE_ARG_RE = re.compile(
+    r"(?<!\w)(--?(?:api[_-]?key|access[_-]?key|token|secret|credential|password|passphrase|private[_-]?key)(?:=|\s+))('(?:[^']*)'|\"(?:[^\"]*)\"|[^\s;]+)",
     re.IGNORECASE,
 )
 _SENSITIVE_JSON_FIELD_RE = re.compile(
-    r'("(?:[^"]*(?:api[_-]?key|token|secret|password|passphrase|private[_-]?key)[^"]*)"\s*:\s*)"[^"]*"',
+    r'("(?:[^"]*(?:api[_-]?key|access[_-]?key|token|secret|credential|password|passphrase|private[_-]?key)[^"]*)"\s*:\s*)"[^"]*"',
     re.IGNORECASE,
+)
+_SENSITIVE_ESCAPED_JSON_FIELD_RE = re.compile(
+    r'(\\?"(?:[^"\\]*(?:api[_-]?key|access[_-]?key|token|secret|credential|password|passphrase|private[_-]?key)[^"\\]*)\\?"\s*:\s*\\?")[^"\\]*(\\?")',
+    re.IGNORECASE,
+)
+_PRIVATE_KEY_BLOCK_RE = re.compile(
+    r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?-----END [A-Z0-9 ]*PRIVATE KEY-----",
+    re.IGNORECASE | re.DOTALL,
 )
 _SSH_PUBLIC_KEY_RE = re.compile(
     r"\b(?:ssh-(?:ed25519|rsa)|ecdsa-sha2-[A-Za-z0-9@._+-]+)\s+[A-Za-z0-9+/=]+"
@@ -28,7 +40,17 @@ _SSH_PUBLIC_KEY_RE = re.compile(
 
 
 def redact_sensitive_text(value: str) -> str:
-    text = _SENSITIVE_JSON_FIELD_RE.sub(r'\1"***REDACTED***"', value)
+    text = _PRIVATE_KEY_BLOCK_RE.sub("***REDACTED PRIVATE KEY***", value)
+    text = re.sub(
+        r"\bBearer\s+[A-Za-z0-9._~+/=-]+",
+        "Bearer ***REDACTED***",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(r"\bsk-[A-Za-z0-9_-]{16,}\b", "sk-***REDACTED***", text)
+    text = _SENSITIVE_JSON_FIELD_RE.sub(r'\1"***REDACTED***"', text)
+    text = _SENSITIVE_ESCAPED_JSON_FIELD_RE.sub(r"\1***REDACTED***\2", text)
+    text = _SENSITIVE_ARG_RE.sub(r"\1***REDACTED***", text)
     text = _SENSITIVE_LINE_RE.sub(lambda m: f"{m.group(1)}=***REDACTED***", text)
     text = re.sub(
         r"\b(qh_pw|password|root_pw|user_pw)=('(?:[^']*)'|\"(?:[^\"]*)\"|[^\s;]+)",
@@ -237,3 +259,17 @@ def write_executed_commands_script(
         return path
     except OSError:
         return None
+
+
+def export_support_bundle(
+    runlog_path: Path | str | None = None,
+    *,
+    root: Path | str | None = None,
+    output_dir: Path | str | None = None,
+) -> Path:
+    """Compatibility wrapper returning only the generated bundle path."""
+
+    from .support_bundle import export_support_bundle as _export_support_bundle
+
+    result = _export_support_bundle(runlog_path, root=root, output_dir=output_dir)
+    return Path(result.path)
