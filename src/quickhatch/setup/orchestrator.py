@@ -15,7 +15,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-from quickhatch.analysis.app_catalog import selected_app_catalog_context
+from quickhatch.analysis.app_catalog import match_catalog_entry, selected_app_catalog_context
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, UserProfile, generate_setup_password
 
@@ -485,6 +485,12 @@ _APP_PACKAGE_ALIASES: dict[str, set[str]] = {
     "cursor": {"cursor", "cursor-bin"},
     "github desktop": {"github-desktop", "github-desktop-bin"},
     "lm studio": {"lm-studio", "lm-studio-bin", "lmstudio", "lmstudio-bin"},
+    "mozilla firefox": {"firefox", "org.mozilla.firefox"},
+    "firefox": {"firefox", "org.mozilla.firefox"},
+    "spotify": {"spotify", "spotify-client", "com.spotify.client"},
+    "spotify music and podcasts": {"spotify", "spotify-client", "com.spotify.client"},
+    "vlc": {"vlc", "org.videolan.vlc"},
+    "vlc media player": {"vlc", "org.videolan.vlc"},
     "mullvad": {"mullvad", "mullvad-vpn", "mullvad-vpn-bin", "mullvad-vpn-daemon-bin"},
     "mullvad vpn": {
         "mullvad",
@@ -624,6 +630,24 @@ class AppPackageResolution:
     command: str
     verification: str
     evidence_summary: str
+
+
+@dataclass
+class AppVerificationAliases:
+    native_packages: set[str] = field(default_factory=set)
+    flatpak_ids: set[str] = field(default_factory=set)
+    snap_names: set[str] = field(default_factory=set)
+    binaries: set[str] = field(default_factory=set)
+    desktop_entries: set[str] = field(default_factory=set)
+
+
+@dataclass
+class AppVerificationMatch:
+    app_name: str
+    signal: str
+    target: str
+    alternative: bool = False
+    alternative_name: str = ""
 
 
 class SetupOrchestrator:
@@ -3284,45 +3308,44 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
         final_state["package_verification_ran"] = False
         final_state["verified_installed_apps"] = []
+        final_state["verified_alternative_apps"] = []
         final_state["unverified_installed_apps"] = []
         installed_like = [
             app
             for app in self.ctx.plan.apps
             if app.status in {PlanItemStatus.INSTALLED, PlanItemStatus.COMPLETED}
         ]
-        candidates = [
-            app
-            for app in installed_like
-            if self._package_name_variants(app.name, app.package_name)
-            or (app.source or "").strip().lower() in {"flatpak", "flathub"}
-        ]
+        aliases_by_app = {app.name: self._app_verification_aliases(app) for app in installed_like}
+        candidates = [app for app in installed_like if self._app_has_verification_aliases(app)]
         unverifiable = [app.name for app in installed_like if app not in candidates]
         final_state["unverified_installed_apps"] = sorted(unverifiable)
         if unverifiable:
             self._record_app_verification_manual_followup(
                 final_state,
                 unverifiable,
-                "missing package/Flatpak identifiers",
+                "missing package, Flatpak, Snap, binary, or desktop-entry identifiers",
             )
             required_unverifiable = [
                 app.name for app in installed_like if app not in candidates and app.required
             ]
             if required_unverifiable:
                 return [
-                    "Required app(s) were claimed installed/completed but cannot be verified "
-                    "without package or Flatpak identifiers: "
-                    + ", ".join(sorted(required_unverifiable))
+                    "Manual follow-up app(s) were claimed installed/completed but cannot be "
+                    "verified without package, Flatpak, Snap, binary, or desktop-entry "
+                    "identifiers: " + ", ".join(sorted(required_unverifiable))
                 ]
         if not candidates:
             return []
-        flatpak_candidates = [app for app in candidates if self._app_uses_flatpak(app)]
-        package_candidates = [app for app in candidates if app not in flatpak_candidates]
+        native_candidates = [app for app in candidates if aliases_by_app[app.name].native_packages]
+        flatpak_candidates = [app for app in candidates if aliases_by_app[app.name].flatpak_ids]
+        snap_candidates = [app for app in candidates if aliases_by_app[app.name].snap_names]
+        binary_candidates = [app for app in candidates if aliases_by_app[app.name].binaries]
+        desktop_candidates = [app for app in candidates if aliases_by_app[app.name].desktop_entries]
         query_cmds = {
             "pacman": "pacman -Qq",
             "apt": (
                 "dpkg-query -W -f='${db:Status-Abbrev} ${Package}\\n' 2>/dev/null "
-                "| awk '$1 == \"ii\" {print $2}'; "
-                "snap list 2>/dev/null | awk 'NR>1 {print $1}'"
+                "| awk '$1 == \"ii\" {print $2}'"
             ),
             "dnf": "rpm -qa --queryformat '%{NAME}\\n'",
             "zypper": "rpm -qa --queryformat '%{NAME}\\n'",
@@ -3331,15 +3354,16 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
             "emerge": "qlist -IC 2>/dev/null || true",
         }
         query = query_cmds.get(self.ctx.facts.package_manager)
-        if not query and package_candidates:
+        if not query and native_candidates:
             self._record_app_verification_manual_followup(
                 final_state,
-                [app.name for app in package_candidates],
+                [app.name for app in native_candidates],
                 f"no package query command for {self.ctx.facts.package_manager}",
             )
-            package_candidates = []
-            candidates = flatpak_candidates
-            if not candidates:
+            native_candidates = []
+            if not any(
+                (flatpak_candidates, snap_candidates, binary_candidates, desktop_candidates)
+            ):
                 return []
         installed: set[str] = set()
         # Query the native package DB even for Flatpak-planned apps when possible.
@@ -3357,52 +3381,444 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
                 stderr_tail=(stderr or "")[-800:],
             )
             if rc != 0:
-                final_state["unverified_installed_apps"] = sorted(
-                    app.name for app in installed_like
-                )
-                return [
-                    "Could not verify installed packages with "
-                    f"{self.ctx.facts.package_manager}: {(stderr or stdout or '').strip()[:200]}"
-                ]
-            installed = {
-                line.strip().lower() for line in (stdout or "").splitlines() if line.strip()
-            }
+                final_state["package_verification_error"] = (
+                    stderr or stdout or "package query failed"
+                ).strip()[:500]
+            else:
+                installed = {
+                    line.strip().lower() for line in (stdout or "").splitlines() if line.strip()
+                }
         flatpak_installed = self._query_installed_flatpaks() if flatpak_candidates else set()
-        missing: list[str] = []
-        verified: list[str] = []
+        snap_installed = self._query_installed_snaps() if snap_candidates else set()
+        completed_group_tokens = self._completed_app_group_verification_tokens()
+        missing_apps: list[AppPlanItem] = []
+        verified: list[AppVerificationMatch] = []
+        alternative_verified: list[AppVerificationMatch] = []
         for app in candidates:
-            variants = self._package_name_variants(app.name, app.package_name)
-            if self._app_uses_flatpak(app):
-                variants.update(self._flatpak_name_variants(app))
-            if not variants:
-                missing.append(app.name)
+            aliases = aliases_by_app[app.name]
+            match = self._match_app_verification_signal(
+                app,
+                aliases,
+                native_installed=installed,
+                flatpak_installed=flatpak_installed,
+                snap_installed=snap_installed,
+                binary_installed=set(),
+                desktop_entries=set(),
+                completed_group_tokens=completed_group_tokens,
+            )
+            if match is None:
+                missing_apps.append(app)
                 continue
-            installed_pools = [installed]
-            if self._app_uses_flatpak(app):
-                installed_pools.insert(0, flatpak_installed)
-            if not any(variant in pool for pool in installed_pools for variant in variants):
-                missing.append(app.name)
-                continue
-            verified.append(app.name)
-        final_state["verified_installed_apps"] = sorted(verified)
+            if match.alternative:
+                alternative_verified.append(match)
+            else:
+                verified.append(match)
+        if missing_apps:
+            binary_installed = (
+                self._query_installed_binaries(
+                    sorted(
+                        {
+                            alias
+                            for app in missing_apps
+                            for alias in aliases_by_app[app.name].binaries
+                        }
+                    )
+                )
+                if any(aliases_by_app[app.name].binaries for app in missing_apps)
+                else set()
+            )
+            desktop_entries = (
+                self._query_desktop_app_entries()
+                if any(aliases_by_app[app.name].desktop_entries for app in missing_apps)
+                else set()
+            )
+            still_missing: list[AppPlanItem] = []
+            for app in missing_apps:
+                aliases = aliases_by_app[app.name]
+                match = self._match_app_verification_signal(
+                    app,
+                    aliases,
+                    native_installed=installed,
+                    flatpak_installed=flatpak_installed,
+                    snap_installed=snap_installed,
+                    binary_installed=binary_installed,
+                    desktop_entries=desktop_entries,
+                    completed_group_tokens=completed_group_tokens,
+                )
+                if match is None:
+                    still_missing.append(app)
+                    continue
+                if match.alternative:
+                    alternative_verified.append(match)
+                else:
+                    verified.append(match)
+            missing_apps = still_missing
+        missing = [app.name for app in missing_apps]
+        final_state["verified_installed_apps"] = sorted(match.app_name for match in verified)
+        final_state["verified_alternative_apps"] = [
+            {
+                "app": match.app_name,
+                "alternative": match.alternative_name or match.target,
+                "signal": match.signal,
+                "target": match.target,
+            }
+            for match in sorted(alternative_verified, key=lambda item: item.app_name)
+        ]
+        final_state["app_verification_signals"] = {
+            match.app_name: {
+                "signal": match.signal,
+                "target": match.target,
+                "alternative": match.alternative,
+                "alternative_name": match.alternative_name,
+            }
+            for match in [*verified, *alternative_verified]
+        }
         final_state["unverified_installed_apps"] = sorted({*unverifiable, *missing})
+        blockers: list[str] = []
+        if alternative_verified:
+            blockers.append(
+                "Alternative installed for requested app(s): "
+                + ", ".join(
+                    sorted(
+                        f"{match.app_name} -> {match.alternative_name or match.target}"
+                        for match in alternative_verified
+                    )
+                )
+            )
         if not missing:
-            return []
+            return blockers
         self._record_app_verification_manual_followup(
             final_state,
             missing,
-            "installed package was not found under the planned identifiers",
+            "installed app was not found through package, Flatpak, Snap, binary, desktop-entry, "
+            "or completed app-group verification",
         )
         required_missing = [
             app.name for app in candidates if app.name in set(missing) and app.required
         ]
         if required_missing:
-            return [
-                "Required app(s) were claimed installed/completed but package verification "
-                "did not find them under the planned identifiers: "
+            blockers.append(
+                "Manual follow-up required app(s) were claimed installed/completed but final "
+                "verification did not find them through package, Flatpak, Snap, binary, "
+                "desktop-entry, or completed app-group signals: "
                 + ", ".join(sorted(required_missing))
-            ]
-        return []
+            )
+        optional_missing = sorted(set(missing) - set(required_missing))
+        if optional_missing:
+            blockers.append(
+                "Manual follow-up optional app(s) were claimed installed/completed but final "
+                "verification did not find them: " + ", ".join(optional_missing)
+            )
+        return blockers
+
+    def _app_has_verification_aliases(self, app: AppPlanItem) -> bool:
+        aliases = self._app_verification_aliases(app)
+        return any(
+            (
+                aliases.native_packages,
+                aliases.flatpak_ids,
+                aliases.snap_names,
+                aliases.binaries,
+                aliases.desktop_entries,
+            )
+        )
+
+    def _app_verification_aliases(self, app: AppPlanItem) -> AppVerificationAliases:
+        aliases = AppVerificationAliases()
+        source = self._normalized_app_source(app.source)
+        explicit_alternative = self._app_is_explicit_alternative(app)
+
+        def add_name(value: str) -> None:
+            variants = self._package_name_variants(value, "")
+            aliases.native_packages.update(variants)
+            aliases.desktop_entries.update(variants)
+            aliases.binaries.update(self._binary_aliases_from_variants(variants))
+
+        def add_package(value: str, package_source: str = "") -> None:
+            package = str(value or "").strip()
+            if not package:
+                return
+            lowered = package.lower()
+            variants = self._package_name_variants("", package)
+            aliases.native_packages.update(variants)
+            aliases.desktop_entries.update(variants)
+            aliases.binaries.update(self._binary_aliases_from_variants(variants))
+            normalized_source = self._normalized_app_source(package_source)
+            if normalized_source in {"flatpak", "flathub"} or self._looks_like_flatpak_id(package):
+                aliases.flatpak_ids.add(lowered)
+            if normalized_source == "snap":
+                aliases.snap_names.add(lowered)
+
+        add_name(app.name)
+        add_package(app.package_name, source)
+
+        entry = match_catalog_entry(app.name)
+        if entry is not None:
+            for name in (entry.name, *entry.match_names):
+                add_name(name)
+            for family in self._catalog_family_candidates():
+                hint = entry.install_hints.get(family) or {}
+                hint_source = str(hint.get("source") or "")
+                if (
+                    self._normalized_app_source(hint_source) == "alternative"
+                    and not explicit_alternative
+                ):
+                    continue
+                for package in hint.get("packages", []) or []:
+                    add_package(str(package), hint_source)
+
+        if explicit_alternative:
+            add_package(app.package_name, source)
+            aliases.desktop_entries.update(self._package_name_variants(app.reason, ""))
+
+        return AppVerificationAliases(
+            native_packages=self._clean_aliases(aliases.native_packages),
+            flatpak_ids=self._clean_aliases(aliases.flatpak_ids),
+            snap_names=self._clean_aliases(aliases.snap_names),
+            binaries=self._clean_executable_aliases(aliases.binaries),
+            desktop_entries=self._clean_aliases(aliases.desktop_entries),
+        )
+
+    def _catalog_family_candidates(self) -> list[str]:
+        facts = self.ctx.facts or SetupFacts()
+        plan = self.ctx.plan
+        raw = " ".join(
+            item
+            for item in (
+                facts.distro_family,
+                facts.os_id,
+                facts.os_like,
+                plan.distro_family if plan else "",
+            )
+            if item
+        ).lower()
+        candidates: list[str] = []
+        if any(token in raw for token in ("arch", "manjaro", "endeavour")):
+            candidates.append("arch")
+        if any(token in raw for token in ("ubuntu", "mint", "pop", "zorin")):
+            candidates.extend(["ubuntu", "debian"])
+        if "debian" in raw and "debian" not in candidates:
+            candidates.extend(["debian", "ubuntu"])
+        if any(token in raw for token in ("fedora", "rhel", "red hat", "centos", "rocky", "alma")):
+            candidates.append("fedora")
+        if any(token in raw for token in ("opensuse", "suse")):
+            candidates.append("opensuse")
+        if "alpine" in raw:
+            candidates.append("alpine")
+        if "void" in raw:
+            candidates.append("void")
+        if "gentoo" in raw:
+            candidates.append("gentoo")
+        return list(dict.fromkeys(candidates))
+
+    @staticmethod
+    def _looks_like_flatpak_id(value: str) -> bool:
+        return bool(re.fullmatch(r"(?:org|com|io|net|dev|app)\.[A-Za-z0-9_.-]+", value or ""))
+
+    @staticmethod
+    def _binary_aliases_from_variants(variants: set[str]) -> set[str]:
+        aliases: set[str] = set()
+        for variant in variants:
+            lowered = variant.lower()
+            aliases.add(lowered)
+            for suffix in ("-bin", "-git", "-desktop", "-app"):
+                if lowered.endswith(suffix):
+                    aliases.add(lowered[: -len(suffix)])
+        return aliases
+
+    @staticmethod
+    def _clean_aliases(values: set[str]) -> set[str]:
+        return {str(value or "").strip().lower() for value in values if str(value or "").strip()}
+
+    @staticmethod
+    def _clean_executable_aliases(values: set[str]) -> set[str]:
+        return {
+            str(value or "").strip().lower()
+            for value in values
+            if re.fullmatch(r"[A-Za-z0-9._+-]+", str(value or "").strip())
+            and "/" not in str(value)
+            and "." not in str(value).strip().strip(".")
+        }
+
+    def _match_app_verification_signal(
+        self,
+        app: AppPlanItem,
+        aliases: AppVerificationAliases,
+        *,
+        native_installed: set[str],
+        flatpak_installed: set[str],
+        snap_installed: set[str],
+        binary_installed: set[str],
+        desktop_entries: set[str],
+        completed_group_tokens: set[str],
+    ) -> AppVerificationMatch | None:
+        checks = (
+            ("native_package", aliases.native_packages, native_installed),
+            ("flatpak", aliases.flatpak_ids, flatpak_installed),
+            ("snap", aliases.snap_names, snap_installed),
+            ("binary", aliases.binaries, binary_installed),
+            ("desktop_entry", aliases.desktop_entries, desktop_entries),
+            ("verified_app_group", aliases.native_packages, completed_group_tokens),
+        )
+        for signal, expected, observed in checks:
+            target = self._first_alias_match(expected, observed)
+            if not target:
+                continue
+            alternative = self._app_is_explicit_alternative(app)
+            return AppVerificationMatch(
+                app_name=app.name,
+                signal=signal,
+                target=target,
+                alternative=alternative,
+                alternative_name=self._alternative_display_name(app, target) if alternative else "",
+            )
+        return None
+
+    @staticmethod
+    def _first_alias_match(expected: set[str], observed: set[str]) -> str:
+        if not expected or not observed:
+            return ""
+        expected_lower = {item.lower() for item in expected}
+        observed_lower = {item.lower() for item in observed}
+        for item in sorted(expected_lower.intersection(observed_lower)):
+            return item
+        expected_compact = {
+            re.sub(r"[^a-z0-9]+", "", item): item for item in sorted(expected_lower)
+        }
+        observed_compact = {
+            re.sub(r"[^a-z0-9]+", "", item): item for item in sorted(observed_lower)
+        }
+        for compact in sorted(set(expected_compact).intersection(observed_compact)):
+            if compact:
+                return observed_compact[compact]
+        return ""
+
+    def _query_installed_snaps(self) -> set[str]:
+        final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
+        command = (
+            "if command -v snap >/dev/null 2>&1; then "
+            "snap list 2>/dev/null | awk 'NR>1 {print $1}'; "
+            "fi"
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 45)
+        self.runlog.record(
+            "final_snap_verification",
+            command=command,
+            rc=rc,
+            stdout_tail=(stdout or "")[-800:],
+            stderr_tail=(stderr or "")[-800:],
+        )
+        final_state["snap_verification_rc"] = rc
+        final_state["installed_snaps"] = sorted(
+            line.strip() for line in (stdout or "").splitlines() if line.strip()
+        )
+        if rc != 0:
+            return set()
+        return {line.strip().lower() for line in (stdout or "").splitlines() if line.strip()}
+
+    def _query_installed_binaries(self, aliases: list[str]) -> set[str]:
+        final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
+        safe_aliases = [alias for alias in dict.fromkeys(aliases) if alias]
+        if not safe_aliases:
+            return set()
+        quoted = " ".join(shlex.quote(alias) for alias in safe_aliases)
+        command = (
+            f"for qh_bin in {quoted}; do "
+            'if command -v "$qh_bin" >/dev/null 2>&1; then '
+            "printf '%s\\n' \"$qh_bin\"; "
+            "fi; "
+            "done"
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 45)
+        self.runlog.record(
+            "final_binary_verification",
+            command=command,
+            rc=rc,
+            stdout_tail=(stdout or "")[-800:],
+            stderr_tail=(stderr or "")[-800:],
+        )
+        final_state["binary_verification_rc"] = rc
+        final_state["installed_binaries"] = sorted(
+            line.strip() for line in (stdout or "").splitlines() if line.strip()
+        )
+        if rc != 0:
+            return set()
+        return {line.strip().lower() for line in (stdout or "").splitlines() if line.strip()}
+
+    def _query_desktop_app_entries(self) -> set[str]:
+        final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
+        facts = self.ctx.facts or SetupFacts()
+        dirs = [
+            "/usr/share/applications",
+            "/usr/local/share/applications",
+            "$HOME/.local/share/applications",
+        ]
+        login_user = (facts.login_user or facts.current_user or "").strip()
+        if login_user and re.fullmatch(r"[a-z_][a-z0-9_-]{0,31}", login_user):
+            dirs.append(f"/home/{login_user}/.local/share/applications")
+        dirs_q = " ".join(shlex.quote(item) for item in dict.fromkeys(dirs))
+        command = rf"""for qh_dir in {dirs_q}; do
+  eval "qh_expanded=$qh_dir"
+  [ -d "$qh_expanded" ] || continue
+  find "$qh_expanded" -maxdepth 1 -type f -name '*.desktop' -print 2>/dev/null
+done | while IFS= read -r qh_file; do
+  qh_id=$(basename "$qh_file" .desktop)
+  qh_name=$(awk -F= 'tolower($1)=="name" {{print $2; exit}}' "$qh_file" 2>/dev/null)
+  qh_exec=$(awk -F= 'tolower($1)=="exec" {{print $2; exit}}' "$qh_file" 2>/dev/null)
+  qh_exec=${{qh_exec%% *}}
+  qh_exec=${{qh_exec##*/}}
+  printf '%s\t%s\t%s\n' "$qh_id" "$qh_name" "$qh_exec"
+done"""
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 45)
+        self.runlog.record(
+            "final_desktop_entry_verification",
+            command=command,
+            rc=rc,
+            stdout_tail=(stdout or "")[-800:],
+            stderr_tail=(stderr or "")[-800:],
+        )
+        aliases: set[str] = set()
+        entries: list[str] = []
+        if rc == 0:
+            for line in (stdout or "").splitlines():
+                parts = [part.strip() for part in line.split("\t") if part.strip()]
+                if not parts:
+                    continue
+                entries.append(line.strip())
+                for part in parts:
+                    aliases.update(self._package_name_variants(part, ""))
+        final_state["desktop_entry_verification_rc"] = rc
+        final_state["installed_desktop_entries"] = entries
+        if rc != 0:
+            return set()
+        return self._clean_aliases(aliases)
+
+    def _completed_app_group_verification_tokens(self) -> set[str]:
+        if self.ctx.plan is None:
+            return set()
+        tokens: set[str] = set()
+        for group in self.ctx.plan.command_groups:
+            if group.stage != SetupStage.APPS or group.status != PlanItemStatus.COMPLETED:
+                continue
+            if not group.verification:
+                continue
+            tokens.update(self._clean_aliases({*group.packages}))
+            for command in [*group.commands, *group.verification]:
+                tokens.update(
+                    self._clean_aliases(set(self._install_payload_tokens_for_command(command)))
+                )
+        return tokens
+
+    def _app_is_explicit_alternative(self, app: AppPlanItem) -> bool:
+        source = self._normalized_app_source(app.source)
+        return source == "alternative" or source.endswith("_alternative")
+
+    @staticmethod
+    def _alternative_display_name(app: AppPlanItem, target: str) -> str:
+        package = (app.package_name or "").strip()
+        if package:
+            return package
+        return target
 
     @staticmethod
     def _record_app_verification_manual_followup(
@@ -8943,11 +9359,21 @@ fi
             if str(name).strip()
         }
         verified_installed = sorted(verified_names)
+        alternative_entries = [
+            item
+            for item in final_state.get("verified_alternative_apps", []) or []
+            if isinstance(item, dict)
+            and str(item.get("app") or "").strip()
+            and str(item.get("alternative") or item.get("target") or "").strip()
+        ]
+        alternative_app_names = {str(item.get("app") or "").strip() for item in alternative_entries}
         manual_followup: dict[str, str] = {}
         skipped: list[str] = []
         for app in apps:
             if app.status == PlanItemStatus.EXPLICITLY_SKIPPED:
                 skipped.append(app.name)
+                continue
+            if app.name in alternative_app_names:
                 continue
             if app.status == PlanItemStatus.MANUAL_FOLLOWUP:
                 if app_manual_followup_satisfied_by_verified(
@@ -8974,6 +9400,17 @@ fi
         parts = [plan.target_summary if plan else "Remote setup completed."]
         if verified_installed:
             parts.append("Verified installed: " + ", ".join(verified_installed))
+        if alternative_entries:
+            parts.append(
+                "Alternative installed: "
+                + ", ".join(
+                    sorted(
+                        f"{str(item.get('app') or '').strip()} -> "
+                        f"{str(item.get('alternative') or item.get('target') or '').strip()}"
+                        for item in alternative_entries
+                    )
+                )
+            )
         if manual_followup:
             parts.append("Manual follow-up: " + ", ".join(sorted(manual_followup)))
         if skipped:

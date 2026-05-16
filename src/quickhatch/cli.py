@@ -187,6 +187,10 @@ def main() -> None:
         "fuzz-harness",
         help="Run deterministic adversarial harness policy fuzzing",
     )
+    debug_subparsers.add_parser(
+        "catalog-health",
+        help="Run advisory app-catalog contract validation",
+    )
     latest_parser = debug_subparsers.add_parser(
         "latest-run",
         help="Find and summarize the latest real setup run artifact",
@@ -382,6 +386,7 @@ def _print_json(payload: object) -> None:
 def _run_debug_command(args) -> None:
     from quickhatch.setup.debugtools import (
         adapter_spine_payload,
+        catalog_health_payload,
         classify_debug_payload,
         fuzz_harness_payload,
         harness_health_payload,
@@ -454,6 +459,9 @@ def _run_debug_command(args) -> None:
         _print_json(payload)
         if not payload.get("success"):
             raise SystemExit(1)
+        return
+    if args.debug_command == "catalog-health":
+        _print_json(catalog_health_payload())
         return
     if args.debug_command == "latest-run":
         runlog = find_latest_runlog(Path(args.root) if args.root else None)

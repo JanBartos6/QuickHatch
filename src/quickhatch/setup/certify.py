@@ -249,6 +249,17 @@ def _prepare_certification_key(artifact_dir: Path, ssh_key: str | None) -> tuple
     return str(private_key), public_key.strip(), ""
 
 
+def _explicit_configure_existing_profile(profile_payload: object) -> bool:
+    if not isinstance(profile_payload, dict):
+        return False
+    profile_values = {
+        str(value).strip().lower()
+        for key in ("install_profile", "remote_setup_mode", "setup_mode")
+        if (value := profile_payload.get(key)) is not None
+    }
+    return bool(profile_values & {"configure_existing", "configure_only"})
+
+
 def run_vm_certification(
     *,
     family: str,
@@ -280,15 +291,23 @@ def run_vm_certification(
     if not profile_path.exists():
         blockers.append(f"Profile not found: {profile_path}")
 
+    profile_payload: object = {}
     loaded_profile = UserProfile()
     if profile_path.exists():
         try:
+            profile_payload = json.loads(profile_path.read_text(encoding="utf-8"))
             loaded_profile = (
-                UserProfile.from_dict(json.loads(profile_path.read_text(encoding="utf-8")))
-                or UserProfile()
-            )
+                UserProfile.from_dict(profile_payload)
+                if isinstance(profile_payload, dict)
+                else None
+            ) or UserProfile()
         except Exception as exc:
             blockers.append(f"Could not load profile JSON: {exc}")
+    if _explicit_configure_existing_profile(profile_payload):
+        blockers.append(
+            "VM certification uses the full-disk install spine; explicit configure_existing/"
+            "configure_only profiles require a configure-existing certification path."
+        )
     adapter = get_family_installer(normalized_family)
     if post_reboot_user:
         effective_post_reboot_user = post_reboot_user

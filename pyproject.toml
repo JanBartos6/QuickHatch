@@ -63,6 +63,12 @@ Source = "https://github.com/JanBartos6/QuickHatch"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build]
+exclude = [
+    "src/quickhatch/data/app_catalog.agent_suggestions*.json",
+    "src/quickhatch/data/app_catalog.research_batch*.json",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/quickhatch"]
 

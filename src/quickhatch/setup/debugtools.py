@@ -7,6 +7,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from quickhatch.analysis.app_catalog import validate_runtime_catalog
 from quickhatch.config import UserProfile
 
 from .failure import classify_failure
@@ -98,6 +99,10 @@ def harness_health_payload(
     keep_artifacts: bool = False,
 ) -> dict[str, Any]:
     return run_harness_health(root=root, keep_artifacts=keep_artifacts)
+
+
+def catalog_health_payload() -> dict[str, Any]:
+    return validate_runtime_catalog()
 
 
 def fuzz_harness_payload() -> dict[str, Any]:

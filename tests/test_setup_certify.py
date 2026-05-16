@@ -102,6 +102,25 @@ def test_vm_certification_blocks_missing_iso(tmp_path):
     assert scanned.failure_categories["vm_certification_blocked"] == 1
 
 
+def test_vm_certification_blocks_explicit_configure_existing_profile(tmp_path):
+    iso = tmp_path / "ubuntu.iso"
+    profile = tmp_path / "profile.json"
+    iso.write_text("fake iso", encoding="utf-8")
+    profile.write_text(json.dumps({"install_profile": "configure_existing"}), encoding="utf-8")
+
+    result = run_vm_certification(
+        family="ubuntu",
+        iso=iso,
+        profile=profile,
+        root=tmp_path / "certification",
+        dry_run=True,
+    )
+
+    assert not result.success
+    assert result.status == "blocked"
+    assert any("configure_existing" in item for item in result.blockers)
+
+
 def test_vm_certification_preflight_blocks_same_path_as_live_orchestration(
     monkeypatch,
     tmp_path,

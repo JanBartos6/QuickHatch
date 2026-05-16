@@ -4,6 +4,7 @@ import json
 
 from quickhatch.setup.debugtools import (
     adapter_spine_payload,
+    catalog_health_payload,
     classify_debug_payload,
     fuzz_harness_payload,
     harness_health_payload,
@@ -77,3 +78,11 @@ def test_fuzz_harness_payload_runs_without_ssh():
     assert any(
         result["name"] == "vpn_activation_blocks_ssh_continuity" for result in payload["results"]
     )
+
+
+def test_catalog_health_payload_is_advisory():
+    payload = catalog_health_payload()
+
+    assert payload["success"] is True
+    assert "runtime_files" in payload
+    assert payload["contract"].startswith("catalog hints are advisory")

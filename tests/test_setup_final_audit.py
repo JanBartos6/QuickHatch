@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from quickhatch.setup.audit import final_audit
+from quickhatch.setup.audit import audit_stage, final_audit
 from quickhatch.setup.types import (
     AppPlanItem,
     AuditFindingSeverity,
@@ -157,7 +157,7 @@ def test_final_audit_plan_manual_followup_items_change_status() -> None:
     )
 
 
-def test_final_audit_required_failed_app_blocks() -> None:
+def test_final_audit_required_failed_app_becomes_manual_followup() -> None:
     plan = _plan()
     plan.apps = [
         AppPlanItem(
@@ -174,6 +174,39 @@ def test_final_audit_required_failed_app_blocks() -> None:
         [],
     )
 
-    assert result.passed is False
-    assert result.final_status == FinalSetupStatus.BLOCKED
-    assert any(finding.severity == AuditFindingSeverity.FATAL for finding in result.findings)
+    assert result.passed is True
+    assert result.final_status == FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
+    assert any(
+        finding.severity == AuditFindingSeverity.MANUAL_FOLLOWUP for finding in result.findings
+    )
+
+
+def test_final_audit_alternative_installed_is_warning() -> None:
+    plan = _plan()
+    plan.apps = [
+        AppPlanItem(
+            name="Adobe Acrobat Reader",
+            package_name="okular",
+            source="alternative",
+            required=True,
+            status=PlanItemStatus.INSTALLED,
+        )
+    ]
+    result = audit_stage(
+        SetupStage.FINAL_AUDIT,
+        SetupFacts(package_manager="pacman", current_user="jan"),
+        plan=plan,
+        stage_state={
+            "verified_alternative_apps": [
+                {
+                    "app": "Adobe Acrobat Reader",
+                    "alternative": "okular",
+                    "signal": "native_package",
+                    "target": "okular",
+                }
+            ]
+        },
+    )
+
+    assert result.final_status == FinalSetupStatus.SUCCESS_WITH_WARNINGS
+    assert result.findings[0].severity == AuditFindingSeverity.WARNING

@@ -3,6 +3,15 @@
 The catalog is intentionally data-first: Screen 5 needs fast, offline
 classification without spending model calls on every scanned app. Exact
 distro package names are still resolved later by the setup planner.
+
+Catalog contract:
+- catalog rows are best-effort hints, not a source of truth;
+- target repo/package-manager output overrides catalog package hints;
+- target repo/community/Flatpak search and provider/web search may override
+  stale catalog data when search is enabled;
+- missing catalog hints must not block setup;
+- stale catalog hints must fall back to safe repair or manual follow-up for
+  only the unresolved app.
 """
 
 from __future__ import annotations
@@ -13,6 +22,18 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
+CATALOG_CONTRACT = __doc__ or ""
+RUNTIME_CATALOG_FILES = (
+    "app_catalog.overrides.json",
+    "app_catalog.generated.json",
+    "app_alternatives.json",
+)
+DEV_CATALOG_ARTIFACT_PATTERNS = (
+    "app_catalog.agent_suggestions*.json",
+    "app_catalog.research_batch*.json",
+)
+_VALID_COMPATIBILITY = {"native", "alternative", "wine", "none", "unknown", "manual_followup"}
 
 
 @dataclass(frozen=True)
@@ -76,6 +97,23 @@ _GENERIC_SINGLE_TOKEN_ALIASES = {
 
 def _data_dir() -> Path:
     return Path(__file__).resolve().parent.parent / "data"
+
+
+def runtime_catalog_paths(data_dir: Path | None = None) -> tuple[Path, ...]:
+    """Return the only catalog files loaded by runtime catalog APIs."""
+
+    base = data_dir or _data_dir()
+    return tuple(base / name for name in RUNTIME_CATALOG_FILES)
+
+
+def dev_catalog_artifact_paths(data_dir: Path | None = None) -> tuple[Path, ...]:
+    """Return development research/suggestion artifacts ignored at runtime."""
+
+    base = data_dir or _data_dir()
+    paths: list[Path] = []
+    for pattern in DEV_CATALOG_ARTIFACT_PATTERNS:
+        paths.extend(base.glob(pattern))
+    return tuple(sorted(paths))
 
 
 def _normalize_name(value: str) -> str:
@@ -188,10 +226,15 @@ def _entry_from_mapping(raw: dict[str, Any]) -> AppCatalogEntry | None:
 
 @lru_cache(maxsize=1)
 def load_catalog() -> tuple[AppCatalogEntry, ...]:
-    """Load the generated popular-app catalog plus legacy hand mappings."""
+    """Load the runtime catalog files.
+
+    This intentionally ignores agent-suggestion and research-batch artifacts.
+    Those files can support catalog maintenance, but setup/runtime code must
+    keep treating the catalog as a compact hint layer.
+    """
 
     entries: list[AppCatalogEntry] = []
-    overrides = _data_dir() / "app_catalog.overrides.json"
+    overrides = runtime_catalog_paths()[0]
     if overrides.exists():
         try:
             payload = json.loads(overrides.read_text(encoding="utf-8"))
@@ -203,7 +246,7 @@ def load_catalog() -> tuple[AppCatalogEntry, ...]:
         except (OSError, json.JSONDecodeError):
             pass
 
-    generated = _data_dir() / "app_catalog.generated.json"
+    generated = runtime_catalog_paths()[1]
     if generated.exists():
         try:
             payload = json.loads(generated.read_text(encoding="utf-8"))
@@ -218,7 +261,7 @@ def load_catalog() -> tuple[AppCatalogEntry, ...]:
     # Backward-compatible hand-curated Windows-alternative DB. These
     # rows are higher confidence because they were explicitly mapped for
     # migration, not just discovered as popular Linux/Flatpak apps.
-    legacy = _data_dir() / "app_alternatives.json"
+    legacy = runtime_catalog_paths()[2]
     if legacy.exists():
         try:
             payload = json.loads(legacy.read_text(encoding="utf-8"))
@@ -245,6 +288,167 @@ def load_catalog() -> tuple[AppCatalogEntry, ...]:
             pass
 
     return tuple(entries)
+
+
+def _add_catalog_sample(bucket: dict[str, Any], sample: dict[str, str], sample_limit: int) -> None:
+    bucket["count"] = int(bucket.get("count", 0)) + 1
+    samples = bucket.setdefault("samples", [])
+    if isinstance(samples, list) and len(samples) < sample_limit:
+        samples.append(sample)
+
+
+def _catalog_hint_has_packages(raw: dict[str, Any]) -> bool:
+    hints = raw.get("install_hints")
+    if not isinstance(hints, dict):
+        return False
+    for hint in hints.values():
+        if not isinstance(hint, dict):
+            continue
+        packages = hint.get("packages")
+        if isinstance(packages, list) and any(str(package or "").strip() for package in packages):
+            return True
+    return False
+
+
+def validate_runtime_catalog(
+    *,
+    data_dir: Path | None = None,
+    sample_limit: int = 5,
+) -> dict[str, Any]:
+    """Return lightweight catalog diagnostics for debug/health commands.
+
+    Validation is advisory by design. It should surface suspicious maintenance
+    issues without blocking normal setup runs or treating the catalog as truth.
+    """
+
+    base = data_dir or _data_dir()
+    warning_buckets: dict[str, dict[str, Any]] = {
+        "malformed_entries": {"count": 0, "samples": []},
+        "native_without_package_hints": {"count": 0, "samples": []},
+        "native_with_distinct_alternatives": {"count": 0, "samples": []},
+    }
+    install_hint_samples: dict[str, dict[str, Any]] = {
+        family: {"count": 0, "samples": []} for family in ("arch", "ubuntu", "debian", "fedora")
+    }
+    raw_entry_count = 0
+
+    for path in runtime_catalog_paths(base)[:2]:
+        if not path.exists():
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            _add_catalog_sample(
+                warning_buckets["malformed_entries"],
+                {"file": path.name, "entry": "<file>", "reason": str(exc)},
+                sample_limit,
+            )
+            continue
+        entries = payload.get("entries") if isinstance(payload, dict) else None
+        if not isinstance(entries, list):
+            _add_catalog_sample(
+                warning_buckets["malformed_entries"],
+                {"file": path.name, "entry": "<payload>", "reason": "missing entries list"},
+                sample_limit,
+            )
+            continue
+        for index, raw in enumerate(entries):
+            raw_entry_count += 1
+            if not isinstance(raw, dict):
+                _add_catalog_sample(
+                    warning_buckets["malformed_entries"],
+                    {"file": path.name, "entry": str(index), "reason": "entry is not an object"},
+                    sample_limit,
+                )
+                continue
+            name = str(raw.get("name") or "").strip()
+            app_id = str(raw.get("id") or "").strip()
+            compatibility = str(raw.get("compatibility") or "unknown").strip().lower()
+            if not name or not app_id or compatibility not in _VALID_COMPATIBILITY:
+                _add_catalog_sample(
+                    warning_buckets["malformed_entries"],
+                    {
+                        "file": path.name,
+                        "entry": name or app_id or str(index),
+                        "reason": "missing id/name or invalid compatibility",
+                    },
+                    sample_limit,
+                )
+                continue
+
+            if compatibility == "native" and not _catalog_hint_has_packages(raw):
+                _add_catalog_sample(
+                    warning_buckets["native_without_package_hints"],
+                    {
+                        "file": path.name,
+                        "entry": name,
+                        "reason": "native row has no concrete package hint",
+                    },
+                    sample_limit,
+                )
+
+            alternatives = [
+                str(value or "").strip()
+                for value in raw.get("alternatives", [])
+                if str(value or "").strip()
+            ]
+            if compatibility == "native" and alternatives:
+                name_norm = _normalize_name(name)
+                distinct = [
+                    alternative
+                    for alternative in alternatives
+                    if _normalize_name(alternative) != name_norm
+                ]
+                if distinct:
+                    _add_catalog_sample(
+                        warning_buckets["native_with_distinct_alternatives"],
+                        {
+                            "file": path.name,
+                            "entry": name,
+                            "reason": "native row names distinct alternatives",
+                        },
+                        sample_limit,
+                    )
+
+            hints = raw.get("install_hints")
+            if isinstance(hints, dict):
+                for family, hint in hints.items():
+                    family_key = str(family or "").strip().lower()
+                    if family_key not in install_hint_samples or not isinstance(hint, dict):
+                        continue
+                    packages = [
+                        str(package or "").strip()
+                        for package in hint.get("packages", [])
+                        if str(package or "").strip()
+                    ]
+                    if not packages:
+                        continue
+                    bucket = install_hint_samples[family_key]
+                    bucket["count"] = int(bucket.get("count", 0)) + 1
+                    samples = bucket.setdefault("samples", [])
+                    if isinstance(samples, list) and len(samples) < sample_limit:
+                        samples.append(
+                            {
+                                "name": name,
+                                "source": str(hint.get("source") or ""),
+                                "packages": packages[:3],
+                            }
+                        )
+
+    warning_count = sum(int(bucket.get("count", 0)) for bucket in warning_buckets.values())
+    dev_artifacts = dev_catalog_artifact_paths(base)
+    return {
+        "success": True,
+        "contract": "catalog hints are advisory; target package/search output wins",
+        "runtime_files": [str(path) for path in runtime_catalog_paths(base) if path.exists()],
+        "dev_artifact_count": len(dev_artifacts),
+        "dev_artifact_bytes": sum(path.stat().st_size for path in dev_artifacts if path.exists()),
+        "raw_entry_count": raw_entry_count,
+        "loaded_entry_count": len(load_catalog()) if data_dir is None else None,
+        "warning_count": warning_count,
+        "warnings": warning_buckets,
+        "install_hint_samples": install_hint_samples,
+    }
 
 
 @lru_cache(maxsize=8)

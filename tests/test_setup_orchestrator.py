@@ -3335,6 +3335,236 @@ def test_final_package_verification_accepts_repo_repair_for_flatpak_planned_app(
     assert any("flatpak list --app --columns=application --user" in cmd for cmd in commands)
 
 
+def test_final_app_verification_accepts_display_name_package_alias():
+    profile = UserProfile(apps_to_install=["Mozilla Firefox"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+
+    def ssh_exec(command, timeout):
+        assert timeout == 45
+        if command == "pacman -Qq":
+            return (0, "firefox\n", "")
+        raise AssertionError(f"unexpected command: {command}")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[
+            AppPlanItem(
+                name="Mozilla Firefox",
+                source="repo",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            )
+        ],
+    )
+
+    assert orchestrator._verify_planned_packages_installed() == []
+    final_state = orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value]
+    assert final_state["verified_installed_apps"] == ["Mozilla Firefox"]
+    assert final_state["app_verification_signals"]["Mozilla Firefox"]["signal"] == (
+        "native_package"
+    )
+
+
+def test_final_app_verification_accepts_desktop_entry_when_package_query_misses():
+    profile = UserProfile(apps_to_install=["Cursor"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    commands: list[str] = []
+
+    def ssh_exec(command, timeout):
+        commands.append(command)
+        assert timeout == 45
+        if command == "pacman -Qq":
+            return (0, "", "")
+        if command.startswith("for qh_bin in "):
+            return (0, "", "")
+        if 'find "$qh_expanded"' in command:
+            return (0, "cursor.desktop\tCursor\tcursor\n", "")
+        raise AssertionError(f"unexpected command: {command}")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[
+            AppPlanItem(
+                name="Cursor",
+                package_name="cursor-bin",
+                source="community",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            )
+        ],
+    )
+
+    assert orchestrator._verify_planned_packages_installed() == []
+    final_state = orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value]
+    assert final_state["verified_installed_apps"] == ["Cursor"]
+    assert final_state["app_verification_signals"]["Cursor"]["signal"] == "desktop_entry"
+    assert any('find "$qh_expanded"' in command for command in commands)
+
+
+def test_final_app_verification_accepts_snap_signal():
+    profile = UserProfile(apps_to_install=["Code"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="ubuntu", package_manager="apt", current_user="jan")
+    commands: list[str] = []
+
+    def ssh_exec(command, timeout):
+        commands.append(command)
+        assert timeout == 45
+        if "dpkg-query" in command:
+            return (0, "", "")
+        if "snap list" in command:
+            return (0, "code\n", "")
+        if command.startswith("for qh_bin in "):
+            return (0, "", "")
+        if 'find "$qh_expanded"' in command:
+            return (0, "", "")
+        raise AssertionError(f"unexpected command: {command}")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Ubuntu workstation",
+        distro_family="ubuntu",
+        package_manager="apt",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[
+            AppPlanItem(
+                name="Code",
+                package_name="code",
+                source="snap",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            )
+        ],
+    )
+
+    assert orchestrator._verify_planned_packages_installed() == []
+    final_state = orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value]
+    assert final_state["verified_installed_apps"] == ["Code"]
+    assert final_state["app_verification_signals"]["Code"]["signal"] == "snap"
+
+
+def test_final_app_verification_reports_explicit_alternative_honestly():
+    profile = UserProfile(apps_to_install=["Adobe Acrobat Reader"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+
+    def ssh_exec(command, timeout):
+        assert timeout == 45
+        if command == "pacman -Qq":
+            return (0, "okular\n", "")
+        raise AssertionError(f"unexpected command: {command}")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[
+            AppPlanItem(
+                name="Adobe Acrobat Reader",
+                package_name="okular",
+                source="alternative",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            )
+        ],
+    )
+
+    blockers = orchestrator._verify_planned_packages_installed()
+
+    final_state = orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value]
+    assert blockers == [
+        "Alternative installed for requested app(s): Adobe Acrobat Reader -> okular"
+    ]
+    assert final_state["verified_installed_apps"] == []
+    assert final_state["verified_alternative_apps"] == [
+        {
+            "app": "Adobe Acrobat Reader",
+            "alternative": "okular",
+            "signal": "native_package",
+            "target": "okular",
+        }
+    ]
+    summary = orchestrator._build_summary()
+    assert "Verified installed: Adobe Acrobat Reader" not in summary
+    assert "Alternative installed: Adobe Acrobat Reader -> okular" in summary
+
+
+def test_final_app_verification_stale_catalog_package_is_manual_followup():
+    profile = UserProfile(apps_to_install=["Example App"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+
+    def ssh_exec(command, timeout):
+        assert timeout == 45
+        if command == "pacman -Qq":
+            return (0, "", "")
+        if command.startswith("for qh_bin in "):
+            return (0, "", "")
+        if 'find "$qh_expanded"' in command:
+            return (0, "", "")
+        raise AssertionError(f"unexpected command: {command}")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[
+            AppPlanItem(
+                name="Example App",
+                package_name="stale-example-bin",
+                source="community",
+                status=PlanItemStatus.INSTALLED,
+                required=True,
+            )
+        ],
+    )
+
+    blockers = orchestrator._verify_planned_packages_installed()
+
+    final_state = orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value]
+    assert blockers == [
+        "Manual follow-up required app(s) were claimed installed/completed but final "
+        "verification did not find them through package, Flatpak, Snap, binary, "
+        "desktop-entry, or completed app-group signals: Example App"
+    ]
+    assert final_state["verified_installed_apps"] == []
+    assert final_state["unverified_installed_apps"] == ["Example App"]
+
+
 def test_desktop_display_audit_records_resolution_mismatch_as_followup():
     profile = UserProfile()
     profile.hardware.displays = [
@@ -7834,7 +8064,7 @@ def test_orchestrator_retries_malformed_repair_json():
     assert "Verified installed: Brave" in summary
 
 
-def test_final_audit_blocks_missing_required_completed_app_package():
+def test_final_audit_marks_missing_required_completed_app_manual_followup():
     profile = UserProfile(apps_to_install=["Brave"])
     bridge = BridgeState(profile, persist_path=None)
     facts = _with_verified_kde_icon(
@@ -7945,9 +8175,14 @@ def test_final_audit_blocks_missing_required_completed_app_package():
     orchestrator = SetupOrchestrator(runtime)
     summary = orchestrator.run()
 
-    assert orchestrator.ctx.stage_results[-1].passed is False
-    assert "Required app" in "; ".join(orchestrator.ctx.stage_results[-1].blockers)
-    assert "setup stopped during final audit" in summary.lower()
+    assert orchestrator.ctx.stage_results[-1].passed is True
+    assert orchestrator.ctx.stage_results[-1].final_status == (
+        FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
+    )
+    assert "Manual follow-up required app" in "; ".join(
+        finding.summary for finding in orchestrator.ctx.stage_results[-1].findings
+    )
+    assert "Manual follow-up: Brave" in summary
 
 
 def test_setup_summary_only_claims_verified_installed_apps():

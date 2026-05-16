@@ -17,6 +17,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from quickhatch.analysis.app_catalog import validate_runtime_catalog
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, UserProfile
 
@@ -292,6 +293,19 @@ def _run_harness_fuzz_checks() -> list[dict[str, Any]]:
                 "decisions": result.get("decisions"),
             },
         )
+    return checks
+
+
+def _run_catalog_validation_checks() -> list[dict[str, Any]]:
+    report = validate_runtime_catalog()
+    checks: list[dict[str, Any]] = []
+    _record(
+        checks,
+        name="catalog_hints_validate_as_advisory_contract",
+        category="catalog_validation",
+        passed=bool(report.get("success")),
+        details=report,
+    )
     return checks
 
 
@@ -654,10 +668,17 @@ def _run_package_final_audit_checks() -> list[dict[str, Any]]:
         checks,
         name="final_audit_records_unknown_installed_app_without_identifier_as_followup",
         category="final_audit",
-        passed=unknown_blockers == []
+        passed=unknown_blockers
+        == [
+            "Manual follow-up optional app(s) were claimed installed/completed but final "
+            "verification did not find them: Totally Unknown Vendor App"
+        ]
         and {
             "app": "Totally Unknown Vendor App",
-            "reason": "installed package was not found under the planned identifiers",
+            "reason": (
+                "installed app was not found through package, Flatpak, Snap, binary, "
+                "desktop-entry, or completed app-group verification"
+            ),
         }
         in unknown_state.get("app_verification_manual_followups", []),
         details={
@@ -829,6 +850,7 @@ def run_harness_health(
             *_run_certification_dry_run_checks(workspace),
             *_run_preflight_policy_checks(),
             *_run_harness_fuzz_checks(),
+            *_run_catalog_validation_checks(),
             *_run_failure_classifier_checks(),
             *_run_final_audit_semantic_checks(),
             *_run_resume_policy_checks(),

@@ -280,6 +280,23 @@ def audit_stage(
                 "the installed system has not been proven booted/reconnectable."
             )
         if plan:
+            verified_alternatives = [
+                item
+                for item in state.get("verified_alternative_apps", []) or []
+                if isinstance(item, dict)
+            ]
+            if verified_alternatives:
+                blockers.append(
+                    "Alternative installed for requested app(s): "
+                    + ", ".join(
+                        sorted(
+                            f"{str(item.get('app') or '').strip()} -> "
+                            f"{str(item.get('alternative') or item.get('target') or '').strip()}"
+                            for item in verified_alternatives
+                            if str(item.get("app") or "").strip()
+                        )
+                    )
+                )
             followup_app_statuses = {
                 PlanItemStatus.MANUAL_FOLLOWUP,
                 PlanItemStatus.BLOCKED,
@@ -442,8 +459,10 @@ def _finding_severity(stage: SetupStage, category: str, text: str) -> AuditFindi
     lower = text.lower()
     if category in {"fstab", "bootability", "ssh_reconnect", "blocking_question"}:
         return AuditFindingSeverity.FATAL
-    if category == "apps" and "required app" in lower:
-        return AuditFindingSeverity.FATAL
+    if category == "apps":
+        if "alternative installed" in lower:
+            return AuditFindingSeverity.WARNING
+        return AuditFindingSeverity.MANUAL_FOLLOWUP
     if category == "driver" and ("secure boot" in lower or "manual follow-up" in lower):
         return AuditFindingSeverity.UNSUPPORTED_SAFE
     if category in {"desktop", "apps", "driver"}:
