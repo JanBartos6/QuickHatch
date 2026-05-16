@@ -1702,6 +1702,83 @@ def test_apps_stage_continues_after_missing_package_after_model_repair_attempt()
     assert orchestrator.ctx.plan.apps[1].status == PlanItemStatus.MANUAL_FOLLOWUP
 
 
+def test_arch_aur_pgp_key_failure_retries_remaining_app_packages():
+    profile = UserProfile(apps_to_install=["Spotify", "Brave Browser", "LM Studio"])
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch apps",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="none"),
+        apps=[
+            AppPlanItem(
+                name="Spotify",
+                package_name="spotify",
+                source="aur",
+                status=PlanItemStatus.PENDING,
+                required=True,
+            ),
+            AppPlanItem(
+                name="Brave Browser",
+                package_name="brave-bin",
+                source="aur",
+                status=PlanItemStatus.PENDING,
+                required=True,
+            ),
+            AppPlanItem(
+                name="LM Studio",
+                package_name="lmstudio-bin",
+                source="aur",
+                status=PlanItemStatus.PENDING,
+                required=False,
+            ),
+        ],
+    )
+    command = "yay -S --noconfirm spotify brave-bin lmstudio-bin"
+    group = CommandGroup(
+        id="apps",
+        stage=SetupStage.APPS,
+        title="Install AUR Apps",
+        commands=[command],
+        verification=["pacman -Q spotify brave-bin lmstudio-bin"],
+        packages=["spotify", "brave-bin", "lmstudio-bin"],
+    )
+    failure = GroupFailure(
+        failure_type="command",
+        command=command,
+        stdout=":: PGP keys need importing:\n -> KEY, required by: spotify\n:: Parsing SRCINFO\n",
+        stderr="gpg: keyserver receive failed: Connection refused\n -> problem importing keys",
+        detail="AUR PGP key import failed",
+    )
+
+    repaired = orchestrator._auto_repair_arch_aur_pgp_key_failure(
+        SetupStage.APPS,
+        group,
+        failure,
+        {},
+    )
+
+    assert repaired is not None
+    assert repaired.commands == ["yay -S --noconfirm brave-bin lmstudio-bin"]
+    assert repaired.packages == ["brave-bin", "lmstudio-bin"]
+    assert repaired.verification == ["pacman -Q brave-bin lmstudio-bin"]
+    assert orchestrator.ctx.plan.apps[0].status == PlanItemStatus.MANUAL_FOLLOWUP
+    assert orchestrator.ctx.plan.apps[1].status == PlanItemStatus.PENDING
+    assert orchestrator.ctx.plan.apps[2].status == PlanItemStatus.PENDING
+    assert any("AUR PGP key import failed" in message["content"] for message in bridge.messages)
+
+
 def test_apps_missing_repo_target_defers_manual_followup_until_repair_attempted():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

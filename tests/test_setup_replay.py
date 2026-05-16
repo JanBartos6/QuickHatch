@@ -117,6 +117,24 @@ def test_replay_classifies_structured_audit_findings():
 
     assert summary.audit_findings["manual_followup:apps"] == 1
     assert summary.failure_categories["manual_followup:apps"] == 1
+    assert summary.final_status == "manual_followup_required"
+
+
+def test_replay_uses_nested_final_audit_final_status():
+    summary = summarize_runlog_from_events(
+        [
+            {
+                "event_type": "final_audit",
+                "result": {
+                    "passed": True,
+                    "final_status": "FinalSetupStatus.SUCCESS_WITH_WARNINGS",
+                    "findings": [],
+                },
+            }
+        ]
+    )
+
+    assert summary.final_status == "success_with_warnings"
 
 
 def summarize_runlog_from_events(events):

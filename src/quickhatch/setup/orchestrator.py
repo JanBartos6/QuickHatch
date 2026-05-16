@@ -1280,6 +1280,15 @@ class SetupOrchestrator:
                 if auto_repaired is not None:
                     current_group = auto_repaired
                     continue
+                auto_repaired = self._auto_repair_arch_aur_pgp_key_failure(
+                    stage,
+                    current_group,
+                    failure,
+                    stage_state,
+                )
+                if auto_repaired is not None:
+                    current_group = auto_repaired
+                    continue
                 auto_repaired = self._auto_repair_missing_repo_targets(
                     stage, current_group, failure
                 )
@@ -6511,6 +6520,120 @@ fi
             repaired_command=repaired_command,
         )
         return repaired_group
+
+    def _auto_repair_arch_aur_pgp_key_failure(
+        self,
+        stage: SetupStage,
+        group: CommandGroup,
+        failure: GroupFailure,
+        stage_state: dict[str, Any],
+    ) -> CommandGroup | None:
+        facts = self.ctx.facts or SetupFacts()
+        if (
+            stage != SetupStage.APPS
+            or facts.package_manager != "pacman"
+            or failure.failure_type != "command"
+        ):
+            return None
+        try:
+            tokens = shlex.split(failure.command)
+        except ValueError:
+            return None
+        if not any(token.rsplit("/", 1)[-1] in {"yay", "paru"} for token in tokens):
+            return None
+        text = "\n".join([failure.stdout or "", failure.stderr or "", failure.detail or ""])
+        lowered = text.lower()
+        if "pgp keys need importing" not in lowered and "problem importing keys" not in lowered:
+            return None
+        blocked_packages = self._arch_aur_pgp_required_packages(text)
+        if not blocked_packages:
+            return None
+        repaired_command = self._drop_missing_targets_from_install_command(
+            failure.command,
+            blocked_packages,
+            package_manager=facts.package_manager,
+        )
+        if not repaired_command or repaired_command == failure.command:
+            return None
+        key = f"{group.id}:{failure.command}:{','.join(sorted(blocked_packages))}"
+        attempted = set(stage_state.get("arch_aur_pgp_key_repairs") or [])
+        if key in attempted:
+            return None
+        attempted.add(key)
+        stage_state["arch_aur_pgp_key_repairs"] = sorted(attempted)
+
+        affected_apps = self._app_names_for_package_targets(blocked_packages)
+        reason = (
+            "AUR package PGP key import failed for "
+            f"{', '.join(sorted(blocked_packages))}; retrying remaining app packages and "
+            "leaving the affected app(s) for manual follow-up."
+        )
+        self._mark_unresolved_missing_app_packages_manual_followup(
+            blocked_packages,
+            affected_apps,
+            reason=reason,
+        )
+        remaining_packages = [
+            package for package in group.packages if package.lower() not in blocked_packages
+        ]
+        repaired_group = copy.deepcopy(group)
+        repaired_group.id = f"{group.id}-without-aur-pgp-key-failures"
+        repaired_group.title = f"{group.title} (without AUR PGP key failures)"
+        repaired_group.commands = [
+            repaired_command if command == failure.command else command
+            for command in group.commands
+        ]
+        repaired_group.packages = remaining_packages
+        repaired_group.verification = (
+            [self._package_verification_command(remaining_packages, facts)]
+            if remaining_packages
+            else []
+        )
+        repaired_group.rationale = (
+            f"{group.rationale}\nQuickHatch split an AUR app install after a package-specific "
+            "PGP key import failure so other requested apps could continue."
+        ).strip()
+        self.bridge.add_message(
+            "agent",
+            "[harness] AUR PGP key import failed for "
+            + ", ".join(sorted(blocked_packages))
+            + "; retrying remaining app packages and leaving the affected app(s) for manual follow-up.",
+        )
+        self.runlog.record(
+            "auto_repair_arch_aur_pgp_key_failure",
+            stage=stage.value,
+            group_id=group.id,
+            blocked_packages=sorted(blocked_packages),
+            affected_apps=sorted(affected_apps),
+            original_command=failure.command,
+            repaired_command=repaired_command,
+        )
+        return repaired_group
+
+    @staticmethod
+    def _arch_aur_pgp_required_packages(text: str) -> set[str]:
+        packages: set[str] = set()
+        for match in re.findall(
+            r"required by:\s*([^\r\n]+)",
+            text or "",
+            flags=re.IGNORECASE,
+        ):
+            for token in re.split(r"[\s,]+", match.strip()):
+                if re.search(r"[A-Za-z0-9]", token or "") and re.fullmatch(
+                    r"[A-Za-z0-9@._+:-]+", token or ""
+                ):
+                    packages.add(token.lower())
+        return packages
+
+    def _app_names_for_package_targets(self, packages: set[str]) -> list[str]:
+        if self.ctx.plan is None:
+            return []
+        targets = {package.lower() for package in packages}
+        names: list[str] = []
+        for app in self.ctx.plan.apps:
+            if self._package_name_variants(app.name, app.package_name).intersection(targets):
+                names.append(app.name)
+        return names
 
     @staticmethod
     def _arch_pacman_refresh_retry_install_command(command: str) -> str | None:

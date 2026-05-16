@@ -10,6 +10,14 @@ from typing import Any
 
 from .failure import classify_failure
 
+_FINAL_STATUS_VALUES = {
+    "success",
+    "success_with_warnings",
+    "manual_followup_required",
+    "unsupported_safe",
+    "blocked",
+}
+
 
 @dataclass
 class ReplayDiagnostic:
@@ -53,6 +61,30 @@ class RunlogScanSummary:
     failure_categories: dict[str, int] = field(default_factory=dict)
     diagnostic_categories: dict[str, int] = field(default_factory=dict)
     runs: list[dict[str, Any]] = field(default_factory=list)
+
+
+def _normalize_final_status(value: Any) -> str:
+    text = str(value or "").strip()
+    lowered = text.lower()
+    if "." in lowered:
+        lowered = lowered.rsplit(".", 1)[-1]
+    return lowered if lowered in _FINAL_STATUS_VALUES else text
+
+
+def _final_status_from_event(event: dict[str, Any]) -> str:
+    event_type = str(event.get("event_type") or "")
+    result = event.get("result") if isinstance(event.get("result"), dict) else {}
+    if event_type == "final_audit":
+        candidates = [result.get("final_status"), event.get("final_status"), event.get("status")]
+    else:
+        candidates = [event.get("final_status"), event.get("status")]
+    for candidate in candidates:
+        status = _normalize_final_status(candidate)
+        if status and status != "final_audit":
+            return status
+    if event_type != "final_audit":
+        return _normalize_final_status(event.get("summary") or event_type)
+    return ""
 
 
 def load_run_events(path: Path | str) -> list[dict[str, Any]]:
@@ -275,7 +307,9 @@ def summarize_events(events: list[dict[str, Any]]) -> RunReplaySummary:
                 summary.last_failure_type = event_type
                 summary.last_failure_command = command
         if event_type in {"run_finished", "setup_run_finished", "final_audit"}:
-            summary.final_status = str(event.get("status") or event.get("summary") or event_type)
+            final_status = _final_status_from_event(event)
+            if final_status:
+                summary.final_status = final_status
         previous_event = event
     if not summary.run_id and events:
         summary.run_id = str(events[0].get("run_id") or "")
