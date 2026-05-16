@@ -155,6 +155,10 @@ def test_support_bundle_includes_release_readiness_diagnostics(tmp_path):
                 "run_id": "run-ready",
                 "profile": {
                     "install_profile": "configure_existing",
+                    "remote_setup_mode": "wipe_and_reinstall",
+                    "install_encryption": "none",
+                    "install_filesystem": "btrfs",
+                    "install_partition_notes": "Use only the explicitly confirmed VM disk.",
                     "preferences": {
                         "another_machine": "yes",
                         "distro_preference": "arch",
@@ -262,7 +266,10 @@ def test_support_bundle_includes_release_readiness_diagnostics(tmp_path):
     summary = _zip_json(bundle, "support-summary.json")
     assert summary["final_status"] == "manual_followup_required"
     assert summary["install_profile"] == "configure_existing"
-    assert summary["remote_setup_mode"] == "remote_setup"
+    assert summary["remote_setup_mode"] == "wipe_and_reinstall"
+    assert summary["physical_setup_mode"] == "remote_setup"
+    assert summary["install_encryption"] == "none"
+    assert summary["install_filesystem"] == "btrfs"
 
     final_audit = _zip_json(bundle, "final-audit.json")
     assert final_audit["findings"][0]["category"] == "apps"
@@ -276,6 +283,12 @@ def test_support_bundle_includes_release_readiness_diagnostics(tmp_path):
     assert "hostname" not in facts
 
     profile = _zip_json(bundle, "profile-summary.json")
+    assert profile["install_profile"] == "configure_existing"
+    assert profile["remote_setup_mode"] == "wipe_and_reinstall"
+    assert profile["physical_setup_mode"] == "remote_setup"
+    assert profile["install_encryption"] == "none"
+    assert profile["install_filesystem"] == "btrfs"
+    assert profile["install_partition_notes"] == "Use only the explicitly confirmed VM disk."
     assert profile["apps_to_install_count"] == 2
     assert profile["preferences"]["distro_preference"] == "arch"
     assert "ai_config" not in profile

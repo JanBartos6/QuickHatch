@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from contextlib import contextmanager
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from quickhatch.setup.release_smoke import run_release_smoke
+from quickhatch.setup.release_smoke import TARGETED_PYTEST_FILES, run_release_smoke
 
 
 def _passing_runner(command, **_kwargs):
@@ -40,6 +42,11 @@ def test_release_smoke_passes_required_checks_and_reports_skips(tmp_path):
     ]
     assert all(check["status"] == "skipped" for check in payload["checks"][5:])
     assert len(calls) == 5
+
+
+def test_release_smoke_targeted_pytest_includes_tier1_safety_tests():
+    assert "tests/test_setup_capabilities.py" in TARGETED_PYTEST_FILES
+    assert "tests/test_setup_preflight.py" in TARGETED_PYTEST_FILES
 
 
 def test_release_smoke_failed_required_check_fails_payload(tmp_path):
@@ -111,6 +118,30 @@ def test_release_smoke_runs_certification_dry_runs_without_vm_flags(tmp_path):
     assert all("--dry-run" in command for command in certification_calls)
     assert all("--no-post-reboot" in command for command in certification_calls)
     assert all("--root" in command for command in certification_calls)
+
+
+def test_release_smoke_certification_fixture_is_explicit_full_disk_dry_run(tmp_path):
+    seen_profiles: list[dict[str, object]] = []
+
+    def runner(command, **kwargs):
+        if command[:5] == [sys.executable, "-m", "quickhatch.cli", "certify", "vm"]:
+            profile_path = command[command.index("--profile") + 1]
+            seen_profiles.append(json.loads(Path(profile_path).read_text(encoding="utf-8")))
+        return _passing_runner(command, **kwargs)
+
+    payload = run_release_smoke(cwd=tmp_path, runner=runner)
+
+    assert payload["success"] is True
+    assert len(seen_profiles) == 4
+    assert all(
+        profile
+        == {
+            "remote_setup_mode": "wipe_and_reinstall",
+            "install_profile": "full_disk_wipe",
+            "install_username": "quickhatch",
+        }
+        for profile in seen_profiles
+    )
 
 
 def test_release_smoke_cli_exits_nonzero_for_failed_payload(monkeypatch):

@@ -16,6 +16,8 @@ SmokeRunner = Callable[..., subprocess.CompletedProcess[str]]
 
 CERTIFICATION_FAMILIES = ("arch", "ubuntu", "debian", "fedora")
 TARGETED_PYTEST_FILES = (
+    "tests/test_setup_capabilities.py",
+    "tests/test_setup_preflight.py",
     "tests/test_setup_health.py",
     "tests/test_setup_debugtools.py",
     "tests/test_setup_certify.py",
@@ -153,7 +155,17 @@ def _temporary_certification_workspace() -> Iterator[tuple[CertificationWorkspac
         input_dir = root / "inputs"
         input_dir.mkdir(parents=True, exist_ok=True)
         profile = input_dir / "profile.json"
-        profile.write_text(json.dumps({}), encoding="utf-8")
+        profile.write_text(
+            json.dumps(
+                {
+                    "remote_setup_mode": "wipe_and_reinstall",
+                    "install_profile": "full_disk_wipe",
+                    "install_username": "quickhatch",
+                },
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
         isos: dict[str, Path] = {}
         for family in CERTIFICATION_FAMILIES:
             iso = input_dir / f"{family}.iso"

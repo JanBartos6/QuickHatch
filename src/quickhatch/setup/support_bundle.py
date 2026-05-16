@@ -384,6 +384,9 @@ def _build_diagnostics(events: list[dict[str, Any]], summary: dict[str, Any]) ->
             "blocking_question_timeout_count": summary.get("blocking_question_timeout_count", 0),
             "install_profile": profile.get("install_profile", ""),
             "remote_setup_mode": profile.get("remote_setup_mode", ""),
+            "physical_setup_mode": profile.get("physical_setup_mode", ""),
+            "install_encryption": profile.get("install_encryption", ""),
+            "install_filesystem": profile.get("install_filesystem", ""),
             "manual_followup_count": len(manual_followups),
             "audit_finding_count": len(final_findings),
         },
@@ -459,15 +462,19 @@ def _profile_summary(events: list[dict[str, Any]]) -> dict[str, Any]:
             profile = raw
     prefs = profile.get("preferences") if isinstance(profile.get("preferences"), dict) else {}
     another_machine = str(prefs.get("another_machine") or "").lower()
-    mode = ""
+    physical_setup_mode = ""
     if another_machine == "yes":
-        mode = "remote_setup"
+        physical_setup_mode = "remote_setup"
     elif another_machine == "no":
-        mode = "single_machine_export"
+        physical_setup_mode = "single_machine_export"
     return _clean_payload(
         {
             "install_profile": profile.get("install_profile", ""),
-            "remote_setup_mode": mode,
+            "remote_setup_mode": profile.get("remote_setup_mode", ""),
+            "physical_setup_mode": physical_setup_mode,
+            "install_encryption": profile.get("install_encryption", ""),
+            "install_filesystem": profile.get("install_filesystem", ""),
+            "install_partition_notes": profile.get("install_partition_notes", ""),
             "preferences": {
                 key: prefs.get(key) for key in sorted(_PROFILE_PREFERENCE_KEYS) if key in prefs
             },
