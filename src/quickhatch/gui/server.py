@@ -2226,6 +2226,13 @@ def _provider_supports_native_search(provider: str | None) -> bool:
     return (provider or "") in _NATIVE_SEARCH_PROVIDERS
 
 
+def _openai_compat_chat_model(provider: str | None, model: str) -> str:
+    model = model or ""
+    if provider == "api_gemini" and model.startswith("gemma-"):
+        return f"models/{model}"
+    return model
+
+
 def _use_provider_native_search(ai_config: AIConfig) -> bool:
     return bool(getattr(ai_config, "native_search", True)) and _provider_supports_native_search(
         ai_config.provider
@@ -2446,7 +2453,7 @@ def _call_openai_with_tools(
 
     for _round in range(max_rounds):
         body: dict[str, Any] = {
-            "model": model,
+            "model": _openai_compat_chat_model(provider, model),
             "messages": messages,
             "temperature": 0.7,
             "max_tokens": 4096,
@@ -2513,7 +2520,12 @@ def _call_openai_with_tools(
             )
 
     # Exceeded max rounds — force a final response without tools
-    body = {"model": model, "messages": messages, "temperature": 0.7, "max_tokens": 4096}
+    body = {
+        "model": _openai_compat_chat_model(provider, model),
+        "messages": messages,
+        "temperature": 0.7,
+        "max_tokens": 4096,
+    }
     resp = requests.post(url, json=body, headers=headers, timeout=900)
     resp.raise_for_status()
     return _extract_openai_text(resp.json())
@@ -2706,7 +2718,8 @@ def _call_setup_model_text(
             timeout=timeout_seconds,
         )
 
-    body: dict[str, Any] = {"model": model, "messages": messages}
+    compat_model = _openai_compat_chat_model(config.provider, model)
+    body: dict[str, Any] = {"model": compat_model, "messages": messages}
     if _is_reasoning_model(model):
         body["max_completion_tokens"] = 4096
     else:

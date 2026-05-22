@@ -6,12 +6,18 @@ from unittest.mock import patch
 
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, Preferences, UserProfile
-from quickhatch.gui.server import GUIState, _call_model_analysis, _run_agent_background
+from quickhatch.gui.server import (
+    GUIState,
+    _call_model_analysis,
+    _call_openai_with_tools,
+    _run_agent_background,
+)
 
 
 class _FakeResponse:
-    def __init__(self, payload=None):
+    def __init__(self, payload=None, status_code=200):
         self._payload = payload or {}
+        self.status_code = status_code
 
     def raise_for_status(self):
         pass
@@ -98,3 +104,26 @@ class TestAnalysisAgentStructuredSections:
         assert result == "native result"
         native_call.assert_called_once()
         openai_call.assert_not_called()
+
+    def test_analysis_prefixes_gemini_gemma_for_openai_compat_chat(self):
+        profile = UserProfile()
+        bridge = BridgeState(profile, persist_path=None)
+        seen: dict[str, object] = {}
+
+        def fake_post(url, json=None, **kwargs):
+            seen["url"] = url
+            seen["body"] = json
+            return _FakeResponse({"choices": [{"message": {"content": "ok"}}]})
+
+        with patch("requests.post", side_effect=fake_post):
+            result = _call_openai_with_tools(
+                "https://generativelanguage.googleapis.com/v1beta/openai",
+                "gemma-4-31b-it",
+                [{"role": "user", "content": "Plan"}],
+                "secret",
+                bridge,
+                provider="api_gemini",
+            )
+
+        assert result == "ok"
+        assert seen["body"]["model"] == "models/gemma-4-31b-it"

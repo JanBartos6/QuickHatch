@@ -138,6 +138,32 @@ class TestNativeSearchSetupContract:
         assert result == '{"action":"done","summary":"ok"}'
         assert compat_call.call_args.kwargs["timeout"] == 45
 
+    def test_setup_model_prefixes_gemini_gemma_for_openai_compat_chat(self):
+        config = AIConfig(
+            provider="api_gemini",
+            endpoint="https://generativelanguage.googleapis.com/v1beta/openai",
+            model_name="gemma-4-31b-it",
+            api_key="secret",
+            native_search=False,
+        )
+        messages = [{"role": "user", "content": "Plan"}]
+
+        with patch(
+            "quickhatch.gui.server._post_openai_compat_timeout",
+            return_value='{"action":"done","summary":"ok"}',
+        ) as compat_call:
+            result = _call_setup_model_text(
+                config,
+                config.endpoint or "",
+                config.model_name or "",
+                config.api_key,
+                messages,
+                timeout_seconds=45,
+            )
+
+        assert result == '{"action":"done","summary":"ok"}'
+        assert compat_call.call_args.kwargs["body"]["model"] == "models/gemma-4-31b-it"
+
 
 class TestSetupRepoSearch:
     def test_pacman_repo_search_refreshes_missing_sync_database(self):

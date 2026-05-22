@@ -12,6 +12,7 @@ from quickhatch.setup.planner import (
     build_research_prompt,
     extract_repair_action,
     extract_research_plan,
+    model_json_loads,
 )
 from quickhatch.setup.types import CommandGroup, PlanItemStatus, SetupFacts, SetupStage
 
@@ -354,6 +355,16 @@ def test_extract_research_plan_rejects_blank_command_group_commands():
 
     with pytest.raises(ResearchPlanValidationError):
         extract_research_plan(json.dumps(payload), profile)
+
+
+def test_model_json_loads_strips_gemma_thought_blocks():
+    payload = {"action": "question", "required": False, "question": "ok?"}
+    raw = (
+        '<thought>{"action":"question","required":true,"question":"ignored"}</thought>'
+        + json.dumps(payload)
+    )
+
+    assert model_json_loads(raw) == payload
 
 
 def test_extract_research_plan_drops_optional_noop_command_groups():

@@ -316,7 +316,12 @@ def _repair_model_json_string_literals(raw: str) -> str:
     )
 
 
+def _strip_model_reasoning_blocks(raw: str) -> str:
+    return re.sub(r"(?is)<(?:thought|think)>.*?</(?:thought|think)>", "", raw or "").strip()
+
+
 def model_json_loads(raw: str) -> dict[str, Any]:
+    raw = _strip_model_reasoning_blocks(raw)
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
