@@ -813,6 +813,14 @@ def _select_preferred_model(
         prefer = "Gemini 3.1 Flash Lite"
     if not prefer and not prefer_gemini_flash_lite:
         return None, "no preferred model requested"
+    if prefer:
+        preferred = prefer.lower()
+        preferred_compact = "".join(ch for ch in preferred if ch.isalnum())
+        for model in candidates:
+            lowered = model.lower()
+            compact = "".join(ch for ch in lowered if ch.isalnum())
+            if lowered == preferred or compact == preferred_compact:
+                return model, "selected exact fetched model"
     ranked = sorted(
         candidates,
         key=lambda model: (

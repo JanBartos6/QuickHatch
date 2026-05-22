@@ -529,7 +529,25 @@ def _parse_command_groups(raw: Any) -> list[CommandGroup]:
         raise ResearchPlanValidationError("command_groups must be a non-empty list.")
     groups: list[CommandGroup] = []
     for item in raw:
+        if isinstance(item, dict) and _coerce_bool(item.get("optional", False), default=False):
+            raw_commands = item.get("commands", [])
+            raw_operations = item.get("operations", [])
+            has_command = (
+                isinstance(raw_commands, str)
+                and bool(raw_commands.strip())
+                or isinstance(raw_commands, list)
+                and any(str(command).strip() for command in raw_commands)
+            )
+            has_operation = isinstance(raw_operations, dict) or (
+                isinstance(raw_operations, list) and bool(raw_operations)
+            )
+            if not has_command and not has_operation:
+                continue
         groups.append(_parse_command_group(item))
+    if not groups:
+        raise ResearchPlanValidationError(
+            "command_groups must include at least one executable group."
+        )
     return groups
 
 

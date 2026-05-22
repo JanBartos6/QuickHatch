@@ -356,6 +356,27 @@ def test_extract_research_plan_rejects_blank_command_group_commands():
         extract_research_plan(json.dumps(payload), profile)
 
 
+def test_extract_research_plan_drops_optional_noop_command_groups():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["command_groups"].append(
+        {
+            "id": "handle_fake_app",
+            "stage": "apps",
+            "title": "Handle unresolved fake app",
+            "commands": [],
+            "operations": [],
+            "verification": [],
+            "optional": True,
+            "rationale": "No safe install action exists for this intentionally fake app.",
+        }
+    )
+
+    plan = extract_research_plan(json.dumps(payload), profile)
+
+    assert [group.id for group in plan.command_groups] == [payload["command_groups"][0]["id"]]
+
+
 def test_extract_research_plan_rejects_one_letter_group_verification():
     profile = UserProfile()
     payload = _base_plan_payload()

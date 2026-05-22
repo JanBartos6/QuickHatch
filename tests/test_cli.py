@@ -287,3 +287,35 @@ def test_cli_gemini_model_resolution_falls_back_to_closest_flash(monkeypatch):
     assert captured[-1]["selected_model"] == "gemini-2.5-flash-lite"
     assert "closest Flash Lite/Flash" in captured[-1]["selection_reason"]
     assert "stored-secret-key" not in json.dumps(captured[-1])
+
+
+def test_cli_gemini_model_resolution_prefers_exact_model_over_lite_variant(monkeypatch):
+    from quickhatch.ai import model_list
+
+    captured = []
+    monkeypatch.setattr(cli, "_print_json", captured.append)
+    monkeypatch.setattr(
+        model_list,
+        "fetch",
+        lambda kind, endpoint, api_key: [
+            "gemini-2.5-flash-lite",
+            "gemini-2.5-flash",
+        ],
+    )
+
+    cli.main(
+        [
+            "models",
+            "list",
+            "--provider",
+            "api_gemini",
+            "--api-key",
+            "AIza-secret-not-printed",
+            "--prefer",
+            "gemini-2.5-flash",
+        ]
+    )
+
+    assert captured[-1]["selected_model"] == "gemini-2.5-flash"
+    assert captured[-1]["selection_reason"] == "selected exact fetched model"
+    assert "AIza-secret-not-printed" not in json.dumps(captured[-1])

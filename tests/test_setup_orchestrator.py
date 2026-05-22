@@ -6659,6 +6659,96 @@ def test_orchestrator_uses_harness_lookup_instead_of_native_grounding_for_big_pl
     assert "desktop runtime state is still unknown" in summary.lower()
 
 
+def test_planner_lookup_budget_preserves_history_and_forces_plan():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="fedora",
+        package_manager="dnf",
+        current_user="quickhatch",
+        login_user="quickhatch",
+    )
+    repo_searches: list[str] = []
+    model_calls = {"count": 0}
+    plan_payload = {
+        "target_summary": "Fedora configure-existing VM.",
+        "distro_family": "fedora",
+        "package_manager": "dnf",
+        "driver_strategy": {
+            "strategy": "no_special_driver",
+            "confidence": "resolved_official",
+            "source": "local_facts",
+            "packages": [],
+            "services": [],
+            "notes": "VirtualBox integration is optional.",
+        },
+        "desktop_strategy": {
+            "strategy": "gnome_config",
+            "confidence": "resolved_official",
+            "source": "local_facts",
+            "packages": [],
+            "services": [],
+            "notes": "No active GUI session; persist safe config only.",
+        },
+        "command_groups": [
+            {
+                "id": "desktop-1",
+                "stage": "desktop",
+                "title": "Persist desktop config",
+                "commands": ["echo desktop"],
+                "verification": [],
+                "rationale": "",
+                "source": "local_facts",
+                "packages": [],
+            }
+        ],
+        "apps": [],
+        "unresolved_questions": [],
+        "verification_commands": {},
+        "required_items": ["desktop"],
+        "optional_items": [],
+        "planner_revision": 1,
+    }
+
+    def model_call(_cfg, messages):
+        model_calls["count"] += 1
+        if model_calls["count"] <= 3:
+            return json.dumps(
+                {
+                    "action": "repo_search",
+                    "query": f"virtualbox guest additions attempt {model_calls['count']}",
+                    "reason": "resolve optional VM package",
+                }
+            )
+        if model_calls["count"] == 4:
+            assert "Lookup budget is exhausted" in messages[-1]["content"]
+            assert "attempt 1" in messages[-1]["content"]
+            assert "attempt 3" in messages[-1]["content"]
+            return json.dumps(
+                {
+                    "action": "repo_search",
+                    "query": "virtualbox guest additions attempt 4",
+                    "reason": "still trying to search",
+                }
+            )
+        assert "Do not request another repo_search" in messages[-1]["content"]
+        return json.dumps({"action": "plan", "plan": plan_payload})
+
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.call_model_text = model_call
+    runtime.repo_search = lambda query: repo_searches.append(query) or f"[repo_search]\n{query}"
+
+    summary = SetupOrchestrator(runtime).run()
+
+    assert model_calls["count"] == 5
+    assert repo_searches == [
+        "virtualbox guest additions attempt 1",
+        "virtualbox guest additions attempt 2",
+        "virtualbox guest additions attempt 3",
+    ]
+    assert "Desktop runtime state is still unknown" in summary
+
+
 def test_live_install_failed_pre_reboot_checks_block_before_reconnect():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)

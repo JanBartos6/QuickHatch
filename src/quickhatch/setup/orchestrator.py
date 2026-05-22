@@ -989,6 +989,8 @@ class SetupOrchestrator:
         messages = [{"role": "user", "content": prompt}]
         self.ctx.plan = None
         last_planner_error = ""
+        lookup_history: list[dict[str, str]] = []
+        lookup_budget = 3
         for _ in range(8):
             response_text = self._planner_model_call(messages)
             self.runlog.record(
@@ -1064,15 +1066,39 @@ class SetupOrchestrator:
                     )
                     continue
                 break
-            if action == "repo_search":
-                result = self.runtime.repo_search(str(payload.get("query", "")).strip())
-            elif action == "community_search":
-                result = self.runtime.community_search(str(payload.get("query", "")).strip())
-            elif action == "web_search":
-                result = self.runtime.web_search(
-                    str(payload.get("query", "")).strip(),
-                    int(payload.get("max_results", 5) or 5),
-                )
+            if action in {"repo_search", "community_search", "web_search"}:
+                query = str(payload.get("query", "")).strip()
+                if len(lookup_history) >= lookup_budget:
+                    last_planner_error = "Planner lookup budget exhausted before final plan."
+                    self.runlog.record(
+                        "planner_lookup_budget_exhausted",
+                        stage=SetupStage.RESEARCH_AND_PLAN.value,
+                        action=action,
+                        query=query,
+                        lookup_count=len(lookup_history),
+                    )
+                    messages = self._planner_retry_messages(
+                        prompt,
+                        response_text,
+                        (
+                            "[quickhatch planner lookup budget]\n"
+                            "You already have enough lookup evidence for this run. "
+                            "Do not request another repo_search, community_search, or web_search. "
+                            "Return action=plan now, or ask only a genuinely blocking safety question.\n\n"
+                            + self._planner_lookup_history_text(lookup_history)
+                        ),
+                    )
+                    continue
+                if action == "repo_search":
+                    result = self.runtime.repo_search(query)
+                elif action == "community_search":
+                    result = self.runtime.community_search(query)
+                else:
+                    result = self.runtime.web_search(
+                        query,
+                        int(payload.get("max_results", 5) or 5),
+                    )
+                lookup_history.append({"action": action, "query": query, "result": result})
             elif action == "question":
                 required = _coerce_model_bool(payload.get("required", True), default=True)
                 answer = self._ask_blocking_question(
@@ -1105,6 +1131,20 @@ class SetupOrchestrator:
                     ),
                 )
                 continue
+            if lookup_history and action in {"repo_search", "community_search", "web_search"}:
+                remaining = max(lookup_budget - len(lookup_history), 0)
+                result = (
+                    result
+                    + "\n\n[quickhatch planner lookup history]\n"
+                    + self._planner_lookup_history_text(lookup_history)
+                    + "\n\n[quickhatch planner lookup budget]\n"
+                    + (
+                        "Lookup budget is exhausted. Next response must be action=plan "
+                        "unless a genuinely blocking safety question remains."
+                        if remaining == 0
+                        else f"{remaining} lookup action(s) remain before you must return action=plan."
+                    )
+                )
             messages = [
                 {"role": "user", "content": prompt},
                 {"role": "assistant", "content": response_text},
@@ -1151,6 +1191,18 @@ class SetupOrchestrator:
             {"role": "assistant", "content": response_text},
             {"role": "user", "content": correction},
         ]
+
+    @staticmethod
+    def _planner_lookup_history_text(history: list[dict[str, str]]) -> str:
+        lines: list[str] = []
+        for index, item in enumerate(history, start=1):
+            action = str(item.get("action") or "lookup")
+            query = str(item.get("query") or "")
+            result = re.sub(r"\s+", " ", str(item.get("result") or "").strip())
+            if len(result) > 800:
+                result = result[:800] + "..."
+            lines.append(f"{index}. {action} query={query!r}: {result or '<no result>'}")
+        return "\n".join(lines)
 
     def _iter_stage_groups(self, stage: SetupStage) -> list[CommandGroup]:
         if not self.ctx.plan:
