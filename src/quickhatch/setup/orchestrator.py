@@ -3978,12 +3978,15 @@ done"""
             "root_src=$(awk '$2 == \"/\" {print $1; exit}' /etc/fstab); "
             "printf '%s\\n' \"$root_src\"; "
             '[ -n "$root_src" ] || exit 2; '
+            "blkid_cmd=$(command -v blkid || command -v /usr/sbin/blkid || "
+            "command -v /sbin/blkid || true); "
+            '[ -n "$blkid_cmd" ] || exit 6; '
             'case "$root_src" in '
             "UUID=) exit 3 ;; "
             "UUID=*) uuid=${root_src#UUID=}; "
-            '[ -n "$uuid" ] && blkid -U "$uuid" >/dev/null 2>&1 || exit 4 ;; '
+            '[ -n "$uuid" ] && "$blkid_cmd" -U "$uuid" >/dev/null 2>&1 || exit 4 ;; '
             "PARTUUID=*) partuuid=${root_src#PARTUUID=}; "
-            '[ -n "$partuuid" ] && blkid -t PARTUUID="$partuuid" >/dev/null 2>&1 || exit 4 ;; '
+            '[ -n "$partuuid" ] && "$blkid_cmd" -t PARTUUID="$partuuid" >/dev/null 2>&1 || exit 4 ;; '
             'LABEL=*) label=${root_src#LABEL=}; [ -n "$label" ] || exit 3 ;; '
             '/dev/*) test -b "$root_src" || exit 4 ;; '
             "*) exit 5 ;; "
@@ -9160,11 +9163,18 @@ fi
                 "manual_followups", []
             ).append({"group_id": group.id, "reason": reason})
             return
+        self._mark_apps_installed_after_partial_group(group)
         app_names_lower = {name.lower() for name in app_names if name}
         group_pkgs = {pkg.lower() for pkg in group.packages}
         title = group.title.lower()
         matched = False
         for app in self.ctx.plan.apps:
+            if app.status in {
+                PlanItemStatus.INSTALLED,
+                PlanItemStatus.COMPLETED,
+                PlanItemStatus.EXPLICITLY_SKIPPED,
+            }:
+                continue
             if app.package_name.lower() in group_pkgs:
                 app.status = PlanItemStatus.MANUAL_FOLLOWUP
                 app.reason = reason
@@ -9178,6 +9188,31 @@ fi
             self.ctx.stage_state.setdefault(stage.value, {}).setdefault(
                 "manual_followups", []
             ).append({"group_id": group.id, "reason": reason})
+
+    def _mark_apps_installed_after_partial_group(self, group: CommandGroup) -> None:
+        if self.ctx.plan is None or self.ctx.facts is None:
+            return
+        planned_packages = self._app_group_planned_packages(group)
+        if not planned_packages:
+            return
+        query_packages = self._app_group_package_query_candidates(group)
+        installed = self._query_installed_native_packages(query_packages, self.ctx.facts)
+        if not installed:
+            return
+        installed_in_group = {
+            package
+            for package in planned_packages
+            if self._planned_package_is_installed(package, installed, group)
+        }
+        if not installed_in_group:
+            return
+        self._mark_apps_installed_by_prefilter(installed_in_group, installed, group)
+        self.runlog.record(
+            "apps_marked_installed_after_partial_group",
+            stage=SetupStage.APPS.value,
+            group_id=group.id,
+            installed=sorted(installed_in_group),
+        )
 
     def _mark_group_completion(self, group: CommandGroup, *, stage: SetupStage) -> None:
         if not self.ctx.plan:

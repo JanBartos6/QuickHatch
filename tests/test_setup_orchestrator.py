@@ -635,6 +635,27 @@ def test_fstab_root_verification_accepts_valid_device_entry():
     assert orchestrator._verify_fstab_root_entry() == []
 
 
+def test_fstab_root_verification_uses_sbin_blkid_fallback():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan", is_live=False)
+    observed_command = ""
+
+    def ssh_exec(command: str, _timeout: int):
+        nonlocal observed_command
+        observed_command = command
+        return (0, "UUID=abc123\n", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+
+    assert orchestrator._verify_fstab_root_entry() == []
+    assert "command -v /usr/sbin/blkid" in observed_command
+    assert '"$blkid_cmd" -U "$uuid"' in observed_command
+
+
 def test_internal_uefi_boot_fallback_requires_bootloader_capability():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
@@ -9597,6 +9618,56 @@ def test_repair_llm_unavailable_marks_desktop_group_manual_followup(monkeypatch)
     assert group.status == PlanItemStatus.MANUAL_FOLLOWUP
     manual_followups = orchestrator.ctx.stage_state[SetupStage.DESKTOP.value]["manual_followups"]
     assert "Repair LLM unavailable" in manual_followups[0]["reason"]
+
+
+def test_app_manual_followup_preserves_partially_installed_packages():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="debian",
+        package_manager="apt",
+        current_user="quickhatch",
+    )
+    group = CommandGroup(
+        id="apps",
+        stage=SetupStage.APPS,
+        title="Install requested applications",
+        commands=["sudo apt install -y vlc spotify"],
+        packages=["vlc", "spotify"],
+    )
+
+    def ssh_exec(command: str, _timeout: int) -> tuple[int, str, str]:
+        if "INSTALLED:%s" in command:
+            return 0, "INSTALLED:vlc\nMISSING:spotify\n", ""
+        return 1, "", "spotify install failed"
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Debian app stress",
+        distro_family="debian",
+        package_manager="apt",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("none"),
+        apps=[
+            AppPlanItem(name="VLC", package_name="vlc", source="repo"),
+            AppPlanItem(name="Spotify", package_name="spotify", source="snap"),
+        ],
+        command_groups=[group],
+    )
+
+    orchestrator._mark_group_manual_followup(
+        group,
+        stage=SetupStage.APPS,
+        reason="repair unavailable",
+        app_names=[],
+    )
+
+    app_status = {app.name: app.status for app in orchestrator.ctx.plan.apps}
+    assert app_status["VLC"] == PlanItemStatus.INSTALLED
+    assert app_status["Spotify"] == PlanItemStatus.MANUAL_FOLLOWUP
 
 
 def test_identical_noncritical_repair_loop_becomes_manual_followup(monkeypatch):

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from quickhatch.setup.audit import audit_stage
+from quickhatch.setup.audit import audit_stage, final_audit
 from quickhatch.setup.types import (
+    AuditResult,
     DesktopDesignState,
     DesktopRuntimeState,
+    FinalSetupStatus,
     ResearchPlan,
     SetupFacts,
     SetupStage,
@@ -58,6 +60,72 @@ def test_desktop_audit_accepts_stock_desktop_with_enabled_display_manager():
     assert result.passed
     assert result.details["desktop_runtime_state"] == "pending_relogin"
     assert result.details["display_manager_active"] is True
+
+
+def test_desktop_audit_allows_recorded_display_followup_without_persistence():
+    facts = SetupFacts(
+        distro_family="debian",
+        package_manager="apt",
+        current_user="quickhatch",
+        desktop_runtime_state=DesktopRuntimeState.BLOCKED_NO_GUI_SESSION,
+    )
+
+    result = audit_stage(
+        SetupStage.DESKTOP,
+        facts,
+        stage_state={
+            "display_manual_followup": True,
+            "display_manual_followup_reason": (
+                "Display tuning left for manual follow-up: no active target display facts"
+            ),
+            "manual_followups": [
+                {
+                    "reason": (
+                        "Display tuning left for manual follow-up: no active target display facts"
+                    )
+                }
+            ],
+        },
+    )
+
+    assert result.passed
+    assert result.details["display_manual_followup"] is True
+    assert not result.blockers
+
+
+def test_final_audit_reports_desktop_followup_without_blocking():
+    facts = SetupFacts(
+        distro_family="debian",
+        package_manager="apt",
+        current_user="quickhatch",
+        desktop_runtime_state=DesktopRuntimeState.BLOCKED_NO_GUI_SESSION,
+    )
+    plan = ResearchPlan(
+        target_summary="Configure existing desktop",
+        distro_family="debian",
+        package_manager="apt",
+        driver_strategy=StrategyDecision(strategy="none"),
+        desktop_strategy=StrategyDecision(strategy="manual follow-up"),
+    )
+    desktop_result = AuditResult(
+        stage=SetupStage.DESKTOP,
+        passed=True,
+        details={
+            "desktop_manual_followups": [
+                {
+                    "reason": (
+                        "Display tuning left for manual follow-up: no active target display facts"
+                    )
+                }
+            ]
+        },
+    )
+
+    result = final_audit(facts, plan, [desktop_result])
+
+    assert result.passed
+    assert result.final_status == FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
+    assert any(finding.category == "desktop" for finding in result.findings)
 
 
 def test_desktop_audit_blocks_enabled_but_inactive_display_manager():

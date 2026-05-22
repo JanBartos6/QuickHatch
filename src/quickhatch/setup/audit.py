@@ -191,7 +191,9 @@ def audit_stage(
             blockers.append(
                 "Display manager is enabled but not active; start it or reboot before declaring desktop success."
             )
-        if not _desktop_persistence_satisfied(facts, state):
+        if not _desktop_persistence_satisfied(facts, state) and not _desktop_followup_recorded(
+            state
+        ):
             blockers.append("Desktop configuration was not persisted yet.")
         desktop_followups: list[str] = []
         if state.get("desktop_design_attempted") and not _has_desktop_design_signal(facts):
@@ -273,6 +275,10 @@ def audit_stage(
             result.blockers
             for result in prior_results
             if not getattr(result, "passed", False) and getattr(result, "blockers", None)
+        )
+        desktop_followups = _desktop_followups_from_stage_results(prior_results)
+        blockers.extend(
+            f"Desktop manual follow-up remains: {reason}" for reason in desktop_followups
         )
         if facts.is_live:
             blockers.append(
@@ -557,6 +563,42 @@ def _desktop_persistence_satisfied(facts: SetupFacts, state: dict[str, Any]) -> 
     # A stock desktop plan may intentionally keep DE defaults. In that case,
     # enabling the display manager is the persistent configuration boundary.
     return bool(facts.display_manager_enabled and facts.display_manager)
+
+
+def _desktop_followup_recorded(state: dict[str, Any]) -> bool:
+    return bool(
+        state.get("display_manual_followup")
+        or state.get("display_manual_followup_reason")
+        or state.get("manual_followups")
+        or state.get("display_preference_blockers")
+    )
+
+
+def _desktop_followups_from_stage_results(prior_results: list[AuditResult]) -> list[str]:
+    reasons: list[str] = []
+    seen: set[str] = set()
+    for result in prior_results:
+        if getattr(result, "stage", None) != SetupStage.DESKTOP:
+            continue
+        details = getattr(result, "details", {}) or {}
+        candidates: list[Any] = []
+        if details.get("display_manual_followup_reason"):
+            candidates.append(details["display_manual_followup_reason"])
+        candidates.extend(details.get("desktop_manual_followups") or [])
+        candidates.extend(details.get("desktop_design_manual_followups") or [])
+        candidates.extend(details.get("display_preference_manual_followups") or [])
+        for candidate in candidates:
+            if isinstance(candidate, dict):
+                reason = str(candidate.get("reason") or "").strip()
+            else:
+                reason = str(candidate or "").strip()
+            if not reason:
+                continue
+            if any(reason in existing or existing in reason for existing in seen):
+                continue
+            seen.add(reason)
+            reasons.append(reason)
+    return reasons
 
 
 def _has_wallpaper_signal(facts: SetupFacts) -> bool:

@@ -4,13 +4,21 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import threading
 import webbrowser
 from dataclasses import asdict
 from pathlib import Path
 
-from quickhatch.config import UserProfile
+from quickhatch.config import (
+    INSTALL_ENCRYPTION_VALUES,
+    INSTALL_FILESYSTEM_VALUES,
+    INSTALL_PROFILE_VALUES,
+    REMOTE_SETUP_MODE_VALUES,
+    UserProfile,
+    normalize_setup_intent,
+)
 from quickhatch.console import console, print_error, print_info, print_success
 
 WIZARD_STEPS = [
@@ -24,6 +32,198 @@ WIZARD_STEPS = [
     ("ssh", "SSH Key Setup"),
     ("export", "Export Migration Bundle"),
 ]
+
+_DESTRUCTIVE_CONFIRMATION = "WIPE_AND_REINSTALL"
+_PROVIDER_DEFAULTS = {
+    "api_anthropic": {
+        "kind": "anthropic",
+        "endpoint": "https://api.anthropic.com",
+    },
+    "api_openai": {
+        "kind": "openai-compat",
+        "endpoint": "https://api.openai.com/v1",
+    },
+    "api_gemini": {
+        "kind": "openai-compat",
+        "endpoint": "https://generativelanguage.googleapis.com/v1beta/openai",
+    },
+    "api_grok": {
+        "kind": "openai-compat",
+        "endpoint": "https://api.x.ai/v1",
+    },
+    "api_custom": {
+        "kind": "openai-compat",
+        "endpoint": "",
+    },
+    "local_ollama": {
+        "kind": "ollama",
+        "endpoint": "http://localhost:11434",
+    },
+    "local_lmstudio": {
+        "kind": "openai-compat",
+        "endpoint": "http://localhost:1234/v1",
+    },
+    "codex": {
+        "kind": "",
+        "endpoint": "",
+    },
+}
+
+
+def _split_csv(values: list[str] | None) -> list[str]:
+    result: list[str] = []
+    for value in values or []:
+        for item in str(value or "").split(","):
+            item = item.strip()
+            if item:
+                result.append(item)
+    return result
+
+
+def _redacted_profile_dict(profile: UserProfile) -> dict:
+    payload = asdict(profile)
+    ai = payload.get("ai_config")
+    if isinstance(ai, dict) and ai.get("api_key"):
+        ai["api_key"] = "***SET***"
+    if payload.get("default_account_password"):
+        payload["default_account_password"] = "***REDACTED***"
+    return payload
+
+
+def _safe_profile_summary(profile: UserProfile) -> dict:
+    return {
+        "ai_provider": profile.ai_config.provider,
+        "ai_endpoint": profile.ai_config.endpoint,
+        "ai_model": profile.ai_config.model_name,
+        "api_key_present": bool(profile.ai_config.api_key),
+        "native_search": bool(profile.ai_config.native_search),
+        "migration_type": profile.preferences.migration_type,
+        "distro_preference": profile.preferences.distro_preference,
+        "apps_to_install": list(profile.apps_to_install),
+        "linux_ip": profile.linux_ip,
+        "linux_user": profile.linux_user,
+        "ssh_key_configured": bool(profile.ssh_public_key_path),
+        "remote_setup_mode": profile.remote_setup_mode,
+        "install_profile": profile.install_profile,
+        "install_encryption": profile.install_encryption,
+        "install_filesystem": profile.install_filesystem,
+        "install_username": profile.install_username,
+        "target_hardware_override_present": bool(profile.target_hardware_override.strip()),
+    }
+
+
+def _load_profile(path: str | None) -> UserProfile:
+    if not path:
+        return UserProfile.load_checkpoint() or UserProfile()
+    source = Path(path)
+    try:
+        payload = json.loads(source.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"Could not load profile {source}: {exc}") from exc
+    profile = UserProfile.from_dict(payload)
+    if profile is None:
+        raise SystemExit(f"Could not load profile {source}: invalid profile payload")
+    return profile
+
+
+def _api_key_from_args(args) -> str | None:
+    if getattr(args, "api_key", None):
+        return str(args.api_key)
+    env_name = getattr(args, "api_key_env", None)
+    if env_name:
+        return os.environ.get(env_name) or None
+    return None
+
+
+def _provider_endpoint(provider: str | None, endpoint: str | None) -> str:
+    if endpoint:
+        return endpoint.strip()
+    spec = _PROVIDER_DEFAULTS.get(provider or "")
+    return str((spec or {}).get("endpoint") or "")
+
+
+def _apply_profile_cli_args(
+    profile: UserProfile, args, *, allow_runtime_secrets: bool
+) -> UserProfile:
+    if getattr(args, "ai_provider", None):
+        profile.ai_config.provider = args.ai_provider
+        if not getattr(args, "ai_endpoint", None):
+            profile.ai_config.endpoint = _provider_endpoint(args.ai_provider, None) or None
+    if getattr(args, "ai_endpoint", None) is not None:
+        profile.ai_config.endpoint = args.ai_endpoint or None
+    if getattr(args, "ai_model", None) is not None:
+        profile.ai_config.model_name = args.ai_model or None
+    if getattr(args, "native_search", None) is not None:
+        profile.ai_config.native_search = bool(args.native_search)
+    if allow_runtime_secrets:
+        api_key = _api_key_from_args(args)
+        if api_key:
+            profile.ai_config.api_key = api_key
+            if getattr(args, "remember_api_key", False):
+                from quickhatch.secrets import store_api_key
+
+                store_api_key(profile.ai_config.provider, profile.ai_config.endpoint, api_key)
+
+    if getattr(args, "migration_type", None) is not None:
+        profile.preferences.migration_type = args.migration_type or ""
+    if getattr(args, "distro", None) is not None:
+        profile.preferences.distro_preference = args.distro or ""
+    if getattr(args, "desktop_look", None) is not None:
+        profile.preferences.desktop_look = args.desktop_look or ""
+    if getattr(args, "additional_notes", None) is not None:
+        profile.preferences.additional_notes = args.additional_notes or ""
+    if getattr(args, "target_hardware_override", None) is not None:
+        profile.target_hardware_override = args.target_hardware_override or ""
+
+    apps = _split_csv(getattr(args, "app", None))
+    if apps:
+        profile.apps_to_install = apps
+    if getattr(args, "data_description", None) is not None:
+        profile.data_description = args.data_description or ""
+    if getattr(args, "data_transfer_method", None) is not None:
+        profile.data_transfer_method = args.data_transfer_method or ""
+    if getattr(args, "linux_host", None) is not None:
+        profile.linux_ip = args.linux_host or ""
+    if getattr(args, "linux_user", None) is not None:
+        profile.linux_user = args.linux_user or ""
+    if getattr(args, "install_username", None) is not None:
+        profile.install_username = args.install_username or ""
+    if getattr(args, "ssh_key", None) is not None:
+        profile.ssh_public_key_path = args.ssh_key or None
+
+    setup_intent_changed = (
+        getattr(args, "remote_setup_mode", None) is not None
+        or getattr(args, "install_profile", None) is not None
+    )
+    if getattr(args, "remote_setup_mode", None) is not None:
+        profile.remote_setup_mode = args.remote_setup_mode
+        if (
+            args.remote_setup_mode == "wipe_and_reinstall"
+            and getattr(args, "install_profile", None) is None
+            and profile.install_profile in {"", "configure_existing"}
+        ):
+            profile.install_profile = "auto"
+        elif (
+            args.remote_setup_mode == "configure_only"
+            and getattr(args, "install_profile", None) is None
+        ):
+            profile.install_profile = "configure_existing"
+    if getattr(args, "install_profile", None) is not None:
+        profile.install_profile = args.install_profile
+    if setup_intent_changed:
+        profile.remote_setup_mode, profile.install_profile = normalize_setup_intent(
+            profile.remote_setup_mode,
+            profile.install_profile,
+        )
+    if getattr(args, "install_encryption", None) is not None:
+        profile.install_encryption = args.install_encryption
+    if getattr(args, "install_filesystem", None) is not None:
+        profile.install_filesystem = args.install_filesystem
+    if getattr(args, "install_partition_notes", None) is not None:
+        profile.install_partition_notes = args.install_partition_notes or ""
+    if getattr(args, "export_executed_setup_script", None) is not None:
+        profile.export_executed_setup_script = bool(args.export_executed_setup_script)
+    return profile
 
 
 def _populate_demo_profile(profile: UserProfile) -> None:
@@ -131,8 +331,77 @@ def _populate_demo_profile(profile: UserProfile) -> None:
     print_success("Demo profile loaded with sample Windows data")
 
 
-def main() -> None:
-    """Run the QuickHatch migration wizard."""
+def _add_common_profile_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--from-profile", dest="profile_path", help="Load an existing profile JSON")
+    parser.add_argument(
+        "--ai-provider",
+        choices=sorted(_PROVIDER_DEFAULTS),
+        help="AI provider label, e.g. api_gemini, api_openai, local_lmstudio",
+    )
+    parser.add_argument("--ai-endpoint", help="AI provider base URL")
+    parser.add_argument("--ai-model", help="AI model id to use")
+    parser.add_argument("--api-key", help=argparse.SUPPRESS)
+    parser.add_argument("--api-key-env", help="Environment variable containing the API key")
+    parser.add_argument(
+        "--remember-api-key",
+        action="store_true",
+        help="Store the API key in the OS credential store when possible",
+    )
+    native = parser.add_mutually_exclusive_group()
+    native.add_argument("--native-search", dest="native_search", action="store_true")
+    native.add_argument("--no-native-search", dest="native_search", action="store_false")
+    parser.set_defaults(native_search=None)
+    parser.add_argument(
+        "--migration-type",
+        choices=["fresh_install", "customize_linux"],
+        help="Overall workflow mode",
+    )
+    parser.add_argument("--distro", help="Preferred Linux family/distro")
+    parser.add_argument("--desktop-look", help="Desktop look/style preference")
+    parser.add_argument("--app", action="append", help="App to request; repeat or comma-separate")
+    parser.add_argument("--data-description", help="Data migration notes")
+    parser.add_argument(
+        "--data-transfer-method",
+        choices=["external_drive", "cloud", "keep_windows", "nothing", ""],
+        help="How data will be moved",
+    )
+    parser.add_argument("--additional-notes", help="Additional user notes")
+    parser.add_argument("--target-hardware-override", help="Target hardware notes")
+    parser.add_argument("--linux-host", help="Linux SSH host or host:port")
+    parser.add_argument("--linux-user", help="Linux SSH username")
+    parser.add_argument("--ssh-key", help="SSH private/public key path for setup")
+    parser.add_argument("--install-username", help="User to create/use after install")
+    parser.add_argument(
+        "--remote-setup-mode",
+        choices=sorted(REMOTE_SETUP_MODE_VALUES),
+        help="Remote setup mode",
+    )
+    parser.add_argument(
+        "--install-profile",
+        choices=sorted(INSTALL_PROFILE_VALUES),
+        help="Install target profile",
+    )
+    parser.add_argument(
+        "--install-encryption",
+        choices=sorted(INSTALL_ENCRYPTION_VALUES),
+        help="Install encryption preference",
+    )
+    parser.add_argument(
+        "--install-filesystem",
+        choices=sorted(INSTALL_FILESYSTEM_VALUES),
+        help="Install filesystem preference",
+    )
+    parser.add_argument("--install-partition-notes", help="Partitioning notes")
+    parser.add_argument(
+        "--export-executed-setup-script",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Export a redacted replay script from executed setup commands",
+    )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build the QuickHatch command line parser."""
     parser = argparse.ArgumentParser(description="QuickHatch — Windows to Linux Migration Wizard")
     subparsers = parser.add_subparsers(dest="quickhatch_command")
 
@@ -236,6 +505,59 @@ def main() -> None:
     )
     support_parser.add_argument("--output-dir", help="Directory for the generated support ZIP")
 
+    models_parser = subparsers.add_parser("models", help="List and choose provider models")
+    models_subparsers = models_parser.add_subparsers(dest="models_command")
+    models_list = models_subparsers.add_parser(
+        "list",
+        aliases=["resolve"],
+        help="Fetch models and optionally choose a preferred Gemini Flash model",
+    )
+    models_list.add_argument(
+        "--provider",
+        required=True,
+        choices=sorted(_PROVIDER_DEFAULTS),
+        help="Provider label",
+    )
+    models_list.add_argument("--endpoint", help="Provider endpoint override")
+    models_list.add_argument("--api-key", help=argparse.SUPPRESS)
+    models_list.add_argument("--api-key-env", help="Environment variable containing the API key")
+    models_list.add_argument(
+        "--prefer-gemini-flash-lite",
+        action="store_true",
+        help="Select Gemini 3.1 Flash Lite if present, otherwise the closest Flash Lite/Flash model",
+    )
+    models_list.add_argument(
+        "--prefer", help="Preferred model text/id to resolve from fetched models"
+    )
+
+    profile_parser = subparsers.add_parser("profile", help="Build CLI setup profiles")
+    profile_subparsers = profile_parser.add_subparsers(dest="profile_command")
+    profile_write = profile_subparsers.add_parser(
+        "write",
+        aliases=["build"],
+        help="Write a QuickHatch profile JSON",
+    )
+    profile_write.add_argument("--out", required=True, help="Destination profile JSON")
+    _add_common_profile_args(profile_write)
+
+    setup_parser = subparsers.add_parser("setup", help="Run remote setup from the CLI")
+    setup_subparsers = setup_parser.add_subparsers(dest="setup_command")
+    setup_run = setup_subparsers.add_parser(
+        "run",
+        help="Launch the same remote setup backend used by the GUI",
+    )
+    _add_common_profile_args(setup_run)
+    setup_run.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print the resolved setup profile and safety state without connecting over SSH",
+    )
+    setup_run.add_argument(
+        "--confirm-destructive-setup",
+        default="",
+        help=f"Required token for wipe/reinstall setup mode: {_DESTRUCTIVE_CONFIRMATION}",
+    )
+
     certify_parser = subparsers.add_parser("certify", help="Run certification tooling")
     certify_subparsers = certify_parser.add_subparsers(dest="certify_command")
     vm_parser = certify_subparsers.add_parser("vm", help="Prepare/run VM certification")
@@ -274,13 +596,28 @@ def main() -> None:
     parser.add_argument(
         "--no-browser", action="store_true", help="Don't auto-open browser (GUI mode)"
     )
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    """Run the QuickHatch migration wizard."""
+    parser = build_parser()
+    args = parser.parse_args(argv)
 
     if args.quickhatch_command == "debug":
         return _run_debug_command(args)
 
     if args.quickhatch_command == "certify":
         return _run_certify_command(args)
+
+    if args.quickhatch_command == "models":
+        return _run_models_command(args)
+
+    if args.quickhatch_command == "profile":
+        return _run_profile_command(args)
+
+    if args.quickhatch_command == "setup":
+        return _run_setup_command(args)
 
     if args.gui:
         return _run_gui(args)
@@ -414,6 +751,260 @@ def _run_gui(args) -> None:
 
 def _print_json(payload: object) -> None:
     console.print(json.dumps(payload, indent=2, sort_keys=True, default=str), markup=False)
+
+
+def _model_kind(provider: str) -> str:
+    return str(_PROVIDER_DEFAULTS.get(provider, {}).get("kind") or "")
+
+
+def _model_endpoint(provider: str, endpoint: str | None) -> str:
+    return _provider_endpoint(provider, endpoint)
+
+
+def _model_score(model: str, *, provider: str, prefer: str | None, prefer_gemini: bool) -> int:
+    lowered = model.lower()
+    compact = "".join(ch for ch in lowered if ch.isalnum())
+    score = 0
+    if prefer:
+        preferred = prefer.lower()
+        preferred_compact = "".join(ch for ch in preferred if ch.isalnum())
+        if lowered == preferred or compact == preferred_compact:
+            score += 1000
+        elif preferred_compact and preferred_compact in compact:
+            score += 800
+        else:
+            tokens = [token for token in re_split_model_tokens(preferred) if token]
+            score += sum(40 for token in tokens if token in lowered)
+    if prefer_gemini or provider == "api_gemini":
+        if "gemini" in lowered:
+            score += 120
+        if "3.1" in lowered or "31" in compact:
+            score += 260
+        if "flash" in lowered:
+            score += 180
+        if "lite" in lowered:
+            score += 160
+        if "flash-lite" in lowered or ("flash" in lowered and "lite" in lowered):
+            score += 160
+        if "pro" in lowered:
+            score -= 30
+        if "embed" in lowered:
+            score -= 500
+    return score
+
+
+def re_split_model_tokens(text: str) -> list[str]:
+    import re
+
+    return re.split(r"[^a-z0-9.]+", text.lower())
+
+
+def _select_preferred_model(
+    models: list[str],
+    *,
+    provider: str,
+    prefer: str | None = None,
+    prefer_gemini_flash_lite: bool = False,
+) -> tuple[str | None, str]:
+    candidates = [model for model in models if isinstance(model, str) and model.strip()]
+    if not candidates:
+        return None, "no models returned"
+    if prefer_gemini_flash_lite and not prefer:
+        prefer = "Gemini 3.1 Flash Lite"
+    if not prefer and not prefer_gemini_flash_lite:
+        return None, "no preferred model requested"
+    ranked = sorted(
+        candidates,
+        key=lambda model: (
+            _model_score(
+                model,
+                provider=provider,
+                prefer=prefer,
+                prefer_gemini=prefer_gemini_flash_lite,
+            ),
+            -len(model),
+        ),
+        reverse=True,
+    )
+    selected = ranked[0]
+    score = _model_score(
+        selected,
+        provider=provider,
+        prefer=prefer,
+        prefer_gemini=prefer_gemini_flash_lite,
+    )
+    if score <= 0:
+        return None, "no fetched model matched the requested preference"
+    if prefer_gemini_flash_lite and selected.lower() != "gemini-3.1-flash-lite":
+        return (
+            selected,
+            "Gemini 3.1 Flash Lite was not exact; selected closest Flash Lite/Flash model",
+        )
+    return selected, "selected preferred fetched model"
+
+
+def _run_models_command(args) -> None:
+    if args.models_command not in {"list", "resolve"}:
+        raise SystemExit("Missing models subcommand.")
+    provider = args.provider
+    endpoint = _model_endpoint(provider, args.endpoint)
+    kind = _model_kind(provider)
+    if not kind:
+        raise SystemExit(f"Provider {provider} does not expose a model-list endpoint.")
+    api_key = _api_key_from_args(args)
+    if not api_key:
+        from quickhatch.secrets import load_api_key
+
+        api_key = load_api_key(provider, endpoint)
+    from quickhatch.ai.model_list import fetch
+
+    models = fetch(kind, endpoint, api_key)
+    selected, reason = _select_preferred_model(
+        models,
+        provider=provider,
+        prefer=args.prefer,
+        prefer_gemini_flash_lite=bool(args.prefer_gemini_flash_lite),
+    )
+    payload = {
+        "status": "ok" if models else "no_models",
+        "provider": provider,
+        "kind": kind,
+        "endpoint": endpoint,
+        "api_key_present": bool(api_key),
+        "models": models,
+        "selected_model": selected,
+        "selection_reason": reason,
+    }
+    _print_json(payload)
+    if not models:
+        raise SystemExit(1)
+
+
+def _run_profile_command(args) -> None:
+    if args.profile_command not in {"write", "build"}:
+        raise SystemExit("Missing profile subcommand.")
+    profile = _load_profile(args.profile_path)
+    _apply_profile_cli_args(profile, args, allow_runtime_secrets=True)
+    output = Path(args.out)
+    path = profile.save_checkpoint(output)
+    _print_json(
+        {
+            "status": "ok",
+            "path": str(path),
+            "profile_summary": _safe_profile_summary(profile),
+            "profile": _redacted_profile_dict(profile),
+        }
+    )
+
+
+def _is_destructive_setup_profile(profile: UserProfile) -> bool:
+    return profile.remote_setup_mode == "wipe_and_reinstall" or profile.install_profile not in {
+        "auto",
+        "configure_existing",
+    }
+
+
+def _destructive_confirmation_error() -> str:
+    return (
+        "Destructive setup mode requires explicit CLI confirmation. Re-run with "
+        f"`--confirm-destructive-setup {_DESTRUCTIVE_CONFIRMATION}` after verifying this is a "
+        "live/sacrificial target. Disk erase/format operations will still require per-disk "
+        "QuickHatch capability confirmation during setup."
+    )
+
+
+def _setup_payload(
+    *,
+    profile: UserProfile,
+    bridge_setup_run: dict,
+    summary: str,
+    dry_run: bool = False,
+) -> dict:
+    final_status = str(bridge_setup_run.get("final_status") or bridge_setup_run.get("status") or "")
+    return {
+        "status": bridge_setup_run.get("status") or ("dry_run" if dry_run else "unknown"),
+        "final_status": final_status,
+        "summary": summary,
+        "run_id": bridge_setup_run.get("run_id", ""),
+        "runlog_path": bridge_setup_run.get("runlog_path", ""),
+        "blockers": bridge_setup_run.get("blockers", []),
+        "waiting_for_input": bool(bridge_setup_run.get("waiting_for_input")),
+        "profile_summary": _safe_profile_summary(profile),
+        "destructive_mode_armed": _is_destructive_setup_profile(profile),
+        "dry_run": dry_run,
+    }
+
+
+def _attach_cli_question_handler(bridge) -> None:
+    def _answer(question) -> None:
+        console.print(f"\n[bold yellow]Setup needs input:[/bold yellow] {question.question}")
+        choices = list(question.choices or [])
+        if choices:
+            for index, choice in enumerate(choices, start=1):
+                console.print(f"  {index}. {choice}")
+        try:
+            raw = input("Answer: ").strip()
+        except EOFError:
+            raw = ""
+        answer = raw
+        if choices and raw.isdigit():
+            idx = int(raw) - 1
+            if 0 <= idx < len(choices):
+                answer = choices[idx]
+        bridge.answer_question(question.id, answer)
+
+    bridge.on_question(_answer)
+
+
+def _run_setup_agent_cli(profile: UserProfile) -> dict:
+    from quickhatch.bridge.server import BridgeState
+    from quickhatch.gui.server import GUIState, _build_setup_runtime
+    from quickhatch.setup import SetupOrchestrator
+
+    bridge = BridgeState(profile, persist_path=None)
+    _attach_cli_question_handler(bridge)
+    gui_state = GUIState(profile, bridge)
+    runtime = _build_setup_runtime(gui_state, port=0)
+    if not runtime.host or not runtime.user:
+        raise SystemExit(
+            "Setup requires --linux-host and --linux-user or a profile containing them."
+        )
+    summary = SetupOrchestrator(runtime).run()
+    payload = _setup_payload(
+        profile=profile,
+        bridge_setup_run=bridge.snapshot_setup_run(),
+        summary=summary,
+    )
+    return payload
+
+
+def _run_setup_command(args) -> None:
+    if args.setup_command != "run":
+        raise SystemExit("Missing setup subcommand.")
+    profile = _load_profile(args.profile_path)
+    _apply_profile_cli_args(profile, args, allow_runtime_secrets=True)
+
+    if (
+        _is_destructive_setup_profile(profile)
+        and (args.confirm_destructive_setup or "") != _DESTRUCTIVE_CONFIRMATION
+    ):
+        raise SystemExit(_destructive_confirmation_error())
+
+    if args.dry_run:
+        _print_json(
+            _setup_payload(
+                profile=profile,
+                bridge_setup_run={"status": "dry_run", "final_status": ""},
+                summary="Resolved CLI setup profile; no SSH connection or setup actions executed.",
+                dry_run=True,
+            )
+        )
+        return
+
+    payload = _run_setup_agent_cli(profile)
+    _print_json(payload)
+    if payload.get("status") in {"blocked", "failed"} or payload.get("final_status") == "blocked":
+        raise SystemExit(1)
 
 
 def _run_debug_command(args) -> None:
