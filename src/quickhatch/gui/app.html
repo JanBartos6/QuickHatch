@@ -288,6 +288,10 @@ body.attention-flash {
 }
 .btn-row > *{pointer-events:auto}
 @media(max-width:720px){.btn-row{padding:var(--s4) var(--s5)}}
+@media(max-width:560px){
+  .btn-row{justify-content:stretch;flex-wrap:wrap}
+  .btn-row .btn{flex:1 1 120px;min-width:0}
+}
 /* In-flow action row (panels, nested actions) — stays in the content flow */
 .actions-inline{display:flex;gap:var(--s2);align-items:center;flex-wrap:wrap}
 
@@ -490,6 +494,7 @@ select{cursor:pointer;appearance:none;padding-right:var(--s7);background-image:u
 .agent-panel.done .spinner{display:none}
 .agent-panel.done .agent-head{background:var(--success-soft)}
 .agent-panel.warning .agent-head,.agent-panel.followup .agent-head,.agent-panel.unsupported .agent-head{background:var(--warning-soft)}
+.agent-panel.error .agent-head{background:var(--danger-soft)}
 
 /* Timeline (compact past events) */
 .agent-timeline{
@@ -543,7 +548,42 @@ select{cursor:pointer;appearance:none;padding-right:var(--s7);background-image:u
   display:grid;grid-template-columns:2fr 1fr;gap:var(--s3);margin-bottom:var(--s4);
 }
 .conn-grid .field{margin-bottom:0}
-@media(max-width:560px){.conn-grid{grid-template-columns:1fr}}
+.setup-section{
+  border-top:1px solid var(--border);
+  padding-top:var(--s4);margin-top:var(--s5);
+}
+.setup-section:first-of-type{border-top:none;padding-top:0}
+.setup-section-head{margin-bottom:var(--s3)}
+.setup-section-title{
+  font-size:var(--t-xs);font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--text-muted);margin-bottom:var(--s1);
+}
+.setup-section-note{
+  color:var(--text-muted);font-size:var(--t-sm);line-height:var(--leading);
+  max-width:64ch;
+}
+.setup-actions{display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap;margin-bottom:var(--s4)}
+.setup-actions .muted{line-height:var(--leading)}
+.destructive-warning{
+  border-left-width:3px;
+  background:var(--danger-soft);
+}
+.destructive-warning p{color:var(--text)}
+.question-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-left:3px solid var(--warning);border-radius:var(--r-sm);
+  padding:var(--s3) var(--s4);margin:var(--s4) 0;
+}
+.question-eyebrow{
+  font-size:var(--t-xs);font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:var(--warning);margin-bottom:var(--s1);
+}
+@media(max-width:560px){
+  .conn-grid{grid-template-columns:1fr}
+  .setup-actions,.chat-composer{flex-direction:column;align-items:stretch}
+  .setup-actions .btn,.chat-composer .btn{width:100%}
+  .question-card .stack-h{flex-direction:column;align-items:stretch}
+}
 
 /* ── Apps list (apps_data step) ── */
 .apps-header{
@@ -733,6 +773,19 @@ code{background:var(--surface-alt);padding:1px 5px;border-radius:4px;font-size:.
 /* ── Done screen ── */
 .done-screen{text-align:center;padding:var(--s5) 0}
 .done-screen h2{font-size:var(--t-2xl);font-weight:700;color:var(--text);letter-spacing:-.02em}
+.final-status-card{
+  max-width:560px;margin:var(--s4) auto 0;text-align:left;
+  border:1px solid var(--border);border-left:3px solid var(--border-strong);
+  border-radius:var(--r-sm);padding:var(--s3) var(--s4);background:var(--surface);
+}
+.final-status-card strong{display:block;font-size:var(--t-sm);margin-bottom:var(--s1)}
+.final-status-card p{font-size:var(--t-sm);color:var(--text-muted);line-height:var(--leading)}
+.final-status-card.status-warning,.final-status-card.status-followup,.final-status-card.status-unsupported{border-left-color:var(--warning);background:var(--warning-soft)}
+.final-status-card.status-error{border-left-color:var(--danger);background:var(--danger-soft)}
+.done-screen.status-warning .done-steps .ds .dn,
+.done-screen.status-followup .done-steps .ds .dn,
+.done-screen.status-unsupported .done-steps .ds .dn{background:var(--warning);color:#fff}
+.done-screen.status-error .done-steps .ds .dn{background:var(--danger);color:#fff}
 .done-steps{
   text-align:left;max-width:440px;margin:var(--s5) auto;
   display:flex;flex-direction:column;gap:var(--s2);
@@ -748,6 +801,13 @@ code{background:var(--surface-alt);padding:1px 5px;border-radius:4px;font-size:.
   font-size:var(--t-xs);font-weight:700;background:var(--success);color:#fff;flex-shrink:0;
 }
 .done-steps .ds .dn svg{width:14px;height:14px}
+.support-action{
+  max-width:560px;margin:var(--s4) auto;text-align:left;
+  background:var(--surface);border:1px solid var(--border);
+  border-left:3px solid var(--warning);border-radius:var(--r-sm);
+}
+.support-action.info-danger{border-left-color:var(--danger)}
+.support-action .code-block{margin:var(--s2) 0;white-space:pre-wrap;word-break:break-word}
 
 details{margin:var(--s2) 0}
 details summary{cursor:pointer;color:var(--text-muted);font-size:var(--t-sm);font-weight:500;padding:var(--s1) 0;transition:color var(--dur) var(--ease);list-style:none;display:inline-flex;align-items:center;gap:var(--s1)}
@@ -1303,11 +1363,20 @@ async function api(path,method='GET',body=null){
   const r=await fetch(path,opts);return r.json();
 }
 
-function applyServerProfile(profile, seq){
+function applyServerProfile(profile, seq, opts={}){
   if(!profile)return false;
   if((seq||0) < (state._profileAppliedSeq||0))return false;
   state._profileAppliedSeq=seq||0;
   const serverProfile=cloneJson(profile);
+  if(opts.skipClientMerge){
+    state._needsShadowRestore=false;
+    state.profile=serverProfile;
+    state.completedSteps=state.profile.completed_steps||[];
+    state.galleryPinned=[...(state.profile?.preferences?.gallery_picks||[])];
+    writeProfileShadow(state.profile);
+    refreshSteps();
+    return true;
+  }
   const shadowProfile=state._profileShadow;
   const draftProfile=buildProfileFromDraft(serverProfile);
   const mergedProfile=mergeProfileMissing(
@@ -1715,6 +1784,16 @@ function getDistroUsbGuide(distro){
 function codeBlockHtml(text){
   return renderCopyableCodeBlock(text,'md-code');
 }
+const SUPPORT_BUNDLE_COMMAND='py -3.13 -m quickhatch.cli debug support-bundle';
+
+function destructiveInstallWarningHtml(){
+  return `<div class="info-box info-danger destructive-warning" id="destructiveInstallWarning" role="alert">
+    <strong>Destructive install guardrails</strong>
+    <p style="margin:var(--s1) 0 0 0">Erase and manual install paths can destroy data. QuickHatch will still stop later, show the detected disks, and require the exact disk or partition confirmation before any erase, format, or partition operation runs.</p>
+    <p style="margin:var(--s2) 0 0 0">QuickHatch does not automatically shrink Windows partitions. If you want dual boot, create and verify free space yourself before using a free-space or manual mapping path.</p>
+  </div>`;
+}
+
 function exportResultCard(data){
   if(!data||data.status!=='ok')return'';
   const fileList=(data.files||[]).map(f=>`<li>${escHtml(f)}</li>`).join('');
@@ -2057,10 +2136,7 @@ const stepRenderers={
               <div class="desc">Only for users who know exactly which partitions should be used.</div>
             </div>
           </div>
-          <div class="info-box info-warn" style="margin-top:var(--s3)">
-            <strong>Advanced mode</strong>
-            <p style="margin:var(--s1) 0 0 0">Select manual mapping only if you are confident with Linux partitioning. QuickHatch will require explicit confirmation before formatting any mapped partition.</p>
-          </div>
+          ${destructiveInstallWarningHtml()}
           <div class="field" style="margin-top:var(--s3)">
             <label>Desired Linux username</label>
             <input type="text" id="installUsername" value="${escHtml(installUsername)}" placeholder="e.g. tom" oninput="persistQuestionnaireDraft()">
@@ -2085,7 +2161,6 @@ const stepRenderers={
             </div>
           </div>
           <textarea id="installPartitionNotes" rows="3" placeholder="Optional partition notes, exact disk/partition hints, or manual mapping details…" oninput="persistQuestionnaireDraft()">${escHtml(installPartitionNotes)}</textarea>
-          <div class="muted" style="font-size:var(--t-xs);margin-top:var(--s2)">QuickHatch will not automatically shrink Windows volumes or delete existing Windows partitions in the first public version.</div>
         </div>`}
 
         ${customize?'':`
@@ -2535,66 +2610,92 @@ const stepRenderers={
     const hasConn=ip&&user;
     const canLaunch=!!(hasConn&&state._sshTestOk);
     const setupActive=!!(state._setupStarted&&!state._setupDone);
+    const destructiveIntent=remoteSetupMode==='wipe_and_reinstall'||installProfile==='full_disk_wipe';
+    const connectionHint=canLaunch
+      ?'Connection tested. Launch is unlocked.'
+      :hasConn
+        ?'Test the connection to unlock Remote Setup.'
+        :'Enter both fields to test the connection.';
+    const launchBtnClass=destructiveIntent?'btn-danger':'btn-success';
+    const launchBtnText=destructiveIntent?'Start destructive remote setup':'Start remote setup';
     content().innerHTML=`
       <div class="card">
         <h2>Remote setup</h2>
         <p class="subtitle">SSH into the target machine and apply the plan. Enter the IP and username printed by <code>quickstart.sh</code> — then test the connection before starting.</p>
 
-        <div class="info-box" style="margin-bottom:var(--s4)">
-          <strong>Install target: ${escHtml(installProfileLabels[installProfile]||installProfile)}</strong>
-          <p style="margin:var(--s1) 0 0 0">Encryption: <code>${escHtml(installEncryption)}</code> · Filesystem: <code>${escHtml(installFilesystem)}</code>. Disk/format/boot operations require exact capability confirmation before execution.</p>
-        </div>
-
-        <div class="conn-grid">
-          <div class="field"><label>IP address</label>
-            <input type="text" id="linuxIp" value="${escHtml(ip)}" placeholder="e.g. 192.168.1.42 or 127.0.0.1:2222" oninput="invalidateSshTest()">
+        <div class="setup-section">
+          <div class="setup-section-head">
+            <div class="setup-section-title">Connection</div>
+            <div class="setup-section-note">Use the IP address and username printed by <code>quickstart.sh</code>. Any edit here locks launch until the connection is tested again.</div>
           </div>
-          <div class="field"><label>SSH username</label>
-            <input type="text" id="linuxUser" value="${escHtml(user)}" placeholder="e.g. root on the live ISO" oninput="invalidateSshTest()">
+          <div class="conn-grid">
+            <div class="field"><label>IP address</label>
+              <input type="text" id="linuxIp" value="${escHtml(ip)}" placeholder="e.g. 192.168.1.42 or 127.0.0.1:2222" oninput="invalidateSshTest()">
+            </div>
+            <div class="field"><label>SSH username</label>
+              <input type="text" id="linuxUser" value="${escHtml(user)}" placeholder="e.g. root on the live ISO" oninput="invalidateSshTest()">
+            </div>
           </div>
-        </div>
-
-        <div class="field" style="margin-bottom:var(--s5)">
-          <label>Remote setup mode</label>
-          <div class="stack-h" style="gap:var(--s2);flex-wrap:wrap">
-            <button type="button" class="btn ${remoteSetupMode==='auto'?'btn-primary':'btn-ghost'}" onclick="setRemoteSetupMode('auto')">Auto</button>
-            <button type="button" class="btn ${remoteSetupMode==='configure_only'?'btn-primary':'btn-ghost'}" onclick="setRemoteSetupMode('configure_only')">Configure only (beta)</button>
-            <button type="button" class="btn ${remoteSetupMode==='wipe_and_reinstall'?'btn-danger':'btn-ghost'}" onclick="setRemoteSetupMode('wipe_and_reinstall')">Wipe + reinstall (experimental)</button>
-          </div>
-          <div class="muted" style="font-size:var(--t-sm);margin-top:var(--s2)">
-            ${remoteSetupMode==='wipe_and_reinstall'
-              ?'Experimental destructive mode is armed. In a live environment the agent may wipe the selected target disk, but only after showing <code>lsblk -f</code> and getting explicit disk confirmation.'
-            :remoteSetupMode==='configure_only'
-              ?'Beta configure-existing mode. The agent must not repartition or reinstall the distro; it should only configure the current installed system.'
-              :'Default mode. Configure-existing work is beta; fresh full-disk installs remain experimental and require explicit disk confirmation.'}
+          <div class="setup-actions">
+            <button class="btn btn-ghost" onclick="saveLinuxConn()" id="saveConnBtn">Save connection</button>
+            <button class="btn btn-ghost" onclick="testLinuxConn()" id="testConnBtn"${hasConn?'':' disabled'}>Test connection</button>
+            <button class="btn btn-ghost" onclick="resetRemoteSetup()" id="resetRemoteSetupBtn">Reset remote setup</button>
+            <button class="btn btn-ghost" onclick="clearSetupLog()" id="clearSetupLogBtn">Clear setup log</button>
+            <span id="connStatus" class="muted" style="font-size:var(--t-sm)">${escHtml(connectionHint)}</span>
           </div>
         </div>
 
-        <label class="checkbox-row" style="align-items:flex-start;margin:calc(-1 * var(--s2)) 0 var(--s5) 0">
-          <input type="checkbox" id="exportExecutedSetupScript" ${exportExecutedScript?'checked':''} onchange="setExportExecutedSetupScript(this.checked)">
-          <span>
-            <strong>Save executed commands as a reusable <code>.sh</code></strong>
-            <span class="muted" style="display:block;font-size:var(--t-xs);margin-top:var(--s1)">At the end of Remote Setup, write an inspectable script from commands that actually succeeded. Secrets are redacted; review before using it on matching hardware.</span>
-          </span>
-        </label>
+        <div class="setup-section">
+          <div class="setup-section-head">
+            <div class="setup-section-title">Install intent</div>
+            <div class="setup-section-note">Review the target and mode before the agent is allowed to run. Disk, format, and boot changes remain capability-gated.</div>
+          </div>
+          <div class="info-box" style="margin-bottom:var(--s3)">
+            <strong>Install target: ${escHtml(installProfileLabels[installProfile]||installProfile)}</strong>
+            <p style="margin:var(--s1) 0 0 0">Encryption: <code>${escHtml(installEncryption)}</code> · Filesystem: <code>${escHtml(installFilesystem)}</code>. Exact disk confirmation is still required later for erase or format operations.</p>
+          </div>
 
-        <div class="stack-h" style="gap:var(--s2);margin-bottom:var(--s5)">
-          <button class="btn btn-ghost" onclick="saveLinuxConn()" id="saveConnBtn">Save</button>
-          <button class="btn btn-ghost" onclick="testLinuxConn()" id="testConnBtn"${hasConn?'':' disabled'}>Test connection</button>
-          <button class="btn btn-ghost" onclick="resetRemoteSetup()" id="resetRemoteSetupBtn">Reset remote setup</button>
-          <button class="btn btn-ghost" onclick="clearSetupLog()" id="clearSetupLogBtn">Clear setup log</button>
-          <span id="connStatus" class="muted" style="font-size:var(--t-sm)"></span>
+          <div class="field" style="margin-bottom:var(--s3)">
+            <label>Remote setup mode</label>
+            <div class="stack-h" style="gap:var(--s2);flex-wrap:wrap">
+              <button type="button" class="btn ${remoteSetupMode==='auto'?'btn-primary':'btn-ghost'}" aria-pressed="${remoteSetupMode==='auto'?'true':'false'}" onclick="setRemoteSetupMode('auto')">Auto</button>
+              <button type="button" class="btn ${remoteSetupMode==='configure_only'?'btn-primary':'btn-ghost'}" aria-pressed="${remoteSetupMode==='configure_only'?'true':'false'}" onclick="setRemoteSetupMode('configure_only')">Configure only (beta)</button>
+              <button type="button" class="btn ${remoteSetupMode==='wipe_and_reinstall'?'btn-danger':'btn-ghost'}" aria-pressed="${remoteSetupMode==='wipe_and_reinstall'?'true':'false'}" onclick="setRemoteSetupMode('wipe_and_reinstall')">Wipe + reinstall (experimental)</button>
+            </div>
+            <div class="muted" style="font-size:var(--t-sm);margin-top:var(--s2)">
+              ${remoteSetupMode==='wipe_and_reinstall'
+                ?'Experimental destructive mode is armed. The agent may prepare a full-disk install only after showing the detected disks and asking for exact confirmation.'
+              :remoteSetupMode==='configure_only'
+                ?'Beta configure-existing mode. The agent must not repartition or reinstall the distro; it should only configure the current installed system.'
+                :'Default mode. Configure-existing work is beta; fresh full-disk installs remain experimental and require explicit disk confirmation.'}
+            </div>
+          </div>
+
+          ${destructiveIntent?destructiveInstallWarningHtml():''}
+
+          <label class="checkbox-row" style="align-items:flex-start;margin:var(--s3) 0 0 0">
+            <input type="checkbox" id="exportExecutedSetupScript" ${exportExecutedScript?'checked':''} onchange="setExportExecutedSetupScript(this.checked)">
+            <span>
+              <strong>Save executed commands as a reusable <code>.sh</code></strong>
+              <span class="muted" style="display:block;font-size:var(--t-xs);margin-top:var(--s1)">At the end of Remote Setup, write an inspectable script from commands that actually succeeded. Secrets are redacted; review before using it on matching hardware.</span>
+            </span>
+          </label>
         </div>
 
-        <div class="agent-launch${setupActive?' hidden':''}" id="setupLaunch">
-          <button class="btn btn-success btn-lg" id="setupLaunchBtn" onclick="launchSetupAgent()"${canLaunch?'':' disabled'}>Start remote setup</button>
-          <div id="setupLaunchMsg"></div>
-          <details>
-            <summary>Or connect an external AI tool manually</summary>
-            <div class="code-block" id="setupCmd">Point your AI tool at http://localhost:${port}/api/profile</div>
-            <button class="btn btn-ghost btn-sm" onclick="copyFrom(this,'setupCmd')">Copy</button>
-          </details>
-        </div>
+        <div class="setup-section">
+          <div class="setup-section-head">
+            <div class="setup-section-title">Run and results</div>
+            <div class="setup-section-note">Launch stays disabled until a successful SSH test. Keep this helper machine online while the agent is working.</div>
+          </div>
+          <div class="agent-launch${setupActive?' hidden':''}" id="setupLaunch">
+            <button class="btn ${launchBtnClass} btn-lg" id="setupLaunchBtn" onclick="launchSetupAgent()"${canLaunch?'':' disabled'}>${launchBtnText}</button>
+            <div id="setupLaunchMsg"></div>
+            <details>
+              <summary>Or connect an external AI tool manually</summary>
+              <div class="code-block" id="setupCmd">Point your AI tool at http://localhost:${port}/api/profile</div>
+              <button class="btn btn-ghost btn-sm" onclick="copyFrom(this,'setupCmd')">Copy</button>
+            </details>
+          </div>
 
         <div class="agent-panel${setupActive?'':' hidden'}" id="setupPanel">
           <div class="agent-head">
@@ -2615,6 +2716,8 @@ const stepRenderers={
           </details>
         </div>
 
+        <div id="setupFinalAction"></div>
+
         <div id="setupQuestions"></div>
 
         <div class="chat-composer">
@@ -2625,6 +2728,7 @@ const stepRenderers={
         <div class="suggestions-section hidden" id="setupSuggestionsSection">
           <h3 class="section-heading">Results</h3>
           <div id="setupFeed"></div>
+        </div>
         </div>
 
         <div class="btn-row">
@@ -2644,25 +2748,29 @@ function renderDone(){
   const finalNeedsNotice=finalInfo.kind!=='success';
   content().innerHTML=customize?`
     <div class="card">
-      <div class="done-screen">
+      <div class="done-screen status-${escHtml(finalInfo.kind)}">
         <h2>${finalNeedsNotice?finalInfo.doneTitle:"You're set up"}</h2>
         <p class="subtitle" style="margin-top:var(--s1)">${finalNeedsNotice?finalInfo.doneSubtitle:'The agent has finished tuning your Linux install.'}</p>
+        ${finalStatusCardHtml(finalInfo)}
         <div class="done-steps">
           <div class="ds"><div class="dn">${icon('check')}</div>System scanned</div>
           <div class="ds"><div class="dn">${icon('check')}</div>Preferences applied</div>
           <div class="ds"><div class="dn">${icon('check')}</div>Re-run QuickHatch any time to tweak further</div>
         </div>
+        ${supportBundleActionHtml(finalInfo)}
       </div>
     </div>`:`
     <div class="card">
-      <div class="done-screen">
+      <div class="done-screen status-${escHtml(finalInfo.kind)}">
         <h2>${finalNeedsNotice?finalInfo.doneTitle:(offline?'Bundle ready':'Welcome to Linux')}</h2>
         <p class="subtitle" style="margin-top:var(--s1)">${finalNeedsNotice?finalInfo.doneSubtitle:(offline?'Your migration bundle is ready. Boot the target machine, run the exported scripts, and use the Markdown plan as your checklist.':'The agent finished on the target. Go log in and try it out.')}</p>
+        ${finalStatusCardHtml(finalInfo)}
         <div class="done-steps">
           <div class="ds"><div class="dn">${icon('check')}</div>System analyzed, apps mapped</div>
           <div class="ds"><div class="dn">${icon('check')}</div>${offline?'Bundle exported with quickstart + plan':'Linux configured remotely'}</div>
           <div class="ds"><div class="dn">${icon('check')}</div>${offline?'Install guidance ready for the live environment':'Apps installed, plan delivered'}</div>
         </div>
+        ${supportBundleActionHtml(finalInfo)}
         <p class="muted" style="font-size:var(--t-sm);text-align:center;margin-top:var(--s4)">${offline?'Need to adjust something before booting? Head back to Export or Preferences and regenerate the bundle.':'Something off? Head back to Remote setup and chat with the agent.'}</p>
       </div>
     </div>`;
@@ -3841,12 +3949,22 @@ function beginAnalysisRunUi(statusText){
   if(state._suggestionUi)delete state._suggestionUi.analysis;
 }
 
+function questionDomId(qid){
+  return 'q'+quickHash(String(qid||''));
+}
+
+function answerQuestionFromControl(control){
+  const qid=control&&control.dataset?control.dataset.qid:'';
+  if(qid)answerQuestion(qid);
+}
+
 async function answerQuestion(qid){
-  const inp=el('answer-'+qid);if(!inp)return;
+  const domId=questionDomId(qid);
+  const inp=el('answer-'+domId);if(!inp)return;
   const answer=inp.value.trim();if(!answer)return;
   inp.disabled=true;
   const resp=await api('/wizard/answer','POST',{question_id:qid,answer});
-  const card=el('qcard-'+qid);
+  const card=el('qcard-'+domId);
   // Only mark the card as answered if the backend actually accepted
   // the answer. A stale qid (server already dropped the question)
   // should NOT show a fake 'Answered' confirmation to the user.
@@ -3854,13 +3972,17 @@ async function answerQuestion(qid){
     if(card)card.innerHTML=`<div style="color:var(--fg-dim);font-size:.82rem">Answered: ${escHtml(answer)}</div>`;
     try{
       const qd=await api('/api/pending-questions');
-      if(!(qd.questions&&qd.questions.length>0))clearAttention('questions');
+      if(!(qd.questions&&qd.questions.length>0)){
+        state._knownQIds=new Set();
+        state._knownSetupQIds=new Set();
+        clearAttention('questions');
+      }
     }catch(_){}
   }else{
     inp.disabled=false;
     if(card){
       const err=document.createElement('div');
-      err.style='color:var(--err);font-size:.82rem;margin-top:var(--s1)';
+      err.style='color:var(--danger);font-size:.82rem;margin-top:var(--s1)';
       err.textContent='Answer not accepted: '+((resp&&resp.message)||'unknown question id — it may have timed out.');
       card.appendChild(err);
     }
@@ -3877,15 +3999,19 @@ function renderQuestionCards(container, questions){
   const activeId=active&&active.id&&active.id.startsWith('answer-')?active.id:'';
   const selStart=active&&typeof active.selectionStart==='number'?active.selectionStart:null;
   const selEnd=active&&typeof active.selectionEnd==='number'?active.selectionEnd:null;
-  container.innerHTML=questions.map(q=>`
-    <div class="info-box info-primary" id="qcard-${escHtml(q.id)}">
+  container.innerHTML=questions.map(q=>{
+    const qidDomId=questionDomId(q.id);
+    return `
+    <div class="question-card" id="qcard-${qidDomId}">
+      <div class="question-eyebrow">Pending question</div>
       <strong>${escHtml(q.question)}</strong>
-      ${q.choices?`<div class="pill-grid" style="margin:var(--s2) 0">${q.choices.map(c=>`<span class="pill" data-qid="${escHtml(q.id)}" data-val="${escHtml(c)}">${escHtml(c)}</span>`).join('')}</div>`:''}
+      ${q.choices?`<div class="pill-grid" style="margin:var(--s2) 0">${q.choices.map(c=>`<span class="pill" data-qid="${escHtml(q.id)}" data-answer-id="answer-${qidDomId}" data-val="${escHtml(c)}">${escHtml(c)}</span>`).join('')}</div>`:''}
       <div class="stack-h" style="margin-top:var(--s2)">
-        <input type="text" id="answer-${escHtml(q.id)}" placeholder="Type your answer…" onkeydown="if(event.key==='Enter')answerQuestion('${escHtml(q.id)}')" style="flex:1">
-        <button class="btn btn-primary" onclick="answerQuestion('${escHtml(q.id)}')">Answer</button>
+        <input type="text" id="answer-${qidDomId}" data-qid="${escHtml(q.id)}" placeholder="Type your answer…" onkeydown="if(event.key==='Enter')answerQuestionFromControl(this)" style="flex:1">
+        <button class="btn btn-primary" data-qid="${escHtml(q.id)}" onclick="answerQuestionFromControl(this)">Answer</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   Object.entries(drafts).forEach(([id,val])=>{
     const inp=el(id);
     if(inp&&typeof val==='string')inp.value=val;
@@ -4101,6 +4227,7 @@ async function pollBridge(){
         }
       }else{
         if(qa&&qa.innerHTML)qa.innerHTML='';
+        state._knownQIds=new Set();
         clearAttention('questions');
       }
 
@@ -4344,11 +4471,29 @@ function copyExportPath(path){
 }
 
 // ── Setup step functions ──
+function currentConnectionFields(){
+  return {
+    ip:((el('linuxIp')||{}).value||'').trim(),
+    user:((el('linuxUser')||{}).value||'').trim(),
+  };
+}
+
+function updateConnectionButtons(message){
+  const fields=currentConnectionFields();
+  const hasConn=!!(fields.ip&&fields.user);
+  const test=el('testConnBtn'); if(test)test.disabled=!hasConn;
+  const launch=el('setupLaunchBtn'); if(launch)launch.disabled=!(hasConn&&state._sshTestOk);
+  const status=el('connStatus');
+  if(status&&message)status.textContent=message;
+}
+
 function invalidateSshTest(){
-  if(!state._sshTestOk)return;
   state._sshTestOk=false;
-  const launch=el('setupLaunchBtn'); if(launch)launch.disabled=true;
-  const status=el('connStatus'); if(status)status.textContent='Connection changed — test again.';
+  const fields=currentConnectionFields();
+  updateConnectionButtons(fields.ip&&fields.user
+    ?'Connection changed — test again.'
+    :'Enter both IP and username to test.'
+  );
 }
 
 function exportExecutedSetupScriptEnabled(){
@@ -4402,6 +4547,7 @@ async function launchSetupAgent(){
   const btn=el('setupLaunchBtn'),msg=el('setupLaunchMsg');
   btn.disabled=true;btn.textContent='Starting…';
   if(msg)msg.innerHTML='';
+  const finalAction=el('setupFinalAction'); if(finalAction)finalAction.innerHTML='';
   try{
     await saveProfile({
       linux_ip:(el('linuxIp')||{}).value?.trim?.()||'',
@@ -4424,6 +4570,7 @@ async function launchSetupAgent(){
       if(stop)stop.classList.remove('hidden');
       const spinner=el('setupSpinner'); if(spinner)spinner.classList.remove('hidden');
       const phase=el('setupPhase'); if(phase){phase.textContent='Connecting…';phase.classList.remove('done','error','warning','followup','unsupported');}
+      if(panel)panel.classList.remove('done','error','warning','followup','unsupported');
       state._lastSetupMsgCount=-1;state._lastSetupSugCount=0;
       state._lastSetupSugSignature='';
       if(state._suggestionUi)delete state._suggestionUi.setup;
@@ -4432,12 +4579,14 @@ async function launchSetupAgent(){
     }else{
       state._setupStarted=false;
       msg.innerHTML=`<span class="muted" style="color:var(--danger);font-size:var(--t-sm)">${escHtml(data.message||'Failed')}</span>`;
-      btn.textContent='Start remote setup';btn.disabled=false;
+      const destructive=(state.profile.remote_setup_mode==='wipe_and_reinstall'||state.profile.install_profile==='full_disk_wipe');
+      btn.textContent=destructive?'Start destructive remote setup':'Start remote setup';btn.disabled=false;
     }
   }catch(e){
     state._setupStarted=false;
     msg.innerHTML=`<span class="muted" style="color:var(--danger);font-size:var(--t-sm)">${escHtml(e.message)}</span>`;
-    btn.textContent='Start remote setup';btn.disabled=false;
+    const destructive=(state.profile.remote_setup_mode==='wipe_and_reinstall'||state.profile.install_profile==='full_disk_wipe');
+    btn.textContent=destructive?'Start destructive remote setup':'Start remote setup';btn.disabled=false;
   }
 }
 
@@ -4498,9 +4647,10 @@ async function clearSetupLog(){
     const logBody=el('setupLogBody'); if(logBody) logBody.innerHTML='';
     const logDetails=el('setupLogDetails'); if(logDetails) logDetails.classList.add('hidden');
     const section=el('setupSuggestionsSection'); if(section) section.classList.add('hidden');
+    const finalAction=el('setupFinalAction'); if(finalAction) finalAction.innerHTML='';
     if(state._suggestionUi)delete state._suggestionUi.setup;
     const launch=el('setupLaunch'); if(launch) launch.classList.remove('hidden');
-    const panel=el('setupPanel'); if(panel) panel.classList.add('hidden');
+    const panel=el('setupPanel'); if(panel){ panel.classList.add('hidden'); panel.classList.remove('done','error','warning','followup','unsupported'); }
     const stop=el('setupStopBtn'); if(stop) stop.classList.add('hidden');
     const done=el('setupDone'); if(done){ done.disabled=true; done.textContent='Agent working…'; }
     toast('Remote setup log cleared','success');
@@ -4511,7 +4661,7 @@ async function clearSetupLog(){
 
 async function resetRemoteSetup(){
   const ok=window.confirm(
-    'Reset Remote Setup? This clears the saved IP, SSH username, setup transcript, and current setup-state for this step, but keeps the rest of your wizard profile.'
+    'Reset Remote Setup? This clears the saved IP, SSH username, destructive remote setup intent, setup transcript, and current setup-state for this step, but keeps the rest of your wizard profile.'
   );
   if(!ok)return;
   try{
@@ -4522,10 +4672,13 @@ async function resetRemoteSetup(){
     }
     clearDraftValue('linux_ip');
     clearDraftValue('linux_user');
-    if(r.profile)applyServerProfile(r.profile, ++state._profileRequestSeq);
+    clearDraftValue('install_profile');
+    clearDraftValue('install_partition_notes');
+    if(r.profile)applyServerProfile(r.profile, ++state._profileRequestSeq, {skipClientMerge:true});
     state._sshTestOk=false;
     state._setupStarted=false;
     state._setupDone=false;
+    state._setupFinalStatus='';
     state._lastSetupMsgCount=-1;
     state._lastSetupSugCount=0;
     state._lastSetupSugSignature='';
@@ -4610,6 +4763,30 @@ function setupFinalStatusDetails(status){
     doneSubtitle:'The agent finished on the target. Go log in and try it out.'
   };
 }
+
+function finalStatusCardHtml(finalInfo){
+  if(!finalInfo||finalInfo.kind==='success')return'';
+  return `<div class="final-status-card status-${escHtml(finalInfo.kind)}">
+    <strong>${escHtml(finalInfo.label)}</strong>
+    <p>${escHtml(finalInfo.doneSubtitle)}</p>
+  </div>`;
+}
+
+function supportBundleActionHtml(finalInfo){
+  if(!finalInfo||finalInfo.kind==='success')return'';
+  const danger=finalInfo.kind==='error';
+  return `<div class="info-box ${danger?'info-danger':'info-warn'} support-action" id="supportBundleAction">
+    <strong>Support bundle</strong>
+    <p style="margin:var(--s1) 0 0 0">Create a redacted support ZIP from the latest setup run before rerunning or clearing logs:</p>
+    <div class="code-block" id="supportBundleCommand">${escHtml(SUPPORT_BUNDLE_COMMAND)}</div>
+    <div class="stack-h" style="gap:var(--s2);flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="copyFrom(this,'supportBundleCommand')">Copy command</button>
+      <button class="btn btn-ghost btn-sm" onclick="openExportFolder()">Open export folder</button>
+    </div>
+    <p style="margin:var(--s2) 0 0 0">Run the command from the QuickHatch repo. The export folder is separate, but it is the next place to find <code>START_HERE.md</code>, the handoff file, and the migration ZIP.</p>
+  </div>`;
+}
+
 function latestSetupTerminalText(messages){
   const terminal=messages.slice().reverse().find(m=>/^(Finished:|Migration setup complete!|Stopped\.?$|Error:)/i.test(m.content||''));
   return terminal?(terminal.content||''):'';
@@ -4619,30 +4796,36 @@ function isSetupFailureText(text){
 }
 function updateSetupTerminalUi({success=false, failed=false, label='', finalStatus=''}={}){
   const finalInfo=setupFinalStatusDetails(finalStatus);
-  const statusClass=failed?'error':(success?finalInfo.kind:'');
+  const statusClass=(failed||finalInfo.kind==='error')?'error':(success?finalInfo.kind:'');
   const spinner=el('setupSpinner'); if(spinner)spinner.classList.add('hidden');
   const stop=el('setupStopBtn'); if(stop)stop.classList.add('hidden');
   const phase=el('setupPhase');
   if(phase){
     if(label)phase.textContent=label.replace(/^Finished:\s*/i,'').split('\n')[0];
     phase.classList.remove('done','error','warning','followup','unsupported');
-    phase.classList.toggle('done', !!success);
-    phase.classList.toggle('error', !!failed);
+    phase.classList.toggle('done', !!success&&finalInfo.kind==='success');
+    phase.classList.toggle('error', statusClass==='error');
     if(statusClass&&!['success','error'].includes(statusClass))phase.classList.add(statusClass);
   }
   const panel=el('setupPanel');
   if(panel){
-    panel.classList.remove('warning','followup','unsupported');
-    panel.classList.toggle('done', !!success);
+    panel.classList.remove('done','error','warning','followup','unsupported');
+    panel.classList.toggle('done', !!success&&finalInfo.kind==='success');
+    panel.classList.toggle('error', statusClass==='error');
     if(statusClass&&!['success','error'].includes(statusClass))panel.classList.add(statusClass);
     if(label)panel.classList.remove('hidden');
   }
+  const finalAction=el('setupFinalAction');
+  if(finalAction)finalAction.innerHTML=supportBundleActionHtml(finalInfo);
   const launch=el('setupLaunch'); if(launch)launch.classList.remove('hidden');
   const launchBtn=el('setupLaunchBtn');
   if(launchBtn){
     const hasConn=!!(state.profile.linux_ip&&state.profile.linux_user);
+    const destructive=(state.profile.remote_setup_mode==='wipe_and_reinstall'||state.profile.install_profile==='full_disk_wipe');
     launchBtn.disabled=!(hasConn&&state._sshTestOk);
-    launchBtn.textContent='Start remote setup';
+    launchBtn.classList.toggle('btn-danger', destructive);
+    launchBtn.classList.toggle('btn-success', !destructive);
+    launchBtn.textContent=destructive?'Start destructive remote setup':'Start remote setup';
   }
   const doneBtn=el('setupDone');
   if(doneBtn){
@@ -4730,6 +4913,7 @@ async function pollSetup(){
         // interactive and the user could fake an answer for a qid the
         // server already dropped.
         if(qa2&&qa2.innerHTML)qa2.innerHTML='';
+        state._knownSetupQIds=new Set();
         clearAttention('questions');
       }
 
@@ -4743,10 +4927,11 @@ async function pollSetup(){
         const btn=el('setupDone');
         if(btn&&btn.disabled){btn.disabled=false;btn.textContent=finalInfo.button}
       }else if((state._setupStarted||setupHasFeed)&&(terminalFailure||setupStoppedOrBlocked||setupThreadInactive)){
+        const finalInfo=setupFinalStatusDetails(finalStatus);
         updateSetupTerminalUi({
           failed:true,
           finalStatus,
-          label:terminalText||'Setup stopped.',
+          label:finalInfo.kind==='error'?finalInfo.label:(terminalText||'Setup stopped.'),
         });
       }
     }
@@ -4893,9 +5078,9 @@ syncFooterHeight();
 document.addEventListener('click',(ev)=>{
   const pill=ev.target&&ev.target.closest&&ev.target.closest('.pill[data-qid]');
   if(!pill)return;
-  const qid=pill.getAttribute('data-qid');
   const val=pill.getAttribute('data-val');
-  const inp=qid?el('answer-'+qid):null;
+  const answerId=pill.getAttribute('data-answer-id');
+  const inp=answerId?el(answerId):null;
   if(inp)inp.value=val==null?'':val;
 });
 (async()=>{

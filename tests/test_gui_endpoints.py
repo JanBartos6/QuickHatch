@@ -80,6 +80,95 @@ class TestStaticRoutes:
         assert "setRemoteSetupMode" in body
         assert "Clear setup log" in body
         assert "Reset remote setup" in body
+        assert "Destructive install guardrails" in body
+        assert "QuickHatch does not automatically shrink Windows partitions" in body
+
+
+class TestFrontendStaticRegressions:
+    @staticmethod
+    def _html() -> str:
+        root = Path(__file__).resolve().parents[1]
+        return (root / "src/quickhatch/gui/app.html").read_text(encoding="utf-8")
+
+    def test_destructive_warning_is_persistent_and_explicit(self):
+        html = self._html()
+
+        assert "function destructiveInstallWarningHtml()" in html
+        assert "destructiveIntent?destructiveInstallWarningHtml():''" in html
+        assert "${destructiveInstallWarningHtml()}" in html
+        assert "exact disk or partition confirmation" in html
+        assert "Exact disk confirmation is still required later" in html
+        assert "QuickHatch does not automatically shrink Windows partitions" in html
+
+    def test_final_statuses_have_distinct_labels_and_classes(self):
+        html = self._html()
+
+        expected = [
+            ("success_with_warnings", "warning", "Completed with warnings"),
+            ("manual_followup_required", "followup", "Completed; follow-up required"),
+            ("unsupported_safe", "unsupported", "Safe but unsupported"),
+            ("blocked", "error", "Setup blocked"),
+        ]
+        for status, kind, label in expected:
+            assert f"if(s==='{status}')return{{" in html
+            assert f"kind:'{kind}'" in html
+            assert f"label:'{label}'" in html
+
+        assert ".final-status-card.status-error" in html
+        assert ".done-screen.status-error" in html
+        assert ".agent-panel.error .agent-head" in html
+
+    def test_connection_changes_invalidate_launch_until_retested(self):
+        html = self._html()
+
+        assert 'oninput="invalidateSshTest()"' in html
+        assert "function invalidateSshTest()" in html
+        assert "state._sshTestOk=false" in html
+        assert "launch.disabled=!(hasConn&&state._sshTestOk)" in html
+        assert "Connection changed — test again." in html
+        assert "Test the connection to unlock Remote Setup." in html
+
+    def test_reset_remote_setup_does_not_restore_hidden_destructive_state(self):
+        html = self._html()
+
+        assert "destructive remote setup intent" in html
+        assert "clearDraftValue('linux_ip')" in html
+        assert "clearDraftValue('linux_user')" in html
+        assert "clearDraftValue('install_profile')" in html
+        assert "skipClientMerge:true" in html
+        assert "if(opts.skipClientMerge)" in html
+
+    def test_pending_question_cards_clear_and_attention_resets(self):
+        html = self._html()
+
+        assert "question-card" in html
+        assert "Pending question" in html
+        assert "if(qa&&qa.innerHTML)qa.innerHTML='';" in html
+        assert "if(qa2&&qa2.innerHTML)qa2.innerHTML='';" in html
+        assert "state._knownQIds=new Set();" in html
+        assert "state._knownSetupQIds=new Set();" in html
+        assert "clearAttention('questions')" in html
+
+    def test_support_action_is_visible_for_non_success_final_statuses(self):
+        html = self._html()
+
+        assert (
+            "const SUPPORT_BUNDLE_COMMAND='py -3.13 -m quickhatch.cli debug support-bundle';"
+            in html
+        )
+        assert "function supportBundleActionHtml(finalInfo)" in html
+        assert "setupFinalAction" in html
+        assert "${supportBundleActionHtml(finalInfo)}" in html
+        assert "Create a redacted support ZIP" in html
+
+    def test_question_dynamic_text_uses_escaped_attrs_not_js_literals(self):
+        html = self._html()
+
+        assert "answerQuestionFromControl(this)" in html
+        assert 'data-qid="${escHtml(q.id)}"' in html
+        assert 'data-answer-id="answer-${qidDomId}"' in html
+        assert "questionDomId(q.id)" in html
+        assert "answerQuestion('${escHtml(q.id)}')" not in html
 
 
 class TestProfileEndpoint:

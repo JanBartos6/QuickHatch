@@ -48,6 +48,9 @@ dev = [
     "build>=1.0",
     "pre-commit>=3.0",
 ]
+e2e = [
+    "playwright>=1.44",
+]
 
 [project.scripts]
 quickhatch = "quickhatch.cli:main"
@@ -75,6 +78,9 @@ packages = ["src/quickhatch"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = [
+    "e2e_browser: browser-level GUI smoke tests; install the e2e extra and Playwright Chromium to run",
+]
 
 [tool.ruff]
 line-length = 100
