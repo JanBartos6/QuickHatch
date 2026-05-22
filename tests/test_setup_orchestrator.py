@@ -715,6 +715,8 @@ def test_internal_uefi_boot_fallback_runs_with_bootloader_capability():
 
 def test_final_boot_artifact_verification_blocks_missing_bootloader():
     profile = UserProfile()
+    profile.remote_setup_mode = "wipe_and_reinstall"
+    profile.install_profile = "full_disk_wipe"
     bridge = BridgeState(profile, persist_path=None)
     facts = SetupFacts(current_user="jan", login_user="jan", is_live=False)
 
@@ -738,8 +740,33 @@ def test_final_boot_artifact_verification_blocks_missing_bootloader():
     assert "bootloader=0" in blockers[0]
 
 
+def test_final_boot_artifact_verification_skips_configure_existing():
+    profile = UserProfile()
+    profile.remote_setup_mode = "configure_only"
+    profile.install_profile = "configure_existing"
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan", is_live=False)
+    called = False
+
+    def ssh_exec(_command: str, _timeout: int):
+        nonlocal called
+        called = True
+        return (1, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+
+    assert orchestrator._verify_boot_artifacts() == []
+    assert called is False
+    assert orchestrator.ctx.stage_state["final_audit"]["boot_artifact_probe"]["skipped"] is True
+
+
 def test_final_boot_artifact_verification_accepts_kernel_initramfs_and_bootloader():
     profile = UserProfile()
+    profile.remote_setup_mode = "wipe_and_reinstall"
+    profile.install_profile = "full_disk_wipe"
     bridge = BridgeState(profile, persist_path=None)
     facts = SetupFacts(current_user="jan", login_user="jan", is_live=False)
 

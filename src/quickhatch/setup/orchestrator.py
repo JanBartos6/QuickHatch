@@ -4018,6 +4018,19 @@ done"""
     def _verify_boot_artifacts(self) -> list[str]:
         if self.ctx.facts is None or self.ctx.facts.is_live:
             return []
+        install_profile = (getattr(self.profile, "install_profile", "") or "").strip()
+        remote_setup_mode = (getattr(self.profile, "remote_setup_mode", "") or "").strip()
+        if install_profile == "configure_existing" or remote_setup_mode == "configure_only":
+            final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
+            final_state["boot_artifact_probe"] = {
+                "skipped": True,
+                "reason": "configure-existing setup did not perform install or bootloader work",
+            }
+            self.runlog.record(
+                "final_boot_artifact_verification_skipped",
+                reason="configure-existing setup did not perform install or bootloader work",
+            )
+            return []
         command = r"""kernel_count=$(find /boot -maxdepth 3 -type f -name 'vmlinuz*' 2>/dev/null | wc -l)
 initramfs_count=$(find /boot -maxdepth 3 -type f \( -name 'initramfs*' -o -name 'initrd*' \) 2>/dev/null | wc -l)
 bootloader_count=0
