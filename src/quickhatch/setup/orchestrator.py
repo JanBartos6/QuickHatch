@@ -5834,33 +5834,66 @@ fi
     def _install_payload_tokens_for_package_manager(
         tokens: list[str], package_manager: str
     ) -> list[str]:
+        def queryable_payload(items: list[str]) -> list[str]:
+            return [
+                item
+                for item in items
+                if not item.startswith("-")
+                and SetupOrchestrator._is_queryable_package_payload_token(item)
+            ]
+
         tokens = SetupOrchestrator._strip_command_wrappers(tokens)
         if package_manager == "pacman" or any(tool in tokens for tool in ("pacman", "yay", "paru")):
             for idx, token in enumerate(tokens):
                 if token == "-S" or token.startswith("-S"):
-                    return [item for item in tokens[idx + 1 :] if not item.startswith("-")]
+                    return queryable_payload(tokens[idx + 1 :])
         if package_manager == "apt" or any(tool in tokens for tool in ("apt", "apt-get")):
             for idx, token in enumerate(tokens):
                 if token == "install":
-                    return [item for item in tokens[idx + 1 :] if not item.startswith("-")]
+                    return queryable_payload(tokens[idx + 1 :])
         if package_manager in {"dnf", "zypper"} or any(
             tool in tokens for tool in ("dnf", "zypper")
         ):
             for idx, token in enumerate(tokens):
                 if token in {"install", "in"}:
-                    return [item for item in tokens[idx + 1 :] if not item.startswith("-")]
+                    return queryable_payload(tokens[idx + 1 :])
         if package_manager == "apk" or "apk" in tokens:
             for idx, token in enumerate(tokens):
                 if token == "add":
-                    return [item for item in tokens[idx + 1 :] if not item.startswith("-")]
+                    return queryable_payload(tokens[idx + 1 :])
         if package_manager in {"xbps", "emerge"} or any(
             tool in tokens for tool in ("xbps-install", "emerge")
         ):
             tool_names = {"xbps-install", "emerge"}
             for idx, token in enumerate(tokens):
                 if token in tool_names:
-                    return [item for item in tokens[idx + 1 :] if not item.startswith("-")]
+                    return queryable_payload(tokens[idx + 1 :])
         return []
+
+    @staticmethod
+    def _is_queryable_package_payload_token(token: str) -> bool:
+        """Return whether a package-manager payload token is a package DB name."""
+
+        value = (token or "").strip()
+        lowered = value.lower()
+        if not value:
+            return False
+        if "://" in lowered or "/" in value or "\\" in value:
+            return False
+        if "$(" in value or "${" in value:
+            return False
+        if lowered.endswith(
+            (
+                ".apk",
+                ".deb",
+                ".pkg.tar",
+                ".pkg.tar.xz",
+                ".pkg.tar.zst",
+                ".rpm",
+            )
+        ):
+            return False
+        return True
 
     @staticmethod
     def _strip_command_wrappers(tokens: list[str]) -> list[str]:

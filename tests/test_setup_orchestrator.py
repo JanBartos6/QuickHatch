@@ -87,6 +87,37 @@ def test_extract_created_user_from_fedora_kickstart_user_line():
     assert SetupOrchestrator._extract_created_user(command) == "jan"
 
 
+def test_app_precheck_payload_tokens_ignore_url_and_local_installer_files():
+    dnf_tokens = [
+        "sudo",
+        "dnf",
+        "install",
+        "-y",
+        "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm",
+        "-E",
+        "%fedora).noarch.rpm",
+        "flatpak",
+        "vlc",
+    ]
+    apt_tokens = [
+        "sudo",
+        "apt",
+        "install",
+        "-y",
+        "/tmp/github-desktop.deb",
+        "spotify-client",
+        "https://example.invalid/vendor-package.deb",
+    ]
+
+    assert SetupOrchestrator._install_payload_tokens_for_package_manager(dnf_tokens, "dnf") == [
+        "flatpak",
+        "vlc",
+    ]
+    assert SetupOrchestrator._install_payload_tokens_for_package_manager(apt_tokens, "apt") == [
+        "spotify-client"
+    ]
+
+
 def test_live_installer_disconnect_is_treated_as_reboot_boundary():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
