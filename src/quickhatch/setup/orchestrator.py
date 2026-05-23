@@ -2602,7 +2602,15 @@ class SetupOrchestrator:
             return
         install_groups = self._iter_stage_groups(SetupStage.INSTALL_OR_SKIP)
         planned_commands = [command for group in install_groups for command in group.commands]
-        disks = self._extract_destructive_target_disks(planned_commands)
+        planned_operations = [
+            operation for group in install_groups for operation in group.operations
+        ]
+        disks = self._unique_disks(
+            [
+                *self._extract_destructive_target_disks(planned_commands),
+                *self._extract_operation_target_disks(planned_operations),
+            ]
+        )
         install_state = self.ctx.stage_state.setdefault(SetupStage.INSTALL_OR_SKIP.value, {})
         if len(disks) != 1:
             install_state["family_adapter_spine_enforced"] = False
@@ -8854,17 +8862,13 @@ fi
     def _extract_destructive_target_disks(commands: list[str]) -> list[str]:
         disks: list[str] = []
         seen: set[str] = set()
-        disk_re = re.compile(
-            r"(/dev/(?:nvme\d+n\d+|mmcblk\d+|sd[a-z]+|vd[a-z]+|xvd[a-z]+))(?:p?\d+)?\b"
-        )
         bare_disk_re = re.compile(
             r"--(?:drives|boot-drive)=(?P<disk>nvme\d+n\d+|mmcblk\d+|sd[a-z]+|vd[a-z]+|xvd[a-z]+)\b"
         )
         for command in commands:
             if not any(pattern.search(command) for pattern in _LIVE_DISK_DESTRUCTIVE_PATTERNS):
                 continue
-            for match in disk_re.finditer(command):
-                disk = match.group(1)
+            for disk in SetupOrchestrator._extract_linux_block_devices(command):
                 if disk not in seen:
                     seen.add(disk)
                     disks.append(disk)
@@ -8874,6 +8878,44 @@ fi
                     seen.add(disk)
                     disks.append(disk)
         return disks
+
+    @staticmethod
+    def _extract_operation_target_disks(operations: list[Any]) -> list[str]:
+        disks: list[str] = []
+        for operation in operations:
+            if getattr(operation, "kind", "") not in {
+                "partition_disk",
+                "format_partition",
+                "mount_partition",
+                "install_bootloader",
+            }:
+                continue
+            disk = SetupOrchestrator._target_to_linux_disk(getattr(operation, "target", ""))
+            if disk:
+                disks.append(disk)
+        return SetupOrchestrator._unique_disks(disks)
+
+    @staticmethod
+    def _extract_linux_block_devices(text: str) -> list[str]:
+        device_re = re.compile(
+            r"(/dev/(?:nvme\d+n\d+|mmcblk\d+|sd[a-z]+|vd[a-z]+|xvd[a-z]+))(?:p?\d+)?\b"
+        )
+        return [match.group(1) for match in device_re.finditer(text or "")]
+
+    @staticmethod
+    def _target_to_linux_disk(target: str) -> str:
+        disks = SetupOrchestrator._extract_linux_block_devices(str(target or ""))
+        return disks[0] if disks else ""
+
+    @staticmethod
+    def _unique_disks(disks: list[str]) -> list[str]:
+        unique: list[str] = []
+        seen: set[str] = set()
+        for disk in disks:
+            if disk and disk not in seen:
+                seen.add(disk)
+                unique.append(disk)
+        return unique
 
     @staticmethod
     def _first_live_disk_destructive_index(commands: list[str]) -> int:
@@ -9265,6 +9307,8 @@ fi
         app_names_lower = {name.lower() for name in app_names if name}
         group_pkgs = {pkg.lower() for pkg in group.packages}
         title = group.title.lower()
+        command_text = " ".join([group.title, *group.commands, *group.verification])
+        command_tokens = set(self._app_catalog_key(command_text).split())
         matched = False
         for app in self.ctx.plan.apps:
             if app.status in {
@@ -9279,6 +9323,22 @@ fi
                 matched = True
                 continue
             if app.name.lower() in app_names_lower or app.name.lower() in title:
+                app.status = PlanItemStatus.MANUAL_FOLLOWUP
+                app.reason = reason
+                matched = True
+                continue
+            variants = self._package_name_variants(app.name, app.package_name)
+            if any(
+                self._variant_appears_in_command_text(variant, command_text) for variant in variants
+            ):
+                app.status = PlanItemStatus.MANUAL_FOLLOWUP
+                app.reason = reason
+                matched = True
+                continue
+            meaningful_tokens = (
+                self._meaningful_app_name_tokens(app.name) - _WEAK_APP_BINARY_DESKTOP_ALIASES
+            )
+            if meaningful_tokens and meaningful_tokens.intersection(command_tokens):
                 app.status = PlanItemStatus.MANUAL_FOLLOWUP
                 app.reason = reason
                 matched = True

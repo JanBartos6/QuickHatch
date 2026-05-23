@@ -28,6 +28,7 @@ from quickhatch.setup.types import (
     PlanItemStatus,
     ResearchPlan,
     SetupFacts,
+    SetupOperation,
     SetupStage,
     StrategyDecision,
 )
@@ -5791,6 +5792,75 @@ def test_live_family_spine_requires_typed_disk_confirmation(monkeypatch):
     assert orchestrator.ctx.stage_state[SetupStage.INSTALL_OR_SKIP.value]["safe_abort"]
 
 
+def test_live_family_spine_uses_typed_operation_target_disk(monkeypatch):
+    profile = UserProfile()
+    profile.linux_user = "jan"
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        login_user="root",
+        is_root=True,
+        is_live=True,
+    )
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(
+            profile,
+            bridge,
+            facts,
+            ssh_exec=lambda command, timeout: (
+                0,
+                "NAME SIZE MODEL SERIAL TYPE FSTYPE FSVER LABEL UUID MOUNTPOINTS\n"
+                "sda 25G VBOX-HARDDISK VB-test disk\n",
+                "",
+            ),
+        )
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Arch live install",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("none"),
+        command_groups=[
+            CommandGroup(
+                id="install",
+                stage=SetupStage.INSTALL_OR_SKIP,
+                title="Typed disk operations",
+                operations=[
+                    SetupOperation(kind="partition_disk", target="/dev/sda"),
+                    SetupOperation(kind="format_partition", target="/dev/sda2", filesystem="ext4"),
+                    SetupOperation(
+                        kind="mount_partition",
+                        target="/dev/sda2",
+                        mountpoint="/mnt",
+                    ),
+                    SetupOperation(kind="install_bootloader", target="/dev/sda"),
+                ],
+            )
+        ],
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "_ask_blocking_question",
+        lambda *_args, **_kwargs: "ERASE /dev/sda",
+    )
+
+    orchestrator._enforce_live_family_install_spine(
+        ['parted -s "$QUICKHATCH_TARGET_DISK" mklabel gpt'],
+        [],
+    )
+
+    install_state = orchestrator.ctx.stage_state[SetupStage.INSTALL_OR_SKIP.value]
+    assert install_state["family_adapter_spine_enforced"] is True
+    assert install_state["family_adapter_target_disk"] == "/dev/sda"
+    assert orchestrator.ctx.plan.command_groups[0].commands == [
+        'QUICKHATCH_TARGET_DISK=/dev/sda; parted -s "$QUICKHATCH_TARGET_DISK" mklabel gpt'
+    ]
+
+
 def test_arch_aur_helper_bootstrap_is_injected_before_yay_when_missing():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
@@ -9816,6 +9886,56 @@ def test_app_manual_followup_preserves_partially_installed_packages():
     app_status = {app.name: app.status for app in orchestrator.ctx.plan.apps}
     assert app_status["VLC"] == PlanItemStatus.INSTALLED
     assert app_status["Spotify"] == PlanItemStatus.MANUAL_FOLLOWUP
+
+
+def test_app_manual_followup_matches_app_from_command_text_when_group_title_is_generic():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="fedora", package_manager="dnf", current_user="jan")
+    group = CommandGroup(
+        id="apps_install-missing-only",
+        stage=SetupStage.APPS,
+        title="Application Installation (missing packages only)",
+        commands=[
+            "sudo flatpak install -y flathub com.brave.Browser",
+            "curl -L https://download.cursor.sh/linux/appimage/Cursor-latest.AppImage "
+            "-o ~/Applications/cursor.appimage",
+        ],
+        packages=["com.brave.Browser"],
+    )
+
+    def ssh_exec(command: str, _timeout: int) -> tuple[int, str, str]:
+        if "INSTALLED:%s" in command:
+            return 0, "", ""
+        raise AssertionError(f"unexpected command: {command}")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Fedora app repair",
+        distro_family="fedora",
+        package_manager="dnf",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("none"),
+        apps=[
+            AppPlanItem(name="Brave Browser", package_name="com.brave.Browser", source="flatpak"),
+            AppPlanItem(name="Cursor", package_name="cursor", source="manual_followup"),
+        ],
+        command_groups=[group],
+    )
+
+    orchestrator._mark_group_manual_followup(
+        group,
+        stage=SetupStage.APPS,
+        reason="Cursor download host could not be resolved after repair attempts.",
+        app_names=[],
+    )
+
+    app_status = {app.name: app.status for app in orchestrator.ctx.plan.apps}
+    assert app_status["Cursor"] == PlanItemStatus.MANUAL_FOLLOWUP
+    assert app_status["Brave Browser"] == PlanItemStatus.MANUAL_FOLLOWUP
 
 
 def test_identical_noncritical_repair_loop_becomes_manual_followup(monkeypatch):
