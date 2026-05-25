@@ -89,6 +89,102 @@ def test_final_audit_marks_secure_boot_nvidia_as_unsupported_safe() -> None:
     assert result.findings[0].severity == AuditFindingSeverity.UNSUPPORTED_SAFE
 
 
+def test_final_audit_keeps_generated_secure_boot_driver_text_nonfatal() -> None:
+    result = final_audit(
+        SetupFacts(package_manager="pacman", current_user="jan"),
+        _plan(),
+        [
+            AuditResult(
+                stage=SetupStage.POSTBOOT_DRIVER,
+                passed=False,
+                blockers=[
+                    "Secure Boot is enabled; NVIDIA kernel modules may need MOK signing, "
+                    "an enrolled key, or Secure Boot disabled before nvidia-smi can pass."
+                ],
+            )
+        ],
+    )
+
+    assert result.passed is True
+    assert result.final_status == FinalSetupStatus.UNSUPPORTED_SAFE
+    assert result.findings[0].severity == AuditFindingSeverity.UNSUPPORTED_SAFE
+    assert result.findings[0].category == "driver"
+
+
+def test_final_audit_keeps_generated_nouveau_driver_text_nonfatal() -> None:
+    result = final_audit(
+        SetupFacts(package_manager="pacman", current_user="jan"),
+        _plan(),
+        [
+            AuditResult(
+                stage=SetupStage.POSTBOOT_DRIVER,
+                passed=False,
+                blockers=[
+                    "NVIDIA GPU is still bound to nouveau; blacklist nouveau, "
+                    "regenerate initramfs, reboot, then verify nvidia-smi."
+                ],
+            )
+        ],
+    )
+
+    assert result.passed is True
+    assert result.final_status == FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
+    assert result.findings[0].severity == AuditFindingSeverity.MANUAL_FOLLOWUP
+    assert result.findings[0].category == "driver"
+
+
+def test_final_audit_treats_nvidia_manual_group_as_manual_followup() -> None:
+    result = final_audit(
+        SetupFacts(package_manager="pacman", current_user="jan"),
+        _plan(),
+        [
+            AuditResult(
+                stage=SetupStage.FINAL_AUDIT,
+                passed=False,
+                blockers=["Manual follow-up setup item(s) remain: NVIDIA Driver"],
+            )
+        ],
+    )
+
+    assert result.passed is True
+    assert result.final_status == FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
+    assert result.findings[0].severity == AuditFindingSeverity.MANUAL_FOLLOWUP
+    assert result.findings[0].category == "driver"
+
+
+def test_final_audit_preserves_nvidia_driver_manual_followup() -> None:
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        gpu_vendors=["nvidia"],
+        gpu_inventory=["NVIDIA GeForce GTX 1080"],
+        nvidia_smi_state="missing",
+    )
+    plan = _plan()
+    plan.driver_strategy = StrategyDecision(
+        strategy="nvidia_legacy_manual_followup",
+        confidence="manual_followup_required",
+        source="manual_followup",
+        packages=[],
+        notes=(
+            "Detected pre-Turing NVIDIA hardware. Resolve the current legacy/proprietary "
+            "package path before installing."
+        ),
+    )
+    postboot = audit_stage(SetupStage.POSTBOOT_DRIVER, facts, plan=plan)
+
+    result = final_audit(facts, plan, [postboot])
+
+    assert postboot.passed is True
+    assert result.passed is True
+    assert result.final_status == FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
+    assert result.blockers == []
+    assert result.findings[0].severity == AuditFindingSeverity.MANUAL_FOLLOWUP
+    assert result.findings[0].category == "driver"
+    assert "NVIDIA driver strategy requires explicit user follow-up" in result.findings[0].summary
+
+
 def test_final_audit_blocks_unanswered_questions() -> None:
     facts = SetupFacts(package_manager="pacman", current_user="jan")
     facts.waiting_for_input = True

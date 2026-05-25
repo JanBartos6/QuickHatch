@@ -66,9 +66,12 @@ def is_diagnostic_command(command: str) -> bool:
     text = str(command or "").strip().lower()
     return bool(
         re.match(
-            r"^(?:sudo\s+)?(?:pacman\s+-s|apt(?:-cache)?\s+search|dnf\s+search|"
+            r"^(?:sudo\s+)?(?:pacman\s+-s|apt(?:-cache)?\s+search|dnf5?\s+search|"
             r"yay\s+-ss|lsblk|blkid|findmnt|mountpoint|systemctl\s+status|"
-            r"journalctl|cat\s+|grep\s+|test\s+|command\s+-v|which\s+)",
+            r"journalctl|nvidia-smi\b|vulkaninfo\b|lsmod\b|"
+            r"modinfo\s+(?:nvidia|nvidia_drm|nvidia_uvm|nvidia_modeset|"
+            r"amdgpu|i915|xe|nouveau)\b|cat\s+|grep\s+|test\s+|"
+            r"command\s+-v|which\s+)",
             text,
         )
     )

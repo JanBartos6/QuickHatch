@@ -100,9 +100,10 @@ def audit_stage(
             details["driver_manual_followup_reason"] = (
                 "NVIDIA driver strategy requires explicit manual follow-up."
             )
-        if "nvidia" in facts.gpu_vendors and not facts.fact_probe_ok:
+        gpu_vendors = {vendor.lower() for vendor in facts.gpu_vendors}
+        if gpu_vendors and not facts.fact_probe_ok:
             blockers.append(
-                "NVIDIA verification facts are stale because the latest remote fact probe failed; "
+                "GPU verification facts are stale because the latest remote fact probe failed; "
                 "refresh facts successfully before declaring driver setup complete."
             )
         if (
@@ -348,6 +349,19 @@ def audit_stage(
                 blockers.append(
                     "Manual follow-up setup item(s) remain: " + ", ".join(sorted(followup_groups))
                 )
+            driver_strategy = plan.driver_strategy
+            driver_manual_followup = (
+                "nvidia" in {vendor.lower() for vendor in facts.gpu_vendors}
+                and (
+                    driver_strategy.confidence == "manual_followup_required"
+                    or driver_strategy.source == "manual_followup"
+                )
+                and not driver_strategy.packages
+            )
+            if driver_manual_followup:
+                reason = driver_strategy.notes.strip()
+                summary = "NVIDIA driver strategy requires explicit user follow-up."
+                blockers.append(f"{summary} {reason}" if reason else summary)
         if facts.waiting_for_input:
             blockers.append("A blocking user question is still unresolved.")
         flattened: list[str] = []
@@ -446,12 +460,12 @@ def _finding_category(text: str) -> str:
         return "bootability"
     if "fstab" in lower:
         return "fstab"
+    if "nvidia" in lower or "secure boot" in lower or "nouveau" in lower:
+        return "driver"
     if "bootloader" in lower or "grub" in lower or "initramfs" in lower or "kernel" in lower:
         return "bootability"
     if "ssh" in lower or "reconnect" in lower:
         return "ssh_reconnect"
-    if "nvidia" in lower or "secure boot" in lower or "nouveau" in lower:
-        return "driver"
     if "wallpaper" in lower or "theme" in lower or "desktop design" in lower or "display" in lower:
         return "desktop"
     if "app" in lower or "package" in lower:
@@ -469,7 +483,7 @@ def _finding_severity(stage: SetupStage, category: str, text: str) -> AuditFindi
         if "alternative installed" in lower:
             return AuditFindingSeverity.WARNING
         return AuditFindingSeverity.MANUAL_FOLLOWUP
-    if category == "driver" and ("secure boot" in lower or "manual follow-up" in lower):
+    if category == "driver" and "secure boot" in lower:
         return AuditFindingSeverity.UNSUPPORTED_SAFE
     if category in {"desktop", "apps", "driver"}:
         return AuditFindingSeverity.MANUAL_FOLLOWUP

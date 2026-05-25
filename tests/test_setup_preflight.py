@@ -563,6 +563,21 @@ def test_preflight_blocks_non_root_package_manager_mutation():
     assert "needs root privileges" in error
 
 
+def test_preflight_blocks_non_root_dnf5_package_manager_mutation():
+    facts = SetupFacts(
+        package_manager="dnf",
+        distro_family="fedora",
+        current_user="jan",
+        login_user="jan",
+        is_root=False,
+    )
+
+    error = preflight_setup_command("dnf5 install -y akmod-nvidia", facts)
+
+    assert error
+    assert "needs root privileges" in error
+
+
 def test_preflight_blocks_plain_sudo_when_installed_user_lacks_nopasswd():
     facts = SetupFacts(
         package_manager="pacman",

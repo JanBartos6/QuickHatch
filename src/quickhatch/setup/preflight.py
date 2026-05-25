@@ -62,6 +62,7 @@ _PACKAGE_PROCESS_NAMES = frozenset(
         "apt.systemd.daily",
         "debconf",
         "dnf",
+        "dnf5",
         "dpkg",
         "emerge",
         "makepkg",
@@ -114,6 +115,7 @@ _ROOT_REQUIRED_PACKAGE_TOOLS = {
     "apt",
     "apt-get",
     "dnf",
+    "dnf5",
     "zypper",
     "apk",
     "xbps-install",
@@ -536,7 +538,7 @@ def _package_tool_mutates_system(tool: str, tokens: list[str]) -> bool:
             "update",
         }
         return any(arg.lower() in mutating_verbs for arg in args if not arg.startswith("-"))
-    if tool == "dnf":
+    if tool in {"dnf", "dnf5"}:
         mutating_verbs = {
             "autoremove",
             "distro-sync",
@@ -983,7 +985,7 @@ def preflight_setup_advisories(
                 "`pacstrap -K /mnt ...` and concrete provider packages.",
             )
         if package_manager == "pacman":
-            if tool in {"apt", "apt-get", "dnf", "zypper"}:
+            if tool in {"apt", "apt-get", "dnf", "dnf5", "zypper"}:
                 _append_unique(
                     advisories,
                     f"This target looks Arch-family (`pacman`), so `{tool}` is probably the "
@@ -1039,7 +1041,7 @@ def preflight_setup_advisories(
                         "or let the command fail and repair from the real package/driver output.",
                     )
         elif package_manager == "apt":
-            if tool in {"pacman", "yay", "paru", "dnf", "zypper"}:
+            if tool in {"pacman", "yay", "paru", "dnf", "dnf5", "zypper"}:
                 _append_unique(
                     advisories,
                     f"This target looks apt-family, so `{tool}` is probably the wrong package manager.",
@@ -1075,6 +1077,7 @@ def preflight_setup_advisories(
             "apt",
             "apt-get",
             "dnf",
+            "dnf5",
         }:
             _append_unique(
                 advisories,

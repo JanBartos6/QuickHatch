@@ -540,6 +540,31 @@ def test_driver_audit_blocks_stale_nvidia_probe_even_if_previous_state_was_healt
     assert any("stale" in item for item in result.blockers)
 
 
+def test_driver_audit_blocks_stale_amd_probe_even_if_previous_state_was_healthy():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        gpu_vendors=["amd"],
+        gpu_inventory=["AMD Radeon RX 7900 XTX"],
+        amd_kernel_driver="amdgpu",
+        vulkan_state="ok",
+        fact_probe_ok=False,
+    )
+    plan = ResearchPlan(
+        target_summary="Arch AMD workstation",
+        distro_family="arch",
+        package_manager="pacman",
+        driver_strategy=StrategyDecision(strategy="mesa_default", packages=[]),
+        desktop_strategy=StrategyDecision(strategy="none"),
+    )
+
+    result = audit_stage(SetupStage.POSTBOOT_DRIVER, facts, plan=plan)
+
+    assert not result.passed
+    assert any("GPU verification facts are stale" in item for item in result.blockers)
+
+
 def test_driver_audit_records_resolved_nvidia_strategy_without_packages_for_research():
     facts = SetupFacts(
         distro_family="arch",
