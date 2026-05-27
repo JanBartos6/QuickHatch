@@ -42,6 +42,7 @@ _TARGET_ROOT_ALIASES = {
 }
 _WINDOWS_FS_RE = re.compile(r"\b(?:ntfs|bitlocker|windows\s+recovery|msftres)\b", re.I)
 _FSTAB_PATH_RE = r"(?:/(?:mnt|target|mnt/target|mnt/sysroot|mnt/sysimage)/etc/fstab|/etc/fstab)\b"
+_PACKAGE_DB_PATH_RE = r"/var/lib/(?:dpkg|pacman|rpm)(?:/[^\s;|&\"']*)?"
 
 
 @dataclass
@@ -410,7 +411,7 @@ def _power_transition_mutates(item: str) -> bool:
 
 
 def _ambiguous_variable_requirement(item: str) -> list[dict[str, str]]:
-    if not re.search(r"\$(?:\{|[A-Za-z_])", item or ""):
+    if not re.search(r"\$(?:\(|\{|[A-Za-z_])", item or ""):
         return []
     if re.search(r"\b(?:mkfs(?:\.[\w+-]+)?|mkswap)\b", item, re.I):
         return [
@@ -785,7 +786,7 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
             )
         firewall_mutates = (
             re.search(
-                r"\b(?:ufw\s+enable|systemctl\s+(?:enable|start|restart|--now\s+enable).*(?:mullvad|wg-quick|firewalld|nftables|ufw|openvpn)|wg-quick\s+up)\b",
+                r"\b(?:ufw\s+(?:enable|reload|allow|deny|reject|limit|delete|insert|prepend|default|reset)|systemctl\s+(?:enable|start|restart|--now\s+enable).*(?:mullvad|wg-quick|firewalld|nftables|ufw|openvpn)|wg-quick\s+up)\b",
                 item,
                 re.I,
             )
@@ -808,10 +809,34 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     "reason": "network security activation/mutation",
                 }
             )
-        if re.search(
-            r"(?:\brpm\s+--rebuilddb\b|\bdpkg\s+--configure\b|\bpacman\b[^\n;|&]*(?:\s-d\b|--dbonly\b)|(?:^|\s)-rdd(?:\s|$)|--nodeps\b|\brm\s+-[A-Za-z]*f[A-Za-z]*\s+/var/lib/(?:pacman|dpkg|rpm)|\brm\s+-[A-Za-z]*r[A-Za-z]*f[A-Za-z]*\s+/var/lib/(?:pacman|dpkg|rpm)|\brm\s+-[A-Za-z]*f[A-Za-z]*r[A-Za-z]*\s+/var/lib/(?:pacman|dpkg|rpm))",
-            lowered,
-        ):
+        package_db_mutates = (
+            re.search(
+                r"(?:\brpm\s+--rebuilddb\b|\bdpkg\s+--configure\b|\bpacman\b[^\n;|&]*(?:\s-d\b|--dbonly\b)|(?:^|\s)-rdd(?:\s|$)|--nodeps\b)",
+                lowered,
+            )
+            or re.search(r"\b(?:rm|shred)\b[^\n;|&]*" + _PACKAGE_DB_PATH_RE, item, re.I)
+            or re.search(
+                r"\bfind\b[^\n;|&]*"
+                + _PACKAGE_DB_PATH_RE
+                + r"[^\n;|&]*(?:-delete|-exec\s+(?:rm|shred|truncate)\b)",
+                item,
+                re.I,
+            )
+            or re.search(r"\b(?:cp|install|mv)\b[^\n;|&]*" + _PACKAGE_DB_PATH_RE, item, re.I)
+            or re.search(
+                r"\b(?:sed\s+-i|perl\s+-pi|truncate\b|dd\b[^\n;|&]*\bof=)[^\n;|&]*"
+                + _PACKAGE_DB_PATH_RE,
+                item,
+                re.I,
+            )
+            or re.search(
+                r"\b(?:python3?|ruby|node)\b[^\n;|&]*(?:open|writeFileSync|File\.write)"
+                r"[^\n;|&]*" + _PACKAGE_DB_PATH_RE,
+                item,
+                re.I,
+            )
+        )
+        if package_db_mutates:
             requirements.append(
                 {
                     "kind": "package_db_repair",

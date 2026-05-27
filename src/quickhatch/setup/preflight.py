@@ -697,7 +697,7 @@ def _activates_network_security_services(cmd: str) -> bool:
                 for token in non_option_args
             ):
                 return True
-        if tool == "ufw" and args and args[0] in {"enable", "reload"}:
+        if tool == "ufw" and _firewall_command_mutates(tool, raw_args):
             return True
         if tool in {"firewall-cmd", "nft", "iptables", "ip6tables"}:
             if _firewall_command_mutates(tool, raw_args):
@@ -715,6 +715,20 @@ def _firewall_command_mutates(tool: str, args: list[str]) -> bool:
             or arg.startswith("--set-default")
             for arg in args
         )
+    if tool == "ufw":
+        return args[0] in {
+            "allow",
+            "default",
+            "delete",
+            "deny",
+            "enable",
+            "insert",
+            "limit",
+            "prepend",
+            "reject",
+            "reload",
+            "reset",
+        }
     if tool == "nft":
         return args[0] in {"add", "delete", "destroy", "flush", "insert", "replace"} or any(
             arg in {"drop", "reject"} for arg in args

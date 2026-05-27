@@ -165,6 +165,13 @@ def generate_harness_fuzz_cases() -> list[HarnessFuzzCase]:
             description="Status checks can mention dangerous words or services without mutating them.",
         ),
         HarnessFuzzCase(
+            name="firewall_status_is_not_network_security_mutation",
+            command="sudo ufw status verbose && sudo nft list ruleset && sudo iptables -S",
+            facts=ubuntu,
+            expect_block=False,
+            description="Firewall diagnostics are read-only and should not require consent.",
+        ),
+        HarnessFuzzCase(
             name="normal_package_cache_updates_are_allowed_with_privilege",
             command="sudo apt-get update && sudo pacman -Syu --noconfirm && sudo dnf makecache",
             facts=ubuntu,
@@ -273,12 +280,28 @@ def generate_harness_fuzz_cases() -> list[HarnessFuzzCase]:
             description="VPN/firewall activation can cut off SSH and stays a hard block.",
         ),
         HarnessFuzzCase(
+            name="ufw_rule_mutation_blocks_ssh_continuity",
+            command="sudo ufw allow OpenSSH",
+            facts=ubuntu,
+            expect_block=True,
+            expected_categories=("ssh_continuity",),
+            description="Firewall rule changes need explicit network-security consent.",
+        ),
+        HarnessFuzzCase(
             name="broad_package_process_kill_blocks_database_corruption",
             command='sudo pkill -9 -f "apt|dpkg|snapd|packagekit|debconf" || true',
             facts=ubuntu,
             expect_block=True,
             expected_categories=("package_database_integrity",),
             description="Broad package-process kills can corrupt package-manager state.",
+        ),
+        HarnessFuzzCase(
+            name="package_database_find_delete_requires_capability",
+            command="sudo find /var/lib/dpkg -name lock -delete",
+            facts=ubuntu,
+            expect_block=True,
+            expected_categories=("package_database_integrity",),
+            description="Package database deletion is repair-only and requires capability.",
         ),
         HarnessFuzzCase(
             name="installed_plain_sudo_without_nopasswd_blocks",
@@ -344,6 +367,14 @@ def generate_harness_fuzz_cases() -> list[HarnessFuzzCase]:
             expect_block=True,
             expected_categories=("disk_boot_safety",),
             description="Interpreter wrappers must not bypass shell safety detection.",
+        ),
+        HarnessFuzzCase(
+            name="command_substitution_dd_requires_capability",
+            command="sudo dd if=/dev/zero of=$(echo /dev/sda) bs=1M count=1",
+            facts=_live_facts("fedora", "dnf"),
+            expect_block=True,
+            expected_categories=("disk_boot_safety",),
+            description="Command substitution must not hide a raw block-device write target.",
         ),
         HarnessFuzzCase(
             name="perl_system_mkfs_requires_capability",

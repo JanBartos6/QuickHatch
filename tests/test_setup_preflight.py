@@ -855,6 +855,7 @@ def test_preflight_allows_firewall_diagnostic_pipelines():
 
     for command in (
         "sudo nft list ruleset | grep drop",
+        "sudo ufw status verbose",
         "sudo iptables -S | grep DROP",
         "sudo iptables -L -n -v",
         "sudo firewall-cmd --list-all | grep remove",
@@ -881,6 +882,8 @@ def test_preflight_blocks_network_lockout_wrappers_and_newlines():
         "echo ok\nsudo systemctl stop NetworkManager",
         "sudo nmcli connection down quickhatch-wired-dhcp",
         "sudo ip addr flush dev eth0",
+        "sudo ufw allow OpenSSH",
+        "sudo ufw default deny outgoing",
     ):
         decisions = preflight_setup_decisions(command, facts)
         assert any(item.kind == PreflightDecisionKind.BLOCK for item in decisions), command
