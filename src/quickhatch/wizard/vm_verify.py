@@ -85,6 +85,7 @@ def _run(
     timeout: int = 60,
     capture: bool = True,
     check: bool = False,
+    input_text: str | None = None,
 ) -> subprocess.CompletedProcess:
     """Single chokepoint for every subprocess call (easy to mock in tests)."""
     return subprocess.run(
@@ -93,6 +94,7 @@ def _run(
         capture_output=capture,
         text=True,
         check=check,
+        input=input_text,
     )
 
 
@@ -159,6 +161,19 @@ def pick_backend(prefer: str | None = None) -> str:
     if found["qemu"]:
         return "qemu"
     return ""
+
+
+def _normalize_guest_arch(value: str | None) -> str:
+    normalized = str(value or "").strip().lower().replace("_", "-")
+    if normalized in {"aarch64", "arm64", "arm-v8", "armv8"}:
+        return "arm64"
+    if normalized in {"x86-64", "x64", "amd64"}:
+        return "amd64"
+    return ""
+
+
+def _virtualbox_linux_ostype_for_arch(guest_arch: str | None) -> str:
+    return "Linux_arm64" if _normalize_guest_arch(guest_arch) == "arm64" else "Linux_64"
 
 
 # ---------------------------------------------------------------------------
@@ -347,22 +362,58 @@ def _us_ascii_scancodes(text: str) -> list[str]:
 class VirtualBoxBackend:
     """VBoxManage wrapper — creates a disposable VM, runs install.sh, tears down."""
 
-    def __init__(self, vbox_path: str, progress: ProgressCallback = _noop_progress):
+    def __init__(
+        self,
+        vbox_path: str,
+        progress: ProgressCallback = _noop_progress,
+        *,
+        ostype: str = "Linux_64",
+    ):
         self.vbox = vbox_path
         self.progress = progress
+        self.ostype = ostype
         self.vm_name = f"quickhatch-verify-{uuid.uuid4().hex[:8]}"
         self.disk_path: Path | None = None
         self.tmpdir: Path | None = None
 
     def _vb(self, *args: str, timeout: int = 120) -> subprocess.CompletedProcess:
-        return _run([self.vbox, *args], timeout=timeout)
+        proc = _run([self.vbox, *args], timeout=timeout)
+        if proc.returncode != 0:
+            detail = (proc.stderr or proc.stdout or "").strip()
+            raise RuntimeError(
+                "VBoxManage failed"
+                + (f" ({' '.join(args[:2])})" if args else "")
+                + (f": {detail}" if detail else f": exit {proc.returncode}")
+            )
+        return proc
 
-    def create(self, iso_path: Path, ram_mb: int = 4096, disk_gb: int = 20) -> None:
+    def create(
+        self,
+        iso_path: Path,
+        ram_mb: int = 4096,
+        disk_gb: int = 20,
+        ssh_port: int = 22022,
+    ) -> None:
         self.progress(f"Creating VM {self.vm_name}")
-        self._vb("createvm", "--name", self.vm_name, "--ostype", "Linux_64", "--register")
-        self._vb("modifyvm", self.vm_name, "--memory", str(ram_mb), "--cpus", "2")
+        self._vb("createvm", "--name", self.vm_name, "--ostype", self.ostype, "--register")
+        self._vb(
+            "modifyvm",
+            self.vm_name,
+            "--memory",
+            str(ram_mb),
+            "--cpus",
+            "2",
+            "--vram",
+            "128",
+            "--graphicscontroller",
+            "vmsvga",
+            "--keyboard",
+            "usb",
+            "--usb-xhci",
+            "on",
+        )
         self._vb("modifyvm", self.vm_name, "--nic1", "nat")
-        self._vb("modifyvm", self.vm_name, "--natpf1", "ssh,tcp,,22022,,22")
+        self._vb("modifyvm", self.vm_name, "--natpf1", f"ssh,tcp,,{ssh_port},,22")
         self._vb("modifyvm", self.vm_name, "--firmware", "efi")
 
         # Disk
@@ -532,7 +583,13 @@ class QemuBackend:
         self.disk_path: Path | None = None
         self.tmpdir: Path | None = None
 
-    def create(self, iso_path: Path, ram_mb: int = 4096, disk_gb: int = 20) -> None:
+    def create(
+        self,
+        iso_path: Path,
+        ram_mb: int = 4096,
+        disk_gb: int = 20,
+        ssh_port: int = 22022,
+    ) -> None:
         self.progress(f"Creating QEMU disk for {self.vm_name}")
         self.tmpdir = Path(tempfile.gettempdir()) / self.vm_name
         self.tmpdir.mkdir(parents=True, exist_ok=True)
@@ -544,6 +601,7 @@ class QemuBackend:
         )
         self._iso = iso_path
         self._ram = ram_mb
+        self._ssh_port = ssh_port
 
     def start(self) -> None:
         assert self.disk_path is not None
@@ -562,7 +620,7 @@ class QemuBackend:
             "-boot",
             "d",
             "-netdev",
-            "user,id=n0,hostfwd=tcp::22022-:22",
+            f"user,id=n0,hostfwd=tcp::{self._ssh_port}-:22",
             "-device",
             "virtio-net,netdev=n0",
             "-display",
@@ -736,7 +794,9 @@ def _scp_needs_legacy_mode(stdout: str, stderr: str) -> bool:
     """Return True when OpenSSH scp failed because SFTP is unavailable."""
 
     detail = f"{stdout}\n{stderr}".lower()
-    return "subsystem request failed" in detail and "connection closed" in detail
+    if "subsystem request failed" in detail and "connection closed" in detail:
+        return True
+    return "connection closed" in detail and "permission denied" not in detail
 
 
 def run_script_in_vm(
@@ -793,7 +853,31 @@ def run_script_in_vm(
         legacy_scp_cmd = [scp, "-O", *scp_cmd[1:]]
         cp = _run(legacy_scp_cmd, timeout=60)
     if cp.returncode != 0:
-        return (cp.returncode, cp.stdout, cp.stderr)
+        progress("scp failed; streaming install.sh over SSH stdin")
+        stream_cmd = [
+            ssh,
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-o",
+            "UserKnownHostsFile=/dev/null",
+            *non_interactive_ssh_options,
+            "-p",
+            str(ssh_port),
+            *key_args,
+            f"{ssh_user}@127.0.0.1",
+            "cat > /tmp/install.sh && chmod 700 /tmp/install.sh",
+        ]
+        stream = _run(
+            stream_cmd,
+            timeout=60,
+            input_text=script_path.read_text(encoding="utf-8"),
+        )
+        if stream.returncode != 0:
+            return (
+                stream.returncode,
+                "\n".join(part for part in (cp.stdout, stream.stdout) if part),
+                "\n".join(part for part in (cp.stderr, stream.stderr) if part),
+            )
 
     progress("Running install.sh inside VM (this can take a while)")
     ssh_cmd = [
@@ -891,6 +975,7 @@ def _nudge_live_boot_menu(
     vm: VirtualBoxBackend | QemuBackend,
     *,
     progress: ProgressCallback,
+    delay_seconds: int = 5,
 ) -> None:
     """Press Enter once so live ISOs that stop at GRUB boot their default entry."""
 
@@ -898,7 +983,7 @@ def _nudge_live_boot_menu(
         return
     try:
         progress("Pressing Enter once in the VM console to accept the default live-ISO boot entry")
-        time.sleep(5)
+        time.sleep(max(delay_seconds, 0))
         vm.press_enter()  # type: ignore[attr-defined]
     except Exception as exc:
         progress(f"VM boot-menu Enter nudge failed: {exc}")
@@ -922,6 +1007,9 @@ def verify_install_script(
     live_bootstrap_command: str | None = None,
     live_bootstrap_user: str = "",
     live_bootstrap_wait_seconds: int = 45,
+    guest_arch: str | None = None,
+    ssh_port: int = 22022,
+    boot_menu_enter_delay_seconds: int = 5,
 ) -> VerifyResult:
     """End-to-end: syntax check → spin VM → boot ISO → SSH in → run script.
 
@@ -949,26 +1037,41 @@ def verify_install_script(
     if not picked:
         result.error = "No VM backend found (install VirtualBox or QEMU)"
         return result
+    normalized_guest_arch = _normalize_guest_arch(guest_arch)
+    if picked == "qemu" and normalized_guest_arch == "arm64":
+        result.error = (
+            "QEMU ARM64 VM certification is not implemented in this backend; use VirtualBox "
+            "for ARM64 guests or provide an x86_64/amd64 ISO."
+        )
+        return result
     result.backend = picked
     result.stages.append(f"backend:{picked}")
 
     paths = detect_backends()
     if picked == "virtualbox":
-        vm = VirtualBoxBackend(paths["virtualbox"] or "VBoxManage", progress=progress)
+        vm = VirtualBoxBackend(
+            paths["virtualbox"] or "VBoxManage",
+            progress=progress,
+            ostype=_virtualbox_linux_ostype_for_arch(normalized_guest_arch),
+        )
     else:
         vm = QemuBackend(paths["qemu"] or "qemu-system-x86_64", progress=progress)
     result.vm_name = vm.vm_name
 
     try:
-        vm.create(iso_path)
+        vm.create(iso_path, ssh_port=ssh_port)
         result.stages.append("vm-created")
         vm.start()
         result.stages.append("vm-started")
-        _nudge_live_boot_menu(vm, progress=progress)
+        _nudge_live_boot_menu(
+            vm,
+            progress=progress,
+            delay_seconds=boot_menu_enter_delay_seconds,
+        )
 
         initial_ssh_timeout = 60 if live_bootstrap_command else 600
         ssh_ready = _wait_for_vm_ssh(
-            22022,
+            ssh_port,
             timeout=initial_ssh_timeout,
             progress=progress,
             vm_name=vm.vm_name,
@@ -977,7 +1080,7 @@ def verify_install_script(
             ssh_ready = _try_live_ssh_bootstrap(
                 vm,
                 live_bootstrap_command,
-                ssh_port=22022,
+                ssh_port=ssh_port,
                 progress=progress,
                 vm_name=vm.vm_name,
                 wait_seconds=live_bootstrap_wait_seconds,
@@ -1000,7 +1103,7 @@ def verify_install_script(
             and ssh_key
             and not _wait_for_vm_ssh_key_auth(
                 ssh_user,
-                22022,
+                ssh_port,
                 ssh_key,
                 progress=progress,
                 timeout=120,
@@ -1015,7 +1118,7 @@ def verify_install_script(
                     progress(f"Live SSH key seeding retry failed while typing command: {exc}")
             if not _wait_for_vm_ssh_key_auth(
                 ssh_user,
-                22022,
+                ssh_port,
                 ssh_key,
                 progress=progress,
                 timeout=120,
@@ -1027,7 +1130,7 @@ def verify_install_script(
                 return result
         result.stages.append("ssh-up")
 
-        rc, out, err = run_script_in_vm(script_path, ssh_user, 22022, ssh_key, progress=progress)
+        rc, out, err = run_script_in_vm(script_path, ssh_user, ssh_port, ssh_key, progress=progress)
         result.exit_code = rc
         result.stdout_tail = (out or "")[-4000:]
         result.stderr_tail = (err or "")[-4000:]
@@ -1062,7 +1165,7 @@ def verify_install_script(
                 result.error = f"Could not boot installed VM from disk: {exc}"
                 return result
 
-            if not _wait_for_vm_ssh(22022, timeout=600, progress=progress, vm_name=vm.vm_name):
+            if not _wait_for_vm_ssh(ssh_port, timeout=600, progress=progress, vm_name=vm.vm_name):
                 result.success = False
                 result.error = "Installed VM never answered on SSH after ISO detach/reboot"
                 return result
@@ -1073,7 +1176,7 @@ def verify_install_script(
                 rc, out, err = run_command_in_vm(
                     command,
                     audit_user,
-                    22022,
+                    ssh_port,
                     ssh_key,
                     progress=progress,
                     timeout=300,

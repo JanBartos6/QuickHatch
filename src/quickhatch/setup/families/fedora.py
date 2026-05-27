@@ -22,7 +22,9 @@ class FedoraInstaller(BaseFamilyInstaller):
         return "/mnt/boot/efi"
 
     def install_base_system(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
-        del facts, profile
+        del profile
+        grub_pkg = "grub2-efi-aa64" if self.target_arch(facts) == "arm64" else "grub2-efi-x64"
+        shim_pkg = "shim-aa64" if self.target_arch(facts) == "arm64" else "shim"
         disk_vars = self.target_disk_partition_vars()
         return [
             "for qh_bind in dev dev/pts proc sys run; do "
@@ -32,7 +34,7 @@ class FedoraInstaller(BaseFamilyInstaller):
             "sudo dnf --installroot=/mnt --use-host-config --releasever=$(rpm -E %fedora) "
             "--setopt=install_weak_deps=False --nodocs install -y "
             "fedora-release systemd kernel-core kernel-modules sudo dnf rpm policycoreutils "
-            "NetworkManager openssh-server grub2-efi-x64 grub2-tools shim efibootmgr",
+            f"NetworkManager openssh-server {grub_pkg} grub2-tools {shim_pkg} efibootmgr",
             "sudo dnf --installroot=/mnt clean all",
             "sudo mkdir -p /mnt/etc",
             "sudo sh -c 'findmnt -R /mnt -o SOURCE,TARGET,FSTYPE,OPTIONS -n > /tmp/qh-mounts'",
@@ -50,7 +52,11 @@ class FedoraInstaller(BaseFamilyInstaller):
         ]
 
     def install_bootloader(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
-        del facts, profile
+        del profile
+        efi_target = self.efi_grub_target(facts)
+        fallback = self.efi_fallback_filename(facts)
+        grub_binary = self.efi_grub_binary(facts)
+        shim_binary = self.efi_shim_binary(facts)
         return [
             "for qh_bind in dev dev/pts proc sys run; do "
             "sudo mkdir -p /mnt/$qh_bind; "
@@ -58,14 +64,14 @@ class FedoraInstaller(BaseFamilyInstaller):
             "done",
             "sudo chroot /mnt sh -c '"
             "mkdir -p /boot/efi/EFI/BOOT; "
-            "if [ -f /boot/efi/EFI/fedora/shimx64.efi ]; then "
-            "cp -f /boot/efi/EFI/fedora/shimx64.efi /boot/efi/EFI/BOOT/BOOTX64.EFI; "
-            "elif [ -f /boot/efi/EFI/fedora/grubx64.efi ]; then "
-            "cp -f /boot/efi/EFI/fedora/grubx64.efi /boot/efi/EFI/BOOT/BOOTX64.EFI; "
+            f"if [ -f /boot/efi/EFI/fedora/{shim_binary} ]; then "
+            f"cp -f /boot/efi/EFI/fedora/{shim_binary} /boot/efi/EFI/BOOT/{fallback}; "
+            f"elif [ -f /boot/efi/EFI/fedora/{grub_binary} ]; then "
+            f"cp -f /boot/efi/EFI/fedora/{grub_binary} /boot/efi/EFI/BOOT/{fallback}; "
             "else "
-            "grub2-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=quickhatch --removable --no-nvram --recheck; "
+            f"grub2-install --target={efi_target} --efi-directory=/boot/efi --bootloader-id=quickhatch --removable --no-nvram --recheck; "
             "fi; "
-            "test -f /boot/efi/EFI/BOOT/BOOTX64.EFI'",
+            f"test -f /boot/efi/EFI/BOOT/{fallback}'",
             "sudo chroot /mnt dracut --regenerate-all -f",
             "sudo chroot /mnt grub2-mkconfig -o /boot/grub2/grub.cfg",
         ]

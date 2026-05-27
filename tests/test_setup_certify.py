@@ -270,6 +270,45 @@ def test_vm_certification_live_backend_success_is_automated(monkeypatch, tmp_pat
     assert verify_kwargs["live_bootstrap_wait_seconds"] == 120
 
 
+def test_vm_certification_infers_arm64_guest_arch_from_iso_name(monkeypatch, tmp_path):
+    iso = tmp_path / "Fedora-Workstation-Live-44-1.7.aarch64.iso"
+    profile = tmp_path / "profile.json"
+    iso.write_text("fake iso", encoding="utf-8")
+    profile.write_text(json.dumps({}), encoding="utf-8")
+    calls = []
+
+    def _fake_verify(*args, **kwargs):
+        calls.append((args, kwargs))
+        return VerifyResult(success=True, backend="virtualbox", exit_code=0, stages=[])
+
+    monkeypatch.setattr("quickhatch.setup.certify.verify_install_script", _fake_verify)
+    monkeypatch.setattr(
+        "quickhatch.setup.certify._prepare_certification_key",
+        lambda *a, **k: ("cert-key", "ssh-ed25519 AAAA quickhatch", ""),
+    )
+    monkeypatch.setattr("quickhatch.setup.certify._free_local_port", lambda: 24044)
+
+    result = run_vm_certification(
+        family="fedora",
+        iso=iso,
+        profile=profile,
+        root=tmp_path / "certification",
+        dry_run=False,
+    )
+
+    artifact = next((tmp_path / "certification" / "fedora").iterdir())
+    script = (artifact / "certify-install.sh").read_text(encoding="utf-8")
+    summary = json.loads((artifact / "summary.json").read_text(encoding="utf-8"))
+
+    assert result.success
+    assert calls[0][1]["guest_arch"] == "arm64"
+    assert calls[0][1]["ssh_port"] == 24044
+    assert summary["target_arch"] == "arm64"
+    assert summary["ssh_port"] == 24044
+    assert "grub2-efi-aa64" in script
+    assert "BOOTAA64.EFI" in script
+
+
 def test_vm_certification_ubuntu_live_backend_uses_graphical_tty_login(
     monkeypatch,
     tmp_path,
@@ -338,6 +377,7 @@ def test_vm_certification_debian_live_backend_uses_live_user_tty_login(
     assert verify_kwargs["ssh_user"] == "user"
     assert verify_kwargs["live_bootstrap_user"] == "user"
     assert verify_kwargs["live_bootstrap_wait_seconds"] == 120
+    assert verify_kwargs["boot_menu_enter_delay_seconds"] == 20
 
 
 def test_vm_certification_live_backend_failure_records_artifact(monkeypatch, tmp_path):

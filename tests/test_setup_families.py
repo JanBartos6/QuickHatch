@@ -122,6 +122,27 @@ def test_fedora_live_install_sets_selinux_permissive_for_target_chroot_writes():
     assert commands[0] == "sudo setenforce 0 2>/dev/null || true"
 
 
+def test_fedora_certification_spine_uses_arm64_efi_when_target_arch_is_arm64():
+    installer = get_family_installer("fedora")
+    facts = SetupFacts(distro_family="fedora", is_live=True, raw={"target_arch": "aarch64"})
+
+    joined = "\n".join(
+        [
+            *installer.install_base_system(facts, UserProfile()),
+            *installer.install_bootloader(facts, UserProfile()),
+            *installer.pre_reboot_checks(facts),
+        ]
+    )
+
+    assert "grub2-efi-aa64" in joined
+    assert "shim-aa64" in joined
+    assert "shimaa64.efi" in joined
+    assert "grubaa64.efi" in joined
+    assert "--target=arm64-efi" in joined
+    assert "BOOTAA64.EFI" in joined
+    assert "BOOTX64.EFI" not in joined
+
+
 @pytest.mark.parametrize("family", ["ubuntu", "debian"])
 def test_debian_family_bootloader_always_writes_removable_efi_fallback(family):
     installer = get_family_installer(family)
@@ -142,6 +163,26 @@ def test_debian_family_bootloader_always_writes_removable_efi_fallback(family):
     assert "/boot/efi/boot/grub/grub.cfg" in joined
     assert "configfile /boot/grub/grub.cfg" in joined
     assert "-o -f /boot/efi/EFI/quickhatch/grubx64.efi" not in joined
+
+
+def test_debian_certification_spine_uses_arm64_efi_when_target_arch_is_arm64():
+    installer = get_family_installer("debian")
+    facts = SetupFacts(distro_family="debian", is_live=True, raw={"target_arch": "arm64"})
+
+    joined = "\n".join(
+        [
+            *installer.install_base_system(facts, UserProfile()),
+            *installer.install_bootloader(facts, UserProfile()),
+            *installer.pre_reboot_checks(facts),
+        ]
+    )
+
+    assert "debootstrap --arch=arm64" in joined
+    assert "linux-image-arm64" in joined
+    assert "grub-efi-arm64" in joined
+    assert "--target=arm64-efi" in joined
+    assert "BOOTAA64.EFI" in joined
+    assert "BOOTX64.EFI" not in joined
 
 
 def test_ubuntu_adapter_uses_live_iso_codename_when_available():

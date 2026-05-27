@@ -97,6 +97,41 @@ class BaseFamilyInstaller:
     version = "2026.05.02"
 
     @staticmethod
+    def target_arch(facts: SetupFacts) -> str:
+        """Return the target architecture family used by deterministic cert spines."""
+
+        raw = facts.raw if isinstance(facts.raw, dict) else {}
+        candidates = [
+            raw.get("target_arch"),
+            raw.get("machine_arch"),
+            raw.get("hardware_arch"),
+            raw.get("uname_machine"),
+            raw.get("arch"),
+        ]
+        for value in candidates:
+            normalized = str(value or "").strip().lower().replace("_", "-")
+            if normalized in {"aarch64", "arm64", "arm-v8", "armv8"}:
+                return "arm64"
+            if normalized in {"x86-64", "x64", "amd64", "x86_64".replace("_", "-")}:
+                return "amd64"
+        return "amd64"
+
+    def debian_arch(self, facts: SetupFacts) -> str:
+        return "arm64" if self.target_arch(facts) == "arm64" else "amd64"
+
+    def efi_grub_target(self, facts: SetupFacts) -> str:
+        return "arm64-efi" if self.target_arch(facts) == "arm64" else "x86_64-efi"
+
+    def efi_fallback_filename(self, facts: SetupFacts) -> str:
+        return "BOOTAA64.EFI" if self.target_arch(facts) == "arm64" else "BOOTX64.EFI"
+
+    def efi_grub_binary(self, facts: SetupFacts) -> str:
+        return "grubaa64.efi" if self.target_arch(facts) == "arm64" else "grubx64.efi"
+
+    def efi_shim_binary(self, facts: SetupFacts) -> str:
+        return "shimaa64.efi" if self.target_arch(facts) == "arm64" else "shimx64.efi"
+
+    @staticmethod
     def target_disk_partition_vars() -> str:
         """Define shell variables for target disk partitions across sdX/nvme/mmc names."""
 
@@ -226,11 +261,10 @@ class BaseFamilyInstaller:
         return []
 
     def pre_reboot_checks(self, facts: SetupFacts) -> list[str]:
-        del facts
         return [
             "test -s /mnt/etc/fstab",
             "find /mnt/boot -maxdepth 2 -type f \\( -name 'vmlinuz*' -o -name 'initramfs*' -o -name 'initrd*' \\) | grep -q .",
-            "find /mnt/boot -maxdepth 4 -type f \\( -iname 'grub*.efi' -o -iname 'bootx64.efi' \\) | grep -q .",
+            "find /mnt/boot -maxdepth 4 -type f \\( -iname 'grub*.efi' -o -iname 'bootx64.efi' -o -iname 'bootaa64.efi' \\) | grep -q .",
             "find /mnt/home -maxdepth 3 -path '*/.ssh/authorized_keys' -size +0c | grep -q .",
             "test -s /mnt/etc/sudoers.d/99-quickhatch-nopasswd",
         ]

@@ -139,8 +139,39 @@ class TestVirtualBoxBackend:
         vm.create(iso)
         joined = [" ".join(c) for c in calls]
         assert any("createvm" in c for c in joined)
+        assert any("--ostype Linux_64" in c for c in joined)
+        assert any("--graphicscontroller vmsvga" in c for c in joined)
+        assert any("--keyboard usb" in c for c in joined)
+        assert any("--usb-xhci on" in c for c in joined)
         assert any("natpf1" in c and "22022" in c for c in joined)
         assert any(str(iso) in c for c in joined)
+
+    def test_vbox_wrapper_raises_on_failed_command(self, monkeypatch):
+        monkeypatch.setattr(
+            vm_verify,
+            "_run",
+            lambda *a, **k: _mk_completed(1, stderr="no keyboard device"),
+        )
+        vm = vm_verify.VirtualBoxBackend("VBoxManage")
+
+        with pytest.raises(RuntimeError, match="no keyboard device"):
+            vm._vb("controlvm", vm.vm_name, "keyboardputscancode", "1c", "9c")
+
+    def test_create_can_target_arm64_virtualbox_guests(self, monkeypatch, tmp_path):
+        calls: list[list[str]] = []
+
+        def _fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            return _mk_completed(0)
+
+        monkeypatch.setattr(vm_verify, "_run", _fake_run)
+        iso = tmp_path / "dummy-aarch64.iso"
+        iso.write_text("x")
+        vm = vm_verify.VirtualBoxBackend("VBoxManage", ostype="Linux_arm64")
+        vm.create(iso)
+
+        joined = [" ".join(c) for c in calls]
+        assert any("--ostype Linux_arm64" in c for c in joined)
 
     def test_teardown_swallows_errors(self, monkeypatch):
         def _fake_run(cmd, **kwargs):
@@ -295,6 +326,46 @@ class TestRunScriptInVm:
         assert "-O" in scp_calls[1]
         assert any("legacy scp mode" in message for message in progress)
 
+    def test_streams_script_over_ssh_when_scp_connection_closes(
+        self,
+        monkeypatch,
+        tmp_path,
+    ):
+        script = tmp_path / "install.sh"
+        script.write_text("echo streamed", encoding="utf-8")
+        calls: list[tuple[list[str], dict]] = []
+        progress: list[str] = []
+
+        def _fake_which(name):
+            return name if name in {"ssh", "scp"} else None
+
+        def _fake_run(cmd, **kwargs):
+            calls.append((cmd, kwargs))
+            if cmd[0] == "scp":
+                return _mk_completed(255, stderr="Connection closed")
+            if cmd[0] == "ssh" and cmd[-1].startswith("cat > /tmp/install.sh"):
+                assert kwargs["input_text"] == "echo streamed"
+                return _mk_completed(0)
+            return _mk_completed(0, stdout="ran")
+
+        monkeypatch.setattr(vm_verify.shutil, "which", _fake_which)
+        monkeypatch.setattr(vm_verify, "_run", _fake_run)
+
+        rc, out, err = vm_verify.run_script_in_vm(
+            script,
+            "user",
+            22022,
+            "key",
+            progress=progress.append,
+        )
+
+        assert rc == 0
+        assert out == "ran"
+        assert err == ""
+        assert any("streaming install.sh over SSH stdin" in message for message in progress)
+        assert any(call[0][0] == "scp" for call in calls)
+        assert any(call[0][-1].startswith("cat > /tmp/install.sh") for call in calls)
+
 
 class TestSshKeyAuthWait:
     def test_waits_for_key_auth_after_ssh_port_opens(self, monkeypatch):
@@ -392,6 +463,59 @@ class TestVerifyInstallScript:
         assert result.exit_code == 0
         assert "vm-started" in result.stages
         assert "ssh-up" in result.stages
+
+    def test_guest_arch_selects_arm64_virtualbox_ostype(self, monkeypatch, tmp_path):
+        script = tmp_path / "install.sh"
+        script.write_text("echo ok")
+        iso = tmp_path / "live-aarch64.iso"
+        iso.write_text("x")
+        ostypes = []
+
+        monkeypatch.setattr(vm_verify, "bash_syntax_check", lambda _p: (True, "ok"))
+        monkeypatch.setattr(vm_verify, "pick_backend", lambda prefer=None: "virtualbox")
+        monkeypatch.setattr(
+            vm_verify,
+            "detect_backends",
+            lambda: {"virtualbox": "VBoxManage", "qemu": None},
+        )
+        monkeypatch.setattr(vm_verify, "_wait_for_vm_ssh", lambda *a, **k: True)
+        monkeypatch.setattr(vm_verify, "run_script_in_vm", lambda *a, **k: (0, "done", ""))
+
+        class _FakeVM:
+            vm_name = "fake"
+
+            def __init__(self, *args, **kwargs):
+                del args
+                ostypes.append(kwargs.get("ostype"))
+
+            def create(self, *a, **k):
+                pass
+
+            def start(self):
+                pass
+
+            def teardown(self):
+                pass
+
+        monkeypatch.setattr(vm_verify, "VirtualBoxBackend", _FakeVM)
+        result = vm_verify.verify_install_script(script, iso_path=iso, guest_arch="aarch64")
+
+        assert result.success
+        assert ostypes == ["Linux_arm64"]
+
+    def test_qemu_arm64_guest_fails_closed(self, monkeypatch, tmp_path):
+        script = tmp_path / "install.sh"
+        script.write_text("echo ok")
+        iso = tmp_path / "live-aarch64.iso"
+        iso.write_text("x")
+
+        monkeypatch.setattr(vm_verify, "bash_syntax_check", lambda _p: (True, "ok"))
+        monkeypatch.setattr(vm_verify, "pick_backend", lambda prefer=None: "qemu")
+
+        result = vm_verify.verify_install_script(script, iso_path=iso, guest_arch="arm64")
+
+        assert not result.success
+        assert "QEMU ARM64 VM certification is not implemented" in result.error
 
     def test_live_console_bootstrap_when_initial_ssh_missing(self, monkeypatch, tmp_path):
         script = tmp_path / "install.sh"

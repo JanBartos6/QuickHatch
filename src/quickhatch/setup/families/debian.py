@@ -26,11 +26,14 @@ class DebianInstaller(BaseFamilyInstaller):
         return "/mnt/boot/efi"
 
     def install_base_system(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
-        del facts, profile
+        del profile
+        deb_arch = self.debian_arch(facts)
+        grub_pkg = "grub-efi-arm64" if deb_arch == "arm64" else "grub-efi-amd64"
+        kernel_pkg = "linux-image-arm64" if deb_arch == "arm64" else "linux-image-amd64"
         return [
             f"sudo {self.apt_get} update",
-            f"sudo {self.apt_get} install -y debootstrap arch-install-scripts grub-efi-amd64",
-            f"sudo debootstrap --arch=amd64 {self.suite} /mnt {self.mirror}",
+            f"sudo {self.apt_get} install -y debootstrap arch-install-scripts {grub_pkg}",
+            f"sudo debootstrap --arch={deb_arch} {self.suite} /mnt {self.mirror}",
             "sudo genfstab -U /mnt | sudo tee -a /mnt/etc/fstab >/dev/null",
             "for qh_bind in dev dev/pts proc sys run; do "
             "sudo mkdir -p /mnt/$qh_bind; "
@@ -40,21 +43,23 @@ class DebianInstaller(BaseFamilyInstaller):
             "sudo chroot /mnt sh -c '"
             f"{self.apt_get} update && "
             f"DEBIAN_FRONTEND=noninteractive {self.apt_get} install -y "
-            "linux-image-amd64 sudo network-manager openssh-server grub-efi-amd64'",
+            f"{kernel_pkg} sudo network-manager openssh-server {grub_pkg}'",
             "sudo chroot /mnt systemctl enable NetworkManager ssh",
             "echo quickhatch | sudo tee /mnt/etc/hostname >/dev/null",
         ]
 
     def install_bootloader(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
-        del facts, profile
+        del profile
+        efi_target = self.efi_grub_target(facts)
+        fallback = self.efi_fallback_filename(facts)
         return [
             "for qh_bind in dev dev/pts proc sys run; do "
             "sudo mkdir -p /mnt/$qh_bind; "
             "mountpoint -q /mnt/$qh_bind || sudo mount --bind /$qh_bind /mnt/$qh_bind; "
             "done",
             "sudo chroot /mnt sh -c '"
-            "grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=quickhatch --recheck || true; "
-            "grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=quickhatch --removable --no-nvram --recheck; "
+            f"grub-install --target={efi_target} --efi-directory=/boot/efi --bootloader-id=quickhatch --recheck || true; "
+            f"grub-install --target={efi_target} --efi-directory=/boot/efi --bootloader-id=quickhatch --removable --no-nvram --recheck; "
             "for qh_efi_dir in /boot/efi/EFI/BOOT /boot/efi/EFI/quickhatch /boot/efi/EFI/ubuntu; do "
             'mkdir -p "$qh_efi_dir"; '
             'printf "%s\\n" "search --file --set=root /boot/grub/grub.cfg" '
@@ -63,7 +68,7 @@ class DebianInstaller(BaseFamilyInstaller):
             "mkdir -p /boot/efi/boot/grub; "
             'printf "%s\\n" "search --file --set=root /boot/grub/grub.cfg" '
             '"configfile /boot/grub/grub.cfg" > /boot/efi/boot/grub/grub.cfg; '
-            "test -f /boot/efi/EFI/BOOT/BOOTX64.EFI'",
+            f"test -f /boot/efi/EFI/BOOT/{fallback}'",
             "sudo chroot /mnt update-grub",
             "sudo chroot /mnt update-initramfs -u -k all",
         ]

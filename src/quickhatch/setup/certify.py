@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import shlex
 import shutil
+import socket
 import subprocess
 import time
 import uuid
@@ -260,6 +261,21 @@ def _explicit_configure_existing_profile(profile_payload: object) -> bool:
     return bool(profile_values & {"configure_existing", "configure_only"})
 
 
+def _guest_arch_from_iso_name(iso_path: Path) -> str:
+    normalized = iso_path.name.lower().replace("_", "-")
+    if any(token in normalized for token in ("aarch64", "arm64", "aa64")):
+        return "arm64"
+    if any(token in normalized for token in ("x86-64", "x86_64", "amd64")):
+        return "amd64"
+    return ""
+
+
+def _free_local_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
 def run_vm_certification(
     *,
     family: str,
@@ -324,7 +340,10 @@ def run_vm_certification(
         current_user="root",
         login_user="root",
         sudo_nopasswd=True,
+        raw={"target_arch": _guest_arch_from_iso_name(iso_path)},
     )
+    guest_arch = str(facts.raw.get("target_arch") or "")
+    vm_ssh_port = _free_local_port() if not dry_run else 22022
     spine = adapter.build_install_spine(facts, loaded_profile)
     post_reboot_audit = adapter.final_boot_audit(SetupFacts(distro_family=normalized_family))
     effective_target_disk = target_disk or ("/dev/vda" if backend == "qemu" else "/dev/sda")
@@ -347,6 +366,8 @@ def run_vm_certification(
         backend=backend,
         dry_run=dry_run,
         target_disk=effective_target_disk,
+        target_arch=guest_arch,
+        ssh_port=vm_ssh_port,
         adapter=spine.family,
         adapter_version=spine.adapter_version,
         command_count=len(spine.commands),
@@ -393,6 +414,7 @@ def run_vm_certification(
             "",
         )
         live_bootstrap_wait_seconds = 120 if graphical_live_bootstrap_user else 45
+        boot_menu_enter_delay_seconds = 20 if normalized_family == "debian" else 5
 
         def _progress(message: str) -> None:
             with progress_log.open("a", encoding="utf-8") as handle:
@@ -411,6 +433,9 @@ def run_vm_certification(
             live_bootstrap_command=live_bootstrap_command,
             live_bootstrap_user=graphical_live_bootstrap_user,
             live_bootstrap_wait_seconds=live_bootstrap_wait_seconds,
+            guest_arch=guest_arch,
+            ssh_port=vm_ssh_port,
+            boot_menu_enter_delay_seconds=boot_menu_enter_delay_seconds,
         )
         _write_vm_result(artifact_dir, vm_result)
         _append_event(
@@ -463,9 +488,11 @@ def run_vm_certification(
         "runlog": str(artifact_dir / "certification-run.jsonl"),
         "final_facts": str(artifact_dir / "final-facts.json"),
         "ssh_user": effective_live_ssh_user,
+        "ssh_port": vm_ssh_port,
         "ssh_key": str(effective_ssh_key) if effective_ssh_key else "",
         "generated_ssh_key": generated_key,
         "target_disk": effective_target_disk,
+        "target_arch": guest_arch,
         "post_reboot_user": effective_post_reboot_user,
         "require_post_reboot": require_post_reboot,
         "manual_intervention_required": False,
