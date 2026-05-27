@@ -3060,7 +3060,15 @@ class SetupOrchestrator:
         self._mark_installed_apps_from_native_package_db()
         self._resolve_requested_apps_from_catalog()
         self._synthesize_missing_app_command_groups()
-        if self._skip_stage_if_current_audit_passes(SetupStage.APPS):
+        has_explicit_app_groups_without_app_rows = bool(
+            self.ctx.plan
+            and not self.ctx.plan.apps
+            and any(group.stage == SetupStage.APPS for group in self.ctx.plan.command_groups)
+        )
+        if (
+            not has_explicit_app_groups_without_app_rows
+            and self._skip_stage_if_current_audit_passes(SetupStage.APPS)
+        ):
             return
         self._run_stage_groups(SetupStage.APPS)
 
@@ -3351,7 +3359,13 @@ fi
 printf 'QH_REBOOT_REQUIRED=%s\n' "$qh_required"
 printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
 """
-        rc, stdout, stderr = self.runtime.ssh_exec(command, 45)
+        rc, stdout, stderr = self._ssh_exec_with_transient_retries(
+            command,
+            45,
+            stage=SetupStage.FINAL_AUDIT,
+            group_id="final-reboot-required",
+            label="final reboot-required verification",
+        )
         self.runlog.record(
             "final_reboot_required_verification",
             command=command,
@@ -3452,7 +3466,13 @@ printf 'QH_REBOOT_DETAIL=%s\n' "$qh_detail"
         # still names a Flatpak id, and final audit should verify the real outcome.
         if candidates and query:
             final_state["package_verification_ran"] = True
-            rc, stdout, stderr = self.runtime.ssh_exec(query, 45)
+            rc, stdout, stderr = self._ssh_exec_with_transient_retries(
+                query,
+                45,
+                stage=SetupStage.FINAL_AUDIT,
+                group_id="final-package-verification",
+                label="final package verification",
+            )
             self.runlog.record(
                 "final_package_verification",
                 package_manager=self.ctx.facts.package_manager,
@@ -4052,7 +4072,13 @@ done"""
             "*) exit 5 ;; "
             "esac"
         )
-        rc, stdout, stderr = self.runtime.ssh_exec(command, 30)
+        rc, stdout, stderr = self._ssh_exec_with_transient_retries(
+            command,
+            30,
+            stage=SetupStage.FINAL_AUDIT,
+            group_id="final-fstab-root",
+            label="final fstab root verification",
+        )
         final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
         final_state["fstab_root_probe"] = {
             "rc": rc,
@@ -4067,6 +4093,13 @@ done"""
         )
         if rc == 0:
             return []
+        if self._looks_like_transient_ssh_disconnect(stdout, stderr):
+            detail = (stderr or stdout or "SSH transport failed").strip()[:240]
+            return [
+                "Could not verify root mount source during final audit because SSH transport "
+                f"failed: {detail}. Reconnect and rerun final verification before declaring "
+                "setup complete."
+            ]
         observed = (stdout or stderr or "").strip().splitlines()
         root_src = observed[-1] if observed else "<none>"
         return [
@@ -4143,9 +4176,13 @@ fi
     def _verify_systemd_health(self) -> list[str]:
         if self.ctx.facts is None or self.ctx.facts.init_system != "systemd":
             return []
-        rc, stdout, stderr = self.runtime.ssh_exec(
-            "systemctl --failed --no-legend --plain 2>/dev/null | awk '{print $1}' | head -20",
+        command = "systemctl --failed --no-legend --plain 2>/dev/null | awk '{print $1}' | head -20"
+        rc, stdout, stderr = self._ssh_exec_with_transient_retries(
+            command,
             20,
+            stage=SetupStage.FINAL_AUDIT,
+            group_id="final-systemd-health",
+            label="final systemd health verification",
         )
         self.runlog.record(
             "final_systemd_verification",
@@ -7202,8 +7239,14 @@ fi
             return commands
         patched: list[str] = []
         for command in commands:
+
+            def repl(match: re.Match[str], command: str = command) -> str:
+                if self._apt_invocation_is_command_probe(command, match):
+                    return match.group(0)
+                return f"{match.group('tool')} {_APT_NETWORK_OPTIONS} "
+
             rewritten = _APT_COMMAND_RE.sub(
-                lambda match: f"{match.group('tool')} {_APT_NETWORK_OPTIONS} ",
+                repl,
                 command,
             )
             if rewritten != command:
@@ -7217,6 +7260,12 @@ fi
             patched.append(rewritten)
         return patched
 
+    @staticmethod
+    def _apt_invocation_is_command_probe(command: str, match: re.Match[str]) -> bool:
+        prefix = command[: match.start()]
+        segment = re.split(r"[;&|]", prefix)[-1].strip().lower()
+        return segment.endswith("command -v") or segment.endswith("which")
+
     def _normalize_apt_noninteractive(
         self, stage: SetupStage, group: CommandGroup, commands: list[str]
     ) -> list[str]:
@@ -7226,9 +7275,11 @@ fi
         patched: list[str] = []
         for command in commands:
 
-            def repl(match: re.Match[str]) -> str:
+            def repl(match: re.Match[str], command: str = command) -> str:
                 matched = match.group(0)
-                if "DEBIAN_FRONTEND=" in matched:
+                if "DEBIAN_FRONTEND=" in matched or self._apt_invocation_has_debian_frontend(
+                    command, match
+                ):
                     return matched
                 sudo = match.group("sudo") or ""
                 tool = match.group("tool")
@@ -7248,6 +7299,12 @@ fi
                 )
             patched.append(rewritten)
         return patched
+
+    @staticmethod
+    def _apt_invocation_has_debian_frontend(command: str, match: re.Match[str]) -> bool:
+        prefix = command[: match.start()]
+        segment = re.split(r"[;&|]", prefix)[-1].lower()
+        return "debian_frontend=" in segment
 
     def _inject_debian_live_debootstrap_prereqs(
         self, stage: SetupStage, group: CommandGroup, commands: list[str]

@@ -667,6 +667,52 @@ def test_fstab_root_verification_accepts_valid_device_entry():
     assert orchestrator._verify_fstab_root_entry() == []
 
 
+def test_fstab_root_verification_retries_transient_ssh_disconnect(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan", is_live=False)
+    calls: list[str] = []
+
+    def ssh_exec(command: str, _timeout: int):
+        calls.append(command)
+        if len(calls) == 1:
+            return (255, "", "Connection closed by 127.0.0.1 port 2222")
+        return (0, "UUID=abc123\n", "")
+
+    monkeypatch.setattr("quickhatch.setup.orchestrator.time.sleep", lambda _seconds: None)
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+
+    assert orchestrator._verify_fstab_root_entry() == []
+    assert len(calls) == 2
+
+
+def test_fstab_root_verification_reports_transport_failure_as_ssh_issue(monkeypatch):
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(current_user="jan", login_user="jan", is_live=False)
+    calls: list[str] = []
+
+    def ssh_exec(command: str, _timeout: int):
+        calls.append(command)
+        return (255, "", "Connection closed by 127.0.0.1 port 2222")
+
+    monkeypatch.setattr("quickhatch.setup.orchestrator.time.sleep", lambda _seconds: None)
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+
+    blockers = orchestrator._verify_fstab_root_entry()
+
+    assert len(calls) == 5
+    assert len(blockers) == 1
+    assert "SSH transport failed" in blockers[0]
+    assert "Root fstab entry is missing or invalid" not in blockers[0]
+
+
 def test_fstab_root_verification_uses_sbin_blkid_fallback():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
@@ -3077,6 +3123,61 @@ def test_apt_commands_get_bounded_network_timeouts():
     assert apt_command.count("Acquire::ForceIPv4=true") == 2
     assert " update && sudo env DEBIAN_FRONTEND=noninteractive apt-get -o " in apt_command
     assert " install -y debootstrap gdisk" in apt_command
+
+
+def test_apt_timeout_normalization_does_not_rewrite_command_probe():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="debian",
+        package_manager="apt",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="conditional-apt-install",
+        stage=SetupStage.APPS,
+        title="Install nano conditionally",
+        commands=["if command -v apt-get >/dev/null 2>&1; then sudo apt-get install -y nano; fi"],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.APPS, group)
+    apt_command = next(command for command in commands if "apt-get" in command)
+
+    assert "command -v apt-get >/dev/null" in apt_command
+    assert "command -v apt-get -o" not in apt_command
+    assert "sudo env DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=2" in apt_command
+    assert " install -y nano" in apt_command
+
+
+def test_apt_noninteractive_normalization_does_not_duplicate_existing_env():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="debian",
+        package_manager="apt",
+        current_user="jan",
+        login_user="jan",
+        sudo_nopasswd=True,
+    )
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+    orchestrator.ctx.facts = facts
+    group = CommandGroup(
+        id="apt-env-install",
+        stage=SetupStage.APPS,
+        title="Install nano",
+        commands=["sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y nano"],
+    )
+
+    commands = orchestrator._commands_for_group(SetupStage.APPS, group)
+    apt_command = next(command for command in commands if "apt-get" in command)
+
+    assert apt_command.count("DEBIAN_FRONTEND=noninteractive") == 1
+    assert "apt-get -o Acquire::Retries=2" in apt_command
+    assert " install -y nano" in apt_command
 
 
 def test_apt_mutating_commands_get_noninteractive_frontend():
@@ -8944,6 +9045,45 @@ def test_apps_stage_skips_package_install_when_all_group_packages_are_installed(
         "Git": PlanItemStatus.INSTALLED,
         "Python": PlanItemStatus.INSTALLED,
     }
+
+
+def test_apps_stage_runs_explicit_app_groups_even_without_app_rows():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="fedora", package_manager="dnf", current_user="jan")
+    executed: list[str] = []
+
+    def ssh_exec(command: str, _timeout: int):
+        executed.append(command)
+        return (0, "", "")
+
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    )
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.plan = ResearchPlan(
+        target_summary="Fedora configure-existing VM.",
+        distro_family="fedora",
+        package_manager="dnf",
+        driver_strategy=StrategyDecision("none"),
+        desktop_strategy=StrategyDecision("headless"),
+        command_groups=[
+            CommandGroup(
+                id="app-lifecycle-smoke",
+                stage=SetupStage.APPS,
+                title="Exercise reversible app command group",
+                commands=["touch ~/.quickhatch-app-smoke"],
+                verification=["test -f ~/.quickhatch-app-smoke"],
+            )
+        ],
+        apps=[],
+    )
+
+    orchestrator._run_apps()
+
+    assert "touch ~/.quickhatch-app-smoke" in executed
+    assert "test -f ~/.quickhatch-app-smoke" in executed
+    assert orchestrator.ctx.plan.command_groups[0].status == PlanItemStatus.COMPLETED
 
 
 def test_apps_stage_filters_already_installed_packages_from_install_command():
