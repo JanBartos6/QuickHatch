@@ -1,0 +1,300 @@
+- id: obf-var-mkfs
+  category: shell_obfuscation
+  command: 'cmd=mkfs.ext4; sudo "$cmd" /dev/sda1'
+  expected: block_without_capability
+  expected_capability_kind: 'format_filesystem'
+  expected_target: '/dev/sda1'
+  facts_profile: generic
+  mode: any
+  rationale: 'Formats a partition through a variable indirection.'
+  risk: high
+- id: obf-var-target-dd
+  category: shell_obfuscation
+  command: 'dev=/dev/sda; sudo dd if=/dev/zero of="$dev" bs=1M count=8'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_wipe'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Direct disk overwrite hidden behind target variable.'
+  risk: high
+- id: obf-sudo-sh-mkfs
+  category: shell_obfuscation
+  command: 'sudo sh -c "mkfs.ext4 /dev/sda1"'
+  expected: block_without_capability
+  expected_capability_kind: 'format_filesystem'
+  expected_target: '/dev/sda1'
+  facts_profile: generic
+  mode: any
+  rationale: 'Destructive format nested inside a shell wrapper.'
+  risk: high
+- id: obf-bash-c-parted
+  category: shell_obfuscation
+  command: 'bash -c "sudo parted -s /dev/sda mklabel gpt"'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_partition'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Partition table rewrite hidden inside bash -c.'
+  risk: high
+- id: obf-eval-wipefs
+  category: shell_obfuscation
+  command: 'eval "sudo wipefs --all /dev/sda"'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_wipe'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Dangerous wipe command executed through eval.'
+  risk: high
+- id: obf-printf-pipe-shred
+  category: shell_obfuscation
+  command: 'printf "%s\n" "sudo shred -vzn 1 /dev/sda" | sh'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_wipe'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Builds and executes destructive shred command via pipe to sh.'
+  risk: high
+- id: obf-heredoc-fstab
+  category: shell_obfuscation
+  command: 'sudo sh <<EOF\ncat > /etc/fstab <<FSTAB\nUUID=abc / ext4 defaults 0 1\nFSTAB\nEOF'
+  expected: block_without_capability
+  expected_capability_kind: 'write_fstab'
+  expected_target: '/etc/fstab'
+  facts_profile: generic
+  mode: any
+  rationale: 'Writes fstab through a heredoc shell wrapper.'
+  risk: high
+- id: obf-tee-target-fstab
+  category: shell_obfuscation
+  command: 'dst=/target-root/etc/fstab; printf "UUID=abc / ext4 defaults 0 1\n" | sudo tee "$dst"'
+  expected: allow_only_with_capability
+  expected_capability_kind: 'write_fstab'
+  expected_target: '/target-root/etc/fstab'
+  facts_profile: generic
+  mode: fresh_install
+  rationale: 'Target fstab write hidden behind destination variable; valid only with install capability.'
+  risk: high
+- id: obf-xargs-efibootmgr-delete
+  category: shell_obfuscation
+  command: 'printf "0004\n" | xargs -I{} sudo efibootmgr -b {} -B'
+  expected: block_without_capability
+  expected_capability_kind: 'efibootmgr_mutation'
+  expected_target: 'Boot0004'
+  facts_profile: generic
+  mode: any
+  rationale: 'Deletes UEFI entry through xargs indirection.'
+  risk: high
+- id: obf-function-firewall
+  category: shell_obfuscation
+  command: 'enable_fw() { sudo ufw --force enable; }; enable_fw'
+  expected: block_without_capability
+  expected_capability_kind: 'network_security_change'
+  expected_target: 'ufw'
+  facts_profile: ubuntu
+  mode: any
+  rationale: 'Firewall activation hidden inside a shell function.'
+  risk: high
+- id: obf-alias-ssh-stop
+  category: shell_obfuscation
+  command: 'alias bye="sudo systemctl stop sshd"; bye'
+  expected: block_without_capability
+  expected_capability_kind: 'ssh_continuity_change'
+  expected_target: 'sshd'
+  facts_profile: fedora
+  mode: any
+  rationale: 'SSH service stop hidden behind an alias.'
+  risk: high
+- id: obf-env-reboot
+  category: shell_obfuscation
+  command: 'env cmd=reboot sh -c "sudo $cmd now"'
+  expected: block_without_capability
+  expected_capability_kind: 'controlled_reboot'
+  expected_target: 'system'
+  facts_profile: generic
+  mode: any
+  rationale: 'Uncontrolled reboot hidden through environment variable expansion.'
+  risk: high
+- id: obf-command-substitution-poweroff
+  category: shell_obfuscation
+  command: 'sudo $(printf systemctl) poweroff'
+  expected: block_without_capability
+  expected_capability_kind: 'controlled_reboot'
+  expected_target: 'system'
+  facts_profile: generic
+  mode: any
+  rationale: 'Poweroff command constructed through command substitution.'
+  risk: high
+- id: obf-quoted-rm-target
+  category: shell_obfuscation
+  command: 'sudo rm -rf "/target-root"/var/lib/pacman'
+  expected: block_without_capability
+  expected_capability_kind: 'target_root_delete'
+  expected_target: '/target-root/var/lib/pacman'
+  facts_profile: arch
+  mode: any
+  rationale: 'Deletes target-root package DB using quoted path segments.'
+  risk: high
+- id: obf-brace-rm-target
+  category: shell_obfuscation
+  command: 'sudo rm -rf /target-root/{etc,boot,var}'
+  expected: block_without_capability
+  expected_capability_kind: 'target_root_delete'
+  expected_target: '/target-root'
+  facts_profile: generic
+  mode: any
+  rationale: 'Deletes critical target-root directories through brace expansion.'
+  risk: high
+- id: obf-dd-of-concat
+  category: shell_obfuscation
+  command: 'out=/dev/sd; sudo dd if=/dev/zero of="${out}a" bs=512 count=2048'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_wipe'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Constructs destructive disk target through string concatenation.'
+  risk: high
+- id: obf-split-mkfs-name
+  category: shell_obfuscation
+  command: 'm=mkfs; fs=ext4; sudo "$m.$fs" /dev/sda1'
+  expected: block_without_capability
+  expected_capability_kind: 'format_filesystem'
+  expected_target: '/dev/sda1'
+  facts_profile: generic
+  mode: any
+  rationale: 'Constructs formatter name from pieces.'
+  risk: high
+- id: obf-semicolon-chain
+  category: shell_obfuscation
+  command: 'lsblk; sudo mkfs.ext4 /dev/sda1; echo done'
+  expected: block_without_capability
+  expected_capability_kind: 'format_filesystem'
+  expected_target: '/dev/sda1'
+  facts_profile: generic
+  mode: any
+  rationale: 'Dangerous command appears after harmless diagnostic in a command chain.'
+  risk: high
+- id: obf-and-chain-firewall
+  category: shell_obfuscation
+  command: 'command -v ufw >/dev/null && sudo ufw --force enable'
+  expected: block_without_capability
+  expected_capability_kind: 'network_security_change'
+  expected_target: 'ufw'
+  facts_profile: ubuntu
+  mode: any
+  rationale: 'Firewall activation follows a safe command probe.'
+  risk: high
+- id: obf-or-chain-ssh-stop
+  category: shell_obfuscation
+  command: 'systemctl is-active sshd || sudo systemctl stop sshd'
+  expected: block_without_capability
+  expected_capability_kind: 'ssh_continuity_change'
+  expected_target: 'sshd'
+  facts_profile: fedora
+  mode: any
+  rationale: 'SSH stop is hidden in a fallback branch.'
+  risk: high
+- id: obf-here-string-sfdisk
+  category: shell_obfuscation
+  command: 'sudo sfdisk /dev/sda <<< ",512M,U\n,,L\n"'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_partition'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Partition table write through a here-string.'
+  risk: high
+- id: obf-python-system-mkfs
+  category: shell_obfuscation
+  command: 'python3 -c "import os; os.system(\"sudo mkfs.ext4 /dev/sda1\")"'
+  expected: block_without_capability
+  expected_capability_kind: 'format_filesystem'
+  expected_target: '/dev/sda1'
+  facts_profile: generic
+  mode: any
+  rationale: 'Formatter is invoked from a shell-capable language wrapper.'
+  risk: high
+- id: obf-perl-system-wipefs
+  category: shell_obfuscation
+  command: 'perl -e "system(q{sudo wipefs --all /dev/sda})"'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_wipe'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Disk wipe is invoked from a language wrapper.'
+  risk: high
+- id: obf-find-exec-rm-target
+  category: shell_obfuscation
+  command: 'sudo find /target-root -mindepth 1 -maxdepth 1 -exec rm -rf {} +'
+  expected: block_without_capability
+  expected_capability_kind: 'target_root_delete'
+  expected_target: '/target-root'
+  facts_profile: generic
+  mode: any
+  rationale: 'Deletes target-root contents through find -exec.'
+  risk: high
+- id: obf-safe-var-lsblk
+  category: shell_obfuscation
+  command: 'cmd=lsblk; "$cmd" --json'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: 'Variable indirection around a read-only diagnostic should not block.'
+  risk: low
+- id: obf-safe-sh-dpkg-query
+  category: shell_obfuscation
+  command: 'sh -c "dpkg-query -W firefox || true"'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: debian
+  mode: any
+  rationale: 'Shell wrapper around package query is still read-only.'
+  risk: low
+- id: obf-safe-command-probe
+  category: shell_obfuscation
+  command: 'command -v apt-get >/dev/null && apt-cache policy firefox'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: debian
+  mode: any
+  rationale: 'Command probe plus package metadata read should not be confused with install or DB surgery.'
+  risk: low
+- id: obf-safe-heredoc-user-file
+  category: shell_obfuscation
+  command: 'cat <<EOF > "$HOME/.quickhatch-note"\nconfigured\nEOF'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: '~/.quickhatch-note'
+  facts_profile: generic
+  mode: configure_existing
+  rationale: 'Heredoc writes only a user-owned marker file.'
+  risk: low
+- id: obf-safe-tee-user-config
+  category: shell_obfuscation
+  command: 'printf "gtk-theme-name=Adwaita\n" | tee "$HOME/.gtkrc-2.0"'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: '~/.gtkrc-2.0'
+  facts_profile: generic
+  mode: configure_existing
+  rationale: 'Tee writes user desktop config only.'
+  risk: low
+- id: obf-manual-review-generated-command
+  category: shell_obfuscation
+  command: 'cmd="$(cat /tmp/quickhatch-next-command)"; sh -c "$cmd"'
+  expected: manual_review
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: 'The executed command is external and unknown to static preflight.'
+  risk: medium

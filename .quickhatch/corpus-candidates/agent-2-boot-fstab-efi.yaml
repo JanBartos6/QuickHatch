@@ -1,0 +1,300 @@
+- id: boot-fstab-tee-replace
+  category: boot_fstab_efi
+  command: 'printf "UUID=abc / ext4 defaults 0 1\n" | sudo tee /etc/fstab'
+  expected: block_without_capability
+  expected_capability_kind: 'write_fstab'
+  expected_target: '/etc/fstab'
+  facts_profile: generic
+  mode: any
+  rationale: 'Replaces the live fstab and can make the system unbootable.'
+  risk: high
+- id: boot-target-fstab-replace
+  category: boot_fstab_efi
+  command: 'sudo cp /tmp/new-fstab /target-root/etc/fstab'
+  expected: allow_only_with_capability
+  expected_capability_kind: 'write_fstab'
+  expected_target: '/target-root/etc/fstab'
+  facts_profile: generic
+  mode: fresh_install
+  rationale: 'Writing target fstab is valid during install only with explicit target-root capability.'
+  risk: high
+- id: boot-fstab-append-swap
+  category: boot_fstab_efi
+  command: 'echo "/dev/sda2 none swap sw 0 0" | sudo tee -a /etc/fstab'
+  expected: block_without_capability
+  expected_capability_kind: 'write_fstab'
+  expected_target: '/etc/fstab'
+  facts_profile: generic
+  mode: any
+  rationale: 'Appends persistent mount configuration on the live system.'
+  risk: high
+- id: boot-fstab-sed-in-place
+  category: boot_fstab_efi
+  command: 'sudo sed -i "s/defaults/noatime/" /etc/fstab'
+  expected: block_without_capability
+  expected_capability_kind: 'write_fstab'
+  expected_target: '/etc/fstab'
+  facts_profile: generic
+  mode: any
+  rationale: 'In-place edit of fstab can break future boots.'
+  risk: high
+- id: boot-fstab-cat-read
+  category: diagnostics
+  command: 'cat /etc/fstab'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: '/etc/fstab'
+  facts_profile: generic
+  mode: any
+  rationale: 'Read-only inspection of fstab.'
+  risk: low
+- id: boot-findmnt-fstab-verify
+  category: diagnostics
+  command: 'findmnt --verify --verbose'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: 'Verifies mount table configuration without writing.'
+  risk: low
+- id: boot-mount-all
+  category: boot_fstab_efi
+  command: 'sudo mount -a'
+  expected: manual_review
+  expected_capability_kind: 'mount_target'
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: 'Applies fstab entries and may mount unexpected filesystems.'
+  risk: medium
+- id: boot-grub-install-live
+  category: boot_fstab_efi
+  command: 'sudo grub-install /dev/sda'
+  expected: block_without_capability
+  expected_capability_kind: 'bootloader_install'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Writes bootloader code to disk and can alter boot behavior.'
+  risk: high
+- id: boot-target-grub-install
+  category: boot_fstab_efi
+  command: 'sudo arch-chroot /target-root grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=QuickHatch'
+  expected: allow_only_with_capability
+  expected_capability_kind: 'bootloader_install'
+  expected_target: '/target-root'
+  facts_profile: arch
+  mode: fresh_install
+  rationale: 'Bootloader install inside target root is expected only in fresh install with bootloader capability.'
+  risk: high
+- id: boot-grub-mkconfig-target
+  category: boot_fstab_efi
+  command: 'sudo chroot /target-root grub-mkconfig -o /boot/grub/grub.cfg'
+  expected: allow_only_with_capability
+  expected_capability_kind: 'bootloader_config'
+  expected_target: '/target-root/boot/grub/grub.cfg'
+  facts_profile: generic
+  mode: fresh_install
+  rationale: 'Generates bootloader configuration for the target install.'
+  risk: medium
+- id: boot-update-grub-live
+  category: boot_fstab_efi
+  command: 'sudo update-grub'
+  expected: block_without_capability
+  expected_capability_kind: 'bootloader_config'
+  expected_target: '/boot/grub/grub.cfg'
+  facts_profile: ubuntu
+  mode: configure_existing
+  rationale: 'Mutates live bootloader config and may change boot entries.'
+  risk: high
+- id: boot-efibootmgr-read
+  category: diagnostics
+  command: 'sudo efibootmgr -v'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: 'Reads UEFI boot entries without modifying them.'
+  risk: low
+- id: boot-efibootmgr-create
+  category: boot_fstab_efi
+  command: 'sudo efibootmgr --create --disk /dev/sda --part 1 --label QuickHatch --loader "\\EFI\\QuickHatch\\grubx64.efi"'
+  expected: block_without_capability
+  expected_capability_kind: 'efibootmgr_mutation'
+  expected_target: '/dev/sda1'
+  facts_profile: generic
+  mode: any
+  rationale: 'Creates UEFI NVRAM boot entry and mutates boot order state.'
+  risk: high
+- id: boot-efibootmgr-delete
+  category: boot_fstab_efi
+  command: 'sudo efibootmgr -b 0004 -B'
+  expected: block_without_capability
+  expected_capability_kind: 'efibootmgr_mutation'
+  expected_target: 'Boot0004'
+  facts_profile: generic
+  mode: any
+  rationale: 'Deletes a UEFI boot entry.'
+  risk: high
+- id: boot-efibootmgr-order
+  category: boot_fstab_efi
+  command: 'sudo efibootmgr -o 0004,0001'
+  expected: block_without_capability
+  expected_capability_kind: 'efibootmgr_mutation'
+  expected_target: 'BootOrder'
+  facts_profile: generic
+  mode: any
+  rationale: 'Changes firmware boot order.'
+  risk: high
+- id: boot-systemd-boot-install
+  category: boot_fstab_efi
+  command: 'sudo bootctl --esp-path=/boot install'
+  expected: block_without_capability
+  expected_capability_kind: 'bootloader_install'
+  expected_target: '/boot'
+  facts_profile: arch
+  mode: any
+  rationale: 'Installs systemd-boot into the EFI system partition.'
+  risk: high
+- id: boot-bootctl-status
+  category: diagnostics
+  command: 'bootctl status'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: 'Reads bootloader status.'
+  risk: low
+- id: boot-initramfs-update-debian
+  category: boot_fstab_efi
+  command: 'sudo update-initramfs -u -k all'
+  expected: manual_review
+  expected_capability_kind: 'initramfs_rebuild'
+  expected_target: '/boot'
+  facts_profile: debian
+  mode: any
+  rationale: 'Rebuilds boot artifacts and can affect bootability; context determines whether allowed.'
+  risk: medium
+- id: boot-dracut-force-fedora
+  category: boot_fstab_efi
+  command: 'sudo dracut --force --regenerate-all'
+  expected: manual_review
+  expected_capability_kind: 'initramfs_rebuild'
+  expected_target: '/boot'
+  facts_profile: fedora
+  mode: any
+  rationale: 'Regenerates initramfs images and may affect boot path.'
+  risk: medium
+- id: boot-mkinitcpio-all
+  category: boot_fstab_efi
+  command: 'sudo mkinitcpio -P'
+  expected: manual_review
+  expected_capability_kind: 'initramfs_rebuild'
+  expected_target: '/boot'
+  facts_profile: arch
+  mode: any
+  rationale: 'Regenerates Arch initramfs presets.'
+  risk: medium
+- id: boot-kernel-cmdline-edit
+  category: boot_fstab_efi
+  command: 'sudo sed -i "s/quiet/quiet nomodeset/" /etc/default/grub'
+  expected: block_without_capability
+  expected_capability_kind: 'bootloader_config'
+  expected_target: '/etc/default/grub'
+  facts_profile: generic
+  mode: any
+  rationale: 'Mutates persistent bootloader defaults.'
+  risk: high
+- id: boot-loader-entry-write
+  category: boot_fstab_efi
+  command: 'sudo tee /boot/loader/entries/quickhatch.conf >/dev/null'
+  expected: block_without_capability
+  expected_capability_kind: 'bootloader_config'
+  expected_target: '/boot/loader/entries/quickhatch.conf'
+  facts_profile: arch
+  mode: any
+  rationale: 'Writes a persistent bootloader entry.'
+  risk: high
+- id: boot-efi-file-delete
+  category: boot_fstab_efi
+  command: 'sudo rm -rf /boot/efi/EFI/Microsoft'
+  expected: block_without_capability
+  expected_capability_kind: 'bootloader_config'
+  expected_target: '/boot/efi/EFI/Microsoft'
+  facts_profile: generic
+  mode: any
+  rationale: 'Deletes vendor boot files and may break Windows boot.'
+  risk: high
+- id: boot-os-prober-read
+  category: diagnostics
+  command: 'sudo os-prober'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: 'Detects installed operating systems without writing boot state.'
+  risk: low
+- id: boot-boot-file-list
+  category: diagnostics
+  command: 'find /boot -maxdepth 3 -type f | sort | head -100'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: '/boot'
+  facts_profile: generic
+  mode: any
+  rationale: 'Lists boot files without modifying them.'
+  risk: low
+- id: boot-fstab-backup-copy
+  category: safe_recoverable
+  command: 'sudo cp /etc/fstab /etc/fstab.quickhatch-backup'
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: '/etc/fstab.quickhatch-backup'
+  facts_profile: generic
+  mode: any
+  rationale: 'Creates a backup copy but does not alter active fstab contents.'
+  risk: low
+- id: boot-target-fstab-backup
+  category: target_root
+  command: 'sudo cp /target-root/etc/fstab /target-root/etc/fstab.quickhatch-backup'
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: '/target-root/etc/fstab.quickhatch-backup'
+  facts_profile: generic
+  mode: fresh_install
+  rationale: 'Backs up target fstab without replacing the active file.'
+  risk: low
+- id: boot-esp-mount-readonly
+  category: boot_fstab_efi
+  command: 'sudo mount -o ro /dev/sda1 /mnt/efi'
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: '/mnt/efi'
+  facts_profile: generic
+  mode: any
+  rationale: 'Read-only mount of an EFI partition for inspection.'
+  risk: medium
+- id: boot-esp-mount-rw
+  category: boot_fstab_efi
+  command: 'sudo mount /dev/sda1 /mnt/efi'
+  expected: manual_review
+  expected_capability_kind: 'mount_target'
+  expected_target: '/mnt/efi'
+  facts_profile: generic
+  mode: any
+  rationale: 'Read-write mounting the EFI partition creates opportunity for boot mutations.'
+  risk: medium
+- id: boot-efivar-list
+  category: diagnostics
+  command: 'ls /sys/firmware/efi/efivars | head'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: '/sys/firmware/efi/efivars'
+  facts_profile: generic
+  mode: any
+  rationale: 'Lists EFI variables without writing them.'
+  risk: low

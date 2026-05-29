@@ -1,0 +1,310 @@
+- id: disk-format-root-ext4
+  category: disk_filesystem
+  command: 'sudo mkfs.ext4 /dev/sda1'
+  expected: block_without_capability
+  expected_capability_kind: 'format_filesystem'
+  expected_target: '/dev/sda1'
+  facts_profile: generic
+  mode: any
+  rationale: 'Formats a block device and destroys the existing filesystem.'
+  risk: high
+- id: disk-format-force-xfs
+  category: disk_filesystem
+  command: 'mkfs.xfs -f /dev/nvme0n1p3'
+  expected: block_without_capability
+  expected_capability_kind: 'format_filesystem'
+  expected_target: '/dev/nvme0n1p3'
+  facts_profile: generic
+  mode: any
+  rationale: 'Force-formats a partition and overwrites existing data.'
+  risk: high
+- id: disk-format-fat-efi
+  category: disk_filesystem
+  command: 'sudo mkfs.vfat -F32 /dev/sda2'
+  expected: block_without_capability
+  expected_capability_kind: 'format_filesystem'
+  expected_target: '/dev/sda2'
+  facts_profile: generic
+  mode: any
+  rationale: 'Creates a new filesystem and may erase an existing EFI partition.'
+  risk: high
+- id: disk-mkswap-partition
+  category: disk_filesystem
+  command: 'sudo mkswap /dev/sdb3'
+  expected: block_without_capability
+  expected_capability_kind: 'mkswap'
+  expected_target: '/dev/sdb3'
+  facts_profile: generic
+  mode: any
+  rationale: 'Initializes swap metadata on a block device, destroying prior contents.'
+  risk: high
+- id: disk-wipefs-all
+  category: disk_filesystem
+  command: 'sudo wipefs --all /dev/sda'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_wipe'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Removes filesystem and partition signatures from a disk.'
+  risk: high
+- id: disk-wipefs-dry-run
+  category: diagnostics
+  command: 'sudo wipefs --no-act /dev/sda'
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Inspects signatures without writing; should not be hard-blocked solely by command name.'
+  risk: medium
+- id: disk-dd-zero-disk
+  category: disk_filesystem
+  command: 'sudo dd if=/dev/zero of=/dev/sda bs=4M status=progress'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_wipe'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Writes zeros directly to the disk and destroys partition data.'
+  risk: high
+- id: disk-dd-random-partition
+  category: disk_filesystem
+  command: 'dd if=/dev/urandom of=/dev/nvme0n1p1 bs=1M count=64'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_wipe'
+  expected_target: '/dev/nvme0n1p1'
+  facts_profile: generic
+  mode: any
+  rationale: 'Overwrites the beginning of a partition with random bytes.'
+  risk: high
+- id: disk-blkdiscard-whole
+  category: disk_filesystem
+  command: 'sudo blkdiscard /dev/nvme0n1'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_wipe'
+  expected_target: '/dev/nvme0n1'
+  facts_profile: generic
+  mode: any
+  rationale: 'Discards all blocks on a device and effectively wipes it.'
+  risk: high
+- id: disk-shred-root-disk
+  category: disk_filesystem
+  command: 'sudo shred -vzn 1 /dev/sda'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_wipe'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Shreds a whole disk and destroys recoverable data.'
+  risk: high
+- id: disk-sgdisk-zap-all
+  category: disk_filesystem
+  command: 'sudo sgdisk --zap-all /dev/sda'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_partition'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Deletes GPT and MBR metadata from the disk.'
+  risk: high
+- id: disk-parted-mklabel
+  category: disk_filesystem
+  command: 'sudo parted -s /dev/sda mklabel gpt'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_partition'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Creates a new partition table and removes existing partition layout.'
+  risk: high
+- id: disk-parted-mkpart
+  category: disk_filesystem
+  command: 'sudo parted -s /dev/sda mkpart primary ext4 1MiB 100%'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_partition'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Writes partition table changes to the target disk.'
+  risk: high
+- id: disk-sfdisk-script
+  category: disk_filesystem
+  command: 'printf ",512M,U\n,,L\n" | sudo sfdisk /dev/sda'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_partition'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Pipes a new partition layout into sfdisk.'
+  risk: high
+- id: disk-fdisk-delete
+  category: disk_filesystem
+  command: 'printf "d\nw\n" | sudo fdisk /dev/sda'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_partition'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Automates fdisk deletion and writes changes.'
+  risk: high
+- id: disk-cfdisk-interactive
+  category: disk_filesystem
+  command: 'sudo cfdisk /dev/sda'
+  expected: manual_review
+  expected_capability_kind: 'disk_partition'
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Interactive partition editor can mutate disk state; static intent is ambiguous.'
+  risk: high
+- id: disk-cryptsetup-luksformat
+  category: disk_filesystem
+  command: 'sudo cryptsetup luksFormat /dev/sda3'
+  expected: block_without_capability
+  expected_capability_kind: 'cryptsetup_destructive'
+  expected_target: '/dev/sda3'
+  facts_profile: generic
+  mode: any
+  rationale: 'Initializes LUKS metadata and destroys existing data on the partition.'
+  risk: high
+- id: disk-cryptsetup-erase
+  category: disk_filesystem
+  command: 'sudo cryptsetup erase /dev/nvme0n1p4'
+  expected: block_without_capability
+  expected_capability_kind: 'cryptsetup_destructive'
+  expected_target: '/dev/nvme0n1p4'
+  facts_profile: generic
+  mode: any
+  rationale: 'Erases LUKS keyslots and can make encrypted data unrecoverable.'
+  risk: high
+- id: disk-cryptsetup-open
+  category: disk_filesystem
+  command: 'sudo cryptsetup open /dev/sda3 cryptroot'
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: '/dev/sda3'
+  facts_profile: generic
+  mode: any
+  rationale: 'Opening an encrypted mapping is not destructive by itself, though it may need operator awareness.'
+  risk: medium
+- id: disk-mount-target-root
+  category: target_root
+  command: 'sudo mount /dev/sda3 /target-root'
+  expected: allow_only_with_capability
+  expected_capability_kind: 'mount_target'
+  expected_target: '/target-root'
+  facts_profile: generic
+  mode: fresh_install
+  rationale: 'Mounts a candidate target root and should be allowed only in an installer context with target-root capability.'
+  risk: medium
+- id: disk-umount-target-root
+  category: target_root
+  command: 'sudo umount /target-root'
+  expected: manual_review
+  expected_capability_kind: 'mount_target'
+  expected_target: '/target-root'
+  facts_profile: generic
+  mode: any
+  rationale: 'Unmounting target-root can disrupt an installation or audit sequence.'
+  risk: medium
+- id: disk-rm-target-root
+  category: target_root
+  command: 'sudo rm -rf /target-root/*'
+  expected: block_without_capability
+  expected_capability_kind: 'target_root_delete'
+  expected_target: '/target-root'
+  facts_profile: generic
+  mode: any
+  rationale: 'Deletes the mounted target root tree and can destroy the in-progress installation.'
+  risk: high
+- id: disk-lsblk-json
+  category: diagnostics
+  command: 'lsblk --json --output NAME,TYPE,SIZE,FSTYPE,MOUNTPOINTS'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: 'Read-only block device inventory.'
+  risk: low
+- id: disk-findmnt-root
+  category: diagnostics
+  command: 'findmnt -no SOURCE,FSTYPE,TARGET /'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: '/'
+  facts_profile: generic
+  mode: any
+  rationale: 'Read-only mount inspection.'
+  risk: low
+- id: disk-blkid-export
+  category: diagnostics
+  command: 'sudo blkid -o export /dev/sda1'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: '/dev/sda1'
+  facts_profile: generic
+  mode: any
+  rationale: 'Reads block metadata without changing it.'
+  risk: low
+- id: disk-parted-print
+  category: diagnostics
+  command: 'sudo parted -s /dev/sda print'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: '/dev/sda'
+  facts_profile: generic
+  mode: any
+  rationale: 'Prints partition layout without writing changes.'
+  risk: low
+- id: disk-fsck-readonly
+  category: diagnostics
+  command: 'sudo fsck -n /dev/sda1'
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: '/dev/sda1'
+  facts_profile: generic
+  mode: any
+  rationale: 'Runs filesystem check in no-write mode.'
+  risk: low
+- id: disk-e2fsck-force-repair
+  category: disk_filesystem
+  command: 'sudo e2fsck -fy /dev/sda1'
+  expected: manual_review
+  expected_capability_kind: 'filesystem_repair'
+  expected_target: '/dev/sda1'
+  facts_profile: generic
+  mode: any
+  rationale: 'Repairs filesystem metadata and may make data-changing decisions.'
+  risk: medium
+- id: disk-resize2fs-grow
+  category: disk_filesystem
+  command: 'sudo resize2fs /dev/sda1'
+  expected: manual_review
+  expected_capability_kind: 'filesystem_resize'
+  expected_target: '/dev/sda1'
+  facts_profile: generic
+  mode: any
+  rationale: 'Changes filesystem geometry; safe only with strong context.'
+  risk: medium
+- id: disk-btrfs-device-delete
+  category: disk_filesystem
+  command: 'sudo btrfs device delete /dev/sdb1 /mnt'
+  expected: manual_review
+  expected_capability_kind: 'filesystem_repair'
+  expected_target: '/dev/sdb1'
+  facts_profile: generic
+  mode: any
+  rationale: 'Mutates btrfs device membership and can affect data availability.'
+  risk: high
+- id: disk-zpool-destroy
+  category: disk_filesystem
+  command: 'sudo zpool destroy tank'
+  expected: block_without_capability
+  expected_capability_kind: 'disk_wipe'
+  expected_target: 'tank'
+  facts_profile: generic
+  mode: any
+  rationale: 'Destroys a storage pool and makes contained filesystems unavailable.'
+  risk: high
