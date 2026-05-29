@@ -265,7 +265,7 @@ def test_confirmed_tier1_capabilities_allow_harness_generated_operations() -> No
         ),
         (
             "bootloader_install",
-            "/boot",
+            "/target-root",
             "sudo arch-chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=quickhatch",
         ),
         (
@@ -298,7 +298,8 @@ def test_controlled_reboot_capability_does_not_mask_other_ssh_lockouts() -> None
     )
 
     assert error
-    assert "cut off remote access" in error
+    assert "explicit QuickHatch capability" in error
+    assert "network_security_change" in error
 
 
 def test_ambiguous_variable_high_blast_radius_shell_requires_capability() -> None:
@@ -320,7 +321,6 @@ def test_mapper_luks_lvm_fdisk_and_efi_mutations_require_capability() -> None:
     commands = (
         "mkfs.ext4 /dev/mapper/cryptroot",
         "mount /dev/mapper/cryptroot /mnt",
-        "cryptsetup open /dev/sda2 cryptroot",
         "vgcreate vg0 /dev/sda2",
         "lvcreate -L 20G -n root vg0",
         "lvremove -y /dev/vg0/root",
@@ -337,6 +337,12 @@ def test_mapper_luks_lvm_fdisk_and_efi_mutations_require_capability() -> None:
         error = preflight_setup_command(command, facts)
         assert error, command
         assert "explicit QuickHatch capability" in error
+
+
+def test_luks_open_is_not_treated_as_destructive_format() -> None:
+    facts = SetupFacts(is_live=True, is_root=True)
+
+    assert preflight_setup_command("cryptsetup open /dev/sda2 cryptroot", facts) is None
 
 
 def test_dangerous_operation_preview_is_required_for_grants() -> None:

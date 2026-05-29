@@ -19,6 +19,7 @@ CAPABILITY_KINDS = frozenset(
         "mount_target",
         "write_fstab",
         "bootloader_install",
+        "bootloader_config",
         "controlled_reboot",
         "network_security_change",
         "package_db_repair",
@@ -32,8 +33,11 @@ _DEVICE_RE = (
     r"mapper/[^\s;|&\"']+|[A-Za-z0-9_.+-]+/[^\s;|&\"']+|"
     r"(?:sd|vd|xvd|hd)[a-z]\d*|nvme\d+n\d+(?:p\d+)?|mmcblk\d+(?:p\d+)?)"
 )
-_TARGET_ROOT_RE = r"(?:/mnt|/target|/mnt/target|/mnt/sysroot|/mnt/sysimage)(?:/\S*|\b|\*)"
+_TARGET_ROOT_RE = (
+    r"(?:/target-root|/mnt/target|/mnt/sysroot|/mnt/sysimage|/target|/mnt)(?:/\S*|\b|\*)"
+)
 _TARGET_ROOT_ALIASES = {
+    "/target-root": "/target-root",
     "/mnt": "/target-root",
     "/target": "/target-root",
     "/mnt/target": "/target-root",
@@ -41,7 +45,9 @@ _TARGET_ROOT_ALIASES = {
     "/mnt/sysimage": "/target-root",
 }
 _WINDOWS_FS_RE = re.compile(r"\b(?:ntfs|bitlocker|windows\s+recovery|msftres)\b", re.I)
-_FSTAB_PATH_RE = r"(?:/(?:mnt|target|mnt/target|mnt/sysroot|mnt/sysimage)/etc/fstab|/etc/fstab)\b"
+_FSTAB_PATH_RE = (
+    r"(?:/(?:target-root|mnt|target|mnt/target|mnt/sysroot|mnt/sysimage)/etc/fstab|/etc/fstab)\b"
+)
 _PACKAGE_DB_PATH_RE = r"/var/lib/(?:dpkg|pacman|rpm)(?:/[^\s;|&\"']*)?"
 
 
@@ -98,7 +104,13 @@ def canonicalize_target(target: str, *, inventory: str = "") -> str:
         return text
     if text.startswith("/dev/"):
         return text
-    if text in {"fstab", "/etc/fstab", "/mnt/etc/fstab", "/target/etc/fstab"}:
+    if text in {
+        "fstab",
+        "/etc/fstab",
+        "/mnt/etc/fstab",
+        "/target/etc/fstab",
+        "/target-root/etc/fstab",
+    }:
         return "/etc/fstab" if text == "/etc/fstab" else "/target-root/etc/fstab"
     if inventory and text in inventory:
         return text
@@ -298,6 +310,19 @@ def _expand_var_refs(text: str, values: dict[str, str]) -> str:
     return expanded
 
 
+def _value_references_assignment_name(value: str, name: str) -> bool:
+    return bool(re.search(rf"\$(?:{{{re.escape(name)}(?:[}}:]|$)|{re.escape(name)}\b)", value))
+
+
+def _expand_static_command_substitutions(text: str) -> str:
+    """Expand tiny deterministic command substitutions used in shell wrappers."""
+
+    pattern = re.compile(
+        r"\$\(\s*printf\s+(?:%s\s+)?(?P<quote>['\"]?)(?P<value>[A-Za-z0-9_.+-]+)(?P=quote)\s*\)"
+    )
+    return pattern.sub(lambda match: match.group("value"), str(text or ""))
+
+
 def _expand_simple_shell_variables(text: str) -> str:
     """Resolve simple shell assignments before high-blast-radius scanning.
 
@@ -313,6 +338,8 @@ def _expand_simple_shell_variables(text: str) -> str:
         for match in _SIMPLE_ASSIGN_RE.finditer(source):
             name = match.group("name")
             value = _strip_assignment_quotes(match.group("value"))
+            if _value_references_assignment_name(value, name):
+                continue
             value = _expand_var_refs(value, values)
             if values.get(name) != value:
                 values[name] = value
@@ -327,11 +354,19 @@ def _expand_simple_shell_variables(text: str) -> str:
 def _expanded_shell_scans(command: str) -> list[str]:
     scans: list[str] = []
     seen: set[str] = set()
-    for item in [str(command or ""), *_shell_payloads(str(command or ""))]:
-        expanded = _expand_simple_shell_variables(item)
+
+    def add_scan(item: str, *, include_payloads: bool = True) -> None:
+        expanded = _expand_static_command_substitutions(_expand_simple_shell_variables(item))
         if expanded and expanded not in seen:
             scans.append(expanded)
             seen.add(expanded)
+        if include_payloads:
+            for payload in _shell_payloads(expanded):
+                add_scan(payload, include_payloads=False)
+
+    add_scan(str(command or ""))
+    for item in _shell_payloads(str(command or "")):
+        add_scan(item)
     return scans
 
 
@@ -385,6 +420,231 @@ def _strip_command_prefix(tokens: list[str]) -> list[str]:
     return tokens[idx:]
 
 
+def _stripped_segment_tokens(item: str) -> list[list[str]]:
+    segments: list[list[str]] = []
+    for segment in _command_segments(item):
+        try:
+            tokens = shlex.split(segment, posix=True)
+        except ValueError:
+            tokens = segment.split()
+        stripped = _strip_command_prefix(tokens)
+        if stripped:
+            segments.append(stripped)
+    return segments
+
+
+def _non_option_args(args: list[str]) -> list[str]:
+    return [arg for arg in args if arg and not arg.startswith("-")]
+
+
+def _option_value(args: list[str], *names: str) -> str:
+    for idx, arg in enumerate(args):
+        if arg in names and idx + 1 < len(args):
+            return args[idx + 1]
+        for name in names:
+            prefix = f"{name}="
+            if arg.startswith(prefix):
+                return arg[len(prefix) :]
+    return ""
+
+
+def _chroot_context(tokens: list[str]) -> tuple[str, list[str]]:
+    if not tokens:
+        return "", []
+    tool = tokens[0].rsplit("/", 1)[-1].lower()
+    if tool not in {"arch-chroot", "chroot"} or len(tokens) < 3:
+        return "", tokens
+    root = canonicalize_target(tokens[1])
+    return root, tokens[2:]
+
+
+def _join_chroot_path(root: str, path: str) -> str:
+    if not root:
+        return path
+    if not path.startswith("/"):
+        return root
+    return canonicalize_target(root).rstrip("/") + path
+
+
+def _strip_path_quotes(path: str) -> str:
+    return str(path or "").strip().strip("\"'")
+
+
+def _canonical_fstab_target(path: str) -> str:
+    cleaned = _strip_path_quotes(path)
+    if cleaned == "/etc/fstab":
+        return "/etc/fstab"
+    if cleaned.endswith("/etc/fstab"):
+        return "/target-root/etc/fstab"
+    return cleaned
+
+
+def _path_is_exact_fstab(path: str) -> bool:
+    return _canonical_fstab_target(path) in {"/etc/fstab", "/target-root/etc/fstab"}
+
+
+def _last_non_option_path(tokens: list[str]) -> str:
+    candidates = [arg for arg in tokens[1:] if arg and not arg.startswith("-")]
+    return candidates[-1] if candidates else ""
+
+
+def _copy_like_writes_fstab(item: str) -> str:
+    for tokens in _stripped_segment_tokens(item):
+        tool = tokens[0].rsplit("/", 1)[-1].lower()
+        if tool not in {"cp", "install", "mv"}:
+            continue
+        target = _last_non_option_path(tokens)
+        if _path_is_exact_fstab(target):
+            return _canonical_fstab_target(target)
+    return ""
+
+
+def _tee_writes_path(item: str, path_pattern: str) -> str:
+    for match in re.finditer(
+        r"\btee\b(?:\s+-[A-Za-z]+)*\s+[\"']?(?P<path>" + path_pattern + r")[\"']?",
+        item,
+        re.I,
+    ):
+        return _strip_path_quotes(match.group("path"))
+    return ""
+
+
+def _redirection_writes_path(item: str, path_pattern: str) -> str:
+    for match in re.finditer(
+        r"(?:^|[\s;|&])(?:>|>>)\s*[\"']?(?P<path>" + path_pattern + r")[\"']?",
+        item,
+        re.I,
+    ):
+        return _strip_path_quotes(match.group("path"))
+    return ""
+
+
+def _wipefs_match_mutates(match_text: str) -> bool:
+    try:
+        tokens = shlex.split(match_text, posix=True)
+    except ValueError:
+        tokens = match_text.split()
+    lowered = [token.lower() for token in tokens]
+    return "--no-act" not in lowered and "-n" not in lowered
+
+
+def _readonly_mount(tokens: list[str]) -> bool:
+    args = tokens[1:]
+    for idx, arg in enumerate(args):
+        if arg in {"-r", "--read-only"}:
+            return True
+        if arg == "-o" and idx + 1 < len(args):
+            options = {item.strip().lower() for item in args[idx + 1].split(",")}
+            if "ro" in options:
+                return True
+        if arg.startswith("-o") and len(arg) > 2:
+            options = {item.strip().lower() for item in arg[2:].split(",")}
+            if "ro" in options:
+                return True
+    return False
+
+
+def _bootloader_install_target(item: str) -> str:
+    for tokens in _stripped_segment_tokens(item):
+        root, inner = _chroot_context(tokens)
+        if not inner:
+            continue
+        tool = inner[0].rsplit("/", 1)[-1].lower()
+        args = inner[1:]
+        if tool in {"grub-install", "grub2-install"}:
+            return root or "/boot"
+        if tool == "bootctl" and "install" in _non_option_args(args):
+            return root or _option_value(args, "--esp-path") or "/boot"
+    return ""
+
+
+def _bootloader_config_target(item: str) -> str:
+    for tokens in _stripped_segment_tokens(item):
+        root, inner = _chroot_context(tokens)
+        if not inner:
+            continue
+        tool = inner[0].rsplit("/", 1)[-1].lower()
+        args = inner[1:]
+        if tool in {"grub-mkconfig", "grub2-mkconfig"}:
+            return _join_chroot_path(
+                root, _option_value(args, "-o", "--output") or "/boot/grub/grub.cfg"
+            )
+        if tool == "update-grub":
+            return _join_chroot_path(root, "/boot/grub/grub.cfg")
+    return ""
+
+
+_BOOT_CONFIG_PATH_RE = r"(?:/etc/default/grub|/boot/(?:grub/grub\.cfg|loader/entries/[^\s;|&\"']+|efi/EFI/[^\s;|&\"']+))"
+
+
+def _boot_config_path_mutation_target(item: str) -> str:
+    tee_target = _tee_writes_path(item, _BOOT_CONFIG_PATH_RE)
+    if tee_target:
+        return tee_target
+    redirect_target = _redirection_writes_path(item, _BOOT_CONFIG_PATH_RE)
+    if redirect_target:
+        return redirect_target
+    if re.search(
+        r"\b(?:sed\s+-i|perl\s+-pi|truncate\b|rm\s+-[A-Za-z]*f?[A-Za-z]*|dd\b[^\n;|&]*\bof=)[^\n;|&]*"
+        + _BOOT_CONFIG_PATH_RE,
+        item,
+        re.I,
+    ):
+        match = re.search(_BOOT_CONFIG_PATH_RE, item, re.I)
+        return _strip_path_quotes(match.group(0)) if match else "/boot"
+    if re.search(r"\b(?:cp|install|mv)\b[^\n;|&]*" + _BOOT_CONFIG_PATH_RE, item, re.I):
+        match = re.search(_BOOT_CONFIG_PATH_RE, item, re.I)
+        return _strip_path_quotes(match.group(0)) if match else "/boot"
+    return ""
+
+
+def _firewall_or_vpn_mutates(item: str) -> bool:
+    return bool(
+        re.search(
+            r"\bufw\b(?:\s+-[\w-]+)*\s+(?:enable|reload|allow|deny|reject|limit|delete|insert|prepend|default|reset)\b",
+            item,
+            re.I,
+        )
+        or re.search(r"\btailscale\s+up\b", item, re.I)
+        or re.search(
+            r"\b(?:systemctl\s+(?:enable|start|restart|--now\s+enable).*(?:mullvad|wg-quick|firewalld|nftables|ufw|openvpn)|wg-quick\s+up)\b",
+            item,
+            re.I,
+        )
+        or re.search(r"\bnft\s+(?:add|delete|destroy|flush|insert|replace)\b", item, re.I)
+        or re.search(
+            r"\b(?:iptables|ip6tables)\b[^\n;|&]*(?:\s-[ADIRFPNXZ]\b|--(?:append|delete|insert|replace|flush|policy|delete-chain|new-chain|zero)\b)",
+            item,
+        )
+        or re.search(
+            r"\bfirewall-cmd\b[^\n;|&]*(?:--reload|--complete-reload|--add-|--remove-|--set-default)",
+            item,
+            re.I,
+        )
+    )
+
+
+def _ssh_or_network_continuity_mutates(item: str) -> bool:
+    return bool(
+        re.search(
+            r"\bsystemctl\b[^\n;|&]*(?:stop|disable|mask|restart|try-restart|reload-or-restart)[^\n;|&]*(?:ssh|sshd|networkmanager|network-manager)\b",
+            item,
+            re.I,
+        )
+        or re.search(
+            r"\bservice\s+(?:ssh|sshd|networkmanager|network-manager)\s+(?:stop|restart|reload|force-reload)\b",
+            item,
+            re.I,
+        )
+        or re.search(r"\bnmcli\s+(?:networking\s+off|connection\s+down)\b", item, re.I)
+        or re.search(
+            r"\bip\s+(?:link\s+set\b[^\n;|&]*\bdown\b|route\s+del\s+default|addr\s+flush)\b",
+            item,
+            re.I,
+        )
+    )
+
+
 def _power_transition_mutates(item: str) -> bool:
     for segment in _command_segments(item):
         try:
@@ -427,14 +687,6 @@ def _ambiguous_variable_requirement(item: str) -> list[dict[str, str]]:
                 "kind": "format_filesystem",
                 "target": "",
                 "reason": "ambiguous variable LUKS format/erase target",
-            }
-        ]
-    if re.search(r"\bcryptsetup\b[^;&|]*\bopen\b", item, re.I):
-        return [
-            {
-                "kind": "mount_target",
-                "target": "",
-                "reason": "ambiguous variable LUKS open target",
             }
         ]
     if re.search(r"\bdd\b[^;&|]*\bof=", item, re.I):
@@ -525,18 +777,6 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                 }
             )
         for match in re.finditer(
-            r"\bcryptsetup\b[^;&|]*\bopen\b[^;&|]*[\"']?(?P<target>" + _DEVICE_RE + r")[\"']?",
-            item,
-            re.I,
-        ):
-            requirements.append(
-                {
-                    "kind": "mount_target",
-                    "target": match.group("target"),
-                    "reason": "LUKS open target mapping",
-                }
-            )
-        for match in re.finditer(
             r"\bparted\b[^;&|]*[\"']?(?P<target>" + _DEVICE_RE + r")[\"']?[^;&|]*\brm\b",
             item,
             re.I,
@@ -614,6 +854,8 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
             item,
             re.I,
         ):
+            if not _wipefs_match_mutates(match.group(0)):
+                continue
             requirements.append(
                 {
                     "kind": "disk_partition",
@@ -646,6 +888,14 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     "reason": "LVM metadata mutation",
                 }
             )
+        for match in re.finditer(r"\bzpool\s+destroy\b[^;&|]*(?P<target>[^\s;|&]+)", item, re.I):
+            requirements.append(
+                {
+                    "kind": "disk_partition",
+                    "target": match.group("target"),
+                    "reason": "storage pool destroy",
+                }
+            )
         for match in re.finditer(
             r"\bdd\b[^;&|]*\bof=[\"']?(?P<target>" + _DEVICE_RE + r")[\"']?",
             item,
@@ -668,6 +918,12 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
             item,
             re.I,
         ):
+            mount_tokens = next(
+                (tokens for tokens in _stripped_segment_tokens(match.group(0)) if tokens),
+                [],
+            )
+            if mount_tokens and _readonly_mount(mount_tokens):
+                continue
             requirements.append(
                 {
                     "kind": "mount_target",
@@ -703,10 +959,6 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     "reason": "target-root unmount operation",
                 }
             )
-        if re.search(r"\b(?:grub-install|grub2-install|bootctl\s+install)\b", item, re.I):
-            requirements.append(
-                {"kind": "bootloader_install", "target": "/boot", "reason": "bootloader install"}
-            )
         if re.search(r"\befibootmgr\b[^\n;|&]*(?:\s-c\b|--create\b)", item, re.I):
             requirements.append(
                 {
@@ -727,21 +979,22 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     "reason": "EFI boot entry/order mutation",
                 }
             )
-        if re.search(
-            r"\b(?:genfstab\b|/etc/fstab\b|/mnt/etc/fstab\b|/target/etc/fstab\b)", item, re.I
-        ) and re.search(r">\s*/|tee\s+", item):
-            requirements.append(
-                {"kind": "write_fstab", "target": "/target-root/etc/fstab", "reason": "fstab write"}
-            )
-        if re.search(
-            r"\b(?:cp|install|mv)\b[^\n;|&]*" + _FSTAB_PATH_RE,
-            item,
-            re.I,
-        ):
+        fstab_tee_target = _tee_writes_path(item, _FSTAB_PATH_RE)
+        fstab_redirect_target = _redirection_writes_path(item, _FSTAB_PATH_RE)
+        if fstab_tee_target or fstab_redirect_target:
             requirements.append(
                 {
                     "kind": "write_fstab",
-                    "target": "/target-root/etc/fstab",
+                    "target": _canonical_fstab_target(fstab_tee_target or fstab_redirect_target),
+                    "reason": "fstab write",
+                }
+            )
+        fstab_copy_target = _copy_like_writes_fstab(item)
+        if fstab_copy_target:
+            requirements.append(
+                {
+                    "kind": "write_fstab",
+                    "target": fstab_copy_target,
                     "reason": "fstab file replacement",
                 }
             )
@@ -761,6 +1014,33 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     "kind": "write_fstab",
                     "target": "/target-root/etc/fstab",
                     "reason": "fstab mutation",
+                }
+            )
+        bootloader_install_target = _bootloader_install_target(item)
+        if bootloader_install_target:
+            requirements.append(
+                {
+                    "kind": "bootloader_install",
+                    "target": bootloader_install_target,
+                    "reason": "bootloader install",
+                }
+            )
+        bootloader_config_target = _bootloader_config_target(item)
+        if bootloader_config_target:
+            requirements.append(
+                {
+                    "kind": "bootloader_config",
+                    "target": bootloader_config_target,
+                    "reason": "bootloader configuration mutation",
+                }
+            )
+        boot_config_path_target = _boot_config_path_mutation_target(item)
+        if boot_config_path_target:
+            requirements.append(
+                {
+                    "kind": "bootloader_config",
+                    "target": boot_config_path_target,
+                    "reason": "boot configuration file mutation",
                 }
             )
         if _power_transition_mutates(item):
@@ -784,24 +1064,21 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                     "reason": "recursive destructive remove under target root",
                 }
             )
-        firewall_mutates = (
-            re.search(
-                r"\b(?:ufw\s+(?:enable|reload|allow|deny|reject|limit|delete|insert|prepend|default|reset)|systemctl\s+(?:enable|start|restart|--now\s+enable).*(?:mullvad|wg-quick|firewalld|nftables|ufw|openvpn)|wg-quick\s+up)\b",
-                item,
-                re.I,
+        if re.search(
+            r"\bfind\b[^\n;|&]*"
+            + _TARGET_ROOT_RE
+            + r"[^\n;|&]*(?:-delete|-exec\s+(?:rm|shred|truncate)\b)",
+            item,
+            re.I,
+        ):
+            requirements.append(
+                {
+                    "kind": "disk_partition",
+                    "target": "/target-root",
+                    "reason": "recursive destructive find under target root",
+                }
             )
-            or re.search(r"\bnft\s+(?:add|delete|destroy|flush|insert|replace)\b", item, re.I)
-            or re.search(
-                r"\b(?:iptables|ip6tables)\b[^\n;|&]*(?:\s-[ADIRFPNXZ]\b|--(?:append|delete|insert|replace|flush|policy|delete-chain|new-chain|zero)\b)",
-                item,
-            )
-            or re.search(
-                r"\bfirewall-cmd\b[^\n;|&]*(?:--reload|--complete-reload|--add-|--remove-|--set-default)",
-                item,
-                re.I,
-            )
-        )
-        if firewall_mutates:
+        if _firewall_or_vpn_mutates(item) or _ssh_or_network_continuity_mutates(item):
             requirements.append(
                 {
                     "kind": "network_security_change",
@@ -811,7 +1088,7 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
             )
         package_db_mutates = (
             re.search(
-                r"(?:\brpm\s+--rebuilddb\b|\bdpkg\s+--configure\b|\bpacman\b[^\n;|&]*(?:\s-d\b|--dbonly\b)|(?:^|\s)-rdd(?:\s|$)|--nodeps\b)",
+                r"(?:\bpacman\b[^\n;|&]*(?:\s-d\b|--dbonly\b)|(?:^|\s)-rdd(?:\s|$)|--nodeps\b)",
                 lowered,
             )
             or re.search(r"\b(?:rm|shred)\b[^\n;|&]*" + _PACKAGE_DB_PATH_RE, item, re.I)
@@ -836,6 +1113,15 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
                 re.I,
             )
         )
+        rpm_rebuilds_db = re.search(r"\brpm\s+--rebuilddb\b", lowered)
+        if rpm_rebuilds_db:
+            requirements.append(
+                {
+                    "kind": "package_db_repair",
+                    "target": "/var/lib/rpm",
+                    "reason": "package database repair",
+                }
+            )
         if package_db_mutates:
             requirements.append(
                 {

@@ -702,6 +702,8 @@ def _activates_network_security_services(cmd: str) -> bool:
         if tool in {"firewall-cmd", "nft", "iptables", "ip6tables"}:
             if _firewall_command_mutates(tool, raw_args):
                 return True
+        if tool == "tailscale" and args[:1] == ["up"]:
+            return True
     return False
 
 
@@ -716,7 +718,8 @@ def _firewall_command_mutates(tool: str, args: list[str]) -> bool:
             for arg in args
         )
     if tool == "ufw":
-        return args[0] in {
+        verb = next((arg for arg in args if not arg.startswith("-")), "")
+        return verb in {
             "allow",
             "default",
             "delete",
@@ -882,6 +885,8 @@ def _installed_system_disk_or_bootstrap_mutation(tool: str, tokens: list[str]) -
     """Return true for live-install/disk-spine commands on an installed system."""
 
     token_text = " ".join(tokens[1:]).lower()
+    if tool == "wipefs" and any(arg in {"--no-act", "-n"} for arg in tokens[1:]):
+        return False
     if tool in {
         "blkdiscard",
         "debootstrap",
@@ -1269,6 +1274,7 @@ def _decision_category(reason: str) -> str:
                 "mount_target",
                 "write_fstab",
                 "bootloader_install",
+                "bootloader_config",
             )
         ):
             return "disk_boot_safety"

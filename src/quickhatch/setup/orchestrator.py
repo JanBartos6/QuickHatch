@@ -2498,7 +2498,59 @@ class SetupOrchestrator:
             if self._skip_stage_if_current_audit_passes(SetupStage.POSTBOOT_DRIVER):
                 return
         self._inject_nvidia_recovery_group_if_needed()
+        self._grant_known_postboot_driver_capabilities()
         self._run_stage_groups(SetupStage.POSTBOOT_DRIVER)
+
+    def _grant_known_postboot_driver_capabilities(self) -> None:
+        store = self.ctx.capability_store
+        if store is None:
+            return
+        for group in self._iter_stage_groups(SetupStage.POSTBOOT_DRIVER):
+            for command in group.commands:
+                self._grant_known_postboot_driver_command_capability(
+                    SetupStage.POSTBOOT_DRIVER, group, command
+                )
+
+    def _grant_known_postboot_driver_command_capability(
+        self,
+        stage: SetupStage,
+        group: CommandGroup,
+        command: str,
+    ) -> None:
+        store = self.ctx.capability_store
+        if store is None or stage != SetupStage.POSTBOOT_DRIVER:
+            return
+        if command not in _ARCH_NVIDIA_BOOT_CONFIG_COMMANDS:
+            return
+        commands = [*group.commands, *group.verification, command]
+        if not self._is_nvidia_driver_group(stage, group, commands):
+            return
+        for requirement in dangerous_command_requirements(command):
+            if requirement.get("kind") != "bootloader_config":
+                continue
+            target = requirement.get("target", "")
+            if store.allows(kind="bootloader_config", target=target):
+                continue
+            preview_id = f"preview-nvidia-driver-{self.ctx.run_id}-{uuid.uuid4().hex[:8]}"
+            grant = store.grant(
+                kind="bootloader_config",
+                target=target,
+                confirmation_text="QuickHatch NVIDIA recovery boot configuration",
+                confirmation_id=preview_id,
+                reason=requirement.get(
+                    "reason",
+                    "QuickHatch NVIDIA recovery boot configuration",
+                ),
+                source="harness_generated",
+                one_time_use=False,
+                preview_id=preview_id,
+            )
+            self.runlog.record(
+                "capability_granted",
+                stage=stage.value,
+                group_id=group.id,
+                capability=asdict(grant),
+            )
 
     def _run_desktop(self) -> None:
         if self._skip_stage_if_current_audit_passes(SetupStage.DESKTOP):
@@ -4386,6 +4438,7 @@ fi
                     command=command,
                 )
                 continue
+            self._grant_known_postboot_driver_command_capability(stage, group, command)
             shadow_preflight = os.environ.get("QUICKHATCH_PREFLIGHT_SHADOW") == "1"
             decisions = preflight_setup_decisions(
                 command,
