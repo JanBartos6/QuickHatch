@@ -2348,3 +2348,1519 @@ cases:
   - agent-6-manual-review-redteam
   notes: 'reviewed: interpreter bridges that execute external shell text are tagged
     with external_shell_payload_observed but remain advisory by default.'
+# Safe false-positive lane: these cases calibrate effect-based preflight, not a
+# command whitelist. They cover commands that may be wrong, unavailable,
+# distro-mismatched, or naturally failing while staying outside dangerous
+# disk, boot, fstab, package-DB, network/SSH, and target-root boundaries.
+- id: pkg-arch-typo-firefix
+  category: safe_recoverable
+  command: sudo pacman -S --needed firefrox
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: arch
+  mode: any
+  rationale: A typoed package install should fail naturally or be repaired, not hard-blocked
+    as dangerous.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=package_install; likely_failure_reason=wrong
+    package; comparison_danger=sudo pacman -S --needed firefox && sudo wipefs -a /dev/sda
+- id: pkg-arch-stale-chromium-wayland
+  category: safe_recoverable
+  command: sudo pacman -S chromium-wayland
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: arch
+  mode: configure_existing
+  rationale: A stale or nonexistent package hint is recoverable and does not imply destructive
+    state transition.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=package_install; likely_failure_reason=unavailable;
+    comparison_danger=sudo rm -rf /var/lib/pacman/local
+- id: pkg-arch-debian-name-build-essential
+  category: safe_recoverable
+  command: sudo pacman -S build-essential
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: arch
+  mode: any
+  rationale: A Debian package name used on Arch is a distro mismatch that should be advisory
+    or repairable.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=package_install; likely_failure_reason=distro
+    mismatch; comparison_danger=sudo pacman -Rdd glibc
+- id: pkg-arch-aur-helper-missing
+  category: safe_recoverable
+  command: yay -S visual-studio-code-bin
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: arch
+  mode: configure_existing
+  rationale: An AUR helper may be missing, but attempting an app install through it is not
+    a high-blast-radius operation.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=app_install; likely_failure_reason=missing
+    helper; comparison_danger=sudo systemctl stop sshd
+- id: pkg-arch-duplicated-install
+  category: safe_recoverable
+  command: sudo pacman -S --needed vlc vlc vlc
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: arch
+  mode: any
+  rationale: Duplicate package names are harmless command quality issues and should not trigger
+    a hard block.
+  risk: low
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=package_install; likely_failure_reason=none;
+    comparison_danger=sudo mkfs.ext4 /dev/sda1
+- id: pkg-debian-typo-vlc
+  category: safe_recoverable
+  command: sudo apt-get install -y vlcc
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: debian
+  mode: any
+  rationale: A misspelled package name should be allowed to fail or be corrected by repair
+    logic.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=package_install; likely_failure_reason=wrong
+    package; comparison_danger=sudo dd if=/dev/zero of=/dev/sda bs=1M
+- id: pkg-debian-arch-package-name
+  category: safe_recoverable
+  command: sudo apt-get install -y base-devel
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: debian
+  mode: any
+  rationale: An Arch package group name on Debian is a distro mismatch, not a dangerous effect.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=package_install; likely_failure_reason=distro
+    mismatch; comparison_danger=sudo sfdisk /dev/sda < layout.sfdisk
+- id: pkg-debian-fedora-manager
+  category: safe_recoverable
+  command: sudo dnf install -y gnome-tweaks
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: debian
+  mode: configure_existing
+  rationale: Using the wrong package manager should be repairable and should not be treated
+    as destructive.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=package_install; likely_failure_reason=distro
+    mismatch; comparison_danger=sudo update-initramfs -u -k all
+- id: app-debian-snap-missing-helper
+  category: safe_recoverable
+  command: sudo snap install spotify
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: debian
+  mode: configure_existing
+  rationale: Snap may be unavailable, but an app install attempt is not a high-blast-radius
+    transition.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=app_install; likely_failure_reason=missing
+    helper; comparison_danger=sudo ufw --force enable
+- id: app-debian-flatpak-missing-remote
+  category: safe_recoverable
+  command: flatpak install -y flathub com.slack.Slack
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: debian
+  mode: configure_existing
+  rationale: Flatpak app installation can fail because Flatpak or Flathub is not configured,
+    but it should not hard-block.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=app_install; likely_failure_reason=missing
+    helper; comparison_danger=sudo tee -a /etc/fstab
+- id: pkg-ubuntu-typo-gimp
+  category: safe_recoverable
+  command: sudo apt install -y gimpp
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: ubuntu
+  mode: configure_existing
+  rationale: A typoed app package is recoverable and should not be classified as dangerous.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=package_install; likely_failure_reason=wrong
+    package; comparison_danger=sudo wipefs -a /dev/nvme0n1
+- id: pkg-ubuntu-fedora-name
+  category: safe_recoverable
+  command: sudo apt install -y akmod-nvidia
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: ubuntu
+  mode: any
+  rationale: A Fedora-specific driver package name on Ubuntu is a package mismatch, not a
+    destructive operation.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=package_install; likely_failure_reason=distro
+    mismatch; comparison_danger=sudo efibootmgr -o 0001,0000
+- id: app-ubuntu-flatpak-bad-id
+  category: safe_recoverable
+  command: flatpak install -y flathub com.visualstudio.codee
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: ubuntu
+  mode: configure_existing
+  rationale: A wrong Flatpak application ID should fail naturally or be corrected later.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=app_install; likely_failure_reason=wrong
+    package; comparison_danger=sudo systemctl disable --now NetworkManager
+- id: pkg-ubuntu-duplicate-safe
+  category: safe_recoverable
+  command: sudo apt install -y curl curl wget
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: ubuntu
+  mode: any
+  rationale: Duplicate install targets are harmless and should not trigger safety preflight
+    blocking.
+  risk: low
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=package_install; likely_failure_reason=none;
+    comparison_danger=sudo cryptsetup luksFormat /dev/sda2
+- id: pkg-fedora-typo-thunderbird
+  category: safe_recoverable
+  command: sudo dnf install -y thunderbirdd
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: fedora
+  mode: configure_existing
+  rationale: A misspelled package name should be advisory or repairable, not a hard safety
+    block.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=package_install; likely_failure_reason=wrong
+    package; comparison_danger=sudo btrfs device delete /dev/sdb1 /
+- id: pkg-fedora-debian-name
+  category: safe_recoverable
+  command: sudo dnf install -y build-essential
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: fedora
+  mode: any
+  rationale: A Debian package name on Fedora is a distro mismatch without dangerous side effects.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=package_install; likely_failure_reason=distro
+    mismatch; comparison_danger=sudo rpm --rebuilddb
+- id: pkg-fedora-arch-manager
+  category: safe_recoverable
+  command: sudo pacman -S --needed kate
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: fedora
+  mode: configure_existing
+  rationale: A wrong package manager command should be allowed to fail and feed repair logic.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=package_install; likely_failure_reason=distro
+    mismatch; comparison_danger=sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+- id: app-fedora-snap-missing
+  category: safe_recoverable
+  command: sudo snap install code --classic
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: fedora
+  mode: configure_existing
+  rationale: A Snap app install may fail when snapd is absent but should not be safety-blocked.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=app_install; likely_failure_reason=missing
+    helper; comparison_danger=sudo firewall-cmd --permanent --add-service=ssh
+- id: pkg-generic-unknown-manager
+  category: safe_recoverable
+  command: sudo zypper install -y obs-studio
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: An unavailable package manager is a recoverable command mistake, not a dangerous
+    operation.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=package_install; likely_failure_reason=missing
+    helper; comparison_danger=sudo shutdown -h now
+- id: app-generic-npm-global-desktop-tool
+  category: safe_recoverable
+  command: npm install -g imaginary-desktop-helper
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: A likely nonexistent global app helper package may fail, but it does not match
+    QuickHatch dangerous-effect classes.
+  risk: medium
+  source_agents:
+  - agent-1-package-app-install
+  notes: safe false-positive lane; candidate_category=app_install; likely_failure_reason=unavailable;
+    comparison_danger=sudo rm -rf /target-root
+- id: pkgsearch-pacman-ss-nvidia
+  category: diagnostics
+  command: pacman -Ss nvidia-open
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: arch
+  mode: any
+  rationale: Repository search is read-only and should not hard-block even if no matching
+    package exists.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=wrong
+    package; comparison_danger=sudo rm -rf /var/lib/pacman/local
+- id: pkgsearch-pacman-si-missing
+  category: diagnostics
+  command: pacman -Si definitely-not-a-real-package
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: arch
+  mode: any
+  rationale: Package metadata lookup is read-only and a missing package should fail naturally
+    or be repaired later.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=wrong
+    package; comparison_danger=sudo pacman -D --asdeps filesystem
+- id: pkgsearch-pacman-print-urls
+  category: diagnostics
+  command: pacman -Sp firefox
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: arch
+  mode: any
+  rationale: Print-only package URL resolution does not install or mutate system state.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=none;
+    comparison_danger=sudo pacman -S --noconfirm firefox
+- id: pkgsearch-apt-cache-search-arch
+  category: diagnostics
+  command: apt-cache search nvidia-driver
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: arch
+  mode: any
+  rationale: Distro-mismatched package search may fail because apt is unavailable, but it
+    has no dangerous effect.
+  risk: medium
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=distro
+    mismatch; comparison_danger=sudo rm -rf /var/lib/dpkg
+- id: pkgsearch-apt-cache-policy
+  category: diagnostics
+  command: apt-cache policy steam
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: debian
+  mode: any
+  rationale: APT policy inspection is read-only and should not be treated as package mutation.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=none;
+    comparison_danger=sudo dpkg --remove --force-remove-reinstreq libc6
+- id: pkgsearch-apt-sim-install
+  category: diagnostics
+  command: apt-get -s install gnome-tweaks
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: ubuntu
+  mode: configure_existing
+  rationale: APT simulation mode previews changes without applying them.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=wrong
+    package; comparison_danger=sudo apt-get install -y gnome-tweaks
+- id: pkgsearch-apt-just-print
+  category: diagnostics
+  command: apt-get --just-print install imaginary-theme-pack
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: debian
+  mode: any
+  rationale: Print-only APT install planning is non-mutating even when the package name is
+    wrong.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=wrong
+    package; comparison_danger=sudo rm -f /var/lib/dpkg/status
+- id: pkgsearch-dnf-search
+  category: diagnostics
+  command: dnf search nvidia
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: fedora
+  mode: any
+  rationale: DNF search is repository discovery and should not hard-block.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=none;
+    comparison_danger=sudo rpm --rebuilddb
+- id: pkgsearch-dnf-info-missing
+  category: diagnostics
+  command: dnf info no-such-wallpaper-package
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: fedora
+  mode: configure_existing
+  rationale: Package info lookup is read-only and missing metadata should be repairable or
+    advisory.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=wrong
+    package; comparison_danger=sudo rm -rf /var/lib/rpm
+- id: pkgsearch-dnf-assumeno-install
+  category: diagnostics
+  command: dnf install --assumeno vlc
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: fedora
+  mode: configure_existing
+  rationale: Assume-no install planning should not apply package changes and should not be
+    a hard safety block.
+  risk: medium
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=none;
+    comparison_danger=sudo dnf install -y vlc
+- id: pkgsearch-repoquery-whatprovides
+  category: diagnostics
+  command: repoquery --whatprovides '*/libcuda.so'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: fedora
+  mode: any
+  rationale: Repoquery provider lookup is read-only package discovery.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=missing
+    helper; comparison_danger=sudo rm -rf /var/cache/dnf
+- id: pkgsearch-repoquery-requires
+  category: diagnostics
+  command: repoquery --requires gnome-shell
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: fedora
+  mode: any
+  rationale: Dependency query output is read-only and should not be confused with package
+    DB mutation.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=missing
+    helper; comparison_danger=sudo rpm --erase --nodeps glibc
+- id: pkgsearch-zypper-search-fedora
+  category: diagnostics
+  command: zypper search nvidia
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: fedora
+  mode: any
+  rationale: Zypper search is harmless even on a distro where zypper is likely absent.
+  risk: medium
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=distro
+    mismatch; comparison_danger=sudo zypper install -y nvidia
+- id: pkgsearch-flatpak-search
+  category: diagnostics
+  command: flatpak search com.visualstudio.code
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: Flatpak search is app discovery and does not install or alter remotes.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=missing
+    helper; comparison_danger=flatpak remote-add --system flathub https://flathub.org/repo/flathub.flatpakrepo
+- id: pkgsearch-flatpak-remote-ls
+  category: diagnostics
+  command: flatpak remote-ls --app flathub
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: Listing remote Flatpak apps is read-only discovery.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=missing
+    helper; comparison_danger=flatpak uninstall --delete-data --system org.example.App
+- id: pkgsearch-snap-find
+  category: diagnostics
+  command: snap find code
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: ubuntu
+  mode: configure_existing
+  rationale: Snap store search is read-only and should not block even if snapd is unavailable.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=missing
+    helper; comparison_danger=sudo snap remove --purge core
+- id: pkgsearch-snap-info
+  category: diagnostics
+  command: snap info spotify
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: debian
+  mode: configure_existing
+  rationale: Snap package info is non-mutating and distro availability should be advisory.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=missing
+    helper; comparison_danger=sudo snap install spotify
+- id: pkgsearch-yay-ss
+  category: diagnostics
+  command: yay -Ss visual-studio-code-bin
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: arch
+  mode: configure_existing
+  rationale: AUR helper search is package discovery and should not hard-block if the helper
+    is missing.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=missing
+    helper; comparison_danger=yay -S --noconfirm visual-studio-code-bin
+- id: pkgsearch-paru-si
+  category: diagnostics
+  command: paru -Si brave-bin
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: arch
+  mode: configure_existing
+  rationale: AUR metadata lookup is read-only and a missing helper should be handled as a
+    normal command failure.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=missing
+    helper; comparison_danger=paru -S --noconfirm brave-bin
+- id: pkgsearch-dpkg-query-installed
+  category: diagnostics
+  command: dpkg-query -W 'nvidia-*'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: ubuntu
+  mode: any
+  rationale: Installed package query is read-only and should not be blocked because of wildcard
+    or missing matches.
+  risk: low
+  source_agents:
+  - agent-2-package-search
+  notes: safe false-positive lane; candidate_category=package_search; likely_failure_reason=wrong
+    package; comparison_danger=sudo rm -f /var/lib/dpkg/status
+- id: cosmetic-gsettings-theme
+  category: configure_existing
+  command: gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: Changes only a per-user desktop preference and does not touch disk layout, boot,
+    fstab, package DB, or network continuity.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=desktop_cosmetic; likely_failure_reason=no
+    gui; comparison_danger=sudo tee /etc/fstab
+- id: cosmetic-gsettings-icons
+  category: configure_existing
+  command: gsettings set org.gnome.desktop.interface icon-theme 'Papirus'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: A per-user icon theme setting may be wrong or unavailable but has no high-blast-radius
+    effect.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=desktop_cosmetic; likely_failure_reason=wrong
+    package; comparison_danger=sudo efibootmgr -o 0001
+- id: cosmetic-gsettings-cursor
+  category: configure_existing
+  command: gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Ice'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: Only updates user desktop settings through gsettings and should fail naturally
+    if unsupported.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=desktop_cosmetic; likely_failure_reason=wrong
+    package; comparison_danger=sudo wipefs -a /dev/sda
+- id: cosmetic-gsettings-wallpaper
+  category: configure_existing
+  command: gsettings set org.gnome.desktop.background picture-uri 'file://$HOME/Pictures/wallpaper.jpg'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: ubuntu
+  mode: configure_existing
+  rationale: Sets a user wallpaper reference and does not mutate protected system state.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=desktop_cosmetic; likely_failure_reason=no
+    gui; comparison_danger=sudo grub-install /dev/sda
+- id: cosmetic-kde-color-scheme
+  category: configure_existing
+  command: kwriteconfig5 --file kdeglobals --group General --key ColorScheme 'BreezeDark'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: Writes KDE user configuration under the user's profile and should not be treated
+    as a dangerous transition.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=desktop_cosmetic; likely_failure_reason=missing
+    helper; comparison_danger=sudo sed -i 's/foo/bar/' /etc/default/grub
+- id: cosmetic-kde-wallpaper
+  category: configure_existing
+  command: plasma-apply-wallpaperimage "$HOME/Pictures/wallpaper.jpg"
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: Attempts a user-session wallpaper change that may fail without Plasma but is
+    not destructive.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=desktop_cosmetic; likely_failure_reason=missing
+    helper; comparison_danger=sudo update-grub
+- id: cosmetic-xfce-theme
+  category: configure_existing
+  command: xfconf-query -c xsettings -p /Net/ThemeName -s 'Greybird-dark'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: Updates a per-user XFCE setting and should remain repairable/advisory if the
+    session is absent.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=desktop_cosmetic; likely_failure_reason=missing
+    helper; comparison_danger=sudo systemctl stop sshd
+- id: cosmetic-xfce-wallpaper
+  category: configure_existing
+  command: xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image
+    -s "$HOME/Pictures/wallpaper.jpg"
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: Targets user desktop wallpaper configuration only and has no boot, disk, or network
+    safety effect.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=desktop_cosmetic; likely_failure_reason=no
+    gui; comparison_danger=sudo nmcli networking off
+- id: cosmetic-mate-theme
+  category: configure_existing
+  command: gsettings set org.mate.interface gtk-theme 'Mint-Y-Dark'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: A desktop preference command for MATE should fail naturally on non-MATE systems.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=desktop_cosmetic; likely_failure_reason=distro
+    mismatch; comparison_danger=sudo mkfs.ext4 /dev/sda1
+- id: cosmetic-font-dir-create
+  category: configure_existing
+  command: mkdir -p "$HOME/.local/share/fonts"
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: Creates a user-owned font directory under HOME and does not alter system package
+    or boot state.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=desktop_cosmetic; likely_failure_reason=none;
+    comparison_danger=sudo rm -rf /target-root
+- id: cosmetic-font-copy
+  category: configure_existing
+  command: cp "$HOME/Downloads/Inter-Regular.ttf" "$HOME/.local/share/fonts/Inter-Regular.ttf"
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: Copies a font into user-owned storage and should not hard-block even if the source
+    file is missing.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=desktop_cosmetic; likely_failure_reason=unavailable;
+    comparison_danger=sudo dd if=/dev/zero of=/dev/sda bs=1M count=10
+- id: cosmetic-fc-cache-user
+  category: configure_existing
+  command: fc-cache -f "$HOME/.local/share/fonts"
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: Rebuilds a user font cache and is safe to allow or let fail if fontconfig is
+    unavailable.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=desktop_cosmetic; likely_failure_reason=missing
+    helper; comparison_danger=sudo rm -rf /var/lib/pacman/local
+- id: cosmetic-gtk3-settings-tee-home
+  category: configure_existing
+  command: mkdir -p "$HOME/.config/gtk-3.0" && printf '[Settings]\ngtk-theme-name=Adwaita-dark\n'
+    | tee "$HOME/.config/gtk-3.0/settings.ini" >/dev/null
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: Writes only a user GTK config file under HOME, unlike protected fstab or boot
+    config writes.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=desktop_cosmetic; likely_failure_reason=none;
+    comparison_danger=printf 'bad' | sudo tee /etc/fstab
+- id: cosmetic-gtk4-settings-home
+  category: configure_existing
+  command: mkdir -p "$HOME/.config/gtk-4.0" && printf '[Settings]\ngtk-application-prefer-dark-theme=1\n'
+    > "$HOME/.config/gtk-4.0/settings.ini"
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: Redirects to a user-owned config path and should not be confused with dangerous
+    system-file writes.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=desktop_cosmetic; likely_failure_reason=none;
+    comparison_danger=sudo sh -c 'echo bad > /boot/grub/grub.cfg'
+- id: cosmetic-sway-wallpaper
+  category: configure_existing
+  command: swaymsg output '*' bg "$HOME/Pictures/wallpaper.jpg" fill
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: A compositor session command may fail without Sway but only affects the user
+    session.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=desktop_cosmetic; likely_failure_reason=no
+    gui; comparison_danger=sudo ip link set eth0 down
+- id: cosmetic-feh-wallpaper
+  category: configure_existing
+  command: feh --bg-fill "$HOME/Pictures/wallpaper.jpg"
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: Sets a user wallpaper through a desktop helper and does not mutate protected
+    system areas.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=desktop_cosmetic; likely_failure_reason=missing
+    helper; comparison_danger=sudo blkdiscard /dev/sda
+- id: app-flatpak-user-gimp
+  category: safe_recoverable
+  command: flatpak install --user -y flathub org.gimp.GIMP
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: A user-scoped Flatpak app install may fail if Flatpak or Flathub is missing,
+    but it is a recoverable app operation.
+  risk: medium
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=app_install; likely_failure_reason=missing
+    helper; comparison_danger=sudo pacman -Scc --noconfirm
+- id: app-flatpak-user-vlc
+  category: safe_recoverable
+  command: flatpak install --user -y flathub org.videolan.VLC
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: fedora
+  mode: configure_existing
+  rationale: Installs a user app through Flatpak and should not hard-block merely because
+    the runtime or remote is unavailable.
+  risk: medium
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=app_install; likely_failure_reason=unavailable;
+    comparison_danger=sudo systemctl enable --now firewalld
+- id: app-flatpak-user-bad-id
+  category: safe_recoverable
+  command: flatpak install --user -y flathub com.example.DoesNotExist
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: A wrong Flatpak app ID is a normal repairable package-selection error, not a
+    dangerous effect.
+  risk: medium
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=app_install; likely_failure_reason=wrong
+    package; comparison_danger=sudo parted /dev/sda mklabel gpt
+- id: app-flatpak-run-missing-gui
+  category: safe_recoverable
+  command: flatpak run org.mozilla.firefox
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: Launching a user app may fail without a GUI/session or installed app but should
+    not be preflight-blocked.
+  risk: low
+  source_agents:
+  - agent-3-desktop-cosmetic
+  notes: safe false-positive lane; candidate_category=app_install; likely_failure_reason=no
+    gui; comparison_danger=sudo reboot
+- id: diag-lsblk-fs
+  category: diagnostics
+  command: lsblk -f
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Lists block devices and filesystem metadata without changing disks.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=boot_disk_readonly; likely_failure_reason=none;
+    comparison_danger=sudo wipefs -a /dev/sda1
+- id: diag-lsblk-json-paths
+  category: diagnostics
+  command: lsblk --json -o NAME,TYPE,SIZE,FSTYPE,MOUNTPOINTS
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Reads device topology for planning and should not be treated as partitioning.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=boot_disk_readonly; likely_failure_reason=none;
+    comparison_danger=sudo sfdisk /dev/sda < layout.sfdisk
+- id: diag-findmnt-real
+  category: diagnostics
+  command: findmnt --real
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Displays mounted filesystems and does not write fstab or alter mounts.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=boot_disk_readonly; likely_failure_reason=none;
+    comparison_danger=echo '/dev/sda1 / ext4 defaults 0 1' | sudo tee -a /etc/fstab
+- id: diag-findmnt-target
+  category: diagnostics
+  command: findmnt /
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Queries the current root mount and has no mutating effect.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=boot_disk_readonly; likely_failure_reason=none;
+    comparison_danger=sudo umount /target-root
+- id: diag-blkid-cacheless
+  category: diagnostics
+  command: sudo blkid -c /dev/null
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Probes block identifiers read-only even though it may require sudo.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=boot_disk_readonly; likely_failure_reason=none;
+    comparison_danger=sudo mkfs.ext4 /dev/sda1
+- id: diag-fdisk-list
+  category: diagnostics
+  command: sudo fdisk -l /dev/sda
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Lists partition information and does not enter an interactive write path.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=boot_disk_readonly; likely_failure_reason=none;
+    comparison_danger=sudo fdisk /dev/sda
+- id: diag-journalctl-boot-warnings
+  category: diagnostics
+  command: journalctl -b -p warning --no-pager
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Reads logs for troubleshooting and has no system state transition.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=diagnostics; likely_failure_reason=none;
+    comparison_danger=sudo systemctl restart NetworkManager
+- id: diag-systemctl-status-sshd
+  category: diagnostics
+  command: systemctl status sshd --no-pager
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: fedora
+  mode: any
+  rationale: Reads SSH daemon status only and should not block as a continuity risk.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=diagnostics; likely_failure_reason=distro
+    mismatch; comparison_danger=sudo systemctl disable --now sshd
+- id: net-ip-addr-show
+  category: diagnostics
+  command: ip addr show
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Displays network interface addresses without changing link state.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=network_diagnostic; likely_failure_reason=none;
+    comparison_danger=sudo ip link set eth0 down
+- id: net-ping-gateway
+  category: diagnostics
+  command: ping -c 1 1.1.1.1
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Tests connectivity with a single ICMP request and has no persistent effect.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=network_diagnostic; likely_failure_reason=unavailable;
+    comparison_danger=sudo nmcli networking off
+- id: net-curl-head-example
+  category: diagnostics
+  command: curl -I --max-time 5 https://example.com
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Performs a bounded HEAD-style network check without executing downloaded content.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=network_diagnostic; likely_failure_reason=unavailable;
+    comparison_danger=curl -fsSL https://example.com/install.sh | sh
+- id: net-dig-archlinux
+  category: diagnostics
+  command: dig archlinux.org
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: arch
+  mode: any
+  rationale: Queries DNS and should not be blocked if dig is missing or DNS fails.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=network_diagnostic; likely_failure_reason=missing
+    helper; comparison_danger=sudo systemctl restart systemd-resolved
+- id: net-resolvectl-status
+  category: diagnostics
+  command: resolvectl status
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Reads resolver status and does not rewrite resolver configuration.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=network_diagnostic; likely_failure_reason=distro
+    mismatch; comparison_danger=echo 'nameserver 1.1.1.1' | sudo tee /etc/resolv.conf
+- id: net-nmcli-device-show
+  category: diagnostics
+  command: nmcli device show
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Displays NetworkManager device details without toggling networking.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=network_diagnostic; likely_failure_reason=missing
+    helper; comparison_danger=sudo nmcli radio wifi off
+- id: net-nmcli-connection-show
+  category: diagnostics
+  command: nmcli connection show
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Lists known connections and should not be treated as network mutation.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=network_diagnostic; likely_failure_reason=missing
+    helper; comparison_danger=sudo nmcli connection down id 'Wired connection 1'
+- id: net-ufw-status
+  category: diagnostics
+  command: sudo ufw status verbose
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: ubuntu
+  mode: any
+  rationale: Reads firewall status and does not enable, disable, or change rules.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=network_diagnostic; likely_failure_reason=missing
+    helper; comparison_danger=sudo ufw --force enable
+- id: net-firewalld-state
+  category: diagnostics
+  command: firewall-cmd --state
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: fedora
+  mode: any
+  rationale: Checks firewalld state without activating the firewall or modifying zones.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=network_diagnostic; likely_failure_reason=missing
+    helper; comparison_danger=sudo firewall-cmd --permanent --add-service=ssh
+- id: net-nft-list
+  category: diagnostics
+  command: sudo nft list ruleset
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Lists packet filter rules without loading or changing rulesets.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=network_diagnostic; likely_failure_reason=missing
+    helper; comparison_danger=sudo nft flush ruleset
+- id: net-ss-listening
+  category: diagnostics
+  command: ss -tulpn
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Lists sockets and processes for diagnostics without changing services.
+  risk: low
+  source_agents:
+  - agent-4-readonly-diagnostics
+  notes: safe false-positive lane; candidate_category=network_diagnostic; likely_failure_reason=none;
+    comparison_danger=sudo systemctl stop NetworkManager
+- id: boundary-echo-mkfs-string
+  category: shell_obfuscation
+  command: echo "sudo mkfs.ext4 /dev/sda1"
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: The dangerous-looking mkfs text is printed only and not executed.
+  risk: low
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=none;
+    comparison_danger=sudo mkfs.ext4 /dev/sda1
+- id: boundary-printf-wipefs-string
+  category: shell_obfuscation
+  command: printf "%s\n" "wipefs -a /dev/sda"
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: The wipefs command appears only as a string written to stdout.
+  risk: low
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=none;
+    comparison_danger=sudo wipefs -a /dev/sda
+- id: boundary-cat-fstab-heredoc-stdout
+  category: shell_obfuscation
+  command: 'cat <<''EOF''
+
+    /dev/sda1 / ext4 defaults 0 1
+
+    EOF
+
+    '
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: The heredoc emits fstab-like content to stdout without redirecting or writing
+    a file.
+  risk: low
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=none;
+    comparison_danger=cat <<'EOF' | sudo tee /etc/fstab
+- id: boundary-grep-fstab-readonly
+  category: shell_obfuscation
+  command: grep -n "UUID" /etc/fstab
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: grep reads fstab content and has no write effect.
+  risk: low
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=none;
+    comparison_danger=echo "UUID=x / ext4 defaults 0 1" | sudo tee /etc/fstab
+- id: boundary-sed-read-grub
+  category: shell_obfuscation
+  command: sed -n "1,120p" /etc/default/grub
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: sed without -i only reads and prints boot configuration.
+  risk: low
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=none;
+    comparison_danger=sudo sed -i "s/quiet/quiet splash/" /etc/default/grub
+- id: boundary-awk-read-fstab
+  category: shell_obfuscation
+  command: awk "{print NR \":\" $0}" /etc/fstab
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: awk reads and formats fstab lines without mutating the file.
+  risk: low
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=none;
+    comparison_danger=sudo awk "{print}" /tmp/newfstab > /etc/fstab
+- id: boundary-find-filenames-danger-words
+  category: shell_obfuscation
+  command: find /tmp -maxdepth 1 -name "*wipefs*" -print
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: The command searches for filenames containing a risky word but performs no deletion
+    or mutation.
+  risk: low
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=none;
+    comparison_danger=find /target-root -xdev -delete
+- id: boundary-ls-dev-disks-readonly
+  category: shell_obfuscation
+  command: ls -l /dev/disk/by-id
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Listing disk identifiers is read-only diagnostic behavior.
+  risk: low
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=none;
+    comparison_danger=sudo dd if=/dev/zero of=/dev/disk/by-id/example
+- id: boundary-stat-fstab-readonly
+  category: shell_obfuscation
+  command: stat /etc/fstab
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: stat inspects metadata and does not write fstab.
+  risk: low
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=none;
+    comparison_danger=sudo truncate -s 0 /etc/fstab
+- id: boundary-pacman-print-package
+  category: shell_obfuscation
+  command: pacman -Sp definitely-not-a-real-package
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: arch
+  mode: any
+  rationale: pacman print-only mode does not install packages and should fail naturally if
+    the package is wrong.
+  risk: medium
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=wrong
+    package; comparison_danger=sudo pacman -Syu
+- id: boundary-pacman-sync-print-format
+  category: shell_obfuscation
+  command: pacman -Sp mkfs-tools-that-do-not-exist
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: arch
+  mode: any
+  rationale: The package name looks suspicious, but pacman is only printing package URLs.
+  risk: medium
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=wrong
+    package; comparison_danger=sudo mkfs.ext4 /dev/sda1
+- id: boundary-apt-simulate-install
+  category: shell_obfuscation
+  command: apt-get -s install definitely-not-a-real-package
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: debian
+  mode: any
+  rationale: apt simulation mode computes an install plan without applying it.
+  risk: medium
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=wrong
+    package; comparison_danger=sudo apt-get install definitely-not-a-real-package
+- id: boundary-apt-dry-run-remove
+  category: shell_obfuscation
+  command: apt-get --simulate remove firefox
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: ubuntu
+  mode: any
+  rationale: The remove operation is simulated and should not uninstall anything.
+  risk: medium
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=none;
+    comparison_danger=sudo apt-get remove firefox
+- id: boundary-dnf-assumeno-install
+  category: shell_obfuscation
+  command: dnf install --assumeno definitely-not-a-real-package
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: fedora
+  mode: any
+  rationale: The command declines the transaction and should not install packages.
+  risk: medium
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=wrong
+    package; comparison_danger=sudo dnf install definitely-not-a-real-package
+- id: boundary-flatpak-dry-run
+  category: shell_obfuscation
+  command: flatpak install --dry-run flathub com.example.DoesNotExist
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: configure_existing
+  rationale: Flatpak dry-run mode should not install an app even if the app id is wrong.
+  risk: medium
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=wrong
+    package; comparison_danger=flatpak install flathub com.example.DoesNotExist
+- id: boundary-snap-dry-run
+  category: shell_obfuscation
+  command: snap install --dry-run definitely-not-a-real-snap
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: ubuntu
+  mode: configure_existing
+  rationale: Snap dry-run mode should not install anything and may simply fail if unavailable.
+  risk: medium
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=wrong
+    package; comparison_danger=sudo snap install definitely-not-a-real-snap
+- id: boundary-yay-print
+  category: shell_obfuscation
+  command: yay -Sp definitely-not-a-real-aur-package
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: arch
+  mode: configure_existing
+  rationale: AUR print-only mode should not build or install packages.
+  risk: medium
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=missing
+    helper; comparison_danger=yay -S definitely-not-a-real-aur-package
+- id: boundary-command-not-found-danger-word
+  category: shell_obfuscation
+  command: mkfs_theme_preview --help
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: A nonexistent helper with a dangerous-looking substring should fail naturally
+    rather than hard-block.
+  risk: medium
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=missing
+    helper; comparison_danger=sudo mkfs.ext4 /dev/sda1
+- id: boundary-test-string-contains-fstab
+  category: shell_obfuscation
+  command: test -n "/etc/fstab" && echo "fstab mentioned only"
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: The command tests and prints a string containing fstab without writing it.
+  risk: low
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=none;
+    comparison_danger=echo "tmpfs /tmp tmpfs defaults 0 0" | sudo tee -a /etc/fstab
+- id: boundary-bash-n-read-command
+  category: shell_obfuscation
+  command: bash -n /tmp/quickhatch-next-command
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: bash syntax-check mode parses a file without executing its contents.
+  risk: medium
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=unavailable;
+    comparison_danger=bash /tmp/quickhatch-next-command
+- id: boundary-rsync-dry-run-target-root
+  category: shell_obfuscation
+  command: rsync --dry-run -av /tmp/theme-preview/ /target-root/usr/share/themes/
+  expected: allow_with_advisory
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: fresh_install
+  rationale: rsync dry-run reports intended file changes without writing to the target root.
+  risk: medium
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=unavailable;
+    comparison_danger=rsync -av --delete /tmp/theme-preview/ /target-root/usr/share/themes/
+- id: boundary-variable-danger-not-executed
+  category: shell_obfuscation
+  command: cmd="sudo wipefs -a /dev/sda"; printf "%s\n" "$cmd"
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: A dangerous-looking command is assigned and printed but never evaluated or executed.
+  risk: low
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=none;
+    comparison_danger=cmd="sudo wipefs -a /dev/sda"; sh -c "$cmd"
+- id: boundary-shell-noop-danger-comment
+  category: shell_obfuscation
+  command: 'true # sudo wipefs -a /dev/sda'
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: The risky text is a shell comment after a no-op command.
+  risk: low
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=none;
+    comparison_danger=sudo wipefs -a /dev/sda
+- id: boundary-python-print-danger-string
+  category: shell_obfuscation
+  command: python3 -c "print(\"sudo dd if=/dev/zero of=/dev/sda\")"
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: Python prints a dangerous-looking string but does not execute it.
+  risk: low
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=none;
+    comparison_danger=python3 -c "import os; os.system(\"sudo dd if=/dev/zero of=/dev/sda\")"
+- id: boundary-sh-c-colon-danger-arg
+  category: shell_obfuscation
+  command: sh -c ":" "sudo wipefs -a /dev/sda"
+  expected: allow
+  expected_capability_kind: ''
+  expected_target: ''
+  facts_profile: generic
+  mode: any
+  rationale: The shell executes only the ':' no-op; the dangerous-looking text is an unused
+    positional argument.
+  risk: low
+  source_agents:
+  - agent-5-boundary-safe
+  notes: safe false-positive lane; candidate_category=boundary_safe; likely_failure_reason=none;
+    comparison_danger=sh -c "sudo wipefs -a /dev/sda"
