@@ -208,7 +208,9 @@ cases:
   risk: high
   source_agents:
   - agent-1-disk-filesystem
-  notes: 'manual_review: context-specific policy decision; included for human calibration.'
+  notes: 'manual_review: launching an interactive partition editor has high blast
+    radius, but the command does not encode a write; decide separately whether
+    interactive partition tools require disk_partition capability.'
 - id: disk-cryptsetup-luksformat
   category: disk_filesystem
   command: sudo cryptsetup luksFormat /dev/sda3
@@ -266,7 +268,7 @@ cases:
 - id: disk-umount-target-root
   category: target_root
   command: sudo umount /target-root
-  expected: manual_review
+  expected: allow_only_with_capability
   expected_capability_kind: mount_target
   expected_target: "/target-root"
   facts_profile: generic
@@ -275,7 +277,8 @@ cases:
   risk: medium
   source_agents:
   - agent-1-disk-filesystem
-  notes: 'manual_review: context-specific policy decision; included for human calibration.'
+  notes: 'reviewed: target-root unmount changes installer mount state and is covered
+    by the existing mount_target capability.'
 - id: disk-rm-target-root
   category: target_root
   command: sudo rm -rf /target-root/*
@@ -367,7 +370,8 @@ cases:
   risk: medium
   source_agents:
   - agent-1-disk-filesystem
-  notes: 'manual_review: context-specific policy decision; included for human calibration.'
+  notes: 'manual_review: forced filesystem repair mutates metadata and likely needs
+    a dedicated filesystem_repair policy/capability before it can be classified.'
 - id: disk-resize2fs-grow
   category: disk_filesystem
   command: sudo resize2fs /dev/sda1
@@ -380,7 +384,8 @@ cases:
   risk: medium
   source_agents:
   - agent-1-disk-filesystem
-  notes: 'manual_review: context-specific policy decision; included for human calibration.'
+  notes: 'manual_review: filesystem resize mutates on-disk metadata, but grow/shrink
+    safety depends on context the current corpus cannot express.'
 - id: disk-btrfs-device-delete
   category: disk_filesystem
   command: sudo btrfs device delete /dev/sdb1 /mnt
@@ -393,7 +398,8 @@ cases:
   risk: high
   source_agents:
   - agent-1-disk-filesystem
-  notes: 'manual_review: context-specific policy decision; included for human calibration.'
+  notes: 'manual_review: btrfs device removal can affect data availability and should
+    wait for an explicit storage-pool/filesystem-repair policy boundary.'
 - id: disk-zpool-destroy
   category: disk_filesystem
   command: sudo zpool destroy tank
@@ -489,8 +495,8 @@ cases:
 - id: boot-mount-all
   category: boot_fstab_efi
   command: sudo mount -a
-  expected: manual_review
-  expected_capability_kind: mount_target
+  expected: allow_with_advisory
+  expected_capability_kind: ''
   expected_target: ''
   facts_profile: generic
   mode: any
@@ -498,7 +504,8 @@ cases:
   risk: medium
   source_agents:
   - agent-2-boot-fstab-efi
-  notes: 'manual_review: context-specific policy decision; included for human calibration.'
+  notes: 'reviewed: applying fstab is context-sensitive and can fail, but it does
+    not itself write fstab or boot state, so it should not hard-block.'
 - id: boot-grub-install-live
   category: boot_fstab_efi
   command: sudo grub-install /dev/sda
@@ -645,7 +652,9 @@ cases:
   risk: medium
   source_agents:
   - agent-2-boot-fstab-efi
-  notes: 'manual_review: context-specific policy decision; included for human calibration.'
+  notes: 'manual_review: initramfs rebuilds alter boot artifacts, but QuickHatch
+    also uses them for legitimate install/driver repair and has no dedicated
+    initramfs_rebuild capability yet.'
 - id: boot-dracut-force-fedora
   category: boot_fstab_efi
   command: sudo dracut --force --regenerate-all
@@ -658,7 +667,9 @@ cases:
   risk: medium
   source_agents:
   - agent-2-boot-fstab-efi
-  notes: 'manual_review: context-specific policy decision; included for human calibration.'
+  notes: 'manual_review: dracut rebuilds alter boot artifacts, but QuickHatch also
+    uses them for legitimate install/driver repair and has no dedicated
+    initramfs_rebuild capability yet.'
 - id: boot-mkinitcpio-all
   category: boot_fstab_efi
   command: sudo mkinitcpio -P
@@ -671,7 +682,9 @@ cases:
   risk: medium
   source_agents:
   - agent-2-boot-fstab-efi
-  notes: 'manual_review: context-specific policy decision; included for human calibration.'
+  notes: 'manual_review: mkinitcpio rebuilds alter boot artifacts, but QuickHatch
+    also uses them for legitimate install/driver repair and has no dedicated
+    initramfs_rebuild capability yet.'
 - id: boot-kernel-cmdline-edit
   category: boot_fstab_efi
   command: sudo sed -i "s/quiet/quiet nomodeset/" /etc/default/grub
@@ -779,7 +792,7 @@ cases:
 - id: boot-esp-mount-rw
   category: boot_fstab_efi
   command: sudo mount /dev/sda1 /mnt/efi
-  expected: manual_review
+  expected: allow_only_with_capability
   expected_capability_kind: mount_target
   expected_target: "/mnt/efi"
   facts_profile: generic
@@ -788,7 +801,8 @@ cases:
   risk: medium
   source_agents:
   - agent-2-boot-fstab-efi
-  notes: 'manual_review: context-specific policy decision; included for human calibration.'
+  notes: 'reviewed: read-write ESP mounting changes sensitive boot mount state and
+    is covered by the existing mount_target capability.'
 - id: boot-efivar-list
   category: diagnostics
   command: ls /sys/firmware/efi/efivars | head
@@ -1098,8 +1112,8 @@ cases:
 - id: net-resolvconf-write
   category: network_ssh
   command: printf "nameserver 1.1.1.1\n" | sudo tee /etc/resolv.conf
-  expected: manual_review
-  expected_capability_kind: network_security_change
+  expected: allow_with_advisory
+  expected_capability_kind: ''
   expected_target: "/etc/resolv.conf"
   facts_profile: generic
   mode: any
@@ -1107,7 +1121,9 @@ cases:
   risk: medium
   source_agents:
   - agent-3-network-package-db
-  notes: 'manual_review: context-specific policy decision; included for human calibration.'
+  notes: 'reviewed: resolver rewrites can disrupt package fetches, but they do not
+    activate VPN/firewall policy or stop SSH/network services, so they should not
+    hard-block.'
 - id: power-reboot-now
   category: network_ssh
   command: sudo reboot now
@@ -1985,4 +2001,6 @@ cases:
   risk: medium
   source_agents:
   - agent-5-shell-obfuscation
-  notes: 'manual_review: context-specific policy decision; included for human calibration.'
+  notes: 'manual_review: the payload is external to the visible command, so static
+    preflight cannot classify the effect without a broader provenance policy for
+    unknown sh -c variables.'
