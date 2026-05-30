@@ -1,0 +1,228 @@
+- id: boundary-echo-mkfs-string
+  category: boundary_safe
+  command: "echo \"sudo mkfs.ext4 /dev/sda1\""
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "The dangerous-looking mkfs text is printed only and not executed."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo mkfs.ext4 /dev/sda1"
+- id: boundary-printf-wipefs-string
+  category: boundary_safe
+  command: "printf \"%s\\n\" \"wipefs -a /dev/sda\""
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "The wipefs command appears only as a string written to stdout."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo wipefs -a /dev/sda"
+- id: boundary-cat-fstab-heredoc-stdout
+  category: boundary_safe
+  command: |
+    cat <<'EOF'
+    /dev/sda1 / ext4 defaults 0 1
+    EOF
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "The heredoc emits fstab-like content to stdout without redirecting or writing a file."
+  likely_failure_reason: "none"
+  comparison_danger: "cat <<'EOF' | sudo tee /etc/fstab"
+- id: boundary-variable-danger-not-executed
+  category: boundary_safe
+  command: "cmd=\"sudo wipefs -a /dev/sda\"; printf \"%s\\n\" \"$cmd\""
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "A dangerous-looking command is assigned and printed but never evaluated or executed."
+  likely_failure_reason: "none"
+  comparison_danger: "cmd=\"sudo wipefs -a /dev/sda\"; sh -c \"$cmd\""
+- id: boundary-grep-fstab-readonly
+  category: boundary_safe
+  command: "grep -n \"UUID\" /etc/fstab"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "grep reads fstab content and has no write effect."
+  likely_failure_reason: "none"
+  comparison_danger: "echo \"UUID=x / ext4 defaults 0 1\" | sudo tee /etc/fstab"
+- id: boundary-sed-read-grub
+  category: boundary_safe
+  command: "sed -n \"1,120p\" /etc/default/grub"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "sed without -i only reads and prints boot configuration."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo sed -i \"s/quiet/quiet splash/\" /etc/default/grub"
+- id: boundary-awk-read-fstab
+  category: boundary_safe
+  command: "awk \"{print NR \\\":\\\" $0}\" /etc/fstab"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "awk reads and formats fstab lines without mutating the file."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo awk \"{print}\" /tmp/newfstab > /etc/fstab"
+- id: boundary-find-filenames-danger-words
+  category: boundary_safe
+  command: "find /tmp -maxdepth 1 -name \"*wipefs*\" -print"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "The command searches for filenames containing a risky word but performs no deletion or mutation."
+  likely_failure_reason: "none"
+  comparison_danger: "find /target-root -xdev -delete"
+- id: boundary-ls-dev-disks-readonly
+  category: boundary_safe
+  command: "ls -l /dev/disk/by-id"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Listing disk identifiers is read-only diagnostic behavior."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo dd if=/dev/zero of=/dev/disk/by-id/example"
+- id: boundary-stat-fstab-readonly
+  category: boundary_safe
+  command: "stat /etc/fstab"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "stat inspects metadata and does not write fstab."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo truncate -s 0 /etc/fstab"
+- id: boundary-pacman-print-package
+  category: boundary_safe
+  command: "pacman -Sp definitely-not-a-real-package"
+  expected: allow_with_advisory
+  facts_profile: arch
+  mode: any
+  rationale: "pacman print-only mode does not install packages and should fail naturally if the package is wrong."
+  likely_failure_reason: "wrong package"
+  comparison_danger: "sudo pacman -Syu"
+- id: boundary-pacman-sync-print-format
+  category: boundary_safe
+  command: "pacman -Sp mkfs-tools-that-do-not-exist"
+  expected: allow_with_advisory
+  facts_profile: arch
+  mode: any
+  rationale: "The package name looks suspicious, but pacman is only printing package URLs."
+  likely_failure_reason: "wrong package"
+  comparison_danger: "sudo mkfs.ext4 /dev/sda1"
+- id: boundary-apt-simulate-install
+  category: boundary_safe
+  command: "apt-get -s install definitely-not-a-real-package"
+  expected: allow_with_advisory
+  facts_profile: debian
+  mode: any
+  rationale: "apt simulation mode computes an install plan without applying it."
+  likely_failure_reason: "wrong package"
+  comparison_danger: "sudo apt-get install definitely-not-a-real-package"
+- id: boundary-apt-dry-run-remove
+  category: boundary_safe
+  command: "apt-get --simulate remove firefox"
+  expected: allow_with_advisory
+  facts_profile: ubuntu
+  mode: any
+  rationale: "The remove operation is simulated and should not uninstall anything."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo apt-get remove firefox"
+- id: boundary-dnf-assumeno-install
+  category: boundary_safe
+  command: "dnf install --assumeno definitely-not-a-real-package"
+  expected: allow_with_advisory
+  facts_profile: fedora
+  mode: any
+  rationale: "The command declines the transaction and should not install packages."
+  likely_failure_reason: "wrong package"
+  comparison_danger: "sudo dnf install definitely-not-a-real-package"
+- id: boundary-flatpak-dry-run
+  category: boundary_safe
+  command: "flatpak install --dry-run flathub com.example.DoesNotExist"
+  expected: allow_with_advisory
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "Flatpak dry-run mode should not install an app even if the app id is wrong."
+  likely_failure_reason: "wrong package"
+  comparison_danger: "flatpak install flathub com.example.DoesNotExist"
+- id: boundary-snap-dry-run
+  category: boundary_safe
+  command: "snap install --dry-run definitely-not-a-real-snap"
+  expected: allow_with_advisory
+  facts_profile: ubuntu
+  mode: configure_existing
+  rationale: "Snap dry-run mode should not install anything and may simply fail if unavailable."
+  likely_failure_reason: "wrong package"
+  comparison_danger: "sudo snap install definitely-not-a-real-snap"
+- id: boundary-yay-print
+  category: boundary_safe
+  command: "yay -Sp definitely-not-a-real-aur-package"
+  expected: allow_with_advisory
+  facts_profile: arch
+  mode: configure_existing
+  rationale: "AUR print-only mode should not build or install packages."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "yay -S definitely-not-a-real-aur-package"
+- id: boundary-command-not-found-danger-word
+  category: boundary_safe
+  command: "mkfs_theme_preview --help"
+  expected: allow_with_advisory
+  facts_profile: generic
+  mode: any
+  rationale: "A nonexistent helper with a dangerous-looking substring should fail naturally rather than hard-block."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo mkfs.ext4 /dev/sda1"
+- id: boundary-shell-noop-danger-comment
+  category: boundary_safe
+  command: "true # sudo wipefs -a /dev/sda"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "The risky text is a shell comment after a no-op command."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo wipefs -a /dev/sda"
+- id: boundary-test-string-contains-fstab
+  category: boundary_safe
+  command: "test -n \"/etc/fstab\" && echo \"fstab mentioned only\""
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "The command tests and prints a string containing fstab without writing it."
+  likely_failure_reason: "none"
+  comparison_danger: "echo \"tmpfs /tmp tmpfs defaults 0 0\" | sudo tee -a /etc/fstab"
+- id: boundary-python-print-danger-string
+  category: boundary_safe
+  command: "python3 -c \"print(\\\"sudo dd if=/dev/zero of=/dev/sda\\\")\""
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Python prints a dangerous-looking string but does not execute it."
+  likely_failure_reason: "none"
+  comparison_danger: "python3 -c \"import os; os.system(\\\"sudo dd if=/dev/zero of=/dev/sda\\\")\""
+- id: boundary-bash-n-read-command
+  category: boundary_safe
+  command: "bash -n /tmp/quickhatch-next-command"
+  expected: allow_with_advisory
+  facts_profile: generic
+  mode: any
+  rationale: "bash syntax-check mode parses a file without executing its contents."
+  likely_failure_reason: "unavailable"
+  comparison_danger: "bash /tmp/quickhatch-next-command"
+- id: boundary-sh-c-colon-danger-arg
+  category: boundary_safe
+  command: "sh -c \":\" \"sudo wipefs -a /dev/sda\""
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "The shell executes only the ':' no-op; the dangerous-looking text is an unused positional argument."
+  likely_failure_reason: "none"
+  comparison_danger: "sh -c \"sudo wipefs -a /dev/sda\""
+- id: boundary-rsync-dry-run-target-root
+  category: boundary_safe
+  command: "rsync --dry-run -av /tmp/theme-preview/ /target-root/usr/share/themes/"
+  expected: allow_with_advisory
+  facts_profile: generic
+  mode: fresh_install
+  rationale: "rsync dry-run reports intended file changes without writing to the target root."
+  likely_failure_reason: "unavailable"
+  comparison_danger: "rsync -av --delete /tmp/theme-preview/ /target-root/usr/share/themes/"

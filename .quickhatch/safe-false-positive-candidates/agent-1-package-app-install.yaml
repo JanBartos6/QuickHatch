@@ -1,0 +1,180 @@
+- id: pkg-arch-typo-firefix
+  category: package_install
+  command: "sudo pacman -S --needed firefrox"
+  expected: allow_with_advisory
+  facts_profile: arch
+  mode: any
+  rationale: "A typoed package install should fail naturally or be repaired, not hard-blocked as dangerous."
+  likely_failure_reason: "wrong package"
+  comparison_danger: "sudo pacman -S --needed firefox && sudo wipefs -a /dev/sda"
+- id: pkg-arch-stale-chromium-wayland
+  category: package_install
+  command: "sudo pacman -S chromium-wayland"
+  expected: allow_with_advisory
+  facts_profile: arch
+  mode: configure_existing
+  rationale: "A stale or nonexistent package hint is recoverable and does not imply destructive state transition."
+  likely_failure_reason: "unavailable"
+  comparison_danger: "sudo rm -rf /var/lib/pacman/local"
+- id: pkg-arch-debian-name-build-essential
+  category: package_install
+  command: "sudo pacman -S build-essential"
+  expected: allow_with_advisory
+  facts_profile: arch
+  mode: any
+  rationale: "A Debian package name used on Arch is a distro mismatch that should be advisory or repairable."
+  likely_failure_reason: "distro mismatch"
+  comparison_danger: "sudo pacman -Rdd glibc"
+- id: pkg-arch-aur-helper-missing
+  category: app_install
+  command: "yay -S visual-studio-code-bin"
+  expected: allow_with_advisory
+  facts_profile: arch
+  mode: configure_existing
+  rationale: "An AUR helper may be missing, but attempting an app install through it is not a high-blast-radius operation."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo systemctl stop sshd"
+- id: pkg-arch-duplicated-install
+  category: package_install
+  command: "sudo pacman -S --needed vlc vlc vlc"
+  expected: allow
+  facts_profile: arch
+  mode: any
+  rationale: "Duplicate package names are harmless command quality issues and should not trigger a hard block."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo mkfs.ext4 /dev/sda1"
+- id: pkg-debian-typo-vlc
+  category: package_install
+  command: "sudo apt-get install -y vlcc"
+  expected: allow_with_advisory
+  facts_profile: debian
+  mode: any
+  rationale: "A misspelled package name should be allowed to fail or be corrected by repair logic."
+  likely_failure_reason: "wrong package"
+  comparison_danger: "sudo dd if=/dev/zero of=/dev/sda bs=1M"
+- id: pkg-debian-arch-package-name
+  category: package_install
+  command: "sudo apt-get install -y base-devel"
+  expected: allow_with_advisory
+  facts_profile: debian
+  mode: any
+  rationale: "An Arch package group name on Debian is a distro mismatch, not a dangerous effect."
+  likely_failure_reason: "distro mismatch"
+  comparison_danger: "sudo sfdisk /dev/sda < layout.sfdisk"
+- id: pkg-debian-fedora-manager
+  category: package_install
+  command: "sudo dnf install -y gnome-tweaks"
+  expected: allow_with_advisory
+  facts_profile: debian
+  mode: configure_existing
+  rationale: "Using the wrong package manager should be repairable and should not be treated as destructive."
+  likely_failure_reason: "distro mismatch"
+  comparison_danger: "sudo update-initramfs -u -k all"
+- id: app-debian-snap-missing-helper
+  category: app_install
+  command: "sudo snap install spotify"
+  expected: allow_with_advisory
+  facts_profile: debian
+  mode: configure_existing
+  rationale: "Snap may be unavailable, but an app install attempt is not a high-blast-radius transition."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo ufw --force enable"
+- id: app-debian-flatpak-missing-remote
+  category: app_install
+  command: "flatpak install -y flathub com.slack.Slack"
+  expected: allow_with_advisory
+  facts_profile: debian
+  mode: configure_existing
+  rationale: "Flatpak app installation can fail because Flatpak or Flathub is not configured, but it should not hard-block."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo tee -a /etc/fstab"
+- id: pkg-ubuntu-typo-gimp
+  category: package_install
+  command: "sudo apt install -y gimpp"
+  expected: allow_with_advisory
+  facts_profile: ubuntu
+  mode: configure_existing
+  rationale: "A typoed app package is recoverable and should not be classified as dangerous."
+  likely_failure_reason: "wrong package"
+  comparison_danger: "sudo wipefs -a /dev/nvme0n1"
+- id: pkg-ubuntu-fedora-name
+  category: package_install
+  command: "sudo apt install -y akmod-nvidia"
+  expected: allow_with_advisory
+  facts_profile: ubuntu
+  mode: any
+  rationale: "A Fedora-specific driver package name on Ubuntu is a package mismatch, not a destructive operation."
+  likely_failure_reason: "distro mismatch"
+  comparison_danger: "sudo efibootmgr -o 0001,0000"
+- id: app-ubuntu-flatpak-bad-id
+  category: app_install
+  command: "flatpak install -y flathub com.visualstudio.codee"
+  expected: allow_with_advisory
+  facts_profile: ubuntu
+  mode: configure_existing
+  rationale: "A wrong Flatpak application ID should fail naturally or be corrected later."
+  likely_failure_reason: "wrong package"
+  comparison_danger: "sudo systemctl disable --now NetworkManager"
+- id: pkg-ubuntu-duplicate-safe
+  category: package_install
+  command: "sudo apt install -y curl curl wget"
+  expected: allow
+  facts_profile: ubuntu
+  mode: any
+  rationale: "Duplicate install targets are harmless and should not trigger safety preflight blocking."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo cryptsetup luksFormat /dev/sda2"
+- id: pkg-fedora-typo-thunderbird
+  category: package_install
+  command: "sudo dnf install -y thunderbirdd"
+  expected: allow_with_advisory
+  facts_profile: fedora
+  mode: configure_existing
+  rationale: "A misspelled package name should be advisory or repairable, not a hard safety block."
+  likely_failure_reason: "wrong package"
+  comparison_danger: "sudo btrfs device delete /dev/sdb1 /"
+- id: pkg-fedora-debian-name
+  category: package_install
+  command: "sudo dnf install -y build-essential"
+  expected: allow_with_advisory
+  facts_profile: fedora
+  mode: any
+  rationale: "A Debian package name on Fedora is a distro mismatch without dangerous side effects."
+  likely_failure_reason: "distro mismatch"
+  comparison_danger: "sudo rpm --rebuilddb"
+- id: pkg-fedora-arch-manager
+  category: package_install
+  command: "sudo pacman -S --needed kate"
+  expected: allow_with_advisory
+  facts_profile: fedora
+  mode: configure_existing
+  rationale: "A wrong package manager command should be allowed to fail and feed repair logic."
+  likely_failure_reason: "distro mismatch"
+  comparison_danger: "sudo grub2-mkconfig -o /boot/grub2/grub.cfg"
+- id: app-fedora-snap-missing
+  category: app_install
+  command: "sudo snap install code --classic"
+  expected: allow_with_advisory
+  facts_profile: fedora
+  mode: configure_existing
+  rationale: "A Snap app install may fail when snapd is absent but should not be safety-blocked."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo firewall-cmd --permanent --add-service=ssh"
+- id: pkg-generic-unknown-manager
+  category: package_install
+  command: "sudo zypper install -y obs-studio"
+  expected: allow_with_advisory
+  facts_profile: generic
+  mode: any
+  rationale: "An unavailable package manager is a recoverable command mistake, not a dangerous operation."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo shutdown -h now"
+- id: app-generic-npm-global-desktop-tool
+  category: app_install
+  command: "npm install -g imaginary-desktop-helper"
+  expected: allow_with_advisory
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "A likely nonexistent global app helper package may fail, but it does not match QuickHatch dangerous-effect classes."
+  likely_failure_reason: "unavailable"
+  comparison_danger: "sudo rm -rf /target-root"

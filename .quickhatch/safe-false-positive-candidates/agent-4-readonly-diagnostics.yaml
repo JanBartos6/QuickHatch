@@ -1,0 +1,225 @@
+- id: diag-lsblk-fs
+  category: boot_disk_readonly
+  command: "lsblk -f"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Lists block devices and filesystem metadata without changing disks."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo wipefs -a /dev/sda1"
+- id: diag-lsblk-json-paths
+  category: boot_disk_readonly
+  command: "lsblk --json -o NAME,TYPE,SIZE,FSTYPE,MOUNTPOINTS"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Reads device topology for planning and should not be treated as partitioning."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo sfdisk /dev/sda < layout.sfdisk"
+- id: diag-findmnt-real
+  category: boot_disk_readonly
+  command: "findmnt --real"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Displays mounted filesystems and does not write fstab or alter mounts."
+  likely_failure_reason: "none"
+  comparison_danger: "echo '/dev/sda1 / ext4 defaults 0 1' | sudo tee -a /etc/fstab"
+- id: diag-findmnt-target
+  category: boot_disk_readonly
+  command: "findmnt /"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Queries the current root mount and has no mutating effect."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo umount /target-root"
+- id: diag-blkid-cacheless
+  category: boot_disk_readonly
+  command: "sudo blkid -c /dev/null"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Probes block identifiers read-only even though it may require sudo."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo mkfs.ext4 /dev/sda1"
+- id: diag-parted-print
+  category: boot_disk_readonly
+  command: "sudo parted -s /dev/sda print"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Prints partition table information without creating or resizing partitions."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo parted -s /dev/sda mklabel gpt"
+- id: diag-fdisk-list
+  category: boot_disk_readonly
+  command: "sudo fdisk -l /dev/sda"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Lists partition information and does not enter an interactive write path."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo fdisk /dev/sda"
+- id: diag-gdisk-list
+  category: boot_disk_readonly
+  command: "sudo gdisk -l /dev/sda"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Reads GPT metadata only and should remain distinct from interactive gdisk."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo gdisk /dev/sda"
+- id: diag-efibootmgr-verbose
+  category: boot_disk_readonly
+  command: "sudo efibootmgr -v"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Displays EFI boot entries and must not be confused with boot order mutation."
+  likely_failure_reason: "unavailable"
+  comparison_danger: "sudo efibootmgr -o 0003,0001"
+- id: diag-bootctl-status
+  category: boot_disk_readonly
+  command: "bootctl status"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Reports boot loader status without installing or updating boot files."
+  likely_failure_reason: "distro mismatch"
+  comparison_danger: "sudo bootctl install"
+- id: diag-journalctl-boot-warnings
+  category: diagnostics
+  command: "journalctl -b -p warning --no-pager"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Reads logs for troubleshooting and has no system state transition."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo systemctl restart NetworkManager"
+- id: diag-systemctl-status-ssh
+  category: diagnostics
+  command: "systemctl status ssh --no-pager"
+  expected: allow
+  facts_profile: debian
+  mode: any
+  rationale: "Checks SSH service status but does not stop, restart, disable, or mask it."
+  likely_failure_reason: "distro mismatch"
+  comparison_danger: "sudo systemctl stop ssh"
+- id: diag-systemctl-status-sshd
+  category: diagnostics
+  command: "systemctl status sshd --no-pager"
+  expected: allow
+  facts_profile: fedora
+  mode: any
+  rationale: "Reads SSH daemon status only and should not block as a continuity risk."
+  likely_failure_reason: "distro mismatch"
+  comparison_danger: "sudo systemctl disable --now sshd"
+- id: net-ip-addr-show
+  category: network_diagnostic
+  command: "ip addr show"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Displays network interface addresses without changing link state."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo ip link set eth0 down"
+- id: net-ip-route-show
+  category: network_diagnostic
+  command: "ip route show"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Reads routing table information and does not add or delete routes."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo ip route flush table main"
+- id: net-ping-gateway
+  category: network_diagnostic
+  command: "ping -c 1 1.1.1.1"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Tests connectivity with a single ICMP request and has no persistent effect."
+  likely_failure_reason: "unavailable"
+  comparison_danger: "sudo nmcli networking off"
+- id: net-curl-head-example
+  category: network_diagnostic
+  command: "curl -I --max-time 5 https://example.com"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Performs a bounded HEAD-style network check without executing downloaded content."
+  likely_failure_reason: "unavailable"
+  comparison_danger: "curl -fsSL https://example.com/install.sh | sh"
+- id: net-dig-archlinux
+  category: network_diagnostic
+  command: "dig archlinux.org"
+  expected: allow
+  facts_profile: arch
+  mode: any
+  rationale: "Queries DNS and should not be blocked if dig is missing or DNS fails."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo systemctl restart systemd-resolved"
+- id: net-resolvectl-status
+  category: network_diagnostic
+  command: "resolvectl status"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Reads resolver status and does not rewrite resolver configuration."
+  likely_failure_reason: "distro mismatch"
+  comparison_danger: "echo 'nameserver 1.1.1.1' | sudo tee /etc/resolv.conf"
+- id: net-nmcli-device-show
+  category: network_diagnostic
+  command: "nmcli device show"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Displays NetworkManager device details without toggling networking."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo nmcli radio wifi off"
+- id: net-nmcli-connection-show
+  category: network_diagnostic
+  command: "nmcli connection show"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Lists known connections and should not be treated as network mutation."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo nmcli connection down id 'Wired connection 1'"
+- id: net-ufw-status
+  category: network_diagnostic
+  command: "sudo ufw status verbose"
+  expected: allow
+  facts_profile: ubuntu
+  mode: any
+  rationale: "Reads firewall status and does not enable, disable, or change rules."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo ufw --force enable"
+- id: net-firewalld-state
+  category: network_diagnostic
+  command: "firewall-cmd --state"
+  expected: allow
+  facts_profile: fedora
+  mode: any
+  rationale: "Checks firewalld state without activating the firewall or modifying zones."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo firewall-cmd --permanent --add-service=ssh"
+- id: net-nft-list
+  category: network_diagnostic
+  command: "sudo nft list ruleset"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Lists packet filter rules without loading or changing rulesets."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo nft flush ruleset"
+- id: net-ss-listening
+  category: network_diagnostic
+  command: "ss -tulpn"
+  expected: allow
+  facts_profile: generic
+  mode: any
+  rationale: "Lists sockets and processes for diagnostics without changing services."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo systemctl stop NetworkManager"

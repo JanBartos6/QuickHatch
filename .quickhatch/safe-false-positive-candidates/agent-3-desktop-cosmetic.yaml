@@ -1,0 +1,180 @@
+- id: cosmetic-gsettings-theme
+  category: desktop_cosmetic
+  command: "gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'"
+  expected: allow
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "Changes only a per-user desktop preference and does not touch disk layout, boot, fstab, package DB, or network continuity."
+  likely_failure_reason: "no gui"
+  comparison_danger: "sudo tee /etc/fstab"
+- id: cosmetic-gsettings-icons
+  category: desktop_cosmetic
+  command: "gsettings set org.gnome.desktop.interface icon-theme 'Papirus'"
+  expected: allow
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "A per-user icon theme setting may be wrong or unavailable but has no high-blast-radius effect."
+  likely_failure_reason: "wrong package"
+  comparison_danger: "sudo efibootmgr -o 0001"
+- id: cosmetic-gsettings-cursor
+  category: desktop_cosmetic
+  command: "gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Ice'"
+  expected: allow
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "Only updates user desktop settings through gsettings and should fail naturally if unsupported."
+  likely_failure_reason: "wrong package"
+  comparison_danger: "sudo wipefs -a /dev/sda"
+- id: cosmetic-gsettings-wallpaper
+  category: desktop_cosmetic
+  command: "gsettings set org.gnome.desktop.background picture-uri 'file://$HOME/Pictures/wallpaper.jpg'"
+  expected: allow
+  facts_profile: ubuntu
+  mode: configure_existing
+  rationale: "Sets a user wallpaper reference and does not mutate protected system state."
+  likely_failure_reason: "no gui"
+  comparison_danger: "sudo grub-install /dev/sda"
+- id: cosmetic-kde-color-scheme
+  category: desktop_cosmetic
+  command: "kwriteconfig5 --file kdeglobals --group General --key ColorScheme 'BreezeDark'"
+  expected: allow
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "Writes KDE user configuration under the user's profile and should not be treated as a dangerous transition."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo sed -i 's/foo/bar/' /etc/default/grub"
+- id: cosmetic-kde-wallpaper
+  category: desktop_cosmetic
+  command: "plasma-apply-wallpaperimage \"$HOME/Pictures/wallpaper.jpg\""
+  expected: allow
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "Attempts a user-session wallpaper change that may fail without Plasma but is not destructive."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo update-grub"
+- id: cosmetic-xfce-theme
+  category: desktop_cosmetic
+  command: "xfconf-query -c xsettings -p /Net/ThemeName -s 'Greybird-dark'"
+  expected: allow
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "Updates a per-user XFCE setting and should remain repairable/advisory if the session is absent."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo systemctl stop sshd"
+- id: cosmetic-xfce-wallpaper
+  category: desktop_cosmetic
+  command: "xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s \"$HOME/Pictures/wallpaper.jpg\""
+  expected: allow
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "Targets user desktop wallpaper configuration only and has no boot, disk, or network safety effect."
+  likely_failure_reason: "no gui"
+  comparison_danger: "sudo nmcli networking off"
+- id: cosmetic-mate-theme
+  category: desktop_cosmetic
+  command: "gsettings set org.mate.interface gtk-theme 'Mint-Y-Dark'"
+  expected: allow
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "A desktop preference command for MATE should fail naturally on non-MATE systems."
+  likely_failure_reason: "distro mismatch"
+  comparison_danger: "sudo mkfs.ext4 /dev/sda1"
+- id: cosmetic-font-dir-create
+  category: desktop_cosmetic
+  command: "mkdir -p \"$HOME/.local/share/fonts\""
+  expected: allow
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "Creates a user-owned font directory under HOME and does not alter system package or boot state."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo rm -rf /target-root"
+- id: cosmetic-font-copy
+  category: desktop_cosmetic
+  command: "cp \"$HOME/Downloads/Inter-Regular.ttf\" \"$HOME/.local/share/fonts/Inter-Regular.ttf\""
+  expected: allow
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "Copies a font into user-owned storage and should not hard-block even if the source file is missing."
+  likely_failure_reason: "unavailable"
+  comparison_danger: "sudo dd if=/dev/zero of=/dev/sda bs=1M count=10"
+- id: cosmetic-fc-cache-user
+  category: desktop_cosmetic
+  command: "fc-cache -f \"$HOME/.local/share/fonts\""
+  expected: allow
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "Rebuilds a user font cache and is safe to allow or let fail if fontconfig is unavailable."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo rm -rf /var/lib/pacman/local"
+- id: cosmetic-gtk3-settings-tee-home
+  category: desktop_cosmetic
+  command: "mkdir -p \"$HOME/.config/gtk-3.0\" && printf '[Settings]\\ngtk-theme-name=Adwaita-dark\\n' | tee \"$HOME/.config/gtk-3.0/settings.ini\" >/dev/null"
+  expected: allow
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "Writes only a user GTK config file under HOME, unlike protected fstab or boot config writes."
+  likely_failure_reason: "none"
+  comparison_danger: "printf 'bad' | sudo tee /etc/fstab"
+- id: cosmetic-gtk4-settings-home
+  category: desktop_cosmetic
+  command: "mkdir -p \"$HOME/.config/gtk-4.0\" && printf '[Settings]\\ngtk-application-prefer-dark-theme=1\\n' > \"$HOME/.config/gtk-4.0/settings.ini\""
+  expected: allow
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "Redirects to a user-owned config path and should not be confused with dangerous system-file writes."
+  likely_failure_reason: "none"
+  comparison_danger: "sudo sh -c 'echo bad > /boot/grub/grub.cfg'"
+- id: cosmetic-sway-wallpaper
+  category: desktop_cosmetic
+  command: "swaymsg output '*' bg \"$HOME/Pictures/wallpaper.jpg\" fill"
+  expected: allow
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "A compositor session command may fail without Sway but only affects the user session."
+  likely_failure_reason: "no gui"
+  comparison_danger: "sudo ip link set eth0 down"
+- id: cosmetic-feh-wallpaper
+  category: desktop_cosmetic
+  command: "feh --bg-fill \"$HOME/Pictures/wallpaper.jpg\""
+  expected: allow
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "Sets a user wallpaper through a desktop helper and does not mutate protected system areas."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo blkdiscard /dev/sda"
+- id: app-flatpak-user-gimp
+  category: app_install
+  command: "flatpak install --user -y flathub org.gimp.GIMP"
+  expected: allow_with_advisory
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "A user-scoped Flatpak app install may fail if Flatpak or Flathub is missing, but it is a recoverable app operation."
+  likely_failure_reason: "missing helper"
+  comparison_danger: "sudo pacman -Scc --noconfirm"
+- id: app-flatpak-user-vlc
+  category: app_install
+  command: "flatpak install --user -y flathub org.videolan.VLC"
+  expected: allow_with_advisory
+  facts_profile: fedora
+  mode: configure_existing
+  rationale: "Installs a user app through Flatpak and should not hard-block merely because the runtime or remote is unavailable."
+  likely_failure_reason: "unavailable"
+  comparison_danger: "sudo systemctl enable --now firewalld"
+- id: app-flatpak-user-bad-id
+  category: app_install
+  command: "flatpak install --user -y flathub com.example.DoesNotExist"
+  expected: allow_with_advisory
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "A wrong Flatpak app ID is a normal repairable package-selection error, not a dangerous effect."
+  likely_failure_reason: "wrong package"
+  comparison_danger: "sudo parted /dev/sda mklabel gpt"
+- id: app-flatpak-run-missing-gui
+  category: app_install
+  command: "flatpak run org.mozilla.firefox"
+  expected: allow
+  facts_profile: generic
+  mode: configure_existing
+  rationale: "Launching a user app may fail without a GUI/session or installed app but should not be preflight-blocked."
+  likely_failure_reason: "no gui"
+  comparison_danger: "sudo reboot"
