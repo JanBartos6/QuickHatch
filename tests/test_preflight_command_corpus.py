@@ -7,7 +7,11 @@ from typing import Any
 import pytest
 import yaml
 
-from quickhatch.setup.capabilities import CAPABILITY_KINDS, CapabilityStore
+from quickhatch.setup.capabilities import (
+    CAPABILITY_KINDS,
+    CapabilityStore,
+    dangerous_command_requirements,
+)
 from quickhatch.setup.preflight import preflight_setup_command, preflight_setup_decisions
 from quickhatch.setup.types import SetupFacts
 
@@ -33,6 +37,7 @@ def _load_cases() -> list[dict[str, Any]]:
 
 CORPUS_CASES = _load_cases()
 ACTIONABLE_CASES = [case for case in CORPUS_CASES if case["expected"] != "manual_review"]
+SAFE_CASES = [case for case in CORPUS_CASES if case["expected"] in {"allow", "allow_with_advisory"}]
 MANUAL_REVIEW_CASES = [case for case in CORPUS_CASES if case["expected"] == "manual_review"]
 
 
@@ -198,11 +203,101 @@ def _format_results(results: list[CorpusCaseResult]) -> str:
     return "\n".join(lines)
 
 
+def _likely_false_positive_detector(case: dict[str, Any], error: str) -> str:
+    requirements = dangerous_command_requirements(case["command"])
+    if requirements:
+        requirement_summary = ", ".join(
+            f"{item.get('kind', '<unknown>')}:{item.get('target', '<none>')}"
+            for item in requirements
+        )
+        return (
+            f"quickhatch.setup.capabilities.dangerous_command_requirements ({requirement_summary})"
+        )
+    if "changes system packages and needs root privileges" in error:
+        return (
+            "quickhatch.setup.preflight._package_tool_mutates_system via "
+            "preflight_setup_command root privilege check"
+        )
+    return "quickhatch.setup.preflight.preflight_setup_command"
+
+
+def _recommended_false_positive_fix(case: dict[str, Any], error: str) -> str:
+    command = case["command"]
+    if "changes system packages and needs root privileges" in error:
+        return (
+            "Treat package-manager planning flags such as apt `-s`/`--simulate`/"
+            "`--just-print` and dnf `--assumeno` as non-mutating before the root "
+            "privilege gate, while still blocking real package mutations."
+        )
+    requirements = dangerous_command_requirements(command)
+    if requirements:
+        if command.strip().startswith(("echo ", "printf ")):
+            return (
+                "Classify executable shell words instead of matching dangerous tokens "
+                "inside inert echo/printf string arguments."
+            )
+        if "#" in command:
+            return (
+                "Strip or parse shell comments before dangerous-effect regex matching so "
+                "comment text is not treated as an executable operation."
+            )
+        if command.startswith("python3 -c") and "print(" in command:
+            return (
+                "Do not treat interpreter string literals as executed shell unless the "
+                "wrapper invokes a shell bridge such as os.system/subprocess shell text."
+            )
+        if command.startswith("sh -c"):
+            return (
+                "For shell `-c`, inspect only the command payload argument, not unused "
+                "positional arguments after the payload."
+            )
+        return (
+            "Narrow dangerous_command_requirements to ignore inert string/comment contexts "
+            "while preserving detection for actually executed disk/boot mutations."
+        )
+    return "Narrow the blocking detector to the command effect that actually mutates state."
+
+
+def _format_safe_case_results(results: list[CorpusCaseResult]) -> str:
+    passing = sum(result.outcome == "pass" for result in results)
+    false_positives = [result for result in results if result.outcome == "false_positive"]
+    lines = [
+        "safe preflight false-positive mismatches",
+        f"total safe cases checked: {len(results)}",
+        f"passing safe cases: {passing}",
+        f"false positives found: {len(false_positives)}",
+    ]
+    if not false_positives:
+        return "\n".join(lines)
+
+    cases_by_id = {case["id"]: case for case in SAFE_CASES}
+    lines.append("\nfalse positives:")
+    for result in false_positives:
+        case = cases_by_id[result.case_id]
+        lines.extend(
+            [
+                f"- {result.case_id} ({result.expected})",
+                f"  command: {case['command']}",
+                f"  blocking reason: {result.error}",
+                f"  likely detector: {_likely_false_positive_detector(case, result.error)}",
+                f"  recommended narrow fix: {_recommended_false_positive_fix(case, result.error)}",
+            ]
+        )
+    return "\n".join(lines)
+
+
 def test_preflight_command_corpus_matches_current_harness() -> None:
     results = [_evaluate_case(case) for case in ACTIONABLE_CASES]
     failures = [result for result in results if result.outcome != "pass"]
 
     assert not failures, _format_results(results)
+
+
+def test_safe_preflight_corpus_cases_do_not_hard_block() -> None:
+    results = [_evaluate_case(case) for case in SAFE_CASES]
+    failures = [result for result in results if result.outcome != "pass"]
+
+    assert not failures, _format_safe_case_results(results)
 
 
 def test_preflight_command_corpus_has_no_manual_review_cases() -> None:
