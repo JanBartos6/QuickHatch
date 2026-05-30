@@ -221,6 +221,14 @@ _VOID_NVIDIA_COMMANDS = (
     "sudo xbps-install -Syu nvidia nvidia-libs-32bit",
     "sudo xbps-reconfigure -f linux || true",
 )
+_NVIDIA_HARNESS_CAPABILITY_COMMANDS = (
+    *_ARCH_NVIDIA_BOOT_CONFIG_COMMANDS,
+    *_UBUNTU_NVIDIA_COMMANDS,
+    *_DEBIAN_NVIDIA_COMMANDS,
+    *_FEDORA_NVIDIA_COMMANDS,
+    *_OPENSUSE_NVIDIA_COMMANDS,
+    *_VOID_NVIDIA_COMMANDS,
+)
 _ARCH_AUR_BUILD_USER = "quickhatch-build"
 _ARCH_YAY_BOOTSTRAP_COMMAND = (
     "(sudo timedatectl set-ntp true >/dev/null 2>&1 && sleep 5 || true) && "
@@ -2520,26 +2528,27 @@ class SetupOrchestrator:
         store = self.ctx.capability_store
         if store is None or stage != SetupStage.POSTBOOT_DRIVER:
             return
-        if command not in _ARCH_NVIDIA_BOOT_CONFIG_COMMANDS:
+        if command not in _NVIDIA_HARNESS_CAPABILITY_COMMANDS:
             return
         commands = [*group.commands, *group.verification, command]
         if not self._is_nvidia_driver_group(stage, group, commands):
             return
         for requirement in dangerous_command_requirements(command):
-            if requirement.get("kind") != "bootloader_config":
+            if requirement.get("kind") not in {"bootloader_config", "initramfs_rebuild"}:
                 continue
             target = requirement.get("target", "")
-            if store.allows(kind="bootloader_config", target=target):
+            kind = requirement["kind"]
+            if store.allows(kind=kind, target=target):
                 continue
             preview_id = f"preview-nvidia-driver-{self.ctx.run_id}-{uuid.uuid4().hex[:8]}"
             grant = store.grant(
-                kind="bootloader_config",
+                kind=kind,
                 target=target,
-                confirmation_text="QuickHatch NVIDIA recovery boot configuration",
+                confirmation_text="QuickHatch NVIDIA recovery boot artifact update",
                 confirmation_id=preview_id,
                 reason=requirement.get(
                     "reason",
-                    "QuickHatch NVIDIA recovery boot configuration",
+                    "QuickHatch NVIDIA recovery boot artifact update",
                 ),
                 source="harness_generated",
                 one_time_use=False,

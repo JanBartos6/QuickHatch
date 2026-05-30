@@ -125,19 +125,27 @@ _ROOT_REQUIRED_MUTATION_TOOLS = {
     "arch-chroot",
     "blkdiscard",
     "bootctl",
+    "btrfs",
+    "cfdisk",
     "chroot",
     "debootstrap",
     "dracut",
+    "e2fsck",
     "fdisk",
+    "fsck",
+    "gdisk",
     "genfstab",
     "grub-install",
     "grub-mkconfig",
     "grub2-install",
     "grub2-mkconfig",
+    "kernel-install",
+    "mkinitcpio",
     "mount",
     "parted",
     "partprobe",
     "partx",
+    "resize2fs",
     "sfdisk",
     "sgdisk",
     "swapoff",
@@ -146,6 +154,9 @@ _ROOT_REQUIRED_MUTATION_TOOLS = {
     "update-grub",
     "update-initramfs",
     "wipefs",
+    "xfs_growfs",
+    "xfs_repair",
+    "zpool",
 }
 _ASSIGNMENT_NAME = r"[A-Za-z_][A-Za-z0-9_]*"
 
@@ -929,6 +940,34 @@ def _uses_virtualbox_guest_iso_installer(cmd: str) -> bool:
     return True
 
 
+def _observes_external_shell_payload(cmd: str) -> bool:
+    text = str(cmd or "")
+    lower = text.lower()
+    if re.search(r"\b(?:curl|wget)\b[^\n;]*\|\s*(?:sudo\s+)?(?:sh|bash|zsh|fish)\b", lower):
+        return True
+    if re.search(
+        r"\b(?:bash|sh|zsh|fish)\s+(?:/tmp/|/var/tmp/|/run/|https?://|[$][A-Za-z_])",
+        text,
+        re.I,
+    ):
+        return True
+    if re.search(r"(?:^|[\s;])\.\s+(?:/tmp/|/var/tmp/|/run/|[$][A-Za-z_])", text, re.I):
+        return True
+    if re.search(
+        r"\b(?:bash|sh|zsh|fish)\s+-c\s+['\"]?\$[A-Za-z_][A-Za-z0-9_]*",
+        text,
+        re.I,
+    ) and re.search(r"\b[A-Za-z_][A-Za-z0-9_]*=\s*\"\$?\(cat\s+", text):
+        return True
+    if re.search(
+        r"\bpython3?\b[\s\S]*(?:os\.system|subprocess\.)[\s\S]*(?:open\(|/tmp/|/var/tmp/|/run/)",
+        text,
+        re.I,
+    ):
+        return True
+    return False
+
+
 def _append_unique(items: list[str], item: str) -> None:
     if item and item not in items:
         items.append(item)
@@ -968,6 +1007,14 @@ def preflight_setup_advisories(
             advisories,
             "VirtualBox Guest Additions ISO installers are kernel-fragile. Prefer "
             "distro-provided guest utility packages or mark VM integration manual_followup.",
+        )
+    if _observes_external_shell_payload(command):
+        _append_unique(
+            advisories,
+            "external_shell_payload_observed: command executes shell payload from a file, "
+            "URL, variable, or interpreter bridge that static preflight cannot inspect. "
+            "Continue only if the payload source is trusted; dangerous visible payloads "
+            "are still blocked by effect.",
         )
     if _uses_fake_plasma_session_wrapper(command):
         _append_unique(
@@ -1275,6 +1322,11 @@ def _decision_category(reason: str) -> str:
                 "write_fstab",
                 "bootloader_install",
                 "bootloader_config",
+                "filesystem_repair",
+                "filesystem_resize",
+                "storage_topology_change",
+                "initramfs_rebuild",
+                "boot_artifact_update",
             )
         ):
             return "disk_boot_safety"

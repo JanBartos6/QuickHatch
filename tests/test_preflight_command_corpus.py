@@ -8,7 +8,7 @@ import pytest
 import yaml
 
 from quickhatch.setup.capabilities import CAPABILITY_KINDS, CapabilityStore
-from quickhatch.setup.preflight import preflight_setup_command
+from quickhatch.setup.preflight import preflight_setup_command, preflight_setup_decisions
 from quickhatch.setup.types import SetupFacts
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "preflight_command_corpus.yaml"
@@ -205,20 +205,23 @@ def test_preflight_command_corpus_matches_current_harness() -> None:
     assert not failures, _format_results(results)
 
 
+def test_preflight_command_corpus_has_no_manual_review_cases() -> None:
+    assert MANUAL_REVIEW_CASES == []
+
+
 @pytest.mark.parametrize(
     "case",
     [
-        pytest.param(
-            case,
-            id=case["id"],
-            marks=pytest.mark.skip(
-                reason=f"manual_review corpus case: {case.get('notes', '').strip()}"
-            ),
+        pytest.param(case, id=case["id"])
+        for case in CORPUS_CASES
+        if case["expected"] == "allow_with_advisory"
+        and (
+            case.get("expected_capability_kind") == "external_shell_payload"
+            or case["id"] == "obf-manual-review-generated-command"
         )
-        for case in MANUAL_REVIEW_CASES
     ],
 )
-def test_preflight_command_corpus_manual_review_cases_are_deferred(
-    case: dict[str, Any],
-) -> None:
-    assert case["expected"] == "manual_review"
+def test_external_payload_advisory_cases_are_tagged(case: dict[str, Any]) -> None:
+    decisions = preflight_setup_decisions(case["command"], _facts_for_case(case))
+
+    assert any("external_shell_payload_observed" in decision.reason for decision in decisions)

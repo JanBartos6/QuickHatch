@@ -289,6 +289,53 @@ def test_confirmed_tier1_capabilities_allow_harness_generated_operations() -> No
         assert error is None, command
 
 
+def test_manual_boundary_capabilities_allow_matching_operations() -> None:
+    facts = SetupFacts(is_live=True, is_root=True)
+    cases = (
+        ("disk_partition", "/dev/sda", "sudo cfdisk /dev/sda"),
+        ("filesystem_repair", "/dev/sda1", "sudo fsck -y /dev/sda1"),
+        ("filesystem_resize", "/dev/sda1", "sudo resize2fs /dev/sda1"),
+        ("storage_topology_change", "tank", "sudo zpool attach tank /dev/sdb /dev/sdc"),
+        ("initramfs_rebuild", "/boot", "sudo update-initramfs -u -k all"),
+        ("boot_artifact_update", "/boot", "sudo kernel-install add 6.1 /boot/vmlinuz-6.1"),
+    )
+
+    for kind, target, command in cases:
+        assert preflight_setup_command(command, facts) is not None, command
+        assert (
+            preflight_setup_command(
+                command,
+                facts,
+                capability_store=_store_with_capability(kind, target),
+            )
+            is None
+        ), command
+        assert (
+            preflight_setup_command(
+                command,
+                facts,
+                capability_store=_store_with_capability(kind, "/quickhatch-mismatch"),
+            )
+            is not None
+        ), command
+
+
+def test_read_only_boundary_diagnostics_stay_allowed() -> None:
+    facts = SetupFacts(is_live=True, is_root=True)
+    commands = (
+        "sudo fdisk -l /dev/sda",
+        "sudo gdisk -l /dev/sda",
+        "sudo parted -s /dev/sda print",
+        "sudo fsck -n /dev/sda1",
+        "sudo xfs_repair -n /dev/sda1",
+        "sudo zpool status tank",
+        "sudo dracut --print-cmdline",
+    )
+
+    for command in commands:
+        assert preflight_setup_command(command, facts) is None, command
+
+
 def test_controlled_reboot_capability_does_not_mask_other_ssh_lockouts() -> None:
     facts = SetupFacts(is_live=True, is_root=True)
     error = preflight_setup_command(

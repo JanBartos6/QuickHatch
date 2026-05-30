@@ -23,6 +23,11 @@ CAPABILITY_KINDS = frozenset(
         "controlled_reboot",
         "network_security_change",
         "package_db_repair",
+        "filesystem_repair",
+        "filesystem_resize",
+        "storage_topology_change",
+        "initramfs_rebuild",
+        "boot_artifact_update",
     }
 )
 
@@ -437,6 +442,59 @@ def _non_option_args(args: list[str]) -> list[str]:
     return [arg for arg in args if arg and not arg.startswith("-")]
 
 
+def _has_any_option(args: list[str], *options: str) -> bool:
+    return any(arg in options for arg in args)
+
+
+def _partition_editor_requirement(tokens: list[str], item: str) -> dict[str, str] | None:
+    if not tokens:
+        return None
+    tool = tokens[0].rsplit("/", 1)[-1].lower()
+    args = tokens[1:]
+    target = _first_device(item)
+    if not target:
+        return None
+    if tool == "fdisk":
+        if _has_any_option(args, "-l", "--list"):
+            return None
+        return {
+            "kind": "disk_partition",
+            "target": target,
+            "reason": "interactive fdisk partition editor",
+        }
+    if tool in {"cfdisk", "cgdisk"}:
+        return {
+            "kind": "disk_partition",
+            "target": target,
+            "reason": f"interactive {tool} partition editor",
+        }
+    if tool in {"gdisk", "sgdisk"}:
+        if _has_any_option(args, "-l", "--list", "-p", "--print"):
+            return None
+        if tool == "sgdisk":
+            return None
+        return {
+            "kind": "disk_partition",
+            "target": target,
+            "reason": "interactive gdisk partition editor",
+        }
+    if tool == "parted":
+        non_options = _non_option_args(args)
+        if not non_options or target not in non_options:
+            return None
+        target_index = non_options.index(target)
+        verbs = {arg.lower() for arg in non_options[target_index + 1 :]}
+        if verbs and verbs <= {"print", "unit", "help", "version"}:
+            return None
+        if not verbs:
+            return {
+                "kind": "disk_partition",
+                "target": target,
+                "reason": "interactive parted partition editor",
+            }
+    return None
+
+
 def _option_value(args: list[str], *names: str) -> str:
     for idx, arg in enumerate(args):
         if arg in names and idx + 1 < len(args):
@@ -468,6 +526,127 @@ def _join_chroot_path(root: str, path: str) -> str:
 
 def _strip_path_quotes(path: str) -> str:
     return str(path or "").strip().strip("\"'")
+
+
+def _filesystem_repair_target(tokens: list[str], item: str) -> str:
+    tool = tokens[0].rsplit("/", 1)[-1].lower() if tokens else ""
+    args = tokens[1:]
+    if tool in {"fsck", "e2fsck"}:
+        if any(arg in {"-n", "--no", "-N", "--dry-run"} for arg in args):
+            return ""
+        if tool == "fsck" and not any(
+            arg == "-y" or (arg.startswith("-") and not arg.startswith("--") and "y" in arg[1:])
+            for arg in args
+        ):
+            return ""
+        if tool == "e2fsck" and not any(
+            arg == "-y"
+            or arg == "-p"
+            or arg == "-a"
+            or (
+                arg.startswith("-")
+                and not arg.startswith("--")
+                and any(flag in arg[1:] for flag in {"f", "y", "p", "a"})
+            )
+            for arg in args
+        ):
+            return ""
+        return _first_device(item)
+    if tool == "xfs_repair":
+        if "-n" in args:
+            return ""
+        return _first_device(item)
+    if tool == "btrfs" and len(args) >= 2 and args[0] == "check" and "--repair" in args:
+        return _first_device(item)
+    return ""
+
+
+def _filesystem_resize_target(tokens: list[str], item: str) -> str:
+    tool = tokens[0].rsplit("/", 1)[-1].lower() if tokens else ""
+    args = tokens[1:]
+    if tool == "resize2fs":
+        return _first_device(item)
+    if tool == "xfs_growfs" and args:
+        return _strip_path_quotes(args[-1])
+    if tool == "btrfs" and len(args) >= 3 and args[:2] == ["filesystem", "resize"]:
+        return _strip_path_quotes(args[-1])
+    return ""
+
+
+def _storage_topology_requirement(tokens: list[str], item: str) -> dict[str, str] | None:
+    if not tokens:
+        return None
+    tool = tokens[0].rsplit("/", 1)[-1].lower()
+    args = tokens[1:]
+    if tool == "btrfs" and len(args) >= 3 and args[:2] == ["device", "add"]:
+        return {
+            "kind": "storage_topology_change",
+            "target": _first_device(item),
+            "reason": "btrfs device topology change",
+        }
+    if (
+        tool == "btrfs"
+        and len(args) >= 3
+        and tuple(args[:2])
+        in {
+            ("device", "delete"),
+            ("device", "remove"),
+        }
+    ):
+        return {
+            "kind": "storage_topology_change",
+            "target": _first_device(item),
+            "reason": "btrfs device topology change",
+        }
+    if tool == "zpool" and args and args[0] in {"attach", "detach", "add", "remove", "replace"}:
+        target = args[1] if len(args) > 1 else ""
+        return {
+            "kind": "storage_topology_change",
+            "target": _strip_path_quotes(target),
+            "reason": "ZFS pool topology change",
+        }
+    return None
+
+
+def _initramfs_rebuild_target(tokens: list[str], root: str = "") -> str:
+    if not tokens:
+        return ""
+    tool = tokens[0].rsplit("/", 1)[-1].lower()
+    args = tokens[1:]
+    if tool == "update-initramfs":
+        if any(arg in {"-u", "--update", "-c", "--create", "-d", "--delete"} for arg in args):
+            return _join_chroot_path(root, "/boot")
+        return ""
+    if tool == "dracut":
+        if any(
+            arg in {"--print-cmdline", "--list-modules", "--help", "-h", "--version"}
+            for arg in args
+        ):
+            return ""
+        mutates = any(
+            arg in {"--force", "-f", "--regenerate-all", "-H", "--hostonly"} for arg in args
+        )
+        output = next((arg for arg in args if arg.startswith("/boot/")), "")
+        if mutates or output:
+            return _join_chroot_path(root, "/boot")
+        return ""
+    if tool == "mkinitcpio":
+        if any(arg in {"-P", "--allpresets"} for arg in args):
+            return _join_chroot_path(root, "/boot")
+        if "-g" in args:
+            return _join_chroot_path(root, _option_value(args, "-g"))
+        return ""
+    return ""
+
+
+def _boot_artifact_update_target(tokens: list[str], root: str = "") -> str:
+    if not tokens:
+        return ""
+    tool = tokens[0].rsplit("/", 1)[-1].lower()
+    args = tokens[1:]
+    if tool == "kernel-install" and args and args[0] in {"add", "remove"}:
+        return _join_chroot_path(root, "/boot")
+    return ""
 
 
 def _canonical_fstab_target(path: str) -> str:
@@ -707,7 +886,7 @@ def _ambiguous_variable_requirement(item: str) -> list[dict[str, str]]:
             }
         ]
     if re.search(
-        r"\b(?:parted|sgdisk|sfdisk|fdisk|wipefs|blkdiscard|pvcreate|pvremove|vgcreate|vgremove|lvcreate|lvremove|shred)\b",
+        r"\b(?:parted|cfdisk|gdisk|sgdisk|sfdisk|fdisk|wipefs|blkdiscard|pvcreate|pvremove|vgcreate|vgremove|lvcreate|lvremove|shred|fsck|e2fsck|xfs_repair|resize2fs|xfs_growfs|btrfs|zpool|update-initramfs|dracut|mkinitcpio|kernel-install)\b",
         item,
         re.I,
     ):
@@ -738,6 +917,51 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
     for item in scan:
         lowered = item.lower()
         before = len(requirements)
+        for tokens in _stripped_segment_tokens(item):
+            root, command_tokens = _chroot_context(tokens)
+            command_text = " ".join(command_tokens)
+            partition_editor = _partition_editor_requirement(command_tokens, command_text)
+            if partition_editor:
+                requirements.append(partition_editor)
+            repair_target = _filesystem_repair_target(command_tokens, command_text)
+            if repair_target:
+                requirements.append(
+                    {
+                        "kind": "filesystem_repair",
+                        "target": repair_target,
+                        "reason": "filesystem repair command",
+                    }
+                )
+            resize_target = _filesystem_resize_target(command_tokens, command_text)
+            if resize_target:
+                requirements.append(
+                    {
+                        "kind": "filesystem_resize",
+                        "target": resize_target,
+                        "reason": "filesystem resize command",
+                    }
+                )
+            topology_requirement = _storage_topology_requirement(command_tokens, command_text)
+            if topology_requirement:
+                requirements.append(topology_requirement)
+            initramfs_target = _initramfs_rebuild_target(command_tokens, root)
+            if initramfs_target:
+                requirements.append(
+                    {
+                        "kind": "initramfs_rebuild",
+                        "target": initramfs_target,
+                        "reason": "initramfs rebuild command",
+                    }
+                )
+            boot_artifact_target = _boot_artifact_update_target(command_tokens, root)
+            if boot_artifact_target:
+                requirements.append(
+                    {
+                        "kind": "boot_artifact_update",
+                        "target": boot_artifact_target,
+                        "reason": "kernel boot artifact update",
+                    }
+                )
         for match in re.finditer(
             r"\bmkfs(?:\.[\w+-]+)?\b(?:[^;&|]*)\s[\"']?(?P<target>" + _DEVICE_RE + r")[\"']?",
             item,
