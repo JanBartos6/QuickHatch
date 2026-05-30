@@ -300,6 +300,37 @@ def test_safe_preflight_corpus_cases_do_not_hard_block() -> None:
     assert not failures, _format_safe_case_results(results)
 
 
+@pytest.mark.parametrize(
+    ("command", "facts_profile", "mode"),
+    [
+        ("apt-get install gnome-tweaks", "ubuntu", "configure_existing"),
+        ("dnf install vlc", "fedora", "configure_existing"),
+        ("sudo mkfs.ext4 /dev/sda1", "generic", "any"),
+        ("sudo wipefs -a /dev/sda", "generic", "any"),
+        ('cmd="sudo wipefs -a /dev/sda"; sh -c "$cmd"', "generic", "any"),
+        (
+            'python3 -c "import os; os.system(\\"sudo dd if=/dev/zero of=/dev/sda\\")"',
+            "generic",
+            "any",
+        ),
+        ('sh -c "sudo wipefs -a /dev/sda"', "generic", "any"),
+    ],
+)
+def test_safe_false_positive_dangerous_counterparts_still_block(
+    command: str,
+    facts_profile: str,
+    mode: str,
+) -> None:
+    case = {
+        "id": "dangerous-counterpart",
+        "command": command,
+        "facts_profile": facts_profile,
+        "mode": mode,
+    }
+
+    assert preflight_setup_command(command, _facts_for_case(case))
+
+
 def test_preflight_command_corpus_has_no_manual_review_cases() -> None:
     assert MANUAL_REVIEW_CASES == []
 

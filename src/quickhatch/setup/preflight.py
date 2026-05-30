@@ -534,6 +534,11 @@ def _package_tool_mutates_system(tool: str, tokens: list[str]) -> bool:
                 return True
         return False
     if tool in {"apt", "apt-get"}:
+        if any(
+            arg.lower() in {"-s", "--simulate", "--dry-run", "--just-print", "--no-act", "--recon"}
+            for arg in args
+        ):
+            return False
         mutating_verbs = {
             "autoremove",
             "build-dep",
@@ -550,6 +555,8 @@ def _package_tool_mutates_system(tool: str, tokens: list[str]) -> bool:
         }
         return any(arg.lower() in mutating_verbs for arg in args if not arg.startswith("-"))
     if tool in {"dnf", "dnf5"}:
+        if any(arg.lower() in {"--assumeno", "--setopt=assumeno=true"} for arg in args):
+            return False
         mutating_verbs = {
             "autoremove",
             "distro-sync",

@@ -381,6 +381,145 @@ def _command_segments(text: str) -> list[str]:
     ]
 
 
+def _strip_shell_comments(text: str) -> str:
+    result: list[str] = []
+    quote: str | None = None
+    escaped = False
+    idx = 0
+    source = str(text or "")
+    while idx < len(source):
+        char = source[idx]
+        if escaped:
+            result.append(char)
+            escaped = False
+            idx += 1
+            continue
+        if char == "\\":
+            result.append(char)
+            escaped = True
+            idx += 1
+            continue
+        if quote:
+            result.append(char)
+            if char == quote:
+                quote = None
+            idx += 1
+            continue
+        if char in {"'", '"'}:
+            quote = char
+            result.append(char)
+            idx += 1
+            continue
+        if char == "#" and (idx == 0 or source[idx - 1].isspace()):
+            while idx < len(source) and source[idx] != "\n":
+                idx += 1
+            continue
+        result.append(char)
+        idx += 1
+    return "".join(result)
+
+
+def _printed_text_is_piped_to_shell(text: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(?:echo|printf|cat)\b[^\n;|&]*\|\s*(?:sudo\s+)?(?:bash|sh|zsh|fish)\b",
+            text or "",
+            re.I,
+        )
+    )
+
+
+def _segment_tokens(segment: str) -> list[str]:
+    try:
+        return shlex.split(segment, posix=True)
+    except ValueError:
+        return segment.split()
+
+
+def _all_shell_assignments(tokens: list[str]) -> bool:
+    return bool(tokens) and all(
+        "=" in token and not token.startswith("-") and token.split("=", 1)[0].isidentifier()
+        for token in tokens
+    )
+
+
+def _assignment_segment_carries_device_target(segment: str) -> bool:
+    if not re.search(_DEVICE_RE, segment or "", re.I):
+        return False
+    return not re.search(
+        r"\b(?:mkfs(?:\.[\w+-]+)?|mkswap|cryptsetup|parted|sgdisk|sfdisk|fdisk|wipefs|dd|"
+        r"blkdiscard|pvcreate|pvremove|vgcreate|vgremove|lvcreate|lvremove|shred)\b",
+        segment,
+        re.I,
+    )
+
+
+def _shell_c_payload(tokens: list[str]) -> str:
+    for idx, token in enumerate(tokens[:-1]):
+        if token == "-c":
+            return tokens[idx + 1]
+    return ""
+
+
+def _python_c_payload(tokens: list[str]) -> str:
+    for idx, token in enumerate(tokens[:-1]):
+        if token == "-c":
+            return tokens[idx + 1]
+    return ""
+
+
+def _python_payload_executes_shell(payload: str) -> bool:
+    return bool(
+        re.search(
+            r"\b(?:os\.system|subprocess\.(?:run|call|Popen|check_call|check_output)|system)\s*\(",
+            payload or "",
+        )
+    )
+
+
+def _python_payload_prints_only(payload: str) -> bool:
+    stripped = str(payload or "").strip()
+    return bool(
+        stripped.startswith("print(")
+        and not re.search(r"\b(?:open|write|unlink|remove|rename|replace)\s*\(", stripped)
+        and not _python_payload_executes_shell(stripped)
+    )
+
+
+def _executable_shell_scan_text(text: str) -> str:
+    """Keep executable shell text while dropping inert printed/commented strings."""
+
+    uncommented = _strip_shell_comments(text)
+    if _printed_text_is_piped_to_shell(uncommented):
+        return uncommented
+    executable_segments: list[str] = []
+    for segment in _command_segments(uncommented):
+        tokens = _segment_tokens(segment)
+        if _all_shell_assignments(tokens):
+            if _assignment_segment_carries_device_target(segment):
+                executable_segments.append(segment)
+            continue
+        stripped = _strip_command_prefix(tokens)
+        if not stripped:
+            continue
+        tool = stripped[0].rsplit("/", 1)[-1].lower()
+        if tool in {"echo", "printf"}:
+            if "$(" in segment:
+                executable_segments.append(segment)
+            continue
+        if tool in {"bash", "sh", "zsh", "fish"}:
+            payload = _shell_c_payload(stripped)
+            executable_segments.append(payload if payload else segment)
+            continue
+        if tool in {"python", "python3"}:
+            payload = _python_c_payload(stripped)
+            if payload and _python_payload_prints_only(payload):
+                executable_segments.append(f"{tool} -c")
+                continue
+        executable_segments.append(segment)
+    return "; ".join(executable_segments)
+
+
 def _strip_command_prefix(tokens: list[str]) -> list[str]:
     idx = 0
     while idx < len(tokens):
@@ -914,7 +1053,10 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
     requirements: list[dict[str, str]] = []
     text = str(command or "")
     scan = _expanded_shell_scans(text)
-    for item in scan:
+    for raw_item in scan:
+        item = _executable_shell_scan_text(raw_item)
+        if not item:
+            continue
         lowered = item.lower()
         before = len(requirements)
         for tokens in _stripped_segment_tokens(item):
