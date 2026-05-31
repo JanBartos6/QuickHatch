@@ -2915,6 +2915,43 @@ class SetupOrchestrator:
             if item not in manual_followups:
                 manual_followups.append(item)
             stage_state["manual_followups"] = manual_followups
+        elif facts is not None and facts.displays:
+            self._clear_stale_display_manual_followup(stage_state)
+
+    @staticmethod
+    def _clear_stale_display_manual_followup(stage_state: dict[str, Any]) -> None:
+        def is_stale_display_reason(value: Any) -> bool:
+            reason = str(value or "").strip().lower()
+            if "display" not in reason:
+                return False
+            return any(
+                marker in reason
+                for marker in (
+                    "no active target display",
+                    "runtime-verified",
+                    "display tuning left for manual follow-up",
+                )
+            )
+
+        reason = stage_state.get("display_manual_followup_reason")
+        if is_stale_display_reason(reason):
+            stage_state.pop("display_manual_followup", None)
+            stage_state.pop("display_manual_followup_reason", None)
+            stage_state.pop("skipped_runtime_desktop_items", None)
+
+        manual_followups = list(stage_state.get("manual_followups") or [])
+        if manual_followups:
+            filtered = [
+                item
+                for item in manual_followups
+                if not is_stale_display_reason(
+                    item.get("reason") if isinstance(item, dict) else item
+                )
+            ]
+            if filtered:
+                stage_state["manual_followups"] = filtered
+            else:
+                stage_state.pop("manual_followups", None)
 
     def _resolve_display_preference_blockers(self, stage_state: dict[str, Any]) -> bool:
         blockers = [str(item) for item in (stage_state.get("display_preference_blockers") or [])]
