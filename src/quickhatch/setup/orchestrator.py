@@ -1272,6 +1272,22 @@ class SetupOrchestrator:
             raise RuntimeError("Setup orchestration missing facts or plan.")
         self.bridge.update_setup_run(stage=stage.value, status="running")
         stage_state = self.ctx.stage_state.setdefault(stage.value, {})
+        if stage in _INSTALLED_NONROOT_PRIVILEGED_STAGES and self.ctx.facts.is_live:
+            reason = (
+                f"Stage '{stage.value}' cannot run while the target still reports a live "
+                "environment. Finish the install, controlled reboot, reconnect, and fresh "
+                "fact probe before running postboot, desktop, or app work."
+            )
+            stage_state["live_environment_stage_block"] = reason
+            self.runlog.record(
+                "postboot_stage_blocked_live_environment",
+                stage=stage.value,
+                reason=reason,
+                facts=asdict(self.ctx.facts),
+            )
+            self.bridge.update_setup_run(status="blocked", blockers=[reason])
+            self.bridge.add_message("agent", f"🛑 Safe stage block: {reason}")
+            raise RuntimeError(reason)
         for group in self._iter_stage_groups(stage):
             if self.bridge.stop_requested:
                 raise RuntimeError("Agent stopped by user.")
