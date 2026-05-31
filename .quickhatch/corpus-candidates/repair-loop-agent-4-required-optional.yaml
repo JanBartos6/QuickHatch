@@ -1,0 +1,299 @@
+- id: optional-app-missing-package-nonfatal
+  category: required_optional
+  stage: apps
+  app_or_target: "Obsidian"
+  initial_failure:
+    command: "sudo apt-get install -y obsidian"
+    failure_type: command
+    stdout: "Reading package lists... Done"
+    stderr: "E: Unable to locate package obsidian"
+  repair_sequence:
+    - action: retry_command
+      command: "sudo apt-get install -y obsidian"
+      strategy: same
+      result: failure
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "An optional app that is unavailable should not block setup, but should be reported as a warning or manual follow-up."
+
+- id: optional-flatpak-app-provider-missing-nonfatal
+  category: required_optional
+  stage: apps
+  app_or_target: "Spotify"
+  initial_failure:
+    command: "flatpak install -y flathub com.spotify.Client"
+    failure_type: command
+    stdout: "Looking for matches..."
+    stderr: "error: No remote refs found for com.spotify.Client"
+  repair_sequence:
+    - action: search
+      command: "flatpak search spotify"
+      strategy: flatpak
+      result: failure
+    - action: manual_followup
+      command: ""
+      strategy: flatpak
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "A failed optional Flatpak install should not make the whole run blocked when no destructive state transition occurred."
+
+- id: optional-desktop-theme-no-gui-session
+  category: required_optional
+  stage: desktop
+  app_or_target: "Plasma theme"
+  initial_failure:
+    command: "lookandfeeltool -a org.example.MissingTheme"
+    failure_type: command
+    stdout: ""
+    stderr: "qt.qpa.xcb: could not connect to display"
+  repair_sequence:
+    - action: diagnostic
+      command: "echo $XDG_CURRENT_DESKTOP"
+      strategy: diagnostic
+      result: failure
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "Optional desktop cosmetic work without an active GUI session should become visible follow-up, not a fatal setup failure."
+
+- id: optional-theme-identical-retry-loop-warning
+  category: required_optional
+  stage: desktop
+  app_or_target: "Cursor theme"
+  initial_failure:
+    command: "gsettings set org.gnome.desktop.interface cursor-theme MissingCursor"
+    failure_type: command
+    stdout: ""
+    stderr: "No such schema 'org.gnome.desktop.interface'"
+  repair_sequence:
+    - action: retry_command
+      command: "gsettings set org.gnome.desktop.interface cursor-theme MissingCursor"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "gsettings set org.gnome.desktop.interface cursor-theme MissingCursor"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: true
+    budget_consumed_count: 2
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "Repeated identical optional theme failures should stop as a warning/manual follow-up instead of consuming repair attempts indefinitely."
+
+- id: required-app-missing-package-honest-followup
+  category: required_optional
+  stage: apps
+  app_or_target: "Visual Studio Code"
+  initial_failure:
+    command: "sudo dnf install -y code"
+    failure_type: command
+    stdout: "No match for argument: code"
+    stderr: "Error: Unable to find a match: code"
+  repair_sequence:
+    - action: search
+      command: "dnf search vscode"
+      strategy: diagnostic
+      result: failure
+    - action: manual_followup
+      command: ""
+      strategy: repo
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: "A required unresolved app must not be hidden as success even when the failure is only an unavailable package."
+
+- id: required-app-identical-retry-loop-followup
+  category: required_optional
+  stage: apps
+  app_or_target: "Company VPN Client"
+  initial_failure:
+    command: "sudo pacman -S --noconfirm company-vpn-client"
+    failure_type: command
+    stdout: ""
+    stderr: "error: target not found: company-vpn-client"
+  repair_sequence:
+    - action: retry_command
+      command: "sudo pacman -S --noconfirm company-vpn-client"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "sudo pacman -S --noconfirm company-vpn-client"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: true
+    budget_consumed_count: 2
+    final_group_status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: "Required app failure should remain honest, and repeated identical package attempts should trigger loop control."
+
+- id: required-postboot-nvidia-package-unresolved
+  category: required_optional
+  stage: postboot_driver
+  app_or_target: "NVIDIA driver"
+  initial_failure:
+    command: "sudo apt-get install -y nvidia-driver"
+    failure_type: command
+    stdout: "Reading package lists... Done"
+    stderr: "E: Package 'nvidia-driver' has no installation candidate"
+  repair_sequence:
+    - action: search
+      command: "apt-cache search '^nvidia-driver'"
+      strategy: diagnostic
+      result: failure
+    - action: manual_followup
+      command: ""
+      strategy: repo
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: "A required driver that cannot be resolved automatically should become explicit manual follow-up rather than a green success."
+
+- id: required-postboot-secureboot-driver-rejection
+  category: required_optional
+  stage: postboot_driver
+  app_or_target: "NVIDIA kernel module"
+  initial_failure:
+    command: "sudo modprobe nvidia"
+    failure_type: command
+    stdout: ""
+    stderr: "modprobe: ERROR: could not insert 'nvidia': Key was rejected by service"
+  repair_sequence:
+    - action: diagnostic
+      command: "mokutil --sb-state"
+      strategy: diagnostic
+      result: success
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: "Secure Boot module rejection usually needs user action and should be recorded as required manual follow-up."
+
+- id: optional-postboot-driver-helper-unavailable
+  category: required_optional
+  stage: postboot_driver
+  app_or_target: "GPU helper utility"
+  initial_failure:
+    command: "sudo dnf install -y nvtop"
+    failure_type: command
+    stdout: "No match for argument: nvtop"
+    stderr: "Error: Unable to find a match: nvtop"
+  repair_sequence:
+    - action: search
+      command: "dnf search nvtop"
+      strategy: diagnostic
+      result: failure
+    - action: manual_followup
+      command: ""
+      strategy: repo
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "An optional driver-adjacent helper tool should not block the setup when unavailable."
+
+- id: install-spine-pacstrap-required-blocks
+  category: required_optional
+  stage: install_or_skip
+  app_or_target: "/mnt"
+  initial_failure:
+    command: "pacstrap -K /mnt base linux linux-firmware"
+    failure_type: command
+    stdout: "==> Creating install root at /mnt"
+    stderr: "error: failed retrieving file 'core.db' from mirror"
+  repair_sequence:
+    - action: retry_command
+      command: "pacstrap -K /mnt base linux linux-firmware"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "pacstrap -K /mnt base linux linux-firmware"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: true
+    budget_consumed_count: 2
+    final_group_status: blocked
+    final_status_effect: blocked
+  rationale: "Fresh-install bootstrap is required install-spine work; repeated failure must block instead of becoming optional follow-up."
+
+- id: install-spine-debootstrap-required-blocks
+  category: required_optional
+  stage: install_or_skip
+  app_or_target: "/mnt"
+  initial_failure:
+    command: "debootstrap stable /mnt http://deb.debian.org/debian"
+    failure_type: command
+    stdout: "I: Retrieving InRelease"
+    stderr: "E: Failed getting release file"
+  repair_sequence:
+    - action: retry_command
+      command: "debootstrap stable /mnt http://deb.debian.org/debian"
+      strategy: same
+      result: failure
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: blocked
+    final_status_effect: blocked
+  rationale: "A failed required install-root bootstrap cannot be downgraded to a nonfatal app-style warning."
+
+- id: install-spine-preflight-capability-denial-blocks
+  category: required_optional
+  stage: install_or_skip
+  app_or_target: "/dev/sda"
+  initial_failure:
+    command: "mkfs.ext4 /dev/sda1"
+    failure_type: preflight
+    stdout: ""
+    stderr: "blocked: format_filesystem capability required for /dev/sda1"
+  repair_sequence:
+    - action: retry_command
+      command: "mkfs.ext4 /dev/sda1"
+      strategy: same
+      result: failure
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 0
+    final_group_status: blocked
+    final_status_effect: blocked
+  rationale: "Capability-gated disk formatting in the install spine must remain blocked without consent, regardless of repair-loop handling."

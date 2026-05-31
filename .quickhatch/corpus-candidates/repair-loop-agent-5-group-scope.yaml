@@ -1,0 +1,261 @@
+- id: same-loop-key-across-app-groups
+  category: group_scope
+  stage: apps
+  app_or_target: "two app groups requesting missing repo package"
+  initial_failure:
+    command: "sudo apt-get install -y definitely-missing-chat"
+    failure_type: command
+    stdout: "Reading package lists... Done"
+    stderr: "E: Unable to locate package definitely-missing-chat"
+  repair_sequence:
+    - action: retry_command
+      command: "sudo apt-get install -y definitely-missing-chat"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "sudo apt-get install -y definitely-missing-chat"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: true
+    budget_consumed_count: 2
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "The same missing-package command repeated across app groups has the same effect signature and should stop as manual follow-up instead of burning the full apps stage."
+
+- id: same-loop-key-different-app-targets
+  category: group_scope
+  stage: apps
+  app_or_target: "two unrelated apps mapped to the same bad package"
+  initial_failure:
+    command: "sudo dnf install -y missing-proprietary-client"
+    failure_type: command
+    stdout: "No match for argument: missing-proprietary-client"
+    stderr: "Error: Unable to find a match: missing-proprietary-client"
+  repair_sequence:
+    - action: retry_command
+      command: "sudo dnf install -y missing-proprietary-client"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "sudo dnf install -y missing-proprietary-client"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: true
+    budget_consumed_count: 2
+    final_group_status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: "If multiple requested targets collapse to the same unavailable package, retrying the identical command should be treated as the same failed strategy and preserve an honest unresolved-required status."
+
+- id: per-stage-loop-state-separated
+  category: group_scope
+  stage: desktop
+  app_or_target: "desktop theme command after similar apps-stage failure"
+  initial_failure:
+    command: "gsettings set org.gnome.desktop.interface gtk-theme MissingTheme"
+    failure_type: command
+    stdout: ""
+    stderr: "No such schema 'org.gnome.desktop.interface'"
+  repair_sequence:
+    - action: retry_command
+      command: "gsettings set org.gnome.desktop.interface gtk-theme MissingTheme"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "Attempt signatures should be scoped by stage; a previous apps-stage loop must not make the first desktop-stage repair look exhausted."
+
+- id: same-command-different-stage-install-critical
+  category: group_scope
+  stage: install_or_skip
+  app_or_target: "/mnt bootstrap"
+  initial_failure:
+    command: "sudo dnf --installroot=/mnt install -y kernel"
+    failure_type: command
+    stdout: "Last metadata expiration check: 0:00:01 ago"
+    stderr: "Error: Failed to download metadata for repo 'fedora'"
+  repair_sequence:
+    - action: retry_command
+      command: "sudo dnf --installroot=/mnt install -y kernel"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "sudo dnf --installroot=/mnt install -y kernel"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: true
+    budget_consumed_count: 2
+    final_group_status: blocked
+    final_status_effect: blocked
+  rationale: "Install-stage loops are critical and should block when the same bootstrap/installroot command repeats without progress."
+
+- id: diagnostics-status-not-hard-loop
+  category: diagnostics_budget
+  stage: apps
+  app_or_target: "service status diagnostic"
+  initial_failure:
+    command: "systemctl status sshd --no-pager"
+    failure_type: command
+    stdout: ""
+    stderr: "Unit sshd.service could not be found."
+  repair_sequence:
+    - action: diagnostic
+      command: "systemctl status sshd --no-pager"
+      strategy: diagnostic
+      result: failure
+    - action: diagnostic
+      command: "systemctl status sshd --no-pager"
+      strategy: diagnostic
+      result: failure
+    - action: diagnostic
+      command: "systemctl status sshd --no-pager"
+      strategy: diagnostic
+      result: failure
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "Repeated read-only diagnostics should not trigger the hard identical-command loop detector, but they should eventually consume repair budget."
+
+- id: diagnostics-search-budget-boundary
+  category: diagnostics_budget
+  stage: apps
+  app_or_target: "package search diagnostics"
+  initial_failure:
+    command: "apt-cache search definitely-missing-editor"
+    failure_type: command
+    stdout: ""
+    stderr: ""
+  repair_sequence:
+    - action: search
+      command: "apt-cache search definitely-missing-editor"
+      strategy: diagnostic
+      result: failure
+    - action: search
+      command: "apt-cache search definitely-missing-editor"
+      strategy: diagnostic
+      result: failure
+    - action: search
+      command: "apt-cache search definitely-missing-editor"
+      strategy: diagnostic
+      result: failure
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "Repeated package searches are safe diagnostics; they should be budget-limited without being classified as dangerous or identical retry loops."
+
+- id: auto-repair-pacman-refresh-one-shot
+  category: group_scope
+  stage: apps
+  app_or_target: "Arch repo package after stale database failure"
+  initial_failure:
+    command: "sudo pacman -S --noconfirm vlc"
+    failure_type: command
+    stdout: ""
+    stderr: "error: failed retrieving file 'extra.db' from mirror"
+  repair_sequence:
+    - action: diagnostic
+      command: "sudo pacman -Syy"
+      strategy: diagnostic
+      result: success
+    - action: retry_command
+      command: "sudo pacman -S --noconfirm vlc"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "sudo pacman -S --noconfirm vlc"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: false
+    budget_consumed_count: 3
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "A one-shot stale-metadata repair is a distinct diagnostic step, but repeated original install failures after it should still be bounded by budget."
+
+- id: auto-repair-aur-pgp-split-one-shot
+  category: group_scope
+  stage: apps
+  app_or_target: "AUR package with PGP key failure"
+  initial_failure:
+    command: "yay -S --noconfirm signal-desktop-beta"
+    failure_type: command
+    stdout: "==> Making package: signal-desktop-beta"
+    stderr: "gpg: keyserver receive failed: No data"
+  repair_sequence:
+    - action: diagnostic
+      command: "gpg --recv-keys 1234567890ABCDEF"
+      strategy: diagnostic
+      result: failure
+    - action: retry_command
+      command: "yay -S --noconfirm signal-desktop-beta"
+      strategy: same
+      result: failure
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 2
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "AUR PGP repair may try one distinct helper step, but persistent key failure should become manual follow-up rather than repeating the same build loop."
+
+- id: final-audit-budget-required-app
+  category: diagnostics_budget
+  stage: final_audit
+  app_or_target: "required app verification"
+  initial_failure:
+    command: "verify app: code"
+    failure_type: audit
+    stdout: "missing: code"
+    stderr: ""
+  repair_sequence:
+    - action: retry_command
+      command: "sudo apt-get install -y code"
+      strategy: repo
+      result: failure
+    - action: retry_command
+      command: "sudo apt-get install -y code"
+      strategy: repo
+      result: failure
+  expected:
+    loop_detected: false
+    budget_consumed_count: 2
+    final_group_status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: "Final audit repair should be budget-driven and must preserve an honest manual-follow-up status for unresolved required apps."
+
+- id: final-audit-budget-optional-theme
+  category: diagnostics_budget
+  stage: final_audit
+  app_or_target: "optional desktop theme verification"
+  initial_failure:
+    command: "verify desktop theme: Catppuccin"
+    failure_type: audit
+    stdout: "theme not active"
+    stderr: ""
+  repair_sequence:
+    - action: retry_command
+      command: "plasma-apply-lookandfeel org.catppuccin.missing"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "plasma-apply-lookandfeel org.catppuccin.missing"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: false
+    budget_consumed_count: 2
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "Optional final-audit cosmetic repair should exhaust its small audit budget without making the whole setup look blocked."

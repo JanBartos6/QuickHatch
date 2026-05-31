@@ -1,0 +1,261 @@
+- id: strategy-app-repo-to-flatpak-obsidian
+  category: strategy_change
+  stage: apps
+  app_or_target: "Obsidian"
+  initial_failure:
+    command: "sudo apt-get install -y obsidian"
+    failure_type: command
+    stdout: "Reading package lists... Done"
+    stderr: "E: Unable to locate package obsidian"
+  repair_sequence:
+    - action: search
+      command: "flatpak search obsidian"
+      strategy: diagnostic
+      result: success
+    - action: strategy_change
+      command: "flatpak install -y flathub md.obsidian.Obsidian"
+      strategy: flatpak
+      result: success
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: completed
+    final_status_effect: none
+  rationale: "Changing from a missing repo package to a Flatpak source is a distinct repair strategy and should not count as an identical retry loop."
+
+- id: strategy-app-repo-to-snap-spotify
+  category: strategy_change
+  stage: apps
+  app_or_target: "Spotify"
+  initial_failure:
+    command: "sudo apt install -y spotify-client"
+    failure_type: command
+    stdout: "Reading package lists... Done"
+    stderr: "E: Unable to locate package spotify-client"
+  repair_sequence:
+    - action: search
+      command: "snap find spotify"
+      strategy: diagnostic
+      result: success
+    - action: strategy_change
+      command: "sudo snap install spotify"
+      strategy: snap
+      result: success
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: completed
+    final_status_effect: none
+  rationale: "A Snap fallback after repo lookup failure changes install source and should preserve progress without triggering loop exhaustion."
+
+- id: strategy-app-repo-to-aur-visual-studio-code
+  category: strategy_change
+  stage: apps
+  app_or_target: "Visual Studio Code"
+  initial_failure:
+    command: "sudo pacman -S --noconfirm visual-studio-code"
+    failure_type: command
+    stdout: ""
+    stderr: "error: target not found: visual-studio-code"
+  repair_sequence:
+    - action: search
+      command: "yay -Ss visual-studio-code-bin"
+      strategy: diagnostic
+      result: success
+    - action: strategy_change
+      command: "yay -S --noconfirm visual-studio-code-bin"
+      strategy: aur
+      result: success
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: completed
+    final_status_effect: none
+  rationale: "Moving from the official Arch repos to an AUR package is a real strategy change, not a repeated failed repo command."
+
+- id: strategy-app-aur-to-flatpak-brave
+  category: strategy_change
+  stage: apps
+  app_or_target: "Brave Browser"
+  initial_failure:
+    command: "yay -S --noconfirm brave-bin"
+    failure_type: command
+    stdout: ""
+    stderr: "error: target not found: brave-bin"
+  repair_sequence:
+    - action: search
+      command: "flatpak search brave"
+      strategy: diagnostic
+      result: success
+    - action: strategy_change
+      command: "flatpak install -y flathub com.brave.Browser"
+      strategy: flatpak
+      result: success
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: completed
+    final_status_effect: none
+  rationale: "Switching from a failed AUR package guess to a Flatpak app ID is a source fallback and should not be collapsed into an identical loop."
+
+- id: strategy-app-package-name-correction-fedora-code
+  category: strategy_change
+  stage: apps
+  app_or_target: "Visual Studio Code"
+  initial_failure:
+    command: "sudo dnf install -y visual-studio-code"
+    failure_type: command
+    stdout: "No match for argument: visual-studio-code"
+    stderr: "Error: Unable to find a match: visual-studio-code"
+  repair_sequence:
+    - action: search
+      command: "dnf search 'visual studio code'"
+      strategy: diagnostic
+      result: success
+    - action: strategy_change
+      command: "sudo dnf install -y code"
+      strategy: repo
+      result: success
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: completed
+    final_status_effect: none
+  rationale: "Correcting a package name after search evidence changes the command target and should not be treated as repeating the same failed strategy."
+
+- id: strategy-app-search-before-retry-same-source
+  category: strategy_change
+  stage: apps
+  app_or_target: "KeePassXC"
+  initial_failure:
+    command: "sudo apt-get install -y keepass"
+    failure_type: command
+    stdout: "Reading package lists... Done"
+    stderr: "E: Package 'keepass' has no installation candidate"
+  repair_sequence:
+    - action: search
+      command: "apt-cache search keepassxc"
+      strategy: diagnostic
+      result: success
+    - action: strategy_change
+      command: "sudo apt-get install -y keepassxc"
+      strategy: repo
+      result: success
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: completed
+    final_status_effect: none
+  rationale: "A same-source retry with a corrected package name and search evidence is a different repair attempt, not an identical loop."
+
+- id: strategy-driver-arch-nvidia-package-correction
+  category: strategy_change
+  stage: postboot_driver
+  app_or_target: "NVIDIA driver"
+  initial_failure:
+    command: "sudo pacman -S --noconfirm nvidia-driver"
+    failure_type: command
+    stdout: ""
+    stderr: "error: target not found: nvidia-driver"
+  repair_sequence:
+    - action: search
+      command: "pacman -Ss '^nvidia$'"
+      strategy: diagnostic
+      result: success
+    - action: strategy_change
+      command: "sudo pacman -S --noconfirm nvidia nvidia-utils"
+      strategy: repo
+      result: success
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: completed
+    final_status_effect: none
+  rationale: "Driver package-name correction after repository search changes the attempted target and should not be loop-detected."
+
+- id: strategy-desktop-theme-repo-helper
+  category: strategy_change
+  stage: desktop
+  app_or_target: "GTK theme helper"
+  initial_failure:
+    command: "sudo dnf install -y adwaita-dark-theme"
+    failure_type: command
+    stdout: "No match for argument: adwaita-dark-theme"
+    stderr: "Error: Unable to find a match: adwaita-dark-theme"
+  repair_sequence:
+    - action: search
+      command: "dnf search adwaita gtk theme"
+      strategy: diagnostic
+      result: success
+    - action: strategy_change
+      command: "sudo dnf install -y gnome-themes-extra"
+      strategy: repo
+      result: success
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: completed
+    final_status_effect: none
+  rationale: "Desktop cosmetic package repair with a corrected repo package should be allowed as a distinct strategy and remain non-fatal."
+
+- id: strategy-app-flatpak-to-snap-telegram
+  category: strategy_change
+  stage: apps
+  app_or_target: "Telegram"
+  initial_failure:
+    command: "flatpak install -y flathub org.telegram.desktop"
+    failure_type: command
+    stdout: ""
+    stderr: "error: No such ref 'org.telegram.desktop' in remote flathub"
+  repair_sequence:
+    - action: search
+      command: "snap find telegram-desktop"
+      strategy: diagnostic
+      result: success
+    - action: strategy_change
+      command: "sudo snap install telegram-desktop"
+      strategy: snap
+      result: success
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: completed
+    final_status_effect: none
+  rationale: "Changing from a failed Flatpak app ID to a Snap package is a source fallback, not an identical repeated attempt."
+
+- id: strategy-app-all-sources-exhausted-manual-followup
+  category: strategy_change
+  stage: apps
+  app_or_target: "Fictional CAD Tool"
+  initial_failure:
+    command: "sudo apt install -y fictional-cad"
+    failure_type: command
+    stdout: "Reading package lists... Done"
+    stderr: "E: Unable to locate package fictional-cad"
+  repair_sequence:
+    - action: search
+      command: "flatpak search fictional-cad"
+      strategy: diagnostic
+      result: failure
+    - action: strategy_change
+      command: "flatpak install -y flathub com.example.FictionalCAD"
+      strategy: flatpak
+      result: failure
+    - action: search
+      command: "snap find fictional-cad"
+      strategy: diagnostic
+      result: failure
+    - action: strategy_change
+      command: "sudo snap install fictional-cad"
+      strategy: snap
+      result: failure
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 4
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "Exhausting different sources should end in explicit manual follow-up, but should not be misclassified as an identical retry loop."

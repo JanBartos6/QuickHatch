@@ -1,0 +1,337 @@
+- id: provider-429-app-optional-soft-followup
+  category: provider_error
+  stage: apps
+  app_or_target: "Obsidian"
+  initial_failure:
+    command: "sudo apt-get install -y obsidian"
+    failure_type: command
+    stdout: "Reading package lists... Done"
+    stderr: "E: Unable to locate package obsidian"
+  repair_sequence:
+    - action: provider_error
+      command: ""
+      strategy: same
+      result: provider_429
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "A provider rate limit during optional app repair should preserve progress and become a soft manual follow-up, not a hard block or retry loop."
+
+- id: provider-429-app-required-manual-followup
+  category: provider_error
+  stage: apps
+  app_or_target: "Company VPN Client"
+  initial_failure:
+    command: "sudo dnf install -y company-vpn-client"
+    failure_type: command
+    stdout: "No match for argument: company-vpn-client"
+    stderr: "Error: Unable to find a match: company-vpn-client"
+  repair_sequence:
+    - action: provider_error
+      command: ""
+      strategy: same
+      result: provider_429
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: "A required app unresolved after provider 429 must be honest manual follow-up rather than reported as success."
+
+- id: provider-timeout-app-after-partial-success
+  category: provider_error
+  stage: apps
+  app_or_target: "mixed app group"
+  initial_failure:
+    command: "sudo apt-get install -y vlc definitely-not-real-package"
+    failure_type: command
+    stdout: "vlc is already the newest version."
+    stderr: "E: Unable to locate package definitely-not-real-package"
+  repair_sequence:
+    - action: provider_error
+      command: ""
+      strategy: same
+      result: failure
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "A provider timeout during repair should not erase already completed apps in the same group."
+
+- id: provider-empty-response-app-repair
+  category: provider_error
+  stage: apps
+  app_or_target: "Spotify"
+  initial_failure:
+    command: "flatpak install -y flathub com.spotify.Client"
+    failure_type: command
+    stdout: ""
+    stderr: "error: No remote refs found for flathub/com.spotify.Client"
+  repair_sequence:
+    - action: provider_error
+      command: ""
+      strategy: flatpak
+      result: failure
+    - action: manual_followup
+      command: ""
+      strategy: flatpak
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "An empty repair response is a provider failure boundary and should be surfaced as follow-up for the affected app."
+
+- id: provider-invalid-json-app-repair
+  category: provider_error
+  stage: apps
+  app_or_target: "Visual Studio Code"
+  initial_failure:
+    command: "sudo pacman -S --noconfirm code"
+    failure_type: command
+    stdout: ""
+    stderr: "error: target not found: code"
+  repair_sequence:
+    - action: provider_error
+      command: "{not-json"
+      strategy: same
+      result: failure
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "Invalid model repair output should not trigger repeated identical command execution or hide the failed app."
+
+- id: provider-429-desktop-theme-soft-followup
+  category: provider_error
+  stage: desktop
+  app_or_target: "KDE theme"
+  initial_failure:
+    command: "lookandfeeltool -a org.example.MissingTheme"
+    failure_type: command
+    stdout: ""
+    stderr: "Package org.example.MissingTheme not found"
+  repair_sequence:
+    - action: provider_error
+      command: ""
+      strategy: same
+      result: provider_429
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "Desktop cosmetic repair blocked by provider 429 should remain non-fatal and actionable."
+
+- id: provider-timeout-desktop-no-session
+  category: provider_error
+  stage: desktop
+  app_or_target: "wallpaper"
+  initial_failure:
+    command: "plasma-apply-wallpaperimage /home/user/Pictures/wallpaper.jpg"
+    failure_type: command
+    stdout: ""
+    stderr: "Could not connect to display"
+  repair_sequence:
+    - action: provider_error
+      command: ""
+      strategy: same
+      result: failure
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "Provider timeout while handling a no-GUI-session desktop failure should not make configure-existing fatal."
+
+- id: provider-429-postboot-driver-required
+  category: provider_error
+  stage: postboot_driver
+  app_or_target: "nvidia-driver"
+  initial_failure:
+    command: "sudo apt-get install -y nvidia-driver"
+    failure_type: command
+    stdout: "Reading package lists... Done"
+    stderr: "E: Unable to locate package nvidia-driver"
+  repair_sequence:
+    - action: provider_error
+      command: ""
+      strategy: same
+      result: provider_429
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: "Driver repair provider limits should produce explicit manual follow-up because unresolved driver work can affect boot/display usability."
+
+- id: provider-invalid-response-postboot-secureboot
+  category: provider_error
+  stage: postboot_driver
+  app_or_target: "nvidia-kernel-module"
+  initial_failure:
+    command: "sudo modprobe nvidia"
+    failure_type: command
+    stdout: ""
+    stderr: "modprobe: ERROR: could not insert 'nvidia': Key was rejected by service"
+  repair_sequence:
+    - action: provider_error
+      command: ""
+      strategy: same
+      result: failure
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: "Invalid or absent repair guidance for Secure Boot driver rejection should not retry blindly."
+
+- id: provider-429-install-bootstrap-blocks
+  category: provider_error
+  stage: install_or_skip
+  app_or_target: "/mnt"
+  initial_failure:
+    command: "pacstrap -K /mnt base linux linux-firmware"
+    failure_type: command
+    stdout: "==> Creating install root at /mnt"
+    stderr: "error: failed retrieving file 'core.db' from mirror"
+  repair_sequence:
+    - action: provider_error
+      command: ""
+      strategy: same
+      result: provider_429
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: blocked
+    final_status_effect: blocked
+  rationale: "Provider failure during the fresh-install bootstrap stage cannot be softened because the install spine remains incomplete."
+
+- id: provider-timeout-install-partition-plan-blocks
+  category: provider_error
+  stage: install_or_skip
+  app_or_target: "/dev/sda"
+  initial_failure:
+    command: "parted /dev/sda mklabel gpt"
+    failure_type: preflight
+    stdout: ""
+    stderr: "blocked: disk_partition capability required for /dev/sda"
+  repair_sequence:
+    - action: provider_error
+      command: ""
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: blocked
+    final_status_effect: blocked
+  rationale: "A provider timeout must never turn a denied destructive install operation into an allowed retry or soft success."
+
+- id: provider-empty-response-install-fstab-blocks
+  category: provider_error
+  stage: install_or_skip
+  app_or_target: "/mnt/etc/fstab"
+  initial_failure:
+    command: "genfstab -U /mnt >> /mnt/etc/fstab"
+    failure_type: command
+    stdout: ""
+    stderr: "permission denied: /mnt/etc/fstab"
+  repair_sequence:
+    - action: provider_error
+      command: ""
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: blocked
+    final_status_effect: blocked
+  rationale: "Fresh-install fstab generation failure plus missing repair response should block until reviewed, because boot correctness is unresolved."
+
+- id: provider-429-final-audit-repair
+  category: provider_error
+  stage: final_audit
+  app_or_target: "required app verification"
+  initial_failure:
+    command: "verify app: code"
+    failure_type: audit
+    stdout: "missing: code"
+    stderr: ""
+  repair_sequence:
+    - action: provider_error
+      command: ""
+      strategy: same
+      result: provider_429
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: "Final audit provider failure should preserve the failed verification and keep final status honest."
+
+- id: provider-invalid-json-final-audit
+  category: provider_error
+  stage: final_audit
+  app_or_target: "driver verification"
+  initial_failure:
+    command: "verify driver: nvidia"
+    failure_type: audit
+    stdout: "nvidia module missing"
+    stderr: ""
+  repair_sequence:
+    - action: provider_error
+      command: "{repair:"
+      strategy: same
+      result: failure
+    - action: manual_followup
+      command: ""
+      strategy: same
+      result: manual_followup
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: "Invalid repair output during final audit should not downgrade unresolved driver verification to success."

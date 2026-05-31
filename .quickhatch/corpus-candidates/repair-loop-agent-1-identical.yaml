@@ -1,0 +1,253 @@
+- id: identical-app-repo-package-third-failure
+  category: identical_loop
+  stage: apps
+  app_or_target: "Obsidian"
+  initial_failure:
+    command: "sudo apt-get install -y obsidian"
+    failure_type: command
+    stdout: "Reading package lists... Done"
+    stderr: "E: Unable to locate package obsidian"
+  repair_sequence:
+    - action: retry_command
+      command: "sudo apt-get install -y obsidian"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "sudo apt-get install -y obsidian"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: true
+    budget_consumed_count: 2
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "An optional app retried with the identical package command and identical missing-package failure should stop as manual follow-up instead of looping."
+
+- id: identical-app-required-third-failure
+  category: identical_loop
+  stage: apps
+  app_or_target: "Company VPN Client"
+  initial_failure:
+    command: "sudo dnf install -y company-vpn-client"
+    failure_type: command
+    stdout: "No match for argument: company-vpn-client"
+    stderr: "Error: Unable to find a match: company-vpn-client"
+  repair_sequence:
+    - action: retry_command
+      command: "sudo dnf install -y company-vpn-client"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "sudo dnf install -y company-vpn-client"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: true
+    budget_consumed_count: 2
+    final_group_status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: "A required unresolved app should not be hidden as success, but repeated identical install attempts should resolve to app-specific manual follow-up rather than endless repair."
+
+- id: identical-desktop-theme-third-failure
+  category: identical_loop
+  stage: desktop
+  app_or_target: "Plasma theme"
+  initial_failure:
+    command: "lookandfeeltool -a org.example.missingtheme"
+    failure_type: command
+    stdout: ""
+    stderr: "lookandfeeltool: package org.example.missingtheme not found"
+  repair_sequence:
+    - action: retry_command
+      command: "lookandfeeltool -a org.example.missingtheme"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "lookandfeeltool -a org.example.missingtheme"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: true
+    budget_consumed_count: 2
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "Optional desktop cosmetic failures should stop after repeated identical failures and remain non-fatal."
+
+- id: identical-desktop-wallpaper-no-session
+  category: identical_loop
+  stage: desktop
+  app_or_target: "wallpaper"
+  initial_failure:
+    command: "plasma-apply-wallpaperimage /home/user/Pictures/wallpaper.jpg"
+    failure_type: command
+    stdout: ""
+    stderr: "Could not connect to display"
+  repair_sequence:
+    - action: retry_command
+      command: "plasma-apply-wallpaperimage /home/user/Pictures/wallpaper.jpg"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "plasma-apply-wallpaperimage /home/user/Pictures/wallpaper.jpg"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: true
+    budget_consumed_count: 2
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "No active GUI session is recoverable follow-up; identical retries should not consume the whole setup."
+
+- id: identical-postboot-driver-nvidia-retry
+  category: identical_loop
+  stage: postboot_driver
+  app_or_target: "nvidia-driver"
+  initial_failure:
+    command: "sudo apt-get install -y nvidia-driver"
+    failure_type: command
+    stdout: "Reading package lists... Done"
+    stderr: "E: Unable to locate package nvidia-driver"
+  repair_sequence:
+    - action: retry_command
+      command: "sudo apt-get install -y nvidia-driver"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "sudo apt-get install -y nvidia-driver"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: true
+    budget_consumed_count: 2
+    final_group_status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: "Driver setup can need manual follow-up, but repeated identical missing-package retries should not erase other progress."
+
+- id: identical-postboot-secureboot-module-failure
+  category: identical_loop
+  stage: postboot_driver
+  app_or_target: "nvidia-kernel-module"
+  initial_failure:
+    command: "sudo modprobe nvidia"
+    failure_type: command
+    stdout: ""
+    stderr: "modprobe: ERROR: could not insert 'nvidia': Key was rejected by service"
+  repair_sequence:
+    - action: retry_command
+      command: "sudo modprobe nvidia"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "sudo modprobe nvidia"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: true
+    budget_consumed_count: 2
+    final_group_status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: "Secure Boot driver rejection is not fixed by repeating the same command, and should become explicit manual follow-up."
+
+- id: identical-install-bootstrap-third-failure-blocks
+  category: identical_loop
+  stage: install_or_skip
+  app_or_target: "/mnt"
+  initial_failure:
+    command: "pacstrap -K /mnt base linux linux-firmware"
+    failure_type: command
+    stdout: "==> Creating install root at /mnt"
+    stderr: "error: failed retrieving file 'core.db' from mirror"
+  repair_sequence:
+    - action: retry_command
+      command: "pacstrap -K /mnt base linux linux-firmware"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "pacstrap -K /mnt base linux linux-firmware"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: true
+    budget_consumed_count: 2
+    final_group_status: blocked
+    final_status_effect: blocked
+  rationale: "Fresh-install bootstrap is a critical stage; repeated identical failure should block instead of becoming a soft app-style follow-up."
+
+- id: identical-install-preflight-capability-denial
+  category: identical_loop
+  stage: install_or_skip
+  app_or_target: "/dev/sda"
+  initial_failure:
+    command: "parted /dev/sda mklabel gpt"
+    failure_type: preflight
+    stdout: ""
+    stderr: "blocked: disk_partition capability required for /dev/sda"
+  repair_sequence:
+    - action: retry_command
+      command: "parted /dev/sda mklabel gpt"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "parted /dev/sda mklabel gpt"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: true
+    budget_consumed_count: 2
+    final_group_status: blocked
+    final_status_effect: blocked
+  rationale: "Capability-gated install mutations must not be repaired by retrying the same denied command."
+
+- id: identical-diagnostic-status-budget-edge
+  category: diagnostics_budget
+  stage: apps
+  app_or_target: "ssh service diagnostic"
+  initial_failure:
+    command: "systemctl status sshd --no-pager"
+    failure_type: command
+    stdout: ""
+    stderr: "Unit sshd.service could not be found."
+  repair_sequence:
+    - action: diagnostic
+      command: "systemctl status sshd --no-pager"
+      strategy: diagnostic
+      result: failure
+    - action: diagnostic
+      command: "systemctl status sshd --no-pager"
+      strategy: diagnostic
+      result: failure
+    - action: diagnostic
+      command: "systemctl status sshd --no-pager"
+      strategy: diagnostic
+      result: failure
+  expected:
+    loop_detected: false
+    budget_consumed_count: 1
+    final_group_status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: "Repeated read-only diagnostics should not trigger the same hard loop detector at the third failure, but should eventually consume budget and stop."
+
+- id: identical-final-audit-recheck-budget-only
+  category: diagnostics_budget
+  stage: final_audit
+  app_or_target: "required app verification"
+  initial_failure:
+    command: "verify app: code"
+    failure_type: audit
+    stdout: "missing: code"
+    stderr: ""
+  repair_sequence:
+    - action: retry_command
+      command: "verify app: code"
+      strategy: same
+      result: failure
+    - action: retry_command
+      command: "verify app: code"
+      strategy: same
+      result: failure
+  expected:
+    loop_detected: false
+    budget_consumed_count: 2
+    final_group_status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: "Final audit repair is budget-driven rather than command attempt-signature driven; unresolved required verification must remain honest."
