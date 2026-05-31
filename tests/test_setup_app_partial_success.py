@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -117,6 +118,24 @@ def _load_fixture() -> dict[str, Any]:
 
 FIXTURE = _load_fixture()
 SCENARIOS = FIXTURE["scenarios"]
+PROPERTY_SCENARIO_SEEDS = tuple(range(20260531, 20260579))
+PROPERTY_SOURCES = ("repo", "flatpak", "snap", "aur", "unknown")
+PROPERTY_FAMILY_PROFILES = (
+    ("arch", "pacman", True, False, "yay"),
+    ("ubuntu", "apt", True, True, "none"),
+    ("debian", "apt", False, False, "none"),
+    ("fedora", "dnf", True, False, "none"),
+    ("generic", "generic", "unknown", "unknown", "unknown"),
+)
+PROPERTY_OUTCOMES = (
+    "success",
+    "failure",
+    "repair_success",
+    "provider_429",
+    "provider_timeout",
+    "repair_failure",
+    "facts_refresh_success",
+)
 
 
 def _normalize(value: object) -> str:
@@ -282,6 +301,263 @@ def _format_outcome_mismatch(scenario: dict[str, Any], outcome: ScenarioOutcome)
         f"alternatives={sorted(outcome.alternatives)} "
         f"status={outcome.final_status.value}"
     )
+
+
+def _generated_event(
+    event_type: str,
+    *,
+    app: str,
+    package: str,
+    rc: int,
+    stdout: str = "",
+    stderr: str = "",
+    repair_strategy: str = "",
+    provider_error: str = "",
+) -> dict[str, Any]:
+    return {
+        "type": event_type,
+        "app": app,
+        "package": package,
+        "rc": rc,
+        "stdout": stdout,
+        "stderr": stderr,
+        "repair_strategy": repair_strategy,
+        "provider_error": provider_error,
+    }
+
+
+def _source_after_fallback(source: str, rng: random.Random) -> str:
+    fallback_sources = [candidate for candidate in PROPERTY_SOURCES if candidate != source]
+    return rng.choice(fallback_sources)
+
+
+def _make_property_scenario(seed: int) -> dict[str, Any]:
+    rng = random.Random(seed)
+    family, package_manager, flatpak_available, snap_available, aur_helper = rng.choice(
+        PROPERTY_FAMILY_PROFILES
+    )
+    app_count = rng.randint(1, 6)
+    requested_apps: list[dict[str, Any]] = []
+    events: list[dict[str, Any]] = []
+    installed_before: set[str] = set()
+    installed_after: set[str] = set()
+    completed_apps: list[str] = []
+    manual_followup_apps: list[str] = []
+
+    for index in range(app_count):
+        app_name = f"Seed {seed} App {index}"
+        package = f"seed-{seed}-app-{index}"
+        source = rng.choice(PROPERTY_SOURCES)
+        required = rng.choice([True, False])
+        requested_apps.append(
+            {
+                "name": app_name,
+                "package": package,
+                "source": source,
+                "required": required,
+            }
+        )
+        outcome = PROPERTY_OUTCOMES[(seed + index) % len(PROPERTY_OUTCOMES)]
+
+        if rng.random() < 0.12:
+            installed_before.add(package)
+            installed_after.add(package)
+            completed_apps.append(app_name)
+            events.append(
+                _generated_event(
+                    "verification",
+                    app=app_name,
+                    package=package,
+                    rc=0,
+                    stdout="already installed",
+                )
+            )
+            continue
+
+        if outcome == "success":
+            installed_after.add(package)
+            completed_apps.append(app_name)
+            events.append(
+                _generated_event(
+                    "command_success",
+                    app=app_name,
+                    package=package,
+                    rc=0,
+                    stdout="installed",
+                )
+            )
+            continue
+
+        if outcome == "repair_success":
+            fallback_source = _source_after_fallback(source, rng)
+            fallback_package = f"{package}-{fallback_source}"
+            installed_after.add(fallback_package)
+            completed_apps.append(app_name)
+            events.extend(
+                [
+                    _generated_event(
+                        "command_failure",
+                        app=app_name,
+                        package=package,
+                        rc=1,
+                        stderr="package unavailable",
+                    ),
+                    _generated_event(
+                        "repair_response",
+                        app=app_name,
+                        package=fallback_package,
+                        rc=0,
+                        stdout=f"fallback to {fallback_source}",
+                        repair_strategy=f"{source}_to_{fallback_source}",
+                    ),
+                    _generated_event(
+                        "command_success",
+                        app=app_name,
+                        package=fallback_package,
+                        rc=0,
+                        stdout="fallback installed",
+                        repair_strategy=f"{source}_to_{fallback_source}",
+                    ),
+                ]
+            )
+            continue
+
+        if outcome == "facts_refresh_success":
+            installed_after.add(package)
+            completed_apps.append(app_name)
+            events.extend(
+                [
+                    _generated_event(
+                        "command_failure",
+                        app=app_name,
+                        package=package,
+                        rc=1,
+                        stderr="stale command output",
+                    ),
+                    _generated_event(
+                        "facts_refresh",
+                        app=app_name,
+                        package=package,
+                        rc=0,
+                        stdout=f"INSTALLED: {package}",
+                    ),
+                ]
+            )
+            continue
+
+        manual_followup_apps.append(app_name)
+        events.append(
+            _generated_event(
+                "command_failure",
+                app=app_name,
+                package=package,
+                rc=1,
+                stderr="package unavailable",
+            )
+        )
+        if outcome in {"provider_429", "provider_timeout"}:
+            events.append(
+                _generated_event(
+                    "provider_error",
+                    app=app_name,
+                    package=package,
+                    rc=0,
+                    repair_strategy=f"{source}_repair",
+                    provider_error="429" if outcome == "provider_429" else "timeout",
+                )
+            )
+        elif outcome == "repair_failure":
+            fallback_source = _source_after_fallback(source, rng)
+            fallback_package = f"{package}-{fallback_source}"
+            events.extend(
+                [
+                    _generated_event(
+                        "repair_response",
+                        app=app_name,
+                        package=fallback_package,
+                        rc=0,
+                        stdout=f"fallback to {fallback_source}",
+                        repair_strategy=f"{source}_to_{fallback_source}",
+                    ),
+                    _generated_event(
+                        "command_failure",
+                        app=app_name,
+                        package=fallback_package,
+                        rc=1,
+                        stderr="fallback unavailable",
+                        repair_strategy=f"{source}_to_{fallback_source}",
+                    ),
+                ]
+            )
+
+    events.append(
+        _generated_event(
+            "facts_refresh",
+            app="",
+            package="",
+            rc=0,
+            stdout=" ".join(sorted(installed_after)),
+        )
+    )
+    manual_followup_set = set(manual_followup_apps)
+    required_followups = {
+        app["name"]
+        for app in requested_apps
+        if app["required"] is True and app["name"] in manual_followup_set
+    }
+    if required_followups:
+        final_status = FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
+    elif manual_followup_set:
+        final_status = FinalSetupStatus.SUCCESS_WITH_WARNINGS
+    else:
+        final_status = FinalSetupStatus.SUCCESS
+
+    return {
+        "id": f"property-seed-{seed}",
+        "category": "property_generated",
+        "facts_profile": {
+            "family": family,
+            "package_manager": package_manager,
+            "installed_apps_before": sorted(installed_before),
+            "installed_apps_after": sorted(installed_after),
+            "flatpak_available": flatpak_available,
+            "snap_available": snap_available,
+            "aur_helper": aur_helper,
+        },
+        "plan": {
+            "requested_apps": requested_apps,
+            "command_groups": [
+                {
+                    "title": f"Property app group {seed}",
+                    "packages": [app["package"] for app in requested_apps],
+                    "commands": [f"install {app['package']}" for app in requested_apps],
+                }
+            ],
+        },
+        "simulated_events": events,
+        "expected": {
+            "completed_apps": completed_apps,
+            "manual_followup_apps": manual_followup_apps,
+            "failed_apps": [],
+            "alternatives": [],
+            "final_status": final_status.value,
+            "must_not_block": True,
+            "invariants": [
+                "successful_apps_preserved",
+                "failure_isolated",
+                "provider_error_preserves_progress",
+                "final_status_honest",
+            ],
+        },
+        "rationale": "Seeded randomized app partial-success scenario.",
+    }
+
+
+def _assert_monotonic_completion(scenario: dict[str, Any], outcome: ScenarioOutcome) -> None:
+    previous: set[str] = set()
+    for snapshot in outcome.completed_history:
+        assert previous <= snapshot, scenario["id"]
+        previous = snapshot
 
 
 def test_app_partial_success_fixture_summary_matches_cases() -> None:
@@ -488,3 +764,38 @@ def test_facts_refresh_does_not_erase_manual_followup_decisions() -> None:
 
         assert outcome.manual_followup_apps == _expected_set(scenario, "manual_followup_apps")
         assert outcome.completed_apps == _expected_set(scenario, "completed_apps")
+
+
+def test_seeded_random_app_partial_success_invariants() -> None:
+    for seed in PROPERTY_SCENARIO_SEEDS:
+        scenario = _make_property_scenario(seed)
+        outcome = _run_scenario(scenario)
+        expected_manual = _expected_set(scenario, "manual_followup_apps")
+
+        _assert_monotonic_completion(scenario, outcome)
+        assert outcome.completed_apps == _expected_set(scenario, "completed_apps"), (
+            _format_outcome_mismatch(scenario, outcome)
+        )
+        assert outcome.manual_followup_apps == expected_manual, _format_outcome_mismatch(
+            scenario, outcome
+        )
+        for app, reason in outcome.manual_followup_reasons.items():
+            assert app in reason
+            assert "unresolved" in reason
+
+        optional_followups = expected_manual <= _optional_app_names(scenario)
+        if expected_manual and optional_followups:
+            assert outcome.final_status == FinalSetupStatus.SUCCESS_WITH_WARNINGS, scenario["id"]
+        if expected_manual & _required_app_names(scenario):
+            assert outcome.final_status == FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED, scenario["id"]
+        assert outcome.final_status == _expected_status(scenario), _format_outcome_mismatch(
+            scenario, outcome
+        )
+        assert outcome.final_status != FinalSetupStatus.BLOCKED
+
+        for index, event in enumerate(scenario["simulated_events"]):
+            if event["type"] == "provider_error":
+                assert outcome.completed_history[index] <= outcome.completed_history[index + 1], (
+                    scenario["id"]
+                )
+                assert outcome.completed_history[index] <= outcome.completed_apps, scenario["id"]
