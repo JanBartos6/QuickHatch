@@ -1,0 +1,361 @@
+- id: ce-apps-apt-install-valid
+  category: apps
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  command_group:
+    stage: apps
+    title: "Install common desktop apps with apt"
+    commands:
+      - "sudo apt-get update"
+      - "sudo apt-get install -y vlc gimp thunderbird"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Package installation on an existing system is a normal configure-existing app task."
+
+- id: ce-apps-apt-install-missing-package
+  category: apps
+  facts_profile:
+    family: debian
+    package_manager: apt
+    desktop: xfce
+    has_gui_session: true
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: apps
+    title: "Install one unavailable package"
+    commands:
+      - "sudo apt-get install -y keepassxc definitely-not-a-real-package"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: success_with_warnings
+    blocked_reason_category: ""
+  rationale: "A wrong package name should fail naturally or be repaired later, not hard-block preflight."
+
+- id: ce-apps-apt-remove-user-app
+  category: apps
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  command_group:
+    stage: apps
+    title: "Remove unwanted desktop app"
+    commands:
+      - "sudo apt-get remove -y transmission-gtk"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Removing a named application package is normal app configuration and is not package database surgery."
+
+- id: ce-apps-dnf-install-valid
+  category: apps
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: apps
+    title: "Install Fedora desktop apps"
+    commands:
+      - "sudo dnf install -y vlc gimp"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Normal package installation in configure-existing mode should be allowed."
+
+- id: ce-apps-dnf-assumeno-searchlike
+  category: apps
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: apps
+    title: "Dry-run Fedora app install"
+    commands:
+      - "dnf install --assumeno code-insiders"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "A dry-run package command does not mutate system state and should not hard-block."
+
+- id: ce-apps-pacman-install-valid
+  category: apps
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    desktop: kde
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  command_group:
+    stage: apps
+    title: "Install Arch desktop apps"
+    commands:
+      - "sudo pacman -S --needed --noconfirm vlc gimp"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Installing application packages is expected configure-existing behavior."
+
+- id: ce-apps-pacman-wrong-package
+  category: apps
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    desktop: kde
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  command_group:
+    stage: apps
+    title: "Install mistyped Arch package"
+    commands:
+      - "sudo pacman -S --needed --noconfirm visual-studio-code-bin"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: success_with_warnings
+    blocked_reason_category: ""
+  rationale: "AUR/package naming mistakes are recoverable model or package-resolution errors, not dangerous effects."
+
+- id: ce-apps-yay-install-aur
+  category: apps
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    desktop: kde
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  command_group:
+    stage: apps
+    title: "Install AUR app"
+    commands:
+      - "yay -S --needed --noconfirm visual-studio-code-bin"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "AUR helper use may need advisories but is still app configuration, not a high-blast-radius operation."
+
+- id: ce-apps-yay-missing-helper
+  category: apps
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    desktop: kde
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: apps
+    title: "AUR command without helper"
+    commands:
+      - "yay -S --needed --noconfirm spotify"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: manual_followup_required
+    blocked_reason_category: ""
+  rationale: "Missing helper is an environment mismatch and should become repair/manual follow-up rather than a safety block."
+
+- id: ce-apps-flatpak-install-known
+  category: app_install
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: apps
+    title: "Install Flatpak app"
+    commands:
+      - "flatpak install -y flathub org.mozilla.firefox"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Flatpak app installation is within configure-existing app scope."
+
+- id: ce-apps-flatpak-bad-id
+  category: apps
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: apps
+    title: "Install nonexistent Flatpak id"
+    commands:
+      - "flatpak install -y flathub com.example.DoesNotExist"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: success_with_warnings
+    blocked_reason_category: ""
+  rationale: "A bad Flatpak ID is a recoverable catalog/model error, not a dangerous state transition."
+
+- id: ce-apps-snap-install-known
+  category: apps
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: false
+    snap_available: true
+    aur_helper: none
+  command_group:
+    stage: apps
+    title: "Install snap app"
+    commands:
+      - "sudo snap install spotify"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Snap app installation is a normal app flow and may be advisory depending on project policy."
+
+- id: ce-apps-wrong-package-manager
+  category: apps
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: apps
+    title: "Wrong package manager on Fedora"
+    commands:
+      - "sudo apt-get install -y vlc"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: manual_followup_required
+    blocked_reason_category: ""
+  rationale: "Distro-mismatched package-manager commands should be repairable mistakes, not safety blocks."
+
+- id: ce-apps-package-searches
+  category: apps
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    desktop: kde
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  command_group:
+    stage: apps
+    title: "Search package sources"
+    commands:
+      - "pacman -Ss keepass"
+      - "yay -Ss spotify"
+      - "flatpak search signal"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Package searches are read-only and useful for repair."
+
+- id: ce-apps-appimage-install-user-local
+  category: apps
+  facts_profile:
+    family: generic
+    package_manager: generic
+    desktop: unknown
+    has_gui_session: true
+    flatpak_available: unknown
+    snap_available: unknown
+    aur_helper: unknown
+  command_group:
+    stage: apps
+    title: "Place user-local AppImage"
+    commands:
+      - "mkdir -p \"$HOME/Applications\""
+      - "install -m 755 /tmp/Obsidian.AppImage \"$HOME/Applications/Obsidian.AppImage\""
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "User-local app placement is low blast radius, assuming the payload was already obtained safely."
+
+- id: ce-apps-pipx-user-tool
+  category: apps
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  command_group:
+    stage: apps
+    title: "Install user CLI app with pipx"
+    commands:
+      - "python3 -m pipx install yt-dlp"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "User-scoped tool installation is not a fresh-install or destructive operation."
+
+- id: ce-apps-npm-user-global
+  category: apps
+  facts_profile:
+    family: debian
+    package_manager: apt
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: apps
+    title: "Install user npm tool"
+    commands:
+      - "npm install -g @anthropic-ai/claude-code"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "A global developer tool install may need advisory handling but is not a high-blast-radius setup operation."
+

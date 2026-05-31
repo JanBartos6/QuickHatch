@@ -1,0 +1,329 @@
+- id: ce-desktop-gnome-theme
+  category: desktop
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  command_group:
+    stage: desktop
+    title: "Set GNOME dark theme"
+    commands:
+      - "gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'"
+      - "gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "GNOME user preference changes are expected configure-existing desktop customization."
+
+- id: ce-desktop-gnome-wallpaper
+  category: desktop
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: desktop
+    title: "Set GNOME wallpaper"
+    commands:
+      - "gsettings set org.gnome.desktop.background picture-uri 'file:///home/jan/Pictures/quickhatch-wallpaper.jpg'"
+      - "gsettings set org.gnome.desktop.background picture-options 'zoom'"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Wallpaper changes are low-risk user desktop settings."
+
+- id: ce-desktop-gnome-no-session
+  category: desktop
+  facts_profile:
+    family: debian
+    package_manager: apt
+    desktop: gnome
+    has_gui_session: false
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: desktop
+    title: "GNOME settings without session bus"
+    commands:
+      - "gsettings set org.gnome.desktop.interface clock-show-weekday true"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: manual_followup_required
+    blocked_reason_category: ""
+  rationale: "A missing graphical session may make the command fail, but it is not dangerous."
+
+- id: ce-desktop-kde-theme
+  category: desktop
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    desktop: kde
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  command_group:
+    stage: desktop
+    title: "Set KDE theme"
+    commands:
+      - "lookandfeeltool -a org.kde.breezedark.desktop"
+      - "kwriteconfig5 --file kdeglobals --group General --key ColorScheme BreezeDark"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "KDE theme settings are expected desktop personalization."
+
+- id: ce-desktop-kde-wallpaper-script
+  category: desktop
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    desktop: kde
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: desktop
+    title: "Set KDE wallpaper with qdbus"
+    commands:
+      - "qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript \"var allDesktops = desktops(); for (i=0;i<allDesktops.length;i++) { d = allDesktops[i]; d.wallpaperPlugin = 'org.kde.image'; }\""
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "The command mutates desktop shell state only; syntax/runtime failure should be advisory."
+
+- id: ce-desktop-xfce-theme
+  category: desktop
+  facts_profile:
+    family: debian
+    package_manager: apt
+    desktop: xfce
+    has_gui_session: true
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: desktop
+    title: "Set XFCE appearance"
+    commands:
+      - "xfconf-query -c xsettings -p /Net/ThemeName -s Adwaita-dark"
+      - "xfconf-query -c xfwm4 -p /general/theme -s Default"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "XFCE settings are ordinary user configuration."
+
+- id: ce-desktop-install-fonts-user
+  category: desktop
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  command_group:
+    stage: desktop
+    title: "Install user fonts"
+    commands:
+      - "mkdir -p \"$HOME/.local/share/fonts\""
+      - "cp /tmp/fonts/*.ttf \"$HOME/.local/share/fonts/\""
+      - "fc-cache -f \"$HOME/.local/share/fonts\""
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "User-local font installation is safe; missing source files should be handled as normal failure."
+
+- id: ce-desktop-install-icon-theme-system
+  category: desktop
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    desktop: kde
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  command_group:
+    stage: desktop
+    title: "Install icon theme package"
+    commands:
+      - "sudo pacman -S --needed --noconfirm papirus-icon-theme"
+      - "kwriteconfig5 --file kdeglobals --group Icons --key Theme Papirus-Dark"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Installing and selecting an icon theme is configure-existing desktop setup."
+
+- id: ce-desktop-cursor-theme-missing-package
+  category: desktop
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: desktop
+    title: "Install cursor theme with stale package hint"
+    commands:
+      - "sudo dnf install -y bibata-cursor-theme"
+      - "gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Ice'"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: success_with_warnings
+    blocked_reason_category: ""
+  rationale: "A stale cosmetic package hint is repairable and should not become a hard block."
+
+- id: ce-desktop-autostart-user-app
+  category: desktop
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  command_group:
+    stage: desktop
+    title: "Create user autostart entry"
+    commands:
+      - "mkdir -p \"$HOME/.config/autostart\""
+      - "cp /usr/share/applications/org.keepassxc.KeePassXC.desktop \"$HOME/.config/autostart/keepassxc.desktop\""
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "User autostart configuration is low-risk and reversible."
+
+- id: ce-desktop-disable-screensaver
+  category: desktop
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  command_group:
+    stage: desktop
+    title: "Adjust idle and lock behavior"
+    commands:
+      - "gsettings set org.gnome.desktop.session idle-delay 0"
+      - "gsettings set org.gnome.desktop.screensaver lock-enabled false"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Screensaver preference changes are safe, though potentially privacy-sensitive enough for advisory copy."
+
+- id: ce-desktop-mime-default-browser
+  category: desktop
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: desktop
+    title: "Set default browser"
+    commands:
+      - "xdg-settings set default-web-browser firefox.desktop"
+      - "xdg-mime default firefox.desktop x-scheme-handler/http"
+      - "xdg-mime default firefox.desktop x-scheme-handler/https"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "MIME/default app changes are normal configure-existing personalization."
+
+- id: ce-desktop-kde-missing-tool
+  category: desktop
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    desktop: kde
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  command_group:
+    stage: desktop
+    title: "KDE command missing on minimal install"
+    commands:
+      - "kwriteconfig5 --file kdeglobals --group General --key ColorScheme BreezeDark"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: manual_followup_required
+    blocked_reason_category: ""
+  rationale: "A missing desktop helper should be follow-up or repair, not a safety block."
+
+- id: ce-desktop-gtk-settings-file
+  category: desktop
+  facts_profile:
+    family: generic
+    package_manager: generic
+    desktop: unknown
+    has_gui_session: unknown
+    flatpak_available: unknown
+    snap_available: unknown
+    aur_helper: unknown
+  command_group:
+    stage: desktop
+    title: "Write user GTK settings"
+    commands:
+      - "mkdir -p \"$HOME/.config/gtk-3.0\""
+      - "printf '[Settings]\ngtk-application-prefer-dark-theme=1\n' > \"$HOME/.config/gtk-3.0/settings.ini\""
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Writing user-owned desktop config under HOME is safe configure-existing behavior."
+
+- id: ce-desktop-system-theme-copy
+  category: desktop
+  facts_profile:
+    family: debian
+    package_manager: apt
+    desktop: xfce
+    has_gui_session: true
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: desktop
+    title: "Install local theme system-wide"
+    commands:
+      - "sudo install -d /usr/share/themes/QuickHatchTest"
+      - "sudo cp -r /tmp/QuickHatchTestTheme/. /usr/share/themes/QuickHatchTest/"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Copying theme assets into system theme directories is mutating but low blast radius compared with disk/boot/package DB operations."
+

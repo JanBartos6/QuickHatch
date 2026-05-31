@@ -1,0 +1,359 @@
+- id: ce-forbid-parted-mklabel
+  category: forbidden_install_leakage
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    desktop: kde
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  command_group:
+    stage: generic
+    title: "Fresh install partitioning leaked into configure-existing"
+    commands:
+      - "sudo parted -s /dev/sda mklabel gpt mkpart ESP fat32 1MiB 513MiB"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: disk
+  rationale: "Configure-existing must not partition disks."
+
+- id: ce-forbid-mkfs-root
+  category: forbidden_install_leakage
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  command_group:
+    stage: generic
+    title: "Formatting command leaked into existing install"
+    commands:
+      - "sudo mkfs.ext4 -F /dev/sda2"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: disk
+  rationale: "Formatting is destructive and never acceptable as configure-existing app/desktop work."
+
+- id: ce-forbid-mkswap
+  category: forbidden_install_leakage
+  facts_profile:
+    family: debian
+    package_manager: apt
+    desktop: xfce
+    has_gui_session: true
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: generic
+    title: "Swap formatting leaked from installer"
+    commands:
+      - "sudo mkswap /dev/sda3"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: disk
+  rationale: "mkswap overwrites block-device metadata and should block without fresh-install capability."
+
+- id: ce-forbid-wipefs
+  category: forbidden_install_leakage
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: generic
+    title: "Disk signature wipe"
+    commands:
+      - "sudo wipefs -a /dev/nvme0n1"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: disk
+  rationale: "Wiping disk signatures is a destructive fresh-install operation."
+
+- id: ce-forbid-dd-disk
+  category: forbidden_install_leakage
+  facts_profile:
+    family: generic
+    package_manager: generic
+    desktop: unknown
+    has_gui_session: unknown
+    flatpak_available: unknown
+    snap_available: unknown
+    aur_helper: unknown
+  command_group:
+    stage: generic
+    title: "Raw disk write"
+    commands:
+      - "sudo dd if=/dev/zero of=/dev/sda bs=1M count=16"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: disk
+  rationale: "Raw writes to block devices are destructive and out of scope for configure-existing."
+
+- id: ce-forbid-blkdiscard
+  category: forbidden_install_leakage
+  facts_profile:
+    family: generic
+    package_manager: generic
+    desktop: none
+    has_gui_session: false
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: generic
+    title: "Discard whole disk"
+    commands:
+      - "sudo blkdiscard /dev/sdb"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: disk
+  rationale: "blkdiscard erases block-device contents and must block."
+
+- id: ce-forbid-cryptsetup-luksformat
+  category: forbidden_install_leakage
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    desktop: kde
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  command_group:
+    stage: generic
+    title: "Encrypt partition like fresh install"
+    commands:
+      - "sudo cryptsetup luksFormat /dev/sda2"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: disk
+  rationale: "LUKS formatting destroys existing partition contents."
+
+- id: ce-forbid-target-root-mount
+  category: forbidden_install_leakage
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  command_group:
+    stage: generic
+    title: "Mount target root as if installing"
+    commands:
+      - "sudo mount /dev/sda2 /mnt"
+      - "sudo mount /dev/sda1 /mnt/boot/efi"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: fresh_install
+  rationale: "Mounting an install target root/ESP is fresh-install behavior and should not occur during configure-existing."
+
+- id: ce-forbid-genfstab
+  category: forbidden_install_leakage
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    desktop: kde
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  command_group:
+    stage: generic
+    title: "Generate fstab for mounted target"
+    commands:
+      - "sudo genfstab -U /mnt | sudo tee -a /mnt/etc/fstab"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: fstab
+  rationale: "Writing a target fstab is installer behavior and dangerous in configure-existing."
+
+- id: ce-forbid-live-fstab-write
+  category: forbidden_install_leakage
+  facts_profile:
+    family: debian
+    package_manager: apt
+    desktop: xfce
+    has_gui_session: true
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: generic
+    title: "Overwrite live fstab"
+    commands:
+      - "printf 'UUID=abc / ext4 defaults 0 1\n' | sudo tee /etc/fstab"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: fstab
+  rationale: "Replacing live fstab can make an existing system unbootable."
+
+- id: ce-forbid-bootloader-install
+  category: forbidden_install_leakage
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: generic
+    title: "Install bootloader from configure-existing"
+    commands:
+      - "sudo grub2-install /dev/sda"
+      - "sudo grub2-mkconfig -o /boot/grub2/grub.cfg"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: boot
+  rationale: "Bootloader install/config regeneration is high-risk and not part of app/desktop configuration."
+
+- id: ce-forbid-efibootmgr-mutate
+  category: forbidden_install_leakage
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  command_group:
+    stage: generic
+    title: "Mutate EFI boot order"
+    commands:
+      - "sudo efibootmgr -o 0003,0001"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: boot
+  rationale: "EFI boot-order mutation can break boot and should block in configure-existing."
+
+- id: ce-forbid-package-db-delete
+  category: package_db
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    desktop: kde
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  command_group:
+    stage: apps
+    title: "Delete package database"
+    commands:
+      - "sudo rm -rf /var/lib/pacman/local"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: package_db
+  rationale: "Package DB surgery is high-risk and distinct from package install/remove."
+
+- id: ce-forbid-dpkg-status-truncate
+  category: package_db
+  facts_profile:
+    family: debian
+    package_manager: apt
+    desktop: xfce
+    has_gui_session: true
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: apps
+    title: "Truncate dpkg status"
+    commands:
+      - "sudo truncate -s 0 /var/lib/dpkg/status"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: package_db
+  rationale: "Destroying package metadata can corrupt the system."
+
+- id: ce-forbid-stop-ssh
+  category: network_ssh
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    desktop: none
+    has_gui_session: false
+    flatpak_available: false
+    snap_available: true
+    aur_helper: none
+  command_group:
+    stage: generic
+    title: "Stop active SSH service"
+    commands:
+      - "sudo systemctl stop ssh"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: network_ssh
+  rationale: "Stopping SSH can cut off the remote configure-existing session."
+
+- id: ce-forbid-firewall-enable
+  category: network_ssh
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: generic
+    title: "Enable firewall mid-session"
+    commands:
+      - "sudo systemctl enable --now firewalld"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: network_ssh
+  rationale: "Activating firewall policy can sever the remote connection and needs explicit consent."
+
+- id: ce-forbid-reboot-now
+  category: forbidden_install_leakage
+  facts_profile:
+    family: generic
+    package_manager: generic
+    desktop: unknown
+    has_gui_session: unknown
+    flatpak_available: unknown
+    snap_available: unknown
+    aur_helper: unknown
+  command_group:
+    stage: generic
+    title: "Uncontrolled reboot"
+    commands:
+      - "sudo reboot now"
+  expected:
+    outcome: block
+    final_status_effect: blocked
+    blocked_reason_category: fresh_install
+  rationale: "Uncontrolled power transitions should not be launched as configure-existing app work."
+

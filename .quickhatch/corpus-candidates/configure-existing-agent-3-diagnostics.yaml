@@ -1,0 +1,330 @@
+- id: ce-diag-lsblk-readonly
+  category: diagnostics
+  facts_profile:
+    family: generic
+    package_manager: generic
+    desktop: unknown
+    has_gui_session: unknown
+    flatpak_available: unknown
+    snap_available: unknown
+    aur_helper: unknown
+  command_group:
+    stage: final_audit
+    title: "Inspect block devices"
+    commands:
+      - "lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS"
+      - "findmnt -R /"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Read-only disk and mount inspection must remain allowed in configure-existing mode."
+
+- id: ce-diag-blkid-readonly
+  category: diagnostics
+  facts_profile:
+    family: debian
+    package_manager: apt
+    desktop: none
+    has_gui_session: false
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: final_audit
+    title: "Read filesystem identifiers"
+    commands:
+      - "sudo blkid"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "blkid reads metadata and is useful for audit; it does not write disk state."
+
+- id: ce-diag-efibootmgr-readonly
+  category: diagnostics
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: final_audit
+    title: "Inspect EFI boot entries"
+    commands:
+      - "sudo efibootmgr -v"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "efibootmgr read-only listing is diagnostic and should not be confused with boot mutation."
+
+- id: ce-diag-systemctl-status
+  category: diagnostics
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  command_group:
+    stage: final_audit
+    title: "Inspect service state"
+    commands:
+      - "systemctl status ssh --no-pager"
+      - "systemctl is-enabled NetworkManager"
+      - "systemctl is-active display-manager"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Service status checks are read-only and should not trigger network/SSH blockers."
+
+- id: ce-diag-journal-errors
+  category: diagnostics
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    desktop: kde
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  command_group:
+    stage: final_audit
+    title: "Inspect recent journal errors"
+    commands:
+      - "journalctl -p warning..alert -b --no-pager -n 100"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Journal inspection is read-only audit behavior."
+
+- id: ce-diag-package-query-apt
+  category: diagnostics
+  facts_profile:
+    family: debian
+    package_manager: apt
+    desktop: xfce
+    has_gui_session: true
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: final_audit
+    title: "Query installed packages"
+    commands:
+      - "dpkg-query -W firefox-esr keepassxc"
+      - "apt-cache policy keepassxc"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Package query commands are read-only diagnostics."
+
+- id: ce-diag-package-query-dnf
+  category: diagnostics
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: final_audit
+    title: "Query Fedora packages"
+    commands:
+      - "rpm -q firefox keepassxc"
+      - "dnf repoquery keepassxc"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "rpm query and repoquery are non-mutating package diagnostics."
+
+- id: ce-diag-package-query-pacman
+  category: diagnostics
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    desktop: kde
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  command_group:
+    stage: final_audit
+    title: "Query Arch packages"
+    commands:
+      - "pacman -Qi firefox keepassxc"
+      - "pacman -Qm"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Package database reads should remain allowed."
+
+- id: ce-diag-network-readonly
+  category: network_diagnostic
+  facts_profile:
+    family: generic
+    package_manager: generic
+    desktop: unknown
+    has_gui_session: unknown
+    flatpak_available: unknown
+    snap_available: unknown
+    aur_helper: unknown
+  command_group:
+    stage: final_audit
+    title: "Inspect network configuration"
+    commands:
+      - "ip addr show"
+      - "ip route show"
+      - "resolvectl status"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Network inspection is read-only and must not be confused with route/link deletion."
+
+- id: ce-diag-ssh-readonly
+  category: network_ssh
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    desktop: none
+    has_gui_session: false
+    flatpak_available: false
+    snap_available: true
+    aur_helper: none
+  command_group:
+    stage: final_audit
+    title: "Inspect SSH service"
+    commands:
+      - "ss -tlnp | grep ':22 ' || true"
+      - "systemctl status ssh --no-pager"
+      - "grep -E '^(Port|PermitRootLogin|PasswordAuthentication)' /etc/ssh/sshd_config || true"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "SSH diagnostics are allowed; only continuity-breaking mutations should block."
+
+- id: ce-diag-gpu-nvidia
+  category: driver
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: postboot_driver
+    title: "Inspect NVIDIA driver state"
+    commands:
+      - "lspci -nnk | grep -A3 -Ei 'vga|3d|display'"
+      - "nvidia-smi"
+      - "modinfo nvidia"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Driver diagnostics may fail if NVIDIA is absent, but they are read-only and useful."
+
+- id: ce-diag-gpu-mesa
+  category: driver
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    desktop: kde
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  command_group:
+    stage: postboot_driver
+    title: "Inspect graphics stack"
+    commands:
+      - "glxinfo -B"
+      - "vulkaninfo --summary"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Graphics diagnostics can be missing on minimal systems but should not hard-block."
+
+- id: ce-diag-flatpak-list
+  category: diagnostics
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  command_group:
+    stage: final_audit
+    title: "List Flatpak apps"
+    commands:
+      - "flatpak list --app"
+      - "flatpak remotes"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Flatpak listing is read-only audit work."
+
+- id: ce-diag-snap-list
+  category: diagnostics
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    desktop: gnome
+    has_gui_session: true
+    flatpak_available: false
+    snap_available: true
+    aur_helper: none
+  command_group:
+    stage: final_audit
+    title: "List Snap apps"
+    commands:
+      - "snap list"
+  expected:
+    outcome: allow
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Snap listing is a non-mutating diagnostic."
+
+- id: ce-diag-desktop-env
+  category: diagnostics
+  facts_profile:
+    family: generic
+    package_manager: generic
+    desktop: unknown
+    has_gui_session: unknown
+    flatpak_available: unknown
+    snap_available: unknown
+    aur_helper: unknown
+  command_group:
+    stage: desktop
+    title: "Inspect desktop session"
+    commands:
+      - "printf '%s\n' \"$XDG_CURRENT_DESKTOP\" \"$DESKTOP_SESSION\""
+      - "loginctl show-session \"$XDG_SESSION_ID\" -p Type -p Desktop"
+  expected:
+    outcome: allow_with_advisory
+    final_status_effect: none
+    blocked_reason_category: ""
+  rationale: "Session inspection is safe; missing environment variables should not hard-block."
+
