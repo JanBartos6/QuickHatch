@@ -227,6 +227,8 @@ def _set_design_value(
             design.kde_cursor_theme = text
         elif desktop == "gnome":
             design.gnome_cursor_theme = text
+        elif desktop == "xfce":
+            design.xfce_cursor_theme = text
     elif element == "wallpaper":
         if desktop == "kde":
             design.kde_wallpaper = text

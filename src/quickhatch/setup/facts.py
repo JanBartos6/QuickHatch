@@ -230,6 +230,7 @@ echo 'QH_GNOME_CURSOR_THEME='$(qh_gsettings_value org.gnome.desktop.interface cu
 echo 'QH_GNOME_WALLPAPER='$(qh_gsettings_value org.gnome.desktop.background picture-uri)
 echo 'QH_XFCE_GTK_THEME='$(qh_xfconf_value xsettings /Net/ThemeName)
 echo 'QH_XFCE_ICON_THEME='$(qh_xfconf_value xsettings /Net/IconThemeName)
+echo 'QH_XFCE_CURSOR_THEME='$(qh_xfconf_value xsettings /Gtk/CursorThemeName)
 echo 'QH_XFCE_WINDOW_THEME='$(qh_xfconf_value xfwm4 /general/theme)
 echo 'QH_XFCE_WALLPAPER='$(if command -v xfconf-query >/dev/null 2>&1 && command -v dbus-run-session >/dev/null 2>&1; then qh_wallpaper_prop=$(dbus-run-session xfconf-query -c xfce4-desktop -l 2>/dev/null | grep -E '/last-image$|/image-path$' | head -n 1); [ -n "$qh_wallpaper_prop" ] && dbus-run-session xfconf-query -c xfce4-desktop -p "$qh_wallpaper_prop" 2>/dev/null; fi)
 echo 'QH_DM='$(basename "$(readlink /etc/systemd/system/display-manager.service 2>/dev/null)" 2>/dev/null | sed 's/\.service$//' || true)
@@ -613,6 +614,7 @@ def probe_setup_facts(
         gnome_wallpaper=raw.get("QH_GNOME_WALLPAPER", ""),
         xfce_gtk_theme=raw.get("QH_XFCE_GTK_THEME", ""),
         xfce_icon_theme=raw.get("QH_XFCE_ICON_THEME", ""),
+        xfce_cursor_theme=raw.get("QH_XFCE_CURSOR_THEME", ""),
         xfce_window_theme=raw.get("QH_XFCE_WINDOW_THEME", ""),
         xfce_wallpaper=raw.get("QH_XFCE_WALLPAPER", ""),
     )

@@ -150,6 +150,7 @@ class DesktopDesignState:
     gnome_wallpaper: str = ""
     xfce_gtk_theme: str = ""
     xfce_icon_theme: str = ""
+    xfce_cursor_theme: str = ""
     xfce_window_theme: str = ""
     xfce_wallpaper: str = ""
 

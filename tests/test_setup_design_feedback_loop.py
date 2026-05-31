@@ -230,6 +230,8 @@ def _set_design_value(
             design.kde_cursor_theme = text
         elif desktop == "gnome":
             design.gnome_cursor_theme = text
+        elif desktop == "xfce":
+            design.xfce_cursor_theme = text
     elif element == "wallpaper":
         if desktop == "kde":
             design.kde_wallpaper = text
@@ -531,12 +533,16 @@ def test_wrong_de_and_wrong_user_are_not_treated_as_verified_success() -> None:
 def test_per_element_manual_followup_preserves_successful_sibling_elements() -> None:
     scenario = _scenario("icons-xfce-fail-cursor-succeeds")
     outcome = _run_current_harness_scenario(scenario)
-    followup_text = _desktop_followup_text(outcome).lower()
+    element_followup_text = "\n".join(
+        str(item)
+        for result in outcome.stage_results
+        for item in (result.details.get("desktop_design_manual_followups") or [])
+    ).lower()
 
     assert _expected_state(scenario, "icons") == "failed_to_apply"
     assert _expected_state(scenario, "cursor") == "applied_and_verified"
-    assert "icons" in followup_text
-    assert "cursor" not in followup_text or "applied" in followup_text
+    assert "icon" in element_followup_text
+    assert "cursor" not in element_followup_text
     assert outcome.final_status in {
         FinalSetupStatus.SUCCESS_WITH_WARNINGS,
         FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED,

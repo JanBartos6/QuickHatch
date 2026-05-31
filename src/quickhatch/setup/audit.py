@@ -212,6 +212,27 @@ def audit_stage(
                 "Desktop plan mentions wallpaper, but the target desktop wallpaper was "
                 "not verified in the active desktop environment."
             )
+        if state.get("gnome_wallpaper_dark_uri_only"):
+            desktop_followups.append(
+                "GNOME wallpaper was applied through picture-uri-dark only; verify the "
+                "light-mode wallpaper key before declaring wallpaper setup fully complete."
+            )
+        for element in _plan_requested_design_elements(plan):
+            if element == "wallpaper":
+                continue
+            if not _has_design_element_signal(facts, element):
+                desktop_followups.append(
+                    f"Desktop plan mentions {element}, but the target desktop {element} "
+                    "state was not verified in the active desktop environment."
+                )
+        if (
+            facts.desktop_runtime_state == DesktopRuntimeState.PENDING_RELOGIN
+            and _has_expected_desktop_design_state(state)
+        ):
+            desktop_followups.append(
+                "Desktop design settings were persisted but not live-verified in an active "
+                "target GUI session; verify theme/icons/cursor/wallpaper after login."
+            )
         desktop_followups.extend(_desktop_design_contract_blockers(facts, state))
         display_followups = [str(item) for item in (state.get("display_preference_blockers") or [])]
         desktop_followups.extend(display_followups)
@@ -560,6 +581,7 @@ def _has_desktop_design_signal(facts: SetupFacts) -> bool:
         values = (
             design.xfce_gtk_theme,
             design.xfce_icon_theme,
+            design.xfce_cursor_theme,
             design.xfce_window_theme,
             design.xfce_wallpaper,
         )
@@ -577,6 +599,7 @@ def _has_desktop_design_signal(facts: SetupFacts) -> bool:
             design.gnome_wallpaper,
             design.xfce_gtk_theme,
             design.xfce_icon_theme,
+            design.xfce_cursor_theme,
             design.xfce_window_theme,
             design.xfce_wallpaper,
         )
@@ -666,6 +689,69 @@ def _plan_mentions_wallpaper(plan: ResearchPlan) -> bool:
     return bool(re.search(r"\bwall[-\s]?paper\b|background image", text, re.IGNORECASE))
 
 
+def _plan_requested_design_elements(plan: ResearchPlan | None) -> set[str]:
+    if plan is None:
+        return set()
+    text = " ".join(
+        str(value or "")
+        for value in (
+            plan.target_summary,
+            plan.desktop_strategy.strategy,
+            plan.desktop_strategy.notes,
+        )
+    ).lower()
+    elements: set[str] = set()
+    if re.search(r"\btheme\b|color[-\s]?scheme|look[-\s]?and[-\s]?feel", text):
+        elements.add("theme")
+    if re.search(r"\bicons?\b|icon[-\s]?theme", text):
+        elements.add("icons")
+    if re.search(r"\bcursor\b|cursor[-\s]?theme", text):
+        elements.add("cursor")
+    if re.search(r"\bwall[-\s]?paper\b|background image", text):
+        elements.add("wallpaper")
+    if re.search(r"\beffects?\b|animation|blur|composit", text):
+        elements.add("effects")
+    return elements
+
+
+def _has_design_element_signal(facts: SetupFacts, element: str) -> bool:
+    design = facts.desktop_design
+    if element == "theme":
+        return bool(
+            str(
+                design.kde_color_scheme
+                or design.gnome_gtk_theme
+                or design.xfce_gtk_theme
+                or design.xfce_window_theme
+                or ""
+            ).strip()
+        )
+    if element == "icons":
+        return bool(
+            str(
+                design.kde_icon_theme or design.gnome_icon_theme or design.xfce_icon_theme or ""
+            ).strip()
+        )
+    if element == "cursor":
+        return bool(
+            str(
+                design.kde_cursor_theme
+                or design.gnome_cursor_theme
+                or design.xfce_cursor_theme
+                or ""
+            ).strip()
+        )
+    if element == "wallpaper":
+        return _has_wallpaper_signal(facts)
+    if element == "effects":
+        return bool(str(design.kde_wobbly_windows or design.kde_magic_lamp or "").strip())
+    return False
+
+
+def _has_expected_desktop_design_state(state: dict[str, Any]) -> bool:
+    return any(str(key).startswith("expected_") for key in state)
+
+
 def _desktop_design_contract_blockers(facts: SetupFacts, state: dict[str, Any]) -> list[str]:
     """Check intended persisted design values against refreshed target facts."""
 
@@ -705,6 +791,60 @@ def _desktop_design_contract_blockers(facts: SetupFacts, state: dict[str, Any]) 
             "KWin magic lamp",
             state.get("expected_kde_magic_lamp"),
             design.kde_magic_lamp,
+            _matches_boolish,
+        ),
+        (
+            "GNOME GTK theme",
+            state.get("expected_gnome_gtk_theme"),
+            design.gnome_gtk_theme,
+            _matches_exactish,
+        ),
+        (
+            "GNOME icon theme",
+            state.get("expected_gnome_icon_theme"),
+            design.gnome_icon_theme,
+            _matches_exactish,
+        ),
+        (
+            "GNOME cursor theme",
+            state.get("expected_gnome_cursor_theme"),
+            design.gnome_cursor_theme,
+            _matches_exactish,
+        ),
+        (
+            "GNOME wallpaper",
+            state.get("expected_gnome_wallpaper"),
+            design.gnome_wallpaper,
+            _matches_pathish,
+        ),
+        (
+            "XFCE GTK theme",
+            state.get("expected_xfce_gtk_theme"),
+            design.xfce_gtk_theme,
+            _matches_exactish,
+        ),
+        (
+            "XFCE icon theme",
+            state.get("expected_xfce_icon_theme"),
+            design.xfce_icon_theme,
+            _matches_exactish,
+        ),
+        (
+            "XFCE cursor theme",
+            state.get("expected_xfce_cursor_theme"),
+            design.xfce_cursor_theme,
+            _matches_exactish,
+        ),
+        (
+            "XFCE wallpaper",
+            state.get("expected_xfce_wallpaper"),
+            design.xfce_wallpaper,
+            _matches_pathish,
+        ),
+        (
+            "XFCE compositing",
+            state.get("expected_xfce_compositing"),
+            getattr(design, "xfce_compositing", ""),
             _matches_boolish,
         ),
     )

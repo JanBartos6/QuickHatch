@@ -1338,10 +1338,22 @@ class SetupOrchestrator:
                         break
                 failure = self._execute_group(stage, current_group, stage_state)
                 if failure is None:
-                    current_group.status = PlanItemStatus.COMPLETED
-                    self._mark_group_completion(current_group, stage=stage)
                     self._refresh_facts(stage=stage)
-                    break
+                    if stage == SetupStage.DESKTOP:
+                        feedback_failure = self._desktop_design_feedback_failure(
+                            current_group,
+                            stage_state,
+                        )
+                        if feedback_failure is not None:
+                            failure = feedback_failure
+                        else:
+                            current_group.status = PlanItemStatus.COMPLETED
+                            self._mark_group_completion(current_group, stage=stage)
+                            break
+                    else:
+                        current_group.status = PlanItemStatus.COMPLETED
+                        self._mark_group_completion(current_group, stage=stage)
+                        break
                 if failure.failure_type == "safe_abort":
                     raise RuntimeError(
                         str(stage_state.get("safe_abort") or failure.detail or "Safe abort.")
@@ -3182,6 +3194,59 @@ class SetupOrchestrator:
                     "Adjust KDE/kscreen refresh rate before declaring desktop complete."
                 ]
         return []
+
+    def _desktop_design_feedback_failure(
+        self,
+        group: CommandGroup,
+        stage_state: dict[str, Any],
+    ) -> GroupFailure | None:
+        result = audit_stage(
+            SetupStage.DESKTOP,
+            self.ctx.facts or SetupFacts(),
+            plan=self.ctx.plan,
+            stage_state=stage_state,
+        )
+        design_followups = [
+            str(item)
+            for item in (result.details.get("desktop_design_manual_followups") or [])
+            if str(item or "").strip()
+        ]
+        self._replace_desktop_design_feedback_followups(stage_state, design_followups)
+        relevant_manual_followups = [
+            str(item.get("reason") or "")
+            for item in (stage_state.get("manual_followups") or [])
+            if isinstance(item, dict)
+            and item.get("source")
+            in {
+                "desktop_design_feedback",
+                "desktop_wrong_environment",
+                "desktop_wrong_user",
+            }
+            and str(item.get("reason") or "").strip()
+        ]
+        if not design_followups and not relevant_manual_followups:
+            return None
+        details = relevant_manual_followups or design_followups
+        self.runlog.record(
+            "desktop_design_feedback_mismatch",
+            stage=SetupStage.DESKTOP.value,
+            group_id=group.id,
+            details=details,
+            facts=asdict(self.ctx.facts or SetupFacts()),
+        )
+        facts = self.ctx.facts or SetupFacts()
+        has_active_session = bool(facts.displays) and (
+            facts.desktop_runtime_state == DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
+        )
+        if not has_active_session:
+            return None
+        return GroupFailure(
+            failure_type="desktop_design_feedback",
+            command="desktop design verification",
+            stdout="",
+            stderr="",
+            detail="; ".join(details),
+        )
 
     @staticmethod
     def _as_float(value: Any) -> float | None:
@@ -9398,6 +9463,8 @@ fi
     def _repair_requires_research(
         stage: SetupStage, failed_group: CommandGroup, failure: GroupFailure
     ) -> bool:
+        if stage == SetupStage.DESKTOP and failure.failure_type == "desktop_design_feedback":
+            return False
         text = " ".join(
             [
                 stage.value,
@@ -9599,14 +9666,23 @@ fi
             self.ctx.facts.community_helper = "yay"
         if stage == SetupStage.DESKTOP:
             state = self.ctx.stage_state.setdefault(stage.value, {})
+            wrong_de_reason = self._wrong_desktop_environment_reason(command)
+            if wrong_de_reason:
+                self._record_desktop_design_manual_followup(
+                    state,
+                    reason=wrong_de_reason,
+                    source="desktop_wrong_environment",
+                    command=command,
+                )
             if self._command_persists_desktop_config(command):
                 if self._command_targets_wrong_desktop_user(command):
                     reason = self._wrong_desktop_user_reason(command)
-                    manual_followups = list(state.get("manual_followups") or [])
-                    item = {"reason": reason, "command": command}
-                    if item not in manual_followups:
-                        manual_followups.append(item)
-                    state["manual_followups"] = manual_followups
+                    self._record_desktop_design_manual_followup(
+                        state,
+                        reason=reason,
+                        source="desktop_wrong_user",
+                        command=command,
+                    )
                     self.runlog.record(
                         "desktop_wrong_user_manual_followup",
                         stage=SetupStage.DESKTOP.value,
@@ -9619,7 +9695,7 @@ fi
                 state["desktop_design_attempted"] = True
             if self._command_attempts_wallpaper(command):
                 state["wallpaper_attempted"] = True
-            self._record_kde_design_expectations(command, state)
+            self._record_desktop_design_expectations(command, state)
             if "plasma-apply" in command and stdout.strip() == "":
                 if self.ctx.facts and self.ctx.facts.displays:
                     self.ctx.facts.desktop_runtime_state = DesktopRuntimeState.LIVE_APPLY_SUCCEEDED
@@ -9681,6 +9757,7 @@ fi
         if not self._desktop_root_is_target_user() and (
             "/root/" in lowered
             or "home=/root" in lowered
+            or "dbus_session_bus_address=" in lowered
             or re.search(r"\bsudo\s+(?:-[^\s]+\s+)*-u\s+root\b", lowered)
             or re.search(r"\bsudo\s+gsettings\b", lowered)
         ):
@@ -9711,6 +9788,108 @@ fi
             f"{target}; it was not counted as verified target-user desktop persistence: "
             f"{redact_sensitive_text(command)}"
         )
+
+    def _wrong_desktop_environment_reason(self, command: str) -> str:
+        command_family = self._desktop_command_family(command)
+        if not command_family:
+            return ""
+        actual = self._current_desktop_family()
+        if actual == command_family:
+            return ""
+        if actual in {"kde", "gnome", "xfce"}:
+            return (
+                f"Desktop command uses {command_family.upper()} tooling while the target "
+                f"desktop facts report {actual.upper()}; it was not counted as verified "
+                f"target desktop design: {redact_sensitive_text(command)}"
+            )
+        return (
+            f"Desktop command uses {command_family.upper()}-specific tooling, but the "
+            "target desktop environment is unknown; verify the session and apply the "
+            f"matching desktop strategy before declaring success: {redact_sensitive_text(command)}"
+        )
+
+    def _current_desktop_family(self) -> str:
+        facts = self.ctx.facts or SetupFacts()
+        env = (facts.desktop_design.environment or "").strip().lower()
+        if "plasma" in env or "kde" in env:
+            return "kde"
+        if "gnome" in env:
+            return "gnome"
+        if "xfce" in env:
+            return "xfce"
+        manager = (facts.display_manager or "").strip().lower()
+        if manager == "sddm":
+            return "kde"
+        if manager == "gdm":
+            return "gnome"
+        if manager == "lightdm":
+            return "xfce"
+        return ""
+
+    @staticmethod
+    def _desktop_command_family(command: str) -> str:
+        lowered = (command or "").lower()
+        if any(
+            token in lowered
+            for token in (
+                "plasma-apply-",
+                "lookandfeeltool",
+                "kwriteconfig",
+                "kreadconfig",
+                "kcminputrc",
+                "kdeglobals",
+                "kwinrc",
+                "org.kde.",
+                "qdbus org.kde",
+                "qdbus6 org.kde",
+            )
+        ):
+            return "kde"
+        if "gsettings" in lowered and "org.gnome." in lowered:
+            return "gnome"
+        if "dconf" in lowered and "org/gnome" in lowered:
+            return "gnome"
+        if "xfconf-query" in lowered or "xfdesktop" in lowered:
+            return "xfce"
+        return ""
+
+    @staticmethod
+    def _record_desktop_design_manual_followup(
+        state: dict[str, Any],
+        *,
+        reason: str,
+        source: str,
+        command: str = "",
+    ) -> None:
+        item: dict[str, Any] = {"source": source, "reason": reason}
+        if command:
+            item["command"] = command
+        manual_followups = list(state.get("manual_followups") or [])
+        if item not in manual_followups:
+            manual_followups.append(item)
+        state["manual_followups"] = manual_followups
+
+    @staticmethod
+    def _replace_desktop_design_feedback_followups(
+        state: dict[str, Any], reasons: list[str]
+    ) -> None:
+        manual_followups = [
+            item
+            for item in list(state.get("manual_followups") or [])
+            if not (isinstance(item, dict) and item.get("source") == "desktop_design_feedback")
+        ]
+        seen = {
+            str(item.get("reason") if isinstance(item, dict) else item) for item in manual_followups
+        }
+        for reason in reasons:
+            if reason in seen:
+                continue
+            manual_followups.append({"source": "desktop_design_feedback", "reason": reason})
+            seen.add(reason)
+        if manual_followups:
+            state["manual_followups"] = manual_followups
+        else:
+            state.pop("manual_followups", None)
 
     @staticmethod
     def _command_attempts_desktop_design(command: str) -> bool:
@@ -9754,6 +9933,11 @@ fi
             )
         )
 
+    def _record_desktop_design_expectations(self, command: str, state: dict[str, Any]) -> None:
+        self._record_kde_design_expectations(command, state)
+        self._record_gnome_design_expectations(command, state)
+        self._record_xfce_design_expectations(command, state)
+
     def _record_kde_design_expectations(self, command: str, state: dict[str, Any]) -> None:
         for tokens in self._shell_command_segments(command):
             if not tokens:
@@ -9762,8 +9946,101 @@ fi
             if executable.startswith("kwriteconfig"):
                 self._record_kwriteconfig_expectation(tokens, state)
                 continue
+            if executable == "lookandfeeltool" and "-a" in tokens:
+                value = self._shell_option_value(tokens, "-a")
+                if value:
+                    state["expected_kde_color_scheme"] = self._friendly_kde_theme_name(value)
+                continue
+            if (
+                executable in {"plasma-apply-lookandfeel", "plasma-apply-colorscheme"}
+                and len(tokens) > 1
+            ):
+                state["expected_kde_color_scheme"] = self._friendly_kde_theme_name(tokens[-1])
+                continue
+            if executable == "plasma-apply-desktoptheme" and len(tokens) > 1:
+                state["expected_kde_color_scheme"] = self._friendly_kde_theme_name(tokens[-1])
+                continue
+            if executable == "plasma-apply-icons" and len(tokens) > 1:
+                state["expected_kde_icon_theme"] = tokens[-1]
+                continue
+            if executable == "plasma-apply-cursortheme" and len(tokens) > 1:
+                state["expected_kde_cursor_theme"] = tokens[-1]
+                continue
             if executable == "plasma-apply-wallpaperimage" and len(tokens) > 1:
                 state["expected_kde_wallpaper"] = tokens[-1]
+
+    @staticmethod
+    def _friendly_kde_theme_name(value: str) -> str:
+        text = str(value or "").strip().strip("\"'")
+        lower = text.lower()
+        if "breezedark" in lower or "breeze-dark" in lower:
+            return "Breeze Dark"
+        if "breezelight" in lower or "breeze-light" in lower:
+            return "Breeze Light"
+        text = re.sub(r"^org\.kde\.", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\.desktop$", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"[-_]+", " ", text).strip()
+        return text.title() if text else value
+
+    @staticmethod
+    def _record_gnome_design_expectations(command: str, state: dict[str, Any]) -> None:
+        try:
+            tokens = shlex.split(command)
+        except ValueError:
+            return
+        for index, token in enumerate(tokens):
+            if Path(token).name != "gsettings" or index + 4 >= len(tokens):
+                continue
+            if tokens[index + 1] != "set":
+                continue
+            schema = tokens[index + 2].lower()
+            key = tokens[index + 3].lower()
+            value = " ".join(tokens[index + 4 :]).strip()
+            if not value:
+                continue
+            if schema == "org.gnome.desktop.interface":
+                if key == "gtk-theme":
+                    state["expected_gnome_gtk_theme"] = value
+                elif key == "icon-theme":
+                    state["expected_gnome_icon_theme"] = value
+                elif key == "cursor-theme":
+                    state["expected_gnome_cursor_theme"] = value
+                elif key == "color-scheme" and "dark" in value.lower():
+                    state.setdefault("expected_gnome_gtk_theme", "Adwaita-dark")
+                elif key == "enable-animations":
+                    state["expected_gnome_enable_animations"] = value
+            elif schema == "org.gnome.desktop.background" and key in {
+                "picture-uri",
+                "picture-uri-dark",
+            }:
+                state["expected_gnome_wallpaper"] = value.removeprefix("file://")
+                if key == "picture-uri-dark":
+                    state["gnome_wallpaper_dark_uri_only"] = True
+
+    @staticmethod
+    def _record_xfce_design_expectations(command: str, state: dict[str, Any]) -> None:
+        for tokens in SetupOrchestrator._shell_command_segments(command):
+            if not tokens:
+                continue
+            executable = Path(tokens[0]).name
+            if executable != "xfconf-query":
+                continue
+            channel = SetupOrchestrator._shell_option_value(tokens, "-c").lower()
+            prop = SetupOrchestrator._shell_option_value(tokens, "-p").lower()
+            value = SetupOrchestrator._shell_option_value(tokens, "-s")
+            if not value:
+                continue
+            if channel == "xsettings":
+                if prop == "/net/themename":
+                    state["expected_xfce_gtk_theme"] = value
+                elif prop == "/net/iconthemename":
+                    state["expected_xfce_icon_theme"] = value
+                elif prop == "/gtk/cursorthemename":
+                    state["expected_xfce_cursor_theme"] = value
+            elif channel == "xfce4-desktop" and prop.endswith(("/last-image", "/image-path")):
+                state["expected_xfce_wallpaper"] = value.removeprefix("file://")
+            elif channel == "xfwm4" and prop == "/general/use_compositing":
+                state["expected_xfce_compositing"] = value
 
     @staticmethod
     def _shell_command_segments(command: str) -> list[list[str]]:
