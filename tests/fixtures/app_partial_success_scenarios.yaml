@@ -1,0 +1,2768 @@
+# Curated app/package partial-success scenario corpus.
+#
+# This fixture models app/package orchestration outcomes only. It should be
+# used with fake executors/facts/model responses; do not execute commands from
+# this file against the host. Expected outcomes are deterministic and focus on
+# preserving successful app progress, isolating failures, and honest final status.
+merge_summary:
+  source: Merged from .quickhatch/corpus-candidates/app-partial-agent-*.yaml
+  total_scenarios: 40
+  scenarios_by_category:
+    alternative_app: 3
+    facts_refresh: 4
+    final_audit: 4
+    multi_app_partial: 8
+    provider_repair_failure: 6
+    repair_loop: 3
+    required_optional: 5
+    source_fallback: 7
+  final_statuses:
+    manual_followup_required: 10
+    success: 9
+    success_with_warnings: 21
+  invariants_covered:
+    failure_isolated: 27
+    final_status_honest: 40
+    provider_error_preserves_progress: 8
+    successful_apps_preserved: 33
+  notes: App/package failures here are modeled as recoverable/manual-followup outcomes; these are not safety-block scenarios.
+scenarios:
+- id: multi-app-apt-required-editor-optional-chat-fails
+  category: multi_app_partial
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+    - vlc
+    - libreoffice
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: VLC
+      package: vlc
+      source: repo
+      required: true
+    - name: LibreOffice
+      package: libreoffice
+      source: repo
+      required: true
+    - name: ChatThing
+      package: chatthing-desktop
+      source: repo
+      required: false
+    command_groups:
+    - title: Install requested desktop apps
+      packages:
+      - vlc
+      - libreoffice
+      - chatthing-desktop
+      commands:
+      - sudo apt-get install -y vlc libreoffice chatthing-desktop
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 100
+    stdout: vlc and libreoffice installed
+    stderr: 'E: Unable to locate package chatthing-desktop'
+    repair_strategy: ''
+    provider_error: ''
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: vlc libreoffice; MISSING: chatthing-desktop'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  - type: verification
+    app: VLC
+    package: vlc
+    rc: 0
+    stdout: verified
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  - type: verification
+    app: LibreOffice
+    package: libreoffice
+    rc: 0
+    stdout: verified
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - VLC
+    - LibreOffice
+    manual_followup_apps:
+    - ChatThing
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - final_status_honest
+  rationale: A missing optional package in a mixed apt group must not regress required apps that are verified installed.
+  source_candidates:
+  - app-partial-agent-1-multi-app
+- id: multi-app-dnf-required-browser-fails-after-media-success
+  category: multi_app_partial
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after:
+    - gimp
+    - inkscape
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: GIMP
+      package: gimp
+      source: repo
+      required: true
+    - name: Inkscape
+      package: inkscape
+      source: repo
+      required: true
+    - name: CorpBrowser
+      package: corp-browser
+      source: repo
+      required: true
+    command_groups:
+    - title: Install creative and browser apps
+      packages:
+      - gimp
+      - inkscape
+      - corp-browser
+      commands:
+      - sudo dnf install -y gimp inkscape corp-browser
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 1
+    stdout: 'Installed: gimp inkscape'
+    stderr: 'No match for argument: corp-browser'
+    repair_strategy: ''
+    provider_error: ''
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: gimp inkscape; MISSING: corp-browser'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  - type: verification
+    app: CorpBrowser
+    package: corp-browser
+    rc: 1
+    stdout: ''
+    stderr: not installed
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - GIMP
+    - Inkscape
+    manual_followup_apps:
+    - CorpBrowser
+    failed_apps: []
+    alternatives: []
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - final_status_honest
+  rationale: A required missing app should become honest manual follow-up while preserving successful apps from the same dnf transaction.
+  source_candidates:
+  - app-partial-agent-1-multi-app
+- id: multi-app-pacman-one-bad-theme-does-not-regress-tools
+  category: multi_app_partial
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+    - kate
+    - spectacle
+    - vlc
+    flatpak_available: false
+    snap_available: false
+    aur_helper: yay
+  plan:
+    requested_apps:
+    - name: Kate
+      package: kate
+      source: repo
+      required: true
+    - name: Spectacle
+      package: spectacle
+      source: repo
+      required: true
+    - name: VLC
+      package: vlc
+      source: repo
+      required: true
+    - name: Plasma Ocean Theme
+      package: plasma-theme-oceanic-fake
+      source: repo
+      required: false
+    command_groups:
+    - title: Install KDE apps and optional theme
+      packages:
+      - kate
+      - spectacle
+      - vlc
+      - plasma-theme-oceanic-fake
+      commands:
+      - sudo pacman -S --noconfirm kate spectacle vlc plasma-theme-oceanic-fake
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 1
+    stdout: resolved kate spectacle vlc
+    stderr: 'error: target not found: plasma-theme-oceanic-fake'
+    repair_strategy: ''
+    provider_error: ''
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: kate spectacle vlc; MISSING: plasma-theme-oceanic-fake'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Kate
+    - Spectacle
+    - VLC
+    manual_followup_apps:
+    - Plasma Ocean Theme
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - final_status_honest
+  rationale: An unavailable optional theme package should not make verified KDE apps fatal or regress their status.
+  source_candidates:
+  - app-partial-agent-1-multi-app
+- id: multi-app-debian-preinstalled-one-new-one-missing
+  category: multi_app_partial
+  facts_profile:
+    family: debian
+    package_manager: apt
+    installed_apps_before:
+    - firefox-esr
+    installed_apps_after:
+    - firefox-esr
+    - thunderbird
+    flatpak_available: unknown
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Firefox ESR
+      package: firefox-esr
+      source: repo
+      required: true
+    - name: Thunderbird
+      package: thunderbird
+      source: repo
+      required: true
+    - name: SketchNote
+      package: sketchnote
+      source: repo
+      required: false
+    command_groups:
+    - title: Install communication apps
+      packages:
+      - firefox-esr
+      - thunderbird
+      - sketchnote
+      commands:
+      - sudo apt-get install -y firefox-esr thunderbird sketchnote
+  simulated_events:
+  - type: verification
+    app: Firefox ESR
+    package: firefox-esr
+    rc: 0
+    stdout: already installed before group
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 100
+    stdout: thunderbird installed
+    stderr: 'E: Unable to locate package sketchnote'
+    repair_strategy: ''
+    provider_error: ''
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: firefox-esr thunderbird; MISSING: sketchnote'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Firefox ESR
+    - Thunderbird
+    manual_followup_apps:
+    - SketchNote
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - final_status_honest
+  rationale: Preinstalled and newly installed apps should stay complete when a third optional package is unavailable.
+  source_candidates:
+  - app-partial-agent-1-multi-app
+- id: multi-app-ubuntu-later-unrelated-failure-after-success
+  category: multi_app_partial
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+    - curl
+    - git
+    - code
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Curl
+      package: curl
+      source: repo
+      required: true
+    - name: Git
+      package: git
+      source: repo
+      required: true
+    - name: VS Code
+      package: code
+      source: repo
+      required: true
+    - name: Widget Studio
+      package: widget-studio
+      source: repo
+      required: false
+    command_groups:
+    - title: Install developer basics
+      packages:
+      - curl
+      - git
+      commands:
+      - sudo apt-get install -y curl git
+    - title: Install editor and optional widget tool
+      packages:
+      - code
+      - widget-studio
+      commands:
+      - sudo apt-get install -y code widget-studio
+  simulated_events:
+  - type: command_success
+    app: ''
+    package: ''
+    rc: 0
+    stdout: curl and git installed
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: curl git'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 100
+    stdout: code installed
+    stderr: 'E: Unable to locate package widget-studio'
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Curl
+    - Git
+    - VS Code
+    manual_followup_apps:
+    - Widget Studio
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - final_status_honest
+  rationale: A later optional package failure must not roll back completed status from a previous successful command group.
+  source_candidates:
+  - app-partial-agent-1-multi-app
+- id: multi-app-fedora-mixed-required-manual
+  category: multi_app_partial
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before:
+    - firefox
+    installed_apps_after:
+    - firefox
+    - filezilla
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Firefox
+      package: firefox
+      source: repo
+      required: true
+    - name: FileZilla
+      package: filezilla
+      source: repo
+      required: true
+    - name: VPN Viewer
+      package: vpn-viewer
+      source: repo
+      required: true
+    command_groups:
+    - title: Install internet apps
+      packages:
+      - firefox
+      - filezilla
+      - vpn-viewer
+      commands:
+      - sudo dnf install -y firefox filezilla vpn-viewer
+  simulated_events:
+  - type: verification
+    app: Firefox
+    package: firefox
+    rc: 0
+    stdout: already installed
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 1
+    stdout: filezilla installed
+    stderr: 'No match for argument: vpn-viewer'
+    repair_strategy: ''
+    provider_error: ''
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: firefox filezilla; MISSING: vpn-viewer'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Firefox
+    - FileZilla
+    manual_followup_apps:
+    - VPN Viewer
+    failed_apps: []
+    alternatives: []
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - final_status_honest
+  rationale: An unresolved required app must be visible as manual follow-up while unrelated verified apps stay completed.
+  source_candidates:
+  - app-partial-agent-1-multi-app
+- id: multi-app-arch-native-with-optional-missing
+  category: multi_app_partial
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+    - obs-studio
+    - kdenlive
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: OBS Studio
+      package: obs-studio
+      source: repo
+      required: true
+    - name: Kdenlive
+      package: kdenlive
+      source: repo
+      required: true
+    - name: Stream Deck UI
+      package: streamdeck-ui
+      source: repo
+      required: false
+    command_groups:
+    - title: Install media production apps
+      packages:
+      - obs-studio
+      - kdenlive
+      - streamdeck-ui
+      commands:
+      - sudo pacman -S --noconfirm obs-studio kdenlive streamdeck-ui
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 1
+    stdout: obs-studio and kdenlive installed
+    stderr: 'error: target not found: streamdeck-ui'
+    repair_strategy: ''
+    provider_error: ''
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: obs-studio kdenlive; MISSING: streamdeck-ui'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - OBS Studio
+    - Kdenlive
+    manual_followup_apps:
+    - Stream Deck UI
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - final_status_honest
+  rationale: One unavailable optional package must not poison verified native media apps.
+  source_candidates:
+  - app-partial-agent-1-multi-app
+- id: multi-app-generic-unknown-manager-partial-verification
+  category: multi_app_partial
+  facts_profile:
+    family: generic
+    package_manager: generic
+    installed_apps_before: []
+    installed_apps_after:
+    - signal-desktop
+    flatpak_available: unknown
+    snap_available: unknown
+    aur_helper: unknown
+  plan:
+    requested_apps:
+    - name: Signal
+      package: signal-desktop
+      source: unknown
+      required: true
+    - name: Notes Pro
+      package: notes-pro
+      source: unknown
+      required: false
+    command_groups:
+    - title: Install requested apps with generic helper
+      packages:
+      - signal-desktop
+      - notes-pro
+      commands:
+      - install-app signal-desktop notes-pro
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 2
+    stdout: installed signal-desktop
+    stderr: 'notes-pro: provider unavailable'
+    repair_strategy: ''
+    provider_error: ''
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: signal-desktop; MISSING: notes-pro'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  - type: verification
+    app: Signal
+    package: signal-desktop
+    rc: 0
+    stdout: desktop entry found
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Signal
+    manual_followup_apps:
+    - Notes Pro
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - final_status_honest
+  rationale: With generic facts, positive verification for one app should be retained while an optional unavailable app becomes specific follow-up.
+  source_candidates:
+  - app-partial-agent-1-multi-app
+- id: provider-429-after-repo-partial
+  category: provider_repair_failure
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+    - vlc
+    - git
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: VLC
+      package: vlc
+      source: repo
+      required: true
+    - name: Git
+      package: git
+      source: repo
+      required: true
+    - name: Obsidian
+      package: obsidian
+      source: repo
+      required: false
+    command_groups:
+    - title: Install base apps and notes app
+      packages:
+      - vlc
+      - git
+      - obsidian
+      commands:
+      - sudo apt-get install -y vlc git obsidian
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 100
+    stdout: vlc and git installed
+    stderr: 'E: Unable to locate package obsidian'
+    repair_strategy: ''
+    provider_error: ''
+  - type: provider_error
+    app: Obsidian
+    package: obsidian
+    rc: 0
+    stdout: ''
+    stderr: ''
+    repair_strategy: repo_to_flatpak
+    provider_error: '429'
+  - type: verification
+    app: VLC
+    package: vlc
+    rc: 0
+    stdout: verified
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - VLC
+    - Git
+    manual_followup_apps:
+    - Obsidian
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - provider_error_preserves_progress
+    - final_status_honest
+  rationale: A provider 429 during repair for one optional app must not erase already completed repo apps.
+  source_candidates:
+  - app-partial-agent-2-provider-repair
+- id: provider-timeout-required-unresolved
+  category: provider_repair_failure
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after:
+    - firefox
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Firefox
+      package: firefox
+      source: repo
+      required: true
+    - name: Required CAD
+      package: required-cad
+      source: repo
+      required: true
+    command_groups:
+    - title: Install browser and CAD package
+      packages:
+      - firefox
+      - required-cad
+      commands:
+      - sudo dnf install -y firefox required-cad
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 1
+    stdout: firefox installed
+    stderr: 'No match for argument: required-cad'
+    repair_strategy: ''
+    provider_error: ''
+  - type: provider_error
+    app: Required CAD
+    package: required-cad
+    rc: 0
+    stdout: ''
+    stderr: ''
+    repair_strategy: repo_to_flatpak
+    provider_error: timeout
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: firefox; MISSING: required-cad'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Firefox
+    manual_followup_apps:
+    - Required CAD
+    failed_apps: []
+    alternatives: []
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - provider_error_preserves_progress
+    - final_status_honest
+  rationale: A provider timeout cannot hide an unresolved required app as success, but it should preserve unrelated progress.
+  source_candidates:
+  - app-partial-agent-2-provider-repair
+- id: provider-invalid-json-after-flatpak-success
+  category: provider_repair_failure
+  facts_profile:
+    family: debian
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+    - com.spotify.Client
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Spotify
+      package: spotify-client
+      source: repo
+      required: false
+    - name: SketchNote
+      package: sketchnote
+      source: repo
+      required: false
+    command_groups:
+    - title: Install optional media and notes apps
+      packages:
+      - spotify-client
+      - sketchnote
+      commands:
+      - sudo apt-get install -y spotify-client sketchnote
+  simulated_events:
+  - type: command_failure
+    app: Spotify
+    package: spotify-client
+    rc: 100
+    stdout: ''
+    stderr: 'E: Unable to locate package spotify-client'
+    repair_strategy: ''
+    provider_error: ''
+  - type: repair_response
+    app: Spotify
+    package: com.spotify.Client
+    rc: 0
+    stdout: Use Flatpak app ID com.spotify.Client
+    stderr: ''
+    repair_strategy: repo_to_flatpak
+    provider_error: ''
+  - type: command_success
+    app: Spotify
+    package: com.spotify.Client
+    rc: 0
+    stdout: installed
+    stderr: ''
+    repair_strategy: repo_to_flatpak
+    provider_error: ''
+  - type: provider_error
+    app: SketchNote
+    package: sketchnote
+    rc: 0
+    stdout: ''
+    stderr: ''
+    repair_strategy: repo_to_flatpak
+    provider_error: invalid_json
+  expected:
+    completed_apps:
+    - Spotify
+    manual_followup_apps:
+    - SketchNote
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - provider_error_preserves_progress
+    - final_status_honest
+  rationale: Malformed repair output for one optional app should not undo a prior successful Flatpak fallback.
+  source_candidates:
+  - app-partial-agent-2-provider-repair
+- id: provider-question-timeout-after-progress
+  category: provider_repair_failure
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+    - firefox
+    - code
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  plan:
+    requested_apps:
+    - name: Firefox
+      package: firefox
+      source: repo
+      required: true
+    - name: VS Code
+      package: code
+      source: repo
+      required: true
+    - name: Figma
+      package: figma-linux
+      source: aur
+      required: false
+    command_groups:
+    - title: Install browser, editor, and design tool
+      packages:
+      - firefox
+      - code
+      - figma-linux
+      commands:
+      - sudo pacman -S --noconfirm firefox code figma-linux
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 1
+    stdout: firefox and code installed
+    stderr: 'error: target not found: figma-linux'
+    repair_strategy: ''
+    provider_error: ''
+  - type: provider_error
+    app: Figma
+    package: figma-linux
+    rc: 0
+    stdout: ''
+    stderr: ''
+    repair_strategy: aur_search
+    provider_error: question_timeout
+  expected:
+    completed_apps:
+    - Firefox
+    - VS Code
+    manual_followup_apps:
+    - Figma
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - provider_error_preserves_progress
+    - final_status_honest
+  rationale: A timed-out repair question for an optional AUR app should produce follow-up without regressing completed core apps.
+  source_candidates:
+  - app-partial-agent-2-provider-repair
+- id: provider-search-error-does-not-regress
+  category: provider_repair_failure
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before:
+    - thunderbird
+    installed_apps_after:
+    - thunderbird
+    - gimp
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Thunderbird
+      package: thunderbird
+      source: repo
+      required: true
+    - name: GIMP
+      package: gimp
+      source: repo
+      required: true
+    - name: Private Notes
+      package: private-notes
+      source: unknown
+      required: false
+    command_groups:
+    - title: Install mixed productivity apps
+      packages:
+      - thunderbird
+      - gimp
+      - private-notes
+      commands:
+      - sudo apt-get install -y thunderbird gimp private-notes
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 100
+    stdout: gimp installed
+    stderr: 'E: Unable to locate package private-notes'
+    repair_strategy: ''
+    provider_error: ''
+  - type: provider_error
+    app: Private Notes
+    package: private-notes
+    rc: 0
+    stdout: ''
+    stderr: ''
+    repair_strategy: search_alternatives
+    provider_error: search_provider_error
+  expected:
+    completed_apps:
+    - Thunderbird
+    - GIMP
+    manual_followup_apps:
+    - Private Notes
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - provider_error_preserves_progress
+    - final_status_honest
+  rationale: A provider-side search failure is recoverable evidence for one optional app, not a reason to mark successful apps incomplete.
+  source_candidates:
+  - app-partial-agent-2-provider-repair
+- id: repair-loop-identical-command-stops
+  category: repair_loop
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after: []
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Signal
+      package: signal-desktop
+      source: repo
+      required: false
+    command_groups:
+    - title: Install Signal with stale apt hint
+      packages:
+      - signal-desktop
+      commands:
+      - sudo apt-get install -y signal-desktop
+  simulated_events:
+  - type: command_failure
+    app: Signal
+    package: signal-desktop
+    rc: 100
+    stdout: ''
+    stderr: 'E: Unable to locate package signal-desktop'
+    repair_strategy: ''
+    provider_error: ''
+  - type: repair_response
+    app: Signal
+    package: signal-desktop
+    rc: 0
+    stdout: Retry same apt package
+    stderr: ''
+    repair_strategy: retry_identical_repo
+    provider_error: ''
+  - type: command_failure
+    app: Signal
+    package: signal-desktop
+    rc: 100
+    stdout: ''
+    stderr: 'E: Unable to locate package signal-desktop'
+    repair_strategy: retry_identical_repo
+    provider_error: ''
+  expected:
+    completed_apps: []
+    manual_followup_apps:
+    - Signal
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - failure_isolated
+    - final_status_honest
+  rationale: Repeating the exact failed package command should stop as an optional-app follow-up rather than loop or block.
+  source_candidates:
+  - app-partial-agent-2-provider-repair
+- id: strategy-change-repo-to-flatpak-not-loop
+  category: repair_loop
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after:
+    - com.discordapp.Discord
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Discord
+      package: discord
+      source: repo
+      required: false
+    command_groups:
+    - title: Install chat app
+      packages:
+      - discord
+      commands:
+      - sudo dnf install -y discord
+  simulated_events:
+  - type: command_failure
+    app: Discord
+    package: discord
+    rc: 1
+    stdout: ''
+    stderr: 'No match for argument: discord'
+    repair_strategy: ''
+    provider_error: ''
+  - type: repair_response
+    app: Discord
+    package: com.discordapp.Discord
+    rc: 0
+    stdout: Use Flatpak
+    stderr: ''
+    repair_strategy: repo_to_flatpak
+    provider_error: ''
+  - type: command_success
+    app: Discord
+    package: com.discordapp.Discord
+    rc: 0
+    stdout: installed
+    stderr: ''
+    repair_strategy: repo_to_flatpak
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Discord
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - final_status_honest
+  rationale: Changing from repo to Flatpak is a meaningful strategy change and should not be treated as an identical retry loop.
+  source_candidates:
+  - app-partial-agent-2-provider-repair
+- id: provider-429-during-aur-repair-isolated
+  category: provider_repair_failure
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+    - keepassxc
+    flatpak_available: true
+    snap_available: false
+    aur_helper: paru
+  plan:
+    requested_apps:
+    - name: KeePassXC
+      package: keepassxc
+      source: repo
+      required: true
+    - name: Teams
+      package: teams-for-linux
+      source: aur
+      required: false
+    command_groups:
+    - title: Install password manager and meeting app
+      packages:
+      - keepassxc
+      - teams-for-linux
+      commands:
+      - sudo pacman -S --noconfirm keepassxc teams-for-linux
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 1
+    stdout: keepassxc installed
+    stderr: 'error: target not found: teams-for-linux'
+    repair_strategy: ''
+    provider_error: ''
+  - type: provider_error
+    app: Teams
+    package: teams-for-linux
+    rc: 0
+    stdout: ''
+    stderr: ''
+    repair_strategy: aur_repair
+    provider_error: '429'
+  expected:
+    completed_apps:
+    - KeePassXC
+    manual_followup_apps:
+    - Teams
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - provider_error_preserves_progress
+    - final_status_honest
+  rationale: A provider rate limit during optional AUR repair must be isolated from a verified required repo app.
+  source_candidates:
+  - app-partial-agent-2-provider-repair
+- id: repo-to-aur-stale-package-hint
+  category: source_fallback
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+    - visual-studio-code-bin
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  plan:
+    requested_apps:
+    - name: Visual Studio Code
+      package: code
+      source: repo
+      required: true
+    command_groups:
+    - title: Install editor from repo hint
+      packages:
+      - code
+      commands:
+      - sudo pacman -S --noconfirm code
+  simulated_events:
+  - type: command_failure
+    app: Visual Studio Code
+    package: code
+    rc: 1
+    stdout: ''
+    stderr: 'error: target not found: code'
+    repair_strategy: ''
+    provider_error: ''
+  - type: repair_response
+    app: Visual Studio Code
+    package: visual-studio-code-bin
+    rc: 0
+    stdout: Switching source from repo to AUR
+    stderr: ''
+    repair_strategy: repo_to_aur
+    provider_error: ''
+  - type: command_success
+    app: Visual Studio Code
+    package: visual-studio-code-bin
+    rc: 0
+    stdout: installed
+    stderr: ''
+    repair_strategy: repo_to_aur
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Visual Studio Code
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - final_status_honest
+  rationale: A stale repo hint on Arch should be repairable by switching to AUR instead of looping the failed pacman command.
+  source_candidates:
+  - app-partial-agent-3-source-fallback
+- id: repo-to-flatpak-fedora-spotify
+  category: source_fallback
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after:
+    - com.spotify.Client
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Spotify
+      package: spotify-client
+      source: repo
+      required: false
+    command_groups:
+    - title: Install Spotify from repo hint
+      packages:
+      - spotify-client
+      commands:
+      - sudo dnf install -y spotify-client
+  simulated_events:
+  - type: command_failure
+    app: Spotify
+    package: spotify-client
+    rc: 1
+    stdout: 'No match for argument: spotify-client'
+    stderr: 'Error: Unable to find a match'
+    repair_strategy: ''
+    provider_error: ''
+  - type: repair_response
+    app: Spotify
+    package: com.spotify.Client
+    rc: 0
+    stdout: Use Flatpak app ID com.spotify.Client
+    stderr: ''
+    repair_strategy: repo_to_flatpak
+    provider_error: ''
+  - type: command_success
+    app: Spotify
+    package: com.spotify.Client
+    rc: 0
+    stdout: installed
+    stderr: ''
+    repair_strategy: repo_to_flatpak
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Spotify
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - final_status_honest
+  rationale: A missing Fedora repo package should be allowed to fall back to Flatpak when available.
+  source_candidates:
+  - app-partial-agent-3-source-fallback
+- id: repo-to-snap-ubuntu-slack
+  category: source_fallback
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+    - slack
+    flatpak_available: false
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Slack
+      package: slack-desktop
+      source: repo
+      required: false
+    command_groups:
+    - title: Install Slack from apt hint
+      packages:
+      - slack-desktop
+      commands:
+      - sudo apt-get install -y slack-desktop
+  simulated_events:
+  - type: command_failure
+    app: Slack
+    package: slack-desktop
+    rc: 100
+    stdout: ''
+    stderr: 'E: Unable to locate package slack-desktop'
+    repair_strategy: ''
+    provider_error: ''
+  - type: repair_response
+    app: Slack
+    package: slack
+    rc: 0
+    stdout: Try snap package slack
+    stderr: ''
+    repair_strategy: repo_to_snap
+    provider_error: ''
+  - type: command_success
+    app: Slack
+    package: slack
+    rc: 0
+    stdout: installed
+    stderr: ''
+    repair_strategy: repo_to_snap
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Slack
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - final_status_honest
+  rationale: Ubuntu can repair a missing apt package by switching to snap; this is source progress, not a loop.
+  source_candidates:
+  - app-partial-agent-3-source-fallback
+- id: flatpak-unavailable-after-repo-miss
+  category: source_fallback
+  facts_profile:
+    family: debian
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after: []
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Bitwarden
+      package: bitwarden
+      source: repo
+      required: false
+    command_groups:
+    - title: Install Bitwarden from apt hint
+      packages:
+      - bitwarden
+      commands:
+      - sudo apt-get install -y bitwarden
+  simulated_events:
+  - type: command_failure
+    app: Bitwarden
+    package: bitwarden
+    rc: 100
+    stdout: ''
+    stderr: 'E: Unable to locate package bitwarden'
+    repair_strategy: ''
+    provider_error: ''
+  - type: repair_response
+    app: Bitwarden
+    package: com.bitwarden.desktop
+    rc: 0
+    stdout: Flatpak would be next, but flatpak is unavailable
+    stderr: ''
+    repair_strategy: repo_to_flatpak
+    provider_error: ''
+  expected:
+    completed_apps: []
+    manual_followup_apps:
+    - Bitwarden
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - failure_isolated
+    - final_status_honest
+  rationale: An optional app with no available fallback provider should become follow-up instead of blocking the whole run.
+  source_candidates:
+  - app-partial-agent-3-source-fallback
+- id: required-app-all-sources-exhausted
+  category: source_fallback
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after: []
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Company VPN Client
+      package: company-vpn-client
+      source: repo
+      required: true
+    command_groups:
+    - title: Install required VPN client
+      packages:
+      - company-vpn-client
+      commands:
+      - sudo dnf install -y company-vpn-client
+  simulated_events:
+  - type: command_failure
+    app: Company VPN Client
+    package: company-vpn-client
+    rc: 1
+    stdout: ''
+    stderr: 'No match for argument: company-vpn-client'
+    repair_strategy: ''
+    provider_error: ''
+  - type: repair_response
+    app: Company VPN Client
+    package: com.example.CompanyVPN
+    rc: 0
+    stdout: Try Flatpak app ID com.example.CompanyVPN
+    stderr: ''
+    repair_strategy: repo_to_flatpak
+    provider_error: ''
+  - type: command_failure
+    app: Company VPN Client
+    package: com.example.CompanyVPN
+    rc: 1
+    stdout: ''
+    stderr: No remote refs found
+    repair_strategy: repo_to_flatpak
+    provider_error: ''
+  expected:
+    completed_apps: []
+    manual_followup_apps:
+    - Company VPN Client
+    failed_apps: []
+    alternatives: []
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+    - failure_isolated
+    - final_status_honest
+  rationale: A required app unresolved after source fallback must not be hidden as success, but it is not a safety block.
+  source_candidates:
+  - app-partial-agent-3-source-fallback
+- id: source-change-not-loop-repo-flatpak-snap
+  category: repair_loop
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+    - drawio
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: diagrams.net
+      package: drawio
+      source: repo
+      required: false
+    command_groups:
+    - title: Install diagramming app
+      packages:
+      - drawio
+      commands:
+      - sudo apt-get install -y drawio
+  simulated_events:
+  - type: command_failure
+    app: diagrams.net
+    package: drawio
+    rc: 100
+    stdout: ''
+    stderr: 'E: Unable to locate package drawio'
+    repair_strategy: ''
+    provider_error: ''
+  - type: repair_response
+    app: diagrams.net
+    package: com.jgraph.drawio.desktop
+    rc: 0
+    stdout: Try Flatpak
+    stderr: ''
+    repair_strategy: repo_to_flatpak
+    provider_error: ''
+  - type: command_failure
+    app: diagrams.net
+    package: com.jgraph.drawio.desktop
+    rc: 1
+    stdout: ''
+    stderr: No remote refs found
+    repair_strategy: repo_to_flatpak
+    provider_error: ''
+  - type: repair_response
+    app: diagrams.net
+    package: drawio
+    rc: 0
+    stdout: Try snap
+    stderr: ''
+    repair_strategy: flatpak_to_snap
+    provider_error: ''
+  - type: command_success
+    app: diagrams.net
+    package: drawio
+    rc: 0
+    stdout: installed
+    stderr: ''
+    repair_strategy: flatpak_to_snap
+    provider_error: ''
+  expected:
+    completed_apps:
+    - diagrams.net
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - final_status_honest
+  rationale: Repo to Flatpak to Snap attempts are distinct source strategies and should not be collapsed into an identical retry loop.
+  source_candidates:
+  - app-partial-agent-3-source-fallback
+- id: mixed-group-source-fallback-isolated
+  category: source_fallback
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+    - firefox
+    - discord
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  plan:
+    requested_apps:
+    - name: Firefox
+      package: firefox
+      source: repo
+      required: true
+    - name: Discord
+      package: discord
+      source: repo
+      required: false
+    - name: Figma
+      package: figma-linux
+      source: aur
+      required: false
+    command_groups:
+    - title: Install browser and chat apps
+      packages:
+      - firefox
+      - discord
+      - figma-linux
+      commands:
+      - sudo pacman -S --noconfirm firefox discord figma-linux
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 1
+    stdout: firefox installed
+    stderr: discord and figma-linux not found
+    repair_strategy: ''
+    provider_error: ''
+  - type: repair_response
+    app: Discord
+    package: com.discordapp.Discord
+    rc: 0
+    stdout: Use Flatpak
+    stderr: ''
+    repair_strategy: repo_to_flatpak
+    provider_error: ''
+  - type: command_success
+    app: Discord
+    package: com.discordapp.Discord
+    rc: 0
+    stdout: installed
+    stderr: ''
+    repair_strategy: repo_to_flatpak
+    provider_error: ''
+  - type: provider_error
+    app: Figma
+    package: figma-linux
+    rc: 0
+    stdout: ''
+    stderr: ''
+    repair_strategy: aur_retry
+    provider_error: '429'
+  expected:
+    completed_apps:
+    - Firefox
+    - Discord
+    manual_followup_apps:
+    - Figma
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - provider_error_preserves_progress
+    - final_status_honest
+  rationale: Mixed source fallback should preserve completed apps while isolating the provider failure to optional Figma.
+  source_candidates:
+  - app-partial-agent-3-source-fallback
+- id: stale-flatpak-id-repaired-to-repo
+  category: source_fallback
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after:
+    - gimp
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: GIMP
+      package: org.gimp.GIMP.Legacy
+      source: flatpak
+      required: true
+    command_groups:
+    - title: Install GIMP from stale Flatpak hint
+      packages:
+      - org.gimp.GIMP.Legacy
+      commands:
+      - flatpak install -y flathub org.gimp.GIMP.Legacy
+  simulated_events:
+  - type: command_failure
+    app: GIMP
+    package: org.gimp.GIMP.Legacy
+    rc: 1
+    stdout: ''
+    stderr: No remote refs found
+    repair_strategy: ''
+    provider_error: ''
+  - type: repair_response
+    app: GIMP
+    package: gimp
+    rc: 0
+    stdout: Use Fedora repo package gimp
+    stderr: ''
+    repair_strategy: flatpak_to_repo
+    provider_error: ''
+  - type: command_success
+    app: GIMP
+    package: gimp
+    rc: 0
+    stdout: installed
+    stderr: ''
+    repair_strategy: flatpak_to_repo
+    provider_error: ''
+  expected:
+    completed_apps:
+    - GIMP
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - final_status_honest
+  rationale: Fallback can move from a stale Flatpak hint back to a native repo package and still count as successful repair.
+  source_candidates:
+  - app-partial-agent-3-source-fallback
+- id: req-opt-optional-theme-failure-nonfatal
+  category: required_optional
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+    - firefox
+    - kate
+    flatpak_available: false
+    snap_available: false
+    aur_helper: yay
+  plan:
+    requested_apps:
+    - name: Firefox
+      package: firefox
+      source: repo
+      required: true
+    - name: Kate
+      package: kate
+      source: repo
+      required: true
+    - name: Sweet KDE Theme
+      package: sweet-kde-theme
+      source: aur
+      required: false
+    command_groups:
+    - title: Install apps and optional theme
+      packages:
+      - firefox
+      - kate
+      - sweet-kde-theme
+      commands:
+      - sudo pacman -S --noconfirm firefox kate sweet-kde-theme
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 1
+    stdout: firefox kate installed
+    stderr: 'error: target not found: sweet-kde-theme'
+    repair_strategy: ''
+    provider_error: ''
+  - type: verification
+    app: Firefox
+    package: firefox
+    rc: 0
+    stdout: verified
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Firefox
+    - Kate
+    manual_followup_apps:
+    - Sweet KDE Theme
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - final_status_honest
+  rationale: Optional cosmetic failure should be warning/follow-up, not a blocked setup.
+  source_candidates:
+  - app-partial-agent-4-required-optional-alt
+- id: req-opt-required-browser-unresolved-honest
+  category: required_optional
+  facts_profile:
+    family: debian
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+    - vlc
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: VLC
+      package: vlc
+      source: repo
+      required: true
+    - name: Work Browser
+      package: work-browser
+      source: repo
+      required: true
+    command_groups:
+    - title: Install required work apps
+      packages:
+      - vlc
+      - work-browser
+      commands:
+      - sudo apt-get install -y vlc work-browser
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 100
+    stdout: vlc installed
+    stderr: 'E: Unable to locate package work-browser'
+    repair_strategy: ''
+    provider_error: ''
+  - type: verification
+    app: Work Browser
+    package: work-browser
+    rc: 1
+    stdout: ''
+    stderr: not installed
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - VLC
+    manual_followup_apps:
+    - Work Browser
+    failed_apps: []
+    alternatives: []
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - final_status_honest
+  rationale: A required unresolved app cannot be hidden as success, but a missing package is not itself a safety block.
+  source_candidates:
+  - app-partial-agent-4-required-optional-alt
+- id: alt-chromium-does-not-satisfy-google-chrome
+  category: alternative_app
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after:
+    - chromium
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Google Chrome
+      package: google-chrome-stable
+      source: repo
+      required: true
+    command_groups:
+    - title: Install Chrome or browser fallback
+      packages:
+      - google-chrome-stable
+      commands:
+      - sudo dnf install -y google-chrome-stable
+  simulated_events:
+  - type: command_failure
+    app: Google Chrome
+    package: google-chrome-stable
+    rc: 1
+    stdout: ''
+    stderr: 'No match for argument: google-chrome-stable'
+    repair_strategy: ''
+    provider_error: ''
+  - type: repair_response
+    app: Google Chrome
+    package: chromium
+    rc: 0
+    stdout: Install Chromium as alternative
+    stderr: ''
+    repair_strategy: alternative_repo
+    provider_error: ''
+  - type: command_success
+    app: Chromium
+    package: chromium
+    rc: 0
+    stdout: installed
+    stderr: ''
+    repair_strategy: alternative_repo
+    provider_error: ''
+  expected:
+    completed_apps: []
+    manual_followup_apps:
+    - Google Chrome
+    failed_apps: []
+    alternatives:
+    - Chromium
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+    - failure_isolated
+    - final_status_honest
+  rationale: Installing an alternative browser must not silently mark the originally requested required app complete.
+  source_candidates:
+  - app-partial-agent-4-required-optional-alt
+- id: alt-libreoffice-not-ms-office-success
+  category: alternative_app
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+    - libreoffice
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Microsoft Office
+      package: microsoft-office
+      source: unknown
+      required: false
+    command_groups:
+    - title: Install office suite alternative
+      packages:
+      - microsoft-office
+      commands:
+      - sudo apt-get install -y microsoft-office
+  simulated_events:
+  - type: command_failure
+    app: Microsoft Office
+    package: microsoft-office
+    rc: 100
+    stdout: ''
+    stderr: 'E: Unable to locate package microsoft-office'
+    repair_strategy: ''
+    provider_error: ''
+  - type: repair_response
+    app: Microsoft Office
+    package: libreoffice
+    rc: 0
+    stdout: LibreOffice is an alternative
+    stderr: ''
+    repair_strategy: alternative_repo
+    provider_error: ''
+  - type: command_success
+    app: LibreOffice
+    package: libreoffice
+    rc: 0
+    stdout: installed
+    stderr: ''
+    repair_strategy: alternative_repo
+    provider_error: ''
+  expected:
+    completed_apps: []
+    manual_followup_apps:
+    - Microsoft Office
+    failed_apps: []
+    alternatives:
+    - LibreOffice
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - final_status_honest
+  rationale: A useful alternative for an optional request should be reported as an alternative, not as if the original app were installed.
+  source_candidates:
+  - app-partial-agent-4-required-optional-alt
+- id: req-opt-optional-flatpak-fail-required-repo-success
+  category: required_optional
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after:
+    - keepassxc
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: KeePassXC
+      package: keepassxc
+      source: repo
+      required: true
+    - name: Trello
+      package: com.trello.Trello
+      source: flatpak
+      required: false
+    command_groups:
+    - title: Install password manager and optional board app
+      packages:
+      - keepassxc
+      - com.trello.Trello
+      commands:
+      - sudo dnf install -y keepassxc
+      - flatpak install -y flathub com.trello.Trello
+  simulated_events:
+  - type: command_success
+    app: KeePassXC
+    package: keepassxc
+    rc: 0
+    stdout: installed
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  - type: command_failure
+    app: Trello
+    package: com.trello.Trello
+    rc: 1
+    stdout: ''
+    stderr: No remote refs found
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - KeePassXC
+    manual_followup_apps:
+    - Trello
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - final_status_honest
+  rationale: Optional Flatpak failure should not derail a required repo app that installed cleanly.
+  source_candidates:
+  - app-partial-agent-4-required-optional-alt
+- id: req-opt-required-dev-tool-fail-optional-wallpaper-success
+  category: required_optional
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+    - variety
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Required SDK
+      package: corp-sdk
+      source: repo
+      required: true
+    - name: Variety Wallpaper
+      package: variety
+      source: repo
+      required: false
+    command_groups:
+    - title: Install SDK and wallpaper app
+      packages:
+      - corp-sdk
+      - variety
+      commands:
+      - sudo apt-get install -y corp-sdk variety
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 100
+    stdout: variety installed
+    stderr: 'E: Unable to locate package corp-sdk'
+    repair_strategy: ''
+    provider_error: ''
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: variety; MISSING: corp-sdk'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Variety Wallpaper
+    manual_followup_apps:
+    - Required SDK
+    failed_apps: []
+    alternatives: []
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - final_status_honest
+  rationale: An optional app can succeed even when a required package remains unresolved; final status must stay honest.
+  source_candidates:
+  - app-partial-agent-4-required-optional-alt
+- id: alt-vscodium-warning-not-vscode-success
+  category: alternative_app
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+    - vscodium
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  plan:
+    requested_apps:
+    - name: Visual Studio Code
+      package: visual-studio-code-bin
+      source: aur
+      required: false
+    command_groups:
+    - title: Install VS Code or alternative editor
+      packages:
+      - visual-studio-code-bin
+      commands:
+      - yay -S --noconfirm visual-studio-code-bin
+  simulated_events:
+  - type: command_failure
+    app: Visual Studio Code
+    package: visual-studio-code-bin
+    rc: 1
+    stdout: ''
+    stderr: AUR helper rate limited
+    repair_strategy: ''
+    provider_error: ''
+  - type: repair_response
+    app: Visual Studio Code
+    package: vscodium
+    rc: 0
+    stdout: Use VSCodium as alternative
+    stderr: ''
+    repair_strategy: alternative_repo
+    provider_error: ''
+  - type: command_success
+    app: VSCodium
+    package: vscodium
+    rc: 0
+    stdout: installed
+    stderr: ''
+    repair_strategy: alternative_repo
+    provider_error: ''
+  expected:
+    completed_apps: []
+    manual_followup_apps:
+    - Visual Studio Code
+    failed_apps: []
+    alternatives:
+    - VSCodium
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - final_status_honest
+  rationale: VSCodium may be a useful optional alternative, but it should not be recorded as the requested VS Code install.
+  source_candidates:
+  - app-partial-agent-4-required-optional-alt
+- id: req-opt-bulk-two-required-one-optional-missing
+  category: required_optional
+  facts_profile:
+    family: debian
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+    - htop
+    - neovim
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: htop
+      package: htop
+      source: repo
+      required: true
+    - name: Neovim
+      package: neovim
+      source: repo
+      required: true
+    - name: Optional Theme Tool
+      package: optional-theme-tool
+      source: repo
+      required: false
+    command_groups:
+    - title: Install terminal tools and optional theme helper
+      packages:
+      - htop
+      - neovim
+      - optional-theme-tool
+      commands:
+      - sudo apt-get install -y htop neovim optional-theme-tool
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 100
+    stdout: htop neovim installed
+    stderr: 'E: Unable to locate package optional-theme-tool'
+    repair_strategy: ''
+    provider_error: ''
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: htop neovim; MISSING: optional-theme-tool'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - htop
+    - Neovim
+    manual_followup_apps:
+    - Optional Theme Tool
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - final_status_honest
+  rationale: Optional helper failure in a bulk command must not hide successful required command-line tools.
+  source_candidates:
+  - app-partial-agent-4-required-optional-alt
+- id: facts-final-vlc-refresh-verifies-success
+  category: facts_refresh
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+    - vlc
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: VLC
+      package: vlc
+      source: repo
+      required: true
+    command_groups:
+    - title: Install media player
+      packages:
+      - vlc
+      commands:
+      - sudo apt-get install -y vlc
+  simulated_events:
+  - type: command_success
+    app: VLC
+    package: vlc
+    rc: 0
+    stdout: installed
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  - type: facts_refresh
+    app: VLC
+    package: vlc
+    rc: 0
+    stdout: 'INSTALLED: vlc'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  - type: verification
+    app: VLC
+    package: vlc
+    rc: 0
+    stdout: verified
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - VLC
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - final_status_honest
+  rationale: A fresh facts refresh proving the requested app exists should allow final audit to report success.
+  source_candidates:
+  - app-partial-agent-5-facts-final-audit
+- id: facts-final-partial-refresh-manual-followup
+  category: final_audit
+  facts_profile:
+    family: debian
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+    - vlc
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: VLC
+      package: vlc
+      source: repo
+      required: true
+    - name: Required Notes
+      package: required-notes
+      source: repo
+      required: true
+    command_groups:
+    - title: Install media and required notes
+      packages:
+      - vlc
+      - required-notes
+      commands:
+      - sudo apt-get install -y vlc required-notes
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 100
+    stdout: vlc installed
+    stderr: 'E: Unable to locate package required-notes'
+    repair_strategy: ''
+    provider_error: ''
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: vlc; MISSING: required-notes'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - VLC
+    manual_followup_apps:
+    - Required Notes
+    failed_apps: []
+    alternatives: []
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - final_status_honest
+  rationale: Final audit must not claim success while a required app remains unresolved after facts refresh.
+  source_candidates:
+  - app-partial-agent-5-facts-final-audit
+- id: facts-final-provider-429-preserves-installed
+  category: facts_refresh
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+    - firefox
+    - keepassxc
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  plan:
+    requested_apps:
+    - name: Firefox
+      package: firefox
+      source: repo
+      required: true
+    - name: KeePassXC
+      package: keepassxc
+      source: repo
+      required: true
+    - name: Teams
+      package: teams-for-linux
+      source: aur
+      required: false
+    command_groups:
+    - title: Install base and meeting apps
+      packages:
+      - firefox
+      - keepassxc
+      - teams-for-linux
+      commands:
+      - sudo pacman -S --noconfirm firefox keepassxc teams-for-linux
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 1
+    stdout: firefox keepassxc installed
+    stderr: teams-for-linux not found
+    repair_strategy: ''
+    provider_error: ''
+  - type: provider_error
+    app: Teams
+    package: teams-for-linux
+    rc: 0
+    stdout: ''
+    stderr: ''
+    repair_strategy: aur_repair
+    provider_error: '429'
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: firefox keepassxc; MISSING: teams-for-linux'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Firefox
+    - KeePassXC
+    manual_followup_apps:
+    - Teams
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - provider_error_preserves_progress
+    - final_status_honest
+  rationale: Provider failure plus later facts refresh should preserve installed apps and surface the optional app as follow-up.
+  source_candidates:
+  - app-partial-agent-5-facts-final-audit
+- id: facts-final-flatpak-refresh-verifies-after-repo-miss
+  category: facts_refresh
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after:
+    - com.spotify.Client
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Spotify
+      package: spotify-client
+      source: repo
+      required: false
+    command_groups:
+    - title: Install Spotify with fallback
+      packages:
+      - spotify-client
+      commands:
+      - sudo dnf install -y spotify-client
+  simulated_events:
+  - type: command_failure
+    app: Spotify
+    package: spotify-client
+    rc: 1
+    stdout: ''
+    stderr: No match for argument
+    repair_strategy: ''
+    provider_error: ''
+  - type: repair_response
+    app: Spotify
+    package: com.spotify.Client
+    rc: 0
+    stdout: Use Flatpak
+    stderr: ''
+    repair_strategy: repo_to_flatpak
+    provider_error: ''
+  - type: command_success
+    app: Spotify
+    package: com.spotify.Client
+    rc: 0
+    stdout: installed
+    stderr: ''
+    repair_strategy: repo_to_flatpak
+    provider_error: ''
+  - type: facts_refresh
+    app: Spotify
+    package: com.spotify.Client
+    rc: 0
+    stdout: 'FLATPAK: com.spotify.Client'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Spotify
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - final_status_honest
+  rationale: Final audit should accept verified Flatpak fallback when the original repo package was unavailable.
+  source_candidates:
+  - app-partial-agent-5-facts-final-audit
+- id: facts-final-manual-followup-survives-unrelated-refresh
+  category: final_audit
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before:
+    - firefox
+    installed_apps_after:
+    - firefox
+    - gimp
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Firefox
+      package: firefox
+      source: repo
+      required: true
+    - name: GIMP
+      package: gimp
+      source: repo
+      required: true
+    - name: Required CRM
+      package: required-crm
+      source: repo
+      required: true
+    command_groups:
+    - title: Install normal apps and CRM
+      packages:
+      - firefox
+      - gimp
+      - required-crm
+      commands:
+      - sudo apt-get install -y firefox gimp required-crm
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 100
+    stdout: gimp installed
+    stderr: 'E: Unable to locate package required-crm'
+    repair_strategy: ''
+    provider_error: ''
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: firefox gimp; MISSING: required-crm'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: firefox gimp curl'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Firefox
+    - GIMP
+    manual_followup_apps:
+    - Required CRM
+    failed_apps: []
+    alternatives: []
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - final_status_honest
+  rationale: An unrelated later facts refresh must not clear unresolved required-app follow-up unless that app is actually verified.
+  source_candidates:
+  - app-partial-agent-5-facts-final-audit
+- id: facts-final-alternative-does-not-mark-original
+  category: final_audit
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after:
+    - chromium
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Google Chrome
+      package: google-chrome-stable
+      source: repo
+      required: true
+    command_groups:
+    - title: Install Chrome or browser fallback
+      packages:
+      - google-chrome-stable
+      commands:
+      - sudo dnf install -y google-chrome-stable
+  simulated_events:
+  - type: command_failure
+    app: Google Chrome
+    package: google-chrome-stable
+    rc: 1
+    stdout: ''
+    stderr: No match
+    repair_strategy: ''
+    provider_error: ''
+  - type: repair_response
+    app: Google Chrome
+    package: chromium
+    rc: 0
+    stdout: Install Chromium alternative
+    stderr: ''
+    repair_strategy: alternative_repo
+    provider_error: ''
+  - type: command_success
+    app: Chromium
+    package: chromium
+    rc: 0
+    stdout: installed
+    stderr: ''
+    repair_strategy: alternative_repo
+    provider_error: ''
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: chromium; MISSING: google-chrome-stable'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps: []
+    manual_followup_apps:
+    - Google Chrome
+    failed_apps: []
+    alternatives:
+    - Chromium
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+    - failure_isolated
+    - final_status_honest
+  rationale: Final audit must not mark the original required app installed just because an alternative exists.
+  source_candidates:
+  - app-partial-agent-5-facts-final-audit
+- id: facts-final-optional-theme-missing-warning
+  category: final_audit
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+    - dolphin
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Dolphin
+      package: dolphin
+      source: repo
+      required: true
+    - name: Accent Theme
+      package: accent-theme-fake
+      source: repo
+      required: false
+    command_groups:
+    - title: Install file manager and optional theme
+      packages:
+      - dolphin
+      - accent-theme-fake
+      commands:
+      - sudo pacman -S --noconfirm dolphin accent-theme-fake
+  simulated_events:
+  - type: command_failure
+    app: ''
+    package: ''
+    rc: 1
+    stdout: dolphin installed
+    stderr: accent-theme-fake not found
+    repair_strategy: ''
+    provider_error: ''
+  - type: facts_refresh
+    app: ''
+    package: ''
+    rc: 0
+    stdout: 'INSTALLED: dolphin; MISSING: accent-theme-fake'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Dolphin
+    manual_followup_apps:
+    - Accent Theme
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - failure_isolated
+    - final_status_honest
+  rationale: Optional theme absence after final facts refresh should remain a warning, not success and not a blocked run.
+  source_candidates:
+  - app-partial-agent-5-facts-final-audit
+- id: facts-final-stale-missing-app-cleared-by-refresh
+  category: facts_refresh
+  facts_profile:
+    family: debian
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+    - nextcloud-desktop
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+    - name: Nextcloud Desktop
+      package: nextcloud-desktop
+      source: repo
+      required: true
+    command_groups:
+    - title: Install sync client
+      packages:
+      - nextcloud-desktop
+      commands:
+      - sudo apt-get install -y nextcloud-desktop
+  simulated_events:
+  - type: command_failure
+    app: Nextcloud Desktop
+    package: nextcloud-desktop
+    rc: 100
+    stdout: ''
+    stderr: temporary dpkg query failed
+    repair_strategy: ''
+    provider_error: ''
+  - type: facts_refresh
+    app: Nextcloud Desktop
+    package: nextcloud-desktop
+    rc: 0
+    stdout: 'INSTALLED: nextcloud-desktop'
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  - type: verification
+    app: Nextcloud Desktop
+    package: nextcloud-desktop
+    rc: 0
+    stdout: verified
+    stderr: ''
+    repair_strategy: ''
+    provider_error: ''
+  expected:
+    completed_apps:
+    - Nextcloud Desktop
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+    - successful_apps_preserved
+    - final_status_honest
+  rationale: Fresh facts that verify the app should clear stale missing evidence and prevent unnecessary manual follow-up.
+  source_candidates:
+  - app-partial-agent-5-facts-final-audit
+rejected_ambiguous_cases: []
+coverage_gaps:
+- No runtime oracle exists yet for consuming this fixture.
+- Uninstall/remove partial-success behavior is not represented.
+- Service enablement failures and driver-package postboot verification are only indirectly represented.
+- Alternative-app identity mapping will need explicit harness assertions before it is fully covered.
