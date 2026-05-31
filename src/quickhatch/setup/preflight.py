@@ -1293,7 +1293,7 @@ def preflight_setup_command(
             )
         if (
             not facts.is_live
-            and has_root_privilege
+            and (has_root_privilege or _explicit_configure_existing_profile(facts))
             and _installed_system_disk_or_bootstrap_mutation(
                 tool,
                 tokens,
