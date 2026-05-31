@@ -38,6 +38,12 @@ def _load_cases() -> list[dict[str, Any]]:
 CORPUS_CASES = _load_cases()
 ACTIONABLE_CASES = [case for case in CORPUS_CASES if case["expected"] != "manual_review"]
 SAFE_CASES = [case for case in CORPUS_CASES if case["expected"] in {"allow", "allow_with_advisory"}]
+DANGEROUS_CAPABILITY_CASES = [
+    case
+    for case in CORPUS_CASES
+    if case["expected"] in {"allow_only_with_capability", "block_without_capability"}
+    and case.get("expected_capability_kind")
+]
 MANUAL_REVIEW_CASES = [case for case in CORPUS_CASES if case["expected"] == "manual_review"]
 
 
@@ -99,6 +105,52 @@ def _store_with_capability(case: dict[str, Any], *, target: str | None = None) -
     return store
 
 
+def _requirements_for_case(case: dict[str, Any]) -> list[dict[str, str]]:
+    requirements = dangerous_command_requirements(case["command"])
+    assert requirements, case["id"]
+    return requirements
+
+
+def _store_with_requirements(
+    case: dict[str, Any],
+    requirements: list[dict[str, str]],
+    *,
+    replace_index: int | None = None,
+    replacement_kind: str | None = None,
+    replacement_target: str | None = None,
+    ttl_seconds: float = 7200,
+    one_time_use: bool = False,
+    disk_inventory: str = "",
+) -> tuple[CapabilityStore, list[str]]:
+    store = CapabilityStore(run_id=RUN_ID, install_profile=_install_profile_for_case(case))
+    grant_ids: list[str] = []
+    for index, requirement in enumerate(requirements):
+        kind = str(requirement["kind"])
+        target = str(requirement.get("target") or "")
+        if index == replace_index:
+            kind = replacement_kind or kind
+            target = replacement_target if replacement_target is not None else target
+        grant = store.grant(
+            kind=kind,
+            target=target,
+            confirmation_text=f"CONFIRM {kind} {target}".strip(),
+            confirmation_id=f"preview-{case['id']}-{index}",
+            reason=f"corpus capability matching grant for {case['id']}",
+            source="harness_generated",
+            one_time_use=one_time_use,
+            ttl_seconds=ttl_seconds,
+            disk_inventory=disk_inventory,
+            preview_id=f"preview-{case['id']}-{index}",
+        )
+        grant_ids.append(grant.id)
+    return store, grant_ids
+
+
+def _wrong_capability_kind(requirements: list[dict[str, str]], current: str) -> str:
+    used = {str(requirement["kind"]) for requirement in requirements}
+    return next(kind for kind in sorted(CAPABILITY_KINDS) if kind != current and kind not in used)
+
+
 def _mismatched_target(target: str) -> str:
     if target.startswith("/dev/"):
         return "/dev/quickhatch-mismatch"
@@ -110,12 +162,16 @@ def _mismatched_target(target: str) -> str:
 
 
 def _hard_block(
-    case: dict[str, Any], *, capability_store: CapabilityStore | None = None
+    case: dict[str, Any],
+    *,
+    capability_store: CapabilityStore | None = None,
+    disk_inventory: str = "",
 ) -> str | None:
     return preflight_setup_command(
         case["command"],
         _facts_for_case(case),
         capability_store=capability_store,
+        disk_inventory=disk_inventory,
     )
 
 
@@ -138,16 +194,11 @@ def _evaluate_case(case: dict[str, Any]) -> CorpusCaseResult:
                 "false_negative",
                 "allowed without required capability",
             )
-        if not case["expected_capability_kind"] or not case["expected_target"]:
+        if not case["expected_capability_kind"]:
             return CorpusCaseResult(case["id"], expected, "pass")
-        if case["expected_capability_kind"] not in CAPABILITY_KINDS:
-            return CorpusCaseResult(
-                case["id"],
-                expected,
-                "capability_mismatch",
-                f"unsupported capability kind: {case['expected_capability_kind']}",
-            )
-        matching_error = _hard_block(case, capability_store=_store_with_capability(case))
+        requirements = _requirements_for_case(case)
+        matching_store, _ = _store_with_requirements(case, requirements)
+        matching_error = _hard_block(case, capability_store=matching_store)
         if matching_error:
             return CorpusCaseResult(
                 case["id"],
@@ -155,8 +206,11 @@ def _evaluate_case(case: dict[str, Any]) -> CorpusCaseResult:
                 "capability_mismatch",
                 f"matching capability did not pass: {matching_error}",
             )
-        mismatch_store = _store_with_capability(
-            case, target=_mismatched_target(case["expected_target"])
+        mismatch_store, _ = _store_with_requirements(
+            case,
+            requirements,
+            replace_index=0,
+            replacement_target=_mismatched_target(str(requirements[0].get("target") or "")),
         )
         mismatch_error = _hard_block(case, capability_store=mismatch_store)
         if not mismatch_error:
@@ -298,6 +352,90 @@ def test_safe_preflight_corpus_cases_do_not_hard_block() -> None:
     failures = [result for result in results if result.outcome != "pass"]
 
     assert not failures, _format_safe_case_results(results)
+
+
+@pytest.mark.parametrize(
+    "case",
+    [pytest.param(case, id=case["id"]) for case in DANGEROUS_CAPABILITY_CASES],
+)
+def test_dangerous_corpus_capability_matching_is_strict(case: dict[str, Any]) -> None:
+    requirements = _requirements_for_case(case)
+
+    assert _hard_block(case)
+
+    exact_store, _ = _store_with_requirements(case, requirements)
+    assert _hard_block(case, capability_store=exact_store) is None
+
+    for index, requirement in enumerate(requirements):
+        kind = str(requirement["kind"])
+        target = str(requirement.get("target") or "")
+
+        wrong_kind_store, _ = _store_with_requirements(
+            case,
+            requirements,
+            replace_index=index,
+            replacement_kind=_wrong_capability_kind(requirements, kind),
+        )
+        assert _hard_block(case, capability_store=wrong_kind_store)
+
+        wrong_target_store, _ = _store_with_requirements(
+            case,
+            requirements,
+            replace_index=index,
+            replacement_target=_mismatched_target(target),
+        )
+        assert _hard_block(case, capability_store=wrong_target_store)
+
+        if target:
+            blank_target_store, _ = _store_with_requirements(
+                case,
+                requirements,
+                replace_index=index,
+                replacement_target="",
+            )
+            assert _hard_block(case, capability_store=blank_target_store)
+
+    payload_store, _ = _store_with_requirements(case, requirements)
+    wrong_run_store = CapabilityStore.from_payload(
+        payload_store.to_payload(),
+        run_id=f"{RUN_ID}-wrong",
+        install_profile=_install_profile_for_case(case),
+    )
+    assert _hard_block(case, capability_store=wrong_run_store)
+
+    wrong_profile = (
+        "configure_existing"
+        if _install_profile_for_case(case) != "configure_existing"
+        else "full_disk_wipe"
+    )
+    wrong_profile_store = CapabilityStore.from_payload(
+        payload_store.to_payload(),
+        run_id=RUN_ID,
+        install_profile=wrong_profile,
+    )
+    assert _hard_block(case, capability_store=wrong_profile_store)
+
+    expired_store, _ = _store_with_requirements(case, requirements, ttl_seconds=-1)
+    assert _hard_block(case, capability_store=expired_store)
+
+    consumed_store, grant_ids = _store_with_requirements(
+        case,
+        requirements,
+        one_time_use=True,
+    )
+    for grant_id in grant_ids:
+        consumed_store.consume(grant_id)
+    assert _hard_block(case, capability_store=consumed_store)
+
+    inventory_a = "NAME SIZE TYPE FSTYPE UUID MOUNTPOINTS\nsda 20G disk\n"
+    inventory_b = "NAME SIZE TYPE FSTYPE UUID MOUNTPOINTS\nnvme0n1 20G disk\n"
+    inventory_store, _ = _store_with_requirements(
+        case,
+        requirements,
+        disk_inventory=inventory_a,
+    )
+    assert _hard_block(case, capability_store=inventory_store, disk_inventory=inventory_a) is None
+    assert _hard_block(case, capability_store=inventory_store, disk_inventory=inventory_b)
 
 
 @pytest.mark.parametrize(

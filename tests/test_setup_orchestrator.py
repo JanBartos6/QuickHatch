@@ -9,6 +9,7 @@ from pathlib import Path
 from quickhatch.bridge.server import BridgeState
 from quickhatch.config import AIConfig, DisplayInfo, UserProfile
 from quickhatch.setup.audit import audit_stage, final_audit
+from quickhatch.setup.capabilities import CapabilityStore
 from quickhatch.setup.orchestrator import (
     GroupFailure,
     SetupOrchestrator,
@@ -5960,6 +5961,151 @@ def test_live_family_spine_uses_typed_operation_target_disk(monkeypatch):
     assert orchestrator.ctx.plan.command_groups[0].commands == [
         'QUICKHATCH_TARGET_DISK=/dev/sda; parted -s "$QUICKHATCH_TARGET_DISK" mklabel gpt'
     ]
+
+
+def test_live_family_spine_capabilities_are_bound_to_disk_run_profile_and_inventory(
+    monkeypatch,
+):
+    profile = UserProfile()
+    profile.install_profile = "full_disk_wipe"
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="root",
+        login_user="root",
+        is_root=True,
+        is_live=True,
+    )
+    inventory = (
+        "NAME SIZE MODEL SERIAL TYPE FSTYPE FSVER LABEL UUID MOUNTPOINTS\n"
+        "sda 25G VBOX-HARDDISK VB-sda disk\n"
+        "sda1 512M part\n"
+        "sda2 24G part\n"
+        "nvme0n1 25G OtherDisk VB-nvme disk\n"
+    )
+    orchestrator = SetupOrchestrator(
+        _dummy_setup_runtime(
+            profile,
+            bridge,
+            facts,
+            ssh_exec=lambda _command, _timeout: (0, inventory, ""),
+        )
+    )
+    orchestrator.ctx.facts = facts
+    monkeypatch.setattr(
+        orchestrator,
+        "_ask_blocking_question",
+        lambda *_args, **_kwargs: "ERASE /dev/sda",
+    )
+
+    orchestrator._grant_family_spine_capabilities(
+        "/dev/sda",
+        [
+            "parted -s /dev/sda mklabel gpt",
+            "mkfs.ext4 /dev/sda2",
+            "mount /dev/sda2 /mnt",
+            'printf "UUID=x / ext4 defaults 0 1\\n" | tee /mnt/etc/fstab',
+            "arch-chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot",
+            "reboot",
+        ],
+    )
+
+    store = orchestrator.ctx.capability_store
+    assert store is not None
+    disk_inventory = orchestrator.ctx.last_disk_inventory
+    assert store.allows(kind="disk_partition", target="/dev/sda", disk_inventory=disk_inventory)
+    assert store.allows(
+        kind="format_filesystem",
+        target="/dev/sda2",
+        disk_inventory=disk_inventory,
+    )
+    assert store.allows(
+        kind="mount_target",
+        target="/dev/sda2 -> /mnt",
+        disk_inventory=disk_inventory,
+    )
+    assert store.allows(
+        kind="write_fstab",
+        target="/target-root/etc/fstab",
+        disk_inventory=disk_inventory,
+    )
+    assert store.allows(
+        kind="bootloader_install",
+        target="/target-root",
+        disk_inventory=disk_inventory,
+    )
+    assert store.allows(kind="controlled_reboot", target="", disk_inventory=disk_inventory)
+
+    assert (
+        store.allows(
+            kind="disk_partition",
+            target="/dev/nvme0n1",
+            disk_inventory=disk_inventory,
+        )
+        is None
+    )
+    assert (
+        store.allows(
+            kind="format_filesystem",
+            target="/dev/nvme0n1p2",
+            disk_inventory=disk_inventory,
+        )
+        is None
+    )
+    assert (
+        store.allows(
+            kind="mount_target",
+            target="/dev/nvme0n1p2 -> /mnt",
+            disk_inventory=disk_inventory,
+        )
+        is None
+    )
+    assert (
+        store.allows(
+            kind="disk_partition",
+            target="/dev/sda",
+            disk_inventory=inventory.replace("VB-sda", "VB-sda-changed"),
+        )
+        is None
+    )
+
+    payload = store.to_payload()
+    targetful_kinds = {
+        "disk_partition",
+        "format_filesystem",
+        "mount_target",
+        "write_fstab",
+        "bootloader_install",
+        "bootloader_config",
+    }
+    assert all(grant["target"] for grant in payload["grants"] if grant["kind"] in targetful_kinds)
+    wrong_run = CapabilityStore.from_payload(
+        payload,
+        run_id=f"{orchestrator.ctx.run_id}-wrong",
+        install_profile=profile.install_profile,
+    )
+    assert (
+        wrong_run.allows(
+            kind="disk_partition",
+            target="/dev/sda",
+            disk_inventory=disk_inventory,
+        )
+        is None
+    )
+    wrong_profile = CapabilityStore.from_payload(
+        payload,
+        run_id=orchestrator.ctx.run_id,
+        install_profile="configure_existing",
+    )
+    assert (
+        wrong_profile.allows(
+            kind="disk_partition",
+            target="/dev/sda",
+            disk_inventory=disk_inventory,
+        )
+        is None
+    )
 
 
 def test_arch_aur_helper_bootstrap_is_injected_before_yay_when_missing():

@@ -41,6 +41,10 @@ _DEVICE_RE = (
 _TARGET_ROOT_RE = (
     r"(?:/target-root|/mnt/target|/mnt/sysroot|/mnt/sysimage|/target|/mnt)(?:/\S*|\b|\*)"
 )
+_INSTALL_MOUNTPOINT_RE = (
+    r"(?:/target-root|/mnt/target|/mnt/sysroot|/mnt/sysimage|/mnt/boot/efi|"
+    r"/mnt/boot|/mnt/efi|/target|/mnt)(?:\b|$)"
+)
 _TARGET_ROOT_ALIASES = {
     "/target-root": "/target-root",
     "/mnt": "/target-root",
@@ -102,6 +106,12 @@ def canonicalize_target(target: str, *, inventory: str = "") -> str:
     text = str(target or "").strip().strip("\"'")
     if not text:
         return ""
+    if "->" in text:
+        source, destination = (part.strip() for part in text.split("->", 1))
+        return (
+            f"{canonicalize_target(source, inventory=inventory)} -> "
+            f"{canonicalize_target(destination, inventory=inventory)}"
+        )
     text = re.sub(r"/+", "/", text)
     if text in _TARGET_ROOT_ALIASES:
         return _TARGET_ROOT_ALIASES[text]
@@ -214,9 +224,7 @@ class CapabilityStore:
                 continue
             if grant.expires_at and grant.expires_at < now:
                 continue
-            if grant.target and not canonical:
-                continue
-            if grant.target and canonical and grant.target != canonical:
+            if grant.target != canonical:
                 continue
             if grant.disk_inventory_hash:
                 if (
@@ -275,6 +283,17 @@ def _shell_payloads(command: str) -> list[str]:
         command,
         re.I | re.S,
     ):
+        segment_prefix = re.split(r"(?:[;&|]|\n)+", command[: match.start()])[-1].strip()
+        try:
+            prefix_tokens = shlex.split(segment_prefix, posix=True)
+        except ValueError:
+            prefix_tokens = segment_prefix.split()
+        stripped_prefix = _strip_command_prefix(prefix_tokens)
+        if stripped_prefix and stripped_prefix[0].rsplit("/", 1)[-1].lower() in {
+            "arch-chroot",
+            "chroot",
+        }:
+            continue
         payloads.append(match.group("payload"))
     return payloads
 
@@ -356,12 +375,49 @@ def _expand_simple_shell_variables(text: str) -> str:
     return _expand_var_refs(source, values)
 
 
+def _partition_paths_for_disk(disk: str) -> tuple[str, str]:
+    suffix = "p" if str(disk or "").endswith(tuple("0123456789")) else ""
+    return f"{disk}{suffix}1", f"{disk}{suffix}2"
+
+
+def _expand_quickhatch_target_disk_variables(text: str) -> str:
+    """Resolve the deterministic install-spine partition variables."""
+
+    source = str(text or "")
+    match = re.search(
+        r"\bQUICKHATCH_TARGET_DISK=(?P<value>\"[^\"]*\"|'[^']*'|[^\s;&|]+)",
+        source,
+    )
+    if not match:
+        return source
+    disk = _strip_assignment_quotes(match.group("value"))
+    if not re.fullmatch(_DEVICE_RE, disk, re.I):
+        return source
+    esp, root = _partition_paths_for_disk(disk)
+    values = {
+        "QUICKHATCH_TARGET_DISK": disk,
+        "DISK": disk,
+        "ESP": esp,
+        "ROOT": root,
+        "ESP_PARTITION": esp,
+        "ROOT_PARTITION": root,
+    }
+    expanded = source
+    for name, value in values.items():
+        expanded = re.sub(rf"\$\{{{re.escape(name)}:[^}}]*\}}", value, expanded)
+        expanded = re.sub(rf"\$\{{{re.escape(name)}\}}", value, expanded)
+        expanded = re.sub(rf"\${re.escape(name)}\b", value, expanded)
+    return expanded
+
+
 def _expanded_shell_scans(command: str) -> list[str]:
     scans: list[str] = []
     seen: set[str] = set()
 
     def add_scan(item: str, *, include_payloads: bool = True) -> None:
-        expanded = _expand_static_command_substitutions(_expand_simple_shell_variables(item))
+        expanded = _expand_static_command_substitutions(
+            _expand_simple_shell_variables(_expand_quickhatch_target_disk_variables(item))
+        )
         if expanded and expanded not in seen:
             scans.append(expanded)
             seen.add(expanded)
@@ -655,6 +711,21 @@ def _chroot_context(tokens: list[str]) -> tuple[str, list[str]]:
     return root, tokens[2:]
 
 
+def _command_token_contexts(tokens: list[str]) -> list[tuple[str, list[str]]]:
+    root, command_tokens = _chroot_context(tokens)
+    contexts = [(root, command_tokens)]
+    if not command_tokens:
+        return contexts
+    tool = command_tokens[0].rsplit("/", 1)[-1].lower()
+    if tool in {"bash", "sh", "zsh", "fish"}:
+        payload = _shell_c_payload(command_tokens)
+        if payload:
+            contexts.extend(
+                (root, payload_tokens) for payload_tokens in _stripped_segment_tokens(payload)
+            )
+    return contexts
+
+
 def _join_chroot_path(root: str, path: str) -> str:
     if not root:
         return path
@@ -862,33 +933,44 @@ def _readonly_mount(tokens: list[str]) -> bool:
     return False
 
 
+def _mount_capability_target(source: str, destination: str) -> str:
+    source = _strip_path_quotes(source)
+    destination = _strip_path_quotes(destination)
+    if source:
+        return f"{source} -> {destination}"
+    return destination
+
+
 def _bootloader_install_target(item: str) -> str:
     for tokens in _stripped_segment_tokens(item):
-        root, inner = _chroot_context(tokens)
-        if not inner:
-            continue
-        tool = inner[0].rsplit("/", 1)[-1].lower()
-        args = inner[1:]
-        if tool in {"grub-install", "grub2-install"}:
-            return root or "/boot"
-        if tool == "bootctl" and "install" in _non_option_args(args):
-            return root or _option_value(args, "--esp-path") or "/boot"
+        for root, inner in _command_token_contexts(tokens):
+            if not inner:
+                continue
+            tool = inner[0].rsplit("/", 1)[-1].lower()
+            args = inner[1:]
+            if tool in {"grub-install", "grub2-install"}:
+                device = next(
+                    (arg for arg in _non_option_args(args) if arg.startswith("/dev/")), ""
+                )
+                return root or device or "/boot"
+            if tool == "bootctl" and "install" in _non_option_args(args):
+                return root or _option_value(args, "--esp-path") or "/boot"
     return ""
 
 
 def _bootloader_config_target(item: str) -> str:
     for tokens in _stripped_segment_tokens(item):
-        root, inner = _chroot_context(tokens)
-        if not inner:
-            continue
-        tool = inner[0].rsplit("/", 1)[-1].lower()
-        args = inner[1:]
-        if tool in {"grub-mkconfig", "grub2-mkconfig"}:
-            return _join_chroot_path(
-                root, _option_value(args, "-o", "--output") or "/boot/grub/grub.cfg"
-            )
-        if tool == "update-grub":
-            return _join_chroot_path(root, "/boot/grub/grub.cfg")
+        for root, inner in _command_token_contexts(tokens):
+            if not inner:
+                continue
+            tool = inner[0].rsplit("/", 1)[-1].lower()
+            args = inner[1:]
+            if tool in {"grub-mkconfig", "grub2-mkconfig"}:
+                return _join_chroot_path(
+                    root, _option_value(args, "-o", "--output") or "/boot/grub/grub.cfg"
+                )
+            if tool == "update-grub":
+                return _join_chroot_path(root, "/boot/grub/grub.cfg")
     return ""
 
 
@@ -1060,50 +1142,50 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
         lowered = item.lower()
         before = len(requirements)
         for tokens in _stripped_segment_tokens(item):
-            root, command_tokens = _chroot_context(tokens)
-            command_text = " ".join(command_tokens)
-            partition_editor = _partition_editor_requirement(command_tokens, command_text)
-            if partition_editor:
-                requirements.append(partition_editor)
-            repair_target = _filesystem_repair_target(command_tokens, command_text)
-            if repair_target:
-                requirements.append(
-                    {
-                        "kind": "filesystem_repair",
-                        "target": repair_target,
-                        "reason": "filesystem repair command",
-                    }
-                )
-            resize_target = _filesystem_resize_target(command_tokens, command_text)
-            if resize_target:
-                requirements.append(
-                    {
-                        "kind": "filesystem_resize",
-                        "target": resize_target,
-                        "reason": "filesystem resize command",
-                    }
-                )
-            topology_requirement = _storage_topology_requirement(command_tokens, command_text)
-            if topology_requirement:
-                requirements.append(topology_requirement)
-            initramfs_target = _initramfs_rebuild_target(command_tokens, root)
-            if initramfs_target:
-                requirements.append(
-                    {
-                        "kind": "initramfs_rebuild",
-                        "target": initramfs_target,
-                        "reason": "initramfs rebuild command",
-                    }
-                )
-            boot_artifact_target = _boot_artifact_update_target(command_tokens, root)
-            if boot_artifact_target:
-                requirements.append(
-                    {
-                        "kind": "boot_artifact_update",
-                        "target": boot_artifact_target,
-                        "reason": "kernel boot artifact update",
-                    }
-                )
+            for root, command_tokens in _command_token_contexts(tokens):
+                command_text = " ".join(command_tokens)
+                partition_editor = _partition_editor_requirement(command_tokens, command_text)
+                if partition_editor:
+                    requirements.append(partition_editor)
+                repair_target = _filesystem_repair_target(command_tokens, command_text)
+                if repair_target:
+                    requirements.append(
+                        {
+                            "kind": "filesystem_repair",
+                            "target": repair_target,
+                            "reason": "filesystem repair command",
+                        }
+                    )
+                resize_target = _filesystem_resize_target(command_tokens, command_text)
+                if resize_target:
+                    requirements.append(
+                        {
+                            "kind": "filesystem_resize",
+                            "target": resize_target,
+                            "reason": "filesystem resize command",
+                        }
+                    )
+                topology_requirement = _storage_topology_requirement(command_tokens, command_text)
+                if topology_requirement:
+                    requirements.append(topology_requirement)
+                initramfs_target = _initramfs_rebuild_target(command_tokens, root)
+                if initramfs_target:
+                    requirements.append(
+                        {
+                            "kind": "initramfs_rebuild",
+                            "target": initramfs_target,
+                            "reason": "initramfs rebuild command",
+                        }
+                    )
+                boot_artifact_target = _boot_artifact_update_target(command_tokens, root)
+                if boot_artifact_target:
+                    requirements.append(
+                        {
+                            "kind": "boot_artifact_update",
+                            "target": boot_artifact_target,
+                            "reason": "kernel boot artifact update",
+                        }
+                    )
         for match in re.finditer(
             r"\bmkfs(?:\.[\w+-]+)?\b(?:[^;&|]*)\s[\"']?(?P<target>" + _DEVICE_RE + r")[\"']?",
             item,
@@ -1279,7 +1361,7 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
             + r"[\"']?"
             + _DEVICE_RE
             + r"[\"']?)[^;&|]*(?P<target>"
-            + _TARGET_ROOT_RE
+            + _INSTALL_MOUNTPOINT_RE
             + r")",
             item,
             re.I,
@@ -1293,15 +1375,18 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
             requirements.append(
                 {
                     "kind": "mount_target",
-                    "target": match.group("target"),
+                    "target": _mount_capability_target(
+                        match.group("source"),
+                        match.group("target"),
+                    ),
                     "reason": "target-root mount operation",
                 }
             )
         for match in re.finditer(
             r"\bmount\b(?!point\b)[^;&|]*"
-            + r"(?:UUID=[^\s;|&\"']+|LABEL=[^\s;|&\"']+|-[UL]\s+[^\s;|&\"']+)"
+            + r"(?P<source>UUID=[^\s;|&\"']+|LABEL=[^\s;|&\"']+|-[UL]\s+[^\s;|&\"']+)"
             + r"[^;&|]*(?P<target>"
-            + _TARGET_ROOT_RE
+            + _INSTALL_MOUNTPOINT_RE
             + r")",
             item,
             re.I,
@@ -1309,7 +1394,10 @@ def dangerous_command_requirements(command: str) -> list[dict[str, str]]:
             requirements.append(
                 {
                     "kind": "mount_target",
-                    "target": match.group("target"),
+                    "target": _mount_capability_target(
+                        match.group("source"),
+                        match.group("target"),
+                    ),
                     "reason": "target-root UUID/LABEL mount operation",
                 }
             )

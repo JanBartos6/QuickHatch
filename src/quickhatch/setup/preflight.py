@@ -1171,6 +1171,7 @@ def preflight_setup_command(
     """Return a blocking reason for clearly unsafe/impossible setup commands."""
 
     controlled_reboot_capability_allowed = False
+    network_security_capability_allowed = False
     for requirement in dangerous_command_requirements(command):
         kind = requirement["kind"]
         target = requirement.get("target", "")
@@ -1183,6 +1184,8 @@ def preflight_setup_command(
         ):
             if kind == "controlled_reboot":
                 controlled_reboot_capability_allowed = True
+            if kind == "network_security_change":
+                network_security_capability_allowed = True
             continue
         return (
             f"Dangerous operation requires an explicit QuickHatch capability: "
@@ -1190,13 +1193,14 @@ def preflight_setup_command(
             "operation/confirmation system."
         )
 
-    if not allow_network_security_changes and _activates_network_security_services(command):
+    network_security_allowed = allow_network_security_changes or network_security_capability_allowed
+    if not network_security_allowed and _activates_network_security_services(command):
         return (
             "Do not enable/start VPN or firewall services automatically. Installing the package "
             "is fine, but activating VPN/firewall services can change routing, DNS, firewall "
             "policy, or kill-switch behavior and cut off remote access."
         )
-    if not allow_network_security_changes and _cuts_off_remote_access(
+    if not network_security_allowed and _cuts_off_remote_access(
         command,
         ignore_power_transition=controlled_reboot_capability_allowed,
     ):

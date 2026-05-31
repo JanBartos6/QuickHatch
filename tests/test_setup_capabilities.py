@@ -102,6 +102,20 @@ def test_capability_target_mismatch_blocks() -> None:
     assert "explicit QuickHatch capability" in error
 
 
+def test_targetless_capability_does_not_authorize_targetful_operation() -> None:
+    facts = SetupFacts(is_live=True, is_root=True)
+    store = _store_with_capability("format_filesystem")
+
+    error = preflight_setup_command(
+        "mkfs.ext4 /dev/sda1",
+        facts,
+        capability_store=store,
+    )
+
+    assert error
+    assert "explicit QuickHatch capability" in error
+
+
 def test_stale_disk_inventory_requires_reconfirmation() -> None:
     store = CapabilityStore(run_id="run-1", install_profile="full_disk_wipe")
     inventory_a = "sda 512G Samsung disk ext4 root uuid-a /mnt"
@@ -237,8 +251,8 @@ def test_confirmed_mount_target_capability_allows_target_root_mount() -> None:
     store = CapabilityStore(run_id="run-1", install_profile="full_disk_wipe")
     store.grant(
         kind="mount_target",
-        target="/mnt",
-        confirmation_text="MOUNT /mnt",
+        target="/dev/sda2 -> /mnt",
+        confirmation_text="MOUNT /dev/sda2 /mnt",
         confirmation_id="preview-1",
         reason="test mount grant",
         source="harness_generated",
@@ -253,6 +267,56 @@ def test_confirmed_mount_target_capability_allows_target_root_mount() -> None:
     )
 
     assert error is None
+
+    mismatch = preflight_setup_command(
+        "sudo mount /dev/sdb2 /mnt",
+        facts,
+        capability_store=store,
+    )
+
+    assert mismatch
+    assert "explicit QuickHatch capability" in mismatch
+
+
+def test_read_only_target_mount_diagnostic_stays_allowed() -> None:
+    facts = SetupFacts(is_live=True, is_root=True)
+
+    assert preflight_setup_command("sudo mount -o ro /dev/sdb2 /mnt", facts) is None
+
+
+def test_quickhatch_spine_partition_variables_expand_to_exact_targets() -> None:
+    command = (
+        "QUICKHATCH_TARGET_DISK=/dev/nvme0n1; "
+        "DISK=${QUICKHATCH_TARGET_DISK:?QuickHatch target disk is required}; "
+        'case "$DISK" in *[0-9]) ESP="${DISK}p1"; ROOT="${DISK}p2" ;; '
+        '*) ESP="${DISK}1"; ROOT="${DISK}2" ;; esac; '
+        'sudo mkfs.fat -F32 "$ESP" && sudo mkfs.ext4 -F "$ROOT" && '
+        'sudo mount "$ROOT" /mnt && sudo mount "$ESP" /mnt/boot'
+    )
+
+    requirements = dangerous_command_requirements(command)
+
+    assert {
+        (item["kind"], item["target"])
+        for item in requirements
+        if item["kind"] in {"format_filesystem", "mount_target"}
+    } >= {
+        ("format_filesystem", "/dev/nvme0n1p1"),
+        ("format_filesystem", "/dev/nvme0n1p2"),
+        ("mount_target", "/dev/nvme0n1p2 -> /mnt"),
+        ("mount_target", "/dev/nvme0n1p1 -> /mnt/boot"),
+    }
+
+
+def test_chroot_shell_payload_keeps_chroot_bootloader_target() -> None:
+    requirements = dangerous_command_requirements(
+        "arch-chroot /mnt sh -c 'grub-install --target=x86_64-efi --efi-directory=/boot'"
+    )
+    install_targets = [
+        item["target"] for item in requirements if item["kind"] == "bootloader_install"
+    ]
+
+    assert install_targets == ["/target-root"]
 
 
 def test_confirmed_tier1_capabilities_allow_harness_generated_operations() -> None:

@@ -2731,12 +2731,27 @@ class SetupOrchestrator:
             group_id="quickhatch-family-install-spine",
         )
         canonical_disk = canonicalize_target(target_disk, inventory=disk_inventory)
+        esp_partition, root_partition = self._family_spine_partition_targets(canonical_disk)
         for command in commands:
             for requirement in dangerous_command_requirements(command):
                 target = requirement.get("target") or ""
-                if requirement.get("kind") == "disk_partition" and not target:
-                    target = target_disk
-                requirements[(requirement["kind"], target)] = requirement.get("reason", "")
+                kind = requirement["kind"]
+                if kind == "disk_partition" and not target:
+                    target = canonical_disk
+                if kind == "format_filesystem" and not target:
+                    for partition in (esp_partition, root_partition):
+                        requirements[(kind, partition)] = requirement.get("reason", "")
+                    continue
+                if (
+                    kind == "mount_target"
+                    and target
+                    and "->" not in target
+                    and "unmount" not in (requirement.get("reason", "").lower())
+                ):
+                    canonical_mount = canonicalize_target(target, inventory=disk_inventory)
+                    source = root_partition if canonical_mount == "/target-root" else esp_partition
+                    target = f"{source} -> {target}"
+                requirements[(kind, target)] = requirement.get("reason", "")
         if not requirements:
             return
         confirmation_token = f"ERASE {canonical_disk}"
@@ -2803,6 +2818,11 @@ class SetupOrchestrator:
                 group_id="quickhatch-family-install-spine",
                 capability=asdict(grant),
             )
+
+    @staticmethod
+    def _family_spine_partition_targets(target_disk: str) -> tuple[str, str]:
+        suffix = "p" if str(target_disk or "").endswith(tuple("0123456789")) else ""
+        return f"{target_disk}{suffix}1", f"{target_disk}{suffix}2"
 
     def _ensure_display_manager_started(self) -> None:
         facts = self.ctx.facts
