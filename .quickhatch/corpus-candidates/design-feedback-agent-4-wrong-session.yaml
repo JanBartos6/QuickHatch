@@ -1,0 +1,490 @@
+- id: wrong-session-root-theme-target-user-unchanged
+  category: wrong_user
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Adwaita-dark
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Yaru
+    active_icons: Yaru
+    active_cursor: Yaru
+    active_wallpaper: /home/quickhatch/Pictures/current.jpg
+    effects: ["animations_enabled"]
+  attempted_commands:
+    - "HOME=/root gsettings set org.gnome.desktop.interface gtk-theme Adwaita-dark"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Yaru
+    active_icons: Yaru
+    active_cursor: Yaru
+    active_wallpaper: /home/quickhatch/Pictures/current.jpg
+    effects: ["animations_enabled"]
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Adwaita-dark
+      active_icons: Yaru
+      active_cursor: Yaru
+      active_wallpaper: /home/quickhatch/Pictures/current.jpg
+      effects: ["animations_enabled"]
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "The original command wrote root preferences; repair must rerun against the target user's session before claiming success."
+
+- id: wrong-session-stale-dbus-icons
+  category: wrong_user
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: Papirus-Dark
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/wall.jpg
+    effects: ["animations_enabled"]
+  attempted_commands:
+    - "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1002/bus gsettings set org.gnome.desktop.interface icon-theme Papirus-Dark"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/wall.jpg
+    effects: ["animations_enabled"]
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Papirus-Dark
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/wall.jpg
+      effects: ["animations_enabled"]
+  expected:
+    element_status:
+      theme: not_requested
+      icons: applied_and_verified
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "A stale or unrelated session bus can make a command succeed without mutating the active target session."
+
+- id: wrong-session-display-owner-cursor
+  category: wrong_user
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: Bibata-Modern-Ice
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/desktop.jpg
+    effects: ["animations_enabled"]
+  attempted_commands:
+    - "DISPLAY=:0 XAUTHORITY=/home/other/.Xauthority gsettings set org.gnome.desktop.interface cursor-theme Bibata-Modern-Ice"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/desktop.jpg
+    effects: ["animations_enabled"]
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/desktop.jpg
+      effects: ["animations_enabled"]
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: wrong_user_or_session
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: blocked
+  rationale: "A DISPLAY/XAUTHORITY mismatch risks mutating another user's session and must not be treated as verified cursor success."
+
+- id: wrong-session-no-active-gnome-wallpaper
+  category: no_session
+  desktop:
+    environment: gnome
+    has_gui_session: false
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: /home/quickhatch/Pictures/new-wallpaper.jpg
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/old-wallpaper.jpg
+    effects: ["animations_enabled"]
+  attempted_commands:
+    - "gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/new-wallpaper.jpg"
+  command_result:
+    rc: 1
+    stdout: ""
+    stderr: "Cannot autolaunch D-Bus without X11 $DISPLAY"
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/old-wallpaper.jpg
+    effects: ["animations_enabled"]
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/old-wallpaper.jpg
+      effects: ["animations_enabled"]
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: no_active_gui_session
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: "Wallpaper changes need a live session to verify; no-session state should become explicit follow-up."
+
+- id: wrong-de-gnome-command-on-kde-theme
+  category: wrong_de
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Breeze-Dark
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/kde.jpg
+    effects: ["blur_enabled"]
+  attempted_commands:
+    - "gsettings set org.gnome.desktop.interface gtk-theme Breeze-Dark"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/kde.jpg
+    effects: ["blur_enabled"]
+  repair_result:
+    action: switch_de_strategy
+    facts_after_repair:
+      active_theme: Breeze-Dark
+      active_icons: Breeze
+      active_cursor: Breeze
+      active_wallpaper: /home/quickhatch/Pictures/kde.jpg
+      effects: ["blur_enabled"]
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "A GNOME command on KDE can return success while the Plasma theme remains unchanged."
+
+- id: wrong-de-kde-effects-on-gnome
+  category: wrong_de
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: ["animations_disabled"]
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/gnome.jpg
+    effects: ["animations_enabled"]
+  attempted_commands:
+    - "kwriteconfig6 --file kwinrc --group Plugins --key blurEnabled false"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/gnome.jpg
+    effects: ["animations_enabled"]
+  repair_result:
+    action: switch_de_strategy
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/gnome.jpg
+      effects: ["animations_disabled"]
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: applied_and_verified
+    final_status_effect: success_with_warnings
+  rationale: "KWin config should not be treated as GNOME effects verification; repair must switch strategy."
+
+- id: wrong-de-unknown-theme-icons
+  category: wrong_de
+  desktop:
+    environment: unknown
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Nord-Dark
+    icons: Nordzy
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: unknown
+    effects: []
+  attempted_commands:
+    - "gsettings set org.gnome.desktop.interface gtk-theme Nord-Dark"
+    - "gsettings set org.gnome.desktop.interface icon-theme Nordzy"
+  command_result:
+    rc: 1
+    stdout: ""
+    stderr: "Desktop environment could not be determined"
+  facts_after_attempt:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: unknown
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: unknown
+      active_icons: unknown
+      active_cursor: unknown
+      active_wallpaper: unknown
+      effects: []
+  expected:
+    element_status:
+      theme: wrong_desktop_environment
+      icons: wrong_desktop_environment
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: "Unknown desktop facts should force honest follow-up instead of guessed design commands."
+
+- id: wrong-session-kde-effects-no-session
+  category: no_session
+  desktop:
+    environment: kde
+    has_gui_session: false
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: ["blur_disabled"]
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/plasma.jpg
+    effects: ["blur_enabled"]
+  attempted_commands:
+    - "qdbus org.kde.KWin /KWin reconfigure"
+  command_result:
+    rc: 1
+    stdout: ""
+    stderr: "Could not connect to D-Bus server"
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/plasma.jpg
+    effects: ["blur_enabled"]
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Breeze
+      active_icons: Breeze
+      active_cursor: Breeze
+      active_wallpaper: /home/quickhatch/Pictures/plasma.jpg
+      effects: ["blur_enabled"]
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: no_active_gui_session
+    final_status_effect: manual_followup_required
+  rationale: "KWin live effects cannot be verified when only a login manager or no GUI session is available."
+
+- id: wrong-session-final-audit-root-wallpaper-repair
+  category: final_audit
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: /home/quickhatch/Pictures/aurora.jpg
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/plain.jpg
+    effects: ["animations_enabled"]
+  attempted_commands:
+    - "sudo -u root gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/aurora.jpg"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/plain.jpg
+    effects: ["animations_enabled"]
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/aurora.jpg
+      effects: ["animations_enabled"]
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: applied_and_verified
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "Final audit should reject root-scoped wallpaper success until target-user facts verify the requested wallpaper."
+
+- id: wrong-de-kde-cursor-repair
+  category: repair
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: Bibata-Modern-Classic
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/start.jpg
+    effects: ["blur_enabled"]
+  attempted_commands:
+    - "gsettings set org.gnome.desktop.interface cursor-theme Bibata-Modern-Classic"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/start.jpg
+    effects: ["blur_enabled"]
+  repair_result:
+    action: switch_de_strategy
+    facts_after_repair:
+      active_theme: Breeze
+      active_icons: Breeze
+      active_cursor: Bibata-Modern-Classic
+      active_wallpaper: /home/quickhatch/Pictures/start.jpg
+      effects: ["blur_enabled"]
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: applied_and_verified
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "A wrong-DE cursor attempt should trigger a KDE-specific repair, not an identical retry."

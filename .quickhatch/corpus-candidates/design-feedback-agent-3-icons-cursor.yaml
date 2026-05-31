@@ -1,0 +1,492 @@
+- id: icons-kde-rc0-still-breeze
+  category: icons
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: Tela-circle
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  attempted_commands:
+    - "plasma-apply-icons Tela-circle"
+  command_result:
+    rc: 0
+    stdout: "Icon theme set to Tela-circle"
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Breeze
+      active_icons: Breeze
+      active_cursor: Breeze
+      active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: failed_to_apply
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: "Stdout claims success, but refreshed icon facts still show the old KDE icon theme."
+
+- id: icons-gnome-install-asset-repair
+  category: repair
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: Papirus
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+    effects: []
+  attempted_commands:
+    - "gsettings set org.gnome.desktop.interface icon-theme Papirus"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+    effects: []
+  repair_result:
+    action: install_asset
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Papirus
+      active_cursor: Adwaita
+      active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: applied_and_verified
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "The first attempt exposes a missing icon asset; install_asset repair makes the requested icon theme observable."
+
+- id: icons-xfce-fail-cursor-succeeds
+  category: icons
+  desktop:
+    environment: xfce
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: Papirus-Dark
+    cursor: Bibata-Modern-Classic
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+    effects: []
+  attempted_commands:
+    - "xfconf-query -c xsettings -p /Net/IconThemeName -s Papirus-Dark"
+    - "xfconf-query -c xsettings -p /Gtk/CursorThemeName -s Bibata-Modern-Classic"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Bibata-Modern-Classic
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Greybird
+      active_icons: elementary-xfce
+      active_cursor: Bibata-Modern-Classic
+      active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: failed_to_apply
+      cursor: applied_and_verified
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "The feedback loop should isolate icon failure from cursor success in the same command group."
+
+- id: cursor-gnome-asset-missing
+  category: cursor
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: Bibata-Modern-Ice
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+    effects: []
+  attempted_commands:
+    - "gsettings set org.gnome.desktop.interface cursor-theme Bibata-Modern-Ice"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: asset_missing
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: "GNOME accepts arbitrary cursor-theme strings, so verification must catch missing assets."
+
+- id: cursor-xfce-persisted-not-live
+  category: cursor
+  desktop:
+    environment: xfce
+    has_gui_session: unknown
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: DMZ-White
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-stripes.png
+    effects: []
+  attempted_commands:
+    - "xfconf-query -c xsettings -p /Gtk/CursorThemeName -s DMZ-White"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-stripes.png
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Greybird
+      active_icons: elementary-xfce
+      active_cursor: Adwaita
+      active_wallpaper: /usr/share/backgrounds/xfce/xfce-stripes.png
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: persisted_but_not_live_verified
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "The setting may be persisted while the running XFCE cursor remains unchanged until a new session."
+
+- id: cursor-kde-gnome-command-wrong-de
+  category: wrong_de
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: Breeze_Snow
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  attempted_commands:
+    - "gsettings set org.gnome.desktop.interface cursor-theme Breeze_Snow"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  repair_result:
+    action: switch_de_strategy
+    facts_after_repair:
+      active_theme: Breeze
+      active_icons: Breeze
+      active_cursor: Breeze_Snow
+      active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: applied_and_verified
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "The repair should switch from GNOME gsettings to a KDE cursor strategy and then verify the cursor."
+
+- id: icons-cursor-unknown-de
+  category: wrong_de
+  desktop:
+    environment: unknown
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: Yaru
+    cursor: Yaru
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: unknown
+    effects: []
+  attempted_commands: []
+  command_result:
+    rc: 1
+    stdout: ""
+    stderr: "Unable to determine desktop environment"
+  facts_after_attempt:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: unknown
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: unknown
+      active_icons: unknown
+      active_cursor: unknown
+      active_wallpaper: unknown
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: wrong_desktop_environment
+      cursor: wrong_desktop_environment
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: "Unknown desktop facts should prevent the harness from guessing icon/cursor command families."
+
+- id: icons-cursor-no-session-gnome
+  category: no_session
+  desktop:
+    environment: gnome
+    has_gui_session: false
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: Numix-Circle
+    cursor: Bibata-Modern-Ice
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+    effects: []
+  attempted_commands:
+    - "gsettings set org.gnome.desktop.interface icon-theme Numix-Circle"
+    - "gsettings set org.gnome.desktop.interface cursor-theme Bibata-Modern-Ice"
+  command_result:
+    rc: 1
+    stdout: ""
+    stderr: "Cannot autolaunch D-Bus without X11 $DISPLAY"
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: no_active_gui_session
+      cursor: no_active_gui_session
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: "GNOME icon/cursor live writes require a target-user session bus."
+
+- id: kde-icons-applied-cursor-missing
+  category: cursor
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: Papirus-Dark
+    cursor: Catppuccin-Mocha-Dark-Cursors
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  attempted_commands:
+    - "plasma-apply-icons Papirus-Dark"
+    - "plasma-apply-cursortheme Catppuccin-Mocha-Dark-Cursors"
+  command_result:
+    rc: 1
+    stdout: "Icon theme set to Papirus-Dark"
+    stderr: "Cursor theme Catppuccin-Mocha-Dark-Cursors not found"
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Papirus-Dark
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  repair_result:
+    action: install_asset
+    facts_after_repair:
+      active_theme: Breeze
+      active_icons: Papirus-Dark
+      active_cursor: Breeze
+      active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: applied_and_verified
+      cursor: asset_missing
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "Partial success must preserve the verified icon state while flagging the cursor asset as missing."
+
+- id: icons-cursor-xfce-wrong-user-root
+  category: wrong_user
+  desktop:
+    environment: xfce
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: Papirus
+    cursor: DMZ-Black
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+    effects: []
+  attempted_commands:
+    - "sudo -u root xfconf-query -c xsettings -p /Net/IconThemeName -s Papirus"
+    - "sudo -u root xfconf-query -c xsettings -p /Gtk/CursorThemeName -s DMZ-Black"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: Greybird
+      active_icons: elementary-xfce
+      active_cursor: Adwaita
+      active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: wrong_user_or_session
+      cursor: wrong_user_or_session
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: "Root-scoped XFCE settings must not be treated as target-user icon/cursor success."

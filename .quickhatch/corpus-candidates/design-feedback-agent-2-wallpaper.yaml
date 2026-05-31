@@ -1,0 +1,489 @@
+- id: wallpaper-kde-missing-asset
+  category: wallpaper
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: /home/quickhatch/Pictures/wallpapers/aurora.png
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/wallpapers/old.png
+    effects: []
+  attempted_commands:
+    - "plasma-apply-wallpaperimage /home/quickhatch/Pictures/wallpapers/aurora.png"
+  command_result:
+    rc: 1
+    stdout: ""
+    stderr: "The file does not exist."
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/wallpapers/old.png
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Breeze
+      active_icons: Breeze
+      active_cursor: Breeze
+      active_wallpaper: /home/quickhatch/Pictures/wallpapers/old.png
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: asset_missing
+      effects: not_requested
+    final_status_effect: blocked
+  rationale: "The wallpaper path is missing, so neither command success nor repair can verify the requested asset."
+
+- id: wallpaper-gnome-rc0-unchanged
+  category: wallpaper
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: /home/quickhatch/Pictures/night-sky.jpg
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/daylight.jpg
+    effects: []
+  attempted_commands:
+    - "gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/night-sky.jpg"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/daylight.jpg
+    effects: []
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/daylight.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: failed_to_apply
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: "The GNOME command returned success, but both initial and retry facts show the wallpaper stayed unchanged."
+
+- id: wallpaper-xfce-no-session-live-only
+  category: no_session
+  desktop:
+    environment: xfce
+    has_gui_session: false
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: /home/quickhatch/Pictures/forest.png
+    effects: []
+  facts_before:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: ""
+    effects: []
+  attempted_commands:
+    - "xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s /home/quickhatch/Pictures/forest.png"
+  command_result:
+    rc: 1
+    stdout: ""
+    stderr: "Cannot open display."
+  facts_after_attempt:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: ""
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: Greybird
+      active_icons: elementary-xfce
+      active_cursor: Adwaita
+      active_wallpaper: ""
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: no_active_gui_session
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: "Live XFCE wallpaper application cannot be verified without an active desktop session."
+
+- id: wallpaper-kde-persisted-not-live
+  category: wallpaper
+  desktop:
+    environment: kde
+    has_gui_session: false
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: /home/quickhatch/Pictures/minimal.png
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze-Dark
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/previous.png
+    effects: []
+  attempted_commands:
+    - "kwriteconfig6 --file /home/quickhatch/.config/plasma-org.kde.plasma.desktop-appletsrc --group Containments --group 1 --group Wallpaper --group org.kde.image --group General --key Image file:///home/quickhatch/Pictures/minimal.png"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze-Dark
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/previous.png
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Breeze
+      active_icons: Breeze-Dark
+      active_cursor: Breeze
+      active_wallpaper: /home/quickhatch/Pictures/previous.png
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: persisted_but_not_live_verified
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "KDE config was persisted, but no active Plasma session exists to verify the visual wallpaper."
+
+- id: wallpaper-gnome-wrong-user-root
+  category: wrong_user
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: /home/quickhatch/Pictures/canyon.jpg
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/current.jpg
+    effects: []
+  attempted_commands:
+    - "sudo -u root gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/canyon.jpg"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/current.jpg
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/current.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: wrong_user_or_session
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: "The command targeted root instead of the target user's GNOME session."
+
+- id: wallpaper-xfce-retry-detected-monitor
+  category: repair
+  desktop:
+    environment: xfce
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: /home/quickhatch/Pictures/lake.jpg
+    effects: []
+  facts_before:
+    active_theme: Greybird
+    active_icons: Papirus
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/old-lake.jpg
+    effects: []
+  attempted_commands:
+    - "xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorHDMI-1/workspace0/last-image -s /home/quickhatch/Pictures/lake.jpg"
+  command_result:
+    rc: 1
+    stdout: ""
+    stderr: "Property does not exist."
+  facts_after_attempt:
+    active_theme: Greybird
+    active_icons: Papirus
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/old-lake.jpg
+    effects: []
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Greybird
+      active_icons: Papirus
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/lake.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: applied_and_verified
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "A focused repair discovered the correct XFCE monitor property and verified the requested wallpaper."
+
+- id: wallpaper-kde-retry-still-unchanged
+  category: repair
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: /home/quickhatch/Pictures/mountains.png
+    effects: []
+  facts_before:
+    active_theme: Breeze Dark
+    active_icons: Breeze-Dark
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/default.png
+    effects: []
+  attempted_commands:
+    - "plasma-apply-wallpaperimage /home/quickhatch/Pictures/mountains.png"
+  command_result:
+    rc: 0
+    stdout: "Done"
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Breeze Dark
+    active_icons: Breeze-Dark
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/default.png
+    effects: []
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Breeze Dark
+      active_icons: Breeze-Dark
+      active_cursor: Breeze
+      active_wallpaper: /home/quickhatch/Pictures/default.png
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: failed_to_apply
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: "Both initial apply and retry leave KDE wallpaper facts unchanged."
+
+- id: wallpaper-unknown-de-gnome-command
+  category: wrong_de
+  desktop:
+    environment: unknown
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: /home/quickhatch/Pictures/abstract.jpg
+    effects: []
+  facts_before:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: /home/quickhatch/Pictures/existing.jpg
+    effects: []
+  attempted_commands:
+    - "gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/abstract.jpg"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: /home/quickhatch/Pictures/existing.jpg
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: unknown
+      active_icons: unknown
+      active_cursor: unknown
+      active_wallpaper: /home/quickhatch/Pictures/existing.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: wrong_desktop_environment
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: "With unknown desktop facts, a GNOME-specific wallpaper command must not be trusted."
+
+- id: wallpaper-gnome-dark-uri-only-warning
+  category: final_audit
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: /home/quickhatch/Pictures/dunes.jpg
+    effects: []
+  facts_before:
+    active_theme: Adwaita-dark
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/city.jpg
+    effects: []
+  attempted_commands:
+    - "gsettings set org.gnome.desktop.background picture-uri-dark file:///home/quickhatch/Pictures/dunes.jpg"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Adwaita-dark
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/dunes.jpg
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Adwaita-dark
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/dunes.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: applied_and_verified
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "The active dark-mode wallpaper is verified, but the light-mode wallpaper key may remain unchanged."
+
+- id: wallpaper-xfce-file-uri-missing-after-repair
+  category: repair
+  desktop:
+    environment: xfce
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: file:///home/quickhatch/Pictures/sea.png
+    effects: []
+  facts_before:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/plain.png
+    effects: []
+  attempted_commands:
+    - "xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s file:///home/quickhatch/Pictures/sea.png"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/plain.png
+    effects: []
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Greybird
+      active_icons: elementary-xfce
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/plain.png
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: asset_missing
+      effects: not_requested
+    final_status_effect: blocked
+  rationale: "The normalized XFCE wallpaper path still cannot be verified because the requested asset is missing."

@@ -1,0 +1,440 @@
+- id: theme-kde-rc0-unchanged
+  category: theme
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Sweet-Dark
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  attempted_commands:
+    - "lookandfeeltool -a org.kde.sweet-dark.desktop"
+  command_result:
+    rc: 0
+    stdout: "Look and feel package successfully applied."
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Breeze
+      active_icons: Breeze
+      active_cursor: Breeze
+      active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+      effects: []
+  expected:
+    element_status:
+      theme: failed_to_apply
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: "Command success is not enough; refreshed KDE facts still report the old theme."
+
+- id: theme-kde-retry-kdeglobals-verifies
+  category: repair
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Breeze Dark
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  attempted_commands:
+    - "lookandfeeltool -a org.kde.breezedark.desktop"
+  command_result:
+    rc: 0
+    stdout: "Look and feel package successfully applied."
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Breeze Dark
+      active_icons: Breeze
+      active_cursor: Breeze
+      active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+      effects: []
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "A focused retry with KDE config and reload should be treated as a strategy change, then verified against refreshed facts."
+
+- id: theme-gnome-persisted-unverified
+  category: theme
+  desktop:
+    environment: gnome
+    has_gui_session: unknown
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Adwaita-dark
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/current.jpg
+    effects: []
+  attempted_commands:
+    - "gsettings set org.gnome.desktop.interface gtk-theme Adwaita-dark"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Adwaita-dark
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/current.jpg
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Adwaita-dark
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/current.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: persisted_but_not_live_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "The requested GNOME setting is read back, but the active session state is unknown so visual application is not fully proven."
+
+- id: theme-gnome-asset-missing
+  category: theme
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Nordic
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Yaru
+    active_icons: Yaru
+    active_cursor: Yaru
+    active_wallpaper: /usr/share/backgrounds/warty-final-ubuntu.png
+    effects: []
+  attempted_commands:
+    - "gsettings set org.gnome.desktop.interface gtk-theme Nordic"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Yaru
+    active_icons: Yaru
+    active_cursor: Yaru
+    active_wallpaper: /usr/share/backgrounds/warty-final-ubuntu.png
+    effects: []
+  repair_result:
+    action: install_asset
+    facts_after_repair:
+      active_theme: Nordic
+      active_icons: Yaru
+      active_cursor: Yaru
+      active_wallpaper: /usr/share/backgrounds/warty-final-ubuntu.png
+      effects: []
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "The first attempt leaves facts unchanged because the asset is missing; installing the asset and reapplying should verify the theme."
+
+- id: theme-xfce-applied-verified
+  category: theme
+  desktop:
+    environment: xfce
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Greybird-dark
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+    effects: []
+  attempted_commands:
+    - "xfconf-query -c xsettings -p /Net/ThemeName -s Greybird-dark"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Greybird-dark
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Greybird-dark
+      active_icons: elementary-xfce
+      active_cursor: Adwaita
+      active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: none
+  rationale: "The post-command facts exactly match the requested XFCE theme."
+
+- id: theme-xfce-persisted-not-live
+  category: theme
+  desktop:
+    environment: xfce
+    has_gui_session: unknown
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Matcha-dark-azul
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-stripes.png
+    effects: []
+  attempted_commands:
+    - "xfconf-query -c xsettings -p /Net/ThemeName -s Matcha-dark-azul"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Matcha-dark-azul
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-stripes.png
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Matcha-dark-azul
+      active_icons: elementary-xfce
+      active_cursor: Adwaita
+      active_wallpaper: /usr/share/backgrounds/xfce/xfce-stripes.png
+      effects: []
+  expected:
+    element_status:
+      theme: persisted_but_not_live_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "The setting is persisted and readable, but the harness cannot prove all XFCE components picked it up live."
+
+- id: theme-kde-command-on-gnome
+  category: wrong_de
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Breeze-Dark
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/desert.png
+    effects: []
+  attempted_commands:
+    - "lookandfeeltool -a org.kde.breezedark.desktop"
+  command_result:
+    rc: 0
+    stdout: "Look and feel package successfully applied."
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/desert.png
+    effects: []
+  repair_result:
+    action: switch_de_strategy
+    facts_after_repair:
+      active_theme: Breeze-Dark
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/desert.png
+      effects: []
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: "A KDE tool is the wrong strategy for GNOME; the feedback loop should switch DE strategy rather than trust the successful command."
+
+- id: theme-no-session-live-gnome
+  category: no_session
+  desktop:
+    environment: gnome
+    has_gui_session: false
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Arc-Dark
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: unknown
+    effects: []
+  attempted_commands:
+    - "gsettings set org.gnome.desktop.interface gtk-theme Arc-Dark"
+  command_result:
+    rc: 1
+    stdout: ""
+    stderr: "Cannot autolaunch D-Bus without X11 $DISPLAY"
+  facts_after_attempt:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: unknown
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: unknown
+      active_icons: unknown
+      active_cursor: unknown
+      active_wallpaper: unknown
+      effects: []
+  expected:
+    element_status:
+      theme: no_active_gui_session
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: "Without a GUI session, the harness should not claim live theme success."
+
+- id: theme-wrong-user-root-gsettings
+  category: wrong_user
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: WhiteSur-Dark
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/default.jpg
+    effects: []
+  attempted_commands:
+    - "sudo gsettings set org.gnome.desktop.interface gtk-theme WhiteSur-Dark"
+  command_result:
+    rc: 0
+    stdout: ""
+    stderr: ""
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/default.jpg
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/default.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: wrong_user_or_session
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: blocked
+  rationale: "A root-scoped settings write must not be counted as target-user theme verification."
