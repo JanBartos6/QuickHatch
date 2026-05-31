@@ -8,6 +8,20 @@ from dataclasses import dataclass
 
 from .failure import classify_failure
 
+_PACKAGE_TOOLS = {
+    "pacman",
+    "apt",
+    "apt-get",
+    "dnf",
+    "zypper",
+    "apk",
+    "xbps-install",
+    "emerge",
+    "yay",
+    "paru",
+    "flatpak",
+}
+
 
 @dataclass(frozen=True)
 class AttemptSignature:
@@ -109,19 +123,7 @@ def _tool(tokens: list[str]) -> str:
 
 def _operation(tool: str, command: str) -> str:
     text = str(command or "").lower()
-    if tool in {
-        "pacman",
-        "apt",
-        "apt-get",
-        "dnf",
-        "zypper",
-        "apk",
-        "xbps-install",
-        "emerge",
-        "yay",
-        "paru",
-        "flatpak",
-    }:
+    if tool in _PACKAGE_TOOLS:
         return "package_install" if re.search(r"\b(?:install|add|-s|--sync)\b", text) else "package"
     if "mkfs" in tool or "mkfs." in text:
         return "format_filesystem"
@@ -148,23 +150,11 @@ def _strategy(command: str) -> str:
 
 
 def _packages(tool: str, tokens: list[str]) -> list[str]:
-    if tool not in {
-        "pacman",
-        "apt",
-        "apt-get",
-        "dnf",
-        "zypper",
-        "apk",
-        "xbps-install",
-        "emerge",
-        "yay",
-        "paru",
-        "flatpak",
-    }:
+    if tool not in _PACKAGE_TOOLS:
         return []
     result: list[str] = []
     skip_next = False
-    for token in tokens[1:]:
+    for token in _tokens_after_tool(tool, tokens):
         if skip_next:
             skip_next = False
             continue
@@ -188,6 +178,13 @@ def _packages(tool: str, tokens: list[str]) -> list[str]:
             continue
         result.append(token)
     return result
+
+
+def _tokens_after_tool(tool: str, tokens: list[str]) -> list[str]:
+    for index, token in enumerate(tokens):
+        if token.rsplit("/", 1)[-1].lower() == tool:
+            return tokens[index + 1 :]
+    return tokens[1:]
 
 
 def _target(command: str) -> str:
