@@ -436,6 +436,11 @@ def test_persistent_config_scenarios_mark_persistence_without_fatal_block() -> N
         expected = scenario["expected"]
         if expected["should_allow_persistent_config"] is not True:
             continue
+        if not any(
+            state == "persisted_but_not_live_verified"
+            for state in expected["design_state"].values()
+        ):
+            continue
         if scenario["facts_profile"].get("has_gui_session") is True:
             continue
         persistent_commands = [

@@ -280,7 +280,8 @@ _NON_BLOCKING_FAILED_SYSTEMD_UNIT_PREFIXES = (
     "systemd-coredump@",
 )
 _DESKTOP_RUNTIME_COMMAND_RE = re.compile(
-    r"\b(?:plasma-apply-[\w-]+|kscreen-doctor|xrandr|qdbus6?|gsettings|lookandfeeltool)\b",
+    r"\b(?:plasma-apply-[\w-]+|kscreen-doctor|xrandr|qdbus6?|gsettings|"
+    r"lookandfeeltool|xfdesktop|nitrogen|feh|swww|hyprpaper)\b",
     re.IGNORECASE,
 )
 _DNF_CONFIG_MANAGER_ADD_REPO_RE = re.compile(
@@ -3041,7 +3042,8 @@ class SetupOrchestrator:
         return bool(items) and all(
             SetupOrchestrator._command_needs_desktop_runtime_env(command)
             and not (
-                kind == "command" and SetupOrchestrator._command_persists_desktop_config(command)
+                kind == "command"
+                and SetupOrchestrator._desktop_command_can_persist_without_gui(command)
             )
             for kind, command in items
         )
@@ -3056,7 +3058,7 @@ class SetupOrchestrator:
     ) -> bool:
         if not self._command_needs_desktop_runtime_env(command):
             return True
-        if item_kind == "command" and self._command_persists_desktop_config(command):
+        if item_kind == "command" and self._desktop_command_can_persist_without_gui(command):
             return True
         if self.ctx.facts and self.ctx.facts.displays:
             return True
@@ -9598,7 +9600,21 @@ fi
         if stage == SetupStage.DESKTOP:
             state = self.ctx.stage_state.setdefault(stage.value, {})
             if self._command_persists_desktop_config(command):
-                state["persisted_config_written"] = True
+                if self._command_targets_wrong_desktop_user(command):
+                    reason = self._wrong_desktop_user_reason(command)
+                    manual_followups = list(state.get("manual_followups") or [])
+                    item = {"reason": reason, "command": command}
+                    if item not in manual_followups:
+                        manual_followups.append(item)
+                    state["manual_followups"] = manual_followups
+                    self.runlog.record(
+                        "desktop_wrong_user_manual_followup",
+                        stage=SetupStage.DESKTOP.value,
+                        command=command,
+                        reason=reason,
+                    )
+                else:
+                    state["persisted_config_written"] = True
             if self._command_attempts_desktop_design(command):
                 state["desktop_design_attempted"] = True
             if self._command_attempts_wallpaper(command):
@@ -9631,6 +9647,69 @@ fi
                 "kscreen",
                 "kdeglobals",
             )
+        )
+
+    @staticmethod
+    def _desktop_command_can_persist_without_gui(command: str) -> bool:
+        lowered = command.lower()
+        if "gsettings" in lowered:
+            return "org.gnome.desktop.interface color-scheme" in lowered
+        return any(
+            token in lowered
+            for token in (
+                "kwriteconfig",
+                "xfconf-query",
+                "dconf load",
+                "systemctl enable gdm",
+                "systemctl enable --now gdm",
+                "systemctl enable sddm",
+                "systemctl enable --now sddm",
+                "systemctl enable lightdm",
+                "systemctl enable --now lightdm",
+                ".dmrc",
+                "/.config/",
+                "/etc/sddm.conf",
+                "/etc/sddm.conf.d/",
+                "/etc/lightdm/",
+                "kdeglobals",
+            )
+        )
+
+    def _command_targets_wrong_desktop_user(self, command: str) -> bool:
+        lowered = command.lower()
+        target_users = self._desktop_target_user_names()
+        if not self._desktop_root_is_target_user() and (
+            "/root/" in lowered
+            or "home=/root" in lowered
+            or re.search(r"\bsudo\s+(?:-[^\s]+\s+)*-u\s+root\b", lowered)
+            or re.search(r"\bsudo\s+gsettings\b", lowered)
+        ):
+            return True
+        home_users = {
+            match.group(1).lower() for match in re.finditer(r"/home/([^/\s'\"]+)", command)
+        }
+        return bool(home_users and target_users and not home_users.issubset(target_users))
+
+    def _desktop_target_user_names(self) -> set[str]:
+        facts = self.ctx.facts or SetupFacts()
+        users = {
+            str(facts.raw.get("QH_GUI_USER", "") or "").strip(),
+            str(facts.login_user or "").strip(),
+            str(facts.current_user or "").strip(),
+            str(self.runtime.user or "").strip(),
+        }
+        return {user.lower() for user in users if user}
+
+    def _desktop_root_is_target_user(self) -> bool:
+        target_users = self._desktop_target_user_names()
+        return bool(target_users) and target_users == {"root"}
+
+    def _wrong_desktop_user_reason(self, command: str) -> str:
+        target = ", ".join(sorted(self._desktop_target_user_names())) or "target user"
+        return (
+            "Desktop config command targets root or a different home/user than "
+            f"{target}; it was not counted as verified target-user desktop persistence: "
+            f"{redact_sensitive_text(command)}"
         )
 
     @staticmethod

@@ -466,7 +466,21 @@ def _finding_category(text: str) -> str:
         return "bootability"
     if "ssh" in lower or "reconnect" in lower:
         return "ssh_reconnect"
-    if "wallpaper" in lower or "theme" in lower or "desktop design" in lower or "display" in lower:
+    if (
+        "wallpaper" in lower
+        or "theme" in lower
+        or "desktop design" in lower
+        or "desktop config" in lower
+        or "display" in lower
+        or "icon" in lower
+        or "cursor" in lower
+        or "effect" in lower
+        or "gnome" in lower
+        or "kde" in lower
+        or "xfce" in lower
+        or "plasma" in lower
+        or "kwin" in lower
+    ):
         return "desktop"
     if "app" in lower or "package" in lower:
         return "apps"
