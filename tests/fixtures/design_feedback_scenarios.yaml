@@ -1,0 +1,2660 @@
+# Curated design-change feedback-loop scenario corpus.
+#
+# This fixture models command success versus observed design success, focused
+# design repair, per-element verification, wrong desktop/session handling, and
+# final-audit honesty. Use fake facts/executors/model responses only; do not
+# execute commands from this file against the host.
+merge_summary:
+  source: Merged from .quickhatch/corpus-candidates/design-feedback-agent-*.yaml
+  total_source_candidates: 50
+  total_scenarios: 50
+  scenarios_by_category:
+    cursor: 4
+    effects: 2
+    final_audit: 4
+    icons: 3
+    no_session: 6
+    repair: 7
+    theme: 5
+    wallpaper: 4
+    wrong_de: 8
+    wrong_user: 7
+  design_elements_covered:
+    cursor:
+      applied_and_verified: 10
+      asset_missing: 2
+      no_active_gui_session: 2
+      not_requested: 31
+      persisted_but_not_live_verified: 1
+      wrong_desktop_environment: 1
+      wrong_user_or_session: 3
+    effects:
+      applied_and_verified: 9
+      manual_followup_required: 1
+      no_active_gui_session: 2
+      not_requested: 37
+      wrong_user_or_session: 1
+    icons:
+      applied_and_verified: 10
+      failed_to_apply: 2
+      no_active_gui_session: 2
+      not_requested: 31
+      persisted_but_not_live_verified: 1
+      wrong_desktop_environment: 2
+      wrong_user_or_session: 2
+    theme:
+      applied_and_verified: 15
+      failed_to_apply: 1
+      no_active_gui_session: 2
+      not_requested: 27
+      persisted_but_not_live_verified: 2
+      wrong_desktop_environment: 1
+      wrong_user_or_session: 2
+    wallpaper:
+      applied_and_verified: 11
+      asset_missing: 3
+      failed_to_apply: 2
+      no_active_gui_session: 3
+      not_requested: 27
+      persisted_but_not_live_verified: 1
+      wrong_desktop_environment: 1
+      wrong_user_or_session: 2
+  repair_actions:
+    install_asset: 5
+    manual_followup: 13
+    none: 16
+    retry_apply: 10
+    switch_de_strategy: 6
+  final_status_effects:
+    blocked: 3
+    manual_followup_required: 19
+    none: 7
+    success_with_warnings: 21
+  curation_notes:
+  - id: final-audit-no-active-gui-all-elements
+    note: No active GUI session prevents live verification but should not fatal-block
+      core setup.
+  - id: wallpaper-kde-missing-asset
+    note: Missing requested wallpaper asset is a cosmetic/design follow-up, not a
+      core setup block.
+  - id: wallpaper-xfce-file-uri-missing-after-repair
+    note: Malformed/missing wallpaper asset after repair should remain actionable
+      manual follow-up.
+  rejected_ambiguous_cases: []
+  coverage_gaps:
+  - No screenshot or real desktop-session verification is performed by this fixture.
+  - Font and scaling feedback loops are not represented because the candidate schema
+    has no dedicated font/scaling request fields.
+  - Wayland/X11 differences are represented indirectly through session and command-result
+    facts, not as a separate desktop enum.
+scenarios:
+- id: theme-kde-rc0-unchanged
+  category: theme
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Sweet-Dark
+    icons: ''
+    cursor: ''
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  attempted_commands:
+  - lookandfeeltool -a org.kde.sweet-dark.desktop
+  command_result:
+    rc: 0
+    stdout: Look and feel package successfully applied.
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Breeze
+      active_icons: Breeze
+      active_cursor: Breeze
+      active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+      effects: []
+  expected:
+    element_status:
+      theme: failed_to_apply
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: Command success is not enough; refreshed KDE facts still report the old
+    theme.
+- id: theme-kde-retry-kdeglobals-verifies
+  category: repair
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Breeze Dark
+    icons: ''
+    cursor: ''
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  attempted_commands:
+  - lookandfeeltool -a org.kde.breezedark.desktop
+  command_result:
+    rc: 0
+    stdout: Look and feel package successfully applied.
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Breeze Dark
+      active_icons: Breeze
+      active_cursor: Breeze
+      active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+      effects: []
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: A focused retry with KDE config and reload should be treated as a strategy
+    change, then verified against refreshed facts.
+- id: theme-gnome-persisted-unverified
+  category: theme
+  desktop:
+    environment: gnome
+    has_gui_session: unknown
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Adwaita-dark
+    icons: ''
+    cursor: ''
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/current.jpg
+    effects: []
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface gtk-theme Adwaita-dark
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Adwaita-dark
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/current.jpg
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Adwaita-dark
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/current.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: persisted_but_not_live_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: The requested GNOME setting is read back, but the active session state
+    is unknown so visual application is not fully proven.
+- id: theme-gnome-asset-missing
+  category: theme
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Nordic
+    icons: ''
+    cursor: ''
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Yaru
+    active_icons: Yaru
+    active_cursor: Yaru
+    active_wallpaper: /usr/share/backgrounds/warty-final-ubuntu.png
+    effects: []
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface gtk-theme Nordic
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Yaru
+    active_icons: Yaru
+    active_cursor: Yaru
+    active_wallpaper: /usr/share/backgrounds/warty-final-ubuntu.png
+    effects: []
+  repair_result:
+    action: install_asset
+    facts_after_repair:
+      active_theme: Nordic
+      active_icons: Yaru
+      active_cursor: Yaru
+      active_wallpaper: /usr/share/backgrounds/warty-final-ubuntu.png
+      effects: []
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: The first attempt leaves facts unchanged because the asset is missing;
+    installing the asset and reapplying should verify the theme.
+- id: theme-xfce-applied-verified
+  category: theme
+  desktop:
+    environment: xfce
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Greybird-dark
+    icons: ''
+    cursor: ''
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+    effects: []
+  attempted_commands:
+  - xfconf-query -c xsettings -p /Net/ThemeName -s Greybird-dark
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Greybird-dark
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Greybird-dark
+      active_icons: elementary-xfce
+      active_cursor: Adwaita
+      active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: none
+  rationale: The post-command facts exactly match the requested XFCE theme.
+- id: theme-xfce-persisted-not-live
+  category: theme
+  desktop:
+    environment: xfce
+    has_gui_session: unknown
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Matcha-dark-azul
+    icons: ''
+    cursor: ''
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-stripes.png
+    effects: []
+  attempted_commands:
+  - xfconf-query -c xsettings -p /Net/ThemeName -s Matcha-dark-azul
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Matcha-dark-azul
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-stripes.png
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Matcha-dark-azul
+      active_icons: elementary-xfce
+      active_cursor: Adwaita
+      active_wallpaper: /usr/share/backgrounds/xfce/xfce-stripes.png
+      effects: []
+  expected:
+    element_status:
+      theme: persisted_but_not_live_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: The setting is persisted and readable, but the harness cannot prove all
+    XFCE components picked it up live.
+- id: theme-kde-command-on-gnome
+  category: wrong_de
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Breeze-Dark
+    icons: ''
+    cursor: ''
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/desert.png
+    effects: []
+  attempted_commands:
+  - lookandfeeltool -a org.kde.breezedark.desktop
+  command_result:
+    rc: 0
+    stdout: Look and feel package successfully applied.
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/desert.png
+    effects: []
+  repair_result:
+    action: switch_de_strategy
+    facts_after_repair:
+      active_theme: Breeze-Dark
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/desert.png
+      effects: []
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: A KDE tool is the wrong strategy for GNOME; the feedback loop should
+    switch DE strategy rather than trust the successful command.
+- id: theme-no-session-live-gnome
+  category: no_session
+  desktop:
+    environment: gnome
+    has_gui_session: false
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Arc-Dark
+    icons: ''
+    cursor: ''
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: unknown
+    effects: []
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface gtk-theme Arc-Dark
+  command_result:
+    rc: 1
+    stdout: ''
+    stderr: Cannot autolaunch D-Bus without X11 $DISPLAY
+  facts_after_attempt:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: unknown
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: unknown
+      active_icons: unknown
+      active_cursor: unknown
+      active_wallpaper: unknown
+      effects: []
+  expected:
+    element_status:
+      theme: no_active_gui_session
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: Without a GUI session, the harness should not claim live theme success.
+- id: theme-wrong-user-root-gsettings
+  category: wrong_user
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: WhiteSur-Dark
+    icons: ''
+    cursor: ''
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/default.jpg
+    effects: []
+  attempted_commands:
+  - sudo gsettings set org.gnome.desktop.interface gtk-theme WhiteSur-Dark
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/default.jpg
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/default.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: wrong_user_or_session
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: blocked
+  rationale: A root-scoped settings write must not be counted as target-user theme
+    verification.
+- id: wallpaper-kde-missing-asset
+  category: wallpaper
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: ''
+    wallpaper: /home/quickhatch/Pictures/wallpapers/aurora.png
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/wallpapers/old.png
+    effects: []
+  attempted_commands:
+  - plasma-apply-wallpaperimage /home/quickhatch/Pictures/wallpapers/aurora.png
+  command_result:
+    rc: 1
+    stdout: ''
+    stderr: The file does not exist.
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/wallpapers/old.png
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Breeze
+      active_icons: Breeze
+      active_cursor: Breeze
+      active_wallpaper: /home/quickhatch/Pictures/wallpapers/old.png
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: asset_missing
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: The wallpaper path is missing, so neither command success nor repair
+    can verify the requested asset.
+- id: wallpaper-gnome-rc0-unchanged
+  category: wallpaper
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: ''
+    wallpaper: /home/quickhatch/Pictures/night-sky.jpg
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/daylight.jpg
+    effects: []
+  attempted_commands:
+  - gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/night-sky.jpg
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/daylight.jpg
+    effects: []
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/daylight.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: failed_to_apply
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: The GNOME command returned success, but both initial and retry facts
+    show the wallpaper stayed unchanged.
+- id: wallpaper-xfce-no-session-live-only
+  category: no_session
+  desktop:
+    environment: xfce
+    has_gui_session: false
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: ''
+    wallpaper: /home/quickhatch/Pictures/forest.png
+    effects: []
+  facts_before:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: ''
+    effects: []
+  attempted_commands:
+  - xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image
+    -s /home/quickhatch/Pictures/forest.png
+  command_result:
+    rc: 1
+    stdout: ''
+    stderr: Cannot open display.
+  facts_after_attempt:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: ''
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: Greybird
+      active_icons: elementary-xfce
+      active_cursor: Adwaita
+      active_wallpaper: ''
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: no_active_gui_session
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: Live XFCE wallpaper application cannot be verified without an active
+    desktop session.
+- id: wallpaper-kde-persisted-not-live
+  category: wallpaper
+  desktop:
+    environment: kde
+    has_gui_session: false
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: ''
+    wallpaper: /home/quickhatch/Pictures/minimal.png
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze-Dark
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/previous.png
+    effects: []
+  attempted_commands:
+  - kwriteconfig6 --file /home/quickhatch/.config/plasma-org.kde.plasma.desktop-appletsrc
+    --group Containments --group 1 --group Wallpaper --group org.kde.image --group
+    General --key Image file:///home/quickhatch/Pictures/minimal.png
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze-Dark
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/previous.png
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Breeze
+      active_icons: Breeze-Dark
+      active_cursor: Breeze
+      active_wallpaper: /home/quickhatch/Pictures/previous.png
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: persisted_but_not_live_verified
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: KDE config was persisted, but no active Plasma session exists to verify
+    the visual wallpaper.
+- id: wallpaper-gnome-wrong-user-root
+  category: wrong_user
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: ''
+    wallpaper: /home/quickhatch/Pictures/canyon.jpg
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/current.jpg
+    effects: []
+  attempted_commands:
+  - sudo -u root gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/canyon.jpg
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/current.jpg
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/current.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: wrong_user_or_session
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: The command targeted root instead of the target user's GNOME session.
+- id: wallpaper-xfce-retry-detected-monitor
+  category: repair
+  desktop:
+    environment: xfce
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: ''
+    wallpaper: /home/quickhatch/Pictures/lake.jpg
+    effects: []
+  facts_before:
+    active_theme: Greybird
+    active_icons: Papirus
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/old-lake.jpg
+    effects: []
+  attempted_commands:
+  - xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitorHDMI-1/workspace0/last-image
+    -s /home/quickhatch/Pictures/lake.jpg
+  command_result:
+    rc: 1
+    stdout: ''
+    stderr: Property does not exist.
+  facts_after_attempt:
+    active_theme: Greybird
+    active_icons: Papirus
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/old-lake.jpg
+    effects: []
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Greybird
+      active_icons: Papirus
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/lake.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: applied_and_verified
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: A focused repair discovered the correct XFCE monitor property and verified
+    the requested wallpaper.
+- id: wallpaper-kde-retry-still-unchanged
+  category: repair
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: ''
+    wallpaper: /home/quickhatch/Pictures/mountains.png
+    effects: []
+  facts_before:
+    active_theme: Breeze Dark
+    active_icons: Breeze-Dark
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/default.png
+    effects: []
+  attempted_commands:
+  - plasma-apply-wallpaperimage /home/quickhatch/Pictures/mountains.png
+  command_result:
+    rc: 0
+    stdout: Done
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Breeze Dark
+    active_icons: Breeze-Dark
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/default.png
+    effects: []
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Breeze Dark
+      active_icons: Breeze-Dark
+      active_cursor: Breeze
+      active_wallpaper: /home/quickhatch/Pictures/default.png
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: failed_to_apply
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: Both initial apply and retry leave KDE wallpaper facts unchanged.
+- id: wallpaper-unknown-de-gnome-command
+  category: wrong_de
+  desktop:
+    environment: unknown
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: ''
+    wallpaper: /home/quickhatch/Pictures/abstract.jpg
+    effects: []
+  facts_before:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: /home/quickhatch/Pictures/existing.jpg
+    effects: []
+  attempted_commands:
+  - gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/abstract.jpg
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: /home/quickhatch/Pictures/existing.jpg
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: unknown
+      active_icons: unknown
+      active_cursor: unknown
+      active_wallpaper: /home/quickhatch/Pictures/existing.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: wrong_desktop_environment
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: With unknown desktop facts, a GNOME-specific wallpaper command must not
+    be trusted.
+- id: wallpaper-gnome-dark-uri-only-warning
+  category: final_audit
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: ''
+    wallpaper: /home/quickhatch/Pictures/dunes.jpg
+    effects: []
+  facts_before:
+    active_theme: Adwaita-dark
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/city.jpg
+    effects: []
+  attempted_commands:
+  - gsettings set org.gnome.desktop.background picture-uri-dark file:///home/quickhatch/Pictures/dunes.jpg
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Adwaita-dark
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/dunes.jpg
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Adwaita-dark
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/dunes.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: applied_and_verified
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: The active dark-mode wallpaper is verified, but the light-mode wallpaper
+    key may remain unchanged.
+- id: wallpaper-xfce-file-uri-missing-after-repair
+  category: repair
+  desktop:
+    environment: xfce
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: ''
+    wallpaper: file:///home/quickhatch/Pictures/sea.png
+    effects: []
+  facts_before:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/plain.png
+    effects: []
+  attempted_commands:
+  - xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image
+    -s file:///home/quickhatch/Pictures/sea.png
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/plain.png
+    effects: []
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Greybird
+      active_icons: elementary-xfce
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/plain.png
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: asset_missing
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: The normalized XFCE wallpaper path still cannot be verified because the
+    requested asset is missing.
+- id: icons-kde-rc0-still-breeze
+  category: icons
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: Tela-circle
+    cursor: ''
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  attempted_commands:
+  - plasma-apply-icons Tela-circle
+  command_result:
+    rc: 0
+    stdout: Icon theme set to Tela-circle
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Breeze
+      active_icons: Breeze
+      active_cursor: Breeze
+      active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: failed_to_apply
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: Stdout claims success, but refreshed icon facts still show the old KDE
+    icon theme.
+- id: icons-gnome-install-asset-repair
+  category: repair
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: Papirus
+    cursor: ''
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+    effects: []
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface icon-theme Papirus
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+    effects: []
+  repair_result:
+    action: install_asset
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Papirus
+      active_cursor: Adwaita
+      active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: applied_and_verified
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: The first attempt exposes a missing icon asset; install_asset repair
+    makes the requested icon theme observable.
+- id: icons-xfce-fail-cursor-succeeds
+  category: icons
+  desktop:
+    environment: xfce
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: Papirus-Dark
+    cursor: Bibata-Modern-Classic
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+    effects: []
+  attempted_commands:
+  - xfconf-query -c xsettings -p /Net/IconThemeName -s Papirus-Dark
+  - xfconf-query -c xsettings -p /Gtk/CursorThemeName -s Bibata-Modern-Classic
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Bibata-Modern-Classic
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Greybird
+      active_icons: elementary-xfce
+      active_cursor: Bibata-Modern-Classic
+      active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: failed_to_apply
+      cursor: applied_and_verified
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: The feedback loop should isolate icon failure from cursor success in
+    the same command group.
+- id: cursor-gnome-asset-missing
+  category: cursor
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: Bibata-Modern-Ice
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+    effects: []
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface cursor-theme Bibata-Modern-Ice
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: asset_missing
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: GNOME accepts arbitrary cursor-theme strings, so verification must catch
+    missing assets.
+- id: cursor-xfce-persisted-not-live
+  category: cursor
+  desktop:
+    environment: xfce
+    has_gui_session: unknown
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: DMZ-White
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-stripes.png
+    effects: []
+  attempted_commands:
+  - xfconf-query -c xsettings -p /Gtk/CursorThemeName -s DMZ-White
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-stripes.png
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Greybird
+      active_icons: elementary-xfce
+      active_cursor: Adwaita
+      active_wallpaper: /usr/share/backgrounds/xfce/xfce-stripes.png
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: persisted_but_not_live_verified
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: The setting may be persisted while the running XFCE cursor remains unchanged
+    until a new session.
+- id: cursor-kde-gnome-command-wrong-de
+  category: wrong_de
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: Breeze_Snow
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface cursor-theme Breeze_Snow
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  repair_result:
+    action: switch_de_strategy
+    facts_after_repair:
+      active_theme: Breeze
+      active_icons: Breeze
+      active_cursor: Breeze_Snow
+      active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: applied_and_verified
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: The repair should switch from GNOME gsettings to a KDE cursor strategy
+    and then verify the cursor.
+- id: icons-cursor-unknown-de
+  category: wrong_de
+  desktop:
+    environment: unknown
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: Yaru
+    cursor: Yaru
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: unknown
+    effects: []
+  attempted_commands: []
+  command_result:
+    rc: 1
+    stdout: ''
+    stderr: Unable to determine desktop environment
+  facts_after_attempt:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: unknown
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: unknown
+      active_icons: unknown
+      active_cursor: unknown
+      active_wallpaper: unknown
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: wrong_desktop_environment
+      cursor: wrong_desktop_environment
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: Unknown desktop facts should prevent the harness from guessing icon/cursor
+    command families.
+- id: icons-cursor-no-session-gnome
+  category: no_session
+  desktop:
+    environment: gnome
+    has_gui_session: false
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: Numix-Circle
+    cursor: Bibata-Modern-Ice
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+    effects: []
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface icon-theme Numix-Circle
+  - gsettings set org.gnome.desktop.interface cursor-theme Bibata-Modern-Ice
+  command_result:
+    rc: 1
+    stdout: ''
+    stderr: Cannot autolaunch D-Bus without X11 $DISPLAY
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /usr/share/backgrounds/gnome/adwaita-l.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: no_active_gui_session
+      cursor: no_active_gui_session
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: GNOME icon/cursor live writes require a target-user session bus.
+- id: kde-icons-applied-cursor-missing
+  category: cursor
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: Papirus-Dark
+    cursor: Catppuccin-Mocha-Dark-Cursors
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  attempted_commands:
+  - plasma-apply-icons Papirus-Dark
+  - plasma-apply-cursortheme Catppuccin-Mocha-Dark-Cursors
+  command_result:
+    rc: 1
+    stdout: Icon theme set to Papirus-Dark
+    stderr: Cursor theme Catppuccin-Mocha-Dark-Cursors not found
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Papirus-Dark
+    active_cursor: Breeze
+    active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+    effects: []
+  repair_result:
+    action: install_asset
+    facts_after_repair:
+      active_theme: Breeze
+      active_icons: Papirus-Dark
+      active_cursor: Breeze
+      active_wallpaper: /usr/share/wallpapers/Next/contents/images/1920x1080.png
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: applied_and_verified
+      cursor: asset_missing
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: Partial success must preserve the verified icon state while flagging
+    the cursor asset as missing.
+- id: icons-cursor-xfce-wrong-user-root
+  category: wrong_user
+  desktop:
+    environment: xfce
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: Papirus
+    cursor: DMZ-Black
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+    effects: []
+  attempted_commands:
+  - sudo -u root xfconf-query -c xsettings -p /Net/IconThemeName -s Papirus
+  - sudo -u root xfconf-query -c xsettings -p /Gtk/CursorThemeName -s DMZ-Black
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: Greybird
+      active_icons: elementary-xfce
+      active_cursor: Adwaita
+      active_wallpaper: /usr/share/backgrounds/xfce/xfce-blue.jpg
+      effects: []
+  expected:
+    element_status:
+      theme: not_requested
+      icons: wrong_user_or_session
+      cursor: wrong_user_or_session
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: Root-scoped XFCE settings must not be treated as target-user icon/cursor
+    success.
+- id: wrong-session-root-theme-target-user-unchanged
+  category: wrong_user
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Adwaita-dark
+    icons: ''
+    cursor: ''
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Yaru
+    active_icons: Yaru
+    active_cursor: Yaru
+    active_wallpaper: /home/quickhatch/Pictures/current.jpg
+    effects:
+    - animations_enabled
+  attempted_commands:
+  - HOME=/root gsettings set org.gnome.desktop.interface gtk-theme Adwaita-dark
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Yaru
+    active_icons: Yaru
+    active_cursor: Yaru
+    active_wallpaper: /home/quickhatch/Pictures/current.jpg
+    effects:
+    - animations_enabled
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Adwaita-dark
+      active_icons: Yaru
+      active_cursor: Yaru
+      active_wallpaper: /home/quickhatch/Pictures/current.jpg
+      effects:
+      - animations_enabled
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: The original command wrote root preferences; repair must rerun against
+    the target user's session before claiming success.
+- id: wrong-session-stale-dbus-icons
+  category: wrong_user
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: Papirus-Dark
+    cursor: ''
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/wall.jpg
+    effects:
+    - animations_enabled
+  attempted_commands:
+  - DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1002/bus gsettings set org.gnome.desktop.interface
+    icon-theme Papirus-Dark
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/wall.jpg
+    effects:
+    - animations_enabled
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Papirus-Dark
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/wall.jpg
+      effects:
+      - animations_enabled
+  expected:
+    element_status:
+      theme: not_requested
+      icons: applied_and_verified
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: A stale or unrelated session bus can make a command succeed without mutating
+    the active target session.
+- id: wrong-session-display-owner-cursor
+  category: wrong_user
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: Bibata-Modern-Ice
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/desktop.jpg
+    effects:
+    - animations_enabled
+  attempted_commands:
+  - DISPLAY=:0 XAUTHORITY=/home/other/.Xauthority gsettings set org.gnome.desktop.interface
+    cursor-theme Bibata-Modern-Ice
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/desktop.jpg
+    effects:
+    - animations_enabled
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/desktop.jpg
+      effects:
+      - animations_enabled
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: wrong_user_or_session
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: blocked
+  rationale: A DISPLAY/XAUTHORITY mismatch risks mutating another user's session and
+    must not be treated as verified cursor success.
+- id: wrong-session-no-active-gnome-wallpaper
+  category: no_session
+  desktop:
+    environment: gnome
+    has_gui_session: false
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: ''
+    wallpaper: /home/quickhatch/Pictures/new-wallpaper.jpg
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/old-wallpaper.jpg
+    effects:
+    - animations_enabled
+  attempted_commands:
+  - gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/new-wallpaper.jpg
+  command_result:
+    rc: 1
+    stdout: ''
+    stderr: Cannot autolaunch D-Bus without X11 $DISPLAY
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/old-wallpaper.jpg
+    effects:
+    - animations_enabled
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/old-wallpaper.jpg
+      effects:
+      - animations_enabled
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: no_active_gui_session
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: Wallpaper changes need a live session to verify; no-session state should
+    become explicit follow-up.
+- id: wrong-de-gnome-command-on-kde-theme
+  category: wrong_de
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Breeze-Dark
+    icons: ''
+    cursor: ''
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/kde.jpg
+    effects:
+    - blur_enabled
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface gtk-theme Breeze-Dark
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/kde.jpg
+    effects:
+    - blur_enabled
+  repair_result:
+    action: switch_de_strategy
+    facts_after_repair:
+      active_theme: Breeze-Dark
+      active_icons: Breeze
+      active_cursor: Breeze
+      active_wallpaper: /home/quickhatch/Pictures/kde.jpg
+      effects:
+      - blur_enabled
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: A GNOME command on KDE can return success while the Plasma theme remains
+    unchanged.
+- id: wrong-de-kde-effects-on-gnome
+  category: wrong_de
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: ''
+    wallpaper: ''
+    effects:
+    - animations_disabled
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/gnome.jpg
+    effects:
+    - animations_enabled
+  attempted_commands:
+  - kwriteconfig6 --file kwinrc --group Plugins --key blurEnabled false
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/gnome.jpg
+    effects:
+    - animations_enabled
+  repair_result:
+    action: switch_de_strategy
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/gnome.jpg
+      effects:
+      - animations_disabled
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: applied_and_verified
+    final_status_effect: success_with_warnings
+  rationale: KWin config should not be treated as GNOME effects verification; repair
+    must switch strategy.
+- id: wrong-de-unknown-theme-icons
+  category: wrong_de
+  desktop:
+    environment: unknown
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Nord-Dark
+    icons: Nordzy
+    cursor: ''
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: unknown
+    effects: []
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface gtk-theme Nord-Dark
+  - gsettings set org.gnome.desktop.interface icon-theme Nordzy
+  command_result:
+    rc: 1
+    stdout: ''
+    stderr: Desktop environment could not be determined
+  facts_after_attempt:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: unknown
+    effects: []
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: unknown
+      active_icons: unknown
+      active_cursor: unknown
+      active_wallpaper: unknown
+      effects: []
+  expected:
+    element_status:
+      theme: wrong_desktop_environment
+      icons: wrong_desktop_environment
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: manual_followup_required
+  rationale: Unknown desktop facts should force honest follow-up instead of guessed
+    design commands.
+- id: wrong-session-kde-effects-no-session
+  category: no_session
+  desktop:
+    environment: kde
+    has_gui_session: false
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: ''
+    wallpaper: ''
+    effects:
+    - blur_disabled
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/plasma.jpg
+    effects:
+    - blur_enabled
+  attempted_commands:
+  - qdbus org.kde.KWin /KWin reconfigure
+  command_result:
+    rc: 1
+    stdout: ''
+    stderr: Could not connect to D-Bus server
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/plasma.jpg
+    effects:
+    - blur_enabled
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Breeze
+      active_icons: Breeze
+      active_cursor: Breeze
+      active_wallpaper: /home/quickhatch/Pictures/plasma.jpg
+      effects:
+      - blur_enabled
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: no_active_gui_session
+    final_status_effect: manual_followup_required
+  rationale: KWin live effects cannot be verified when only a login manager or no
+    GUI session is available.
+- id: wrong-session-final-audit-root-wallpaper-repair
+  category: final_audit
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: ''
+    wallpaper: /home/quickhatch/Pictures/aurora.jpg
+    effects: []
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/plain.jpg
+    effects:
+    - animations_enabled
+  attempted_commands:
+  - sudo -u root gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/aurora.jpg
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/plain.jpg
+    effects:
+    - animations_enabled
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/aurora.jpg
+      effects:
+      - animations_enabled
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: applied_and_verified
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: Final audit should reject root-scoped wallpaper success until target-user
+    facts verify the requested wallpaper.
+- id: wrong-de-kde-cursor-repair
+  category: repair
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: ''
+    icons: ''
+    cursor: Bibata-Modern-Classic
+    wallpaper: ''
+    effects: []
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/start.jpg
+    effects:
+    - blur_enabled
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface cursor-theme Bibata-Modern-Classic
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/start.jpg
+    effects:
+    - blur_enabled
+  repair_result:
+    action: switch_de_strategy
+    facts_after_repair:
+      active_theme: Breeze
+      active_icons: Breeze
+      active_cursor: Bibata-Modern-Classic
+      active_wallpaper: /home/quickhatch/Pictures/start.jpg
+      effects:
+      - blur_enabled
+  expected:
+    element_status:
+      theme: not_requested
+      icons: not_requested
+      cursor: applied_and_verified
+      wallpaper: not_requested
+      effects: not_requested
+    final_status_effect: success_with_warnings
+  rationale: A wrong-DE cursor attempt should trigger a KDE-specific repair, not an
+    identical retry.
+- id: repair-gnome-theme-effects-retry
+  category: repair
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Nordic-darker
+    icons: Tela-circle
+    cursor: Bibata-Modern-Ice
+    wallpaper: /home/quickhatch/Pictures/aurora.png
+    effects:
+    - animations_enabled
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/default.png
+    effects:
+    - animations_disabled
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface gtk-theme Nordic-darker
+  - gsettings set org.gnome.desktop.interface icon-theme Tela-circle
+  - gsettings set org.gnome.desktop.interface cursor-theme Bibata-Modern-Ice
+  - gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/aurora.png
+  - gsettings set org.gnome.desktop.interface enable-animations true
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Tela-circle
+    active_cursor: Bibata-Modern-Ice
+    active_wallpaper: /home/quickhatch/Pictures/aurora.png
+    effects:
+    - animations_enabled
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Nordic-darker
+      active_icons: Tela-circle
+      active_cursor: Bibata-Modern-Ice
+      active_wallpaper: /home/quickhatch/Pictures/aurora.png
+      effects:
+      - animations_enabled
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: applied_and_verified
+      cursor: applied_and_verified
+      wallpaper: applied_and_verified
+      effects: applied_and_verified
+    final_status_effect: none
+  rationale: Only theme lagged after the initial apply, so retry_apply should target
+    the mismatch and final audit should accept all elements after refresh.
+- id: repair-install-missing-cursor-only
+  category: cursor
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Yaru-dark
+    icons: Papirus-Dark
+    cursor: Catppuccin-Mocha-Dark-Cursors
+    wallpaper: /home/quickhatch/Pictures/night-city.jpg
+    effects:
+    - animations_enabled
+  facts_before:
+    active_theme: Yaru
+    active_icons: Yaru
+    active_cursor: Yaru
+    active_wallpaper: /home/quickhatch/Pictures/default.jpg
+    effects:
+    - animations_enabled
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface gtk-theme Yaru-dark
+  - gsettings set org.gnome.desktop.interface icon-theme Papirus-Dark
+  - gsettings set org.gnome.desktop.interface cursor-theme Catppuccin-Mocha-Dark-Cursors
+  - gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/night-city.jpg
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: Cursor theme Catppuccin-Mocha-Dark-Cursors not found in index.theme search
+      path
+  facts_after_attempt:
+    active_theme: Yaru-dark
+    active_icons: Papirus-Dark
+    active_cursor: Yaru
+    active_wallpaper: /home/quickhatch/Pictures/night-city.jpg
+    effects:
+    - animations_enabled
+  repair_result:
+    action: install_asset
+    facts_after_repair:
+      active_theme: Yaru-dark
+      active_icons: Papirus-Dark
+      active_cursor: Catppuccin-Mocha-Dark-Cursors
+      active_wallpaper: /home/quickhatch/Pictures/night-city.jpg
+      effects:
+      - animations_enabled
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: applied_and_verified
+      cursor: applied_and_verified
+      wallpaper: applied_and_verified
+      effects: applied_and_verified
+    final_status_effect: none
+  rationale: The repair should install only the missing cursor asset while preserving
+    completed theme/icons/wallpaper state.
+- id: repair-switch-de-kde-after-gnome-strategy
+  category: wrong_de
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Breeze Dark
+    icons: Papirus-Dark
+    cursor: Breeze_Snow
+    wallpaper: /home/quickhatch/Pictures/mountain.png
+    effects:
+    - animations_enabled
+    - blur_enabled
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/plasma-default.png
+    effects:
+    - animations_disabled
+    - blur_disabled
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface gtk-theme 'Breeze Dark'
+  - gsettings set org.gnome.desktop.interface icon-theme Papirus-Dark
+  - gsettings set org.gnome.desktop.interface cursor-theme Breeze_Snow
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/plasma-default.png
+    effects:
+    - animations_disabled
+    - blur_disabled
+  repair_result:
+    action: switch_de_strategy
+    facts_after_repair:
+      active_theme: Breeze Dark
+      active_icons: Papirus-Dark
+      active_cursor: Breeze_Snow
+      active_wallpaper: /home/quickhatch/Pictures/mountain.png
+      effects:
+      - animations_enabled
+      - blur_enabled
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: applied_and_verified
+      cursor: applied_and_verified
+      wallpaper: applied_and_verified
+      effects: applied_and_verified
+    final_status_effect: none
+  rationale: Wrong-DE commands should lead to a strategy switch and then a full desired-vs-observed
+    refresh.
+- id: final-audit-gnome-blur-manual-followup
+  category: effects
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Adwaita-dark
+    icons: Papirus
+    cursor: Adwaita
+    wallpaper: /home/quickhatch/Pictures/minimal-blue.png
+    effects:
+    - animations_enabled
+    - blur_enabled
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/default.png
+    effects:
+    - animations_disabled
+    - blur_disabled
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface color-scheme prefer-dark
+  - gsettings set org.gnome.desktop.interface icon-theme Papirus
+  - gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/minimal-blue.png
+  - gsettings set org.gnome.desktop.interface enable-animations true
+  - gnome-extensions enable blur-my-shell@aunetx
+  command_result:
+    rc: 1
+    stdout: ''
+    stderr: Extension blur-my-shell@aunetx is not installed
+  facts_after_attempt:
+    active_theme: Adwaita-dark
+    active_icons: Papirus
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/minimal-blue.png
+    effects:
+    - animations_enabled
+    - blur_disabled
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: Adwaita-dark
+      active_icons: Papirus
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/minimal-blue.png
+      effects:
+      - animations_enabled
+      - blur_disabled
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: applied_and_verified
+      cursor: applied_and_verified
+      wallpaper: applied_and_verified
+      effects: manual_followup_required
+    final_status_effect: manual_followup_required
+  rationale: Most elements verify, but unavailable blur support should survive final
+    audit as an exact effects follow-up.
+- id: final-audit-xfce-icons-persisted-only
+  category: final_audit
+  desktop:
+    environment: xfce
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Greybird-dark
+    icons: Papirus
+    cursor: DMZ-White
+    wallpaper: /home/quickhatch/Pictures/forest.jpg
+    effects:
+    - animations_disabled
+  facts_before:
+    active_theme: Greybird
+    active_icons: elementary-xfce
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/xfce-default.jpg
+    effects:
+    - animations_enabled
+  attempted_commands:
+  - xfconf-query -c xsettings -p /Net/ThemeName -s Greybird-dark
+  - xfconf-query -c xsettings -p /Net/IconThemeName -s Papirus
+  - xfconf-query -c xsettings -p /Gtk/CursorThemeName -s DMZ-White
+  - xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image
+    -s /home/quickhatch/Pictures/forest.jpg
+  - xfconf-query -c xfwm4 -p /general/use_compositing -s false
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Greybird-dark
+    active_icons: elementary-xfce
+    active_cursor: DMZ-White
+    active_wallpaper: /home/quickhatch/Pictures/forest.jpg
+    effects:
+    - animations_disabled
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Greybird-dark
+      active_icons: elementary-xfce
+      active_cursor: DMZ-White
+      active_wallpaper: /home/quickhatch/Pictures/forest.jpg
+      effects:
+      - animations_disabled
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: persisted_but_not_live_verified
+      cursor: applied_and_verified
+      wallpaper: applied_and_verified
+      effects: applied_and_verified
+    final_status_effect: success_with_warnings
+  rationale: No further repair is required, but final audit should avoid plain success
+    because icon live refresh is unverified.
+- id: repair-wrong-user-whole-design
+  category: wrong_user
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: WhiteSur-Dark
+    icons: WhiteSur-dark
+    cursor: Bibata-Modern-Classic
+    wallpaper: /home/quickhatch/Pictures/sunset.jpg
+    effects:
+    - animations_enabled
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/default.jpg
+    effects:
+    - animations_disabled
+  attempted_commands:
+  - sudo gsettings set org.gnome.desktop.interface gtk-theme WhiteSur-Dark
+  - sudo gsettings set org.gnome.desktop.interface icon-theme WhiteSur-dark
+  - sudo gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/sunset.jpg
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/default.jpg
+    effects:
+    - animations_disabled
+  repair_result:
+    action: manual_followup
+    facts_after_repair:
+      active_theme: Adwaita
+      active_icons: Adwaita
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/default.jpg
+      effects:
+      - animations_disabled
+  expected:
+    element_status:
+      theme: wrong_user_or_session
+      icons: wrong_user_or_session
+      cursor: wrong_user_or_session
+      wallpaper: wrong_user_or_session
+      effects: wrong_user_or_session
+    final_status_effect: blocked
+  rationale: Root-scoped design commands leave every target-user element unchanged
+    and must block or require explicit session-correct follow-up.
+- id: final-audit-no-active-gui-all-elements
+  category: no_session
+  desktop:
+    environment: gnome
+    has_gui_session: false
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Arc-Dark
+    icons: Papirus-Dark
+    cursor: Bibata-Modern-Ice
+    wallpaper: /home/quickhatch/Pictures/space.png
+    effects:
+    - animations_enabled
+  facts_before:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: unknown
+    effects: []
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface gtk-theme Arc-Dark
+  - gsettings set org.gnome.desktop.interface icon-theme Papirus-Dark
+  - gsettings set org.gnome.desktop.interface cursor-theme Bibata-Modern-Ice
+  command_result:
+    rc: 1
+    stdout: ''
+    stderr: Cannot autolaunch D-Bus without X11 $DISPLAY
+  facts_after_attempt:
+    active_theme: unknown
+    active_icons: unknown
+    active_cursor: unknown
+    active_wallpaper: unknown
+    effects: []
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: unknown
+      active_icons: unknown
+      active_cursor: unknown
+      active_wallpaper: unknown
+      effects: []
+  expected:
+    element_status:
+      theme: no_active_gui_session
+      icons: no_active_gui_session
+      cursor: no_active_gui_session
+      wallpaper: no_active_gui_session
+      effects: no_active_gui_session
+    final_status_effect: manual_followup_required
+  rationale: Final audit must not infer visual success when no active GUI session
+    can provide design facts.
+- id: repair-effects-only-retry
+  category: effects
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Breeze Dark
+    icons: Breeze-Dark
+    cursor: Breeze_Snow
+    wallpaper: /home/quickhatch/Pictures/lake.jpg
+    effects:
+    - wobbly_windows_enabled
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/default.jpg
+    effects:
+    - wobbly_windows_disabled
+  attempted_commands:
+  - kwriteconfig6 --file kwinrc --group Plugins --key wobblywindowsEnabled true
+  - qdbus org.kde.KWin /KWin reconfigure
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Breeze Dark
+    active_icons: Breeze-Dark
+    active_cursor: Breeze_Snow
+    active_wallpaper: /home/quickhatch/Pictures/lake.jpg
+    effects:
+    - wobbly_windows_disabled
+  repair_result:
+    action: retry_apply
+    facts_after_repair:
+      active_theme: Breeze Dark
+      active_icons: Breeze-Dark
+      active_cursor: Breeze_Snow
+      active_wallpaper: /home/quickhatch/Pictures/lake.jpg
+      effects:
+      - wobbly_windows_enabled
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: applied_and_verified
+      cursor: applied_and_verified
+      wallpaper: applied_and_verified
+      effects: applied_and_verified
+    final_status_effect: none
+  rationale: The repair loop should target the only mismatched design element instead
+    of repeating all successful applies blindly.
+- id: repair-install-icon-asset-partial-success
+  category: icons
+  desktop:
+    environment: kde
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Sweet
+    icons: Candy-icons
+    cursor: Sweet-cursors
+    wallpaper: /home/quickhatch/Pictures/neon-grid.png
+    effects:
+    - blur_enabled
+  facts_before:
+    active_theme: Breeze
+    active_icons: Breeze
+    active_cursor: Breeze
+    active_wallpaper: /home/quickhatch/Pictures/plasma.jpg
+    effects:
+    - blur_disabled
+  attempted_commands:
+  - plasma-apply-desktoptheme Sweet
+  - plasma-apply-icons Candy-icons
+  - plasma-apply-cursortheme Sweet-cursors
+  - plasma-apply-wallpaperimage /home/quickhatch/Pictures/neon-grid.png
+  - kwriteconfig6 --file kwinrc --group Plugins --key blurEnabled true
+  command_result:
+    rc: 1
+    stdout: 'Applied desktop theme Sweet
+
+      Applied cursor theme Sweet-cursors
+
+      Applied wallpaper /home/quickhatch/Pictures/neon-grid.png'
+    stderr: Icon theme Candy-icons not found
+  facts_after_attempt:
+    active_theme: Sweet
+    active_icons: Breeze
+    active_cursor: Sweet-cursors
+    active_wallpaper: /home/quickhatch/Pictures/neon-grid.png
+    effects:
+    - blur_enabled
+  repair_result:
+    action: install_asset
+    facts_after_repair:
+      active_theme: Sweet
+      active_icons: Candy-icons
+      active_cursor: Sweet-cursors
+      active_wallpaper: /home/quickhatch/Pictures/neon-grid.png
+      effects:
+      - blur_enabled
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: applied_and_verified
+      cursor: applied_and_verified
+      wallpaper: applied_and_verified
+      effects: applied_and_verified
+    final_status_effect: none
+  rationale: Repair should preserve verified theme/cursor/wallpaper/effects while
+    installing only the missing icon asset.
+- id: final-audit-wallpaper-asset-missing-partial-success
+  category: wallpaper
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Adwaita-dark
+    icons: Papirus-Dark
+    cursor: Adwaita
+    wallpaper: /home/quickhatch/Pictures/nonexistent-final.png
+    effects:
+    - animations_enabled
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Adwaita
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/default.png
+    effects:
+    - animations_enabled
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface color-scheme prefer-dark
+  - gsettings set org.gnome.desktop.interface icon-theme Papirus-Dark
+  - gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/nonexistent-final.png
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Adwaita-dark
+    active_icons: Papirus-Dark
+    active_cursor: Adwaita
+    active_wallpaper: /home/quickhatch/Pictures/default.png
+    effects:
+    - animations_enabled
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Adwaita-dark
+      active_icons: Papirus-Dark
+      active_cursor: Adwaita
+      active_wallpaper: /home/quickhatch/Pictures/default.png
+      effects:
+      - animations_enabled
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: applied_and_verified
+      cursor: not_requested
+      wallpaper: asset_missing
+      effects: applied_and_verified
+    final_status_effect: success_with_warnings
+  rationale: Final audit should preserve verified theme/icons/effects while surfacing
+    the missing wallpaper asset.
+- id: final-audit-clean-no-repair
+  category: final_audit
+  desktop:
+    environment: gnome
+    has_gui_session: true
+    target_user: quickhatch
+    target_home: /home/quickhatch
+  request:
+    theme: Adwaita-dark
+    icons: ''
+    cursor: ''
+    wallpaper: /home/quickhatch/Pictures/plain-dark.png
+    effects:
+    - animations_disabled
+  facts_before:
+    active_theme: Adwaita
+    active_icons: Papirus
+    active_cursor: Bibata-Modern-Ice
+    active_wallpaper: /home/quickhatch/Pictures/light.png
+    effects:
+    - animations_enabled
+  attempted_commands:
+  - gsettings set org.gnome.desktop.interface color-scheme prefer-dark
+  - gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/plain-dark.png
+  - gsettings set org.gnome.desktop.interface enable-animations false
+  command_result:
+    rc: 0
+    stdout: ''
+    stderr: ''
+  facts_after_attempt:
+    active_theme: Adwaita-dark
+    active_icons: Papirus
+    active_cursor: Bibata-Modern-Ice
+    active_wallpaper: /home/quickhatch/Pictures/plain-dark.png
+    effects:
+    - animations_disabled
+  repair_result:
+    action: none
+    facts_after_repair:
+      active_theme: Adwaita-dark
+      active_icons: Papirus
+      active_cursor: Bibata-Modern-Ice
+      active_wallpaper: /home/quickhatch/Pictures/plain-dark.png
+      effects:
+      - animations_disabled
+  expected:
+    element_status:
+      theme: applied_and_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: applied_and_verified
+      effects: applied_and_verified
+    final_status_effect: none
+  rationale: A clean final audit should report success only for requested elements,
+    leaving untouched icons and cursor as not_requested.
