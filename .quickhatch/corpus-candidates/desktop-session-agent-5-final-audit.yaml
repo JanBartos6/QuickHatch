@@ -1,0 +1,474 @@
+- id: final-persisted-kde-theme-unverified
+  category: final_audit
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file kdeglobals --group General --key ColorScheme BreezeDark"
+  simulated_events:
+    - type: command_success
+      detail: "Persistent KDE color scheme config written for target user, but no active GUI session exists."
+    - type: facts_refresh
+      detail: "Desktop runtime remains pending relogin with no verified KDE color scheme signal."
+    - type: verification
+      detail: "Final audit cannot prove live visual result."
+  expected:
+    design_state:
+      theme: persisted_but_not_live_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "A requested theme persisted to config is progress, but final audit must not report plain success until verified or explicitly handed off as manual follow-up."
+
+- id: final-persisted-wallpaper-pending-login
+  category: final_audit
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/qh-wallpaper.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file plasma-org.kde.plasma.desktop-appletsrc --group Containments --group 1 --group Wallpaper --group org.kde.image --group General --key Image file:///home/quickhatch/Pictures/qh-wallpaper.jpg"
+  simulated_events:
+    - type: command_success
+      detail: "Wallpaper path persisted in KDE config."
+    - type: facts_refresh
+      detail: "No DISPLAY and no wallpaper probe result."
+    - type: verification
+      detail: "Final audit has persisted config evidence but no live wallpaper verification."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: persisted_but_not_live_verified
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "Wallpaper is user-visible and requested; persisted-only evidence should become manual follow-up rather than green success."
+
+- id: final-live-wallpaper-verified
+  category: verification
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/qh-wallpaper.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "plasma-apply-wallpaperimage /home/quickhatch/Pictures/qh-wallpaper.jpg"
+  simulated_events:
+    - type: command_success
+      detail: "Live wallpaper apply command succeeds in active GUI session."
+    - type: facts_refresh
+      detail: "KDE wallpaper probe returns /home/quickhatch/Pictures/qh-wallpaper.jpg."
+    - type: verification
+      detail: "Final audit matches requested wallpaper."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: applied_and_verified
+      effects: not_requested
+    group_status: completed
+    final_status_effect: none
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "When live apply succeeds and facts verify the requested wallpaper, final audit can treat the item as complete."
+
+- id: final-stage-manual-followup-propagates
+  category: final_audit
+  facts_profile:
+    desktop: gnome
+    has_gui_session: false
+    display: ""
+    wayland: true
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Adwaita-dark"
+    icons: "Papirus"
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "gsettings set org.gnome.desktop.interface gtk-theme Adwaita-dark"
+      - "gsettings set org.gnome.desktop.interface icon-theme Papirus"
+  simulated_events:
+    - type: command_success
+      detail: "Persistent GNOME settings were attempted without active session verification."
+    - type: verification
+      detail: "Desktop stage records manual follow-up for unverified theme and icons."
+    - type: facts_refresh
+      detail: "Final audit receives prior desktop manual-follow-up details."
+  expected:
+    design_state:
+      theme: manual_followup_required
+      icons: manual_followup_required
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "Manual follow-up created during the desktop stage must survive into final audit and support evidence."
+
+- id: final-optional-icons-unavailable-warning
+  category: cosmetic_failure
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: "NonexistentIconTheme"
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "plasma-apply-icons NonexistentIconTheme"
+  simulated_events:
+    - type: command_failure
+      detail: "Icon theme command reports theme is unavailable."
+    - type: verification
+      detail: "Final audit confirms requested icon theme was not applied but the item is cosmetic."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: unavailable
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "Unavailable optional cosmetic assets should not block core setup, but final audit must preserve the warning."
+
+- id: final-required-wallpaper-download-failed
+  category: wallpaper
+  facts_profile:
+    desktop: gnome
+    has_gui_session: true
+    display: ":0"
+    wayland: true
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/requested.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/requested.jpg"
+  simulated_events:
+    - type: command_failure
+      detail: "Wallpaper asset is missing, so command cannot apply requested image."
+    - type: facts_refresh
+      detail: "GNOME wallpaper probe still reports previous wallpaper."
+    - type: verification
+      detail: "Requested wallpaper remains unresolved."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: attempted_but_failed
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "A requested wallpaper that failed and remains unverifiable should be honest manual follow-up, not success."
+
+- id: final-effects-persisted-unverified-warning
+  category: effects
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects:
+      - "wobbly_windows"
+      - "magic_lamp"
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file kwinrc --group Plugins --key wobblywindowsEnabled true"
+      - "kwriteconfig6 --file kwinrc --group Plugins --key magiclampEnabled true"
+  simulated_events:
+    - type: command_success
+      detail: "KWin effect preferences persisted."
+    - type: facts_refresh
+      detail: "No live session is available to verify effects."
+    - type: verification
+      detail: "Final audit sees expected effect config but no live verification."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: persisted_but_not_live_verified
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "Effects are cosmetic and persistent config may be acceptable progress, but verification uncertainty should remain visible."
+
+- id: final-wrong-target-root-theme
+  category: wrong_user
+  facts_profile:
+    desktop: gnome
+    has_gui_session: true
+    display: ":0"
+    wayland: true
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Adwaita-dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "sudo gsettings set org.gnome.desktop.interface gtk-theme Adwaita-dark"
+  simulated_events:
+    - type: command_success
+      detail: "Command succeeds but writes under root/session context instead of target user quickhatch."
+    - type: facts_refresh
+      detail: "Target user's GNOME theme remains unchanged."
+    - type: verification
+      detail: "Final audit detects requested target user did not receive the setting."
+  expected:
+    design_state:
+      theme: manual_followup_required
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "A command that only affects root must not satisfy a target-user desktop request."
+
+- id: final-blocked-display-stack-not-warning
+  category: final_audit
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: "Papirus"
+    cursor: "Breeze"
+    wallpaper: "/home/quickhatch/Pictures/qh.jpg"
+    effects:
+      - "wobbly_windows"
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file kdeglobals --group General --key ColorScheme BreezeDark"
+      - "kwriteconfig6 --file kdeglobals --group Icons --key Theme Papirus"
+  simulated_events:
+    - type: command_success
+      detail: "Some persistent KDE config writes succeeded."
+    - type: facts_refresh
+      detail: "Display stack facts indicate blocked driver/display stack, not merely pending login."
+    - type: verification
+      detail: "Final audit cannot verify any requested live visual elements due to display stack blocker."
+  expected:
+    design_state:
+      theme: persisted_but_not_live_verified
+      icons: persisted_but_not_live_verified
+      cursor: manual_followup_required
+      wallpaper: manual_followup_required
+      effects: manual_followup_required
+    group_status: blocked
+    final_status_effect: blocked
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "A display stack blocker is higher severity than ordinary cosmetic uncertainty and should not be downgraded to a warning."
+
+- id: final-unknown-desktop-skips-specific-command
+  category: unknown_desktop
+  facts_profile:
+    desktop: unknown
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "lookandfeeltool --apply org.kde.breezedark.desktop"
+  simulated_events:
+    - type: verification
+      detail: "Facts cannot confirm KDE is the active desktop environment."
+    - type: command_failure
+      detail: "KDE-specific command is not appropriate for unknown desktop."
+    - type: facts_refresh
+      detail: "No verified theme change."
+  expected:
+    design_state:
+      theme: manual_followup_required
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "Wrong-environment desktop commands should not be treated as fatal install failure, but unresolved requested design work must remain visible."
+
+- id: final-support-evidence-desktop-followup
+  category: final_audit
+  facts_profile:
+    desktop: xfce
+    has_gui_session: false
+    display: ""
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Greybird"
+    icons: "Papirus"
+    cursor: "Breeze"
+    wallpaper: "/home/quickhatch/Pictures/qh.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "xfconf-query -c xsettings -p /Net/ThemeName -s Greybird"
+      - "xfconf-query -c xsettings -p /Net/IconThemeName -s Papirus"
+      - "xfconf-query -c xsettings -p /Gtk/CursorThemeName -s Breeze"
+  simulated_events:
+    - type: command_success
+      detail: "XFCE settings commands succeeded without active GUI verification."
+    - type: verification
+      detail: "Desktop stage records manual follow-up with element-specific reasons for theme, icons, cursor, and wallpaper."
+    - type: facts_refresh
+      detail: "Final audit preserves manual follow-up details for support bundle evidence."
+  expected:
+    design_state:
+      theme: persisted_but_not_live_verified
+      icons: persisted_but_not_live_verified
+      cursor: persisted_but_not_live_verified
+      wallpaper: manual_followup_required
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "Support diagnostics should include desktop element follow-up evidence so unresolved cosmetic work is actionable after export."
+
+- id: final-provider-error-preserves-prior-theme
+  category: final_audit
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: "Papirus"
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/qh.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "plasma-apply-colorscheme BreezeDark"
+      - "plasma-apply-wallpaperimage /home/quickhatch/Pictures/qh.jpg"
+  simulated_events:
+    - type: command_success
+      detail: "Theme apply succeeds and facts later verify Breeze Dark."
+    - type: provider_error
+      detail: "Provider times out while planning wallpaper repair."
+    - type: verification
+      detail: "Final audit preserves verified theme progress and reports wallpaper unresolved."
+  expected:
+    design_state:
+      theme: applied_and_verified
+      icons: manual_followup_required
+      cursor: not_requested
+      wallpaper: manual_followup_required
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "Provider failure during repair must not erase already verified desktop progress, but unresolved requested elements still require honest final status."

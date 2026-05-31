@@ -1,0 +1,897 @@
+- id: gnome-session-theme-icons-cursor-verified
+  category: gnome
+  facts_profile:
+    desktop: gnome
+    has_gui_session: true
+    display: ":0"
+    wayland: true
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Adwaita-dark"
+    icons: "Papirus-Dark"
+    cursor: "Bibata-Modern-Ice"
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'"
+      - "gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'"
+      - "gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Ice'"
+  simulated_events:
+    - type: command_success
+      detail: "GNOME gsettings commands completed in target user GUI session."
+    - type: facts_refresh
+      detail: "GNOME design facts report requested theme, icons, and cursor."
+    - type: verification
+      detail: "Requested GNOME interface settings match observed facts."
+  expected:
+    design_state:
+      theme: applied_and_verified
+      icons: applied_and_verified
+      cursor: applied_and_verified
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: completed
+    final_status_effect: none
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "GNOME design settings are applied through the target user's active GUI session and then verified from refreshed facts."
+
+- id: gnome-wallpaper-live-session-verified
+  category: wallpaper
+  facts_profile:
+    desktop: gnome
+    has_gui_session: true
+    display: ":0"
+    wayland: true
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/wallpaper.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "gsettings set org.gnome.desktop.background picture-uri 'file:///home/quickhatch/Pictures/wallpaper.jpg'"
+      - "gsettings set org.gnome.desktop.background picture-uri-dark 'file:///home/quickhatch/Pictures/wallpaper.jpg'"
+  simulated_events:
+    - type: command_success
+      detail: "Wallpaper URI commands complete in a live GNOME session."
+    - type: facts_refresh
+      detail: "GNOME wallpaper facts report the requested file URI."
+    - type: verification
+      detail: "Observed wallpaper matches requested wallpaper."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: applied_and_verified
+      effects: not_requested
+    group_status: completed
+    final_status_effect: none
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "GNOME wallpaper changes need session-aware application and are safe when verified against refreshed design facts."
+
+- id: gnome-no-gui-theme-manual-followup
+  category: no_gui_session
+  facts_profile:
+    desktop: gnome
+    has_gui_session: false
+    display: ""
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Adwaita-dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'"
+  simulated_events:
+    - type: facts_refresh
+      detail: "No DISPLAY, no Wayland display, and no active target user GUI session."
+    - type: verification
+      detail: "Theme cannot be live-applied or verified without a GUI session."
+  expected:
+    design_state:
+      theme: manual_followup_required
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "GNOME session-backed settings should not be blindly executed over SSH without an active target user GUI session."
+
+- id: gnome-wrong-kde-command-manual-followup
+  category: gnome
+  facts_profile:
+    desktop: gnome
+    has_gui_session: true
+    display: ":0"
+    wayland: true
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Adwaita-dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "lookandfeeltool -a org.kde.breezedark.desktop"
+  simulated_events:
+    - type: command_failure
+      detail: "KDE look-and-feel tool is unavailable or inappropriate on GNOME."
+    - type: facts_refresh
+      detail: "Desktop facts still report GNOME and no requested GNOME theme change."
+    - type: verification
+      detail: "Requested theme is unresolved due to wrong desktop command."
+  expected:
+    design_state:
+      theme: manual_followup_required
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: true
+    should_allow_persistent_config: false
+  rationale: "A KDE-specific command on GNOME is a model/planning mistake, not a fatal setup blocker, but the unresolved requested theme must be reported honestly."
+
+- id: gnome-root-user-gsettings-detected
+  category: wrong_user
+  facts_profile:
+    desktop: gnome
+    has_gui_session: true
+    display: ":0"
+    wayland: true
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Adwaita-dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "sudo -u root gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'"
+  simulated_events:
+    - type: verification
+      detail: "Command targets root instead of the target user quickhatch."
+    - type: facts_refresh
+      detail: "Target user's GNOME theme is unchanged."
+  expected:
+    design_state:
+      theme: manual_followup_required
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "Desktop settings must target the runtime user/home; writing root's GNOME settings should not count as applying the requested target user's design."
+
+- id: gnome-missing-wallpaper-file-warning
+  category: cosmetic_failure
+  facts_profile:
+    desktop: gnome
+    has_gui_session: true
+    display: ":0"
+    wayland: true
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/missing-wallpaper.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "gsettings set org.gnome.desktop.background picture-uri 'file:///home/quickhatch/Pictures/missing-wallpaper.jpg'"
+  simulated_events:
+    - type: command_failure
+      detail: "Wallpaper file is missing or unreadable."
+    - type: facts_refresh
+      detail: "Wallpaper facts do not report the requested file."
+    - type: verification
+      detail: "Requested wallpaper remains unresolved."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: unavailable
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "A missing cosmetic wallpaper asset should not block core setup, but the unresolved wallpaper must remain visible as a warning or follow-up."
+
+- id: gnome-provider-error-after-theme-command
+  category: verification
+  facts_profile:
+    desktop: gnome
+    has_gui_session: true
+    display: ":0"
+    wayland: true
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Adwaita-dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'"
+  simulated_events:
+    - type: command_success
+      detail: "Theme command succeeds."
+    - type: provider_error
+      detail: "Model repair/verification provider times out before producing follow-up guidance."
+    - type: facts_refresh
+      detail: "Facts refresh is unavailable or inconclusive."
+  expected:
+    design_state:
+      theme: persisted_but_not_live_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "A provider failure after a safe desktop command must not erase progress, but unverified design application should not become plain success."
+
+- id: xfce-session-theme-icons-verified
+  category: xfce
+  facts_profile:
+    desktop: xfce
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Arc-Dark"
+    icons: "Papirus-Dark"
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "xfconf-query -c xsettings -p /Net/ThemeName -s 'Arc-Dark'"
+      - "xfconf-query -c xsettings -p /Net/IconThemeName -s 'Papirus-Dark'"
+  simulated_events:
+    - type: command_success
+      detail: "XFCE settings commands complete in target user session."
+    - type: facts_refresh
+      detail: "XFCE design facts report requested theme and icon theme."
+    - type: verification
+      detail: "Observed XFCE settings match requested values."
+  expected:
+    design_state:
+      theme: applied_and_verified
+      icons: applied_and_verified
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: completed
+    final_status_effect: none
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "XFCE settings applied through xfconf should be considered successful only after refreshed facts match the requested theme and icons."
+
+- id: xfce-no-gui-persistent-theme-unverified
+  category: no_gui_session
+  facts_profile:
+    desktop: xfce
+    has_gui_session: false
+    display: ""
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Arc-Dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "xfconf-query -c xsettings -p /Net/ThemeName -s 'Arc-Dark'"
+  simulated_events:
+    - type: command_success
+      detail: "Persistent XFCE setting write is accepted without a live display."
+    - type: facts_refresh
+      detail: "No active GUI session exists, so live application cannot be verified."
+    - type: verification
+      detail: "Theme persistence is recorded, but live visual state remains unverified."
+  expected:
+    design_state:
+      theme: persisted_but_not_live_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "Safe persistent XFCE config may proceed without a live session, but the final status must disclose that live visual verification did not occur."
+
+- id: xfce-wallpaper-live-session-verified
+  category: wallpaper
+  facts_profile:
+    desktop: xfce
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/xfce-wallpaper.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s '/home/quickhatch/Pictures/xfce-wallpaper.jpg'"
+  simulated_events:
+    - type: command_success
+      detail: "XFCE wallpaper setting command succeeds."
+    - type: facts_refresh
+      detail: "XFCE wallpaper facts report requested image path."
+    - type: verification
+      detail: "Observed wallpaper path matches request."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: applied_and_verified
+      effects: not_requested
+    group_status: completed
+    final_status_effect: none
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "XFCE wallpaper should be treated as applied only after the target user's refreshed desktop facts confirm the requested path."
+
+- id: xfce-wrong-gnome-command-manual-followup
+  category: xfce
+  facts_profile:
+    desktop: xfce
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Arc-Dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "gsettings set org.gnome.desktop.interface gtk-theme 'Arc-Dark'"
+  simulated_events:
+    - type: command_failure
+      detail: "GNOME settings schema is unavailable or ineffective on XFCE."
+    - type: facts_refresh
+      detail: "XFCE theme facts do not report requested theme."
+    - type: verification
+      detail: "Requested XFCE theme remains unresolved."
+  expected:
+    design_state:
+      theme: manual_followup_required
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: true
+    should_allow_persistent_config: false
+  rationale: "A GNOME-specific command on XFCE is recoverable planning error, not a fatal setup failure, but the requested theme must not be marked complete."
+
+- id: xfce-cursor-missing-package-warning
+  category: cursor
+  facts_profile:
+    desktop: xfce
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: "Nonexistent-Cursor"
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "xfconf-query -c xsettings -p /Gtk/CursorThemeName -s 'Nonexistent-Cursor'"
+  simulated_events:
+    - type: command_failure
+      detail: "Requested cursor theme is not installed."
+    - type: facts_refresh
+      detail: "XFCE cursor facts remain unchanged."
+    - type: verification
+      detail: "Requested cursor theme cannot be verified."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: unavailable
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "Unavailable cursor assets are cosmetic failures and should not block the setup, but they must be surfaced clearly."
+
+- id: xfce-root-home-config-detected
+  category: wrong_user
+  facts_profile:
+    desktop: xfce
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Arc-Dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "HOME=/root xfconf-query -c xsettings -p /Net/ThemeName -s 'Arc-Dark'"
+  simulated_events:
+    - type: verification
+      detail: "Command uses root home instead of /home/quickhatch."
+    - type: facts_refresh
+      detail: "Target user's XFCE theme remains unchanged."
+  expected:
+    design_state:
+      theme: manual_followup_required
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "Persistent desktop writes aimed at the wrong home directory should not count as applying settings for the target user."
+
+- id: xfce-effects-request-unsupported-warning
+  category: effects
+  facts_profile:
+    desktop: xfce
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects:
+      - "wobbly_windows"
+  command_group:
+    stage: desktop
+    commands:
+      - "xfconf-query -c xfwm4 -p /general/use_compositing -s true"
+  simulated_events:
+    - type: command_success
+      detail: "XFCE compositor setting succeeds, but requested KDE-style effect is not available."
+    - type: facts_refresh
+      detail: "XFCE facts do not expose the requested wobbly windows effect."
+    - type: verification
+      detail: "Effect request cannot be verified on XFCE."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: unavailable
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "Unsupported cosmetic effects on the current desktop should degrade to warning/manual follow-up rather than block core setup."
+
+- id: unknown-desktop-gnome-command-not-fatal
+  category: unknown_desktop
+  facts_profile:
+    desktop: unknown
+    has_gui_session: true
+    display: ":0"
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Adwaita-dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'"
+  simulated_events:
+    - type: command_failure
+      detail: "Desktop is unknown, and GNOME schema may be unavailable."
+    - type: facts_refresh
+      detail: "No verified desktop design state is collected."
+    - type: verification
+      detail: "Requested theme remains unverified."
+  expected:
+    design_state:
+      theme: manual_followup_required
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "A guessed GNOME command on an unknown desktop should not fatal-block, but it also should not be treated as successful."
+
+- id: unknown-desktop-xfce-command-not-fatal
+  category: unknown_desktop
+  facts_profile:
+    desktop: unknown
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Arc-Dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "xfconf-query -c xsettings -p /Net/ThemeName -s 'Arc-Dark'"
+  simulated_events:
+    - type: command_failure
+      detail: "XFCE settings channel is unavailable on the unknown desktop."
+    - type: facts_refresh
+      detail: "No XFCE design facts are observed."
+    - type: verification
+      detail: "Requested theme is unresolved."
+  expected:
+    design_state:
+      theme: manual_followup_required
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "A desktop-specific command that cannot be matched to the detected environment should remain recoverable and honest, not fatal or falsely successful."
+
+- id: unknown-desktop-wallpaper-live-command-skipped
+  category: wallpaper
+  facts_profile:
+    desktop: unknown
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/wallpaper.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "feh --bg-fill /home/quickhatch/Pictures/wallpaper.jpg"
+  simulated_events:
+    - type: facts_refresh
+      detail: "No active GUI session and unknown desktop environment."
+    - type: verification
+      detail: "Live wallpaper command is skipped because it requires an active graphical session."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: manual_followup_required
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "Generic live wallpaper tools must not run without a graphical session; unresolved wallpaper work should become specific manual follow-up."
+
+- id: gnome-xfce-mixed-commands-isolate-failure
+  category: verification
+  facts_profile:
+    desktop: gnome
+    has_gui_session: true
+    display: ":0"
+    wayland: true
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Adwaita-dark"
+    icons: "Papirus-Dark"
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'"
+      - "xfconf-query -c xsettings -p /Net/IconThemeName -s 'Papirus-Dark'"
+  simulated_events:
+    - type: command_success
+      detail: "GNOME theme command succeeds."
+    - type: command_failure
+      detail: "XFCE icon command fails on GNOME."
+    - type: facts_refresh
+      detail: "GNOME theme is verified, icon theme remains unchanged."
+    - type: verification
+      detail: "Theme is complete; icons require follow-up."
+  expected:
+    design_state:
+      theme: applied_and_verified
+      icons: manual_followup_required
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "A wrong-desktop command for one design element should not regress a separately verified successful element."
+
+- id: xfce-partial-icons-success-wallpaper-unverified
+  category: final_audit
+  facts_profile:
+    desktop: xfce
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: "Papirus-Dark"
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/wallpaper.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "xfconf-query -c xsettings -p /Net/IconThemeName -s 'Papirus-Dark'"
+      - "xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s '/home/quickhatch/Pictures/wallpaper.jpg'"
+  simulated_events:
+    - type: command_success
+      detail: "Icon theme command succeeds and verifies."
+    - type: command_success
+      detail: "Wallpaper command reports success."
+    - type: facts_refresh
+      detail: "Icon theme is observed; wallpaper path is not visible in refreshed facts."
+    - type: verification
+      detail: "Wallpaper cannot be verified."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: applied_and_verified
+      cursor: not_requested
+      wallpaper: persisted_but_not_live_verified
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "Verified icon progress should be preserved while unverified wallpaper persistence downgrades final status away from plain success."
+
+- id: gnome-final-audit-unresolved-cursor-not-success
+  category: final_audit
+  facts_profile:
+    desktop: gnome
+    has_gui_session: true
+    display: ":0"
+    wayland: true
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: "Bibata-Modern-Ice"
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Ice'"
+  simulated_events:
+    - type: command_success
+      detail: "Cursor command reports success."
+    - type: facts_refresh
+      detail: "GNOME cursor facts remain empty or unchanged."
+    - type: verification
+      detail: "Requested cursor is not verified at final audit."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: persisted_but_not_live_verified
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "An unresolved cursor request is cosmetic but must prevent a misleading plain-success final status."
+
+- id: xfce-no-gui-live-wallpaper-manual-followup-specific
+  category: no_gui_session
+  facts_profile:
+    desktop: xfce
+    has_gui_session: false
+    display: ""
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/wallpaper.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "xfdesktop --reload"
+      - "xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -s '/home/quickhatch/Pictures/wallpaper.jpg'"
+  simulated_events:
+    - type: facts_refresh
+      detail: "No active display is available for the target user."
+    - type: verification
+      detail: "Live reload is skipped and wallpaper application requires user login."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: manual_followup_required
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "Persistent XFCE wallpaper configuration may be prepared, but live reload must not run without a session and the follow-up must name the wallpaper item."
+
+- id: gnome-dark-mode-persisted-no-live-verification
+  category: theme
+  facts_profile:
+    desktop: gnome
+    has_gui_session: unknown
+    display: unknown
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "prefer-dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'"
+  simulated_events:
+    - type: command_success
+      detail: "GNOME color-scheme setting command returns success."
+    - type: facts_refresh
+      detail: "Runtime session facts are unavailable, so live design cannot be confirmed."
+    - type: verification
+      detail: "Persistent setting is plausible but not visually verified."
+  expected:
+    design_state:
+      theme: persisted_but_not_live_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "A safe GNOME persistent color preference can be recorded, but unknown session state means final audit should avoid plain success."
+
+- id: unknown-desktop-cosmetic-request-noop-warning
+  category: cosmetic_failure
+  facts_profile:
+    desktop: unknown
+    has_gui_session: unknown
+    display: unknown
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Nordic"
+    icons: "Papirus"
+    cursor: "Bibata"
+    wallpaper: "/home/quickhatch/Pictures/wallpaper.jpg"
+    effects:
+      - "animations"
+  command_group:
+    stage: desktop
+    commands:
+      - "printf '%s\\n' 'desktop environment unknown; cosmetic apply deferred'"
+  simulated_events:
+    - type: facts_refresh
+      detail: "Desktop environment and GUI session remain unknown."
+    - type: verification
+      detail: "All requested cosmetic elements are deferred rather than guessed."
+  expected:
+    design_state:
+      theme: manual_followup_required
+      icons: manual_followup_required
+      cursor: manual_followup_required
+      wallpaper: manual_followup_required
+      effects: manual_followup_required
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "When the desktop cannot be identified, the safe behavior is to defer requested design changes with specific follow-up instead of running guessed desktop commands."

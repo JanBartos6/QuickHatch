@@ -1,0 +1,595 @@
+- id: kde-theme-persist-no-gui
+  category: theme
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file kdeglobals --group General --key ColorScheme BreezeDark"
+  simulated_events:
+    - type: command_success
+      detail: "Persistent KDE color scheme config write succeeds without active GUI session."
+    - type: facts_refresh
+      detail: "No active display is discovered after the write."
+  expected:
+    design_state:
+      theme: persisted_but_not_live_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "Safe persistent KDE config may proceed without a live GUI, but the harness must not claim live visual verification."
+
+- id: kde-theme-live-no-gui-skipped
+  category: theme
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "plasma-apply-colorscheme BreezeDark"
+  simulated_events:
+    - type: facts_refresh
+      detail: "KDE is installed but there is no active DISPLAY or DBus session."
+  expected:
+    design_state:
+      theme: manual_followup_required
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "A live-only KDE apply command should not be run blindly over a non-GUI session."
+
+- id: kde-theme-live-verified
+  category: theme
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "plasma-apply-colorscheme BreezeDark"
+  simulated_events:
+    - type: command_success
+      detail: "Live KDE color scheme apply succeeds inside the target user's graphical session."
+    - type: verification
+      detail: "Facts report kde_color_scheme as BreezeDark."
+  expected:
+    design_state:
+      theme: applied_and_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: completed
+    final_status_effect: none
+    should_execute_live_apply: true
+    should_allow_persistent_config: false
+  rationale: "With an active KDE session and matching post-apply facts, the requested theme can be treated as verified."
+
+- id: kde-icons-persist-no-gui
+  category: icons
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: "Papirus-Dark"
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file kdeglobals --group Icons --key Theme Papirus-Dark"
+  simulated_events:
+    - type: command_success
+      detail: "Persistent KDE icon theme config is written."
+    - type: facts_refresh
+      detail: "No live session is available to verify the applied icon theme."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: persisted_but_not_live_verified
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "Icon theme config is safe to persist, but without a live session it remains unverified."
+
+- id: kde-icons-live-missing-theme
+  category: icons
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    wayland: true
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: "NonexistentIconPack"
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "plasma-apply-lookandfeel --icons NonexistentIconPack"
+  simulated_events:
+    - type: command_failure
+      detail: "KDE reports the requested icon theme is unavailable."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: unavailable
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: true
+    should_allow_persistent_config: false
+  rationale: "A missing cosmetic icon theme should not block setup, but it must be surfaced as a warning or follow-up."
+
+- id: kde-cursor-persist-no-gui
+  category: cursor
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: "Breeze_Snow"
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file kcminputrc --group Mouse --key cursorTheme Breeze_Snow"
+  simulated_events:
+    - type: command_success
+      detail: "Persistent KDE cursor theme config is written."
+    - type: facts_refresh
+      detail: "No active GUI session is present for live cursor verification."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: persisted_but_not_live_verified
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "Cursor configuration can be persisted safely, but live cursor state cannot be proven without a session."
+
+- id: kde-cursor-live-fails
+  category: cursor
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: "Breeze_Snow"
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "plasma-apply-cursortheme Breeze_Snow"
+  simulated_events:
+    - type: command_failure
+      detail: "Live cursor theme apply exits nonzero."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: attempted_but_failed
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: true
+    should_allow_persistent_config: false
+  rationale: "A cursor apply failure is cosmetic and should not block core setup, but it should remain visible."
+
+- id: kde-wallpaper-live-verified
+  category: wallpaper
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/wallpapers/forest.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "plasma-apply-wallpaperimage /home/quickhatch/Pictures/wallpapers/forest.jpg"
+  simulated_events:
+    - type: command_success
+      detail: "KDE wallpaper live apply succeeds."
+    - type: verification
+      detail: "Facts report kde_wallpaper as /home/quickhatch/Pictures/wallpapers/forest.jpg."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: applied_and_verified
+      effects: not_requested
+    group_status: completed
+    final_status_effect: none
+    should_execute_live_apply: true
+    should_allow_persistent_config: false
+  rationale: "Wallpaper is safe and verified when the live apply succeeds and refreshed facts match."
+
+- id: kde-wallpaper-file-unavailable
+  category: cosmetic_failure
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/wallpapers/missing.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "plasma-apply-wallpaperimage /home/quickhatch/Pictures/wallpapers/missing.jpg"
+  simulated_events:
+    - type: command_failure
+      detail: "Wallpaper file does not exist."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: unavailable
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: true
+    should_allow_persistent_config: false
+  rationale: "A missing wallpaper asset is cosmetic and recoverable, but the final status must not imply it was applied."
+
+- id: kde-effects-live-reconfigure-verified
+  category: effects
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects:
+      - "wobbly_windows"
+      - "magic_lamp"
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file kwinrc --group Plugins --key wobblywindowsEnabled true"
+      - "kwriteconfig6 --file kwinrc --group Plugins --key magiclampEnabled true"
+      - "qdbus org.kde.KWin /KWin reconfigure"
+  simulated_events:
+    - type: command_success
+      detail: "Persistent effect config is written and KWin reconfigure succeeds in the live session."
+    - type: verification
+      detail: "Facts report expected KDE effect settings."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: applied_and_verified
+    group_status: completed
+    final_status_effect: none
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "Effects are both persisted and live-verified when KWin reconfiguration succeeds and facts match."
+
+- id: kde-effects-live-reconfigure-no-gui
+  category: effects
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects:
+      - "magic_lamp"
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file kwinrc --group Plugins --key magiclampEnabled true"
+      - "qdbus org.kde.KWin /KWin reconfigure"
+  simulated_events:
+    - type: command_success
+      detail: "Persistent effect config write succeeds."
+    - type: facts_refresh
+      detail: "No active GUI session exists for qdbus live reconfigure."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: persisted_but_not_live_verified
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "The persistent KWin config should be allowed, but live reconfiguration must be skipped without a session."
+
+- id: kde-combined-mixed-live-and-persistent
+  category: kde
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    wayland: true
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: "Papirus-Dark"
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/wallpapers/forest.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file kdeglobals --group Icons --key Theme Papirus-Dark"
+      - "plasma-apply-colorscheme BreezeDark"
+      - "plasma-apply-wallpaperimage /home/quickhatch/Pictures/wallpapers/forest.jpg"
+  simulated_events:
+    - type: command_success
+      detail: "Persistent icon config and live theme/wallpaper applies succeed."
+    - type: verification
+      detail: "Facts verify color scheme and wallpaper; icon facts are not refreshed."
+  expected:
+    design_state:
+      theme: applied_and_verified
+      icons: persisted_but_not_live_verified
+      cursor: not_requested
+      wallpaper: applied_and_verified
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: true
+    should_allow_persistent_config: true
+  rationale: "The harness should preserve per-element truth instead of treating the whole design group as fully verified."
+
+- id: kde-wrong-user-root-config
+  category: wrong_user
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "sudo kwriteconfig6 --file /root/.config/kdeglobals --group General --key ColorScheme BreezeDark"
+  simulated_events:
+    - type: command_success
+      detail: "Command writes root KDE config instead of target user's config."
+    - type: verification
+      detail: "Target user's KDE color scheme remains unchanged."
+  expected:
+    design_state:
+      theme: attempted_but_failed
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "Writing root KDE config does not satisfy a target-user desktop request and should be detected or surfaced as follow-up."
+
+- id: kde-wrong-user-home-env
+  category: wrong_user
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    wayland: true
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: "Papirus-Dark"
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "HOME=/root kwriteconfig6 --file kdeglobals --group Icons --key Theme Papirus-Dark"
+  simulated_events:
+    - type: command_success
+      detail: "Command succeeds while HOME points to root."
+    - type: verification
+      detail: "Target user's icon theme is not changed."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: attempted_but_failed
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "A successful command against the wrong home directory must not count as target-user desktop configuration."
+
+- id: kde-live-command-provider-error
+  category: verification
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "plasma-apply-colorscheme BreezeDark"
+  simulated_events:
+    - type: command_success
+      detail: "Live KDE apply succeeds."
+    - type: provider_error
+      detail: "Repair or verification planner times out before confirming final state."
+  expected:
+    design_state:
+      theme: manual_followup_required
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: true
+    should_allow_persistent_config: false
+  rationale: "Provider failure after a desktop apply should not erase progress, but the unverified requested design must remain honest."
+
+- id: kde-final-audit-unverified-request
+  category: final_audit
+  facts_profile:
+    desktop: kde
+    has_gui_session: unknown
+    display: unknown
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: "Papirus-Dark"
+    cursor: "Breeze_Snow"
+    wallpaper: "/home/quickhatch/Pictures/wallpapers/forest.jpg"
+    effects:
+      - "magic_lamp"
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file kdeglobals --group General --key ColorScheme BreezeDark"
+      - "kwriteconfig6 --file kdeglobals --group Icons --key Theme Papirus-Dark"
+      - "kwriteconfig6 --file kcminputrc --group Mouse --key cursorTheme Breeze_Snow"
+      - "kwriteconfig6 --file kwinrc --group Plugins --key magiclampEnabled true"
+  simulated_events:
+    - type: command_success
+      detail: "Persistent writes succeed."
+    - type: facts_refresh
+      detail: "Final facts do not include matching KDE design state."
+  expected:
+    design_state:
+      theme: persisted_but_not_live_verified
+      icons: persisted_but_not_live_verified
+      cursor: persisted_but_not_live_verified
+      wallpaper: manual_followup_required
+      effects: persisted_but_not_live_verified
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "Final audit must not report plain success when requested KDE design elements remain unverified or unapplied."

@@ -1,0 +1,599 @@
+- id: no-gui-kde-live-wallpaper-skip
+  category: no_gui_session
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/qh-wallpaper.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "plasma-apply-wallpaperimage /home/quickhatch/Pictures/qh-wallpaper.jpg"
+  simulated_events:
+    - type: facts_refresh
+      detail: "No DISPLAY, no WAYLAND_DISPLAY, no active GUI session for target user."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: manual_followup_required
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "A live Plasma wallpaper apply requires an active target-user graphical session and should be deferred with a specific manual-follow-up reason."
+
+- id: no-gui-kde-persistent-theme-icons-allowed
+  category: no_gui_session
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: "Papirus-Dark"
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file /home/quickhatch/.config/kdeglobals --group General --key ColorScheme BreezeDark"
+      - "kwriteconfig6 --file /home/quickhatch/.config/kdeglobals --group Icons --key Theme Papirus-Dark"
+  simulated_events:
+    - type: command_success
+      detail: "Persistent KDE config writes are recorded for the target user."
+    - type: facts_refresh
+      detail: "No active GUI session is available to verify the live visual state."
+  expected:
+    design_state:
+      theme: persisted_but_not_live_verified
+      icons: persisted_but_not_live_verified
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "Safe persistent config can be written without a GUI session, but lack of live verification must prevent plain success."
+
+- id: pending-relogin-kde-persistent-wallpaper-live-skip
+  category: wallpaper
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/qh-wallpaper.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file /home/quickhatch/.config/plasma-org.kde.plasma.desktop-appletsrc --group Containments --group 1 --group Wallpaper --group org.kde.image --group General --key Image file:///home/quickhatch/Pictures/qh-wallpaper.jpg"
+      - "plasma-apply-wallpaperimage /home/quickhatch/Pictures/qh-wallpaper.jpg"
+  simulated_events:
+    - type: command_success
+      detail: "Persistent wallpaper config write succeeds."
+    - type: facts_refresh
+      detail: "Display manager is active but target user has not logged in yet."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: persisted_but_not_live_verified
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "The persistent wallpaper setting should be kept, while the live apply is unsafe without an active session and should be skipped."
+
+- id: no-gui-kde-live-effects-skip
+  category: effects
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects:
+      - "wobbly_windows"
+      - "magic_lamp"
+  command_group:
+    stage: desktop
+    commands:
+      - "qdbus org.kde.KWin /Effects org.kde.kwin.Effects.loadEffect wobblywindows"
+      - "qdbus org.kde.KWin /Effects org.kde.kwin.Effects.loadEffect magiclamp"
+  simulated_events:
+    - type: facts_refresh
+      detail: "No target-user DBus session is available."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: manual_followup_required
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "Live KWin effect activation depends on a running user session and must not be blindly executed over a headless connection."
+
+- id: no-gui-kde-persistent-effects-allowed
+  category: effects
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects:
+      - "wobbly_windows"
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file /home/quickhatch/.config/kwinrc --group Plugins --key wobblywindowsEnabled true"
+  simulated_events:
+    - type: command_success
+      detail: "Persistent KWin effect preference is written for the target user."
+    - type: verification
+      detail: "No active compositor session exists to verify the effect live."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: persisted_but_not_live_verified
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "A target-user config write is low risk, but live effect verification remains pending until login."
+
+- id: no-gui-gnome-live-wallpaper-skip
+  category: gnome
+  facts_profile:
+    desktop: gnome
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: "file:///home/quickhatch/Pictures/qh-wallpaper.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/qh-wallpaper.jpg"
+  simulated_events:
+    - type: facts_refresh
+      detail: "GNOME desktop is detected, but no active user bus or display session is available."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: manual_followup_required
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "A GNOME gsettings live session write may require the user's DBus session, so without that session it should be deferred rather than executed blindly."
+
+- id: pending-relogin-gnome-dconf-profile-warning
+  category: gnome
+  facts_profile:
+    desktop: gnome
+    has_gui_session: false
+    display: ""
+    wayland: true
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Adwaita-dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "mkdir -p /home/quickhatch/.config/dconf"
+      - "dconf load /org/gnome/desktop/interface/ < /home/quickhatch/.config/quickhatch-gnome-interface.dconf"
+  simulated_events:
+    - type: command_success
+      detail: "Persistent dconf profile data is staged under the target user's home."
+    - type: verification
+      detail: "No active GNOME session is available for live verification."
+  expected:
+    design_state:
+      theme: persisted_but_not_live_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "A staged target-user persistent configuration may be acceptable, but the result is not live-verified until the user logs in."
+
+- id: no-gui-xfce-persistent-theme-allowed
+  category: xfce
+  facts_profile:
+    desktop: xfce
+    has_gui_session: false
+    display: ""
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Greybird-dark"
+    icons: "Papirus"
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "xfconf-query -c xsettings -p /Net/ThemeName -s Greybird-dark"
+      - "xfconf-query -c xsettings -p /Net/IconThemeName -s Papirus"
+  simulated_events:
+    - type: command_success
+      detail: "XFCE settings command is treated as persistent target-user configuration."
+    - type: facts_refresh
+      detail: "No active X11 session is available to observe the applied values."
+  expected:
+    design_state:
+      theme: persisted_but_not_live_verified
+      icons: persisted_but_not_live_verified
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "Safe persistent XFCE settings should not fatal-block in a headless configure-existing session, but should be reported as not live verified."
+
+- id: no-gui-xfce-live-wallpaper-skip
+  category: xfce
+  facts_profile:
+    desktop: xfce
+    has_gui_session: false
+    display: ""
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/qh-wallpaper.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "xfdesktop --reload"
+      - "nitrogen --set-zoom-fill /home/quickhatch/Pictures/qh-wallpaper.jpg"
+  simulated_events:
+    - type: facts_refresh
+      detail: "No active X11 session for target user."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: manual_followup_required
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "Wallpaper reload tools require a live desktop session and should be skipped with manual follow-up when the session is unavailable."
+
+- id: no-gui-unknown-desktop-cosmetic-request
+  category: unknown_desktop
+  facts_profile:
+    desktop: unknown
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: "Papirus-Dark"
+    cursor: "Bibata-Modern-Ice"
+    wallpaper: "/home/quickhatch/Pictures/qh-wallpaper.jpg"
+    effects:
+      - "reduce_animations"
+  command_group:
+    stage: desktop
+    commands:
+      - "plasma-apply-colorscheme BreezeDark"
+      - "gsettings set org.gnome.desktop.interface icon-theme Papirus-Dark"
+      - "xfconf-query -c xsettings -p /Gtk/CursorThemeName -s Bibata-Modern-Ice"
+  simulated_events:
+    - type: facts_refresh
+      detail: "Desktop environment and active GUI session cannot be established."
+  expected:
+    design_state:
+      theme: manual_followup_required
+      icons: manual_followup_required
+      cursor: manual_followup_required
+      wallpaper: manual_followup_required
+      effects: manual_followup_required
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "When the desktop environment is unknown and no GUI session exists, DE-specific live commands should not run; the request needs an honest manual follow-up."
+
+- id: pending-relogin-mixed-persistent-and-live
+  category: no_gui_session
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: "Papirus-Dark"
+    cursor: "Bibata-Modern-Ice"
+    wallpaper: "/home/quickhatch/Pictures/qh-wallpaper.jpg"
+    effects:
+      - "wobbly_windows"
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file /home/quickhatch/.config/kdeglobals --group General --key ColorScheme BreezeDark"
+      - "kwriteconfig6 --file /home/quickhatch/.config/kdeglobals --group Icons --key Theme Papirus-Dark"
+      - "kwriteconfig6 --file /home/quickhatch/.config/kcminputrc --group Mouse --key cursorTheme Bibata-Modern-Ice"
+      - "plasma-apply-wallpaperimage /home/quickhatch/Pictures/qh-wallpaper.jpg"
+      - "qdbus org.kde.KWin /Effects org.kde.kwin.Effects.loadEffect wobblywindows"
+  simulated_events:
+    - type: command_success
+      detail: "Persistent theme, icon, and cursor writes succeed."
+    - type: facts_refresh
+      detail: "No active display session exists, so live wallpaper/effects commands are skipped."
+  expected:
+    design_state:
+      theme: persisted_but_not_live_verified
+      icons: persisted_but_not_live_verified
+      cursor: persisted_but_not_live_verified
+      wallpaper: manual_followup_required
+      effects: manual_followup_required
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "A mixed group should preserve safe persistent progress while deferring only live-session-dependent items."
+
+- id: no-gui-wrong-user-root-config-rejected
+  category: wrong_user
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file /root/.config/kdeglobals --group General --key ColorScheme BreezeDark"
+  simulated_events:
+    - type: verification
+      detail: "Command targets root config instead of /home/quickhatch."
+  expected:
+    design_state:
+      theme: manual_followup_required
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "Persistent config is only safe and useful when it targets the runtime user; root desktop config should not be counted as applying the requested user design."
+
+- id: no-gui-display-manager-active-pending-relogin
+  category: final_audit
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file /home/quickhatch/.config/kdeglobals --group General --key ColorScheme BreezeDark"
+  simulated_events:
+    - type: command_success
+      detail: "Persistent design config written."
+    - type: facts_refresh
+      detail: "Display manager is enabled and active, but target user has not logged in."
+    - type: verification
+      detail: "Live visual verification is pending relogin."
+  expected:
+    design_state:
+      theme: persisted_but_not_live_verified
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "Pending relogin should be treated as a visible warning rather than fatal, while avoiding a misleading plain success."
+
+- id: no-gui-no-display-manager-live-only-blocked-to-followup
+  category: no_gui_session
+  facts_profile:
+    desktop: none
+    has_gui_session: false
+    display: ""
+    wayland: false
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: ""
+    icons: ""
+    cursor: ""
+    wallpaper: "/home/quickhatch/Pictures/qh-wallpaper.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "feh --bg-fill /home/quickhatch/Pictures/qh-wallpaper.jpg"
+  simulated_events:
+    - type: facts_refresh
+      detail: "No desktop environment, no display manager, and no active GUI session are present."
+  expected:
+    design_state:
+      theme: not_requested
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: manual_followup_required
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: false
+  rationale: "A live wallpaper command has nowhere valid to apply when no desktop or GUI session exists, so it should become manual follow-up rather than a fatal setup block."
+
+- id: no-gui-persistent-config-command-fails
+  category: cosmetic_failure
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "MissingLookAndFeel"
+    icons: ""
+    cursor: ""
+    wallpaper: ""
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file /home/quickhatch/.config/kdeglobals --group General --key ColorScheme MissingLookAndFeel"
+  simulated_events:
+    - type: command_failure
+      detail: "Theme value is unavailable or rejected by the desktop tooling."
+  expected:
+    design_state:
+      theme: attempted_but_failed
+      icons: not_requested
+      cursor: not_requested
+      wallpaper: not_requested
+      effects: not_requested
+    group_status: manual_followup
+    final_status_effect: manual_followup_required
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "A failed cosmetic persistent setting should not block core setup, but it needs an item-specific follow-up reason."
+
+- id: no-gui-persistent-config-unverified-not-success
+  category: verification
+  facts_profile:
+    desktop: kde
+    has_gui_session: false
+    display: ""
+    wayland: unknown
+    target_user: "quickhatch"
+    target_home: "/home/quickhatch"
+  request:
+    theme: "Breeze Dark"
+    icons: "Papirus-Dark"
+    cursor: "Bibata-Modern-Ice"
+    wallpaper: "/home/quickhatch/Pictures/qh-wallpaper.jpg"
+    effects: []
+  command_group:
+    stage: desktop
+    commands:
+      - "kwriteconfig6 --file /home/quickhatch/.config/kdeglobals --group General --key ColorScheme BreezeDark"
+      - "kwriteconfig6 --file /home/quickhatch/.config/kdeglobals --group Icons --key Theme Papirus-Dark"
+      - "kwriteconfig6 --file /home/quickhatch/.config/kcminputrc --group Mouse --key cursorTheme Bibata-Modern-Ice"
+      - "kwriteconfig6 --file /home/quickhatch/.config/plasma-org.kde.plasma.desktop-appletsrc --group Containments --group 1 --group Wallpaper --group org.kde.image --group General --key Image file:///home/quickhatch/Pictures/qh-wallpaper.jpg"
+  simulated_events:
+    - type: command_success
+      detail: "All persistent config writes succeed."
+    - type: facts_refresh
+      detail: "Desktop design facts are still unavailable because no GUI session has started."
+    - type: verification
+      detail: "No theme, icon, cursor, or wallpaper value can be live verified."
+  expected:
+    design_state:
+      theme: persisted_but_not_live_verified
+      icons: persisted_but_not_live_verified
+      cursor: persisted_but_not_live_verified
+      wallpaper: persisted_but_not_live_verified
+      effects: not_requested
+    group_status: warning
+    final_status_effect: success_with_warnings
+    should_execute_live_apply: false
+    should_allow_persistent_config: true
+  rationale: "Successful persistent writes are useful progress, but absence of observed visual state must remain visible in the final status."
