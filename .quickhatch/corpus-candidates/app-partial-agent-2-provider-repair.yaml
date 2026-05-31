@@ -1,0 +1,540 @@
+- id: provider-429-after-repo-partial
+  category: provider_repair_failure
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+      - vlc
+      - git
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: VLC
+        package: vlc
+        source: repo
+        required: true
+      - name: Git
+        package: git
+        source: repo
+        required: true
+      - name: Obsidian
+        package: obsidian
+        source: repo
+        required: false
+    command_groups:
+      - title: Install base apps and notes app
+        packages:
+          - vlc
+          - git
+          - obsidian
+        commands:
+          - "sudo apt-get install -y vlc git obsidian"
+  simulated_events:
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 100
+      stdout: "vlc and git installed"
+      stderr: "E: Unable to locate package obsidian"
+      repair_strategy: ""
+      provider_error: ""
+    - type: provider_error
+      app: Obsidian
+      package: obsidian
+      rc: 0
+      stdout: ""
+      stderr: ""
+      repair_strategy: repo_to_flatpak
+      provider_error: "429"
+    - type: verification
+      app: VLC
+      package: vlc
+      rc: 0
+      stdout: "verified"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - VLC
+      - Git
+    manual_followup_apps:
+      - Obsidian
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - provider_error_preserves_progress
+      - final_status_honest
+  rationale: "A provider 429 during repair for one optional app must not erase already completed repo apps."
+
+- id: provider-timeout-required-unresolved
+  category: provider_repair_failure
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after:
+      - firefox
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Firefox
+        package: firefox
+        source: repo
+        required: true
+      - name: Required CAD
+        package: required-cad
+        source: repo
+        required: true
+    command_groups:
+      - title: Install browser and CAD package
+        packages:
+          - firefox
+          - required-cad
+        commands:
+          - "sudo dnf install -y firefox required-cad"
+  simulated_events:
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 1
+      stdout: "firefox installed"
+      stderr: "No match for argument: required-cad"
+      repair_strategy: ""
+      provider_error: ""
+    - type: provider_error
+      app: Required CAD
+      package: required-cad
+      rc: 0
+      stdout: ""
+      stderr: ""
+      repair_strategy: repo_to_flatpak
+      provider_error: timeout
+    - type: facts_refresh
+      app: ""
+      package: ""
+      rc: 0
+      stdout: "INSTALLED: firefox; MISSING: required-cad"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - Firefox
+    manual_followup_apps:
+      - Required CAD
+    failed_apps: []
+    alternatives: []
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - provider_error_preserves_progress
+      - final_status_honest
+  rationale: "A provider timeout cannot hide an unresolved required app as success, but it should preserve unrelated progress."
+
+- id: provider-invalid-json-after-flatpak-success
+  category: provider_repair_failure
+  facts_profile:
+    family: debian
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+      - com.spotify.Client
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Spotify
+        package: spotify-client
+        source: repo
+        required: false
+      - name: SketchNote
+        package: sketchnote
+        source: repo
+        required: false
+    command_groups:
+      - title: Install optional media and notes apps
+        packages:
+          - spotify-client
+          - sketchnote
+        commands:
+          - "sudo apt-get install -y spotify-client sketchnote"
+  simulated_events:
+    - type: command_failure
+      app: Spotify
+      package: spotify-client
+      rc: 100
+      stdout: ""
+      stderr: "E: Unable to locate package spotify-client"
+      repair_strategy: ""
+      provider_error: ""
+    - type: repair_response
+      app: Spotify
+      package: com.spotify.Client
+      rc: 0
+      stdout: "Use Flatpak app ID com.spotify.Client"
+      stderr: ""
+      repair_strategy: repo_to_flatpak
+      provider_error: ""
+    - type: command_success
+      app: Spotify
+      package: com.spotify.Client
+      rc: 0
+      stdout: "installed"
+      stderr: ""
+      repair_strategy: repo_to_flatpak
+      provider_error: ""
+    - type: provider_error
+      app: SketchNote
+      package: sketchnote
+      rc: 0
+      stdout: ""
+      stderr: ""
+      repair_strategy: repo_to_flatpak
+      provider_error: invalid_json
+  expected:
+    completed_apps:
+      - Spotify
+    manual_followup_apps:
+      - SketchNote
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - provider_error_preserves_progress
+      - final_status_honest
+  rationale: "Malformed repair output for one optional app should not undo a prior successful Flatpak fallback."
+
+- id: provider-question-timeout-after-progress
+  category: provider_repair_failure
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+      - firefox
+      - code
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  plan:
+    requested_apps:
+      - name: Firefox
+        package: firefox
+        source: repo
+        required: true
+      - name: VS Code
+        package: code
+        source: repo
+        required: true
+      - name: Figma
+        package: figma-linux
+        source: aur
+        required: false
+    command_groups:
+      - title: Install browser, editor, and design tool
+        packages:
+          - firefox
+          - code
+          - figma-linux
+        commands:
+          - "sudo pacman -S --noconfirm firefox code figma-linux"
+  simulated_events:
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 1
+      stdout: "firefox and code installed"
+      stderr: "error: target not found: figma-linux"
+      repair_strategy: ""
+      provider_error: ""
+    - type: provider_error
+      app: Figma
+      package: figma-linux
+      rc: 0
+      stdout: ""
+      stderr: ""
+      repair_strategy: aur_search
+      provider_error: question_timeout
+  expected:
+    completed_apps:
+      - Firefox
+      - VS Code
+    manual_followup_apps:
+      - Figma
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - provider_error_preserves_progress
+      - final_status_honest
+  rationale: "A timed-out repair question for an optional AUR app should produce follow-up without regressing completed core apps."
+
+- id: provider-search-error-does-not-regress
+  category: provider_repair_failure
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before:
+      - thunderbird
+    installed_apps_after:
+      - thunderbird
+      - gimp
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Thunderbird
+        package: thunderbird
+        source: repo
+        required: true
+      - name: GIMP
+        package: gimp
+        source: repo
+        required: true
+      - name: Private Notes
+        package: private-notes
+        source: unknown
+        required: false
+    command_groups:
+      - title: Install mixed productivity apps
+        packages:
+          - thunderbird
+          - gimp
+          - private-notes
+        commands:
+          - "sudo apt-get install -y thunderbird gimp private-notes"
+  simulated_events:
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 100
+      stdout: "gimp installed"
+      stderr: "E: Unable to locate package private-notes"
+      repair_strategy: ""
+      provider_error: ""
+    - type: provider_error
+      app: Private Notes
+      package: private-notes
+      rc: 0
+      stdout: ""
+      stderr: ""
+      repair_strategy: search_alternatives
+      provider_error: search_provider_error
+  expected:
+    completed_apps:
+      - Thunderbird
+      - GIMP
+    manual_followup_apps:
+      - Private Notes
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - provider_error_preserves_progress
+      - final_status_honest
+  rationale: "A provider-side search failure is recoverable evidence for one optional app, not a reason to mark successful apps incomplete."
+
+- id: repair-loop-identical-command-stops
+  category: repair_loop
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after: []
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Signal
+        package: signal-desktop
+        source: repo
+        required: false
+    command_groups:
+      - title: Install Signal with stale apt hint
+        packages:
+          - signal-desktop
+        commands:
+          - "sudo apt-get install -y signal-desktop"
+  simulated_events:
+    - type: command_failure
+      app: Signal
+      package: signal-desktop
+      rc: 100
+      stdout: ""
+      stderr: "E: Unable to locate package signal-desktop"
+      repair_strategy: ""
+      provider_error: ""
+    - type: repair_response
+      app: Signal
+      package: signal-desktop
+      rc: 0
+      stdout: "Retry same apt package"
+      stderr: ""
+      repair_strategy: retry_identical_repo
+      provider_error: ""
+    - type: command_failure
+      app: Signal
+      package: signal-desktop
+      rc: 100
+      stdout: ""
+      stderr: "E: Unable to locate package signal-desktop"
+      repair_strategy: retry_identical_repo
+      provider_error: ""
+  expected:
+    completed_apps: []
+    manual_followup_apps:
+      - Signal
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+      - failure_isolated
+      - final_status_honest
+  rationale: "Repeating the exact failed package command should stop as an optional-app follow-up rather than loop or block."
+
+- id: strategy-change-repo-to-flatpak-not-loop
+  category: repair_loop
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after:
+      - com.discordapp.Discord
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Discord
+        package: discord
+        source: repo
+        required: false
+    command_groups:
+      - title: Install chat app
+        packages:
+          - discord
+        commands:
+          - "sudo dnf install -y discord"
+  simulated_events:
+    - type: command_failure
+      app: Discord
+      package: discord
+      rc: 1
+      stdout: ""
+      stderr: "No match for argument: discord"
+      repair_strategy: ""
+      provider_error: ""
+    - type: repair_response
+      app: Discord
+      package: com.discordapp.Discord
+      rc: 0
+      stdout: "Use Flatpak"
+      stderr: ""
+      repair_strategy: repo_to_flatpak
+      provider_error: ""
+    - type: command_success
+      app: Discord
+      package: com.discordapp.Discord
+      rc: 0
+      stdout: "installed"
+      stderr: ""
+      repair_strategy: repo_to_flatpak
+      provider_error: ""
+  expected:
+    completed_apps:
+      - Discord
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - final_status_honest
+  rationale: "Changing from repo to Flatpak is a meaningful strategy change and should not be treated as an identical retry loop."
+
+- id: provider-429-during-aur-repair-isolated
+  category: provider_repair_failure
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+      - keepassxc
+    flatpak_available: true
+    snap_available: false
+    aur_helper: paru
+  plan:
+    requested_apps:
+      - name: KeePassXC
+        package: keepassxc
+        source: repo
+        required: true
+      - name: Teams
+        package: teams-for-linux
+        source: aur
+        required: false
+    command_groups:
+      - title: Install password manager and meeting app
+        packages:
+          - keepassxc
+          - teams-for-linux
+        commands:
+          - "sudo pacman -S --noconfirm keepassxc teams-for-linux"
+  simulated_events:
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 1
+      stdout: "keepassxc installed"
+      stderr: "error: target not found: teams-for-linux"
+      repair_strategy: ""
+      provider_error: ""
+    - type: provider_error
+      app: Teams
+      package: teams-for-linux
+      rc: 0
+      stdout: ""
+      stderr: ""
+      repair_strategy: aur_repair
+      provider_error: "429"
+  expected:
+    completed_apps:
+      - KeePassXC
+    manual_followup_apps:
+      - Teams
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - provider_error_preserves_progress
+      - final_status_honest
+  rationale: "A provider rate limit during optional AUR repair must be isolated from a verified required repo app."

@@ -1,0 +1,516 @@
+- id: repo-to-aur-stale-package-hint
+  category: source_fallback
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+      - visual-studio-code-bin
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  plan:
+    requested_apps:
+      - name: Visual Studio Code
+        package: code
+        source: repo
+        required: true
+    command_groups:
+      - title: Install editor from repo hint
+        packages:
+          - code
+        commands:
+          - "sudo pacman -S --noconfirm code"
+  simulated_events:
+    - type: command_failure
+      app: Visual Studio Code
+      package: code
+      rc: 1
+      stdout: ""
+      stderr: "error: target not found: code"
+      repair_strategy: ""
+      provider_error: ""
+    - type: repair_response
+      app: Visual Studio Code
+      package: visual-studio-code-bin
+      rc: 0
+      stdout: "Switching source from repo to AUR"
+      stderr: ""
+      repair_strategy: repo_to_aur
+      provider_error: ""
+    - type: command_success
+      app: Visual Studio Code
+      package: visual-studio-code-bin
+      rc: 0
+      stdout: "installed"
+      stderr: ""
+      repair_strategy: repo_to_aur
+      provider_error: ""
+  expected:
+    completed_apps:
+      - Visual Studio Code
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - final_status_honest
+  rationale: "A stale repo hint on Arch should be repairable by switching to AUR instead of looping the failed pacman command."
+
+- id: repo-to-flatpak-fedora-spotify
+  category: source_fallback
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after:
+      - com.spotify.Client
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Spotify
+        package: spotify-client
+        source: repo
+        required: false
+    command_groups:
+      - title: Install Spotify from repo hint
+        packages:
+          - spotify-client
+        commands:
+          - "sudo dnf install -y spotify-client"
+  simulated_events:
+    - type: command_failure
+      app: Spotify
+      package: spotify-client
+      rc: 1
+      stdout: "No match for argument: spotify-client"
+      stderr: "Error: Unable to find a match"
+      repair_strategy: ""
+      provider_error: ""
+    - type: repair_response
+      app: Spotify
+      package: com.spotify.Client
+      rc: 0
+      stdout: "Use Flatpak app ID com.spotify.Client"
+      stderr: ""
+      repair_strategy: repo_to_flatpak
+      provider_error: ""
+    - type: command_success
+      app: Spotify
+      package: com.spotify.Client
+      rc: 0
+      stdout: "installed"
+      stderr: ""
+      repair_strategy: repo_to_flatpak
+      provider_error: ""
+  expected:
+    completed_apps:
+      - Spotify
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - final_status_honest
+  rationale: "A missing Fedora repo package should be allowed to fall back to Flatpak when available."
+
+- id: repo-to-snap-ubuntu-slack
+  category: source_fallback
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+      - slack
+    flatpak_available: false
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Slack
+        package: slack-desktop
+        source: repo
+        required: false
+    command_groups:
+      - title: Install Slack from apt hint
+        packages:
+          - slack-desktop
+        commands:
+          - "sudo apt-get install -y slack-desktop"
+  simulated_events:
+    - type: command_failure
+      app: Slack
+      package: slack-desktop
+      rc: 100
+      stdout: ""
+      stderr: "E: Unable to locate package slack-desktop"
+      repair_strategy: ""
+      provider_error: ""
+    - type: repair_response
+      app: Slack
+      package: slack
+      rc: 0
+      stdout: "Try snap package slack"
+      stderr: ""
+      repair_strategy: repo_to_snap
+      provider_error: ""
+    - type: command_success
+      app: Slack
+      package: slack
+      rc: 0
+      stdout: "installed"
+      stderr: ""
+      repair_strategy: repo_to_snap
+      provider_error: ""
+  expected:
+    completed_apps:
+      - Slack
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - final_status_honest
+  rationale: "Ubuntu can repair a missing apt package by switching to snap; this is source progress, not a loop."
+
+- id: flatpak-unavailable-after-repo-miss
+  category: source_fallback
+  facts_profile:
+    family: debian
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after: []
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Bitwarden
+        package: bitwarden
+        source: repo
+        required: false
+    command_groups:
+      - title: Install Bitwarden from apt hint
+        packages:
+          - bitwarden
+        commands:
+          - "sudo apt-get install -y bitwarden"
+  simulated_events:
+    - type: command_failure
+      app: Bitwarden
+      package: bitwarden
+      rc: 100
+      stdout: ""
+      stderr: "E: Unable to locate package bitwarden"
+      repair_strategy: ""
+      provider_error: ""
+    - type: repair_response
+      app: Bitwarden
+      package: com.bitwarden.desktop
+      rc: 0
+      stdout: "Flatpak would be next, but flatpak is unavailable"
+      stderr: ""
+      repair_strategy: repo_to_flatpak
+      provider_error: ""
+  expected:
+    completed_apps: []
+    manual_followup_apps:
+      - Bitwarden
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+      - failure_isolated
+      - final_status_honest
+  rationale: "An optional app with no available fallback provider should become follow-up instead of blocking the whole run."
+
+- id: required-app-all-sources-exhausted
+  category: source_fallback
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after: []
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Company VPN Client
+        package: company-vpn-client
+        source: repo
+        required: true
+    command_groups:
+      - title: Install required VPN client
+        packages:
+          - company-vpn-client
+        commands:
+          - "sudo dnf install -y company-vpn-client"
+  simulated_events:
+    - type: command_failure
+      app: Company VPN Client
+      package: company-vpn-client
+      rc: 1
+      stdout: ""
+      stderr: "No match for argument: company-vpn-client"
+      repair_strategy: ""
+      provider_error: ""
+    - type: repair_response
+      app: Company VPN Client
+      package: com.example.CompanyVPN
+      rc: 0
+      stdout: "Try Flatpak app ID com.example.CompanyVPN"
+      stderr: ""
+      repair_strategy: repo_to_flatpak
+      provider_error: ""
+    - type: command_failure
+      app: Company VPN Client
+      package: com.example.CompanyVPN
+      rc: 1
+      stdout: ""
+      stderr: "No remote refs found"
+      repair_strategy: repo_to_flatpak
+      provider_error: ""
+  expected:
+    completed_apps: []
+    manual_followup_apps:
+      - Company VPN Client
+    failed_apps: []
+    alternatives: []
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+      - failure_isolated
+      - final_status_honest
+  rationale: "A required app unresolved after source fallback must not be hidden as success, but it is not a safety block."
+
+- id: source-change-not-loop-repo-flatpak-snap
+  category: repair_loop
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+      - drawio
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: diagrams.net
+        package: drawio
+        source: repo
+        required: false
+    command_groups:
+      - title: Install diagramming app
+        packages:
+          - drawio
+        commands:
+          - "sudo apt-get install -y drawio"
+  simulated_events:
+    - type: command_failure
+      app: diagrams.net
+      package: drawio
+      rc: 100
+      stdout: ""
+      stderr: "E: Unable to locate package drawio"
+      repair_strategy: ""
+      provider_error: ""
+    - type: repair_response
+      app: diagrams.net
+      package: com.jgraph.drawio.desktop
+      rc: 0
+      stdout: "Try Flatpak"
+      stderr: ""
+      repair_strategy: repo_to_flatpak
+      provider_error: ""
+    - type: command_failure
+      app: diagrams.net
+      package: com.jgraph.drawio.desktop
+      rc: 1
+      stdout: ""
+      stderr: "No remote refs found"
+      repair_strategy: repo_to_flatpak
+      provider_error: ""
+    - type: repair_response
+      app: diagrams.net
+      package: drawio
+      rc: 0
+      stdout: "Try snap"
+      stderr: ""
+      repair_strategy: flatpak_to_snap
+      provider_error: ""
+    - type: command_success
+      app: diagrams.net
+      package: drawio
+      rc: 0
+      stdout: "installed"
+      stderr: ""
+      repair_strategy: flatpak_to_snap
+      provider_error: ""
+  expected:
+    completed_apps:
+      - diagrams.net
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - final_status_honest
+  rationale: "Repo to Flatpak to Snap attempts are distinct source strategies and should not be collapsed into an identical retry loop."
+
+- id: mixed-group-source-fallback-isolated
+  category: source_fallback
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+      - firefox
+      - discord
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  plan:
+    requested_apps:
+      - name: Firefox
+        package: firefox
+        source: repo
+        required: true
+      - name: Discord
+        package: discord
+        source: repo
+        required: false
+      - name: Figma
+        package: figma-linux
+        source: aur
+        required: false
+    command_groups:
+      - title: Install browser and chat apps
+        packages:
+          - firefox
+          - discord
+          - figma-linux
+        commands:
+          - "sudo pacman -S --noconfirm firefox discord figma-linux"
+  simulated_events:
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 1
+      stdout: "firefox installed"
+      stderr: "discord and figma-linux not found"
+      repair_strategy: ""
+      provider_error: ""
+    - type: repair_response
+      app: Discord
+      package: com.discordapp.Discord
+      rc: 0
+      stdout: "Use Flatpak"
+      stderr: ""
+      repair_strategy: repo_to_flatpak
+      provider_error: ""
+    - type: command_success
+      app: Discord
+      package: com.discordapp.Discord
+      rc: 0
+      stdout: "installed"
+      stderr: ""
+      repair_strategy: repo_to_flatpak
+      provider_error: ""
+    - type: provider_error
+      app: Figma
+      package: figma-linux
+      rc: 0
+      stdout: ""
+      stderr: ""
+      repair_strategy: aur_retry
+      provider_error: "429"
+  expected:
+    completed_apps:
+      - Firefox
+      - Discord
+    manual_followup_apps:
+      - Figma
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - provider_error_preserves_progress
+      - final_status_honest
+  rationale: "Mixed source fallback should preserve completed apps while isolating the provider failure to optional Figma."
+
+- id: stale-flatpak-id-repaired-to-repo
+  category: source_fallback
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after:
+      - gimp
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: GIMP
+        package: org.gimp.GIMP.Legacy
+        source: flatpak
+        required: true
+    command_groups:
+      - title: Install GIMP from stale Flatpak hint
+        packages:
+          - org.gimp.GIMP.Legacy
+        commands:
+          - "flatpak install -y flathub org.gimp.GIMP.Legacy"
+  simulated_events:
+    - type: command_failure
+      app: GIMP
+      package: org.gimp.GIMP.Legacy
+      rc: 1
+      stdout: ""
+      stderr: "No remote refs found"
+      repair_strategy: ""
+      provider_error: ""
+    - type: repair_response
+      app: GIMP
+      package: gimp
+      rc: 0
+      stdout: "Use Fedora repo package gimp"
+      stderr: ""
+      repair_strategy: flatpak_to_repo
+      provider_error: ""
+    - type: command_success
+      app: GIMP
+      package: gimp
+      rc: 0
+      stdout: "installed"
+      stderr: ""
+      repair_strategy: flatpak_to_repo
+      provider_error: ""
+  expected:
+    completed_apps:
+      - GIMP
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - final_status_honest
+  rationale: "Fallback can move from a stale Flatpak hint back to a native repo package and still count as successful repair."

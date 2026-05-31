@@ -1,0 +1,604 @@
+- id: multi-app-apt-required-editor-optional-chat-fails
+  category: multi_app_partial
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+      - vlc
+      - libreoffice
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: VLC
+        package: vlc
+        source: repo
+        required: true
+      - name: LibreOffice
+        package: libreoffice
+        source: repo
+        required: true
+      - name: ChatThing
+        package: chatthing-desktop
+        source: repo
+        required: false
+    command_groups:
+      - title: Install requested desktop apps
+        packages:
+          - vlc
+          - libreoffice
+          - chatthing-desktop
+        commands:
+          - "sudo apt-get install -y vlc libreoffice chatthing-desktop"
+  simulated_events:
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 100
+      stdout: "vlc and libreoffice installed"
+      stderr: "E: Unable to locate package chatthing-desktop"
+      repair_strategy: ""
+      provider_error: ""
+    - type: facts_refresh
+      app: ""
+      package: ""
+      rc: 0
+      stdout: "INSTALLED: vlc libreoffice; MISSING: chatthing-desktop"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+    - type: verification
+      app: VLC
+      package: vlc
+      rc: 0
+      stdout: "verified"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+    - type: verification
+      app: LibreOffice
+      package: libreoffice
+      rc: 0
+      stdout: "verified"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - VLC
+      - LibreOffice
+    manual_followup_apps:
+      - ChatThing
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - final_status_honest
+  rationale: "A missing optional package in a mixed apt group must not regress required apps that are verified installed."
+
+- id: multi-app-dnf-required-browser-fails-after-media-success
+  category: multi_app_partial
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after:
+      - gimp
+      - inkscape
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: GIMP
+        package: gimp
+        source: repo
+        required: true
+      - name: Inkscape
+        package: inkscape
+        source: repo
+        required: true
+      - name: CorpBrowser
+        package: corp-browser
+        source: repo
+        required: true
+    command_groups:
+      - title: Install creative and browser apps
+        packages:
+          - gimp
+          - inkscape
+          - corp-browser
+        commands:
+          - "sudo dnf install -y gimp inkscape corp-browser"
+  simulated_events:
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 1
+      stdout: "Installed: gimp inkscape"
+      stderr: "No match for argument: corp-browser"
+      repair_strategy: ""
+      provider_error: ""
+    - type: facts_refresh
+      app: ""
+      package: ""
+      rc: 0
+      stdout: "INSTALLED: gimp inkscape; MISSING: corp-browser"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+    - type: verification
+      app: CorpBrowser
+      package: corp-browser
+      rc: 1
+      stdout: ""
+      stderr: "not installed"
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - GIMP
+      - Inkscape
+    manual_followup_apps:
+      - CorpBrowser
+    failed_apps: []
+    alternatives: []
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - final_status_honest
+  rationale: "A required missing app should become honest manual follow-up while preserving successful apps from the same dnf transaction."
+
+- id: multi-app-pacman-one-bad-theme-does-not-regress-tools
+  category: multi_app_partial
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+      - kate
+      - spectacle
+      - vlc
+    flatpak_available: false
+    snap_available: false
+    aur_helper: yay
+  plan:
+    requested_apps:
+      - name: Kate
+        package: kate
+        source: repo
+        required: true
+      - name: Spectacle
+        package: spectacle
+        source: repo
+        required: true
+      - name: VLC
+        package: vlc
+        source: repo
+        required: true
+      - name: Plasma Ocean Theme
+        package: plasma-theme-oceanic-fake
+        source: repo
+        required: false
+    command_groups:
+      - title: Install KDE apps and optional theme
+        packages:
+          - kate
+          - spectacle
+          - vlc
+          - plasma-theme-oceanic-fake
+        commands:
+          - "sudo pacman -S --noconfirm kate spectacle vlc plasma-theme-oceanic-fake"
+  simulated_events:
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 1
+      stdout: "resolved kate spectacle vlc"
+      stderr: "error: target not found: plasma-theme-oceanic-fake"
+      repair_strategy: ""
+      provider_error: ""
+    - type: facts_refresh
+      app: ""
+      package: ""
+      rc: 0
+      stdout: "INSTALLED: kate spectacle vlc; MISSING: plasma-theme-oceanic-fake"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - Kate
+      - Spectacle
+      - VLC
+    manual_followup_apps:
+      - Plasma Ocean Theme
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - final_status_honest
+  rationale: "An unavailable optional theme package should not make verified KDE apps fatal or regress their status."
+
+- id: multi-app-debian-preinstalled-one-new-one-missing
+  category: multi_app_partial
+  facts_profile:
+    family: debian
+    package_manager: apt
+    installed_apps_before:
+      - firefox-esr
+    installed_apps_after:
+      - firefox-esr
+      - thunderbird
+    flatpak_available: unknown
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Firefox ESR
+        package: firefox-esr
+        source: repo
+        required: true
+      - name: Thunderbird
+        package: thunderbird
+        source: repo
+        required: true
+      - name: SketchNote
+        package: sketchnote
+        source: repo
+        required: false
+    command_groups:
+      - title: Install communication apps
+        packages:
+          - firefox-esr
+          - thunderbird
+          - sketchnote
+        commands:
+          - "sudo apt-get install -y firefox-esr thunderbird sketchnote"
+  simulated_events:
+    - type: verification
+      app: Firefox ESR
+      package: firefox-esr
+      rc: 0
+      stdout: "already installed before group"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 100
+      stdout: "thunderbird installed"
+      stderr: "E: Unable to locate package sketchnote"
+      repair_strategy: ""
+      provider_error: ""
+    - type: facts_refresh
+      app: ""
+      package: ""
+      rc: 0
+      stdout: "INSTALLED: firefox-esr thunderbird; MISSING: sketchnote"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - Firefox ESR
+      - Thunderbird
+    manual_followup_apps:
+      - SketchNote
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - final_status_honest
+  rationale: "Preinstalled and newly installed apps should stay complete when a third optional package is unavailable."
+
+- id: multi-app-ubuntu-later-unrelated-failure-after-success
+  category: multi_app_partial
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+      - curl
+      - git
+      - code
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Curl
+        package: curl
+        source: repo
+        required: true
+      - name: Git
+        package: git
+        source: repo
+        required: true
+      - name: VS Code
+        package: code
+        source: repo
+        required: true
+      - name: Widget Studio
+        package: widget-studio
+        source: repo
+        required: false
+    command_groups:
+      - title: Install developer basics
+        packages:
+          - curl
+          - git
+        commands:
+          - "sudo apt-get install -y curl git"
+      - title: Install editor and optional widget tool
+        packages:
+          - code
+          - widget-studio
+        commands:
+          - "sudo apt-get install -y code widget-studio"
+  simulated_events:
+    - type: command_success
+      app: ""
+      package: ""
+      rc: 0
+      stdout: "curl and git installed"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+    - type: facts_refresh
+      app: ""
+      package: ""
+      rc: 0
+      stdout: "INSTALLED: curl git"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 100
+      stdout: "code installed"
+      stderr: "E: Unable to locate package widget-studio"
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - Curl
+      - Git
+      - VS Code
+    manual_followup_apps:
+      - Widget Studio
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - final_status_honest
+  rationale: "A later optional package failure must not roll back completed status from a previous successful command group."
+
+- id: multi-app-fedora-mixed-required-manual
+  category: multi_app_partial
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before:
+      - firefox
+    installed_apps_after:
+      - firefox
+      - filezilla
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Firefox
+        package: firefox
+        source: repo
+        required: true
+      - name: FileZilla
+        package: filezilla
+        source: repo
+        required: true
+      - name: VPN Viewer
+        package: vpn-viewer
+        source: repo
+        required: true
+    command_groups:
+      - title: Install internet apps
+        packages:
+          - firefox
+          - filezilla
+          - vpn-viewer
+        commands:
+          - "sudo dnf install -y firefox filezilla vpn-viewer"
+  simulated_events:
+    - type: verification
+      app: Firefox
+      package: firefox
+      rc: 0
+      stdout: "already installed"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 1
+      stdout: "filezilla installed"
+      stderr: "No match for argument: vpn-viewer"
+      repair_strategy: ""
+      provider_error: ""
+    - type: facts_refresh
+      app: ""
+      package: ""
+      rc: 0
+      stdout: "INSTALLED: firefox filezilla; MISSING: vpn-viewer"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - Firefox
+      - FileZilla
+    manual_followup_apps:
+      - VPN Viewer
+    failed_apps: []
+    alternatives: []
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - final_status_honest
+  rationale: "An unresolved required app must be visible as manual follow-up while unrelated verified apps stay completed."
+
+- id: multi-app-arch-native-with-optional-missing
+  category: multi_app_partial
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+      - obs-studio
+      - kdenlive
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: OBS Studio
+        package: obs-studio
+        source: repo
+        required: true
+      - name: Kdenlive
+        package: kdenlive
+        source: repo
+        required: true
+      - name: Stream Deck UI
+        package: streamdeck-ui
+        source: repo
+        required: false
+    command_groups:
+      - title: Install media production apps
+        packages:
+          - obs-studio
+          - kdenlive
+          - streamdeck-ui
+        commands:
+          - "sudo pacman -S --noconfirm obs-studio kdenlive streamdeck-ui"
+  simulated_events:
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 1
+      stdout: "obs-studio and kdenlive installed"
+      stderr: "error: target not found: streamdeck-ui"
+      repair_strategy: ""
+      provider_error: ""
+    - type: facts_refresh
+      app: ""
+      package: ""
+      rc: 0
+      stdout: "INSTALLED: obs-studio kdenlive; MISSING: streamdeck-ui"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - OBS Studio
+      - Kdenlive
+    manual_followup_apps:
+      - Stream Deck UI
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - final_status_honest
+  rationale: "One unavailable optional package must not poison verified native media apps."
+
+- id: multi-app-generic-unknown-manager-partial-verification
+  category: multi_app_partial
+  facts_profile:
+    family: generic
+    package_manager: generic
+    installed_apps_before: []
+    installed_apps_after:
+      - signal-desktop
+    flatpak_available: unknown
+    snap_available: unknown
+    aur_helper: unknown
+  plan:
+    requested_apps:
+      - name: Signal
+        package: signal-desktop
+        source: unknown
+        required: true
+      - name: Notes Pro
+        package: notes-pro
+        source: unknown
+        required: false
+    command_groups:
+      - title: Install requested apps with generic helper
+        packages:
+          - signal-desktop
+          - notes-pro
+        commands:
+          - "install-app signal-desktop notes-pro"
+  simulated_events:
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 2
+      stdout: "installed signal-desktop"
+      stderr: "notes-pro: provider unavailable"
+      repair_strategy: ""
+      provider_error: ""
+    - type: facts_refresh
+      app: ""
+      package: ""
+      rc: 0
+      stdout: "INSTALLED: signal-desktop; MISSING: notes-pro"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+    - type: verification
+      app: Signal
+      package: signal-desktop
+      rc: 0
+      stdout: "desktop entry found"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - Signal
+    manual_followup_apps:
+      - Notes Pro
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - final_status_honest
+  rationale: "With generic facts, positive verification for one app should be retained while an optional unavailable app becomes specific follow-up."

@@ -1,0 +1,530 @@
+- id: facts-final-vlc-refresh-verifies-success
+  category: facts_refresh
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+      - vlc
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: VLC
+        package: vlc
+        source: repo
+        required: true
+    command_groups:
+      - title: Install media player
+        packages:
+          - vlc
+        commands:
+          - "sudo apt-get install -y vlc"
+  simulated_events:
+    - type: command_success
+      app: VLC
+      package: vlc
+      rc: 0
+      stdout: "installed"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+    - type: facts_refresh
+      app: VLC
+      package: vlc
+      rc: 0
+      stdout: "INSTALLED: vlc"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+    - type: verification
+      app: VLC
+      package: vlc
+      rc: 0
+      stdout: "verified"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - VLC
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - final_status_honest
+  rationale: "A fresh facts refresh proving the requested app exists should allow final audit to report success."
+
+- id: facts-final-partial-refresh-manual-followup
+  category: final_audit
+  facts_profile:
+    family: debian
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+      - vlc
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: VLC
+        package: vlc
+        source: repo
+        required: true
+      - name: Required Notes
+        package: required-notes
+        source: repo
+        required: true
+    command_groups:
+      - title: Install media and required notes
+        packages:
+          - vlc
+          - required-notes
+        commands:
+          - "sudo apt-get install -y vlc required-notes"
+  simulated_events:
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 100
+      stdout: "vlc installed"
+      stderr: "E: Unable to locate package required-notes"
+      repair_strategy: ""
+      provider_error: ""
+    - type: facts_refresh
+      app: ""
+      package: ""
+      rc: 0
+      stdout: "INSTALLED: vlc; MISSING: required-notes"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - VLC
+    manual_followup_apps:
+      - Required Notes
+    failed_apps: []
+    alternatives: []
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - final_status_honest
+  rationale: "Final audit must not claim success while a required app remains unresolved after facts refresh."
+
+- id: facts-final-provider-429-preserves-installed
+  category: facts_refresh
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+      - firefox
+      - keepassxc
+    flatpak_available: true
+    snap_available: false
+    aur_helper: yay
+  plan:
+    requested_apps:
+      - name: Firefox
+        package: firefox
+        source: repo
+        required: true
+      - name: KeePassXC
+        package: keepassxc
+        source: repo
+        required: true
+      - name: Teams
+        package: teams-for-linux
+        source: aur
+        required: false
+    command_groups:
+      - title: Install base and meeting apps
+        packages:
+          - firefox
+          - keepassxc
+          - teams-for-linux
+        commands:
+          - "sudo pacman -S --noconfirm firefox keepassxc teams-for-linux"
+  simulated_events:
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 1
+      stdout: "firefox keepassxc installed"
+      stderr: "teams-for-linux not found"
+      repair_strategy: ""
+      provider_error: ""
+    - type: provider_error
+      app: Teams
+      package: teams-for-linux
+      rc: 0
+      stdout: ""
+      stderr: ""
+      repair_strategy: aur_repair
+      provider_error: "429"
+    - type: facts_refresh
+      app: ""
+      package: ""
+      rc: 0
+      stdout: "INSTALLED: firefox keepassxc; MISSING: teams-for-linux"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - Firefox
+      - KeePassXC
+    manual_followup_apps:
+      - Teams
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - provider_error_preserves_progress
+      - final_status_honest
+  rationale: "Provider failure plus later facts refresh should preserve installed apps and surface the optional app as follow-up."
+
+- id: facts-final-flatpak-refresh-verifies-after-repo-miss
+  category: facts_refresh
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after:
+      - com.spotify.Client
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Spotify
+        package: spotify-client
+        source: repo
+        required: false
+    command_groups:
+      - title: Install Spotify with fallback
+        packages:
+          - spotify-client
+        commands:
+          - "sudo dnf install -y spotify-client"
+  simulated_events:
+    - type: command_failure
+      app: Spotify
+      package: spotify-client
+      rc: 1
+      stdout: ""
+      stderr: "No match for argument"
+      repair_strategy: ""
+      provider_error: ""
+    - type: repair_response
+      app: Spotify
+      package: com.spotify.Client
+      rc: 0
+      stdout: "Use Flatpak"
+      stderr: ""
+      repair_strategy: repo_to_flatpak
+      provider_error: ""
+    - type: command_success
+      app: Spotify
+      package: com.spotify.Client
+      rc: 0
+      stdout: "installed"
+      stderr: ""
+      repair_strategy: repo_to_flatpak
+      provider_error: ""
+    - type: facts_refresh
+      app: Spotify
+      package: com.spotify.Client
+      rc: 0
+      stdout: "FLATPAK: com.spotify.Client"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - Spotify
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - final_status_honest
+  rationale: "Final audit should accept verified Flatpak fallback when the original repo package was unavailable."
+
+- id: facts-final-manual-followup-survives-unrelated-refresh
+  category: final_audit
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    installed_apps_before:
+      - firefox
+    installed_apps_after:
+      - firefox
+      - gimp
+    flatpak_available: true
+    snap_available: true
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Firefox
+        package: firefox
+        source: repo
+        required: true
+      - name: GIMP
+        package: gimp
+        source: repo
+        required: true
+      - name: Required CRM
+        package: required-crm
+        source: repo
+        required: true
+    command_groups:
+      - title: Install normal apps and CRM
+        packages:
+          - firefox
+          - gimp
+          - required-crm
+        commands:
+          - "sudo apt-get install -y firefox gimp required-crm"
+  simulated_events:
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 100
+      stdout: "gimp installed"
+      stderr: "E: Unable to locate package required-crm"
+      repair_strategy: ""
+      provider_error: ""
+    - type: facts_refresh
+      app: ""
+      package: ""
+      rc: 0
+      stdout: "INSTALLED: firefox gimp; MISSING: required-crm"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+    - type: facts_refresh
+      app: ""
+      package: ""
+      rc: 0
+      stdout: "INSTALLED: firefox gimp curl"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - Firefox
+      - GIMP
+    manual_followup_apps:
+      - Required CRM
+    failed_apps: []
+    alternatives: []
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - final_status_honest
+  rationale: "An unrelated later facts refresh must not clear unresolved required-app follow-up unless that app is actually verified."
+
+- id: facts-final-alternative-does-not-mark-original
+  category: final_audit
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    installed_apps_before: []
+    installed_apps_after:
+      - chromium
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Google Chrome
+        package: google-chrome-stable
+        source: repo
+        required: true
+    command_groups:
+      - title: Install Chrome or browser fallback
+        packages:
+          - google-chrome-stable
+        commands:
+          - "sudo dnf install -y google-chrome-stable"
+  simulated_events:
+    - type: command_failure
+      app: Google Chrome
+      package: google-chrome-stable
+      rc: 1
+      stdout: ""
+      stderr: "No match"
+      repair_strategy: ""
+      provider_error: ""
+    - type: repair_response
+      app: Google Chrome
+      package: chromium
+      rc: 0
+      stdout: "Install Chromium alternative"
+      stderr: ""
+      repair_strategy: alternative_repo
+      provider_error: ""
+    - type: command_success
+      app: Chromium
+      package: chromium
+      rc: 0
+      stdout: "installed"
+      stderr: ""
+      repair_strategy: alternative_repo
+      provider_error: ""
+    - type: facts_refresh
+      app: ""
+      package: ""
+      rc: 0
+      stdout: "INSTALLED: chromium; MISSING: google-chrome-stable"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps: []
+    manual_followup_apps:
+      - Google Chrome
+    failed_apps: []
+    alternatives:
+      - Chromium
+    final_status: manual_followup_required
+    must_not_block: true
+    invariants:
+      - failure_isolated
+      - final_status_honest
+  rationale: "Final audit must not mark the original required app installed just because an alternative exists."
+
+- id: facts-final-optional-theme-missing-warning
+  category: final_audit
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    installed_apps_before: []
+    installed_apps_after:
+      - dolphin
+    flatpak_available: false
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Dolphin
+        package: dolphin
+        source: repo
+        required: true
+      - name: Accent Theme
+        package: accent-theme-fake
+        source: repo
+        required: false
+    command_groups:
+      - title: Install file manager and optional theme
+        packages:
+          - dolphin
+          - accent-theme-fake
+        commands:
+          - "sudo pacman -S --noconfirm dolphin accent-theme-fake"
+  simulated_events:
+    - type: command_failure
+      app: ""
+      package: ""
+      rc: 1
+      stdout: "dolphin installed"
+      stderr: "accent-theme-fake not found"
+      repair_strategy: ""
+      provider_error: ""
+    - type: facts_refresh
+      app: ""
+      package: ""
+      rc: 0
+      stdout: "INSTALLED: dolphin; MISSING: accent-theme-fake"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - Dolphin
+    manual_followup_apps:
+      - Accent Theme
+    failed_apps: []
+    alternatives: []
+    final_status: success_with_warnings
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - failure_isolated
+      - final_status_honest
+  rationale: "Optional theme absence after final facts refresh should remain a warning, not success and not a blocked run."
+
+- id: facts-final-stale-missing-app-cleared-by-refresh
+  category: facts_refresh
+  facts_profile:
+    family: debian
+    package_manager: apt
+    installed_apps_before: []
+    installed_apps_after:
+      - nextcloud-desktop
+    flatpak_available: true
+    snap_available: false
+    aur_helper: none
+  plan:
+    requested_apps:
+      - name: Nextcloud Desktop
+        package: nextcloud-desktop
+        source: repo
+        required: true
+    command_groups:
+      - title: Install sync client
+        packages:
+          - nextcloud-desktop
+        commands:
+          - "sudo apt-get install -y nextcloud-desktop"
+  simulated_events:
+    - type: command_failure
+      app: Nextcloud Desktop
+      package: nextcloud-desktop
+      rc: 100
+      stdout: ""
+      stderr: "temporary dpkg query failed"
+      repair_strategy: ""
+      provider_error: ""
+    - type: facts_refresh
+      app: Nextcloud Desktop
+      package: nextcloud-desktop
+      rc: 0
+      stdout: "INSTALLED: nextcloud-desktop"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+    - type: verification
+      app: Nextcloud Desktop
+      package: nextcloud-desktop
+      rc: 0
+      stdout: "verified"
+      stderr: ""
+      repair_strategy: ""
+      provider_error: ""
+  expected:
+    completed_apps:
+      - Nextcloud Desktop
+    manual_followup_apps: []
+    failed_apps: []
+    alternatives: []
+    final_status: success
+    must_not_block: true
+    invariants:
+      - successful_apps_preserved
+      - final_status_honest
+  rationale: "Fresh facts that verify the app should clear stale missing evidence and prevent unnecessary manual follow-up."
