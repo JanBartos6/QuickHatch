@@ -65,7 +65,11 @@ def _facts_for_case(case: dict[str, Any]) -> SetupFacts:
 
 def _command_group_for_case(case: dict[str, Any]) -> CommandGroup:
     group = case["command_group"]
-    stage = SetupStage(group["stage"]) if group["stage"] in SetupStage._value2member_map_ else SetupStage.APPS
+    stage = (
+        SetupStage(group["stage"])
+        if group["stage"] in SetupStage._value2member_map_
+        else SetupStage.APPS
+    )
     return CommandGroup(
         id=case["id"],
         stage=stage,
@@ -215,4 +219,3 @@ def test_optional_app_theme_driver_followup_does_not_derail_setup(case: dict[str
     result = _evaluate_case(case)
 
     assert result.outcome == "pass", _format_results([result])
-

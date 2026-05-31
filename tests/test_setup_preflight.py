@@ -265,6 +265,50 @@ def test_preflight_allows_fedora_live_installroot_path():
     )
 
 
+def test_configure_existing_blocks_fresh_install_bootstrap_commands():
+    facts = SetupFacts(
+        package_manager="dnf",
+        distro_family="fedora",
+        current_user="jan",
+        login_user="jan",
+        is_live=False,
+        is_root=False,
+        sudo_nopasswd=True,
+        raw={"install_profile": "configure_existing"},
+    )
+
+    for command in (
+        "sudo pacstrap -K /mnt base linux linux-firmware",
+        "sudo dnf --installroot=/mnt --releasever=40 install -y systemd kernel NetworkManager",
+    ):
+        decisions = preflight_setup_decisions(command, facts)
+        assert any(item.kind == PreflightDecisionKind.BLOCK for item in decisions), command
+        assert any(item.category == "disk_boot_safety" for item in decisions), command
+
+
+def test_configure_existing_allows_enabling_ssh_but_not_disabling_or_restarting_it():
+    facts = SetupFacts(
+        package_manager="pacman",
+        distro_family="arch",
+        current_user="jan",
+        login_user="jan",
+        is_live=False,
+        is_root=False,
+        sudo_nopasswd=True,
+    )
+
+    enable_decisions = preflight_setup_decisions("sudo systemctl enable --now sshd", facts)
+    assert not any(item.kind == PreflightDecisionKind.BLOCK for item in enable_decisions)
+
+    for command in (
+        "sudo systemctl disable --now sshd",
+        "sudo systemctl restart sshd",
+    ):
+        decisions = preflight_setup_decisions(command, facts)
+        assert any(item.kind == PreflightDecisionKind.BLOCK for item in decisions), command
+        assert any(item.category == "ssh_continuity" for item in decisions), command
+
+
 def test_preflight_warns_ubuntu_live_interactive_installer_over_ssh():
     facts = SetupFacts(
         package_manager="apt",

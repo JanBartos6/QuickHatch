@@ -822,11 +822,6 @@ def _cuts_off_remote_access(cmd: str, *, ignore_power_transition: bool = False) 
                 if ignore_power_transition:
                     continue
                 return True
-            if "--now" in args and any(
-                service.startswith(("ssh", "sshd", "networkmanager", "network-manager"))
-                for service in non_option_args
-            ):
-                return True
         if tool == "service" and len(args) >= 2:
             service = args[0]
             verb = args[1]
@@ -899,7 +894,17 @@ def _uses_broad_package_process_kill(cmd: str) -> bool:
     return False
 
 
-def _installed_system_disk_or_bootstrap_mutation(tool: str, tokens: list[str]) -> bool:
+def _explicit_configure_existing_profile(facts: SetupFacts) -> bool:
+    profile = str((facts.raw or {}).get("install_profile") or "").strip().lower()
+    return profile in {"configure_existing", "configure_only"}
+
+
+def _installed_system_disk_or_bootstrap_mutation(
+    tool: str,
+    tokens: list[str],
+    *,
+    configure_existing: bool = False,
+) -> bool:
     """Return true for live-install/disk-spine commands on an installed system."""
 
     token_text = " ".join(tokens[1:]).lower()
@@ -929,6 +934,17 @@ def _installed_system_disk_or_bootstrap_mutation(tool: str, tokens: list[str]) -
         return True
     if tool == "mount":
         return _mount_command_requires_root(tokens)
+    if configure_existing and tool == "pacstrap":
+        return any(
+            arg in {"/mnt", "/target", "/mnt/sysroot", "/mnt/sysimage"} for arg in tokens[1:]
+        )
+    if configure_existing and tool in {"dnf", "dnf5"}:
+        return any(
+            arg in {"--installroot=/mnt", "--installroot=/target"}
+            or arg.startswith("--installroot=/mnt/")
+            or arg.startswith("--installroot=/target/")
+            for arg in tokens[1:]
+        )
     if tool in {"arch-chroot", "chroot"}:
         return any(
             arg in {"/mnt", "/target", "/mnt/sysroot", "/mnt/sysimage"} for arg in tokens[1:]
@@ -1278,7 +1294,11 @@ def preflight_setup_command(
         if (
             not facts.is_live
             and has_root_privilege
-            and _installed_system_disk_or_bootstrap_mutation(tool, tokens)
+            and _installed_system_disk_or_bootstrap_mutation(
+                tool,
+                tokens,
+                configure_existing=_explicit_configure_existing_profile(facts),
+            )
         ):
             return (
                 f"`{tool}` is a live-install/disk/bootstrap operation but this target is an "
