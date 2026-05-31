@@ -47,6 +47,7 @@ def test_release_smoke_passes_required_checks_and_reports_skips(tmp_path):
 def test_release_smoke_targeted_pytest_includes_tier1_safety_tests():
     assert "tests/test_setup_capabilities.py" in TARGETED_PYTEST_FILES
     assert "tests/test_setup_preflight.py" in TARGETED_PYTEST_FILES
+    assert "tests/test_setup_desktop_session.py" in TARGETED_PYTEST_FILES
 
 
 def test_release_smoke_failed_required_check_fails_payload(tmp_path):
