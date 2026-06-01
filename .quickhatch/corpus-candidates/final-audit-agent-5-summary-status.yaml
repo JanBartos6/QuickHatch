@@ -1,0 +1,520 @@
+- id: clean-final-success
+  category: summary_status
+  initial_findings: []
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: success
+    summary_must_include:
+      - "No unresolved findings remain"
+      - "Final audit completed successfully"
+    summary_must_not_claim:
+      - "Manual follow-up required"
+      - "Unsupported configuration detected"
+      - "Blocked by fatal findings"
+  rationale: "Baseline truth-table case: success is valid only when the final audit has no remaining findings."
+
+- id: warning-only-success-with-warnings
+  category: summary_status
+  initial_findings:
+    - id: "pkg-alt-used"
+      severity: warning
+      category: package_db
+      summary: "A compatible package-manager fallback was used instead of the preferred provider."
+      required_capability_kinds: []
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: success
+    remaining_findings:
+      - severity: warning
+        category: "package_db"
+        summary: "Preferred package provider was unavailable; compatible fallback remains noted."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: success_with_warnings
+    summary_must_include:
+      - "compatible fallback"
+      - "warning"
+    summary_must_not_claim:
+      - "No unresolved findings remain"
+      - "manual follow-up required"
+      - "fatal"
+  rationale: "Warnings that do not require action must prevent plain success but should not escalate to manual follow-up."
+
+- id: manual-followup-after-repair
+  category: summary_status
+  initial_findings:
+    - id: "ssh-reconnect-unverified"
+      severity: manual_followup
+      category: ssh_reconnect
+      summary: "SSH reconnect could not be verified from the current execution environment."
+      required_capability_kinds:
+        - "network_reconnect_probe"
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+      - severity: manual_followup
+        category: "ssh_reconnect"
+        summary: "SSH reconnect remains unverified and requires manual confirmation."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+      - "SSH reconnect remains unverified"
+      - "manual confirmation"
+    summary_must_not_claim:
+      - "SSH reconnect verified"
+      - "fully successful"
+      - "No unresolved findings remain"
+  rationale: "Manual follow-up must remain visible in the final status even when it is not fatal."
+
+- id: fatal-bootability-blocks
+  category: summary_status
+  initial_findings:
+    - id: "missing-root-loader"
+      severity: fatal
+      category: bootability
+      summary: "No bootloader entry references the installed root filesystem."
+      required_capability_kinds:
+        - "bootloader_edit"
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Regenerate bootloader configuration"
+        commands:
+          - "grub-mkconfig -o /boot/grub/grub.cfg"
+        required_capability_kinds:
+          - "bootloader_edit"
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+      - severity: fatal
+        category: "bootability"
+        summary: "Bootloader repair requires bootloader edit capability and remains unresolved."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "fatal"
+      - "bootloader"
+      - "blocked"
+    summary_must_not_claim:
+      - "bootability verified"
+      - "repair completed"
+      - "safe to reboot"
+  rationale: "Any unresolved fatal finding must produce blocked, regardless of an available representative repair plan."
+
+- id: fstab-fatal-plus-warning
+  category: summary_status
+  initial_findings:
+    - id: "fstab-root-mismatch"
+      severity: fatal
+      category: fstab
+      summary: "fstab root UUID does not match the detected root filesystem."
+      required_capability_kinds:
+        - "filesystem_config_write"
+    - id: "swap-not-present"
+      severity: warning
+      category: fstab
+      summary: "Swap entry references a device that is not currently present."
+      required_capability_kinds: []
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Correct root filesystem entry"
+        commands:
+          - "findmnt -no UUID /"
+          - "edit /etc/fstab to replace the stale root UUID"
+        required_capability_kinds:
+          - "filesystem_config_write"
+  repair_result:
+    outcome: preflight_block
+    remaining_findings:
+      - severity: fatal
+        category: "fstab"
+        summary: "Root fstab UUID mismatch remains unresolved."
+      - severity: warning
+        category: "fstab"
+        summary: "Swap entry still references an absent device."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "Root fstab UUID mismatch"
+      - "Swap entry"
+      - "blocked"
+    summary_must_not_claim:
+      - "success_with_warnings"
+      - "only warnings remain"
+      - "fstab repaired"
+  rationale: "Fatal findings dominate warnings in the final status and all unresolved items must be summarized."
+
+- id: repaired-all-findings-success
+  category: summary_status
+  initial_findings:
+    - id: "pkg-db-lock-stale"
+      severity: repairable
+      category: package_db
+      summary: "Package database lock appears stale."
+      required_capability_kinds:
+        - "package_db_write"
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Clear stale package lock"
+        commands:
+          - "rm /var/lib/dpkg/lock-frontend"
+          - "dpkg --configure -a"
+        required_capability_kinds:
+          - "package_db_write"
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 0
+    final_status: success
+    summary_must_include:
+      - "Package database lock repaired"
+      - "No unresolved findings remain"
+    summary_must_not_claim:
+      - "manual follow-up required"
+      - "blocked"
+      - "warnings remain"
+  rationale: "A repairable finding can end in plain success only when the repair result leaves no remaining findings."
+
+- id: repair-success-but-unverified
+  category: summary_status
+  initial_findings:
+    - id: "desktop-session-restarted"
+      severity: repairable
+      category: desktop
+      summary: "Desktop session service needed restart."
+      required_capability_kinds:
+        - "service_restart"
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Restart desktop session service"
+        commands:
+          - "systemctl --user restart graphical-session.target"
+        required_capability_kinds:
+          - "service_restart"
+  repair_result:
+    outcome: success
+    remaining_findings:
+      - severity: manual_followup
+        category: "desktop"
+        summary: "Desktop session restart was issued, but interactive desktop usability was not verified."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+      - "not verified"
+      - "manual follow-up"
+      - "desktop"
+    summary_must_not_claim:
+      - "desktop usability verified"
+      - "No unresolved findings remain"
+      - "fully successful"
+  rationale: "A successful command outcome must not be summarized as verified success when the audit still has an unverified manual item."
+
+- id: unsupported-secure-boot
+  category: unsupported_safe
+  initial_findings:
+    - id: "secure-boot-enabled"
+      severity: unsupported_safe
+      category: setup
+      summary: "Secure Boot is enabled and the repair path is intentionally unsupported-safe."
+      required_capability_kinds: []
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+      - severity: unsupported_safe
+        category: "setup"
+        summary: "Secure Boot remains enabled; no unsafe boot-chain changes were attempted."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: unsupported_safe
+    summary_must_include:
+      - "Secure Boot"
+      - "unsupported-safe"
+      - "no unsafe boot-chain changes were attempted"
+    summary_must_not_claim:
+      - "Secure Boot disabled"
+      - "repair attempted"
+      - "success"
+  rationale: "Secure Boot handling should be classified as unsupported-safe, not failed or silently successful."
+
+- id: unsupported-nvidia-secure-boot
+  category: unsupported_safe
+  initial_findings:
+    - id: "nvidia-secure-boot-module"
+      severity: unsupported_safe
+      category: driver
+      summary: "NVIDIA driver repair requires Secure Boot module signing that is outside supported automation."
+      required_capability_kinds: []
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+      - severity: unsupported_safe
+        category: "driver"
+        summary: "NVIDIA driver remains unsupported-safe because Secure Boot module signing needs manual owner-key handling."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: unsupported_safe
+    summary_must_include:
+      - "NVIDIA"
+      - "Secure Boot module signing"
+      - "manual owner-key handling"
+    summary_must_not_claim:
+      - "driver repaired"
+      - "module signing completed"
+      - "verified graphics acceleration"
+  rationale: "NVIDIA plus Secure Boot should remain an explicit unsupported-safe condition rather than pretending automation can complete signing."
+
+- id: unsupported-mixed-with-warning
+  category: unsupported_safe
+  initial_findings:
+    - id: "secure-boot-enabled"
+      severity: unsupported_safe
+      category: setup
+      summary: "Secure Boot is enabled."
+      required_capability_kinds: []
+    - id: "alternate-app-source"
+      severity: warning
+      category: apps
+      summary: "Application install source uses a supported fallback repository."
+      required_capability_kinds: []
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+      - severity: unsupported_safe
+        category: "setup"
+        summary: "Secure Boot remains enabled and unsupported-safe."
+      - severity: warning
+        category: "apps"
+        summary: "Fallback application repository remains in use."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: unsupported_safe
+    summary_must_include:
+      - "Secure Boot"
+      - "unsupported-safe"
+      - "Fallback application repository"
+    summary_must_not_claim:
+      - "success_with_warnings"
+      - "all findings resolved"
+      - "repair attempted"
+  rationale: "Unsupported-safe status should dominate ordinary warnings while still listing the warning."
+
+- id: unsupported-plus-fatal-blocked
+  category: summary_status
+  initial_findings:
+    - id: "secure-boot-enabled"
+      severity: unsupported_safe
+      category: setup
+      summary: "Secure Boot is enabled."
+      required_capability_kinds: []
+    - id: "root-not-mountable"
+      severity: fatal
+      category: bootability
+      summary: "Root filesystem is not mountable from the generated boot entry."
+      required_capability_kinds:
+        - "bootloader_edit"
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Repair boot entry"
+        commands:
+          - "mount /dev/disk/by-uuid/ROOT_UUID /mnt"
+          - "bootctl install"
+        required_capability_kinds:
+          - "bootloader_edit"
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+      - severity: fatal
+        category: "bootability"
+        summary: "Root filesystem remains not mountable from the generated boot entry."
+      - severity: unsupported_safe
+        category: "setup"
+        summary: "Secure Boot remains enabled."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "Root filesystem remains not mountable"
+      - "Secure Boot remains enabled"
+      - "blocked"
+    summary_must_not_claim:
+      - "unsupported_safe"
+      - "boot repaired"
+      - "safe to reboot"
+  rationale: "Fatal blocked status should dominate unsupported-safe when both remain unresolved."
+
+- id: provider-error-no-success-claim
+  category: summary_status
+  initial_findings:
+    - id: "apps-audit-provider-timeout"
+      severity: manual_followup
+      category: apps
+      summary: "Application audit provider timed out before verification completed."
+      required_capability_kinds:
+        - "app_inventory_provider"
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: provider_error
+    remaining_findings:
+      - severity: manual_followup
+        category: "apps"
+        summary: "Application audit could not be completed because the provider timed out."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+      - "provider timed out"
+      - "Application audit could not be completed"
+    summary_must_not_claim:
+      - "applications verified"
+      - "No unresolved findings remain"
+      - "success"
+  rationale: "Provider errors that prevent verification must not be converted into success."
+
+- id: repair-failed-manual-remains
+  category: summary_status
+  initial_findings:
+    - id: "desktop-portal-missing"
+      severity: repairable
+      category: desktop
+      summary: "Desktop portal package is missing."
+      required_capability_kinds:
+        - "package_install"
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Install desktop portal package"
+        commands:
+          - "apt-get install xdg-desktop-portal"
+        required_capability_kinds:
+          - "package_install"
+  repair_result:
+    outcome: failure
+    remaining_findings:
+      - severity: manual_followup
+        category: "desktop"
+        summary: "Desktop portal package install failed and needs manual package-manager inspection."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+      - "install failed"
+      - "manual package-manager inspection"
+    summary_must_not_claim:
+      - "desktop portal installed"
+      - "all repairs succeeded"
+      - "No unresolved findings remain"
+  rationale: "A failed repair with no fatal remaining item should surface as manual follow-up, not success."
+
+- id: only-alternatives-warning
+  category: summary_status
+  initial_findings:
+    - id: "ssh-alt-port"
+      severity: warning
+      category: ssh_reconnect
+      summary: "SSH is reachable only through an alternate configured port."
+      required_capability_kinds: []
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: success
+    remaining_findings:
+      - severity: warning
+        category: "ssh_reconnect"
+        summary: "SSH reconnect path uses an alternate configured port."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: success_with_warnings
+    summary_must_include:
+      - "alternate configured port"
+      - "success with warnings"
+    summary_must_not_claim:
+      - "default SSH port verified"
+      - "manual follow-up required"
+      - "blocked"
+  rationale: "A supported alternate path should end as success_with_warnings and must not imply default-path verification."
+
+- id: manual-and-warning-no-success
+  category: summary_status
+  initial_findings:
+    - id: "desktop-login-unchecked"
+      severity: manual_followup
+      category: desktop
+      summary: "Graphical login could not be checked without an interactive console."
+      required_capability_kinds:
+        - "interactive_console"
+    - id: "app-source-fallback"
+      severity: warning
+      category: apps
+      summary: "One application source uses a fallback mirror."
+      required_capability_kinds: []
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+      - severity: manual_followup
+        category: "desktop"
+        summary: "Graphical login still requires manual interactive-console verification."
+      - severity: warning
+        category: "apps"
+        summary: "Fallback mirror remains configured for one application source."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+      - "Graphical login"
+      - "manual interactive-console verification"
+      - "Fallback mirror"
+    summary_must_not_claim:
+      - "success_with_warnings"
+      - "graphical login verified"
+      - "No unresolved findings remain"
+  rationale: "Manual follow-up should dominate warnings and every unresolved nonfatal item should stay visible."

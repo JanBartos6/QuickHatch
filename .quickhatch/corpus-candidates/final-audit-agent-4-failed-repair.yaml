@@ -1,0 +1,507 @@
+- id: provider-error-fstab
+  category: failed_repair
+  initial_findings:
+    - id: "fstab-root-uuid-missing"
+      severity: fatal
+      category: fstab
+      summary: "Root filesystem UUID in /etc/fstab does not match any discovered block device."
+      required_capability_kinds: ["root_shell", "disk_inspection"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Refresh root UUID in fstab"
+        commands:
+          - "blkid -s UUID -o value /dev/nvme0n1p2"
+          - "cp /etc/fstab /etc/fstab.quickhatch.bak"
+          - "sed -i 's/UUID=old-root/UUID=new-root/' /etc/fstab"
+        required_capability_kinds: ["root_shell", "disk_write"]
+  repair_result:
+    outcome: provider_error
+    remaining_findings:
+      - severity: fatal
+        category: "fstab"
+        summary: "Root filesystem UUID remains unresolved because the repair provider failed before commands were produced."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: blocked
+    summary_must_include:
+      - "provider error"
+      - "root filesystem UUID still unresolved"
+    summary_must_not_claim:
+      - "fstab repaired"
+      - "system is bootable"
+  rationale: "A provider failure during a fatal fstab repair must leave the audit blocked, not infer success."
+
+- id: json-exhaust-boot
+  category: failed_repair
+  initial_findings:
+    - id: "bootloader-no-efi-entry"
+      severity: fatal
+      category: bootability
+      summary: "No EFI boot entry points to the installed system bootloader."
+      required_capability_kinds: ["root_shell", "efi_access"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Recreate EFI boot entry"
+        commands:
+          - "efibootmgr --create --disk /dev/nvme0n1 --part 1 --label QuickHatch --loader '\\\\EFI\\\\systemd\\\\systemd-bootx64.efi'"
+        required_capability_kinds: ["root_shell", "efi_write"]
+  repair_result:
+    outcome: provider_error
+    remaining_findings:
+      - severity: fatal
+        category: "bootability"
+        summary: "Repair loop exhausted invalid JSON responses while trying to generate EFI repair commands."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 3
+    final_status: blocked
+    summary_must_include:
+      - "invalid repair response"
+      - "EFI boot entry still missing"
+    summary_must_not_claim:
+      - "boot entry recreated"
+      - "repair completed"
+  rationale: "Repeated malformed repair output must be bounded and reported as failure with the original fatal finding intact."
+
+- id: pacman-lock-fail
+  category: failed_repair
+  initial_findings:
+    - id: "package-db-incomplete"
+      severity: repairable
+      category: package_db
+      summary: "Package database transaction appears interrupted and requires recovery."
+      required_capability_kinds: ["root_shell", "package_manager"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Recover package database"
+        commands:
+          - "rm -f /var/lib/pacman/db.lck"
+          - "pacman -Syu --noconfirm"
+        required_capability_kinds: ["root_shell", "package_manager", "network"]
+  repair_result:
+    outcome: failure
+    remaining_findings:
+      - severity: repairable
+        category: "package_db"
+        summary: "Package manager repair failed because the package database remained locked by an active process."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: manual_followup_required
+    summary_must_include:
+      - "package database still locked"
+      - "manual follow-up required"
+    summary_must_not_claim:
+      - "package database recovered"
+      - "updates completed"
+  rationale: "A command failure on a non-fatal package issue should stop short of success and preserve the actionable finding."
+
+- id: preflight-readonly-root
+  category: failed_repair
+  initial_findings:
+    - id: "ssh-key-missing"
+      severity: repairable
+      category: ssh_reconnect
+      summary: "SSH authorized_keys is missing for the configured reconnect user."
+      required_capability_kinds: ["root_shell", "ssh_config_write"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Install reconnect key"
+        commands:
+          - "install -d -m 700 /home/alex/.ssh"
+          - "printf '%s\\n' 'ssh-ed25519 AAAA...' >> /home/alex/.ssh/authorized_keys"
+          - "chown -R alex:alex /home/alex/.ssh"
+        required_capability_kinds: ["root_shell", "filesystem_write"]
+  repair_result:
+    outcome: preflight_block
+    remaining_findings:
+      - severity: repairable
+        category: "ssh_reconnect"
+        summary: "SSH key repair was not attempted because the target root filesystem is mounted read-only."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+      - "preflight blocked"
+      - "read-only filesystem"
+    summary_must_not_claim:
+      - "authorized_keys updated"
+      - "SSH reconnect fixed"
+  rationale: "Preflight must prevent writes on read-only targets and report the repair as not performed."
+
+- id: cap-required-chroot
+  category: failed_repair
+  initial_findings:
+    - id: "initramfs-missing-root-module"
+      severity: fatal
+      category: bootability
+      summary: "Initramfs lacks the storage driver required to mount the root device."
+      required_capability_kinds: ["root_shell", "chroot", "initramfs_rebuild"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Rebuild initramfs in target system"
+        commands:
+          - "arch-chroot /mnt mkinitcpio -P"
+        required_capability_kinds: ["root_shell", "chroot", "initramfs_rebuild"]
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+      - severity: fatal
+        category: "bootability"
+        summary: "Initramfs rebuild requires chroot capability that is unavailable in this repair context."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "chroot capability required"
+      - "initramfs still missing required driver"
+    summary_must_not_claim:
+      - "initramfs rebuilt"
+      - "bootability repaired"
+  rationale: "Capability gating must keep fatal boot repairs from pretending to run when the environment cannot support them."
+
+- id: bounded-ssh-retry
+  category: failed_repair
+  initial_findings:
+    - id: "sshd-disabled"
+      severity: repairable
+      category: ssh_reconnect
+      summary: "sshd service is disabled, preventing remote reconnect after reboot."
+      required_capability_kinds: ["root_shell", "service_manager"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Enable sshd"
+        commands:
+          - "systemctl enable sshd.service"
+          - "systemctl start sshd.service"
+        required_capability_kinds: ["root_shell", "service_manager"]
+  repair_result:
+    outcome: failure
+    remaining_findings:
+      - severity: repairable
+        category: "ssh_reconnect"
+        summary: "sshd enable/start failed on repeated attempts because the service unit is missing."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 2
+    final_status: manual_followup_required
+    summary_must_include:
+      - "retry limit reached"
+      - "sshd service unit missing"
+    summary_must_not_claim:
+      - "SSH service enabled"
+      - "further retries scheduled"
+  rationale: "The repair loop should cap repeated failures and clearly report the remaining reconnect risk."
+
+- id: dangerous-fstab-reject
+  category: failed_repair
+  initial_findings:
+    - id: "swap-fstab-invalid"
+      severity: repairable
+      category: fstab
+      summary: "Swap entry in /etc/fstab references a removed partition."
+      required_capability_kinds: ["root_shell", "disk_inspection"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Remove invalid swap entry"
+        commands:
+          - "sed -i '/swap/d' /etc/fstab"
+          - "mount -a"
+        required_capability_kinds: ["root_shell", "disk_write"]
+  repair_result:
+    outcome: preflight_block
+    remaining_findings:
+      - severity: repairable
+        category: "fstab"
+        summary: "Final repair was rejected because the generated command would remove all swap lines without matching the specific invalid UUID."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+      - "dangerous repair rejected"
+      - "swap entry still invalid"
+    summary_must_not_claim:
+      - "swap entry removed"
+      - "fstab is clean"
+  rationale: "A broad destructive edit must be blocked even when the underlying issue is repairable."
+
+- id: success-but-facts-fatal
+  category: failed_repair
+  initial_findings:
+    - id: "root-mount-fails"
+      severity: fatal
+      category: bootability
+      summary: "Root filesystem does not mount during boot validation."
+      required_capability_kinds: ["root_shell", "mount_validation"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Repair root mount metadata"
+        commands:
+          - "fsck -y /dev/nvme0n1p2"
+          - "mount /dev/nvme0n1p2 /mnt"
+        required_capability_kinds: ["root_shell", "disk_write"]
+  repair_result:
+    outcome: success
+    remaining_findings:
+      - severity: fatal
+        category: "bootability"
+        summary: "Post-repair facts still show the root filesystem cannot be mounted."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: blocked
+    summary_must_include:
+      - "repair command reported success"
+      - "root filesystem still cannot be mounted"
+    summary_must_not_claim:
+      - "bootability restored"
+      - "all fatal findings resolved"
+  rationale: "Successful command exit is not enough; final status must follow refreshed audit facts."
+
+- id: app-install-provider
+  category: failed_repair
+  initial_findings:
+    - id: "browser-missing"
+      severity: manual_followup
+      category: apps
+      summary: "Required browser application is not installed."
+      required_capability_kinds: ["package_manager", "network"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Install browser"
+        commands:
+          - "apt-get update"
+          - "apt-get install -y firefox"
+        required_capability_kinds: ["root_shell", "package_manager", "network"]
+  repair_result:
+    outcome: provider_error
+    remaining_findings:
+      - severity: manual_followup
+        category: "apps"
+        summary: "Application install repair could not be generated because the provider timed out."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: manual_followup_required
+    summary_must_include:
+      - "provider timed out"
+      - "browser application still missing"
+    summary_must_not_claim:
+      - "browser installed"
+      - "application setup complete"
+  rationale: "Non-fatal app setup failures should remain manual follow-up rather than block the whole audit as fatal."
+
+- id: desktop-driver-fail
+  category: failed_repair
+  initial_findings:
+    - id: "gpu-driver-conflict"
+      severity: repairable
+      category: driver
+      summary: "Conflicting GPU driver packages are installed and the desktop session fails to start."
+      required_capability_kinds: ["root_shell", "package_manager", "driver_management"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Resolve GPU driver conflict"
+        commands:
+          - "apt-get remove -y nvidia-driver-legacy"
+          - "apt-get install -y nvidia-driver"
+          - "systemctl restart display-manager.service"
+        required_capability_kinds: ["root_shell", "package_manager", "service_manager"]
+  repair_result:
+    outcome: failure
+    remaining_findings:
+      - severity: repairable
+        category: "driver"
+        summary: "GPU driver repair failed because package dependencies could not be resolved."
+      - severity: manual_followup
+        category: "desktop"
+        summary: "Desktop session still fails to start after the failed driver repair."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: manual_followup_required
+    summary_must_include:
+      - "driver dependencies unresolved"
+      - "desktop session still fails"
+    summary_must_not_claim:
+      - "GPU driver conflict resolved"
+      - "desktop repaired"
+  rationale: "A failed driver repair can produce both remaining repairable and manual desktop follow-up findings."
+
+- id: unsupported-repair-safe
+  category: failed_repair
+  initial_findings:
+    - id: "unsupported-filesystem"
+      severity: unsupported_safe
+      category: setup
+      summary: "Target installation uses an unsupported encrypted filesystem layout."
+      required_capability_kinds: ["disk_inspection"]
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+      - severity: unsupported_safe
+        category: "setup"
+        summary: "Unsupported encrypted filesystem layout remains outside automated repair scope."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: unsupported_safe
+    summary_must_include:
+      - "unsupported encrypted filesystem layout"
+      - "automated repair not attempted"
+    summary_must_not_claim:
+      - "repair failed after running commands"
+      - "layout changed"
+  rationale: "Unsupported-safe cases belong in the failed-repair lane when they verify that no unsafe repair is attempted."
+
+- id: setup-script-nonzero
+  category: failed_repair
+  initial_findings:
+    - id: "postinstall-incomplete"
+      severity: repairable
+      category: setup
+      summary: "Post-install setup marker is missing after a partially completed setup run."
+      required_capability_kinds: ["root_shell", "setup_runner"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Resume setup"
+        commands:
+          - "/usr/local/bin/quickhatch-setup --resume"
+        required_capability_kinds: ["root_shell", "setup_runner"]
+  repair_result:
+    outcome: failure
+    remaining_findings:
+      - severity: repairable
+        category: "setup"
+        summary: "Setup resume command exited non-zero and the completion marker is still missing."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: manual_followup_required
+    summary_must_include:
+      - "setup resume failed"
+      - "completion marker still missing"
+    summary_must_not_claim:
+      - "post-install setup complete"
+      - "marker created"
+  rationale: "The final summary must reflect command failure and unchanged setup facts."
+
+- id: network-cap-missing
+  category: failed_repair
+  initial_findings:
+    - id: "package-mirror-stale"
+      severity: warning
+      category: package_db
+      summary: "Package mirror metadata is stale and should be refreshed before first boot updates."
+      required_capability_kinds: ["network", "package_manager"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Refresh package metadata"
+        commands:
+          - "apt-get update"
+        required_capability_kinds: ["root_shell", "package_manager", "network"]
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+      - severity: warning
+        category: "package_db"
+        summary: "Package metadata refresh requires network access that is unavailable."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 0
+    final_status: success_with_warnings
+    summary_must_include:
+      - "network capability unavailable"
+      - "package metadata remains stale"
+    summary_must_not_claim:
+      - "metadata refreshed"
+      - "updates verified"
+  rationale: "A non-fatal warning can leave the final audit successful with warnings even though repair could not run."
+
+- id: facts-regress-after-fix
+  category: failed_repair
+  initial_findings:
+    - id: "display-manager-disabled"
+      severity: repairable
+      category: desktop
+      summary: "Display manager is disabled, so graphical login will not start automatically."
+      required_capability_kinds: ["root_shell", "service_manager"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Enable display manager"
+        commands:
+          - "systemctl enable gdm.service"
+          - "systemctl set-default graphical.target"
+        required_capability_kinds: ["root_shell", "service_manager"]
+  repair_result:
+    outcome: success
+    remaining_findings:
+      - severity: manual_followup
+        category: "desktop"
+        summary: "Display manager was enabled, but refreshed facts show gdm.service fails due to missing greeter package."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: manual_followup_required
+    summary_must_include:
+      - "display manager enabled"
+      - "gdm.service still fails"
+    summary_must_not_claim:
+      - "graphical login fully repaired"
+      - "desktop ready"
+  rationale: "A repair can succeed while revealing a new unresolved follow-up that determines final status."
+
+- id: repeated-json-then-noop
+  category: failed_repair
+  initial_findings:
+    - id: "home-fstab-missing"
+      severity: repairable
+      category: fstab
+      summary: "Separate /home partition exists but is missing from /etc/fstab."
+      required_capability_kinds: ["root_shell", "disk_inspection", "disk_write"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Add /home mount"
+        commands:
+          - "blkid -s UUID -o value /dev/nvme0n1p3"
+          - "printf 'UUID=home-uuid /home ext4 defaults 0 2\\n' >> /etc/fstab"
+          - "mount -a"
+        required_capability_kinds: ["root_shell", "disk_write"]
+  repair_result:
+    outcome: provider_error
+    remaining_findings:
+      - severity: repairable
+        category: "fstab"
+        summary: "Repair generation produced invalid JSON until the retry limit was reached; /home remains absent from fstab."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 3
+    final_status: manual_followup_required
+    summary_must_include:
+      - "retry limit reached"
+      - "/home remains absent from fstab"
+    summary_must_not_claim:
+      - "/home mount added"
+      - "mount validation passed"
+  rationale: "Invalid JSON exhaustion should be distinguishable from command execution failure and should not mutate audit state."

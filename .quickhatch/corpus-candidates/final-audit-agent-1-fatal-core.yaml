@@ -1,0 +1,477 @@
+- id: missing-root-fstab
+  category: fatal_core
+  initial_findings:
+    - id: "fstab-root-missing"
+      severity: fatal
+      category: fstab
+      summary: "/etc/fstab has no root filesystem entry, so the installed system may not mount its root volume on boot."
+      required_capability_kinds: ["filesystem_read", "block_device_inspection"]
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+      - severity: fatal
+        category: fstab
+        summary: "Root filesystem entry is still missing from /etc/fstab."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "root filesystem entry is missing"
+      - "blocked"
+    summary_must_not_claim:
+      - "fstab repaired"
+      - "system is bootable"
+  rationale: "A missing root mount is a core boot blocker. Guessing the correct device or UUID is unsafe without explicit validated disk mapping."
+
+- id: stale-root-uuid
+  category: fatal_core
+  initial_findings:
+    - id: "fstab-root-uuid-not-found"
+      severity: fatal
+      category: fstab
+      summary: "/etc/fstab references a root UUID that is not present in blkid output."
+      required_capability_kinds: ["filesystem_read", "block_device_inspection"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Verify candidate root volume"
+        commands:
+          - "blkid"
+          - "findmnt --target /mnt"
+          - "lsblk -f"
+        required_capability_kinds: ["block_device_inspection"]
+      - title: "Rewrite fstab only after verified mapping"
+        commands:
+          - "mount /dev/disk/by-uuid/<verified-root-uuid> /mnt"
+          - "sed -i 's/UUID=<stale>/UUID=<verified-root-uuid>/' /mnt/etc/fstab"
+        required_capability_kinds: ["filesystem_write", "mount"]
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+      - severity: fatal
+        category: fstab
+        summary: "Root UUID remains stale because filesystem write and mount capability were unavailable."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "root UUID is not present"
+      - "requires verified disk mapping"
+    summary_must_not_claim:
+      - "UUID corrected"
+      - "repair completed"
+  rationale: "The repair can be safe only with block-device verification and write access to the installed system."
+
+- id: malformed-fstab
+  category: fatal_core
+  initial_findings:
+    - id: "fstab-parse-fails"
+      severity: fatal
+      category: fstab
+      summary: "/etc/fstab contains malformed fields that make systemd-fstab-generator fail."
+      required_capability_kinds: ["filesystem_read"]
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+      - severity: fatal
+        category: fstab
+        summary: "fstab remains malformed and may block boot."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "fstab is malformed"
+      - "blocked"
+    summary_must_not_claim:
+      - "syntax fixed"
+      - "boot validation passed"
+  rationale: "Fatal fstab syntax should not be auto-edited without knowing the intended mount topology."
+
+- id: missing-kernel-image
+  category: fatal_core
+  initial_findings:
+    - id: "boot-vmlinuz-missing"
+      severity: fatal
+      category: bootability
+      summary: "/boot does not contain a kernel image for the installed system."
+      required_capability_kinds: ["filesystem_read", "package_query"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Reinstall kernel in target system"
+        commands:
+          - "mount /dev/<root> /mnt"
+          - "mount /dev/<efi-or-boot> /mnt/boot"
+          - "arch-chroot /mnt pacman -S linux"
+        required_capability_kinds: ["mount", "chroot", "package_install"]
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+      - severity: fatal
+        category: bootability
+        summary: "Kernel image is still missing because chroot/package install capability was unavailable."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "kernel image is missing"
+      - "requires chroot/package install capability"
+    summary_must_not_claim:
+      - "kernel installed"
+      - "boot files restored"
+  rationale: "Installing a kernel modifies the target OS and must happen only through an explicit safe target-root workflow."
+
+- id: missing-initramfs
+  category: fatal_core
+  initial_findings:
+    - id: "boot-initramfs-missing"
+      severity: fatal
+      category: bootability
+      summary: "/boot lacks an initramfs image matching the installed kernel."
+      required_capability_kinds: ["filesystem_read"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Regenerate initramfs"
+        commands:
+          - "mount /dev/<root> /mnt"
+          - "mount /dev/<boot> /mnt/boot"
+          - "arch-chroot /mnt mkinitcpio -P"
+        required_capability_kinds: ["mount", "chroot", "boot_file_write"]
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+      - severity: fatal
+        category: bootability
+        summary: "initramfs is still missing because target chroot/write capability was unavailable."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "initramfs image is missing"
+      - "blocked"
+    summary_must_not_claim:
+      - "initramfs regenerated"
+      - "bootability restored"
+  rationale: "Regenerating initramfs is repairable in principle, but not without safe access to the mounted target."
+
+- id: grub-not-installed
+  category: fatal_core
+  initial_findings:
+    - id: "bootloader-grub-missing"
+      severity: fatal
+      category: bootability
+      summary: "No installed bootloader was found in the EFI system partition or boot sector."
+      required_capability_kinds: ["filesystem_read", "firmware_detection", "block_device_inspection"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Install bootloader after firmware and ESP verification"
+        commands:
+          - "mount /dev/<root> /mnt"
+          - "mount /dev/<esp> /mnt/boot"
+          - "arch-chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=QuickHatch"
+          - "arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg"
+        required_capability_kinds: ["mount", "chroot", "bootloader_install", "firmware_detection"]
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+      - severity: fatal
+        category: bootability
+        summary: "Bootloader remains absent because bootloader install capability was unavailable."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "bootloader was not found"
+      - "requires bootloader install capability"
+    summary_must_not_claim:
+      - "GRUB installed"
+      - "EFI boot entry created"
+  rationale: "Bootloader installation is too invasive to infer or simulate without explicit capability and target verification."
+
+- id: broken-efi-mount
+  category: fatal_core
+  initial_findings:
+    - id: "esp-not-mounted-installed-system"
+      severity: fatal
+      category: bootability
+      summary: "The installed system has boot files under the live environment, but the expected EFI system partition is not mounted at /boot or /boot/efi."
+      required_capability_kinds: ["mount_inspection", "block_device_inspection"]
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+      - severity: fatal
+        category: bootability
+        summary: "EFI system partition mount state remains ambiguous."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "EFI system partition is not mounted"
+      - "boot files may be in the wrong place"
+    summary_must_not_claim:
+      - "ESP fixed"
+      - "bootloader files are correct"
+  rationale: "Moving or reinstalling EFI files without a verified ESP risks damaging the wrong disk state."
+
+- id: still-live-iso-after-reboot
+  category: fatal_core
+  initial_findings:
+    - id: "post-reboot-live-iso"
+      severity: fatal
+      category: bootability
+      summary: "Post-reboot audit still detects a live ISO environment instead of the installed target system."
+      required_capability_kinds: ["runtime_environment_detection"]
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+      - severity: fatal
+        category: bootability
+        summary: "Machine is still running the live ISO after the expected reboot."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "still running the live ISO"
+      - "manual boot selection may be required"
+    summary_must_not_claim:
+      - "reboot succeeded into installed system"
+      - "installation verified"
+  rationale: "This is a fatal validation failure, not a repair command problem. The user may need to remove ISO media or choose the installed disk."
+
+- id: ssh-reconnect-timeout
+  category: fatal_core
+  initial_findings:
+    - id: "ssh-reconnect-failed"
+      severity: fatal
+      category: ssh_reconnect
+      summary: "SSH did not reconnect after reboot within the expected window."
+      required_capability_kinds: ["network_reconnect", "remote_access"]
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+      - severity: fatal
+        category: ssh_reconnect
+        summary: "Remote access to the target system is unavailable after reboot."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "SSH did not reconnect"
+      - "blocked"
+    summary_must_not_claim:
+      - "host is online"
+      - "audit completed on target"
+  rationale: "Without reconnecting, the audit cannot safely distinguish a boot failure from network or credential issues."
+
+- id: ssh-host-key-mismatch
+  category: fatal_core
+  initial_findings:
+    - id: "ssh-host-key-changed"
+      severity: fatal
+      category: ssh_reconnect
+      summary: "SSH reconnect was blocked by a host key mismatch for the expected target address."
+      required_capability_kinds: ["remote_access", "identity_verification"]
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+      - severity: fatal
+        category: ssh_reconnect
+        summary: "Target identity remains unverified due to SSH host key mismatch."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "host key mismatch"
+      - "identity remains unverified"
+    summary_must_not_claim:
+      - "known_hosts updated"
+      - "reconnected safely"
+  rationale: "Automatically accepting a changed SSH host key can mask connecting to the wrong machine."
+
+- id: root-device-would-be-formatted
+  category: fatal_core
+  initial_findings:
+    - id: "destructive-target-current-root"
+      severity: fatal
+      category: setup
+      summary: "The planned destructive disk action targets the currently mounted root device."
+      required_capability_kinds: ["block_device_inspection", "mount_inspection"]
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+      - severity: fatal
+        category: setup
+        summary: "Destructive disk plan still targets the active root device."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "destructive disk action targets the active root device"
+      - "blocked"
+    summary_must_not_claim:
+      - "disk state corrected"
+      - "safe to proceed"
+  rationale: "A destructive plan aimed at the active root device must hard-stop until the target disk is explicitly corrected."
+
+- id: wrong-disk-signature
+  category: fatal_core
+  initial_findings:
+    - id: "expected-disk-signature-mismatch"
+      severity: fatal
+      category: setup
+      summary: "The selected install disk does not match the expected model, serial, or size signature."
+      required_capability_kinds: ["block_device_inspection"]
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+      - severity: fatal
+        category: setup
+        summary: "Selected disk identity remains mismatched."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "selected disk does not match"
+      - "manual confirmation required"
+    summary_must_not_claim:
+      - "disk target fixed"
+      - "partitioning is safe"
+  rationale: "Disk identity mismatch can destroy unrelated data if auto-corrected or ignored."
+
+- id: package-db-lock-corrupt
+  category: fatal_core
+  initial_findings:
+    - id: "package-db-corrupt"
+      severity: fatal
+      category: package_db
+      summary: "Package database validation failed and the package manager cannot safely resolve installed package state."
+      required_capability_kinds: ["package_query", "filesystem_read"]
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+      - severity: fatal
+        category: package_db
+        summary: "Package database remains corrupt with no safe automated repair path."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "package database validation failed"
+      - "no safe automated repair path"
+    summary_must_not_claim:
+      - "package database repaired"
+      - "packages verified"
+  rationale: "Blind package database reconstruction can make the system less recoverable and should require an operator decision."
+
+- id: pacman-db-partial-transaction
+  category: fatal_core
+  initial_findings:
+    - id: "package-partial-upgrade"
+      severity: fatal
+      category: package_db
+      summary: "Package database shows an interrupted transaction with partially installed core packages."
+      required_capability_kinds: ["package_query", "filesystem_read"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Complete or roll forward transaction"
+        commands:
+          - "arch-chroot /mnt pacman -Syu"
+          - "arch-chroot /mnt pacman -Qkk filesystem linux systemd"
+        required_capability_kinds: ["chroot", "package_install", "network_access"]
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+      - severity: fatal
+        category: package_db
+        summary: "Interrupted package transaction remains unresolved because package install capability was unavailable."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "interrupted transaction"
+      - "requires package repair capability"
+    summary_must_not_claim:
+      - "transaction completed"
+      - "core packages are consistent"
+  rationale: "Partial core package state is fatal, but fixing it needs controlled package operations inside the verified target system."
+
+- id: boot-partition-empty
+  category: fatal_core
+  initial_findings:
+    - id: "boot-partition-empty"
+      severity: fatal
+      category: bootability
+      summary: "The mounted boot partition is empty after installation."
+      required_capability_kinds: ["filesystem_read", "mount_inspection"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Populate boot partition from target system"
+        commands:
+          - "mount /dev/<root> /mnt"
+          - "mount /dev/<boot> /mnt/boot"
+          - "arch-chroot /mnt pacman -S linux grub"
+          - "arch-chroot /mnt mkinitcpio -P"
+          - "arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg"
+        required_capability_kinds: ["mount", "chroot", "package_install", "bootloader_install"]
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+      - severity: fatal
+        category: bootability
+        summary: "Boot partition remains empty because boot repair capabilities were unavailable."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+      - "boot partition is empty"
+      - "blocked"
+    summary_must_not_claim:
+      - "boot partition populated"
+      - "bootloader configured"
+  rationale: "An empty boot partition is repairable only after mounting the right target volumes and regenerating boot artifacts safely."

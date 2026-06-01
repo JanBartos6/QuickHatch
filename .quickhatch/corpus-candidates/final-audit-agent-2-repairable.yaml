@@ -1,0 +1,416 @@
+- id: final-marker-create
+  category: repairable
+  initial_findings:
+    - id: "missing-final-marker"
+      severity: repairable
+      category: setup
+      summary: "Final audit marker is missing even though setup logs show all mandatory stages completed."
+      required_capability_kinds: ["filesystem"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Create final marker"
+        commands:
+          - "install -D -m 0644 /tmp/quickhatch/final-audit.json /var/lib/quickhatch/final-audit.json"
+        required_capability_kinds: ["filesystem"]
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success
+    summary_must_include: ["final audit marker repaired"]
+    summary_must_not_claim: ["full setup rerun"]
+  rationale: "A missing marker can be repaired by writing verified final-audit metadata without rerunning setup."
+
+- id: final-marker-perms
+  category: repairable
+  initial_findings:
+    - id: "marker-unreadable"
+      severity: repairable
+      category: setup
+      summary: "Final marker exists but has restrictive permissions that prevent verification reads."
+      required_capability_kinds: ["filesystem"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Fix marker permissions"
+        commands:
+          - "chmod 0644 /var/lib/quickhatch/final-audit.json"
+          - "chown root:root /var/lib/quickhatch/final-audit.json"
+        required_capability_kinds: ["filesystem"]
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success
+    summary_must_include: ["marker permissions repaired"]
+    summary_must_not_claim: ["marker was regenerated from scratch"]
+  rationale: "Permission drift is narrowly repairable and should not escalate to manual follow-up."
+
+- id: pkg-query-transient
+  category: repairable
+  initial_findings:
+    - id: "package-query-timeout"
+      severity: repairable
+      category: package_db
+      summary: "Package verification query timed out while package database lock was briefly held."
+      required_capability_kinds: ["package_manager"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Retry package verification"
+        commands:
+          - "dpkg-query -W quickhatch-runtime"
+          - "apt-cache policy quickhatch-runtime"
+        required_capability_kinds: ["package_manager"]
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 2
+    final_status: success
+    summary_must_include: ["package verification succeeded after retry"]
+    summary_must_not_claim: ["package was reinstalled"]
+  rationale: "Transient query failures should be retried before reporting package database damage."
+
+- id: pkg-query-still-locked
+  category: failed_repair
+  initial_findings:
+    - id: "package-db-lock"
+      severity: repairable
+      category: package_db
+      summary: "Package verification cannot complete because the package database lock remains active."
+      required_capability_kinds: ["package_manager"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Retry package verification"
+        commands:
+          - "fuser /var/lib/dpkg/lock-frontend"
+          - "dpkg-query -W quickhatch-runtime"
+        required_capability_kinds: ["package_manager"]
+  repair_result:
+    outcome: failure
+    remaining_findings:
+      - severity: manual_followup
+        category: "package_db"
+        summary: "Package database remained locked after bounded retry."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 2
+    final_status: manual_followup_required
+    summary_must_include: ["package database remained locked"]
+    summary_must_not_claim: ["package database repaired"]
+  rationale: "The agent may retry evidence collection, but persistent locks require manual follow-up."
+
+- id: noncritical-unit-reset
+  category: repairable
+  initial_findings:
+    - id: "stale-failed-unit"
+      severity: repairable
+      category: setup
+      summary: "A non-critical systemd oneshot unit is marked failed from a previous run, but its service goal is already satisfied."
+      required_capability_kinds: ["systemd"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Clear stale unit state"
+        commands:
+          - "systemctl reset-failed quickhatch-postcheck.service"
+          - "systemctl status quickhatch-postcheck.service --no-pager"
+        required_capability_kinds: ["systemd"]
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success
+    summary_must_include: ["cleared stale non-critical unit state"]
+    summary_must_not_claim: ["restarted core services"]
+  rationale: "Resetting failed state is bounded when evidence shows the failed unit is non-critical and stale."
+
+- id: noncritical-unit-persists
+  category: failed_repair
+  initial_findings:
+    - id: "optional-unit-failed"
+      severity: repairable
+      category: setup
+      summary: "Optional telemetry upload unit is failed and blocking clean final audit evidence."
+      required_capability_kinds: ["systemd"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Reset and recheck optional unit"
+        commands:
+          - "systemctl reset-failed quickhatch-telemetry-upload.service"
+          - "systemctl is-failed quickhatch-telemetry-upload.service"
+        required_capability_kinds: ["systemd"]
+  repair_result:
+    outcome: failure
+    remaining_findings:
+      - severity: warning
+        category: "setup"
+        summary: "Optional telemetry unit still reports failed after reset."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success_with_warnings
+    summary_must_include: ["optional unit still failed"]
+    summary_must_not_claim: ["core setup failed"]
+  rationale: "A non-critical unit can remain unresolved while preserving a warning-only final status."
+
+- id: reboot-marker-present
+  category: repairable
+  initial_findings:
+    - id: "reboot-required"
+      severity: repairable
+      category: setup
+      summary: "Reboot-required marker is present after package updates."
+      required_capability_kinds: ["filesystem"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Record reboot follow-up"
+        commands:
+          - "test -f /var/run/reboot-required"
+          - "install -D -m 0644 /var/run/reboot-required /var/lib/quickhatch/reboot-required"
+        required_capability_kinds: ["filesystem"]
+  repair_result:
+    outcome: success
+    remaining_findings:
+      - severity: manual_followup
+        category: "setup"
+        summary: "System reboot is still required to complete kernel or library activation."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: manual_followup_required
+    summary_must_include: ["reboot required"]
+    summary_must_not_claim: ["reboot completed"]
+  rationale: "The repair loop can preserve and surface reboot evidence, but cannot satisfy the reboot itself."
+
+- id: stale-reboot-marker
+  category: repairable
+  initial_findings:
+    - id: "stale-reboot-marker"
+      severity: repairable
+      category: setup
+      summary: "QuickHatch reboot marker is stale while the system reboot-required marker is absent."
+      required_capability_kinds: ["filesystem"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Refresh reboot marker state"
+        commands:
+          - "test ! -f /var/run/reboot-required"
+          - "rm -f /var/lib/quickhatch/reboot-required"
+        required_capability_kinds: ["filesystem"]
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success
+    summary_must_include: ["stale reboot marker cleared"]
+    summary_must_not_claim: ["performed reboot"]
+  rationale: "Clearing stale local metadata is a focused repair when authoritative system evidence disagrees."
+
+- id: app-metadata-refresh
+  category: repairable
+  initial_findings:
+    - id: "app-verification-metadata-missing"
+      severity: repairable
+      category: apps
+      summary: "Installed application is present, but QuickHatch app verification metadata was not written."
+      required_capability_kinds: ["filesystem", "package_manager"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Refresh app verification metadata"
+        commands:
+          - "dpkg-query -W firefox"
+          - "install -D -m 0644 /tmp/quickhatch/apps/firefox.json /var/lib/quickhatch/apps/firefox.json"
+        required_capability_kinds: ["filesystem", "package_manager"]
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success
+    summary_must_include: ["app verification metadata repaired"]
+    summary_must_not_claim: ["application was installed"]
+  rationale: "Metadata can be rebuilt from current install evidence without reinstalling the app."
+
+- id: app-metadata-version-mismatch
+  category: app_followup
+  initial_findings:
+    - id: "app-version-metadata-mismatch"
+      severity: repairable
+      category: apps
+      summary: "App verification metadata records an older version than the installed package query reports."
+      required_capability_kinds: ["filesystem", "package_manager"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Rewrite app version metadata"
+        commands:
+          - "dpkg-query -W --showformat='${Version}' code"
+          - "quickhatch verify-app --name code --write-metadata"
+        required_capability_kinds: ["filesystem", "package_manager"]
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success
+    summary_must_include: ["app metadata version refreshed"]
+    summary_must_not_claim: ["downgraded application"]
+  rationale: "A metadata-only version mismatch is repairable after confirming installed package evidence."
+
+- id: app-metadata-binary-missing
+  category: failed_repair
+  initial_findings:
+    - id: "app-metadata-no-binary"
+      severity: repairable
+      category: apps
+      summary: "App metadata exists, but the expected executable cannot be found on PATH."
+      required_capability_kinds: ["filesystem"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Refresh executable evidence"
+        commands:
+          - "command -v slack"
+          - "quickhatch verify-app --name slack --write-metadata"
+        required_capability_kinds: ["filesystem"]
+  repair_result:
+    outcome: failure
+    remaining_findings:
+      - severity: manual_followup
+        category: "apps"
+        summary: "Executable remained missing after metadata refresh attempt."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: manual_followup_required
+    summary_must_include: ["executable remained missing"]
+    summary_must_not_claim: ["app launch verified"]
+  rationale: "The repair loop should not reinstall apps or claim success when executable evidence is absent."
+
+- id: desktop-marker-refresh
+  category: repairable
+  initial_findings:
+    - id: "desktop-marker-stale"
+      severity: repairable
+      category: desktop
+      summary: "Desktop verification marker is older than the latest desktop configuration write."
+      required_capability_kinds: ["filesystem", "desktop_session"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Refresh desktop marker"
+        commands:
+          - "quickhatch verify-desktop --write-marker"
+          - "stat /var/lib/quickhatch/desktop-verified.json"
+        required_capability_kinds: ["filesystem", "desktop_session"]
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success
+    summary_must_include: ["desktop verification marker refreshed"]
+    summary_must_not_claim: ["desktop environment reconfigured"]
+  rationale: "A stale marker can be refreshed from current desktop evidence without touching configuration."
+
+- id: desktop-marker-no-session
+  category: desktop_followup
+  initial_findings:
+    - id: "desktop-marker-session-unavailable"
+      severity: repairable
+      category: desktop
+      summary: "Desktop marker refresh requires an active graphical session, but none is currently available."
+      required_capability_kinds: ["desktop_session"]
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+      - severity: manual_followup
+        category: "desktop"
+        summary: "Desktop marker refresh requires a graphical session."
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include: ["graphical session required"]
+    summary_must_not_claim: ["desktop marker refreshed"]
+  rationale: "The case is repairable in principle, but the current agent must not fake desktop verification without the needed capability."
+
+- id: desktop-marker-provider-error
+  category: failed_repair
+  initial_findings:
+    - id: "desktop-marker-refresh-error"
+      severity: repairable
+      category: desktop
+      summary: "Desktop verification marker refresh failed because the desktop settings provider returned an error."
+      required_capability_kinds: ["desktop_session"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Retry desktop verification"
+        commands:
+          - "gsettings list-recursively org.gnome.desktop.interface"
+          - "quickhatch verify-desktop --write-marker"
+        required_capability_kinds: ["desktop_session"]
+  repair_result:
+    outcome: provider_error
+    remaining_findings:
+      - severity: manual_followup
+        category: "desktop"
+        summary: "Desktop settings provider failed during bounded marker refresh."
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: manual_followup_required
+    summary_must_include: ["desktop settings provider failed"]
+    summary_must_not_claim: ["desktop verification completed"]
+  rationale: "Provider errors should be reported as unresolved after one focused retry."
+
+- id: ssh-reconnect-marker
+  category: repairable
+  initial_findings:
+    - id: "ssh-reconnect-evidence-missing"
+      severity: repairable
+      category: ssh_reconnect
+      summary: "SSH reconnect succeeded, but the reconnect evidence marker was not persisted."
+      required_capability_kinds: ["filesystem", "ssh"]
+  repair_plan:
+    available: true
+    command_groups:
+      - title: "Persist reconnect evidence"
+        commands:
+          - "ssh -o BatchMode=yes localhost true"
+          - "install -D -m 0600 /tmp/quickhatch/ssh-reconnect.json /var/lib/quickhatch/ssh-reconnect.json"
+        required_capability_kinds: ["filesystem", "ssh"]
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success
+    summary_must_include: ["ssh reconnect evidence persisted"]
+    summary_must_not_claim: ["ssh configuration changed"]
+  rationale: "Persisting evidence after a successful reconnect check is bounded and avoids changing SSH config."
