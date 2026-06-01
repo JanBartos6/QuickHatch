@@ -75,7 +75,12 @@ def _final_status_from_event(event: dict[str, Any]) -> str:
     event_type = str(event.get("event_type") or "")
     result = event.get("result") if isinstance(event.get("result"), dict) else {}
     if event_type == "final_audit":
-        candidates = [result.get("final_status"), event.get("final_status"), event.get("status")]
+        candidates = [
+            result.get("final_status"),
+            result.get("status"),
+            event.get("final_status"),
+            event.get("status"),
+        ]
     else:
         candidates = [event.get("final_status"), event.get("status")]
     for candidate in candidates:

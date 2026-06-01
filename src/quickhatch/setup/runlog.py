@@ -10,23 +10,23 @@ from pathlib import Path
 from typing import Any
 
 _SENSITIVE_KEY_RE = re.compile(
-    r"(api[_-]?key|access[_-]?key|token|secret|credential|password|passphrase|private[_-]?key|authorized_keys)",
+    r"(api[_-]?key|access[_-]?key|token|secret|credentials?|password|passphrase|private[_-]?key|authorized_keys)",
     re.IGNORECASE,
 )
 _SENSITIVE_LINE_RE = re.compile(
-    r"(api[_-]?key|access[_-]?key|token|secret|credential|password|passphrase|private[_-]?key)\s*[:=]\s*([^\s,'\"}]+)",
+    r"(api[_-]?key|access[_-]?key|token|secret|credentials?|password|passphrase|private[_-]?key)\s*[:=]\s*([^\s,'\"}]+)",
     re.IGNORECASE,
 )
 _SENSITIVE_ARG_RE = re.compile(
-    r"(?<!\w)(--?(?:api[_-]?key|access[_-]?key|token|secret|credential|password|passphrase|private[_-]?key)(?:=|\s+))('(?:[^']*)'|\"(?:[^\"]*)\"|[^\s;]+)",
+    r"(?<!\w)(--?(?:api[_-]?key|access[_-]?key|token|secret|credentials?|password|passphrase|private[_-]?key)(?:=|\s+))('(?:[^']*)'|\"(?:[^\"]*)\"|[^\s;,'\"}\]]+)",
     re.IGNORECASE,
 )
 _SENSITIVE_JSON_FIELD_RE = re.compile(
-    r'("(?:[^"]*(?:api[_-]?key|access[_-]?key|token|secret|credential|password|passphrase|private[_-]?key)[^"]*)"\s*:\s*)"[^"]*"',
+    r'("(?:[^"]*(?:api[_-]?key|access[_-]?key|token|secret|credentials?|password|passphrase|private[_-]?key)[^"]*)"\s*:\s*)"[^"]*"',
     re.IGNORECASE,
 )
 _SENSITIVE_ESCAPED_JSON_FIELD_RE = re.compile(
-    r'(\\?"(?:[^"\\]*(?:api[_-]?key|access[_-]?key|token|secret|credential|password|passphrase|private[_-]?key)[^"\\]*)\\?"\s*:\s*\\?")[^"\\]*(\\?")',
+    r'(\\?"(?:[^"\\]*(?:api[_-]?key|access[_-]?key|token|secret|credentials?|password|passphrase|private[_-]?key)[^"\\]*)\\?"\s*:\s*\\?")[^"\\]*(\\?")',
     re.IGNORECASE,
 )
 _PRIVATE_KEY_BLOCK_RE = re.compile(
@@ -47,7 +47,13 @@ def redact_sensitive_text(value: str) -> str:
         text,
         flags=re.IGNORECASE,
     )
-    text = re.sub(r"\bsk-[A-Za-z0-9_-]{16,}\b", "sk-***REDACTED***", text)
+    text = re.sub(r"\bsk-[A-Za-z0-9_-]{6,}\b", "sk-***REDACTED***", text)
+    text = re.sub(
+        r"\b(?=[A-Za-z0-9._-]*[_-])(?:[A-Za-z0-9.]+[_-])*(?:secret|token)(?:[_-][A-Za-z0-9.]+)*\b(?!['\"]?\s*:)",
+        "***REDACTED***",
+        text,
+        flags=re.IGNORECASE,
+    )
     text = _SENSITIVE_JSON_FIELD_RE.sub(r'\1"***REDACTED***"', text)
     text = _SENSITIVE_ESCAPED_JSON_FIELD_RE.sub(r"\1***REDACTED***\2", text)
     text = _SENSITIVE_ARG_RE.sub(r"\1***REDACTED***", text)

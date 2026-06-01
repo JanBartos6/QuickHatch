@@ -64,6 +64,7 @@ _PROFILE_PREFERENCE_KEYS = {
     "hardware_search_opt_in",
 }
 _APP_VERIFICATION_KEYS = {
+    "app_verification",
     "app_verification_signals",
     "app_verification_manual_followups",
     "verified_installed_apps",
@@ -367,6 +368,7 @@ def _build_diagnostics(events: list[dict[str, Any]], summary: dict[str, Any]) ->
     manual_followups = _manual_followups(final_findings, final_details, events)
     final_status = _normalize_final_status(
         final_result.get("final_status")
+        or final_result.get("status")
         or final_event.get("status")
         or (
             summary.get("final_status")
@@ -542,6 +544,8 @@ def _manual_followups(
     for event in events:
         if _event_type(event) == "final_audit_repair_manual_followup":
             items.append({"source": "final_audit_repair_event", **_clean_payload(event)})
+        elif "manual_followup" in _event_type(event):
+            items.append({"source": _event_type(event), **_clean_payload(event)})
     return [_clean_payload(item) for item in items]
 
 
