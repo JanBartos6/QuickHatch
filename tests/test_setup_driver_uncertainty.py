@@ -203,6 +203,7 @@ def _facts_from_profile(profile: dict[str, Any]) -> SetupFacts:
         vulkan_state="unknown",
         driver_modules=driver_modules,
         raw={
+            "QH_HAS_GUI_SESSION": str(profile.get("has_gui_session")),
             "QH_IS_VM": "yes" if is_vm else "no",
             "QH_DRIVER_FIXTURE": "driver_uncertainty",
         },
@@ -239,8 +240,20 @@ def _apply_scripted_events(
         )
         event_text = " ".join((result.detail, result.stdout, result.stderr)).lower()
         _apply_driver_fact_refresh(facts, event_text)
-        if result.event_type in {"command_failure", "provider_error"}:
+        if (
+            result.event_type
+            in {
+                "command_failure",
+                "module_probe",
+                "provider_error",
+            }
+            and result.rc != 0
+        ):
             reason = result.detail or result.stderr or "driver operation failed"
+            failed_verifications.append(f"Driver follow-up: {reason}")
+        if result.event_type == "facts_refresh" and result.rc != 0:
+            facts.fact_probe_ok = False
+            reason = result.detail or result.stderr or "driver fact refresh failed"
             failed_verifications.append(f"Driver follow-up: {reason}")
         if "blocked_without_capability" in result.stderr or "denied by safety" in event_text:
             failed_verifications.append(f"Driver safety block: {result.stderr or result.detail}")
@@ -253,12 +266,23 @@ def _apply_scripted_events(
 
 
 def _apply_driver_fact_refresh(facts: SetupFacts, event_text: str) -> None:
+    negative_load = any(
+        phrase in event_text
+        for phrase in (
+            "do not show nvidia module loaded",
+            "does not show nvidia module loaded",
+            "not show nvidia module loaded",
+            "no nvidia module loaded",
+            "module not loaded",
+            "kernel_driver=missing",
+        )
+    )
     if (
         "nvidia_smi_state=ok" in event_text
         or "nvidia_smi=ok" in event_text
         or "nvidia-smi ok" in event_text
-        or "nvidia module loaded" in event_text
-        or "nvidia kernel module" in event_text
+        or ("nvidia module loaded" in event_text and not negative_load)
+        or ("nvidia kernel module" in event_text and not negative_load)
         or "nvidia-smi work" in event_text
         or "nvidia-smi and kernel module checks pass" in event_text
     ) and "nvidia" in facts.gpu_vendors:
@@ -282,14 +306,25 @@ def _apply_driver_fact_refresh(facts: SetupFacts, event_text: str) -> None:
         facts.nvidia_nouveau_bound = True
         facts.nvidia_kernel_driver = "nouveau"
         facts.nvidia_smi_state = "present_but_failing"
-    if "amdgpu" in event_text:
+    if "driver=radeon" in event_text or "legacy radeon module" in event_text:
+        facts.amd_kernel_driver = "radeon"
+    elif "amdgpu" in event_text and "instead of amdgpu" not in event_text:
         facts.amd_kernel_driver = "amdgpu"
-    if re.search(r"\bi915\b|\bxe\b", event_text):
+    if "kernel_driver=missing" in event_text:
+        if "intel" in facts.gpu_vendors:
+            facts.intel_kernel_driver = "none"
+        if "amd" in facts.gpu_vendors:
+            facts.amd_kernel_driver = "none"
+    elif re.search(r"\bi915\b|\bxe\b", event_text) and "do not prove i915" not in event_text:
         facts.intel_kernel_driver = "i915"
     if "vulkan=ok" in event_text:
         facts.vulkan_state = "ok"
     if "vulkan_state=unknown" in event_text:
         facts.vulkan_state = "unknown"
+    if "vulkan_state=present_but_failing" in event_text or (
+        "vulkan" in event_text and any(term in event_text for term in ("failed", "fails"))
+    ):
+        facts.vulkan_state = "present_but_failing"
 
 
 def _run_current_driver_audit(scenario: dict[str, Any]) -> DriverScenarioOutcome:

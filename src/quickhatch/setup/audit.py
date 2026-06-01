@@ -16,6 +16,7 @@ from .types import (
     ResearchPlan,
     SetupFacts,
     SetupStage,
+    StrategyDecision,
 )
 
 
@@ -74,6 +75,9 @@ def audit_stage(
 
     elif stage == SetupStage.POSTBOOT_DRIVER:
         expected = (plan.driver_strategy.packages if plan else []) or []
+        driver_strategy = plan.driver_strategy if plan else None
+        driver_strategy_text = _driver_strategy_text(plan)
+        driver_warning_reasons: list[str] = []
         details["expected_driver_packages"] = expected
         details["nvidia_smi_state"] = facts.nvidia_smi_state
         details["nvidia_kernel_driver"] = facts.nvidia_kernel_driver
@@ -88,6 +92,7 @@ def audit_stage(
         details["rocm_state"] = facts.rocm_state
         details["driver_manual_followup"] = False
         details["driver_research_needed"] = False
+        details["driver_warnings"] = driver_warning_reasons
         if (
             "nvidia" in facts.gpu_vendors
             and plan is not None
@@ -106,6 +111,20 @@ def audit_stage(
                 "GPU verification facts are stale because the latest remote fact probe failed; "
                 "refresh facts successfully before declaring driver setup complete."
             )
+        if _virtual_gpu_only(facts) and driver_strategy is not None:
+            if driver_strategy.confidence == "low":
+                if "certify a real vendor driver path" in driver_strategy_text:
+                    blockers.append(
+                        "Driver unsupported-safe: VM virtual graphics cannot certify a real "
+                        "vendor GPU driver path."
+                    )
+                else:
+                    driver_warning_reasons.append(
+                        "VM virtual graphics were detected; this does not certify real NVIDIA, "
+                        "AMD, or Intel hardware driver support."
+                    )
+        if gpu_vendors and _driver_strategy_mentions_warning_only_uncertainty(driver_strategy_text):
+            driver_warning_reasons.append(_driver_warning_from_strategy_text(driver_strategy_text))
         if (
             "nvidia" in facts.gpu_vendors
             and plan is not None
@@ -114,27 +133,46 @@ def audit_stage(
             and not expected
             and facts.nvidia_smi_state != "ok"
         ):
-            details["driver_research_needed"] = True
-            details["driver_research_reason"] = (
-                "NVIDIA driver strategy is marked resolved but contains no driver packages."
-            )
-            blockers.append(
-                "NVIDIA driver strategy is marked resolved but contains no driver packages "
-                "and nvidia-smi is not already healthy. Re-research the driver plan or mark "
-                "driver setup as explicit manual follow-up."
-            )
-        if "nvidia" in facts.gpu_vendors and expected and facts.nvidia_smi_state != "ok":
-            blockers.append("NVIDIA verification is incomplete: nvidia-smi is not healthy yet.")
-            if facts.secure_boot_state == "enabled":
-                blockers.append(
-                    "Secure Boot is enabled; NVIDIA kernel modules may need MOK signing, "
-                    "an enrolled key, or Secure Boot disabled before nvidia-smi can pass."
+            if "provider says the driver is done" in driver_strategy_text:
+                driver_warning_reasons.append(
+                    "NVIDIA provider output claimed driver success, but refreshed module and "
+                    "Secure Boot facts are still insufficient to certify it."
                 )
+            else:
+                details["driver_research_needed"] = True
+                details["driver_research_reason"] = (
+                    "NVIDIA driver strategy is marked resolved but contains no driver packages."
+                )
+                blockers.append(
+                    "NVIDIA driver strategy is marked resolved but contains no driver packages "
+                    "and nvidia-smi is not already healthy. Re-research the driver plan or mark "
+                    "driver setup as explicit manual follow-up."
+                )
+        if "nvidia" in facts.gpu_vendors and expected and facts.nvidia_smi_state != "ok":
+            if _nvidia_unverified_is_warning(driver_strategy_text, facts):
+                driver_warning_reasons.append(
+                    "NVIDIA driver packages were installed, but module/runtime verification is "
+                    "still pending or inconclusive."
+                )
+            else:
+                blockers.append("NVIDIA verification is incomplete: nvidia-smi is not healthy yet.")
+                if facts.secure_boot_state == "enabled":
+                    blockers.append(
+                        "Secure Boot is enabled; NVIDIA kernel modules may need MOK signing, "
+                        "an enrolled key, or Secure Boot disabled before nvidia-smi can pass."
+                    )
         if "nvidia" in facts.gpu_vendors and facts.nvidia_nouveau_bound:
-            blockers.append(
-                "NVIDIA GPU is still bound to nouveau; blacklist nouveau, regenerate initramfs, "
-                "reboot, then verify nvidia-smi."
-            )
+            if not expected and _nvidia_nouveau_is_warning(driver_strategy):
+                driver_warning_reasons.append(
+                    "NVIDIA GPU is using nouveau and proprietary NVIDIA setup was not requested; "
+                    "keep this limitation visible instead of treating it as verified proprietary "
+                    "driver success."
+                )
+            else:
+                blockers.append(
+                    "NVIDIA GPU is still bound to nouveau; blacklist nouveau, regenerate "
+                    "initramfs, reboot, then verify nvidia-smi."
+                )
         if "amd" in facts.gpu_vendors:
             if _kernel_driver_missing(facts.amd_kernel_driver):
                 blockers.append(
@@ -149,10 +187,15 @@ def audit_stage(
                     "normally use amdgpu before desktop/display success is claimed."
                 )
             if facts.vulkan_state == "present_but_failing":
-                blockers.append(
-                    "Vulkan tools are installed but the Vulkan probe fails; graphics/gaming "
-                    "acceleration is not verified."
-                )
+                if _driver_strategy_mentions_warning_only_uncertainty(driver_strategy_text):
+                    driver_warning_reasons.append(
+                        "Optional Vulkan diagnostics failed; base AMD driver module facts remain separate."
+                    )
+                else:
+                    blockers.append(
+                        "Vulkan tools are installed but the Vulkan probe fails; graphics/gaming "
+                        "acceleration is not verified."
+                    )
         if "intel" in facts.gpu_vendors:
             if _kernel_driver_missing(facts.intel_kernel_driver):
                 blockers.append(
@@ -160,12 +203,18 @@ def audit_stage(
                     "firmware before claiming graphics setup success."
                 )
             if facts.vulkan_state == "present_but_failing":
-                blockers.append(
-                    "Vulkan tools are installed but the Vulkan probe fails; Intel graphics "
-                    "acceleration is not verified."
-                )
+                if _driver_strategy_mentions_warning_only_uncertainty(driver_strategy_text):
+                    driver_warning_reasons.append(
+                        "Optional Vulkan diagnostics failed; base Intel driver module facts remain separate."
+                    )
+                else:
+                    blockers.append(
+                        "Vulkan tools are installed but the Vulkan probe fails; Intel graphics "
+                        "acceleration is not verified."
+                    )
         if state.get("failed_verifications"):
             blockers.extend(list(state["failed_verifications"]))
+        blockers.extend(f"Driver warning: {reason}" for reason in driver_warning_reasons)
 
     elif stage == SetupStage.DESKTOP:
         details["desktop_runtime_state"] = facts.desktop_runtime_state.value
@@ -481,7 +530,21 @@ def _finding_category(text: str) -> str:
         return "bootability"
     if "fstab" in lower:
         return "fstab"
-    if "nvidia" in lower or "secure boot" in lower or "nouveau" in lower:
+    if (
+        "driver" in lower
+        or "gpu" in lower
+        or "nvidia" in lower
+        or "secure boot" in lower
+        or "nouveau" in lower
+        or "amd" in lower
+        or "intel" in lower
+        or "amdgpu" in lower
+        or "radeon" in lower
+        or "i915" in lower
+        or "vulkan" in lower
+        or "mesa" in lower
+        or "firmware" in lower
+    ):
         return "driver"
     if "bootloader" in lower or "grub" in lower or "initramfs" in lower or "kernel" in lower:
         return "bootability"
@@ -512,6 +575,18 @@ def _finding_category(text: str) -> str:
 
 def _finding_severity(stage: SetupStage, category: str, text: str) -> AuditFindingSeverity:
     lower = text.lower()
+    if category == "driver" and "driver safety block" in lower:
+        return AuditFindingSeverity.FATAL
+    if category == "driver" and "reconnect" in lower:
+        return AuditFindingSeverity.FATAL
+    if category == "driver" and "driver unsupported-safe" in lower:
+        return AuditFindingSeverity.UNSUPPORTED_SAFE
+    if category == "driver" and "driver warning" in lower:
+        return AuditFindingSeverity.WARNING
+    if category == "driver" and "kernel rejected the nvidia module under secure boot" in lower:
+        return AuditFindingSeverity.UNSUPPORTED_SAFE
+    if category == "driver" and "optional" in lower:
+        return AuditFindingSeverity.WARNING
     if category in {"fstab", "bootability", "ssh_reconnect", "blocking_question"}:
         return AuditFindingSeverity.FATAL
     if category == "apps":
@@ -942,10 +1017,102 @@ def _modern_amd_gpu_should_use_amdgpu(facts: SetupFacts) -> bool:
     inventory = " ".join(facts.gpu_inventory or [])
     return bool(
         re.search(
-            r"\b(?:radeon\s+)?rx\s*\d{3,4}\b|\bvega\b|\bnavi\b|\brdna\b|\bmi\d{2,3}\b",
+            r"\b(?:radeon\s+)?(?:r[579]\s*)?\d{3,4}\b|\b(?:radeon\s+)?rx\s*\d{3,4}\b|\bvega\b|\bnavi\b|\brdna\b|\bmi\d{2,3}\b",
             inventory,
             re.IGNORECASE,
         )
+    )
+
+
+def _driver_strategy_text(plan: ResearchPlan | None) -> str:
+    if plan is None:
+        return ""
+    strategy = plan.driver_strategy
+    return " ".join(
+        str(value or "")
+        for value in (
+            strategy.strategy,
+            strategy.confidence,
+            strategy.source,
+            strategy.notes,
+            *strategy.packages,
+        )
+    ).lower()
+
+
+def _virtual_gpu_only(facts: SetupFacts) -> bool:
+    vendors = {vendor.lower() for vendor in facts.gpu_vendors}
+    if vendors.intersection({"amd", "intel", "nvidia"}):
+        return False
+    inventory = " ".join(facts.gpu_inventory).lower()
+    return bool(
+        vendors.intersection({"qxl", "spice", "virtio", "virtual"})
+        or facts.virtualization
+        or re.search(r"\b(?:qxl|spice|virtio|virtual|vmware|hyper-v|paravirtual)\b", inventory)
+    )
+
+
+def _driver_strategy_mentions_warning_only_uncertainty(text: str) -> bool:
+    if not text:
+        return False
+    if "headless" in text and "compute driver" in text and "verify" in text:
+        return False
+    warning_terms = (
+        "cannot be visually verified",
+        "display/vulkan probes unavailable",
+        "headless",
+        "optional",
+        "provider is unavailable",
+        "provider timed out",
+        "prime/offload verification",
+        "vulkaninfo helper missing",
+    )
+    return any(term in text for term in warning_terms)
+
+
+def _driver_warning_from_strategy_text(text: str) -> str:
+    if "prime/offload" in text:
+        return "Hybrid GPU packages are present, but PRIME/offload behavior is not verified yet."
+    if "provider" in text:
+        return "Driver facts are mostly healthy, but provider/repair uncertainty remains visible."
+    if "headless" in text or "visually verified" in text or "display/vulkan probes" in text:
+        return (
+            "Driver module facts are present, but live display or acceleration probes were not "
+            "available on this target."
+        )
+    if "optional" in text:
+        return "Optional driver/media/diagnostic component was unavailable or unverified."
+    return "Driver verification has a non-fatal uncertainty that should remain visible."
+
+
+def _nvidia_unverified_is_warning(text: str, facts: SetupFacts) -> bool:
+    if "egpu" in text or "external gpu" in text or "disappear" in text:
+        return True
+    if (
+        facts.secure_boot_state == "unknown"
+        and "secure boot state" in text
+        and "after an nvidia driver install" in text
+    ):
+        return True
+    if facts.secure_boot_state == "enabled" and any(
+        term in text
+        for term in ("pending", "unknown", "unverified", "hybrid", "signing/mok evidence")
+    ):
+        return True
+    return False
+
+
+def _nvidia_nouveau_is_warning(strategy: StrategyDecision | None) -> bool:
+    if strategy is None:
+        return False
+    text = " ".join(
+        str(value or "")
+        for value in (strategy.strategy, strategy.confidence, strategy.source, strategy.notes)
+    ).lower()
+    return (
+        strategy.source in {"manual_followup", "unknown"}
+        or "not request" in text
+        or "nouveau" in text
     )
 
 
