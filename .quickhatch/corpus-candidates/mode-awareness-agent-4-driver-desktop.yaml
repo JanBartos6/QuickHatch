@@ -1,0 +1,49 @@
+- id: prompt-driver-repair-postboot
+  category: driver_repair_prompt
+  mode:
+    remote_setup_mode: configure_only
+    install_profile: configure_existing
+  expected:
+    prompt_contains:
+      - "post-reboot app/desktop/driver setup"
+      - "postboot_driver"
+      - "no /mnt target-root mounts"
+  rationale: "Driver repair on an installed system belongs to postboot_driver and must not look like fresh install."
+
+- id: accept-driver-repair-no-install-spine
+  category: mode_appropriate_plan
+  mode:
+    remote_setup_mode: configure_only
+    install_profile: configure_existing
+  plan:
+    command_groups:
+      - id: nvidia-repair
+        stage: postboot_driver
+        title: Inspect NVIDIA module state
+        commands:
+          - "nvidia-smi || true"
+          - "lsmod | grep -E 'nvidia|nouveau' || true"
+        verification:
+          - "lsmod | grep -E 'nvidia|nouveau' || true"
+  expected:
+    outcome: accept
+  rationale: "Installed-system driver diagnostics/repair planning is allowed without install-root topology."
+
+- id: accept-desktop-only-request
+  category: desktop_only_request
+  mode:
+    remote_setup_mode: configure_only
+    install_profile: configure_existing
+  plan:
+    command_groups:
+      - id: desktop-theme
+        stage: desktop
+        title: Persist dark theme
+        commands:
+          - "gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'"
+        verification:
+          - "gsettings get org.gnome.desktop.interface color-scheme"
+  expected:
+    outcome: accept
+  rationale: "A desktop-only configure-existing request should not require an install spine."
+

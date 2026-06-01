@@ -27,6 +27,7 @@ TARGETED_PYTEST_FILES = (
     "tests/test_setup_reboot_reconnect.py",
     "tests/test_setup_stop_abort.py",
     "tests/test_setup_model_contract.py",
+    "tests/test_setup_mode_awareness.py",
     "tests/test_setup_repair_suggestion_quality.py",
     "tests/test_setup_research_grounding.py",
     "tests/test_setup_app_mapping.py",

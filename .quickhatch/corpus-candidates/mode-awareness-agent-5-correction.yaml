@@ -1,0 +1,29 @@
+- id: correct-fresh-full-disk-after-missing-bootloader-rejection
+  category: planner_correction
+  mode:
+    remote_setup_mode: wipe_and_reinstall
+    install_profile: full_disk_wipe
+  bad_plan_command: "sudo pacman -S --noconfirm vlc"
+  fixed_plan_stage: install_or_skip
+  expected:
+    first_error_contains: "fresh install"
+    final_stage: install_or_skip
+  rationale: "The model can correct after a fresh-install plan omits install_or_skip/fstab/bootloader."
+
+- id: reject-postboot-installroot-dnf
+  category: postboot_app_setup
+  mode:
+    remote_setup_mode: configure_only
+    install_profile: configure_existing
+  plan:
+    command_groups:
+      - id: bad-installroot
+        stage: apps
+        title: Install app into target root
+        commands:
+          - "sudo dnf --installroot=/mnt install -y vlc"
+  expected:
+    outcome: reject
+    error_contains: "install-root"
+  rationale: "Postboot app setup should install on the active system, not into /mnt."
+

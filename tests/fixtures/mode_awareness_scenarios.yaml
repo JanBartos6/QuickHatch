@@ -1,0 +1,268 @@
+# Curated mode-awareness scenarios for planner prompt and plan validation.
+#
+# These are local tests only. Commands are representative and must not be
+# executed by the test harness.
+metadata:
+  version: 1
+  lane: mode_awareness
+  source: Merged from .quickhatch/corpus-candidates/mode-awareness-agent-*.yaml
+  policy: The model must distinguish configure-existing, fresh install, manual partition mapping, postboot app/driver setup, and desktop-only work before it emits command groups.
+  total_scenarios: 14
+  scenarios_by_category:
+    configure_existing_prompt: 1
+    desktop_only_request: 1
+    driver_repair_prompt: 1
+    fresh_full_disk_prompt: 1
+    manual_partition_mapping_prompt: 1
+    mode_appropriate_plan: 2
+    planner_correction: 2
+    postboot_app_setup: 2
+    wrong_mode_rejection: 3
+  expected_behaviors:
+    mode_appropriate_plan: 3
+    wrong_mode_dangerous_work_rejected: 5
+    model_corrects_after_rejection: 2
+    prompt_mentions_mode_contract: 4
+  rejected_ambiguous_cases: []
+scenarios:
+  - id: prompt-configure-existing-no-install-spine
+    category: configure_existing_prompt
+    mode:
+      remote_setup_mode: configure_only
+      install_profile: configure_existing
+    expected:
+      prompt_contains:
+        - "configure_existing/configure_only"
+        - "already-installed Linux system"
+        - "Do not include pacstrap, debootstrap, dnf --installroot"
+        - "Use postboot_driver, desktop, and apps stages"
+    rationale: "Configure-existing prompts must make the safe non-install path unambiguous."
+
+  - id: prompt-fresh-full-disk-install-spine
+    category: fresh_full_disk_prompt
+    mode:
+      remote_setup_mode: wipe_and_reinstall
+      install_profile: full_disk_wipe
+    expected:
+      prompt_contains:
+        - "wipe_and_reinstall/full_disk_wipe"
+        - "install_or_skip must include target mount/bootstrap, fstab, bootloader"
+        - "postboot_driver, desktop, and apps run only after guarded reboot/reconnect"
+    rationale: "Fresh full-disk prompts must remind the model that bootability is mandatory."
+
+  - id: prompt-manual-partition-mapping
+    category: manual_partition_mapping_prompt
+    mode:
+      remote_setup_mode: wipe_and_reinstall
+      install_profile: manual_partition_mapping
+      install_partition_notes: "/dev/nvme0n1p7 root, /dev/nvme0n1p1 EFI; preserve Windows partitions"
+    expected:
+      prompt_contains:
+        - "manual_partition_mapping"
+        - "only explicitly mapped partitions"
+        - "do not invent repartitioning"
+        - "never shrink Windows"
+    rationale: "Manual partition mapping must stay tied to exact user mapping."
+
+  - id: prompt-driver-repair-postboot
+    category: driver_repair_prompt
+    mode:
+      remote_setup_mode: configure_only
+      install_profile: configure_existing
+    expected:
+      prompt_contains:
+        - "post-reboot app/desktop/driver setup"
+        - "postboot_driver"
+        - "no /mnt target-root mounts"
+    rationale: "Installed-system driver repair belongs to postboot_driver, not install_or_skip."
+
+  - id: reject-configure-existing-pacstrap
+    category: wrong_mode_rejection
+    mode:
+      remote_setup_mode: configure_only
+      install_profile: configure_existing
+    plan:
+      command_groups:
+        - id: bad-bootstrap
+          stage: install_or_skip
+          title: Bootstrap Arch
+          commands:
+            - "pacstrap -K /mnt base linux"
+    expected:
+      outcome: reject
+      error_contains: "mode mismatch"
+    rationale: "Configure-existing cannot run fresh-install bootstrap work."
+
+  - id: reject-fresh-full-disk-skips-fstab-bootloader
+    category: wrong_mode_rejection
+    mode:
+      remote_setup_mode: wipe_and_reinstall
+      install_profile: full_disk_wipe
+    plan:
+      command_groups:
+        - id: apps-only
+          stage: apps
+          title: Install apps only
+          commands:
+            - "sudo pacman -S --noconfirm vlc"
+    expected:
+      outcome: reject
+      error_contains: "fresh install plan must include install_or_skip"
+    rationale: "Fresh install cannot skip the install spine and report only postboot app work."
+
+  - id: accept-fresh-full-disk-complete-spine
+    category: mode_appropriate_plan
+    mode:
+      remote_setup_mode: wipe_and_reinstall
+      install_profile: full_disk_wipe
+    plan:
+      command_groups:
+        - id: arch-install
+          stage: install_or_skip
+          title: Install Arch base and bootloader
+          operations:
+            - kind: mount_partition
+              target: /dev/sda2
+              mountpoint: /mnt
+            - kind: write_fstab
+              target: /mnt/etc/fstab
+            - kind: install_bootloader
+              target: /dev/sda
+          commands:
+            - "pacstrap -K /mnt base linux linux-firmware"
+    expected:
+      outcome: accept
+    rationale: "Fresh full-disk install spine includes mount/bootstrap/fstab/bootloader."
+
+  - id: reject-postboot-app-setup-mounts-mnt
+    category: postboot_app_setup
+    mode:
+      remote_setup_mode: configure_only
+      install_profile: configure_existing
+    plan:
+      command_groups:
+        - id: bad-postboot-mount
+          stage: apps
+          title: Mount target root before apps
+          operations:
+            - kind: mount_partition
+              target: /dev/sda2
+              mountpoint: /mnt
+          commands:
+            - "sudo pacman -S --noconfirm vlc"
+    expected:
+      outcome: reject
+      error_contains: "install-root"
+    rationale: "Postboot app setup runs on the installed system and must not recreate /mnt topology."
+
+  - id: reject-postboot-installroot-dnf
+    category: postboot_app_setup
+    mode:
+      remote_setup_mode: configure_only
+      install_profile: configure_existing
+    plan:
+      command_groups:
+        - id: bad-installroot
+          stage: apps
+          title: Install app into target root
+          commands:
+            - "sudo dnf --installroot=/mnt install -y vlc"
+    expected:
+      outcome: reject
+      error_contains: "install-root"
+    rationale: "Postboot app setup should install on the active system, not into /mnt."
+
+  - id: reject-manual-partition-mapping-repartitions-disk
+    category: wrong_mode_rejection
+    mode:
+      remote_setup_mode: wipe_and_reinstall
+      install_profile: manual_partition_mapping
+      install_partition_notes: "/dev/nvme0n1p7 root, /dev/nvme0n1p1 EFI"
+    plan:
+      command_groups:
+        - id: bad-manual-repartition
+          stage: install_or_skip
+          title: Repartition disk despite mapping
+          operations:
+            - kind: partition_disk
+              target: /dev/nvme0n1
+              options:
+                scheme: gpt
+        - id: manual-bootstrap
+          stage: install_or_skip
+          title: Bootstrap mapped root
+          operations:
+            - kind: mount_partition
+              target: /dev/nvme0n1p7
+              mountpoint: /mnt
+            - kind: write_fstab
+              target: /mnt/etc/fstab
+            - kind: install_bootloader
+              target: /dev/nvme0n1
+          commands:
+            - "pacstrap -K /mnt base linux"
+    expected:
+      outcome: reject
+      error_contains: "manual_partition_mapping"
+    rationale: "Manual mapping may use confirmed partitions but must not invent disk repartitioning."
+
+  - id: accept-driver-repair-no-install-spine
+    category: mode_appropriate_plan
+    mode:
+      remote_setup_mode: configure_only
+      install_profile: configure_existing
+    plan:
+      command_groups:
+        - id: nvidia-repair
+          stage: postboot_driver
+          title: Inspect NVIDIA module state
+          commands:
+            - "nvidia-smi || true"
+            - "lsmod | grep -E 'nvidia|nouveau' || true"
+          verification:
+            - "lsmod | grep -E 'nvidia|nouveau' || true"
+    expected:
+      outcome: accept
+    rationale: "Installed-system driver diagnostics/repair planning is allowed."
+
+  - id: accept-desktop-only-request
+    category: desktop_only_request
+    mode:
+      remote_setup_mode: configure_only
+      install_profile: configure_existing
+    plan:
+      command_groups:
+        - id: desktop-theme
+          stage: desktop
+          title: Persist dark theme
+          commands:
+            - "gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'"
+          verification:
+            - "gsettings get org.gnome.desktop.interface color-scheme"
+    expected:
+      outcome: accept
+    rationale: "A desktop-only configure-existing request should not require an install spine."
+
+  - id: correct-configure-existing-after-rejection
+    category: planner_correction
+    mode:
+      remote_setup_mode: configure_only
+      install_profile: configure_existing
+    bad_plan_command: "sudo debootstrap stable /mnt http://deb.debian.org/debian"
+    fixed_plan_stage: apps
+    expected:
+      first_error_contains: "configure_existing"
+      final_stage: apps
+    rationale: "The planner should feed wrong-mode rejection back to the model and accept corrected configure-existing work."
+
+  - id: correct-fresh-full-disk-after-missing-bootloader-rejection
+    category: planner_correction
+    mode:
+      remote_setup_mode: wipe_and_reinstall
+      install_profile: full_disk_wipe
+    bad_plan_command: "sudo pacman -S --noconfirm vlc"
+    fixed_plan_stage: install_or_skip
+    expected:
+      first_error_contains: "fresh install"
+      final_stage: install_or_skip
+    rationale: "The model can correct after a fresh-install plan omits install_or_skip/fstab/bootloader."

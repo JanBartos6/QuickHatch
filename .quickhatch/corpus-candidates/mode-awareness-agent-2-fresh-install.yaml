@@ -1,0 +1,52 @@
+- id: prompt-fresh-full-disk-install-spine
+  category: fresh_full_disk_prompt
+  mode:
+    remote_setup_mode: wipe_and_reinstall
+    install_profile: full_disk_wipe
+  expected:
+    prompt_contains:
+      - "wipe_and_reinstall/full_disk_wipe"
+      - "install_or_skip must include target mount/bootstrap, fstab, bootloader"
+      - "postboot_driver, desktop, and apps run only after guarded reboot/reconnect"
+  rationale: "Fresh full-disk prompts must remind the model that bootability is mandatory before postboot work."
+
+- id: reject-fresh-full-disk-skips-fstab-bootloader
+  category: wrong_mode_rejection
+  mode:
+    remote_setup_mode: wipe_and_reinstall
+    install_profile: full_disk_wipe
+  plan:
+    command_groups:
+      - id: apps-only
+        stage: apps
+        title: Install apps only
+        commands:
+          - "sudo pacman -S --noconfirm vlc"
+  expected:
+    outcome: reject
+    error_contains: "fresh install plan must include install_or_skip"
+  rationale: "Fresh install cannot skip the install spine and report only postboot app work."
+
+- id: accept-fresh-full-disk-complete-spine
+  category: mode_appropriate_plan
+  mode:
+    remote_setup_mode: wipe_and_reinstall
+    install_profile: full_disk_wipe
+  plan:
+    command_groups:
+      - id: arch-install
+        stage: install_or_skip
+        title: Install Arch base and bootloader
+        operations:
+          - kind: mount_partition
+            target: /dev/sda2
+            mountpoint: /mnt
+          - kind: write_fstab
+            target: /mnt/etc/fstab
+          - kind: install_bootloader
+            target: /dev/sda
+        commands:
+          - "pacstrap -K /mnt base linux linux-firmware"
+  expected:
+    outcome: accept
+  rationale: "A fresh full-disk plan with mount/bootstrap/fstab/bootloader is mode-appropriate at planning time."

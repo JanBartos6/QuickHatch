@@ -52,6 +52,7 @@ def test_release_smoke_targeted_pytest_includes_tier1_safety_tests():
     assert "tests/test_setup_reboot_reconnect.py" in TARGETED_PYTEST_FILES
     assert "tests/test_setup_stop_abort.py" in TARGETED_PYTEST_FILES
     assert "tests/test_setup_model_contract.py" in TARGETED_PYTEST_FILES
+    assert "tests/test_setup_mode_awareness.py" in TARGETED_PYTEST_FILES
     assert "tests/test_setup_repair_suggestion_quality.py" in TARGETED_PYTEST_FILES
     assert "tests/test_setup_research_grounding.py" in TARGETED_PYTEST_FILES
     assert "tests/test_setup_app_mapping.py" in TARGETED_PYTEST_FILES

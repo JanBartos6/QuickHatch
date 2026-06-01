@@ -1,0 +1,68 @@
+- id: reject-postboot-app-setup-mounts-mnt
+  category: postboot_app_setup
+  mode:
+    remote_setup_mode: configure_only
+    install_profile: configure_existing
+  plan:
+    command_groups:
+      - id: bad-postboot-mount
+        stage: apps
+        title: Mount target root before apps
+        operations:
+          - kind: mount_partition
+            target: /dev/sda2
+            mountpoint: /mnt
+        commands:
+          - "sudo pacman -S --noconfirm vlc"
+  expected:
+    outcome: reject
+    error_contains: "install-root"
+  rationale: "Post-reboot/app setup runs on the installed system and must not recreate live-install /mnt topology."
+
+- id: prompt-manual-partition-mapping
+  category: manual_partition_mapping_prompt
+  mode:
+    remote_setup_mode: wipe_and_reinstall
+    install_profile: manual_partition_mapping
+    install_partition_notes: "/dev/nvme0n1p7 root, /dev/nvme0n1p1 EFI; preserve Windows partitions"
+  expected:
+    prompt_contains:
+      - "manual_partition_mapping"
+      - "only explicitly mapped partitions"
+      - "do not invent repartitioning"
+      - "never shrink Windows"
+  rationale: "Manual partition mapping is expert/destructive and must stay tied to exact user mapping."
+
+- id: reject-manual-partition-mapping-repartitions-disk
+  category: wrong_mode_rejection
+  mode:
+    remote_setup_mode: wipe_and_reinstall
+    install_profile: manual_partition_mapping
+    install_partition_notes: "/dev/nvme0n1p7 root, /dev/nvme0n1p1 EFI"
+  plan:
+    command_groups:
+      - id: bad-manual-repartition
+        stage: install_or_skip
+        title: Repartition disk despite mapping
+        operations:
+          - kind: partition_disk
+            target: /dev/nvme0n1
+            options:
+              scheme: gpt
+      - id: manual-bootstrap
+        stage: install_or_skip
+        title: Bootstrap mapped root
+        operations:
+          - kind: mount_partition
+            target: /dev/nvme0n1p7
+            mountpoint: /mnt
+          - kind: write_fstab
+            target: /mnt/etc/fstab
+          - kind: install_bootloader
+            target: /dev/nvme0n1
+        commands:
+          - "pacstrap -K /mnt base linux"
+  expected:
+    outcome: reject
+    error_contains: "manual_partition_mapping"
+  rationale: "Manual mapping may use confirmed partitions but must not invent disk repartitioning."

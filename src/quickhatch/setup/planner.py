@@ -91,6 +91,34 @@ _PLACEHOLDER_COMMANDS = {
     "pass",
 }
 
+_DESTRUCTIVE_INSTALL_PROFILES = {
+    "full_disk_wipe",
+    "second_disk_install",
+    "dual_boot_free_space",
+    "manual_partition_mapping",
+}
+
+_INSTALL_SPINE_OPERATION_KINDS = {
+    "partition_disk",
+    "format_partition",
+    "mount_partition",
+    "write_fstab",
+    "install_bootloader",
+    "controlled_reboot",
+}
+
+_INSTALL_ROOT_RE = re.compile(
+    r"(?i)(?:\b(?:pacstrap|debootstrap)\b|dnf(?:5)?\s+[^\n]*--installroot[=\s]/mnt|"
+    r"\b(?:arch-chroot|chroot)\s+/mnt\b|/mnt/etc/fstab|/target/etc/fstab|"
+    r"\bgenfstab\b|\bmount\s+[^\n;&|]+\s+/mnt\b)"
+)
+_INSTALL_BOOT_RE = re.compile(
+    r"(?i)(?:\bgrub(?:2)?-install\b|\bbootctl\s+install\b|\befibootmgr\b)"
+)
+_INSTALL_PARTITION_RE = re.compile(
+    r"(?i)\b(?:parted|sfdisk|sgdisk|gdisk|cfdisk|fdisk|wipefs|blkdiscard|mkfs(?:\.[\w+-]+)?|mkswap)\b"
+)
+
 _PROSE_COMMAND_MARKERS = (
     " should ",
     " must ",
@@ -686,7 +714,7 @@ def extract_research_plan(text: str, profile: UserProfile) -> ResearchPlan:
             commands,
             field_name=f"verification_commands.{stage.value}",
         )
-    return ResearchPlan(
+    plan = ResearchPlan(
         target_summary=target_summary,
         distro_family=distro_family,
         package_manager=package_manager,
@@ -703,6 +731,150 @@ def extract_research_plan(text: str, profile: UserProfile) -> ResearchPlan:
             str(item) for item in (payload.get("optional_items", []) or []) if str(item).strip()
         ],
         planner_revision=int(payload.get("planner_revision", 1) or 1),
+    )
+    _validate_plan_matches_setup_mode(plan, profile)
+    return plan
+
+
+def _profile_setup_mode(profile: UserProfile) -> tuple[str, str]:
+    remote_mode = str(getattr(profile, "remote_setup_mode", "") or "auto").strip()
+    install_profile = str(getattr(profile, "install_profile", "") or "configure_existing").strip()
+    return remote_mode, install_profile
+
+
+def _validate_plan_matches_setup_mode(plan: ResearchPlan, profile: UserProfile) -> None:
+    remote_mode, install_profile = _profile_setup_mode(profile)
+    if remote_mode == "configure_only":
+        _validate_no_install_spine_for_configure_existing(plan)
+        return
+    if remote_mode != "wipe_and_reinstall" or install_profile not in _DESTRUCTIVE_INSTALL_PROFILES:
+        return
+    if install_profile == "manual_partition_mapping":
+        _validate_manual_partition_mapping_plan(plan)
+    _validate_fresh_install_spine(plan, install_profile)
+
+
+def _validate_no_install_spine_for_configure_existing(plan: ResearchPlan) -> None:
+    for group in plan.command_groups:
+        if group.stage == SetupStage.INSTALL_OR_SKIP:
+            raise ResearchPlanValidationError(
+                "Mode mismatch: configure_existing/configure_only plans must not include "
+                "install_or_skip command groups. Use postboot_driver, desktop, and apps stages "
+                "for an already-installed Linux system."
+            )
+        for operation in group.operations:
+            if operation.kind in _INSTALL_SPINE_OPERATION_KINDS:
+                raise ResearchPlanValidationError(
+                    "Mode mismatch: configure_existing/configure_only plan contains "
+                    f"install-root/fresh-install operation {operation.kind!r}. Use the active "
+                    "installed system instead of /mnt target-root topology."
+                )
+        for command in group.commands:
+            reason = _configure_existing_install_spine_reason(command)
+            if reason:
+                raise ResearchPlanValidationError(
+                    "Mode mismatch: configure_existing/configure_only plan contains "
+                    f"{reason}. Use postboot_driver, desktop, or apps work on the active "
+                    "installed system."
+                )
+
+
+def _configure_existing_install_spine_reason(command: str) -> str:
+    text = str(command or "")
+    if _INSTALL_ROOT_RE.search(text):
+        return "install-root/fresh-install work"
+    if _INSTALL_PARTITION_RE.search(text):
+        return "disk partitioning/formatting work"
+    if _INSTALL_BOOT_RE.search(text):
+        return "bootloader/EFI install work"
+    return ""
+
+
+def _validate_manual_partition_mapping_plan(plan: ResearchPlan) -> None:
+    for group in plan.command_groups:
+        for operation in group.operations:
+            if operation.kind == "partition_disk":
+                raise ResearchPlanValidationError(
+                    "Mode mismatch: manual_partition_mapping may only use explicitly mapped "
+                    "partitions from install_partition_notes; it must not repartition a disk."
+                )
+        for command in group.commands:
+            lowered = command.lower()
+            if re.search(r"\b(?:parted|sfdisk|sgdisk|gdisk|cfdisk|fdisk)\b", lowered):
+                raise ResearchPlanValidationError(
+                    "Mode mismatch: manual_partition_mapping may format/mount confirmed mapped "
+                    "partitions, but must not invent repartitioning commands."
+                )
+
+
+def _validate_fresh_install_spine(plan: ResearchPlan, install_profile: str) -> None:
+    install_groups = [
+        group for group in plan.command_groups if group.stage == SetupStage.INSTALL_OR_SKIP
+    ]
+    if not install_groups:
+        raise ResearchPlanValidationError(
+            "Mode mismatch: fresh install plan must include install_or_skip target "
+            "mount/bootstrap/fstab/bootloader work before postboot stages."
+        )
+    checks = {
+        "target mount": False,
+        "base bootstrap": False,
+        "fstab": False,
+        "bootloader": False,
+    }
+    for group in install_groups:
+        for operation in group.operations:
+            if operation.kind == "mount_partition" and (
+                operation.mountpoint == "/mnt" or operation.target
+            ):
+                checks["target mount"] = True
+            if operation.kind == "write_fstab":
+                checks["fstab"] = True
+            if operation.kind == "install_bootloader":
+                checks["bootloader"] = True
+        for command in group.commands:
+            lowered = command.lower()
+            if re.search(r"\bmount\s+[^\n;&|]+\s+/mnt\b", lowered):
+                checks["target mount"] = True
+            if re.search(
+                r"\b(?:pacstrap|debootstrap)\b|dnf(?:5)?\s+[^\n]*--installroot[=\s]/mnt", lowered
+            ):
+                checks["base bootstrap"] = True
+            if "fstab" in lowered or "genfstab" in lowered:
+                checks["fstab"] = True
+            if _INSTALL_BOOT_RE.search(command):
+                checks["bootloader"] = True
+    missing = [name for name, present in checks.items() if not present]
+    if missing:
+        raise ResearchPlanValidationError(
+            "Mode mismatch: fresh install plan for "
+            f"{install_profile} is missing required install spine item(s): "
+            + ", ".join(missing)
+            + ". Include install_or_skip target mount/bootstrap, fstab, and bootloader work."
+        )
+
+
+def _setup_mode_contract(profile: UserProfile) -> str:
+    remote_mode, install_profile = _profile_setup_mode(profile)
+    notes = str(getattr(profile, "install_partition_notes", "") or "").strip()
+    return (
+        "== SETUP MODE CONTRACT ==\n"
+        f"- remote_setup_mode: {remote_mode}\n"
+        f"- install_profile: {install_profile}\n"
+        "- configure_existing/configure_only means an already-installed Linux system. "
+        "Do not include pacstrap, debootstrap, dnf --installroot, /mnt target-root mounts, "
+        "partitioning, formatting, fstab replacement, bootloader install, or install-reboot "
+        "work. Use postboot_driver, desktop, and apps stages.\n"
+        "- wipe_and_reinstall/full_disk_wipe means a fresh install from a live environment. "
+        "install_or_skip must include target mount/bootstrap, fstab, bootloader, and SSH/"
+        "network continuity work before postboot stages. postboot_driver, desktop, and apps "
+        "run only after guarded reboot/reconnect.\n"
+        "- post-reboot app/desktop/driver setup means the system is already installed: use "
+        "apps, desktop, or postboot_driver on the active root, with no /mnt target-root "
+        "mounts or installroot commands.\n"
+        "- manual_partition_mapping means use only explicitly mapped partitions from "
+        "install_partition_notes; do not invent repartitioning and never shrink Windows. "
+        f"Current mapping notes: {notes or '(none provided)'}\n"
     )
 
 
@@ -764,7 +936,7 @@ def build_research_prompt(
         "- verification_commands (object keyed by stage)\n"
         "- required_items (list)\n"
         "- optional_items (list)\n"
-        "- planner_revision (integer)\n\n"
+        "- planner_revision (integer)\n\n" + _setup_mode_contract(profile) + "\n"
         "Rules:\n"
         "- Executable command_groups may ONLY use these stages: install_or_skip, postboot_driver, desktop, or apps.\n"
         "- connect_and_probe, research_and_plan, and final_audit are harness-owned stages. Do not create command groups for them; rely on normalized facts or place checks in the verification for the relevant executable stage.\n"

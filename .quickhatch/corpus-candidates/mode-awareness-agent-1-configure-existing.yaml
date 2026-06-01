@@ -1,0 +1,42 @@
+- id: prompt-configure-existing-no-install-spine
+  category: configure_existing_prompt
+  mode:
+    remote_setup_mode: configure_only
+    install_profile: configure_existing
+  expected:
+    prompt_contains:
+      - "configure_existing/configure_only"
+      - "already-installed Linux system"
+      - "Do not include pacstrap, debootstrap, dnf --installroot"
+      - "Use postboot_driver, desktop, and apps stages"
+  rationale: "Configure-existing prompts must make the safe non-install path unambiguous."
+
+- id: reject-configure-existing-pacstrap
+  category: wrong_mode_rejection
+  mode:
+    remote_setup_mode: configure_only
+    install_profile: configure_existing
+  plan:
+    command_groups:
+      - id: bad-bootstrap
+        stage: install_or_skip
+        title: Bootstrap Arch
+        commands:
+          - "pacstrap -K /mnt base linux"
+  expected:
+    outcome: reject
+    error_contains: "mode mismatch"
+  rationale: "Configure-existing cannot run fresh-install bootstrap work."
+
+- id: correct-configure-existing-after-rejection
+  category: planner_correction
+  mode:
+    remote_setup_mode: configure_only
+    install_profile: configure_existing
+  bad_plan_command: "sudo debootstrap stable /mnt http://deb.debian.org/debian"
+  fixed_plan_stage: apps
+  expected:
+    first_error_contains: "configure_existing"
+    final_stage: apps
+  rationale: "The planner should feed wrong-mode rejection back to the model and accept a corrected configure-existing plan."
+
