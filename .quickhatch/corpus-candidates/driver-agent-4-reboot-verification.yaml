@@ -1,0 +1,749 @@
+- id: drv4-nvidia-installed-module-pending-reboot
+  category: reboot_required
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3060"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-open
+      - nvidia-utils
+      - linux-headers
+    confidence: high
+    notes: "Packages installed but the NVIDIA kernel module is not loaded until reboot."
+  simulated_events:
+    - type: command_success
+      detail: "repo driver packages installed and initramfs hook completed"
+      rc: 0
+      stdout: "installed nvidia-open nvidia-utils linux-headers"
+      stderr: ""
+    - type: facts_refresh
+      detail: "pre-reboot facts still show no loaded NVIDIA module"
+      rc: 0
+      stdout: "nvidia_smi=missing kernel_driver=missing"
+      stderr: ""
+    - type: reboot_required
+      detail: "driver stage requires reboot before verification"
+      rc: 0
+      stdout: ""
+      stderr: ""
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Successful package installation is not driver success until a reboot and refreshed facts prove the module loaded."
+
+- id: drv4-nvidia-reboot-verify-success
+  category: reboot_required
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 4070"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-open
+      - nvidia-utils
+    confidence: high
+    notes: "Modern NVIDIA repo driver requires post-reboot module verification."
+  simulated_events:
+    - type: command_success
+      detail: "driver packages installed"
+      rc: 0
+      stdout: "installed nvidia-open nvidia-utils"
+      stderr: ""
+    - type: reboot_required
+      detail: "controlled reboot requested"
+      rc: 0
+      stdout: ""
+      stderr: ""
+    - type: facts_refresh
+      detail: "after reconnect, NVIDIA module and nvidia-smi are healthy"
+      rc: 0
+      stdout: "kernel_driver=nvidia nvidia_smi=ok"
+      stderr: ""
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Post-reboot facts prove the requested driver is loaded, so no manual follow-up is needed."
+
+- id: drv4-nvidia-reboot-reconnect-fails
+  category: reboot_required
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3080"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: unknown
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+    confidence: medium
+    notes: "Driver install requested a reboot but the machine did not reconnect."
+  simulated_events:
+    - type: command_success
+      detail: "driver package install completed"
+      rc: 0
+      stdout: "Setting up nvidia-driver"
+      stderr: ""
+    - type: reboot_required
+      detail: "controlled reboot started for driver verification"
+      rc: 0
+      stdout: ""
+      stderr: ""
+    - type: command_failure
+      detail: "post-reboot reconnect failed"
+      rc: 255
+      stdout: ""
+      stderr: "ssh reconnect timed out"
+  expected:
+    driver_status: blocked
+    final_status_effect: blocked
+    should_reboot_verify: true
+    should_continue_unrelated_setup: false
+  rationale: "Loss of reconnect after a driver reboot is a core safety failure, not a cosmetic driver warning."
+
+- id: drv4-nvidia-stale-healthy-before-install
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3070"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-open
+      - nvidia-utils
+    confidence: high
+    notes: "Earlier facts were healthy but post-install probe failed."
+  simulated_events:
+    - type: command_success
+      detail: "driver package reinstall completed"
+      rc: 0
+      stdout: "reinstalled nvidia-open"
+      stderr: ""
+    - type: facts_refresh
+      detail: "post-install fact probe failed and must invalidate earlier healthy state"
+      rc: 1
+      stdout: ""
+      stderr: "fact probe failed before nvidia_smi check"
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Stale healthy driver facts cannot prove success after a mutating driver install."
+
+- id: drv4-nouveau-cleared-after-reboot
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce GTX 1660"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+    confidence: medium
+    notes: "nouveau was bound before reboot and blacklisting takes effect after reboot."
+  simulated_events:
+    - type: command_success
+      detail: "driver installed and nouveau blacklist written by packaged tooling"
+      rc: 0
+      stdout: "nvidia-driver installed"
+      stderr: ""
+    - type: reboot_required
+      detail: "reboot required to unload nouveau"
+      rc: 0
+      stdout: ""
+      stderr: ""
+    - type: facts_refresh
+      detail: "after reboot, nouveau is gone and nvidia module is loaded"
+      rc: 0
+      stdout: "nouveau=false kernel_driver=nvidia nvidia_smi=ok"
+      stderr: ""
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "A nouveau conflict can be resolved only after refreshed post-reboot facts confirm nouveau is no longer bound."
+
+- id: drv4-nouveau-persists-after-reboot
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce GTX 1650"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - akmod-nvidia
+      - xorg-x11-drv-nvidia-cuda
+    confidence: medium
+    notes: "nouveau remains bound after reboot."
+  simulated_events:
+    - type: command_success
+      detail: "NVIDIA packages installed"
+      rc: 0
+      stdout: "Installed: akmod-nvidia"
+      stderr: ""
+    - type: reboot_required
+      detail: "reboot completed"
+      rc: 0
+      stdout: ""
+      stderr: ""
+    - type: facts_refresh
+      detail: "nouveau is still bound and nvidia-smi is unavailable"
+      rc: 0
+      stdout: "nouveau=true kernel_driver=nouveau nvidia_smi=missing"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Persistent nouveau binding means the proprietary/open NVIDIA stack is not verified even if packages installed."
+
+- id: drv4-secureboot-module-rejected-after-reboot
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3060"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+    confidence: medium
+    notes: "Secure Boot is enabled and the NVIDIA module is rejected after reboot."
+  simulated_events:
+    - type: command_success
+      detail: "driver package install completed"
+      rc: 0
+      stdout: "nvidia-driver installed"
+      stderr: ""
+    - type: reboot_required
+      detail: "driver verification reboot completed"
+      rc: 0
+      stdout: ""
+      stderr: ""
+    - type: module_probe
+      detail: "kernel refuses unsigned NVIDIA module"
+      rc: 1
+      stdout: ""
+      stderr: "modprobe: ERROR: could not insert 'nvidia': Key was rejected by service"
+  expected:
+    driver_status: unsupported_safe
+    final_status_effect: unsupported_safe
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Secure Boot module signing/MOK enrollment is unresolved and must not be reported as plain success."
+
+- id: drv4-secureboot-mok-enrollment-pending
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 2060"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-dkms
+      - mokutil
+    confidence: medium
+    notes: "DKMS package install succeeded but manual MOK enrollment is pending."
+  simulated_events:
+    - type: command_success
+      detail: "DKMS build completed and MOK enrollment was requested"
+      rc: 0
+      stdout: "DKMS build complete; MOK enrollment required on next boot"
+      stderr: ""
+    - type: reboot_required
+      detail: "user must enroll MOK during reboot before driver can load"
+      rc: 0
+      stdout: ""
+      stderr: ""
+    - type: facts_refresh
+      detail: "after reboot without enrollment, NVIDIA module is still absent"
+      rc: 0
+      stdout: "secure_boot=enabled kernel_driver=missing nvidia_smi=missing"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Manual MOK enrollment is user action; the harness should preserve progress and report exact follow-up."
+
+- id: drv4-amdgpu-after-firmware-reboot-success
+  category: amd
+  facts_profile:
+    gpu_vendors:
+      - amd
+    gpu_models:
+      - "AMD Radeon RX 6600"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: true
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - firmware-amd-graphics
+      - mesa-vulkan-drivers
+    confidence: high
+    notes: "AMD firmware/Mesa refresh needs reboot before amdgpu verification."
+  simulated_events:
+    - type: command_success
+      detail: "AMD firmware and Mesa packages installed"
+      rc: 0
+      stdout: "installed firmware-amd-graphics mesa-vulkan-drivers"
+      stderr: ""
+    - type: reboot_required
+      detail: "firmware update requires reboot for amdgpu probe"
+      rc: 0
+      stdout: ""
+      stderr: ""
+    - type: facts_refresh
+      detail: "after reboot, amdgpu is loaded"
+      rc: 0
+      stdout: "kernel_driver=amdgpu vulkan=ok"
+      stderr: ""
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Normal AMD firmware/Mesa setup should verify cleanly after refreshed post-reboot facts."
+
+- id: drv4-amd-firmware-missing-after-reboot
+  category: amd
+  facts_profile:
+    gpu_vendors:
+      - amd
+    gpu_models:
+      - "AMD Radeon RX 7900 XT"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: false
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - firmware-amd-graphics
+      - mesa-vulkan-drivers
+    confidence: medium
+    notes: "Firmware package unavailable or not active after reboot."
+  simulated_events:
+    - type: command_failure
+      detail: "firmware package could not be installed from enabled repositories"
+      rc: 100
+      stdout: ""
+      stderr: "Unable to locate package firmware-amd-graphics"
+    - type: facts_refresh
+      detail: "after repair attempt, amdgpu still missing"
+      rc: 0
+      stdout: "kernel_driver=missing firmware=missing"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Missing AMD firmware is specific driver follow-up, not a reason to erase unrelated setup progress."
+
+- id: drv4-intel-kernel-update-pending-reboot
+  category: intel
+  facts_profile:
+    gpu_vendors:
+      - intel
+    gpu_models:
+      - "Intel Iris Xe Graphics"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - mesa-dri-drivers
+      - mesa-vulkan-drivers
+      - linux-firmware
+    confidence: high
+    notes: "Intel graphics stack update needs reboot before i915 verification."
+  simulated_events:
+    - type: command_success
+      detail: "Mesa and firmware packages updated"
+      rc: 0
+      stdout: "Upgraded: mesa-vulkan-drivers linux-firmware"
+      stderr: ""
+    - type: facts_refresh
+      detail: "before reboot, refreshed facts still do not prove i915 on the running kernel"
+      rc: 0
+      stdout: "kernel_driver=missing"
+      stderr: ""
+    - type: reboot_required
+      detail: "kernel/firmware refresh requires reboot"
+      rc: 0
+      stdout: ""
+      stderr: ""
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Intel/Mesa updates are safe, but success still depends on post-reboot driver facts when the current probe is missing."
+
+- id: drv4-hybrid-intel-ok-nvidia-unverified
+  category: hybrid
+  facts_profile:
+    gpu_vendors:
+      - intel
+      - nvidia
+    gpu_models:
+      - "Intel UHD Graphics"
+      - "NVIDIA GeForce RTX 3050 Laptop GPU"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - akmod-nvidia
+      - xorg-x11-drv-nvidia-cuda
+      - mesa-dri-drivers
+    confidence: medium
+    notes: "Hybrid graphics has working Intel but unverified NVIDIA after reboot."
+  simulated_events:
+    - type: command_success
+      detail: "hybrid driver packages installed"
+      rc: 0
+      stdout: "Installed akmod-nvidia mesa-dri-drivers"
+      stderr: ""
+    - type: reboot_required
+      detail: "reboot completed"
+      rc: 0
+      stdout: ""
+      stderr: ""
+    - type: facts_refresh
+      detail: "Intel driver is active but NVIDIA module remains absent"
+      rc: 0
+      stdout: "intel=i915 nvidia_smi=missing nvidia_kernel=missing"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Working integrated graphics should not hide an unresolved requested discrete NVIDIA driver."
+
+- id: drv4-vm-virtio-gpu-no-real-driver-verification
+  category: vm_gpu
+  facts_profile:
+    gpu_vendors:
+      - virtual
+    gpu_models:
+      - "Virtio GPU"
+    secure_boot: unknown
+    is_vm: true
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: false
+    source: manual_followup
+    packages: []
+    confidence: low
+    notes: "Virtual GPU should not certify a real vendor driver path."
+  simulated_events:
+    - type: facts_refresh
+      detail: "post-reboot facts show only virtual graphics"
+      rc: 0
+      stdout: "gpu=virtio kernel_driver=virtio_gpu"
+      stderr: ""
+  expected:
+    driver_status: skipped
+    final_status_effect: unsupported_safe
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "VM graphics can validate display availability but not real NVIDIA/AMD hardware driver success."
+
+- id: drv4-headless-nvidia-module-verified
+  category: headless
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA Tesla T4"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: false
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+    confidence: medium
+    notes: "Headless system can verify compute driver without a GUI session."
+  simulated_events:
+    - type: command_success
+      detail: "NVIDIA driver installed"
+      rc: 0
+      stdout: "nvidia-driver installed"
+      stderr: ""
+    - type: reboot_required
+      detail: "driver reboot completed"
+      rc: 0
+      stdout: ""
+      stderr: ""
+    - type: module_probe
+      detail: "nvidia kernel module and nvidia-smi work without DISPLAY"
+      rc: 0
+      stdout: "NVIDIA-SMI 550.54.15"
+      stderr: ""
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Driver verification should rely on module/runtime facts, not require an active desktop session for headless systems."
+
+- id: drv4-provider-error-during-post-reboot-repair
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 2070"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia
+      - nvidia-utils
+    confidence: medium
+    notes: "Post-reboot verification failed and model repair provider is unavailable."
+  simulated_events:
+    - type: facts_refresh
+      detail: "after reboot, nvidia-smi reports driver/library mismatch"
+      rc: 0
+      stdout: "nvidia_smi=failed"
+      stderr: "Failed to initialize NVML: Driver/library version mismatch"
+    - type: provider_error
+      detail: "repair provider returned 429 during focused driver repair"
+      rc: 0
+      stdout: ""
+      stderr: "provider_error=rate_limited"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Provider failure must not create an endless repair loop or erase prior non-driver progress."
+
+- id: drv4-nvidia-version-mismatch-after-reboot
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 2080"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia
+      - nvidia-utils
+    confidence: medium
+    notes: "Module is loaded but userland/kernel driver versions disagree."
+  simulated_events:
+    - type: command_success
+      detail: "NVIDIA packages installed"
+      rc: 0
+      stdout: "installed nvidia nvidia-utils"
+      stderr: ""
+    - type: reboot_required
+      detail: "reboot completed"
+      rc: 0
+      stdout: ""
+      stderr: ""
+    - type: module_probe
+      detail: "nvidia module exists but nvidia-smi reports version mismatch"
+      rc: 1
+      stdout: ""
+      stderr: "Failed to initialize NVML: Driver/library version mismatch"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "A loaded module alone is not verified success when runtime driver tooling proves mismatch."
+
+- id: drv4-final-audit-driver-pending-does-not-erase-apps
+  category: final_audit
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3060 Laptop GPU"
+    secure_boot: unknown
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - akmod-nvidia
+    confidence: medium
+    notes: "Driver work remains pending while unrelated apps already completed."
+  simulated_events:
+    - type: command_success
+      detail: "unrelated app/theme setup completed before driver verification"
+      rc: 0
+      stdout: "completed apps and desktop groups"
+      stderr: ""
+    - type: facts_refresh
+      detail: "final audit still cannot verify NVIDIA module"
+      rc: 0
+      stdout: "nvidia_kernel=missing nvidia_smi=missing"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Unresolved driver verification should change final status honestly without regressing unrelated successful setup work."

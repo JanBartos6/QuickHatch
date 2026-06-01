@@ -1,0 +1,663 @@
+- id: amd-mesa-firmware-normal
+  category: amd
+  facts_profile:
+    gpu_vendors:
+      - amd
+    gpu_models:
+      - "AMD Radeon RX 6600"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: true
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - mesa-vulkan-drivers
+      - firmware-amd-graphics
+    confidence: high
+    notes: "Normal AMD Mesa and firmware path; no proprietary driver expectation."
+  simulated_events:
+    - type: command_success
+      detail: "Mesa and AMD firmware package check completed"
+      rc: 0
+      stdout: "mesa-vulkan-drivers firmware-amd-graphics installed"
+      stderr: ""
+    - type: facts_refresh
+      detail: "amdgpu module present after refresh"
+      rc: 0
+      stdout: "amdgpu"
+      stderr: ""
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "AMD with amdgpu loaded and firmware present should verify through normal Mesa/firmware facts without overblocking."
+
+- id: amd-missing-firmware-manual-followup
+  category: amd
+  facts_profile:
+    gpu_vendors:
+      - amd
+    gpu_models:
+      - "AMD Radeon RX 7900 XT"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: false
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - firmware-amd-graphics
+      - mesa-vulkan-drivers
+    confidence: medium
+    notes: "Firmware is missing or unavailable; exact package availability may vary by distro release."
+  simulated_events:
+    - type: command_failure
+      detail: "Firmware package unavailable or not enabled in configured repositories"
+      rc: 100
+      stdout: ""
+      stderr: "Unable to locate package firmware-amd-graphics"
+    - type: facts_refresh
+      detail: "amdgpu still not loaded after package attempt"
+      rc: 0
+      stdout: ""
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Missing AMD firmware should produce specific follow-up, not plain success and not a fatal core setup block."
+
+- id: amd-vulkan-tooling-missing-warning
+  category: amd
+  facts_profile:
+    gpu_vendors:
+      - amd
+    gpu_models:
+      - "AMD Radeon RX 580"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: true
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - mesa
+      - vulkan-radeon
+    confidence: high
+    notes: "Optional Vulkan userspace tooling may be absent even when the kernel driver is healthy."
+  simulated_events:
+    - type: command_success
+      detail: "AMD Mesa packages installed"
+      rc: 0
+      stdout: "mesa vulkan-radeon installed"
+      stderr: ""
+    - type: facts_refresh
+      detail: "amdgpu loaded but vulkaninfo helper missing"
+      rc: 0
+      stdout: "driver=amdgpu vulkan_state=unknown"
+      stderr: "vulkaninfo: command not found"
+  expected:
+    driver_status: verified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "A healthy amdgpu kernel path should not be blocked solely because optional Vulkan diagnostic tooling is unavailable."
+
+- id: amd-legacy-radeon-bound-followup
+  category: amd
+  facts_profile:
+    gpu_vendors:
+      - amd
+    gpu_models:
+      - "AMD Radeon R9 390"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: true
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - mesa-dri-drivers
+      - mesa-vulkan-drivers
+    confidence: medium
+    notes: "Modern AMD card expected to use amdgpu but system reports legacy radeon binding."
+  simulated_events:
+    - type: facts_refresh
+      detail: "legacy radeon module bound instead of amdgpu"
+      rc: 0
+      stdout: "driver=radeon"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "A topology or module binding mismatch needs explicit follow-up and usually reboot verification, but should not erase unrelated setup progress."
+
+- id: intel-mesa-normal
+  category: intel
+  facts_profile:
+    gpu_vendors:
+      - intel
+    gpu_models:
+      - "Intel UHD Graphics 620"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - mesa-vulkan-drivers
+      - intel-media-va-driver
+    confidence: high
+    notes: "Intel graphics normally uses in-kernel i915 plus Mesa/VAAPI packages; Secure Boot does not imply DKMS signing."
+  simulated_events:
+    - type: command_success
+      detail: "Intel Mesa and media packages present"
+      rc: 0
+      stdout: "mesa-vulkan-drivers intel-media-va-driver installed"
+      stderr: ""
+    - type: facts_refresh
+      detail: "i915 loaded and display stack healthy"
+      rc: 0
+      stdout: "driver=i915"
+      stderr: ""
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Normal Intel graphics should not be overblocked by Secure Boot because no unsigned proprietary module is implied."
+
+- id: intel-missing-kernel-driver-followup
+  category: intel
+  facts_profile:
+    gpu_vendors:
+      - intel
+    gpu_models:
+      - "Intel Arc A770"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - mesa-dri-drivers
+      - mesa-vulkan-drivers
+      - intel-media-driver
+    confidence: medium
+    notes: "Userspace packages may be present, but missing kernel module means driver success is unverified."
+  simulated_events:
+    - type: command_success
+      detail: "Intel userspace packages installed"
+      rc: 0
+      stdout: "Installed: mesa-dri-drivers mesa-vulkan-drivers intel-media-driver"
+      stderr: ""
+    - type: module_probe
+      detail: "No i915 or xe module detected for Intel GPU"
+      rc: 1
+      stdout: ""
+      stderr: "module not loaded"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Command success for Intel packages is not enough when refreshed facts show no matching kernel module."
+
+- id: intel-vulkan-diagnostic-failure-warning
+  category: intel
+  facts_profile:
+    gpu_vendors:
+      - intel
+    gpu_models:
+      - "Intel Iris Xe"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - mesa
+      - vulkan-intel
+    confidence: high
+    notes: "Kernel driver is healthy but Vulkan probe reports a userspace diagnostic failure."
+  simulated_events:
+    - type: facts_refresh
+      detail: "i915 loaded; vulkan probe failed"
+      rc: 0
+      stdout: "driver=i915 vulkan_state=present_but_failing"
+      stderr: "ERROR_INITIALIZATION_FAILED"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "A failing graphics API probe should be honest manual follow-up, not plain success, while allowing unrelated setup to continue."
+
+- id: vm-virtio-gpu-skip-certification
+  category: vm_gpu
+  facts_profile:
+    gpu_vendors:
+      - virtual
+    gpu_models:
+      - "Virtio GPU"
+    secure_boot: unknown
+    is_vm: true
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: false
+    source: manual_followup
+    packages: []
+    confidence: low
+    notes: "Virtual GPU should not be treated as proof of physical NVIDIA or AMD driver success."
+  simulated_events:
+    - type: facts_refresh
+      detail: "Virtual adapter detected"
+      rc: 0
+      stdout: "Virtio GPU"
+      stderr: ""
+  expected:
+    driver_status: skipped
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "VM graphics should skip real hardware driver certification and avoid false confidence about physical GPU setup."
+
+- id: vm-qxl-headless-skip-driver-stage
+  category: vm_gpu
+  facts_profile:
+    gpu_vendors:
+      - virtual
+    gpu_models:
+      - "QXL paravirtual graphic card"
+    secure_boot: disabled
+    is_vm: true
+    has_gui_session: false
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: false
+    source: manual_followup
+    packages: []
+    confidence: low
+    notes: "Headless VM with virtual graphics should not run vendor GPU recovery."
+  simulated_events:
+    - type: facts_refresh
+      detail: "No GUI session and only virtual graphics present"
+      rc: 0
+      stdout: "qxl"
+      stderr: ""
+  expected:
+    driver_status: skipped
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Absence of a live GUI in a VM should not become a fatal driver failure or trigger physical GPU assumptions."
+
+- id: vm-passthrough-nvidia-uncertain
+  category: vm_gpu
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+      - virtual
+    gpu_models:
+      - "NVIDIA Corporation Device 2684"
+      - "Virtio GPU"
+    secure_boot: unknown
+    is_vm: true
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: manual_followup
+    packages: []
+    confidence: manual_followup_required
+    notes: "Possible GPU passthrough with unknown NVIDIA generation; avoid treating VM display as driver certification."
+  simulated_events:
+    - type: facts_refresh
+      detail: "NVIDIA PCI device appears alongside virtual display, but no NVIDIA module is loaded"
+      rc: 0
+      stdout: "gpu=nvidia,virtio module=none"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Passthrough-like facts need honest uncertainty and post-reboot/module verification rather than VM graphics success."
+
+- id: hybrid-intel-nvidia-nouveau-conflict
+  category: hybrid
+  facts_profile:
+    gpu_vendors:
+      - intel
+      - nvidia
+    gpu_models:
+      - "Intel UHD Graphics 630"
+      - "NVIDIA GeForce GTX 1650"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+      - nvidia-settings
+    confidence: medium
+    notes: "Hybrid system with Intel display path but nouveau bound for NVIDIA dGPU."
+  simulated_events:
+    - type: command_success
+      detail: "NVIDIA packages installed"
+      rc: 0
+      stdout: "nvidia-driver installed"
+      stderr: ""
+    - type: facts_refresh
+      detail: "Intel path works but NVIDIA remains bound to nouveau"
+      rc: 0
+      stdout: "i915 loaded nouveau loaded nvidia absent"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "A working Intel display must not hide unresolved NVIDIA/nouveau conflict on a requested hybrid-driver setup."
+
+- id: hybrid-intel-amd-normal
+  category: hybrid
+  facts_profile:
+    gpu_vendors:
+      - intel
+      - amd
+    gpu_models:
+      - "Intel Iris Xe"
+      - "AMD Radeon RX 6800M"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: true
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - mesa-dri-drivers
+      - mesa-vulkan-drivers
+      - amd-gpu-firmware
+      - intel-media-driver
+    confidence: high
+    notes: "Hybrid Intel+AMD setup should stay in normal Mesa/firmware lane."
+  simulated_events:
+    - type: command_success
+      detail: "Mesa and firmware packages installed"
+      rc: 0
+      stdout: "Installed mesa-dri-drivers mesa-vulkan-drivers amd-gpu-firmware intel-media-driver"
+      stderr: ""
+    - type: facts_refresh
+      detail: "Both i915 and amdgpu are loaded"
+      rc: 0
+      stdout: "i915 amdgpu"
+      stderr: ""
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Hybrid Intel+AMD should not be overclassified as risky proprietary-driver work when kernel modules and firmware are healthy."
+
+- id: headless-amd-server-no-gui
+  category: headless
+  facts_profile:
+    gpu_vendors:
+      - amd
+    gpu_models:
+      - "AMD Radeon Pro WX 3200"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: false
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: true
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - firmware-amd-graphics
+      - mesa-vulkan-drivers
+    confidence: medium
+    notes: "Kernel driver can be checked, but live GUI/display acceleration cannot be visually verified on a headless target."
+  simulated_events:
+    - type: facts_refresh
+      detail: "amdgpu loaded but no active GUI session"
+      rc: 0
+      stdout: "driver=amdgpu has_gui_session=false"
+      stderr: ""
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Headless systems can have healthy kernel driver facts while still requiring honest visual-verification caveats."
+
+- id: headless-intel-no-display-tools
+  category: headless
+  facts_profile:
+    gpu_vendors:
+      - intel
+    gpu_models:
+      - "Intel HD Graphics 530"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: false
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - mesa
+    confidence: medium
+    notes: "Generic/headless Intel target may not have display or Vulkan probes installed."
+  simulated_events:
+    - type: facts_refresh
+      detail: "i915 loaded; display/Vulkan probes unavailable"
+      rc: 0
+      stdout: "driver=i915 display=none"
+      stderr: "vulkaninfo: command not found"
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Headless Intel kernel success should not be promoted to full visual-driver verification when display probes are unavailable."
+
+- id: vm-spice-plus-amd-device-ambiguous
+  category: vm_gpu
+  facts_profile:
+    gpu_vendors:
+      - virtual
+      - amd
+    gpu_models:
+      - "Red Hat QXL controller"
+      - "AMD Device 15bf"
+    secure_boot: unknown
+    is_vm: true
+    has_gui_session: true
+    kernel_module_loaded: unknown
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: true
+    source: manual_followup
+    packages: []
+    confidence: low
+    notes: "Ambiguous VM facts include a virtual display and a generic AMD device ID."
+  simulated_events:
+    - type: facts_refresh
+      detail: "Virtual display is active; AMD device lacks module/firmware confirmation"
+      rc: 0
+      stdout: "display=qxl pci=amd_device_15bf"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Ambiguous virtual plus AMD hardware facts should not be certified as real AMD driver success without module and firmware evidence."
+
+- id: amd-provider-error-preserves-progress
+  category: amd
+  facts_profile:
+    gpu_vendors:
+      - amd
+    gpu_models:
+      - "AMD Radeon RX 7600"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - mesa-dri-drivers
+      - mesa-vulkan-drivers
+    confidence: medium
+    notes: "Driver facts are mostly healthy, but model repair/provider is unavailable for firmware uncertainty."
+  simulated_events:
+    - type: command_success
+      detail: "Mesa packages installed"
+      rc: 0
+      stdout: "Installed mesa-dri-drivers mesa-vulkan-drivers"
+      stderr: ""
+    - type: provider_error
+      detail: "Repair provider timed out while deciding optional firmware follow-up"
+      rc: 0
+      stdout: ""
+      stderr: "provider timeout"
+    - type: facts_refresh
+      detail: "amdgpu is loaded after provider error"
+      rc: 0
+      stdout: "driver=amdgpu"
+      stderr: ""
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Provider uncertainty should not erase healthy AMD progress, but unknown firmware evidence should avoid overclaiming plain verification."
+
+- id: intel-optional-media-driver-unavailable
+  category: intel
+  facts_profile:
+    gpu_vendors:
+      - intel
+    gpu_models:
+      - "Intel UHD Graphics 770"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - intel-media-va-driver-non-free
+      - mesa-vulkan-drivers
+    confidence: medium
+    notes: "Optional media acceleration package may be unavailable while base Intel graphics remains healthy."
+  simulated_events:
+    - type: command_failure
+      detail: "Optional media driver package unavailable"
+      rc: 100
+      stdout: ""
+      stderr: "Package intel-media-va-driver-non-free has no installation candidate"
+    - type: facts_refresh
+      detail: "i915 loaded and display stack present"
+      rc: 0
+      stdout: "driver=i915 display=active"
+      stderr: ""
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Optional Intel media acceleration failure should become warning/follow-up, not a fatal driver block or false full success."

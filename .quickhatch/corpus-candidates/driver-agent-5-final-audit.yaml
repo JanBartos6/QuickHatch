@@ -1,0 +1,639 @@
+- id: final-nvidia-installed-module-missing
+  category: final_audit
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3060"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-open
+      - nvidia-utils
+    confidence: high
+    notes: "Repo packages installed, but runtime module verification did not pass."
+  simulated_events:
+    - type: command_success
+      detail: "Installed NVIDIA packages from distro repository."
+      rc: 0
+      stdout: "nvidia-open nvidia-utils installed"
+      stderr: ""
+    - type: module_probe
+      detail: "nvidia module not loaded after package installation."
+      rc: 1
+      stdout: ""
+      stderr: "modprobe: FATAL: Module nvidia not found"
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Final audit must distinguish package success from verified driver success and preserve unrelated completed setup work."
+
+- id: final-secureboot-unsigned-nvidia-module
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 4070"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+    confidence: medium
+    notes: "Secure Boot enabled and module load failed with signing/MOK evidence."
+  simulated_events:
+    - type: command_success
+      detail: "NVIDIA package install completed."
+      rc: 0
+      stdout: "nvidia-driver installed"
+      stderr: ""
+    - type: module_probe
+      detail: "Kernel rejected the NVIDIA module under Secure Boot."
+      rc: 1
+      stdout: ""
+      stderr: "Required key not available"
+  expected:
+    driver_status: unsupported_safe
+    final_status_effect: unsupported_safe
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Secure Boot signing or MOK enrollment is user-mediated; final audit should avoid both fake success and fatal blocked status."
+
+- id: final-nouveau-conflict-after-proprietary-install
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce GTX 1660"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - akmod-nvidia
+      - xorg-x11-drv-nvidia
+    confidence: medium
+    notes: "Proprietary package installed, but nouveau remains bound."
+  simulated_events:
+    - type: command_success
+      detail: "NVIDIA packages installed from RPM Fusion."
+      rc: 0
+      stdout: "akmod-nvidia installed"
+      stderr: ""
+    - type: facts_refresh
+      detail: "Refreshed facts still show nouveau bound and no nvidia module."
+      rc: 0
+      stdout: "nouveau bound; nvidia absent"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Nouveau/proprietary conflict is repairable but unresolved, so support evidence should name the conflict instead of reporting plain success."
+
+- id: final-legacy-nvidia-open-not-supported
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce GTX 780"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: unknown
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: manual_followup
+    packages: []
+    confidence: manual_followup_required
+    notes: "Pre-Turing NVIDIA should not be routed to nvidia-open as verified."
+  simulated_events:
+    - type: facts_refresh
+      detail: "GPU inventory identifies pre-Turing NVIDIA hardware."
+      rc: 0
+      stdout: "GeForce GTX 780"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Legacy NVIDIA support requires explicit manual path selection; final audit should keep the driver unresolved but non-fatal."
+
+- id: final-unknown-nvidia-generation-unverified
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA Corporation Unknown Device 28e1"
+    secure_boot: unknown
+    is_vm: false
+    has_gui_session: unknown
+    kernel_module_loaded: unknown
+    nouveau_loaded: unknown
+    nvidia_driver_installed: unknown
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: unknown
+    packages:
+      - nvidia-open
+      - nvidia-utils
+    confidence: low
+    notes: "Model suggested modern NVIDIA packages, but generation and runtime state are unknown."
+  simulated_events:
+    - type: provider_error
+      detail: "Repair model timed out before confirming the correct NVIDIA generation."
+      rc: 0
+      stdout: ""
+      stderr: "provider timeout"
+    - type: facts_refresh
+      detail: "Hardware inventory remains too vague to verify the driver path."
+      rc: 0
+      stdout: "NVIDIA Corporation Unknown Device"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Unknown NVIDIA generation should not be promoted to verified success merely because a plausible package name exists."
+
+- id: final-vendor-curl-script-deferred
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3080"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: true
+    source: vendor
+    packages: []
+    confidence: low
+    notes: "External vendor payload was proposed but not safely inspectable."
+  simulated_events:
+    - type: command_failure
+      detail: "Plan proposed an external vendor shell payload for GPU driver installation."
+      rc: 126
+      stdout: ""
+      stderr: "external driver installer requires manual review"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Uninspectable vendor driver payloads should become explicit manual follow-up, with support evidence preserving the risky command context."
+
+- id: final-amd-firmware-missing-nonfatal
+  category: amd
+  facts_profile:
+    gpu_vendors:
+      - amd
+    gpu_models:
+      - "AMD Radeon RX 6800"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: false
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - firmware-amd-graphics
+      - mesa-vulkan-drivers
+    confidence: medium
+    notes: "AMD firmware package is missing or unavailable after install attempt."
+  simulated_events:
+    - type: command_failure
+      detail: "Firmware package could not be installed."
+      rc: 100
+      stdout: ""
+      stderr: "Unable to locate package firmware-amd-graphics"
+    - type: facts_refresh
+      detail: "amdgpu kernel module is loaded, but firmware availability remains unresolved."
+      rc: 0
+      stdout: "amdgpu loaded"
+      stderr: "firmware missing"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Missing AMD firmware is driver-specific follow-up, not a reason to erase app/theme success or claim complete success."
+
+- id: final-intel-mesa-vulkan-warning
+  category: intel
+  facts_profile:
+    gpu_vendors:
+      - intel
+    gpu_models:
+      - "Intel Iris Xe Graphics"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - mesa-dri-drivers
+      - mesa-vulkan-drivers
+    confidence: high
+    notes: "Kernel driver is active; optional Vulkan probe failed."
+  simulated_events:
+    - type: facts_refresh
+      detail: "i915 loaded but vulkaninfo failed."
+      rc: 0
+      stdout: "i915 loaded"
+      stderr: "vulkaninfo failed"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Intel kernel graphics are usable, but optional acceleration verification should be reported as a warning rather than full success."
+
+- id: final-vm-virtual-gpu-skipped
+  category: vm_gpu
+  facts_profile:
+    gpu_vendors:
+      - virtio
+    gpu_models:
+      - "Virtio GPU"
+    secure_boot: disabled
+    is_vm: true
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: false
+    source: manual_followup
+    packages: []
+    confidence: manual_followup_required
+    notes: "VM virtual adapter is not real vendor driver certification evidence."
+  simulated_events:
+    - type: facts_refresh
+      detail: "Hardware facts identify a virtual GPU only."
+      rc: 0
+      stdout: "Virtio GPU"
+      stderr: ""
+  expected:
+    driver_status: skipped
+    final_status_effect: none
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Final audit should record that real GPU driver certification was skipped in a VM, not infer NVIDIA or AMD success."
+
+- id: final-hybrid-nvidia-intel-nvidia-unverified
+  category: hybrid
+  facts_profile:
+    gpu_vendors:
+      - intel
+      - nvidia
+    gpu_models:
+      - "Intel UHD Graphics"
+      - "NVIDIA GeForce RTX 4060 Laptop GPU"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+    confidence: medium
+    notes: "Integrated Intel graphics works, discrete NVIDIA remains unverified."
+  simulated_events:
+    - type: facts_refresh
+      detail: "i915 loaded; nvidia module absent."
+      rc: 0
+      stdout: "i915 loaded"
+      stderr: "nvidia module absent"
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Hybrid systems should not claim full driver success because the integrated GPU works while the requested NVIDIA path remains unresolved."
+
+- id: final-headless-server-driver-skipped-with-note
+  category: headless
+  facts_profile:
+    gpu_vendors: []
+    gpu_models: []
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: false
+    kernel_module_loaded: unknown
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: false
+    source: manual_followup
+    packages: []
+    confidence: manual_followup_required
+    notes: "No GPU-specific driver request and no active desktop session."
+  simulated_events:
+    - type: facts_refresh
+      detail: "No GPU vendors detected and no GUI session available."
+      rc: 0
+      stdout: "headless target"
+      stderr: ""
+  expected:
+    driver_status: skipped
+    final_status_effect: none
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Headless systems without a driver request should not be failed for lack of desktop driver verification."
+
+- id: final-reboot-required-not-yet-verified
+  category: reboot_required
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3070"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-open
+      - nvidia-utils
+    confidence: high
+    notes: "Driver installation requested a reboot before module verification."
+  simulated_events:
+    - type: command_success
+      detail: "NVIDIA package install completed and initramfs was rebuilt through approved path."
+      rc: 0
+      stdout: "initramfs updated"
+      stderr: ""
+    - type: reboot_required
+      detail: "Driver module requires reboot before it can be verified."
+      rc: 0
+      stdout: "reboot required"
+      stderr: ""
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "A reboot-required driver is not complete until post-reboot facts verify the module or record a specific follow-up."
+
+- id: final-postreboot-verification-passes
+  category: reboot_required
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 4070"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - akmod-nvidia
+      - xorg-x11-drv-nvidia
+    confidence: high
+    notes: "Post-reboot facts verify the NVIDIA module and no nouveau conflict."
+  simulated_events:
+    - type: reboot_required
+      detail: "Driver install required reboot."
+      rc: 0
+      stdout: "reboot required"
+      stderr: ""
+    - type: facts_refresh
+      detail: "After reconnect, nvidia module is loaded and nouveau is absent."
+      rc: 0
+      stdout: "nvidia loaded"
+      stderr: ""
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Verified post-reboot driver facts can clear the manual follow-up and allow final success if no other issues remain."
+
+- id: final-reconnect-failure-after-driver-reboot
+  category: reboot_required
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3060"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: unknown
+    kernel_module_loaded: unknown
+    nouveau_loaded: unknown
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+    confidence: medium
+    notes: "Driver install requested reboot but reconnect never succeeded."
+  simulated_events:
+    - type: reboot_required
+      detail: "System rebooted for driver activation."
+      rc: 0
+      stdout: "rebooting"
+      stderr: ""
+    - type: command_failure
+      detail: "Post-reboot reconnect failed, so system safety cannot be proven."
+      rc: 255
+      stdout: ""
+      stderr: "ssh reconnect timeout"
+  expected:
+    driver_status: blocked
+    final_status_effect: blocked
+    should_reboot_verify: true
+    should_continue_unrelated_setup: false
+  rationale: "Failed reconnect after a boot-impacting driver reboot is a core safety issue, not a cosmetic manual follow-up."
+
+- id: final-driver-provider-429-preserves-progress
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 2060"
+    secure_boot: unknown
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: unknown
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: unknown
+    packages: []
+    confidence: low
+    notes: "Repair provider failed while selecting a driver strategy."
+  simulated_events:
+    - type: provider_error
+      detail: "Model provider returned a rate limit during driver repair planning."
+      rc: 0
+      stdout: ""
+      stderr: "429 rate limit"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Provider failure must not create endless retries or erase successful unrelated setup; support evidence should show the provider error."
+
+- id: final-boot-impacting-driver-command-denied
+  category: final_audit
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3080"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: true
+    source: vendor
+    packages: []
+    confidence: low
+    notes: "Driver repair attempted boot-impacting artifact updates without an approved capability."
+  simulated_events:
+    - type: command_failure
+      detail: "Initramfs or kernel artifact mutation was denied by safety policy."
+      rc: 1
+      stdout: ""
+      stderr: "blocked_without_capability: initramfs_rebuild"
+  expected:
+    driver_status: blocked
+    final_status_effect: blocked
+    should_reboot_verify: false
+    should_continue_unrelated_setup: false
+  rationale: "Denied boot-impacting driver mutation is a harness safety block; final audit should expose the capability failure and stop unsafe progression."
+
+- id: final-driver-manual-followup-keeps-app-success
+  category: final_audit
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce GTX 970"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: manual_followup
+    packages: []
+    confidence: manual_followup_required
+    notes: "Driver strategy unresolved after safe app and desktop work completed."
+  simulated_events:
+    - type: command_success
+      detail: "Unrelated app and theme groups completed before driver audit."
+      rc: 0
+      stdout: "apps completed; theme completed"
+      stderr: ""
+    - type: facts_refresh
+      detail: "Driver facts remain unresolved with nouveau loaded."
+      rc: 0
+      stdout: "nouveau loaded"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Final audit should retain completed app/theme evidence while making the unresolved driver item specific and actionable."

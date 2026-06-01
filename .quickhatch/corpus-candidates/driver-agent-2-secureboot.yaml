@@ -1,0 +1,630 @@
+- id: secureboot-nvidia-unsigned-dkms-rejected
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3070"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+      - dkms
+    confidence: medium
+    notes: "DKMS NVIDIA module installed but rejected by Secure Boot because it is unsigned."
+  simulated_events:
+    - type: command_success
+      detail: "nvidia driver packages installed from distro repository"
+      rc: 0
+      stdout: "Setting up nvidia-dkms..."
+      stderr: ""
+    - type: module_probe
+      detail: "kernel refuses unsigned NVIDIA module"
+      rc: 1
+      stdout: ""
+      stderr: "modprobe: ERROR: could not insert 'nvidia': Key was rejected by service"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Secure Boot can reject unsigned DKMS modules after a successful package install; the harness must not claim verified driver success until signing/MOK enrollment and reboot verification complete."
+
+- id: secureboot-nvidia-mok-enrollment-pending
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 4070"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver-550
+      - dkms
+    confidence: medium
+    notes: "Package install generated a Machine Owner Key enrollment prompt that requires physical-console confirmation."
+  simulated_events:
+    - type: command_success
+      detail: "driver package install schedules MOK enrollment"
+      rc: 0
+      stdout: "A new Machine-Owner Key has been generated. Reboot to enroll MOK."
+      stderr: ""
+    - type: reboot_required
+      detail: "MOK enrollment requires reboot and manual firmware UI interaction"
+      rc: 0
+      stdout: ""
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "MOK enrollment cannot be completed safely by the harness over an unattended setup session, so driver success remains manual follow-up until the user enrolls the key and verifies module load."
+
+- id: secureboot-nvidia-distro-signed-module-loaded
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3060"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - akmod-nvidia
+      - xorg-x11-drv-nvidia-cuda
+    confidence: medium
+    notes: "Distro-packaged NVIDIA module is installed and post-reboot probe shows the NVIDIA kernel module loaded."
+  simulated_events:
+    - type: command_success
+      detail: "distro driver packages installed"
+      rc: 0
+      stdout: "Installed: akmod-nvidia"
+      stderr: ""
+    - type: reboot_required
+      detail: "driver stack needs reboot before verification"
+      rc: 0
+      stdout: ""
+      stderr: ""
+    - type: facts_refresh
+      detail: "post-reboot facts show NVIDIA module loaded and nouveau absent"
+      rc: 0
+      stdout: "nvidia module loaded"
+      stderr: ""
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Secure Boot is not by itself fatal when refreshed facts prove the signed NVIDIA module loads successfully after reboot."
+
+- id: secureboot-enabled-nvidia-open-installed-but-not-loaded
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 4080"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-open
+      - nvidia-utils
+    confidence: high
+    notes: "Modern NVIDIA open kernel module package installed, but refreshed facts do not show the module loaded."
+  simulated_events:
+    - type: command_success
+      detail: "Arch NVIDIA open packages installed"
+      rc: 0
+      stdout: "installed nvidia-open nvidia-utils"
+      stderr: ""
+    - type: facts_refresh
+      detail: "post-install facts do not show nvidia module loaded"
+      rc: 0
+      stdout: "nvidia_smi=failed; kernel_driver=missing"
+      stderr: ""
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "A successful package install is insufficient when Secure Boot is enabled and the NVIDIA module is not observed loaded."
+
+- id: secureboot-unknown-nvidia-installed-unverified
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GPU"
+    secure_boot: unknown
+    is_vm: false
+    has_gui_session: unknown
+    kernel_module_loaded: unknown
+    nouveau_loaded: unknown
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+    confidence: low
+    notes: "Secure Boot state and module state are unknown after an NVIDIA driver install."
+  simulated_events:
+    - type: command_success
+      detail: "NVIDIA package install reports success"
+      rc: 0
+      stdout: "nvidia-driver installed"
+      stderr: ""
+    - type: facts_refresh
+      detail: "Secure Boot and module probes are inconclusive"
+      rc: 0
+      stdout: "secure_boot=unknown; nvidia_module=unknown"
+      stderr: ""
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Unknown Secure Boot and module state should not be hard-blocked, but also should not be reported as verified success."
+
+- id: secureboot-provider-suggests-vendor-curl-script
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3080"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: vendor
+    packages: []
+    confidence: low
+    notes: "Provider suggests external vendor installer script despite Secure Boot uncertainty."
+  simulated_events:
+    - type: provider_error
+      detail: "repair suggestion includes curl-piped vendor driver installer"
+      rc: 0
+      stdout: "curl -fsSL https://example.invalid/nvidia.run | sudo sh"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Secure Boot uncertainty must not lead to unreviewed external payload driver installation; safe outcome is manual follow-up rather than executing a vendor script."
+
+- id: secureboot-nouveau-conflict-after-driver-install
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce GTX 1660"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+    confidence: medium
+    notes: "Proprietary NVIDIA package installed but nouveau remains bound after refresh."
+  simulated_events:
+    - type: command_success
+      detail: "NVIDIA driver installed"
+      rc: 0
+      stdout: "nvidia-driver installed"
+      stderr: ""
+    - type: facts_refresh
+      detail: "nouveau is still loaded and nvidia module is absent"
+      rc: 0
+      stdout: "nouveau loaded; nvidia absent"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "nouveau/proprietary conflict can require blacklist/initramfs/reboot handling and must not be treated as successful driver verification."
+
+- id: secureboot-module-signing-command-succeeds-but-no-load
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 2060"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-dkms
+    confidence: low
+    notes: "Module signing helper reports success, but refreshed facts still do not show NVIDIA loaded."
+  simulated_events:
+    - type: command_success
+      detail: "sign-file helper exits successfully"
+      rc: 0
+      stdout: "Signed nvidia.ko"
+      stderr: ""
+    - type: module_probe
+      detail: "module still fails to load after signing attempt"
+      rc: 1
+      stdout: ""
+      stderr: "modprobe: ERROR: could not insert 'nvidia': Required key not available"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Command success from a signing helper is not proof of usable graphics; module-load verification remains required."
+
+- id: secureboot-pre-turing-nvidia-modern-open-rejected
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce GTX 970"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-open
+      - nvidia-utils
+    confidence: low
+    notes: "Provider selected nvidia-open for a pre-Turing GPU under Secure Boot."
+  simulated_events:
+    - type: command_failure
+      detail: "open kernel module package is not appropriate for this legacy GPU generation"
+      rc: 1
+      stdout: ""
+      stderr: "unsupported device for nvidia-open"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Legacy NVIDIA hardware should not be routed blindly to modern nvidia-open assumptions, especially with Secure Boot signing constraints."
+
+- id: secureboot-hybrid-intel-nvidia-nvidia-unverified
+  category: hybrid
+  facts_profile:
+    gpu_vendors:
+      - intel
+      - nvidia
+    gpu_models:
+      - "Intel UHD Graphics"
+      - "NVIDIA GeForce RTX 3050 Laptop GPU"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+      - nvidia-prime
+    confidence: medium
+    notes: "Hybrid laptop retains Intel display path while NVIDIA module remains unverified under Secure Boot."
+  simulated_events:
+    - type: facts_refresh
+      detail: "Intel graphics active, NVIDIA module not loaded"
+      rc: 0
+      stdout: "i915 loaded; nvidia absent"
+      stderr: ""
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "A working Intel display path should allow unrelated setup to continue, but the requested NVIDIA driver remains unverified and needs an honest warning or follow-up."
+
+- id: secureboot-headless-nvidia-no-gui-module-rejected
+  category: headless
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA Tesla T4"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: false
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+      - nvidia-cuda-toolkit
+    confidence: medium
+    notes: "Headless NVIDIA compute driver installed but Secure Boot prevents module load."
+  simulated_events:
+    - type: module_probe
+      detail: "nvidia-smi fails because the module is unavailable"
+      rc: 1
+      stdout: ""
+      stderr: "NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "No GUI session does not remove the need to verify NVIDIA module load for requested compute drivers."
+
+- id: secureboot-disabled-dkms-module-loads
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 2080"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+      - dkms
+    confidence: medium
+    notes: "Secure Boot is disabled and refreshed facts show the NVIDIA module loaded."
+  simulated_events:
+    - type: command_success
+      detail: "DKMS module built and installed"
+      rc: 0
+      stdout: "DKMS install completed"
+      stderr: ""
+    - type: facts_refresh
+      detail: "module load verified"
+      rc: 0
+      stdout: "nvidia module loaded; nvidia-smi ok"
+      stderr: ""
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "The harness should not overblock normal DKMS NVIDIA success when Secure Boot is disabled and post-reboot facts verify the driver."
+
+- id: secureboot-fedora-akmods-build-pending
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3070 Ti"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - akmod-nvidia
+      - xorg-x11-drv-nvidia
+    confidence: medium
+    notes: "akmods package install completed, but module build/signing is pending and not yet verified."
+  simulated_events:
+    - type: command_success
+      detail: "akmods package installed"
+      rc: 0
+      stdout: "Installed: akmod-nvidia"
+      stderr: ""
+    - type: facts_refresh
+      detail: "nvidia module not present yet"
+      rc: 0
+      stdout: "nvidia module absent; akmods build pending"
+      stderr: ""
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Fedora akmods can require build time and reboot; package success should become an honest unverified/warning state until module load is proven."
+
+- id: secureboot-ubuntu-oem-signed-driver-verified
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA RTX A2000 Laptop GPU"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - linux-modules-nvidia-535-generic
+      - nvidia-driver-535
+    confidence: high
+    notes: "Ubuntu signed NVIDIA module package is installed and verified loaded with Secure Boot enabled."
+  simulated_events:
+    - type: command_success
+      detail: "signed Ubuntu NVIDIA modules installed"
+      rc: 0
+      stdout: "linux-modules-nvidia installed"
+      stderr: ""
+    - type: facts_refresh
+      detail: "post-reboot facts verify NVIDIA module and nvidia-smi"
+      rc: 0
+      stdout: "secure_boot=enabled; nvidia_smi=ok; nvidia_kernel_driver=nvidia"
+      stderr: ""
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Signed distro modules can be a valid Secure Boot path when refreshed facts verify module load and NVIDIA tooling."
+
+- id: secureboot-key-rejection-after-repair-retry
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3060 Laptop GPU"
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+      - dkms
+    confidence: medium
+    notes: "Repair retry still hits Secure Boot key rejection."
+  simulated_events:
+    - type: command_failure
+      detail: "initial module probe fails with Secure Boot key rejection"
+      rc: 1
+      stdout: ""
+      stderr: "Key was rejected by service"
+    - type: command_failure
+      detail: "bounded repair retry fails with the same key rejection"
+      rc: 1
+      stdout: ""
+      stderr: "Required key not available"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Repeated Secure Boot key rejection should stop as manual follow-up rather than loop or become blocked system failure."
+
+- id: secureboot-unknown-provider-claims-success-without-facts
+  category: final_audit
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GPU"
+    secure_boot: unknown
+    is_vm: unknown
+    has_gui_session: unknown
+    kernel_module_loaded: unknown
+    nouveau_loaded: unknown
+    nvidia_driver_installed: unknown
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: true
+    source: unknown
+    packages: []
+    confidence: low
+    notes: "Provider says the driver is done, but no Secure Boot or module facts are available."
+  simulated_events:
+    - type: provider_error
+      detail: "provider output is unsupported by refreshed facts"
+      rc: 0
+      stdout: "NVIDIA should be working now"
+      stderr: ""
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Model/provider text cannot substitute for Secure Boot and module-load facts; final status must stay cautious when evidence is missing."

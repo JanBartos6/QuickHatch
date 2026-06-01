@@ -1,0 +1,650 @@
+- id: nvidia-unknown-generation-arch-open-unverified
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA Corporation Device 28ff"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: unknown
+    nouveau_loaded: unknown
+    nvidia_driver_installed: unknown
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-open
+      - nvidia-utils
+      - linux-headers
+    confidence: low
+    notes: "PCI ID is NVIDIA but generation is unknown, so open kernel module suitability is not proven."
+  simulated_events:
+    - type: command_success
+      detail: "Repo NVIDIA packages appear to install cleanly."
+      rc: 0
+      stdout: "installed nvidia-open nvidia-utils"
+      stderr: ""
+    - type: facts_refresh
+      detail: "Refreshed facts still do not prove nvidia_smi or the loaded kernel module."
+      rc: 0
+      stdout: "nvidia_smi_state=unknown nvidia_kernel_driver=unknown"
+      stderr: ""
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Unknown NVIDIA generation may be repairable, but command success alone must not certify the driver."
+
+- id: nvidia-no-inventory-requested-low-confidence
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models: []
+    secure_boot: unknown
+    is_vm: unknown
+    has_gui_session: unknown
+    kernel_module_loaded: unknown
+    nouveau_loaded: unknown
+    nvidia_driver_installed: unknown
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: true
+    source: unknown
+    packages: []
+    confidence: manual_followup_required
+    notes: "NVIDIA vendor hint exists, but there is no inventory/model evidence to choose a safe package family."
+  simulated_events:
+    - type: facts_refresh
+      detail: "Fact probe cannot resolve model, module, or Secure Boot state."
+      rc: 0
+      stdout: "gpu_inventory=[] secure_boot=unknown"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "A vendor-only hint is not enough to claim success or pick a risky driver path."
+
+- id: nvidia-pre-turing-gtx970-arch-open-rejected
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce GTX 970"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-open
+      - nvidia-utils
+    confidence: low
+    notes: "GTX 970 is pre-Turing and should not be routed blindly to nvidia-open."
+  simulated_events:
+    - type: command_failure
+      detail: "Modern open driver package selected for unsupported pre-Turing card."
+      rc: 1
+      stdout: ""
+      stderr: "nvidia-open does not support this GPU generation"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Pre-Turing NVIDIA needs legacy/manual handling; selecting modern open packages is a strategy bug, not a fatal whole-setup failure."
+
+- id: nvidia-legacy-gt710-manual-followup
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce GT 710"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: manual_followup
+    packages: []
+    confidence: manual_followup_required
+    notes: "Legacy NVIDIA card likely requires unsupported/legacy branch decisions outside automated safe setup."
+  simulated_events:
+    - type: facts_refresh
+      detail: "Legacy card remains on nouveau with no proprietary module loaded."
+      rc: 0
+      stdout: "nouveau_loaded=true nvidia_kernel_driver=missing"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Legacy NVIDIA uncertainty should be explicit manual follow-up and must not erase unrelated completed work."
+
+- id: nvidia-modern-rtx3060-healthy-after-reboot
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3060"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-open
+      - nvidia-utils
+      - nvidia-settings
+      - linux-headers
+    confidence: high
+    notes: "Modern RTX card with Secure Boot disabled is a normal repo-driver path."
+  simulated_events:
+    - type: command_success
+      detail: "Modern NVIDIA packages installed."
+      rc: 0
+      stdout: "installed nvidia-open nvidia-utils nvidia-settings linux-headers"
+      stderr: ""
+    - type: reboot_required
+      detail: "Module-load verification requires reboot into installed kernel."
+      rc: 0
+      stdout: ""
+      stderr: ""
+    - type: module_probe
+      detail: "After reboot, nvidia module and nvidia-smi are healthy."
+      rc: 0
+      stdout: "nvidia_smi_state=ok nvidia_kernel_driver=nvidia"
+      stderr: ""
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "This is the positive control: verified module/runtime facts after reboot may be plain success."
+
+- id: nvidia-modern-rtx4070-installed-before-reboot-unverified
+  category: reboot_required
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 4070"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-open
+      - nvidia-utils
+      - linux-headers
+    confidence: high
+    notes: "Package install succeeded but module cannot be verified until reboot."
+  simulated_events:
+    - type: command_success
+      detail: "NVIDIA package transaction succeeded."
+      rc: 0
+      stdout: "installed nvidia-open"
+      stderr: ""
+    - type: reboot_required
+      detail: "Driver module is not yet loaded in the current boot."
+      rc: 0
+      stdout: ""
+      stderr: ""
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "A package transaction is not enough; the harness must require post-reboot verification before success."
+
+- id: nvidia-modern-rtx3080-postreboot-module-missing
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3080"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+    confidence: high
+    notes: "Ubuntu/Debian repo strategy looked valid, but post-reboot module verification failed."
+  simulated_events:
+    - type: command_success
+      detail: "NVIDIA driver package installed."
+      rc: 0
+      stdout: "nvidia-driver installed"
+      stderr: ""
+    - type: module_probe
+      detail: "After reboot, nvidia module is still missing."
+      rc: 1
+      stdout: ""
+      stderr: "modprobe: FATAL: Module nvidia not found"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Post-reboot module failure is unresolved driver work, not a successful setup."
+
+- id: nvidia-nouveau-bound-after-proprietary-install
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 2070"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia
+      - nvidia-utils
+    confidence: medium
+    notes: "Proprietary stack installed, but nouveau remains bound to the GPU."
+  simulated_events:
+    - type: command_success
+      detail: "NVIDIA packages installed."
+      rc: 0
+      stdout: "installed nvidia nvidia-utils"
+      stderr: ""
+    - type: facts_refresh
+      detail: "Refreshed facts show nouveau still bound."
+      rc: 0
+      stdout: "nvidia_nouveau_bound=true nvidia_kernel_driver=nouveau"
+      stderr: ""
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Nouveau/proprietary conflict should trigger bounded repair or manual follow-up, not success."
+
+- id: nvidia-nouveau-only-user-did-not-request-proprietary
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce GTX 1660"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: true
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: false
+    source: unknown
+    packages: []
+    confidence: medium
+    notes: "User did not request proprietary NVIDIA setup; nouveau is loaded and the display stack is present."
+  simulated_events:
+    - type: facts_refresh
+      detail: "Facts show nouveau loaded with no proprietary driver request."
+      rc: 0
+      stdout: "nouveau_loaded=true"
+      stderr: ""
+  expected:
+    driver_status: skipped
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "If proprietary NVIDIA work was not requested, nouveau should not become a fatal failure, but the limitation should remain visible."
+
+- id: nvidia-driver-library-version-mismatch
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 2060"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+    confidence: high
+    notes: "Driver package is installed, but runtime library and kernel module versions disagree."
+  simulated_events:
+    - type: module_probe
+      detail: "nvidia-smi reports a driver/library mismatch."
+      rc: 1
+      stdout: ""
+      stderr: "Failed to initialize NVML: Driver/library version mismatch"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "A loaded module with broken NVIDIA runtime is not verified success."
+
+- id: nvidia-pre-turing-wrong-open-package-fedora
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce GTX 780 Ti"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - akmod-nvidia-open
+      - xorg-x11-drv-nvidia-cuda
+    confidence: low
+    notes: "Open kernel module strategy is inappropriate for this legacy generation."
+  simulated_events:
+    - type: command_failure
+      detail: "Wrong package strategy fails or cannot bind to the legacy GPU."
+      rc: 1
+      stdout: ""
+      stderr: "NVIDIA open kernel modules do not support this GPU"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Wrong NVIDIA generation/package strategy should be honest manual follow-up, not a whole-setup block."
+
+- id: nvidia-wrong-distro-package-name-debian-open
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 3070"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-open
+      - nvidia-utils
+    confidence: low
+    notes: "Arch-style package names were proposed for an apt-based system."
+  simulated_events:
+    - type: command_failure
+      detail: "Apt cannot locate the distro-mismatched package names."
+      rc: 100
+      stdout: ""
+      stderr: "E: Unable to locate package nvidia-open"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Wrong package names are repairable model mistakes; they should not hide the unresolved NVIDIA request."
+
+- id: nvidia-hybrid-intel-rtx-unknown-prime-state
+  category: hybrid
+  facts_profile:
+    gpu_vendors:
+      - intel
+      - nvidia
+    gpu_models:
+      - "Intel UHD Graphics"
+      - "NVIDIA GeForce RTX 3050 Laptop GPU"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+      - nvidia-prime
+    confidence: medium
+    notes: "Hybrid laptop needs PRIME/offload verification in addition to package success."
+  simulated_events:
+    - type: command_success
+      detail: "NVIDIA and PRIME packages installed."
+      rc: 0
+      stdout: "installed nvidia-driver nvidia-prime"
+      stderr: ""
+    - type: facts_refresh
+      detail: "Module is loaded but offload/active GPU state is unknown."
+      rc: 0
+      stdout: "nvidia_kernel_driver=nvidia prime_state=unknown"
+      stderr: ""
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Hybrid driver presence can be partially successful while still needing user-visible offload verification."
+
+- id: nvidia-headless-compute-verified-without-gui
+  category: headless
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA RTX A4000"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: false
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+      - nvidia-utils
+    confidence: high
+    notes: "Headless NVIDIA system can verify compute driver via module and nvidia-smi without a GUI session."
+  simulated_events:
+    - type: module_probe
+      detail: "nvidia-smi and kernel module checks pass over non-GUI session."
+      rc: 0
+      stdout: "nvidia_smi_state=ok nvidia_kernel_driver=nvidia"
+      stderr: ""
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "No GUI session should not invalidate a compute-focused NVIDIA verification when module/runtime facts are healthy."
+
+- id: nvidia-egpu-disappears-after-install
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 2080 eGPU"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: unknown
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-driver
+    confidence: medium
+    notes: "External GPU was present initially but disappears before verification."
+  simulated_events:
+    - type: command_success
+      detail: "NVIDIA driver package installed while eGPU was visible."
+      rc: 0
+      stdout: "installed nvidia-driver"
+      stderr: ""
+    - type: facts_refresh
+      detail: "Refreshed facts no longer list the NVIDIA GPU."
+      rc: 0
+      stdout: "gpu_vendors=[] gpu_inventory=[]"
+      stderr: ""
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Transient hardware should not be marked verified, but unrelated setup can continue with a warning."
+
+- id: nvidia-vendor-script-suggested-not-trusted
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 4090"
+    secure_boot: unknown
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: true
+    source: vendor
+    packages: []
+    confidence: low
+    notes: "Model/provider suggested a vendor installer path instead of distro package policy."
+  simulated_events:
+    - type: provider_error
+      detail: "Repair provider suggests an opaque vendor installer script and cannot justify distro-safe handling."
+      rc: 0
+      stdout: ""
+      stderr: "suggested external payload is outside safe driver policy"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: "Uninspectable vendor-driver payloads should not be auto-run; unresolved driver work should become explicit follow-up."
+
+- id: nvidia-open-success-but-nvidia-smi-fails
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+      - nvidia
+    gpu_models:
+      - "NVIDIA GeForce RTX 4060"
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+      - nvidia-open
+      - nvidia-utils
+    confidence: high
+    notes: "Modern open-driver package install succeeded, but runtime tool still fails."
+  simulated_events:
+    - type: command_success
+      detail: "Repo driver packages installed successfully."
+      rc: 0
+      stdout: "installed nvidia-open nvidia-utils"
+      stderr: ""
+    - type: module_probe
+      detail: "nvidia-smi fails despite the module being loaded."
+      rc: 1
+      stdout: ""
+      stderr: "NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver"
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: "Kernel-module presence and package success are insufficient if NVIDIA runtime verification fails."
