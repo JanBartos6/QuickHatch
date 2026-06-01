@@ -1,0 +1,405 @@
+- id: postboot-refresh-required-before-driver
+  category: postboot_facts
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["install_or_skip"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: "controlled_reboot"
+    controlled: true
+  reconnect_sequence:
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: "postboot facts refresh proves installed system before driver stage"
+  rationale: "Driver work must be based on installed-system facts, not stale live ISO facts."
+
+- id: postboot-still-live-blocks-all-later-stages
+  category: live_iso
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["install_or_skip"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: "controlled_reboot"
+    controlled: true
+  reconnect_sequence:
+    - state: connected
+  facts_after:
+    is_live: true
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: false
+    final_status_effect: blocked
+    reason: "facts still indicate live environment after reconnect"
+  rationale: "Desktop, apps, and postboot driver stages must not run on live media."
+
+- id: postboot-fact-probe-failed-blocks-mutating-driver
+  category: postboot_facts
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["install_or_skip"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: "controlled_reboot"
+    controlled: true
+  reconnect_sequence:
+    - state: connected
+  facts_after:
+    is_live: unknown
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: false
+    final_status_effect: blocked
+    reason: "fresh facts could not be collected after reboot"
+  rationale: "The harness should not mutate drivers or desktop when post-reboot facts are unknown."
+
+- id: postboot-target-mismatch-blocks-final
+  category: postboot_facts
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["install_or_skip"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: "controlled_reboot"
+    controlled: true
+  reconnect_sequence:
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: false
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: false
+    final_status_effect: blocked
+    reason: "postboot disk or machine identity mismatch"
+  rationale: "Same-target checks protect against DHCP/IP reuse or stale SSH host targeting."
+
+- id: postboot-package-db-unhealthy-manual-followup
+  category: postboot_facts
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["install_or_skip"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: "controlled_reboot"
+    controlled: true
+  reconnect_sequence:
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: manual_followup_required
+    reason: "package DB became unhealthy after first boot"
+  rationale: "Unrelated progress may continue only when safe, but final status must name package DB follow-up."
+
+- id: postboot-reboot-required-marker-warning
+  category: final_audit
+  mode: fresh_install
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["install_or_skip", "postboot_driver", "desktop", "apps"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: final_audit_repair
+    command: "verify reboot-required marker"
+    controlled: false
+  reconnect_sequence:
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: manual_followup_required
+    reason: "reboot-required marker remains at final audit"
+  rationale: "A target that still requires reboot should not be reported as plain success."
+
+- id: postboot-kernel-artifacts-verified-success
+  category: postboot_facts
+  mode: fresh_install
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["install_or_skip"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: ""
+    controlled: true
+  reconnect_sequence:
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: none
+    reason: "installed kernel and initramfs remain verified after boot"
+  rationale: "Postboot audit should preserve a clean install status when facts support it."
+
+- id: postboot-driver-installed-unverified
+  category: driver_reboot
+  mode: postboot_setup
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["postboot_driver_install"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: driver_stage
+    command: "sudo reboot"
+    controlled: true
+  reconnect_sequence:
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: manual_followup_required
+    reason: "driver install reboot occurred but module verification is still absent"
+  rationale: "Driver package success plus reboot is insufficient without refreshed module facts."
+
+- id: postboot-apps-deferred-while-live
+  category: postboot_facts
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["install_or_skip"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: model_raw_command
+    command: "sudo pacman -S --noconfirm vlc"
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: true
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: "postboot app work attempted while still in live environment"
+  rationale: "Fresh install postboot work should be gated on installed-system facts."
+
+- id: postboot-desktop-deferred-while-live
+  category: postboot_facts
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["install_or_skip"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: model_raw_command
+    command: "kwriteconfig6 --file kdeglobals --group Icons --key Theme Breeze"
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: true
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: "desktop postboot work attempted with live facts"
+  rationale: "Desktop configuration for the installed user should not be applied to the live environment."
+
+- id: postboot-final-audit-still-live-blocked
+  category: final_audit
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["install_or_skip", "postboot_driver", "desktop", "apps"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: final_audit_repair
+    command: "final audit"
+    controlled: false
+  reconnect_sequence:
+    - state: connected
+  facts_after:
+    is_live: true
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: "final audit sees live environment"
+  rationale: "Final status must stay blocked if installed boot/reconnect has not been proven."
+
+- id: postboot-final-audit-clean-success
+  category: final_audit
+  mode: fresh_install
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["install_or_skip", "postboot_driver", "desktop", "apps"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: final_audit_repair
+    command: "final audit"
+    controlled: false
+  reconnect_sequence:
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: none
+    reason: "final audit can pass when postboot facts are installed and clean"
+  rationale: "This is the positive control for postboot facts and final status honesty."

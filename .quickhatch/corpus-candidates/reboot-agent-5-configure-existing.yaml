@@ -1,0 +1,403 @@
+- id: configure-existing-raw-reboot-blocks
+  category: configure_existing
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: []
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: model_raw_command
+    command: "sudo reboot"
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: "configure-existing raw reboot must not execute silently"
+  rationale: "Already-installed configuration should not reboot unless the user explicitly approves a controlled boundary."
+
+- id: configure-existing-user-confirmed-controlled-reboot
+  category: configure_existing
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["apps", "desktop"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: user_confirmed
+    command: "controlled_reboot"
+    controlled: true
+  reconnect_sequence:
+    - state: disconnected
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: "user explicitly approved controlled reboot for configure-existing"
+  rationale: "A controlled reboot can be valid in configure-existing, but it needs explicit consent and resume evidence."
+
+- id: configure-existing-kernel-update-reboot-deferred
+  category: configure_existing
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["apps"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: final_audit_repair
+    command: "reboot-required marker present"
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: manual_followup_required
+    reason: "non-core configure-existing reboot is deferred to user"
+  rationale: "A pending reboot after package updates should be visible without forcing a remote reboot."
+
+- id: configure-existing-driver-reboot-controlled
+  category: driver_reboot
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["postboot_driver"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: driver_stage
+    command: "sudo reboot"
+    controlled: true
+  reconnect_sequence:
+    - state: disconnected
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: "driver stage requires controlled reboot and reconnect verification"
+  rationale: "Driver module changes may need reboot even on an existing system, but success depends on reconnect and post-reboot facts."
+
+- id: configure-existing-driver-reboot-no-consent-followup
+  category: driver_reboot
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["postboot_driver"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: driver_stage
+    command: "sudo reboot"
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: manual_followup_required
+    reason: "driver reboot needed but no controlled consent exists"
+  rationale: "The harness should report reboot verification as follow-up rather than running a raw reboot."
+
+- id: configure-existing-package-name-mentions-reboot
+  category: configure_existing
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: []
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: model_raw_command
+    command: "sudo apt install -y needrestart reboot-notifier"
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: none
+    reason: "package names contain reboot but command does not reboot"
+  rationale: "Reboot detection must be effect-based and avoid false positives on safe package installs."
+
+- id: configure-existing-systemctl-status-reboot-allowed
+  category: configure_existing
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: []
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: model_raw_command
+    command: "systemctl status reboot.target"
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: none
+    reason: "read-only status command is not a reboot request"
+  rationale: "Diagnostics should not be blocked or treated as power transitions."
+
+- id: configure-existing-shutdown-restart-blocks
+  category: configure_existing
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["apps"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: model_raw_command
+    command: "sudo shutdown -r now"
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: "raw power transition requires controlled reboot consent"
+  rationale: "Alternate reboot spellings must not bypass the same configure-existing guardrail."
+
+- id: configure-existing-network-risk-before-reboot-blocks
+  category: configure_existing
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["apps"]
+    manual_followups: []
+    repair_attempts:
+      network_security_change: 1
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: "controlled_reboot"
+    controlled: true
+  reconnect_sequence: []
+  facts_after:
+    is_live: false
+    ssh_ready: false
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: "network/SSH continuity is already at risk"
+  rationale: "Reboot should not be used to paper over a remote-access hazard in configure-existing mode."
+
+- id: configure-existing-reconnect-failure-blocks
+  category: reconnect_failure
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["apps", "desktop"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: user_confirmed
+    command: "controlled_reboot"
+    controlled: true
+  reconnect_sequence:
+    - state: disconnected
+    - state: timeout
+  facts_after:
+    is_live: unknown
+    ssh_ready: false
+    same_target: unknown
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: false
+    final_status_effect: blocked
+    reason: "user-approved configure-existing reboot failed to reconnect"
+  rationale: "Even approved reboots are core safety boundaries once remote continuity is lost."
+
+- id: configure-existing-final-audit-reboot-required-warning
+  category: final_audit
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["apps", "desktop"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: final_audit_repair
+    command: "needs-restarting -r"
+    controlled: false
+  reconnect_sequence:
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: success_with_warnings
+    reason: "reboot is recommended but setup changes are otherwise complete"
+  rationale: "Configure-existing can finish with warnings when a non-critical reboot recommendation remains."
+
+- id: configure-existing-live-facts-blocks-reboot
+  category: configure_existing
+  mode: configure_existing
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: unknown
+    bootloader_ok: unknown
+    kernel_ok: unknown
+    initramfs_ok: unknown
+    package_db_healthy: unknown
+  stage_state_before:
+    completed_groups: []
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: model_raw_command
+    command: "sudo reboot"
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: true
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: "configure-existing mode received live-environment facts"
+  rationale: "A mode/facts mismatch should stop before any reboot or install-spine behavior."

@@ -1,0 +1,420 @@
+- id: checkpoint-before-controlled-install-reboot
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["disk", "base", "user", "bootloader"]
+    manual_followups: ["optional wallpaper deferred"]
+    repair_attempts:
+      apps: 1
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: "controlled_reboot"
+    controlled: true
+  reconnect_sequence:
+    - state: disconnected
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: "state must be persisted before crossing reboot boundary"
+  rationale: "Completed work and manual follow-ups should survive an expected SSH disconnect."
+
+- id: checkpoint-preserves-manual-followups
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["disk", "base"]
+    manual_followups: ["NVIDIA Secure Boot MOK enrollment required"]
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: "controlled_reboot"
+    controlled: true
+  reconnect_sequence:
+    - state: disconnected
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: manual_followup_required
+    reason: "manual follow-up must persist across reboot and resume"
+  rationale: "A reboot must not erase unresolved driver or user action state."
+
+- id: checkpoint-preserves-repair-budget
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["disk", "base"]
+    manual_followups: []
+    repair_attempts:
+      bootloader_config: 2
+      package_db_repair: 1
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: "controlled_reboot"
+    controlled: true
+  reconnect_sequence:
+    - state: disconnected
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: "repair attempt counts must not reset after reboot"
+  rationale: "Resume from checkpoint should not create endless repair loops after reconnect."
+
+- id: checkpoint-preserves-capability-state
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["disk", "base", "fstab"]
+    manual_followups: []
+    repair_attempts:
+      capability_grants: 3
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: "controlled_reboot"
+    controlled: true
+  reconnect_sequence:
+    - state: disconnected
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: "run-scoped capability state should be persisted or safely invalidated"
+  rationale: "A resumed run should not accidentally reuse stale destructive grants or lose needed audit evidence."
+
+- id: checkpoint-interrupted-after-reboot-command
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["disk", "base", "bootloader"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: "controlled_reboot"
+    controlled: true
+  reconnect_sequence:
+    - state: disconnected
+    - state: timeout
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: "resume should poll reconnect rather than rerun install groups"
+  rationale: "If the harness is interrupted after issuing reboot, a resumed run should continue at reconnect/postboot, not repeat destructive install commands."
+
+- id: checkpoint-interrupted-after-reconnect
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["install_or_skip"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: ""
+    controlled: true
+  reconnect_sequence:
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: none
+    reason: "already reconnected installed facts should resume at postboot stage"
+  rationale: "Resume continuity means completed install stage is not run from scratch."
+
+- id: checkpoint-resume-sees-stale-live-facts-blocks
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["install_or_skip"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: ""
+    controlled: true
+  reconnect_sequence:
+    - state: connected
+  facts_after:
+    is_live: true
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: "resume target still appears to be live media"
+  rationale: "A resumed run must refresh facts and block postboot work while still in the live environment."
+
+- id: checkpoint-resume-target-mismatch-blocks
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["install_or_skip"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: ""
+    controlled: true
+  reconnect_sequence:
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: false
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: "refreshed facts do not match the expected target identity"
+  rationale: "Resume should not continue mutations if SSH now points at a different host or disk identity."
+
+- id: checkpoint-pending-question-survives
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["disk", "base"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: ["enter_luks_passphrase_after_reboot"]
+  reboot_request:
+    source: user_confirmed
+    command: "controlled_reboot"
+    controlled: true
+  reconnect_sequence:
+    - state: disconnected
+    - state: timeout
+  facts_after:
+    is_live: unknown
+    ssh_ready: false
+    same_target: unknown
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: manual_followup_required
+    reason: "pending user action must remain visible during resume"
+  rationale: "Encrypted installs may require human input at boot; the checkpoint should preserve that context."
+
+- id: checkpoint-runlog-only-gap-manual-review
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["disk", "base", "bootloader"]
+    manual_followups: ["optional app unavailable"]
+    repair_attempts:
+      apps: 2
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: "controlled_reboot"
+    controlled: true
+  reconnect_sequence:
+    - state: disconnected
+  facts_after:
+    is_live: unknown
+    ssh_ready: unknown
+    same_target: unknown
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: manual_followup_required
+    reason: "runlog evidence alone may be insufficient for automatic resume"
+  rationale: "This captures the boundary where the harness may need a durable stage-state checkpoint, not just replay diagnostics."
+
+- id: checkpoint-stop-before-reboot-no-crossing
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["disk", "base"]
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: ["stop_requested"]
+  reboot_request:
+    source: typed_operation
+    command: "controlled_reboot"
+    controlled: true
+  reconnect_sequence: []
+  facts_after:
+    is_live: true
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: "operator stop request before reboot must be honored"
+  rationale: "A checkpoint should not be used to cross a destructive boundary after the user stops the run."
+
+- id: checkpoint-repair-state-does-not-rerun-disk
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: ["disk", "format", "base", "bootloader", "install_or_skip"]
+    manual_followups: []
+    repair_attempts:
+      disk_partition: 1
+      bootloader_install: 1
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: ""
+    controlled: true
+  reconnect_sequence:
+    - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: none
+    reason: "completed destructive install groups must not rerun after resume"
+  rationale: "The most important resume invariant is avoiding repeated disk/format work."
