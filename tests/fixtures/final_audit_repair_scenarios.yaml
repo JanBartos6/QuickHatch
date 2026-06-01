@@ -1,0 +1,2608 @@
+# Curated final-audit repair-loop scenario corpus.
+#
+# This fixture models final audit repair policy, bounded focused repairs,
+# fatal finding dominance, non-fatal app/desktop follow-up, unsupported-safe
+# outcomes, and final-summary honesty. Use fake audit/repair/executor/facts
+# plumbing only; do not execute commands from this file.
+merge_summary:
+  source: Merged from .quickhatch/corpus-candidates/final-audit-agent-*.yaml
+  total_source_candidates: 76
+  total_scenarios: 76
+  scenarios_by_category:
+    app_followup: 9
+    desktop_followup: 9
+    failed_repair: 19
+    fatal_core: 15
+    repairable: 9
+    summary_status: 12
+    unsupported_safe: 3
+  final_statuses:
+    blocked: 22
+    manual_followup_required: 26
+    success: 11
+    success_with_warnings: 13
+    unsupported_safe: 4
+  repair_outcomes:
+    capability_required: 12
+    failure: 8
+    not_attempted: 30
+    preflight_block: 3
+    provider_error: 6
+    success: 17
+  rejected_ambiguous_cases: []
+  omitted_near_duplicate_cases: []
+  coverage_gaps:
+  - No real SSH, package manager, VM, reboot, or shell execution is represented; tests must use fake audit, repair, executor,
+    and facts plumbing.
+  - Capability kind names are scenario labels from candidate generation and may need mapping to existing QuickHatch capability
+    constants during test implementation.
+  - Representative repair commands are intentionally not authoritative install recipes; they model risk boundaries and final-status
+    truthfulness.
+  - The fixture covers final-audit repair policy, but does not yet assert exact support-bundle/runlog serialization fields.
+  notes: Final-audit repair scenarios are policy fixtures only. Representative commands in this file must not be executed
+    against the host.
+scenarios:
+- id: missing-root-fstab
+  category: fatal_core
+  initial_findings:
+  - id: fstab-root-missing
+    severity: fatal
+    category: fstab
+    summary: /etc/fstab has no root filesystem entry, so the installed system may not mount its root volume on boot.
+    required_capability_kinds:
+    - filesystem_read
+    - block_device_inspection
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: fatal
+      category: fstab
+      summary: Root filesystem entry is still missing from /etc/fstab.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - root filesystem entry is missing
+    - blocked
+    summary_must_not_claim:
+    - fstab repaired
+    - system is bootable
+  rationale: A missing root mount is a core boot blocker. Guessing the correct device or UUID is unsafe without explicit validated
+    disk mapping.
+- id: stale-root-uuid
+  category: fatal_core
+  initial_findings:
+  - id: fstab-root-uuid-not-found
+    severity: fatal
+    category: fstab
+    summary: /etc/fstab references a root UUID that is not present in blkid output.
+    required_capability_kinds:
+    - filesystem_read
+    - block_device_inspection
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Verify candidate root volume
+      commands:
+      - blkid
+      - findmnt --target /mnt
+      - lsblk -f
+      required_capability_kinds:
+      - block_device_inspection
+    - title: Rewrite fstab only after verified mapping
+      commands:
+      - mount /dev/disk/by-uuid/<verified-root-uuid> /mnt
+      - sed -i 's/UUID=<stale>/UUID=<verified-root-uuid>/' /mnt/etc/fstab
+      required_capability_kinds:
+      - filesystem_write
+      - mount
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+    - severity: fatal
+      category: fstab
+      summary: Root UUID remains stale because filesystem write and mount capability were unavailable.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - root UUID is not present
+    - requires verified disk mapping
+    summary_must_not_claim:
+    - UUID corrected
+    - repair completed
+  rationale: The repair can be safe only with block-device verification and write access to the installed system.
+- id: malformed-fstab
+  category: fatal_core
+  initial_findings:
+  - id: fstab-parse-fails
+    severity: fatal
+    category: fstab
+    summary: /etc/fstab contains malformed fields that make systemd-fstab-generator fail.
+    required_capability_kinds:
+    - filesystem_read
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: fatal
+      category: fstab
+      summary: fstab remains malformed and may block boot.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - fstab is malformed
+    - blocked
+    summary_must_not_claim:
+    - syntax fixed
+    - boot validation passed
+  rationale: Fatal fstab syntax should not be auto-edited without knowing the intended mount topology.
+- id: missing-kernel-image
+  category: fatal_core
+  initial_findings:
+  - id: boot-vmlinuz-missing
+    severity: fatal
+    category: bootability
+    summary: /boot does not contain a kernel image for the installed system.
+    required_capability_kinds:
+    - filesystem_read
+    - package_query
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Reinstall kernel in target system
+      commands:
+      - mount /dev/<root> /mnt
+      - mount /dev/<efi-or-boot> /mnt/boot
+      - arch-chroot /mnt pacman -S linux
+      required_capability_kinds:
+      - mount
+      - chroot
+      - package_install
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+    - severity: fatal
+      category: bootability
+      summary: Kernel image is still missing because chroot/package install capability was unavailable.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - kernel image is missing
+    - requires chroot/package install capability
+    summary_must_not_claim:
+    - kernel installed
+    - boot files restored
+  rationale: Installing a kernel modifies the target OS and must happen only through an explicit safe target-root workflow.
+- id: missing-initramfs
+  category: fatal_core
+  initial_findings:
+  - id: boot-initramfs-missing
+    severity: fatal
+    category: bootability
+    summary: /boot lacks an initramfs image matching the installed kernel.
+    required_capability_kinds:
+    - filesystem_read
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Regenerate initramfs
+      commands:
+      - mount /dev/<root> /mnt
+      - mount /dev/<boot> /mnt/boot
+      - arch-chroot /mnt mkinitcpio -P
+      required_capability_kinds:
+      - mount
+      - chroot
+      - boot_file_write
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+    - severity: fatal
+      category: bootability
+      summary: initramfs is still missing because target chroot/write capability was unavailable.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - initramfs image is missing
+    - blocked
+    summary_must_not_claim:
+    - initramfs regenerated
+    - bootability restored
+  rationale: Regenerating initramfs is repairable in principle, but not without safe access to the mounted target.
+- id: grub-not-installed
+  category: fatal_core
+  initial_findings:
+  - id: bootloader-grub-missing
+    severity: fatal
+    category: bootability
+    summary: No installed bootloader was found in the EFI system partition or boot sector.
+    required_capability_kinds:
+    - filesystem_read
+    - firmware_detection
+    - block_device_inspection
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Install bootloader after firmware and ESP verification
+      commands:
+      - mount /dev/<root> /mnt
+      - mount /dev/<esp> /mnt/boot
+      - arch-chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=QuickHatch
+      - arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg
+      required_capability_kinds:
+      - mount
+      - chroot
+      - bootloader_install
+      - firmware_detection
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+    - severity: fatal
+      category: bootability
+      summary: Bootloader remains absent because bootloader install capability was unavailable.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - bootloader was not found
+    - requires bootloader install capability
+    summary_must_not_claim:
+    - GRUB installed
+    - EFI boot entry created
+  rationale: Bootloader installation is too invasive to infer or simulate without explicit capability and target verification.
+- id: broken-efi-mount
+  category: fatal_core
+  initial_findings:
+  - id: esp-not-mounted-installed-system
+    severity: fatal
+    category: bootability
+    summary: The installed system has boot files under the live environment, but the expected EFI system partition is not
+      mounted at /boot or /boot/efi.
+    required_capability_kinds:
+    - mount_inspection
+    - block_device_inspection
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: fatal
+      category: bootability
+      summary: EFI system partition mount state remains ambiguous.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - EFI system partition is not mounted
+    - boot files may be in the wrong place
+    summary_must_not_claim:
+    - ESP fixed
+    - bootloader files are correct
+  rationale: Moving or reinstalling EFI files without a verified ESP risks damaging the wrong disk state.
+- id: still-live-iso-after-reboot
+  category: fatal_core
+  initial_findings:
+  - id: post-reboot-live-iso
+    severity: fatal
+    category: bootability
+    summary: Post-reboot audit still detects a live ISO environment instead of the installed target system.
+    required_capability_kinds:
+    - runtime_environment_detection
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: fatal
+      category: bootability
+      summary: Machine is still running the live ISO after the expected reboot.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - still running the live ISO
+    - manual boot selection may be required
+    summary_must_not_claim:
+    - reboot succeeded into installed system
+    - installation verified
+  rationale: This is a fatal validation failure, not a repair command problem. The user may need to remove ISO media or choose
+    the installed disk.
+- id: ssh-reconnect-timeout
+  category: fatal_core
+  initial_findings:
+  - id: ssh-reconnect-failed
+    severity: fatal
+    category: ssh_reconnect
+    summary: SSH did not reconnect after reboot within the expected window.
+    required_capability_kinds:
+    - network_reconnect
+    - remote_access
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: fatal
+      category: ssh_reconnect
+      summary: Remote access to the target system is unavailable after reboot.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - SSH did not reconnect
+    - blocked
+    summary_must_not_claim:
+    - host is online
+    - audit completed on target
+  rationale: Without reconnecting, the audit cannot safely distinguish a boot failure from network or credential issues.
+- id: ssh-host-key-mismatch
+  category: fatal_core
+  initial_findings:
+  - id: ssh-host-key-changed
+    severity: fatal
+    category: ssh_reconnect
+    summary: SSH reconnect was blocked by a host key mismatch for the expected target address.
+    required_capability_kinds:
+    - remote_access
+    - identity_verification
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: fatal
+      category: ssh_reconnect
+      summary: Target identity remains unverified due to SSH host key mismatch.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - host key mismatch
+    - identity remains unverified
+    summary_must_not_claim:
+    - known_hosts updated
+    - reconnected safely
+  rationale: Automatically accepting a changed SSH host key can mask connecting to the wrong machine.
+- id: root-device-would-be-formatted
+  category: fatal_core
+  initial_findings:
+  - id: destructive-target-current-root
+    severity: fatal
+    category: setup
+    summary: The planned destructive disk action targets the currently mounted root device.
+    required_capability_kinds:
+    - block_device_inspection
+    - mount_inspection
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: fatal
+      category: setup
+      summary: Destructive disk plan still targets the active root device.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - destructive disk action targets the active root device
+    - blocked
+    summary_must_not_claim:
+    - disk state corrected
+    - safe to proceed
+  rationale: A destructive plan aimed at the active root device must hard-stop until the target disk is explicitly corrected.
+- id: wrong-disk-signature
+  category: fatal_core
+  initial_findings:
+  - id: expected-disk-signature-mismatch
+    severity: fatal
+    category: setup
+    summary: The selected install disk does not match the expected model, serial, or size signature.
+    required_capability_kinds:
+    - block_device_inspection
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: fatal
+      category: setup
+      summary: Selected disk identity remains mismatched.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - selected disk does not match
+    - manual confirmation required
+    summary_must_not_claim:
+    - disk target fixed
+    - partitioning is safe
+  rationale: Disk identity mismatch can destroy unrelated data if auto-corrected or ignored.
+- id: package-db-lock-corrupt
+  category: fatal_core
+  initial_findings:
+  - id: package-db-corrupt
+    severity: fatal
+    category: package_db
+    summary: Package database validation failed and the package manager cannot safely resolve installed package state.
+    required_capability_kinds:
+    - package_query
+    - filesystem_read
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: fatal
+      category: package_db
+      summary: Package database remains corrupt with no safe automated repair path.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - package database validation failed
+    - no safe automated repair path
+    summary_must_not_claim:
+    - package database repaired
+    - packages verified
+  rationale: Blind package database reconstruction can make the system less recoverable and should require an operator decision.
+- id: pacman-db-partial-transaction
+  category: fatal_core
+  initial_findings:
+  - id: package-partial-upgrade
+    severity: fatal
+    category: package_db
+    summary: Package database shows an interrupted transaction with partially installed core packages.
+    required_capability_kinds:
+    - package_query
+    - filesystem_read
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Complete or roll forward transaction
+      commands:
+      - arch-chroot /mnt pacman -Syu
+      - arch-chroot /mnt pacman -Qkk filesystem linux systemd
+      required_capability_kinds:
+      - chroot
+      - package_install
+      - network_access
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+    - severity: fatal
+      category: package_db
+      summary: Interrupted package transaction remains unresolved because package install capability was unavailable.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - interrupted transaction
+    - requires package repair capability
+    summary_must_not_claim:
+    - transaction completed
+    - core packages are consistent
+  rationale: Partial core package state is fatal, but fixing it needs controlled package operations inside the verified target
+    system.
+- id: boot-partition-empty
+  category: fatal_core
+  initial_findings:
+  - id: boot-partition-empty
+    severity: fatal
+    category: bootability
+    summary: The mounted boot partition is empty after installation.
+    required_capability_kinds:
+    - filesystem_read
+    - mount_inspection
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Populate boot partition from target system
+      commands:
+      - mount /dev/<root> /mnt
+      - mount /dev/<boot> /mnt/boot
+      - arch-chroot /mnt pacman -S linux grub
+      - arch-chroot /mnt mkinitcpio -P
+      - arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg
+      required_capability_kinds:
+      - mount
+      - chroot
+      - package_install
+      - bootloader_install
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+    - severity: fatal
+      category: bootability
+      summary: Boot partition remains empty because boot repair capabilities were unavailable.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - boot partition is empty
+    - blocked
+    summary_must_not_claim:
+    - boot partition populated
+    - bootloader configured
+  rationale: An empty boot partition is repairable only after mounting the right target volumes and regenerating boot artifacts
+    safely.
+- id: final-marker-create
+  category: repairable
+  initial_findings:
+  - id: missing-final-marker
+    severity: repairable
+    category: setup
+    summary: Final audit marker is missing even though setup logs show all mandatory stages completed.
+    required_capability_kinds:
+    - filesystem
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Create final marker
+      commands:
+      - install -D -m 0644 /tmp/quickhatch/final-audit.json /var/lib/quickhatch/final-audit.json
+      required_capability_kinds:
+      - filesystem
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success
+    summary_must_include:
+    - final audit marker repaired
+    summary_must_not_claim:
+    - full setup rerun
+  rationale: A missing marker can be repaired by writing verified final-audit metadata without rerunning setup.
+- id: final-marker-perms
+  category: repairable
+  initial_findings:
+  - id: marker-unreadable
+    severity: repairable
+    category: setup
+    summary: Final marker exists but has restrictive permissions that prevent verification reads.
+    required_capability_kinds:
+    - filesystem
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Fix marker permissions
+      commands:
+      - chmod 0644 /var/lib/quickhatch/final-audit.json
+      - chown root:root /var/lib/quickhatch/final-audit.json
+      required_capability_kinds:
+      - filesystem
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success
+    summary_must_include:
+    - marker permissions repaired
+    summary_must_not_claim:
+    - marker was regenerated from scratch
+  rationale: Permission drift is narrowly repairable and should not escalate to manual follow-up.
+- id: pkg-query-transient
+  category: repairable
+  initial_findings:
+  - id: package-query-timeout
+    severity: repairable
+    category: package_db
+    summary: Package verification query timed out while package database lock was briefly held.
+    required_capability_kinds:
+    - package_manager
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Retry package verification
+      commands:
+      - dpkg-query -W quickhatch-runtime
+      - apt-cache policy quickhatch-runtime
+      required_capability_kinds:
+      - package_manager
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 2
+    final_status: success
+    summary_must_include:
+    - package verification succeeded after retry
+    summary_must_not_claim:
+    - package was reinstalled
+  rationale: Transient query failures should be retried before reporting package database damage.
+- id: pkg-query-still-locked
+  category: failed_repair
+  initial_findings:
+  - id: package-db-lock
+    severity: repairable
+    category: package_db
+    summary: Package verification cannot complete because the package database lock remains active.
+    required_capability_kinds:
+    - package_manager
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Retry package verification
+      commands:
+      - fuser /var/lib/dpkg/lock-frontend
+      - dpkg-query -W quickhatch-runtime
+      required_capability_kinds:
+      - package_manager
+  repair_result:
+    outcome: failure
+    remaining_findings:
+    - severity: manual_followup
+      category: package_db
+      summary: Package database remained locked after bounded retry.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 2
+    final_status: manual_followup_required
+    summary_must_include:
+    - package database remained locked
+    summary_must_not_claim:
+    - package database repaired
+  rationale: The agent may retry evidence collection, but persistent locks require manual follow-up.
+- id: noncritical-unit-reset
+  category: repairable
+  initial_findings:
+  - id: stale-failed-unit
+    severity: repairable
+    category: setup
+    summary: A non-critical systemd oneshot unit is marked failed from a previous run, but its service goal is already satisfied.
+    required_capability_kinds:
+    - systemd
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Clear stale unit state
+      commands:
+      - systemctl reset-failed quickhatch-postcheck.service
+      - systemctl status quickhatch-postcheck.service --no-pager
+      required_capability_kinds:
+      - systemd
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success
+    summary_must_include:
+    - cleared stale non-critical unit state
+    summary_must_not_claim:
+    - restarted core services
+  rationale: Resetting failed state is bounded when evidence shows the failed unit is non-critical and stale.
+- id: noncritical-unit-persists
+  category: failed_repair
+  initial_findings:
+  - id: optional-unit-failed
+    severity: repairable
+    category: setup
+    summary: Optional telemetry upload unit is failed and blocking clean final audit evidence.
+    required_capability_kinds:
+    - systemd
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Reset and recheck optional unit
+      commands:
+      - systemctl reset-failed quickhatch-telemetry-upload.service
+      - systemctl is-failed quickhatch-telemetry-upload.service
+      required_capability_kinds:
+      - systemd
+  repair_result:
+    outcome: failure
+    remaining_findings:
+    - severity: warning
+      category: setup
+      summary: Optional telemetry unit still reports failed after reset.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success_with_warnings
+    summary_must_include:
+    - optional unit still failed
+    summary_must_not_claim:
+    - core setup failed
+  rationale: A non-critical unit can remain unresolved while preserving a warning-only final status.
+- id: reboot-marker-present
+  category: repairable
+  initial_findings:
+  - id: reboot-required
+    severity: repairable
+    category: setup
+    summary: Reboot-required marker is present after package updates.
+    required_capability_kinds:
+    - filesystem
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Record reboot follow-up
+      commands:
+      - test -f /var/run/reboot-required
+      - install -D -m 0644 /var/run/reboot-required /var/lib/quickhatch/reboot-required
+      required_capability_kinds:
+      - filesystem
+  repair_result:
+    outcome: success
+    remaining_findings:
+    - severity: manual_followup
+      category: setup
+      summary: System reboot is still required to complete kernel or library activation.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: manual_followup_required
+    summary_must_include:
+    - reboot required
+    summary_must_not_claim:
+    - reboot completed
+  rationale: The repair loop can preserve and surface reboot evidence, but cannot satisfy the reboot itself.
+- id: stale-reboot-marker
+  category: repairable
+  initial_findings:
+  - id: stale-reboot-marker
+    severity: repairable
+    category: setup
+    summary: QuickHatch reboot marker is stale while the system reboot-required marker is absent.
+    required_capability_kinds:
+    - filesystem
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Refresh reboot marker state
+      commands:
+      - test ! -f /var/run/reboot-required
+      - rm -f /var/lib/quickhatch/reboot-required
+      required_capability_kinds:
+      - filesystem
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success
+    summary_must_include:
+    - stale reboot marker cleared
+    summary_must_not_claim:
+    - performed reboot
+  rationale: Clearing stale local metadata is a focused repair when authoritative system evidence disagrees.
+- id: app-metadata-refresh
+  category: repairable
+  initial_findings:
+  - id: app-verification-metadata-missing
+    severity: repairable
+    category: apps
+    summary: Installed application is present, but QuickHatch app verification metadata was not written.
+    required_capability_kinds:
+    - filesystem
+    - package_manager
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Refresh app verification metadata
+      commands:
+      - dpkg-query -W firefox
+      - install -D -m 0644 /tmp/quickhatch/apps/firefox.json /var/lib/quickhatch/apps/firefox.json
+      required_capability_kinds:
+      - filesystem
+      - package_manager
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success
+    summary_must_include:
+    - app verification metadata repaired
+    summary_must_not_claim:
+    - application was installed
+  rationale: Metadata can be rebuilt from current install evidence without reinstalling the app.
+- id: app-metadata-version-mismatch
+  category: app_followup
+  initial_findings:
+  - id: app-version-metadata-mismatch
+    severity: repairable
+    category: apps
+    summary: App verification metadata records an older version than the installed package query reports.
+    required_capability_kinds:
+    - filesystem
+    - package_manager
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Rewrite app version metadata
+      commands:
+      - dpkg-query -W --showformat='${Version}' code
+      - quickhatch verify-app --name code --write-metadata
+      required_capability_kinds:
+      - filesystem
+      - package_manager
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success
+    summary_must_include:
+    - app metadata version refreshed
+    summary_must_not_claim:
+    - downgraded application
+  rationale: A metadata-only version mismatch is repairable after confirming installed package evidence.
+- id: app-metadata-binary-missing
+  category: failed_repair
+  initial_findings:
+  - id: app-metadata-no-binary
+    severity: repairable
+    category: apps
+    summary: App metadata exists, but the expected executable cannot be found on PATH.
+    required_capability_kinds:
+    - filesystem
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Refresh executable evidence
+      commands:
+      - command -v slack
+      - quickhatch verify-app --name slack --write-metadata
+      required_capability_kinds:
+      - filesystem
+  repair_result:
+    outcome: failure
+    remaining_findings:
+    - severity: manual_followup
+      category: apps
+      summary: Executable remained missing after metadata refresh attempt.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: manual_followup_required
+    summary_must_include:
+    - executable remained missing
+    summary_must_not_claim:
+    - app launch verified
+  rationale: The repair loop should not reinstall apps or claim success when executable evidence is absent.
+- id: desktop-marker-refresh
+  category: repairable
+  initial_findings:
+  - id: desktop-marker-stale
+    severity: repairable
+    category: desktop
+    summary: Desktop verification marker is older than the latest desktop configuration write.
+    required_capability_kinds:
+    - filesystem
+    - desktop_session
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Refresh desktop marker
+      commands:
+      - quickhatch verify-desktop --write-marker
+      - stat /var/lib/quickhatch/desktop-verified.json
+      required_capability_kinds:
+      - filesystem
+      - desktop_session
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success
+    summary_must_include:
+    - desktop verification marker refreshed
+    summary_must_not_claim:
+    - desktop environment reconfigured
+  rationale: A stale marker can be refreshed from current desktop evidence without touching configuration.
+- id: desktop-marker-no-session
+  category: desktop_followup
+  initial_findings:
+  - id: desktop-marker-session-unavailable
+    severity: repairable
+    category: desktop
+    summary: Desktop marker refresh requires an active graphical session, but none is currently available.
+    required_capability_kinds:
+    - desktop_session
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+    - severity: manual_followup
+      category: desktop
+      summary: Desktop marker refresh requires a graphical session.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+    - graphical session required
+    summary_must_not_claim:
+    - desktop marker refreshed
+  rationale: The case is repairable in principle, but the current agent must not fake desktop verification without the needed
+    capability.
+- id: desktop-marker-provider-error
+  category: failed_repair
+  initial_findings:
+  - id: desktop-marker-refresh-error
+    severity: repairable
+    category: desktop
+    summary: Desktop verification marker refresh failed because the desktop settings provider returned an error.
+    required_capability_kinds:
+    - desktop_session
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Retry desktop verification
+      commands:
+      - gsettings list-recursively org.gnome.desktop.interface
+      - quickhatch verify-desktop --write-marker
+      required_capability_kinds:
+      - desktop_session
+  repair_result:
+    outcome: provider_error
+    remaining_findings:
+    - severity: manual_followup
+      category: desktop
+      summary: Desktop settings provider failed during bounded marker refresh.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: manual_followup_required
+    summary_must_include:
+    - desktop settings provider failed
+    summary_must_not_claim:
+    - desktop verification completed
+  rationale: Provider errors should be reported as unresolved after one focused retry.
+- id: ssh-reconnect-marker
+  category: repairable
+  initial_findings:
+  - id: ssh-reconnect-evidence-missing
+    severity: repairable
+    category: ssh_reconnect
+    summary: SSH reconnect succeeded, but the reconnect evidence marker was not persisted.
+    required_capability_kinds:
+    - filesystem
+    - ssh
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Persist reconnect evidence
+      commands:
+      - ssh -o BatchMode=yes localhost true
+      - install -D -m 0600 /tmp/quickhatch/ssh-reconnect.json /var/lib/quickhatch/ssh-reconnect.json
+      required_capability_kinds:
+      - filesystem
+      - ssh
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: success
+    summary_must_include:
+    - ssh reconnect evidence persisted
+    summary_must_not_claim:
+    - ssh configuration changed
+  rationale: Persisting evidence after a successful reconnect check is bounded and avoids changing SSH config.
+- id: optional-app-missing-browser
+  category: app_followup
+  initial_findings:
+  - id: missing_optional_browser
+    severity: warning
+    category: apps
+    summary: Optional browser Brave is not installed; core setup remains usable.
+    required_capability_kinds: []
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: warning
+      category: apps
+      summary: Optional browser Brave is still missing.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: success_with_warnings
+    summary_must_include:
+    - Optional app Brave is missing
+    summary_must_not_claim:
+    - Brave was installed
+    - Setup failed
+  rationale: Optional app absence should be reported as a warning without triggering a repair loop.
+- id: optional-app-missing-media
+  category: app_followup
+  initial_findings:
+  - id: missing_optional_vlc
+    severity: warning
+    category: apps
+    summary: Optional media player VLC is not installed.
+    required_capability_kinds: []
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Install optional VLC
+      commands:
+      - sudo apt-get install -y vlc
+      required_capability_kinds:
+      - package_install
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: warning
+      category: apps
+      summary: Optional media player VLC is not installed.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: success_with_warnings
+    summary_must_include:
+    - VLC is optional
+    summary_must_not_claim:
+    - attempted to install VLC
+    - fatal
+  rationale: Even when a representative install command exists, optional app warnings should not be auto-repaired.
+- id: required-app-manual-license
+  category: app_followup
+  initial_findings:
+  - id: manual_required_zoom
+    severity: manual_followup
+    category: apps
+    summary: Required app Zoom is missing and must be installed from the vendor package due to licensing policy.
+    required_capability_kinds:
+    - manual_vendor_download
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: manual_followup
+      category: apps
+      summary: Required app Zoom still needs manual vendor installation.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+    - Zoom requires manual installation
+    summary_must_not_claim:
+    - Zoom installed successfully
+    - blocked
+  rationale: Manual vendor or licensing steps should surface as follow-up, not as a blocked repair.
+- id: required-app-manual-account
+  category: app_followup
+  initial_findings:
+  - id: manual_required_1password
+    severity: manual_followup
+    category: apps
+    summary: Required app 1Password is installed, but sign-in and browser integration require user action.
+    required_capability_kinds:
+    - user_account_login
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: manual_followup
+      category: apps
+      summary: 1Password requires user sign-in before it can be considered fully ready.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+    - 1Password needs user sign-in
+    summary_must_not_claim:
+    - 1Password is fully configured
+    - repair failed
+  rationale: Account activation is outside automated repair but should not make the setup fatal.
+- id: stale-package-cache-hint
+  category: app_followup
+  initial_findings:
+  - id: apt_cache_stale
+    severity: warning
+    category: package_db
+    summary: Package metadata appears stale; app availability checks may be out of date.
+    required_capability_kinds:
+    - package_metadata_refresh
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Refresh package metadata
+      commands:
+      - sudo apt-get update
+      required_capability_kinds:
+      - package_metadata_refresh
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: warning
+      category: package_db
+      summary: Package metadata remains stale.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: success_with_warnings
+    summary_must_include:
+    - package metadata may be stale
+    summary_must_not_claim:
+    - package metadata was refreshed
+    - blocked
+  rationale: A stale package hint is advisory in final audit and should not be promoted to failure.
+- id: alternative-browser-installed
+  category: app_followup
+  initial_findings:
+  - id: alternative_browser_found
+    severity: warning
+    category: apps
+    summary: Requested Firefox is missing, but Chromium is installed as an alternative browser.
+    required_capability_kinds: []
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Install requested browser
+      commands:
+      - sudo apt-get install -y firefox
+      required_capability_kinds:
+      - package_install
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: warning
+      category: apps
+      summary: Firefox is missing; Chromium is available as an alternative.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: success_with_warnings
+    summary_must_include:
+    - Chromium is installed as an alternative
+    summary_must_not_claim:
+    - Firefox was installed
+    - no browser is available
+  rationale: Alternative app detection should soften the summary and avoid unnecessary repair.
+- id: alternative-editor-installed
+  category: app_followup
+  initial_findings:
+  - id: alternative_editor_found
+    severity: warning
+    category: apps
+    summary: Requested VS Code is missing, but VSCodium is installed.
+    required_capability_kinds: []
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Install requested editor
+      commands:
+      - sudo snap install code --classic
+      required_capability_kinds:
+      - snap_install
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: warning
+      category: apps
+      summary: VS Code is missing; VSCodium is installed as a close alternative.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: success_with_warnings
+    summary_must_include:
+    - VSCodium is installed
+    summary_must_not_claim:
+    - VS Code was installed
+    - fatal
+  rationale: A close alternative should be reported accurately without overstating compliance.
+- id: flatpak-app-manual-remote
+  category: app_followup
+  initial_findings:
+  - id: flatpak_remote_missing
+    severity: manual_followup
+    category: apps
+    summary: Required Flatpak app is missing because the Flathub remote is not configured.
+    required_capability_kinds:
+    - flatpak_remote_config
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Add Flathub and install app
+      commands:
+      - flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+      - flatpak install -y flathub com.slack.Slack
+      required_capability_kinds:
+      - flatpak_remote_config
+      - flatpak_install
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+    - severity: manual_followup
+      category: apps
+      summary: Slack Flatpak still needs Flathub remote configuration.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+    - Flathub remote configuration is required
+    summary_must_not_claim:
+    - Slack Flatpak was installed
+    - blocked
+  rationale: Missing app plus missing remote is actionable, but final audit should leave it as manual follow-up when capability
+    is unavailable.
+- id: theme-missing
+  category: desktop_followup
+  initial_findings:
+  - id: gtk_theme_missing
+    severity: manual_followup
+    category: desktop
+    summary: Requested GTK theme Adwaita-dark is not active.
+    required_capability_kinds:
+    - desktop_settings_write
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Set GTK theme
+      commands:
+      - gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'
+      required_capability_kinds:
+      - desktop_settings_write
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: manual_followup
+      category: desktop
+      summary: GTK theme remains unchanged.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+    - GTK theme needs manual follow-up
+    summary_must_not_claim:
+    - theme was applied
+    - setup is blocked
+  rationale: Desktop personalization gaps are non-fatal and should stay in the follow-up bucket.
+- id: icon-theme-missing
+  category: desktop_followup
+  initial_findings:
+  - id: icon_theme_missing
+    severity: warning
+    category: desktop
+    summary: Requested Papirus icon theme is not installed.
+    required_capability_kinds:
+    - package_install
+    - desktop_settings_write
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Install and apply icon theme
+      commands:
+      - sudo apt-get install -y papirus-icon-theme
+      - gsettings set org.gnome.desktop.interface icon-theme 'Papirus'
+      required_capability_kinds:
+      - package_install
+      - desktop_settings_write
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: warning
+      category: desktop
+      summary: Papirus icon theme is still not installed or active.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: success_with_warnings
+    summary_must_include:
+    - Papirus icon theme is missing
+    summary_must_not_claim:
+    - Papirus was applied
+    - fatal
+  rationale: Missing icon themes should remain warnings unless the profile treats them as required manual work.
+- id: cursor-theme-unavailable
+  category: desktop_followup
+  initial_findings:
+  - id: cursor_theme_unavailable
+    severity: warning
+    category: desktop
+    summary: Requested cursor theme Bibata-Modern-Ice is unavailable on this system.
+    required_capability_kinds:
+    - desktop_settings_write
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Set cursor theme after installation
+      commands:
+      - gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Ice'
+      required_capability_kinds:
+      - desktop_settings_write
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: warning
+      category: desktop
+      summary: Cursor theme Bibata-Modern-Ice remains unavailable.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: success_with_warnings
+    summary_must_include:
+    - cursor theme is unavailable
+    summary_must_not_claim:
+    - cursor theme was applied
+    - blocked
+  rationale: Unavailable cursor themes are cosmetic and should not escalate the final status beyond warnings.
+- id: wallpaper-file-missing
+  category: desktop_followup
+  initial_findings:
+  - id: wallpaper_missing
+    severity: manual_followup
+    category: desktop
+    summary: Configured wallpaper file is missing from the expected path.
+    required_capability_kinds:
+    - asset_restore
+    - desktop_settings_write
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Restore and apply wallpaper
+      commands:
+      - install -m 0644 ./assets/wallpaper.jpg "$HOME/Pictures/QuickHatch/wallpaper.jpg"
+      - gsettings set org.gnome.desktop.background picture-uri "file://$HOME/Pictures/QuickHatch/wallpaper.jpg"
+      required_capability_kinds:
+      - asset_restore
+      - desktop_settings_write
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: manual_followup
+      category: desktop
+      summary: Wallpaper asset still needs to be restored and applied.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+    - wallpaper asset is missing
+    summary_must_not_claim:
+    - wallpaper was applied
+    - fatal
+  rationale: Missing visual assets should be clear manual follow-up, not a core setup failure.
+- id: no-active-gui-session
+  category: desktop_followup
+  initial_findings:
+  - id: no_gui_session
+    severity: manual_followup
+    category: desktop
+    summary: No active graphical session was detected, so desktop preferences could not be verified.
+    required_capability_kinds:
+    - active_gui_session
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: manual_followup
+      category: desktop
+      summary: Desktop preferences require verification in an active GUI session.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+    - No active GUI session was detected
+    summary_must_not_claim:
+    - desktop settings were verified
+    - blocked
+  rationale: A headless or logged-out audit cannot verify desktop state, but that is not a blocked installation.
+- id: display-not-verifiable-wayland
+  category: desktop_followup
+  initial_findings:
+  - id: display_not_verifiable
+    severity: warning
+    category: desktop
+    summary: Display scaling and monitor layout could not be verified under the current Wayland session.
+    required_capability_kinds:
+    - display_query
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: warning
+      category: desktop
+      summary: Display scaling and monitor layout remain unverified.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: success_with_warnings
+    summary_must_include:
+    - display settings could not be verified
+    summary_must_not_claim:
+    - display settings are correct
+    - repair failed
+  rationale: Display verification gaps should produce a warning summary without implying repair failure.
+- id: desktop-extension-manual-enable
+  category: desktop_followup
+  initial_findings:
+  - id: gnome_extension_disabled
+    severity: manual_followup
+    category: desktop
+    summary: GNOME extension Dash to Dock is installed but disabled and requires user confirmation to enable.
+    required_capability_kinds:
+    - desktop_extension_enable
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Enable GNOME extension
+      commands:
+      - gnome-extensions enable dash-to-dock@micxgx.gmail.com
+      required_capability_kinds:
+      - desktop_extension_enable
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: manual_followup
+      category: desktop
+      summary: Dash to Dock remains disabled pending user confirmation.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+    - Dash to Dock remains disabled
+    summary_must_not_claim:
+    - extension was enabled
+    - fatal
+  rationale: User-visible shell behavior should be left as explicit follow-up when confirmation is required.
+- id: desktop-font-warning
+  category: desktop_followup
+  initial_findings:
+  - id: preferred_font_missing
+    severity: warning
+    category: desktop
+    summary: Preferred interface font Inter is not installed; system default font is in use.
+    required_capability_kinds:
+    - package_install
+    - desktop_settings_write
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Install and set preferred font
+      commands:
+      - sudo apt-get install -y fonts-inter
+      - gsettings set org.gnome.desktop.interface font-name 'Inter 11'
+      required_capability_kinds:
+      - package_install
+      - desktop_settings_write
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: warning
+      category: desktop
+      summary: Preferred interface font Inter remains missing.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: success_with_warnings
+    summary_must_include:
+    - system default font is in use
+    summary_must_not_claim:
+    - Inter was installed
+    - manual follow-up is blocking setup
+  rationale: Font preference drift is a non-fatal desktop warning and should be summarized without repair claims.
+- id: provider-error-fstab
+  category: failed_repair
+  initial_findings:
+  - id: fstab-root-uuid-missing
+    severity: fatal
+    category: fstab
+    summary: Root filesystem UUID in /etc/fstab does not match any discovered block device.
+    required_capability_kinds:
+    - root_shell
+    - disk_inspection
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Refresh root UUID in fstab
+      commands:
+      - blkid -s UUID -o value /dev/nvme0n1p2
+      - cp /etc/fstab /etc/fstab.quickhatch.bak
+      - sed -i 's/UUID=old-root/UUID=new-root/' /etc/fstab
+      required_capability_kinds:
+      - root_shell
+      - disk_write
+  repair_result:
+    outcome: provider_error
+    remaining_findings:
+    - severity: fatal
+      category: fstab
+      summary: Root filesystem UUID remains unresolved because the repair provider failed before commands were produced.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: blocked
+    summary_must_include:
+    - provider error
+    - root filesystem UUID still unresolved
+    summary_must_not_claim:
+    - fstab repaired
+    - system is bootable
+  rationale: A provider failure during a fatal fstab repair must leave the audit blocked, not infer success.
+- id: json-exhaust-boot
+  category: failed_repair
+  initial_findings:
+  - id: bootloader-no-efi-entry
+    severity: fatal
+    category: bootability
+    summary: No EFI boot entry points to the installed system bootloader.
+    required_capability_kinds:
+    - root_shell
+    - efi_access
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Recreate EFI boot entry
+      commands:
+      - efibootmgr --create --disk /dev/nvme0n1 --part 1 --label QuickHatch --loader '\\EFI\\systemd\\systemd-bootx64.efi'
+      required_capability_kinds:
+      - root_shell
+      - efi_write
+  repair_result:
+    outcome: provider_error
+    remaining_findings:
+    - severity: fatal
+      category: bootability
+      summary: Repair loop exhausted invalid JSON responses while trying to generate EFI repair commands.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 3
+    final_status: blocked
+    summary_must_include:
+    - invalid repair response
+    - EFI boot entry still missing
+    summary_must_not_claim:
+    - boot entry recreated
+    - repair completed
+  rationale: Repeated malformed repair output must be bounded and reported as failure with the original fatal finding intact.
+- id: pacman-lock-fail
+  category: failed_repair
+  initial_findings:
+  - id: package-db-incomplete
+    severity: repairable
+    category: package_db
+    summary: Package database transaction appears interrupted and requires recovery.
+    required_capability_kinds:
+    - root_shell
+    - package_manager
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Recover package database
+      commands:
+      - rm -f /var/lib/pacman/db.lck
+      - pacman -Syu --noconfirm
+      required_capability_kinds:
+      - root_shell
+      - package_manager
+      - network
+  repair_result:
+    outcome: failure
+    remaining_findings:
+    - severity: repairable
+      category: package_db
+      summary: Package manager repair failed because the package database remained locked by an active process.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: manual_followup_required
+    summary_must_include:
+    - package database still locked
+    - manual follow-up required
+    summary_must_not_claim:
+    - package database recovered
+    - updates completed
+  rationale: A command failure on a non-fatal package issue should stop short of success and preserve the actionable finding.
+- id: preflight-readonly-root
+  category: failed_repair
+  initial_findings:
+  - id: ssh-key-missing
+    severity: repairable
+    category: ssh_reconnect
+    summary: SSH authorized_keys is missing for the configured reconnect user.
+    required_capability_kinds:
+    - root_shell
+    - ssh_config_write
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Install reconnect key
+      commands:
+      - install -d -m 700 /home/alex/.ssh
+      - printf '%s\n' 'ssh-ed25519 AAAA...' >> /home/alex/.ssh/authorized_keys
+      - chown -R alex:alex /home/alex/.ssh
+      required_capability_kinds:
+      - root_shell
+      - filesystem_write
+  repair_result:
+    outcome: preflight_block
+    remaining_findings:
+    - severity: repairable
+      category: ssh_reconnect
+      summary: SSH key repair was not attempted because the target root filesystem is mounted read-only.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+    - preflight blocked
+    - read-only filesystem
+    summary_must_not_claim:
+    - authorized_keys updated
+    - SSH reconnect fixed
+  rationale: Preflight must prevent writes on read-only targets and report the repair as not performed.
+- id: cap-required-chroot
+  category: failed_repair
+  initial_findings:
+  - id: initramfs-missing-root-module
+    severity: fatal
+    category: bootability
+    summary: Initramfs lacks the storage driver required to mount the root device.
+    required_capability_kinds:
+    - root_shell
+    - chroot
+    - initramfs_rebuild
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Rebuild initramfs in target system
+      commands:
+      - arch-chroot /mnt mkinitcpio -P
+      required_capability_kinds:
+      - root_shell
+      - chroot
+      - initramfs_rebuild
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+    - severity: fatal
+      category: bootability
+      summary: Initramfs rebuild requires chroot capability that is unavailable in this repair context.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - chroot capability required
+    - initramfs still missing required driver
+    summary_must_not_claim:
+    - initramfs rebuilt
+    - bootability repaired
+  rationale: Capability gating must keep fatal boot repairs from pretending to run when the environment cannot support them.
+- id: bounded-ssh-retry
+  category: failed_repair
+  initial_findings:
+  - id: sshd-disabled
+    severity: repairable
+    category: ssh_reconnect
+    summary: sshd service is disabled, preventing remote reconnect after reboot.
+    required_capability_kinds:
+    - root_shell
+    - service_manager
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Enable sshd
+      commands:
+      - systemctl enable sshd.service
+      - systemctl start sshd.service
+      required_capability_kinds:
+      - root_shell
+      - service_manager
+  repair_result:
+    outcome: failure
+    remaining_findings:
+    - severity: repairable
+      category: ssh_reconnect
+      summary: sshd enable/start failed on repeated attempts because the service unit is missing.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 2
+    final_status: manual_followup_required
+    summary_must_include:
+    - retry limit reached
+    - sshd service unit missing
+    summary_must_not_claim:
+    - SSH service enabled
+    - further retries scheduled
+  rationale: The repair loop should cap repeated failures and clearly report the remaining reconnect risk.
+- id: dangerous-fstab-reject
+  category: failed_repair
+  initial_findings:
+  - id: swap-fstab-invalid
+    severity: repairable
+    category: fstab
+    summary: Swap entry in /etc/fstab references a removed partition.
+    required_capability_kinds:
+    - root_shell
+    - disk_inspection
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Remove invalid swap entry
+      commands:
+      - sed -i '/swap/d' /etc/fstab
+      - mount -a
+      required_capability_kinds:
+      - root_shell
+      - disk_write
+  repair_result:
+    outcome: preflight_block
+    remaining_findings:
+    - severity: repairable
+      category: fstab
+      summary: Final repair was rejected because the generated command would remove all swap lines without matching the specific
+        invalid UUID.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+    - dangerous repair rejected
+    - swap entry still invalid
+    summary_must_not_claim:
+    - swap entry removed
+    - fstab is clean
+  rationale: A broad destructive edit must be blocked even when the underlying issue is repairable.
+- id: success-but-facts-fatal
+  category: failed_repair
+  initial_findings:
+  - id: root-mount-fails
+    severity: fatal
+    category: bootability
+    summary: Root filesystem does not mount during boot validation.
+    required_capability_kinds:
+    - root_shell
+    - mount_validation
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Repair root mount metadata
+      commands:
+      - fsck -y /dev/nvme0n1p2
+      - mount /dev/nvme0n1p2 /mnt
+      required_capability_kinds:
+      - root_shell
+      - disk_write
+  repair_result:
+    outcome: success
+    remaining_findings:
+    - severity: fatal
+      category: bootability
+      summary: Post-repair facts still show the root filesystem cannot be mounted.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: blocked
+    summary_must_include:
+    - repair command reported success
+    - root filesystem still cannot be mounted
+    summary_must_not_claim:
+    - bootability restored
+    - all fatal findings resolved
+  rationale: Successful command exit is not enough; final status must follow refreshed audit facts.
+- id: app-install-provider
+  category: failed_repair
+  initial_findings:
+  - id: browser-missing
+    severity: manual_followup
+    category: apps
+    summary: Required browser application is not installed.
+    required_capability_kinds:
+    - package_manager
+    - network
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Install browser
+      commands:
+      - apt-get update
+      - apt-get install -y firefox
+      required_capability_kinds:
+      - root_shell
+      - package_manager
+      - network
+  repair_result:
+    outcome: provider_error
+    remaining_findings:
+    - severity: manual_followup
+      category: apps
+      summary: Application install repair could not be generated because the provider timed out.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: manual_followup_required
+    summary_must_include:
+    - provider timed out
+    - browser application still missing
+    summary_must_not_claim:
+    - browser installed
+    - application setup complete
+  rationale: Non-fatal app setup failures should remain manual follow-up rather than block the whole audit as fatal.
+- id: desktop-driver-fail
+  category: failed_repair
+  initial_findings:
+  - id: gpu-driver-conflict
+    severity: repairable
+    category: driver
+    summary: Conflicting GPU driver packages are installed and the desktop session fails to start.
+    required_capability_kinds:
+    - root_shell
+    - package_manager
+    - driver_management
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Resolve GPU driver conflict
+      commands:
+      - apt-get remove -y nvidia-driver-legacy
+      - apt-get install -y nvidia-driver
+      - systemctl restart display-manager.service
+      required_capability_kinds:
+      - root_shell
+      - package_manager
+      - service_manager
+  repair_result:
+    outcome: failure
+    remaining_findings:
+    - severity: repairable
+      category: driver
+      summary: GPU driver repair failed because package dependencies could not be resolved.
+    - severity: manual_followup
+      category: desktop
+      summary: Desktop session still fails to start after the failed driver repair.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: manual_followup_required
+    summary_must_include:
+    - driver dependencies unresolved
+    - desktop session still fails
+    summary_must_not_claim:
+    - GPU driver conflict resolved
+    - desktop repaired
+  rationale: A failed driver repair can produce both remaining repairable and manual desktop follow-up findings.
+- id: unsupported-repair-safe
+  category: failed_repair
+  initial_findings:
+  - id: unsupported-filesystem
+    severity: unsupported_safe
+    category: setup
+    summary: Target installation uses an unsupported encrypted filesystem layout.
+    required_capability_kinds:
+    - disk_inspection
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: unsupported_safe
+      category: setup
+      summary: Unsupported encrypted filesystem layout remains outside automated repair scope.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: unsupported_safe
+    summary_must_include:
+    - unsupported encrypted filesystem layout
+    - automated repair not attempted
+    summary_must_not_claim:
+    - repair failed after running commands
+    - layout changed
+  rationale: Unsupported-safe cases belong in the failed-repair lane when they verify that no unsafe repair is attempted.
+- id: setup-script-nonzero
+  category: failed_repair
+  initial_findings:
+  - id: postinstall-incomplete
+    severity: repairable
+    category: setup
+    summary: Post-install setup marker is missing after a partially completed setup run.
+    required_capability_kinds:
+    - root_shell
+    - setup_runner
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Resume setup
+      commands:
+      - /usr/local/bin/quickhatch-setup --resume
+      required_capability_kinds:
+      - root_shell
+      - setup_runner
+  repair_result:
+    outcome: failure
+    remaining_findings:
+    - severity: repairable
+      category: setup
+      summary: Setup resume command exited non-zero and the completion marker is still missing.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: manual_followup_required
+    summary_must_include:
+    - setup resume failed
+    - completion marker still missing
+    summary_must_not_claim:
+    - post-install setup complete
+    - marker created
+  rationale: The final summary must reflect command failure and unchanged setup facts.
+- id: network-cap-missing
+  category: failed_repair
+  initial_findings:
+  - id: package-mirror-stale
+    severity: warning
+    category: package_db
+    summary: Package mirror metadata is stale and should be refreshed before first boot updates.
+    required_capability_kinds:
+    - network
+    - package_manager
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Refresh package metadata
+      commands:
+      - apt-get update
+      required_capability_kinds:
+      - root_shell
+      - package_manager
+      - network
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+    - severity: warning
+      category: package_db
+      summary: Package metadata refresh requires network access that is unavailable.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 0
+    final_status: success_with_warnings
+    summary_must_include:
+    - network capability unavailable
+    - package metadata remains stale
+    summary_must_not_claim:
+    - metadata refreshed
+    - updates verified
+  rationale: A non-fatal warning can leave the final audit successful with warnings even though repair could not run.
+- id: facts-regress-after-fix
+  category: failed_repair
+  initial_findings:
+  - id: display-manager-disabled
+    severity: repairable
+    category: desktop
+    summary: Display manager is disabled, so graphical login will not start automatically.
+    required_capability_kinds:
+    - root_shell
+    - service_manager
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Enable display manager
+      commands:
+      - systemctl enable gdm.service
+      - systemctl set-default graphical.target
+      required_capability_kinds:
+      - root_shell
+      - service_manager
+  repair_result:
+    outcome: success
+    remaining_findings:
+    - severity: manual_followup
+      category: desktop
+      summary: Display manager was enabled, but refreshed facts show gdm.service fails due to missing greeter package.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 1
+    final_status: manual_followup_required
+    summary_must_include:
+    - display manager enabled
+    - gdm.service still fails
+    summary_must_not_claim:
+    - graphical login fully repaired
+    - desktop ready
+  rationale: A repair can succeed while revealing a new unresolved follow-up that determines final status.
+- id: repeated-json-then-noop
+  category: failed_repair
+  initial_findings:
+  - id: home-fstab-missing
+    severity: repairable
+    category: fstab
+    summary: Separate /home partition exists but is missing from /etc/fstab.
+    required_capability_kinds:
+    - root_shell
+    - disk_inspection
+    - disk_write
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Add /home mount
+      commands:
+      - blkid -s UUID -o value /dev/nvme0n1p3
+      - printf 'UUID=home-uuid /home ext4 defaults 0 2\n' >> /etc/fstab
+      - mount -a
+      required_capability_kinds:
+      - root_shell
+      - disk_write
+  repair_result:
+    outcome: provider_error
+    remaining_findings:
+    - severity: repairable
+      category: fstab
+      summary: Repair generation produced invalid JSON until the retry limit was reached; /home remains absent from fstab.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 3
+    final_status: manual_followup_required
+    summary_must_include:
+    - retry limit reached
+    - /home remains absent from fstab
+    summary_must_not_claim:
+    - /home mount added
+    - mount validation passed
+  rationale: Invalid JSON exhaustion should be distinguishable from command execution failure and should not mutate audit
+    state.
+- id: clean-final-success
+  category: summary_status
+  initial_findings: []
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: success
+    summary_must_include:
+    - No unresolved findings remain
+    - Final audit completed successfully
+    summary_must_not_claim:
+    - Manual follow-up required
+    - Unsupported configuration detected
+    - Blocked by fatal findings
+  rationale: 'Baseline truth-table case: success is valid only when the final audit has no remaining findings.'
+- id: warning-only-success-with-warnings
+  category: summary_status
+  initial_findings:
+  - id: pkg-alt-used
+    severity: warning
+    category: package_db
+    summary: A compatible package-manager fallback was used instead of the preferred provider.
+    required_capability_kinds: []
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: success
+    remaining_findings:
+    - severity: warning
+      category: package_db
+      summary: Preferred package provider was unavailable; compatible fallback remains noted.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: success_with_warnings
+    summary_must_include:
+    - compatible fallback
+    - warning
+    summary_must_not_claim:
+    - No unresolved findings remain
+    - manual follow-up required
+    - fatal
+  rationale: Warnings that do not require action must prevent plain success but should not escalate to manual follow-up.
+- id: manual-followup-after-repair
+  category: summary_status
+  initial_findings:
+  - id: ssh-reconnect-unverified
+    severity: manual_followup
+    category: ssh_reconnect
+    summary: SSH reconnect could not be verified from the current execution environment.
+    required_capability_kinds:
+    - network_reconnect_probe
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: manual_followup
+      category: ssh_reconnect
+      summary: SSH reconnect remains unverified and requires manual confirmation.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+    - SSH reconnect remains unverified
+    - manual confirmation
+    summary_must_not_claim:
+    - SSH reconnect verified
+    - fully successful
+    - No unresolved findings remain
+  rationale: Manual follow-up must remain visible in the final status even when it is not fatal.
+- id: fatal-bootability-blocks
+  category: summary_status
+  initial_findings:
+  - id: missing-root-loader
+    severity: fatal
+    category: bootability
+    summary: No bootloader entry references the installed root filesystem.
+    required_capability_kinds:
+    - bootloader_edit
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Regenerate bootloader configuration
+      commands:
+      - grub-mkconfig -o /boot/grub/grub.cfg
+      required_capability_kinds:
+      - bootloader_edit
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+    - severity: fatal
+      category: bootability
+      summary: Bootloader repair requires bootloader edit capability and remains unresolved.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - fatal
+    - bootloader
+    - blocked
+    summary_must_not_claim:
+    - bootability verified
+    - repair completed
+    - safe to reboot
+  rationale: Any unresolved fatal finding must produce blocked, regardless of an available representative repair plan.
+- id: fstab-fatal-plus-warning
+  category: summary_status
+  initial_findings:
+  - id: fstab-root-mismatch
+    severity: fatal
+    category: fstab
+    summary: fstab root UUID does not match the detected root filesystem.
+    required_capability_kinds:
+    - filesystem_config_write
+  - id: swap-not-present
+    severity: warning
+    category: fstab
+    summary: Swap entry references a device that is not currently present.
+    required_capability_kinds: []
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Correct root filesystem entry
+      commands:
+      - findmnt -no UUID /
+      - edit /etc/fstab to replace the stale root UUID
+      required_capability_kinds:
+      - filesystem_config_write
+  repair_result:
+    outcome: preflight_block
+    remaining_findings:
+    - severity: fatal
+      category: fstab
+      summary: Root fstab UUID mismatch remains unresolved.
+    - severity: warning
+      category: fstab
+      summary: Swap entry still references an absent device.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - Root fstab UUID mismatch
+    - Swap entry
+    - blocked
+    summary_must_not_claim:
+    - success_with_warnings
+    - only warnings remain
+    - fstab repaired
+  rationale: Fatal findings dominate warnings in the final status and all unresolved items must be summarized.
+- id: repaired-all-findings-success
+  category: summary_status
+  initial_findings:
+  - id: pkg-db-lock-stale
+    severity: repairable
+    category: package_db
+    summary: Package database lock appears stale.
+    required_capability_kinds:
+    - package_db_write
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Clear stale package lock
+      commands:
+      - rm /var/lib/dpkg/lock-frontend
+      - dpkg --configure -a
+      required_capability_kinds:
+      - package_db_write
+  repair_result:
+    outcome: success
+    remaining_findings: []
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 0
+    final_status: success
+    summary_must_include:
+    - Package database lock repaired
+    - No unresolved findings remain
+    summary_must_not_claim:
+    - manual follow-up required
+    - blocked
+    - warnings remain
+  rationale: A repairable finding can end in plain success only when the repair result leaves no remaining findings.
+- id: repair-success-but-unverified
+  category: summary_status
+  initial_findings:
+  - id: desktop-session-restarted
+    severity: repairable
+    category: desktop
+    summary: Desktop session service needed restart.
+    required_capability_kinds:
+    - service_restart
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Restart desktop session service
+      commands:
+      - systemctl --user restart graphical-session.target
+      required_capability_kinds:
+      - service_restart
+  repair_result:
+    outcome: success
+    remaining_findings:
+    - severity: manual_followup
+      category: desktop
+      summary: Desktop session restart was issued, but interactive desktop usability was not verified.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+    - not verified
+    - manual follow-up
+    - desktop
+    summary_must_not_claim:
+    - desktop usability verified
+    - No unresolved findings remain
+    - fully successful
+  rationale: A successful command outcome must not be summarized as verified success when the audit still has an unverified
+    manual item.
+- id: unsupported-secure-boot
+  category: unsupported_safe
+  initial_findings:
+  - id: secure-boot-enabled
+    severity: unsupported_safe
+    category: setup
+    summary: Secure Boot is enabled and the repair path is intentionally unsupported-safe.
+    required_capability_kinds: []
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: unsupported_safe
+      category: setup
+      summary: Secure Boot remains enabled; no unsafe boot-chain changes were attempted.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: unsupported_safe
+    summary_must_include:
+    - Secure Boot
+    - unsupported-safe
+    - no unsafe boot-chain changes were attempted
+    summary_must_not_claim:
+    - Secure Boot disabled
+    - repair attempted
+    - success
+  rationale: Secure Boot handling should be classified as unsupported-safe, not failed or silently successful.
+- id: unsupported-nvidia-secure-boot
+  category: unsupported_safe
+  initial_findings:
+  - id: nvidia-secure-boot-module
+    severity: unsupported_safe
+    category: driver
+    summary: NVIDIA driver repair requires Secure Boot module signing that is outside supported automation.
+    required_capability_kinds: []
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: unsupported_safe
+      category: driver
+      summary: NVIDIA driver remains unsupported-safe because Secure Boot module signing needs manual owner-key handling.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: unsupported_safe
+    summary_must_include:
+    - NVIDIA
+    - Secure Boot module signing
+    - manual owner-key handling
+    summary_must_not_claim:
+    - driver repaired
+    - module signing completed
+    - verified graphics acceleration
+  rationale: NVIDIA plus Secure Boot should remain an explicit unsupported-safe condition rather than pretending automation
+    can complete signing.
+- id: unsupported-mixed-with-warning
+  category: unsupported_safe
+  initial_findings:
+  - id: secure-boot-enabled
+    severity: unsupported_safe
+    category: setup
+    summary: Secure Boot is enabled.
+    required_capability_kinds: []
+  - id: alternate-app-source
+    severity: warning
+    category: apps
+    summary: Application install source uses a supported fallback repository.
+    required_capability_kinds: []
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: unsupported_safe
+      category: setup
+      summary: Secure Boot remains enabled and unsupported-safe.
+    - severity: warning
+      category: apps
+      summary: Fallback application repository remains in use.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: unsupported_safe
+    summary_must_include:
+    - Secure Boot
+    - unsupported-safe
+    - Fallback application repository
+    summary_must_not_claim:
+    - success_with_warnings
+    - all findings resolved
+    - repair attempted
+  rationale: Unsupported-safe status should dominate ordinary warnings while still listing the warning.
+- id: unsupported-plus-fatal-blocked
+  category: summary_status
+  initial_findings:
+  - id: secure-boot-enabled
+    severity: unsupported_safe
+    category: setup
+    summary: Secure Boot is enabled.
+    required_capability_kinds: []
+  - id: root-not-mountable
+    severity: fatal
+    category: bootability
+    summary: Root filesystem is not mountable from the generated boot entry.
+    required_capability_kinds:
+    - bootloader_edit
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Repair boot entry
+      commands:
+      - mount /dev/disk/by-uuid/ROOT_UUID /mnt
+      - bootctl install
+      required_capability_kinds:
+      - bootloader_edit
+  repair_result:
+    outcome: capability_required
+    remaining_findings:
+    - severity: fatal
+      category: bootability
+      summary: Root filesystem remains not mountable from the generated boot entry.
+    - severity: unsupported_safe
+      category: setup
+      summary: Secure Boot remains enabled.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: blocked
+    summary_must_include:
+    - Root filesystem remains not mountable
+    - Secure Boot remains enabled
+    - blocked
+    summary_must_not_claim:
+    - unsupported_safe
+    - boot repaired
+    - safe to reboot
+  rationale: Fatal blocked status should dominate unsupported-safe when both remain unresolved.
+- id: provider-error-no-success-claim
+  category: summary_status
+  initial_findings:
+  - id: apps-audit-provider-timeout
+    severity: manual_followup
+    category: apps
+    summary: Application audit provider timed out before verification completed.
+    required_capability_kinds:
+    - app_inventory_provider
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: provider_error
+    remaining_findings:
+    - severity: manual_followup
+      category: apps
+      summary: Application audit could not be completed because the provider timed out.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+    - provider timed out
+    - Application audit could not be completed
+    summary_must_not_claim:
+    - applications verified
+    - No unresolved findings remain
+    - success
+  rationale: Provider errors that prevent verification must not be converted into success.
+- id: repair-failed-manual-remains
+  category: summary_status
+  initial_findings:
+  - id: desktop-portal-missing
+    severity: repairable
+    category: desktop
+    summary: Desktop portal package is missing.
+    required_capability_kinds:
+    - package_install
+  repair_plan:
+    available: true
+    command_groups:
+    - title: Install desktop portal package
+      commands:
+      - apt-get install xdg-desktop-portal
+      required_capability_kinds:
+      - package_install
+  repair_result:
+    outcome: failure
+    remaining_findings:
+    - severity: manual_followup
+      category: desktop
+      summary: Desktop portal package install failed and needs manual package-manager inspection.
+  expected:
+    should_attempt_repair: true
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+    - install failed
+    - manual package-manager inspection
+    summary_must_not_claim:
+    - desktop portal installed
+    - all repairs succeeded
+    - No unresolved findings remain
+  rationale: A failed repair with no fatal remaining item should surface as manual follow-up, not success.
+- id: only-alternatives-warning
+  category: summary_status
+  initial_findings:
+  - id: ssh-alt-port
+    severity: warning
+    category: ssh_reconnect
+    summary: SSH is reachable only through an alternate configured port.
+    required_capability_kinds: []
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: success
+    remaining_findings:
+    - severity: warning
+      category: ssh_reconnect
+      summary: SSH reconnect path uses an alternate configured port.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: success_with_warnings
+    summary_must_include:
+    - alternate configured port
+    - success with warnings
+    summary_must_not_claim:
+    - default SSH port verified
+    - manual follow-up required
+    - blocked
+  rationale: A supported alternate path should end as success_with_warnings and must not imply default-path verification.
+- id: manual-and-warning-no-success
+  category: summary_status
+  initial_findings:
+  - id: desktop-login-unchecked
+    severity: manual_followup
+    category: desktop
+    summary: Graphical login could not be checked without an interactive console.
+    required_capability_kinds:
+    - interactive_console
+  - id: app-source-fallback
+    severity: warning
+    category: apps
+    summary: One application source uses a fallback mirror.
+    required_capability_kinds: []
+  repair_plan:
+    available: false
+    command_groups: []
+  repair_result:
+    outcome: not_attempted
+    remaining_findings:
+    - severity: manual_followup
+      category: desktop
+      summary: Graphical login still requires manual interactive-console verification.
+    - severity: warning
+      category: apps
+      summary: Fallback mirror remains configured for one application source.
+  expected:
+    should_attempt_repair: false
+    repair_attempts_max: 0
+    final_status: manual_followup_required
+    summary_must_include:
+    - Graphical login
+    - manual interactive-console verification
+    - Fallback mirror
+    summary_must_not_claim:
+    - success_with_warnings
+    - graphical login verified
+    - No unresolved findings remain
+  rationale: Manual follow-up should dominate warnings and every unresolved nonfatal item should stay visible.
