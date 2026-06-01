@@ -238,6 +238,14 @@ def summarize_events(events: list[dict[str, Any]]) -> RunReplaySummary:
             summary.blockers.append(
                 f"Blocking question timed out{f' ({question_id})' if question_id else ''}."
             )
+        elif event_type in {"user_stop", "run_stopped", "setup_stopped"}:
+            event_failed = True
+            counted_category = "user_stop"
+            summary.failure_categories["user_stop"] = (
+                summary.failure_categories.get("user_stop", 0) + 1
+            )
+            reason = str(event.get("reason") or "Setup stopped by user.").strip()
+            summary.blockers.append(reason)
         elif event_type == "repair_budget_gate_answer" and event.get("answer") in {None, ""}:
             summary.repair_budget_gate_count += 1
             event_failed = True
@@ -311,7 +319,13 @@ def summarize_events(events: list[dict[str, Any]]) -> RunReplaySummary:
                 summary.last_failure_event_id = str(event.get("event_id") or "")
                 summary.last_failure_type = event_type
                 summary.last_failure_command = command
-        if event_type in {"run_finished", "setup_run_finished", "final_audit"}:
+        if event_type in {
+            "run_finished",
+            "setup_run_finished",
+            "run_stopped",
+            "setup_stopped",
+            "final_audit",
+        }:
             final_status = _final_status_from_event(event)
             if final_status:
                 summary.final_status = final_status

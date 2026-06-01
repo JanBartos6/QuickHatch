@@ -722,6 +722,15 @@ class SetupOrchestrator:
                 summary = str(exc) if stopped else f"Setup blocked: {exc}"
                 if stopped and not summary:
                     summary = "Agent stopped by user."
+                if stopped:
+                    self._record_user_stop(reason=summary)
+                    self.runlog.record(
+                        "run_stopped",
+                        status="stopped",
+                        final_status="stopped",
+                        stage=self.bridge.snapshot_setup_run().get("stage", ""),
+                        reason=summary,
+                    )
                 self.bridge.update_setup_run(
                     status="stopped" if stopped else "blocked",
                     waiting_for_input=False,
@@ -774,6 +783,39 @@ class SetupOrchestrator:
             runlog_path=str(self.runlog.path),
         )
         self.runlog.record("run_started", host=self.runtime.host, user=self.runtime.user)
+
+    def _record_user_stop(
+        self,
+        *,
+        stage: SetupStage | None = None,
+        group: CommandGroup | None = None,
+        reason: str = "Agent stopped by user.",
+    ) -> None:
+        self.runlog.record(
+            "user_stop",
+            stage=stage.value if stage is not None else "",
+            group_id=group.id if group is not None else "",
+            group_title=group.title if group is not None else "",
+            reason=reason,
+        )
+
+    def _raise_if_stop_requested(
+        self,
+        *,
+        stage: SetupStage | None = None,
+        group: CommandGroup | None = None,
+        reason: str = "Agent stopped by user.",
+    ) -> None:
+        if not self.bridge.stop_requested:
+            return
+        self._record_user_stop(stage=stage, group=group, reason=reason)
+        self.bridge.update_setup_run(
+            status="stopped",
+            waiting_for_input=False,
+            active_question_id="",
+            blockers=[],
+        )
+        raise RuntimeError(reason)
 
     def _record_stage_result(self, result: AuditResult) -> None:
         self.ctx.stage_results.append(result)
@@ -1290,8 +1332,7 @@ class SetupOrchestrator:
             self.bridge.add_message("agent", f"🛑 Safe stage block: {reason}")
             raise RuntimeError(reason)
         for group in self._iter_stage_groups(stage):
-            if self.bridge.stop_requested:
-                raise RuntimeError("Agent stopped by user.")
+            self._raise_if_stop_requested(stage=stage, group=group)
             current_group = group
             repair_attempts = 0
             repair_budget = self._group_repair_budget(stage)
@@ -1354,6 +1395,7 @@ class SetupOrchestrator:
                         current_group.status = PlanItemStatus.COMPLETED
                         self._mark_group_completion(current_group, stage=stage)
                         break
+                self._raise_if_stop_requested(stage=stage, group=current_group)
                 if failure.failure_type == "safe_abort":
                     raise RuntimeError(
                         str(stage_state.get("safe_abort") or failure.detail or "Safe abort.")
@@ -1611,9 +1653,17 @@ class SetupOrchestrator:
                         "checks; skipping destructive disk/base install commands.",
                     )
                     self._ensure_reconnect_ssh_key()
+                    self._raise_if_stop_requested(
+                        stage=SetupStage.INSTALL_OR_SKIP,
+                        reason="Agent stopped by user before controlled reboot.",
+                    )
                     self._save_reboot_checkpoint(
                         stage=SetupStage.INSTALL_OR_SKIP,
                         reason="controlled install reboot after resume precheck",
+                    )
+                    self._raise_if_stop_requested(
+                        stage=SetupStage.INSTALL_OR_SKIP,
+                        reason="Agent stopped by user before controlled reboot.",
                     )
                     self._issue_install_reboot()
                     reconnect_user = self.ctx.created_user or self.runtime.user
@@ -1678,9 +1728,17 @@ class SetupOrchestrator:
             )
             if not ok:
                 raise RuntimeError(summary or "; ".join(failures))
+            self._raise_if_stop_requested(
+                stage=SetupStage.INSTALL_OR_SKIP,
+                reason="Agent stopped by user before controlled reboot.",
+            )
             self._save_reboot_checkpoint(
                 stage=SetupStage.INSTALL_OR_SKIP,
                 reason="controlled install reboot after pre-reboot checks",
+            )
+            self._raise_if_stop_requested(
+                stage=SetupStage.INSTALL_OR_SKIP,
+                reason="Agent stopped by user before controlled reboot.",
             )
             self._issue_install_reboot()
         reconnect_user = self.ctx.created_user or self.runtime.user
@@ -1855,6 +1913,7 @@ class SetupOrchestrator:
                 failures=failures,
                 summary=summary,
             )
+            self._raise_if_stop_requested(stage=SetupStage.INSTALL_OR_SKIP)
             if ok:
                 return last_result
             if self._try_repair_live_fedora_kernel_artifacts(failures, summary):
@@ -1863,8 +1922,7 @@ class SetupOrchestrator:
                 return last_result
             if attempt >= max_attempts:
                 return last_result
-            if self.bridge.stop_requested:
-                raise RuntimeError("Agent stopped by user.")
+            self._raise_if_stop_requested(stage=SetupStage.INSTALL_OR_SKIP)
             delay = min(3 * attempt, 20)
             self.bridge.add_message(
                 "agent",
