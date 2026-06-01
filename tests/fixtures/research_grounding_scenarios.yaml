@@ -1,0 +1,494 @@
+metadata:
+  version: 1
+  lane: research_grounding_behavior
+  source: Merged from locally simulated research-grounding candidate agents.
+  candidate_files:
+  - .quickhatch/corpus-candidates/research-grounding-agent-1-stale-apps.yaml
+  - .quickhatch/corpus-candidates/research-grounding-agent-2-vendor-desktop.yaml
+  - .quickhatch/corpus-candidates/research-grounding-agent-3-source-ambiguity.yaml
+  - .quickhatch/corpus-candidates/research-grounding-agent-4-provider-search.yaml
+  - .quickhatch/corpus-candidates/research-grounding-agent-5-failure-followup.yaml
+  policy: Search current target/package sources when app names may have changed; catalog and memory are hints; failed search/provider paths must end in honest follow-up or blocked status, never fake success.
+scenarios:
+- id: research-prompt-native-search-enabled
+  category: provider_native
+  mode: prompt_research
+  setup:
+    native_search_active: true
+    family: arch
+    package_manager: pacman
+    apps:
+    - GitHub Desktop
+  expected:
+    contains:
+    - Provider-native search is ENABLED
+    - Use it heavily for current package names
+    - provider_native_search
+  source_agents:
+  - research-grounding-agent-4-provider-search
+  rationale: Prompt should explicitly use provider-native grounding when available.
+  risk: low
+- id: research-prompt-native-search-disabled
+  category: provider_native
+  mode: prompt_research
+  setup:
+    native_search_active: false
+    family: arch
+    package_manager: pacman
+    apps:
+    - GitHub Desktop
+  expected:
+    contains:
+    - Provider-native search is NOT available
+    - Use the harness planning actions
+    - repo_search
+    - community_search
+    - web_search
+  source_agents:
+  - research-grounding-agent-4-provider-search
+  rationale: Prompt should steer models to harness lookups when native search is unavailable.
+  risk: low
+- id: research-prompt-catalog-is-advisory
+  category: catalog_hint
+  mode: prompt_research
+  setup:
+    native_search_active: false
+    family: ubuntu
+    package_manager: apt
+    apps:
+    - Hinted App
+    catalog_hint:
+      name: Hinted App
+      arch_package: arch-pkg
+      ubuntu_package: ubuntu-pkg
+  expected:
+    contains:
+    - selected_app_catalog
+    - Treat catalog package hints as useful but fallible
+    - Target package-manager output
+    - active_install_hint as advisory
+    not_contains:
+    - arch-pkg
+  source_agents:
+  - research-grounding-agent-5-failure-followup
+  rationale: Prompt must select target-distro hints and still state that catalog data is advisory.
+  risk: medium
+- id: research-prompt-current-package-names-for-changing-apps
+  category: stale_package
+  mode: prompt_research
+  setup:
+    native_search_active: true
+    family: fedora
+    package_manager: dnf
+    apps:
+    - LM Studio
+    - Cursor
+    - GitHub Desktop
+  expected:
+    contains:
+    - Missing app package strategy
+    - provider-native/web search
+    - commonly change
+    - do not hallucinate a package
+    - manual_followup
+  source_agents:
+  - research-grounding-agent-1-stale-apps
+  - research-grounding-agent-2-vendor-desktop
+  - research-grounding-agent-4-provider-search
+  rationale: Fast-moving vendor/desktop apps need fresh package/source evidence.
+  risk: medium
+- id: repair-prompt-search-first-for-stale-app
+  category: stale_package
+  mode: prompt_repair
+  setup:
+    native_search_active: true
+    family: arch
+    package_manager: pacman
+    failed_group:
+      stage: apps
+      title: Install GitHub Desktop
+      commands:
+      - sudo pacman -S --noconfirm github-desktop-bin
+      packages:
+      - github-desktop-bin
+    failure:
+      command: sudo pacman -S --noconfirm github-desktop-bin
+      stderr: 'target not found: github-desktop-bin'
+  expected:
+    contains:
+    - Provider-native search is ENABLED in repair mode
+    - Search-first repair policy
+    - Catalog hints are hints, not guarantees
+    - Manual follow-up is the last resort
+  source_agents:
+  - research-grounding-agent-1-stale-apps
+  - research-grounding-agent-2-vendor-desktop
+  - research-grounding-agent-4-provider-search
+  rationale: Repair prompt must not guess stale replacement packages before search.
+  risk: low
+- id: repair-prompt-no-vpn-firewall-activation
+  category: vendor_app
+  mode: prompt_repair
+  setup:
+    native_search_active: false
+    family: ubuntu
+    package_manager: apt
+    failed_group:
+      stage: apps
+      title: Install Mullvad VPN
+      commands:
+      - sudo apt install -y mullvad-vpn
+      packages:
+      - mullvad-vpn
+    failure:
+      command: sudo apt install -y mullvad-vpn
+      stderr: package not found
+  expected:
+    contains:
+    - Do not enable/start VPN or firewall services as part of app repair
+    - activation requires explicit consent
+  source_agents:
+  - research-grounding-agent-2-vendor-desktop
+  rationale: Vendor app package repair must not activate network security services.
+  risk: medium
+- id: planner-repo-search-before-stale-github-desktop-plan
+  category: stale_package
+  mode: planning_loop
+  setup:
+    family: arch
+    package_manager: pacman
+    apps:
+    - GitHub Desktop
+    model_steps:
+    - action: repo_search
+      query: arch github desktop package
+      reason: Verify current official package.
+    - plan_app: GitHub Desktop
+      package: github-desktop-bin
+      source: community
+      status: pending
+      evidence_source: repo_search
+    search_results:
+      repo_search:
+        arch github desktop package: '[repo_search]
+
+          No official repo package; check AUR/community.'
+  expected:
+    search_calls:
+    - action: repo_search
+      query: arch github desktop package
+    message_contains:
+    - No official repo package
+    - lookup history
+    app_status:
+      GitHub Desktop: pending
+    app_source:
+      GitHub Desktop: community
+  source_agents:
+  - research-grounding-agent-1-stale-apps
+  - research-grounding-agent-2-vendor-desktop
+  rationale: Planner should ask for target package-manager evidence before committing stale GitHub Desktop memory.
+  risk: medium
+- id: planner-community-search-for-cursor-aur
+  category: source_ambiguity
+  mode: planning_loop
+  setup:
+    family: arch
+    package_manager: pacman
+    community_helper: yay
+    apps:
+    - Cursor
+    model_steps:
+    - action: community_search
+      query: cursor editor AUR
+      reason: Verify AUR package.
+    - plan_app: Cursor
+      package: cursor-bin
+      source: community
+      status: pending
+      evidence_source: community_search
+    search_results:
+      community_search:
+        cursor editor AUR: '[community_search]
+
+          cursor-bin exists in AUR; verify before install.'
+  expected:
+    search_calls:
+    - action: community_search
+      query: cursor editor AUR
+    message_contains:
+    - cursor-bin exists in AUR
+    app_status:
+      Cursor: pending
+    app_source:
+      Cursor: community
+  source_agents:
+  - research-grounding-agent-2-vendor-desktop
+  - research-grounding-agent-3-source-ambiguity
+  rationale: AUR ambiguity should be grounded with community search, even if a helper exists.
+  risk: medium
+- id: planner-web-search-lm-studio-bounded
+  category: vendor_app
+  mode: planning_loop
+  setup:
+    family: fedora
+    package_manager: dnf
+    apps:
+    - LM Studio
+    model_steps:
+    - action: web_search
+      query: LM Studio Linux install package Fedora
+      max_results: 100
+      reason: Find current vendor package.
+    - plan_app: LM Studio
+      package: ''
+      source: manual_followup
+      status: manual_followup
+      reason: Vendor packaging needs manual confirmation after search result.
+      evidence_source: web_search
+    search_results:
+      web_search:
+        LM Studio Linux install package Fedora: '[web_search]
+
+          Vendor download page changed; no stable repo package.'
+  expected:
+    search_calls:
+    - action: web_search
+      query: LM Studio Linux install package Fedora
+      max_results: 10
+    message_contains:
+    - Vendor download page changed
+    app_status:
+      LM Studio: manual_followup
+    app_reason_contains:
+      LM Studio: manual confirmation
+  source_agents:
+  - research-grounding-agent-1-stale-apps
+  - research-grounding-agent-2-vendor-desktop
+  - research-grounding-agent-4-provider-search
+  rationale: Web lookup volume should be bounded, and unresolved vendor app should become manual follow-up.
+  risk: medium
+- id: planner-search-error-fed-back-for-manual-followup
+  category: search_unavailable
+  mode: planning_loop
+  setup:
+    family: arch
+    package_manager: pacman
+    apps:
+    - GitHub Desktop
+    model_steps:
+    - action: repo_search
+      query: github desktop arch current package
+      reason: Verify stale catalog hint.
+    - plan_app: GitHub Desktop
+      package: ''
+      source: manual_followup
+      status: manual_followup
+      reason: Repo search was unavailable; package name could not be verified.
+      evidence_source: repo_search
+    search_errors:
+      repo_search:
+        github desktop arch current package: repo search unavailable
+  expected:
+    search_calls:
+    - action: repo_search
+      query: github desktop arch current package
+    message_contains:
+    - repo_search failed
+    - repo search unavailable
+    app_status:
+      GitHub Desktop: manual_followup
+    app_reason_contains:
+      GitHub Desktop: could not be verified
+  source_agents:
+  - research-grounding-agent-5-failure-followup
+  rationale: Search failure should become model-visible evidence for explicit follow-up instead of fake success.
+  risk: medium
+- id: planner-lookup-budget-preserves-history
+  category: search_budget
+  mode: planning_loop
+  setup:
+    family: fedora
+    package_manager: dnf
+    apps:
+    - VirtualBox Guest Utils
+    model_steps:
+    - action: repo_search
+      query: guest utils attempt 1
+      reason: lookup 1
+    - action: repo_search
+      query: guest utils attempt 2
+      reason: lookup 2
+    - action: repo_search
+      query: guest utils attempt 3
+      reason: lookup 3
+    - action: repo_search
+      query: guest utils attempt 4
+      reason: too many
+    - plan_app: VirtualBox Guest Utils
+      package: virtualbox-guest-utils
+      source: repo
+      status: pending
+      evidence_source: repo_search
+    search_results:
+      repo_search:
+        guest utils attempt 1: result one
+        guest utils attempt 2: result two
+        guest utils attempt 3: result three
+  expected:
+    search_calls:
+    - action: repo_search
+      query: guest utils attempt 1
+    - action: repo_search
+      query: guest utils attempt 2
+    - action: repo_search
+      query: guest utils attempt 3
+    message_contains:
+    - Lookup budget is exhausted
+    - guest utils attempt 1
+    - guest utils attempt 3
+    app_status:
+      VirtualBox Guest Utils: pending
+  source_agents:
+  - research-grounding-agent-4-provider-search
+  rationale: Lookup loops need a finite budget and must preserve gathered history.
+  risk: medium
+- id: repair-rejects-stale-retry-before-search
+  category: stale_package
+  mode: repair_loop
+  setup:
+    family: arch
+    package_manager: pacman
+    failed_group:
+      stage: apps
+      title: Install GitHub Desktop
+      commands:
+      - sudo pacman -S --noconfirm github-desktop-bin
+      packages:
+      - github-desktop-bin
+    failure:
+      command: sudo pacman -S --noconfirm github-desktop-bin
+      stderr: 'target not found: github-desktop-bin'
+    model_steps:
+    - action: retry_group
+      group:
+        id: retry-stale
+        stage: apps
+        title: Retry stale package
+        commands:
+        - sudo pacman -S --noconfirm github-desktop-bin
+        rationale: Try memory again.
+    - action: repo_search
+      query: github desktop arch current package
+      reason: Need evidence.
+    - action: manual_followup
+      reason: GitHub Desktop package remains unresolved after repo search.
+      app_names:
+      - GitHub Desktop
+    search_results:
+      repo_search:
+        github desktop arch current package: '[repo_search]
+
+          No official package found.'
+  expected:
+    repair_action: manual_followup
+    search_calls:
+    - action: repo_search
+      query: github desktop arch current package
+    message_contains:
+    - Do not retry this package
+    - No official package found.
+    manual_app_names:
+    - GitHub Desktop
+  source_agents:
+  - research-grounding-agent-1-stale-apps
+  - research-grounding-agent-2-vendor-desktop
+  rationale: Repair should reject evidence-free stale retry, ask for search, then allow explicit follow-up.
+  risk: medium
+- id: repair-search-error-fed-back-for-followup
+  category: search_unavailable
+  mode: repair_loop
+  setup:
+    family: ubuntu
+    package_manager: apt
+    failed_group:
+      stage: apps
+      title: Install Cursor
+      commands:
+      - sudo apt install -y cursor
+      packages:
+      - cursor
+    failure:
+      command: sudo apt install -y cursor
+      stderr: Unable to locate package cursor
+    model_steps:
+    - action: web_search
+      query: Cursor editor Linux install apt current
+      max_results: 5
+      reason: Verify vendor package.
+    - action: manual_followup
+      reason: Web search was unavailable; Cursor package source could not be verified.
+      app_names:
+      - Cursor
+    search_errors:
+      web_search:
+        Cursor editor Linux install apt current: web search unavailable
+  expected:
+    repair_action: manual_followup
+    search_calls:
+    - action: web_search
+      query: Cursor editor Linux install apt current
+      max_results: 5
+    message_contains:
+    - web_search failed
+    - web search unavailable
+    manual_app_names:
+    - Cursor
+  source_agents:
+  - research-grounding-agent-2-vendor-desktop
+  - research-grounding-agent-5-failure-followup
+  rationale: Repair search failure should become follow-up context, not an unhandled exception.
+  risk: medium
+- id: repair-provider-429-manual-followup
+  category: provider_error
+  mode: repair_provider_error
+  setup:
+    family: arch
+    package_manager: pacman
+    failed_group:
+      stage: apps
+      title: Install Claude Desktop
+      commands:
+      - yay -S --noconfirm claude-desktop-bin
+      packages:
+      - claude-desktop-bin
+    failure:
+      command: yay -S --noconfirm claude-desktop-bin
+      stderr: target not found
+    provider_error: 429 rate limit
+  expected:
+    repair_action: manual_followup
+    reason_contains: Repair LLM unavailable
+    must_not_execute: true
+  source_agents:
+  - research-grounding-agent-2-vendor-desktop
+  - research-grounding-agent-5-failure-followup
+  rationale: Provider 429 during non-core app repair should become explicit follow-up, not fake success.
+  risk: medium
+- id: planning-provider-429-blocks-not-success
+  category: provider_error
+  mode: planning_provider_error
+  setup:
+    family: arch
+    package_manager: pacman
+    apps:
+    - Cursor
+    provider_error: 429 rate limit
+  expected:
+    setup_status: blocked
+    summary_contains: 429 rate limit
+    must_not_claim_success: true
+  source_agents:
+  - research-grounding-agent-5-failure-followup
+  rationale: If planning provider is unavailable, blocking is honest because no grounded plan exists.
+  risk: medium

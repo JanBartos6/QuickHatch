@@ -1,0 +1,76 @@
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: github-desktop-fedora-rpmfusion-ambiguity
+  category: vendor_app
+  mode: repair
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+  requested_apps:
+  - GitHub Desktop
+  failed_command: sudo dnf install -y github-desktop
+  expected:
+    search_sequence:
+    - repo_search
+    - web_search
+    do_not_install_alternative: true
+  rationale: GitHub Desktop may require community/vendor packaging; installing a random Git GUI is not equivalent.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: cursor-arch-aur-vs-vendor
+  category: source_ambiguity
+  mode: planning
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    community_helper: yay
+  requested_apps:
+  - Cursor
+  expected:
+    must_search:
+    - community_search
+    - web_search
+    source_must_be_evidence_backed: true
+  rationale: Cursor can be AUR or vendor download; the chosen source must be grounded.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: lm-studio-arch-aur-appimage-ambiguity
+  category: source_ambiguity
+  mode: planning
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    community_helper: none
+  requested_apps:
+  - LM Studio
+  expected:
+    must_search:
+    - community_search
+    - web_search
+    manual_followup_if_no_safe_source: true
+  rationale: LM Studio may appear as AUR/AppImage/vendor; absence of helper should not cause hallucinated success.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: vendor-deb-url-not-package-token
+  category: vendor_app
+  mode: repair
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+  requested_apps:
+  - Vendor App
+  failed_command: sudo apt install -y https://example.invalid/app.deb
+  expected:
+    must_not_treat_url_as_repo_package: true
+    manual_followup_if_download_unverified: true
+  rationale: Local/vendor package URLs need current evidence and must not be parsed as ordinary apt package truth.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: desktop-wrapper-provider-429
+  category: provider_error
+  mode: repair
+  facts_profile:
+    family: arch
+    package_manager: pacman
+  requested_apps:
+  - Claude Desktop
+  provider_error: 429 rate limit during repair
+  expected:
+    final_action: manual_followup
+    preserve_prior_progress: true
+  rationale: Provider failure should leave the optional wrapper visible as follow-up, not erase progress or fake success.

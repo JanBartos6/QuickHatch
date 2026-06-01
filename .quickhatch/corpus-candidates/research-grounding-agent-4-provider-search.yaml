@@ -1,0 +1,59 @@
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: provider-native-enabled-prompt
+  category: provider_native
+  mode: prompt
+  facts_profile:
+    family: generic
+    package_manager: generic
+  expected:
+    prompt_contains:
+    - Provider-native search is ENABLED
+    - Use it heavily for current package names
+  rationale: When native search is available, the prompt should tell the model to use it and cite it.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: provider-native-disabled-harness-actions
+  category: provider_native
+  mode: prompt
+  facts_profile:
+    family: generic
+    package_manager: generic
+  expected:
+    prompt_contains:
+    - Provider-native search is NOT available
+    - Use the harness planning actions
+  rationale: When native search is unavailable, the prompt should point to auditable harness lookups.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: provider-native-evidence-no-url
+  category: evidence_contract
+  mode: planning
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+  requested_apps:
+  - LM Studio
+  expected:
+    evidence_source: provider_native_search
+    url_optional: true
+  rationale: Provider-native search may not return a URL; query and summary still need to be recorded.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: search-budget-exhaustion-forces-plan
+  category: search_budget
+  mode: planning
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+  expected:
+    lookup_budget: 3
+    fourth_lookup_not_executed: true
+    history_preserved: true
+  rationale: Search should be encouraged but bounded, preserving prior evidence for the final plan.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: web-search-max-results-bounded
+  category: search_budget
+  mode: planning
+  facts_profile:
+    family: generic
+    package_manager: generic
+  expected:
+    max_results_clamped_or_rejected: true
+  rationale: A model must not request unbounded web search volume.

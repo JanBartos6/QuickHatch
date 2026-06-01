@@ -1140,15 +1140,7 @@ class SetupOrchestrator:
                         ),
                     )
                     continue
-                if action == "repo_search":
-                    result = self.runtime.repo_search(query)
-                elif action == "community_search":
-                    result = self.runtime.community_search(query)
-                else:
-                    result = self.runtime.web_search(
-                        query,
-                        int(payload.get("max_results", 5) or 5),
-                    )
+                result = self._planner_lookup_result(action, query, payload)
                 lookup_history.append({"action": action, "query": query, "result": result})
             elif action == "question":
                 required = _coerce_model_bool(payload.get("required", True), default=True)
@@ -1242,6 +1234,44 @@ class SetupOrchestrator:
             {"role": "assistant", "content": response_text},
             {"role": "user", "content": correction},
         ]
+
+    @staticmethod
+    def _bounded_lookup_max_results(raw_value: Any) -> int:
+        try:
+            value = int(raw_value or 5)
+        except (TypeError, ValueError):
+            value = 5
+        return min(max(value, 1), 10)
+
+    def _planner_lookup_result(self, action: str, query: str, payload: dict[str, Any]) -> str:
+        try:
+            if action == "repo_search":
+                return self.runtime.repo_search(query)
+            if action == "community_search":
+                return self.runtime.community_search(query)
+            if action == "web_search":
+                return self.runtime.web_search(
+                    query,
+                    self._bounded_lookup_max_results(payload.get("max_results", 5)),
+                )
+        except Exception as exc:
+            error_text = redact_sensitive_text(str(exc))
+            self.runlog.record(
+                "planner_lookup_failed",
+                stage=SetupStage.RESEARCH_AND_PLAN.value,
+                action=action,
+                query=query,
+                error=error_text,
+            )
+            return (
+                f"[{action} failed]\n"
+                f"query={query}\n"
+                f"error={error_text}\n"
+                "Search failed. If the package/source cannot be verified from existing "
+                "facts or prior lookup history, return a plan that marks the affected "
+                "item manual_followup instead of claiming success."
+            )
+        raise RuntimeError(f"Unsupported planner lookup action: {action}")
 
     @staticmethod
     def _planner_lookup_history_text(history: list[dict[str, str]]) -> str:
@@ -9447,14 +9477,33 @@ fi
     def _repair_search_result(self, action: dict[str, Any]) -> str:
         query = str(action.get("query", "")).strip()
         name = str(action.get("action", ""))
-        if name == "repo_search":
-            result = self.runtime.repo_search(query)
-        elif name == "community_search":
-            result = self.runtime.community_search(query)
-        elif name == "web_search":
-            result = self.runtime.web_search(query, int(action.get("max_results", 5) or 5))
-        else:
-            raise RuntimeError(f"Unsupported repair search action: {name}")
+        try:
+            if name == "repo_search":
+                result = self.runtime.repo_search(query)
+            elif name == "community_search":
+                result = self.runtime.community_search(query)
+            elif name == "web_search":
+                result = self.runtime.web_search(
+                    query,
+                    self._bounded_lookup_max_results(action.get("max_results", 5)),
+                )
+            else:
+                raise RuntimeError(f"Unsupported repair search action: {name}")
+        except Exception as exc:
+            error_text = redact_sensitive_text(str(exc))
+            self.runlog.record(
+                "repair_search_failed",
+                action=name,
+                query=query,
+                error=error_text,
+            )
+            return (
+                f"[{name} failed]\n"
+                f"query={query}\n"
+                f"error={error_text}\n"
+                "Search failed. If this item remains unresolved, return manual_followup "
+                "with the exact app/item and reason instead of retrying stale package names."
+            )
         return f"[{name}]\nquery={query}\n{result}"
 
     def _repair_failed_group(

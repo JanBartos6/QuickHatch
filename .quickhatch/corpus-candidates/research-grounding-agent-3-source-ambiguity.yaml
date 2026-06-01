@@ -1,0 +1,78 @@
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: flatpak-snap-apt-ambiguity-ubuntu
+  category: source_ambiguity
+  mode: planning
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    flatpak_available: true
+    snap_available: true
+  requested_apps:
+  - Spotify
+  expected:
+    must_search:
+    - repo_search
+    - web_search
+    source_choice_recorded: true
+  rationale: Ubuntu app availability can differ across apt, Snap, Flatpak, and vendor repos.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: flatpak-unavailable-fallback-manual
+  category: search_unavailable
+  mode: repair
+  facts_profile:
+    family: debian
+    package_manager: apt
+    flatpak_available: false
+    snap_available: false
+  requested_apps:
+  - Proprietary Chat App
+  expected:
+    manual_followup_if_no_source: true
+    must_not_block_core_setup: true
+  rationale: If optional app sources are unavailable, setup should remain honest and continue safe work.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: aur-helper-absent-still-search
+  category: source_ambiguity
+  mode: planning
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    community_helper: none
+  requested_apps:
+  - GitHub Desktop
+  expected:
+    must_search:
+    - community_search
+    must_not_ask_only_for_missing_helper: true
+  rationale: The prompt says prefer yay for AUR when no helper is detected; absence of helper is not a reason to avoid grounding.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: snap-find-safe-but-not-proof
+  category: source_ambiguity
+  mode: repair
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    snap_available: true
+  requested_apps:
+  - Code Editor
+  expected:
+    search_result_is_evidence_not_installation: true
+    status_pending_until_verified: true
+  rationale: Search output supports a plan but does not prove installation.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: flatpak-id-changed
+  category: stale_package
+  mode: repair
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    flatpak_available: true
+  requested_apps:
+  - LocalSend
+  failed_command: flatpak install -y flathub org.localsend.localsend_app
+  expected:
+    must_search:
+    - web_search
+    - repo_search
+    manual_followup_if_unresolved: true
+  rationale: Flatpak IDs can change or be absent; repair must search instead of looping stale IDs.

@@ -1,0 +1,69 @@
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: planning-repo-search-error-fed-to-model
+  category: search_unavailable
+  mode: planning
+  facts_profile:
+    family: arch
+    package_manager: pacman
+  requested_apps:
+  - GitHub Desktop
+  search_error: repo search unavailable
+  expected:
+    model_gets_error_context: true
+    manual_followup_if_unresolved: true
+  rationale: Lookup failure should become grounding evidence for manual follow-up, not crash into fake success.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: repair-search-error-manual-followup
+  category: search_unavailable
+  mode: repair
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+  requested_apps:
+  - Cursor
+  search_error: web search unavailable
+  expected:
+    repair_model_gets_error_context: true
+    final_action: manual_followup
+  rationale: Repair search failure should let the model produce specific follow-up.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: planning-provider-429-blocks-not-success
+  category: provider_error
+  mode: planning
+  facts_profile:
+    family: generic
+    package_manager: generic
+  provider_error: 429 from planning model
+  expected:
+    final_status: blocked
+    must_not_claim_success: true
+  rationale: If the planner provider itself is unavailable, no setup plan exists; blocked is honest and success is illegal.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: catalog-hint-conflict-target-search-wins
+  category: catalog_hint
+  mode: planning
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+  requested_apps:
+  - Hinted App
+  catalog_hint: arch-pkg
+  search_result: ubuntu-pkg
+  expected:
+    chosen_package: ubuntu-pkg
+    catalog_not_source_of_truth: true
+  rationale: Target package-manager evidence must override a stale or wrong-family catalog hint.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: no-search-plan-with-stale-memory-remains-pending
+  category: stale_package
+  mode: planning
+  facts_profile:
+    family: arch
+    package_manager: pacman
+  requested_apps:
+  - Cursor
+  memory_hint: cursor-bin
+  expected:
+    status_not_installed: true
+    evidence_required_for_confidence: true
+  rationale: A model memory package guess cannot be treated as installed or verified.

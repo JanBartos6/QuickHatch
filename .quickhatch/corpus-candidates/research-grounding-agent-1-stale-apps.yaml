@@ -1,0 +1,83 @@
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: stale-github-desktop-arch-search-first
+  category: stale_package
+  mode: planning
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    community_helper: yay
+  requested_apps:
+  - GitHub Desktop
+  memory_hint: github-desktop-bin may be stale
+  expected:
+    must_search:
+    - repo_search
+    - community_search
+    must_not_claim_installed: true
+    manual_followup_if_unresolved: true
+  rationale: GitHub Desktop packaging changes and often lives outside official repos; catalog/memory is only a hint.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: stale-lm-studio-fedora-vendor-search
+  category: vendor_app
+  mode: planning
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+  requested_apps:
+  - LM Studio
+  memory_hint: lm-studio package name from old catalog
+  expected:
+    must_search:
+    - repo_search
+    - web_search
+    prefer_evidence: target repo/vendor current result
+    manual_followup_if_unresolved: true
+  rationale: LM Studio is vendor-distributed and fast-changing; old package names cannot be trusted.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: stale-cursor-ubuntu-vendor-search
+  category: vendor_app
+  mode: repair
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+  requested_apps:
+  - Cursor
+  failed_command: sudo apt install -y cursor
+  expected:
+    repair_first_action: repo_search_or_web_search
+    manual_followup_if_search_fails: true
+  rationale: Cursor packaging and vendor instructions change; repair should search before guessing another package.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: stale-chatgpt-wrapper-optional-slow
+  category: stale_package
+  mode: planning
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    community_helper: none
+  requested_apps:
+  - ChatGPT
+  memory_hint: chatgpt-desktop-bin
+  expected:
+    must_search:
+    - community_search
+    - web_search
+    optional_slow: true
+    manual_followup_if_unresolved: true
+  rationale: Desktop wrappers are slow and often community-maintained; unresolved wrapper should not block setup.
+- schema_note: candidate cases only; generated locally as simulated agents for the research-grounding lane
+  id: stale-brave-debian-vendor-repo
+  category: vendor_app
+  mode: planning
+  facts_profile:
+    family: debian
+    package_manager: apt
+  requested_apps:
+  - Brave Browser
+  memory_hint: brave-browser apt package exists only after vendor repo setup
+  expected:
+    must_search:
+    - repo_search
+    - web_search
+    must_include_evidence: true
+  rationale: A package name alone is insufficient when a vendor repo may be required.
