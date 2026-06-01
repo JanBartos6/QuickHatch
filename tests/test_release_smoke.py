@@ -51,6 +51,7 @@ def test_release_smoke_targeted_pytest_includes_tier1_safety_tests():
     assert "tests/test_setup_driver_uncertainty.py" in TARGETED_PYTEST_FILES
     assert "tests/test_setup_reboot_reconnect.py" in TARGETED_PYTEST_FILES
     assert "tests/test_setup_stop_abort.py" in TARGETED_PYTEST_FILES
+    assert "tests/test_setup_model_contract.py" in TARGETED_PYTEST_FILES
     assert "tests/test_setup_final_audit_repair_loop.py" in TARGETED_PYTEST_FILES
     assert "tests/test_support_bundle_diagnostics.py" in TARGETED_PYTEST_FILES
 

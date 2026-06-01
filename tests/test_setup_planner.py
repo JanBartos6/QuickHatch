@@ -624,8 +624,8 @@ def test_extract_research_plan_normalizes_common_install_substages():
         {
             "id": "boot",
             "stage": "bootloader",
-            "title": "Install bootloader",
-            "commands": ["arch-chroot /mnt grub-install --target=x86_64-efi"],
+            "title": "Inspect boot directory",
+            "commands": ["arch-chroot /mnt test -d /boot"],
         },
     ]
 

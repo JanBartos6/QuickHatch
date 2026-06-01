@@ -1,0 +1,327 @@
+- id: typed-partition-disk-valid
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: '{"kind":"partition_disk","target":"/dev/vda","options":{"label":"gpt","preserve_existing":false,"confirm_device_model":"QEMU HARDDISK"}}'
+  expected:
+    outcome: accept
+    parser: parse_setup_operation
+    normalized_assertions:
+      - "kind == partition_disk"
+      - "target == /dev/vda"
+      - "capability_kind == disk_partition"
+      - "erases_data == true"
+    error_contains: ""
+  rationale: "Disk partitioning is destructive and must be represented as typed intent with an explicit block-device target."
+  risk: high
+
+- id: typed-format-ext4-valid
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: '{"kind":"format_partition","target":"/dev/vda2","filesystem":"ext4","options":{"label":"rootfs","force":true}}'
+  expected:
+    outcome: accept
+    parser: parse_setup_operation
+    normalized_assertions:
+      - "kind == format_partition"
+      - "target == /dev/vda2"
+      - "filesystem == ext4"
+      - "capability_kind == format_filesystem"
+      - "erases_data == true"
+    error_contains: ""
+  rationale: "Filesystem creation must not appear as raw mkfs shell; the typed operation carries the partition target and filesystem."
+  risk: high
+
+- id: typed-mount-root-valid
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: '{"kind":"mount_partition","target":"/dev/vda2","mountpoint":"/mnt","options":{"create_mountpoint":true}}'
+  expected:
+    outcome: accept
+    parser: parse_setup_operation
+    normalized_assertions:
+      - "kind == mount_partition"
+      - "target == /dev/vda2"
+      - "mountpoint == /mnt"
+      - "capability_kind == mount_target"
+      - "erases_data == false"
+    error_contains: ""
+  rationale: "Mounting installation targets should be structured so the harness can own path validation and mount semantics."
+  risk: medium
+
+- id: typed-write-fstab-valid
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: '{"kind":"write_fstab","target":"/mnt/etc/fstab","options":{"root_uuid":"1111-2222","efi_uuid":"3333-4444","root_mountpoint":"/","efi_mountpoint":"/boot/efi"}}'
+  expected:
+    outcome: accept
+    parser: parse_setup_operation
+    normalized_assertions:
+      - "kind == write_fstab"
+      - "target == /mnt/etc/fstab"
+      - "capability_kind == write_fstab"
+      - "erases_data == false"
+    error_contains: ""
+  rationale: "fstab writes are privileged system changes and should be captured as typed intent rather than echo redirection."
+  risk: high
+
+- id: typed-install-bootloader-valid
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: '{"kind":"install_bootloader","target":"/dev/vda","options":{"root":"/mnt","efi_directory":"/mnt/boot/efi","bootloader":"grub-efi-amd64"}}'
+  expected:
+    outcome: accept
+    parser: parse_setup_operation
+    normalized_assertions:
+      - "kind == install_bootloader"
+      - "target == /dev/vda"
+      - "capability_kind == bootloader_install"
+      - "erases_data == false"
+    error_contains: ""
+  rationale: "Bootloader installation must be typed so platform-specific renderers control grub/EFI details."
+  risk: high
+
+- id: typed-controlled-reboot-valid
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: '{"kind":"controlled_reboot","options":{"checkpoint":"post_bootloader","reconnect_timeout_seconds":600,"require_ssh_continuity":true}}'
+  expected:
+    outcome: accept
+    parser: parse_setup_operation
+    normalized_assertions:
+      - "kind == controlled_reboot"
+      - "capability_kind == controlled_reboot"
+      - "erases_data == false"
+      - "options.require_ssh_continuity == true"
+    error_contains: ""
+  rationale: "Reboots should be coordinated by the harness using checkpoint and reconnect metadata, never emitted as bare reboot shell."
+  risk: high
+
+- id: typed-package-db-repair-valid
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: '{"kind":"package_db_repair","target":"host","options":{"manager":"apt","strategy":"configure_pending","reason":"dpkg was interrupted"}}'
+  expected:
+    outcome: accept
+    parser: parse_setup_operation
+    normalized_assertions:
+      - "kind == package_db_repair"
+      - "target == host"
+      - "capability_kind == package_db_repair"
+      - "erases_data == true"
+    error_contains: ""
+  rationale: "Package database repair can mutate system state and should be a bounded repair operation instead of raw dpkg/rpm commands."
+  risk: high
+
+- id: typed-network-security-valid
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: '{"kind":"network_security_change","target":"host","options":{"activate_firewall":true,"allow_ssh":true,"profile":"default-deny-incoming"}}'
+  expected:
+    outcome: accept
+    parser: parse_setup_operation
+    normalized_assertions:
+      - "kind == network_security_change"
+      - "target == host"
+      - "capability_kind == network_security_change"
+      - "erases_data == false"
+    error_contains: ""
+  rationale: "Firewall or network security activation must preserve reconnect guarantees and be expressed in typed form."
+  risk: high
+
+- id: reject-format-missing-target
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: '{"kind":"format_partition","filesystem":"ext4","options":{"label":"rootfs"}}'
+  expected:
+    outcome: reject
+    parser: parse_setup_operation
+    normalized_assertions: []
+    error_contains: "target is required for format_partition"
+  rationale: "A format operation without a partition target is too ambiguous and dangerous to execute."
+  risk: high
+
+- id: reject-format-missing-filesystem
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: '{"kind":"format_partition","target":"/dev/vda2","options":{"label":"rootfs"}}'
+  expected:
+    outcome: reject
+    parser: parse_setup_operation
+    normalized_assertions: []
+    error_contains: "filesystem is required for format_partition"
+  rationale: "The filesystem type is required so renderers do not infer destructive formatting behavior."
+  risk: high
+
+- id: reject-partition-missing-target
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: '{"kind":"partition_disk","options":{"label":"gpt"}}'
+  expected:
+    outcome: reject
+    parser: parse_setup_operation
+    normalized_assertions: []
+    error_contains: "target is required for partition_disk"
+  rationale: "Partitioning without an explicit disk target must be rejected before any executor sees it."
+  risk: high
+
+- id: reject-mount-missing-mountpoint
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: '{"kind":"mount_partition","target":"/dev/vda2","options":{"create_mountpoint":true}}'
+  expected:
+    outcome: reject
+    parser: parse_setup_operation
+    normalized_assertions: []
+    error_contains: "target and mountpoint are required for mount_partition"
+  rationale: "A mount operation must specify both source and destination to avoid accidental host filesystem mutation."
+  risk: high
+
+- id: reject-unsupported-wipefs-kind
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: '{"kind":"wipe_filesystem_signatures","target":"/dev/vda","options":{"force":true}}'
+  expected:
+    outcome: reject
+    parser: parse_setup_operation
+    normalized_assertions: []
+    error_contains: "kind is unsupported"
+  rationale: "Unsupported destructive verbs must not slip through as arbitrary operation kinds."
+  risk: high
+
+- id: reject-options-not-object
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: '{"kind":"partition_disk","target":"/dev/vda","options":["gpt","force"]}'
+  expected:
+    outcome: reject
+    parser: parse_setup_operation
+    normalized_assertions: []
+    error_contains: "options must be an object"
+  rationale: "Operation options must remain structured key-value data for deterministic validation."
+  risk: medium
+
+- id: reject-operation-as-string
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: '"mkfs.ext4 -F /dev/vda2"'
+  expected:
+    outcome: reject
+    parser: parse_setup_operation
+    normalized_assertions: []
+    error_contains: "must be an object"
+  rationale: "Dangerous work cannot be represented as a free-form command string in the operation parser."
+  risk: high
+
+- id: research-plan-valid-typed-storage-sequence
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"summary":"Prepare target disk with typed storage operations only.","command_groups":[{"id":"storage-layout","stage":"install","title":"Create disk layout","operations":[{"kind":"partition_disk","target":"/dev/vda","options":{"label":"gpt","root_size":"remaining","efi_size":"512MiB"}},{"kind":"format_partition","target":"/dev/vda1","filesystem":"vfat","options":{"label":"EFI"}},{"kind":"format_partition","target":"/dev/vda2","filesystem":"ext4","options":{"label":"rootfs"}},{"kind":"mount_partition","target":"/dev/vda2","mountpoint":"/mnt","options":{"create_mountpoint":true}},{"kind":"mount_partition","target":"/dev/vda1","mountpoint":"/mnt/boot/efi","options":{"create_mountpoint":true}}],"verification":["findmnt /mnt","findmnt /mnt/boot/efi"],"rationale":"Use typed operations for destructive storage work."}]}'
+  expected:
+    outcome: accept
+    parser: extract_research_plan
+    normalized_assertions:
+      - "command_groups[0].operations length == 5"
+      - "command_groups[0].commands length == 0"
+      - "all destructive storage actions are operations"
+    error_contains: ""
+  rationale: "A research plan may include a bounded typed storage sequence while leaving non-destructive verification as commands."
+  risk: high
+
+- id: research-plan-valid-reboot-and-network-security
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"summary":"Enable reconnect-safe network security and perform a controlled reboot.","command_groups":[{"id":"network-security","stage":"configure","title":"Activate firewall with SSH continuity","operations":[{"kind":"enable_network_reconnect","target":"host","options":{"service":"ssh","required":true}},{"kind":"network_security_change","target":"host","options":{"activate_firewall":true,"allow_ssh":true,"profile":"default-deny-incoming"}}],"verification":["systemctl is-active ssh"],"rationale":"Network hardening must preserve remote access."},{"id":"controlled-reboot","stage":"reboot","title":"Checkpoint and reboot","operations":[{"kind":"controlled_reboot","options":{"checkpoint":"network_security_applied","reconnect_timeout_seconds":600}}],"verification":["uptime"],"rationale":"The harness owns reboot timing and reconnect."}]}'
+  expected:
+    outcome: accept
+    parser: extract_research_plan
+    normalized_assertions:
+      - "network_security_change is represented as an operation"
+      - "controlled_reboot is represented as an operation"
+      - "no raw reboot command is present"
+    error_contains: ""
+  rationale: "Security activation and reboot are high-risk workflow steps that need bounded typed operations."
+  risk: high
+
+- id: reject-research-plan-raw-mkfs-command
+  category: dangerous_operation_shape
+  output_kind: research_plan
+  model_output: '{"summary":"Format the root partition.","command_groups":[{"id":"format-root","stage":"install","title":"Format root","commands":["mkfs.ext4 -F /dev/vda2"],"verification":["blkid /dev/vda2"],"rationale":"Create root filesystem."}]}'
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "destructive command must be expressed as a typed operation"
+  rationale: "The JSON is parseable, but the model-contract layer should reject raw destructive formatting commands."
+  risk: high
+
+- id: reject-research-plan-raw-parted-command
+  category: dangerous_operation_shape
+  output_kind: research_plan
+  model_output: '{"summary":"Partition the installation disk.","command_groups":[{"id":"partition-disk","stage":"install","title":"Partition disk","commands":["parted -s /dev/vda mklabel gpt mkpart ESP fat32 1MiB 513MiB set 1 esp on mkpart primary ext4 513MiB 100%"],"verification":["parted -s /dev/vda print"],"rationale":"Create EFI and root partitions."}]}'
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "destructive command must be expressed as a typed operation"
+  rationale: "Raw partition table mutation must be rejected even when embedded in an otherwise valid command group."
+  risk: high
+
+- id: reject-research-plan-raw-fstab-redirection
+  category: dangerous_operation_shape
+  output_kind: research_plan
+  model_output: '{"summary":"Write fstab directly.","command_groups":[{"id":"fstab","stage":"configure","title":"Write fstab","commands":["echo UUID=1111-2222 / ext4 defaults 0 1 >> /mnt/etc/fstab"],"verification":["test -s /mnt/etc/fstab"],"rationale":"Persist mounts."}]}'
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "fstab changes must be expressed as a typed operation"
+  rationale: "Direct shell redirection into fstab should be blocked in favor of write_fstab intent."
+  risk: high
+
+- id: reject-research-plan-raw-grub-install
+  category: dangerous_operation_shape
+  output_kind: research_plan
+  model_output: '{"summary":"Install bootloader using shell.","command_groups":[{"id":"bootloader","stage":"install","title":"Install GRUB","commands":["chroot /mnt grub-install /dev/vda","chroot /mnt update-grub"],"verification":["test -d /mnt/boot/grub"],"rationale":"Make the system bootable."}]}'
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "bootloader install must be expressed as a typed operation"
+  rationale: "Bootloader writes should be delegated to the operation renderer rather than model-generated chroot shell."
+  risk: high
+
+- id: reject-research-plan-raw-reboot-command
+  category: dangerous_operation_shape
+  output_kind: research_plan
+  model_output: '{"summary":"Reboot after install.","command_groups":[{"id":"reboot","stage":"reboot","title":"Reboot now","commands":["sync && reboot"],"verification":["uptime"],"rationale":"Restart into installed system."}]}'
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "reboot must be expressed as a controlled_reboot operation"
+  rationale: "A raw reboot command bypasses checkpointing, stop handling, and reconnect policy."
+  risk: high
+
+- id: reject-research-plan-raw-package-db-repair
+  category: dangerous_operation_shape
+  output_kind: research_plan
+  model_output: '{"summary":"Repair the package database using shell.","command_groups":[{"id":"repair-dpkg","stage":"repair","title":"Repair dpkg state","commands":["dpkg --configure -a","apt-get -f install -y"],"verification":["dpkg --audit"],"rationale":"Recover interrupted package transaction."}]}'
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "package database repair must be expressed as a typed operation"
+  rationale: "Package database repair is mutating repair work and needs bounded operation semantics."
+  risk: high
+
+- id: reject-research-plan-raw-firewall-activation
+  category: dangerous_operation_shape
+  output_kind: research_plan
+  model_output: '{"summary":"Enable firewall directly.","command_groups":[{"id":"firewall","stage":"configure","title":"Enable firewall","commands":["ufw --force enable"],"verification":["ufw status"],"rationale":"Activate default firewall policy."}]}'
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "network security change must be expressed as a typed operation"
+  rationale: "Firewall activation can sever remote access and should include reconnect-safe typed metadata."
+  risk: high

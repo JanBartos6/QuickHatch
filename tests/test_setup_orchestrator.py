@@ -7125,7 +7125,8 @@ def test_live_install_failed_pre_reboot_checks_block_before_reconnect():
                 "id": "install-1",
                 "stage": "install_or_skip",
                 "title": "Install base system",
-                "commands": ["parted -s /dev/sda mklabel gpt", "echo install base", "reboot"],
+                "operations": [{"kind": "partition_disk", "target": "/dev/sda"}],
+                "commands": ["echo install base"],
                 "verification": [],
                 "rationale": "",
                 "source": "repo",
@@ -7226,7 +7227,8 @@ def test_live_install_passes_guard_then_reboots_and_reconnects_once():
                 "id": "install-1",
                 "stage": "install_or_skip",
                 "title": "Install base system",
-                "commands": ["parted -s /dev/sda mklabel gpt", "echo install base", "reboot"],
+                "operations": [{"kind": "partition_disk", "target": "/dev/sda"}],
+                "commands": ["echo install base"],
                 "verification": [],
                 "rationale": "",
                 "source": "repo",
@@ -7353,10 +7355,9 @@ def test_live_install_installs_reconnect_key_before_reboot(tmp_path):
                 "id": "install-1",
                 "stage": "install_or_skip",
                 "title": "Install base system",
+                "operations": [{"kind": "partition_disk", "target": "/dev/sda"}],
                 "commands": [
-                    "parted -s /dev/sda mklabel gpt",
                     "arch-chroot /mnt useradd -m -G wheel -s /bin/bash jan",
-                    "reboot",
                 ],
                 "verification": [],
                 "rationale": "",
@@ -7481,7 +7482,8 @@ def test_live_install_injects_disk_cleanup_before_destructive_partitioning():
                 "id": "install-1",
                 "stage": "install_or_skip",
                 "title": "Partition and install",
-                "commands": ["parted -s /dev/sda mklabel gpt", "umount -R /mnt", "reboot"],
+                "operations": [{"kind": "partition_disk", "target": "/dev/sda"}],
+                "commands": ["echo install base"],
                 "verification": [],
                 "rationale": "",
                 "source": "repo",
@@ -10502,7 +10504,7 @@ def test_final_audit_bridge_payload_preserves_all_final_statuses():
             assert result.passed is False
 
 
-def test_final_audit_repair_group_dangerous_raw_shell_blocks_without_capability(monkeypatch):
+def test_final_audit_repair_group_dangerous_raw_shell_becomes_manual_followup(monkeypatch):
     orchestrator = _final_audit_ready_orchestrator(
         json.dumps(
             {
@@ -10533,9 +10535,8 @@ def test_final_audit_repair_group_dangerous_raw_shell_blocks_without_capability(
     result = orchestrator._run_final_audit()
 
     repair = result.details["final_audit_repairs"][0]
-    assert repair["action"] == "retry_group"
-    assert repair["executed"] is False
-    assert "explicit QuickHatch capability" in repair["error"]
+    assert repair["action"] == "manual_followup"
+    assert "invalid or non-actionable repair turn" in repair["reason"]
     assert result.final_status == FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
 
 

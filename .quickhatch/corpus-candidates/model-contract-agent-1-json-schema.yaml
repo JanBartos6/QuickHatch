@@ -1,0 +1,349 @@
+- id: json-object-minimal-valid
+  category: json_parseability
+  output_kind: research_plan
+  model_output: "{\"plan_id\":\"rp-json-001\",\"summary\":\"Inspect configuration loading boundaries.\",\"steps\":[{\"id\":\"s1\",\"action\":\"read\",\"target\":\"pyproject.toml\"}],\"commands\":[],\"risks\":[],\"requires_manual_followup\":false}"
+  expected:
+    outcome: accept
+    parser: model_json_loads
+    normalized_assertions:
+      - "parsed value is a single JSON object"
+      - "plan_id equals rp-json-001"
+      - "requires_manual_followup is false"
+    error_contains: ""
+  rationale: "Baseline compact single-object JSON should parse without repair or extraction."
+  risk: low
+
+- id: json-fenced-object-normalize
+  category: json_parseability
+  output_kind: research_plan
+  model_output: "```json\n{\"plan_id\":\"rp-json-002\",\"summary\":\"Check schema validation paths.\",\"steps\":[{\"id\":\"s1\",\"action\":\"inspect\",\"target\":\"quickhatch/schema.py\"}],\"commands\":[],\"risks\":[\"schema drift\"],\"requires_manual_followup\":false}\n```"
+  expected:
+    outcome: normalize
+    parser: model_json_loads
+    normalized_assertions:
+      - "outer markdown fence is stripped"
+      - "parsed value is a single JSON object"
+      - "summary equals Check schema validation paths."
+    error_contains: ""
+  rationale: "Model output often arrives in a fenced JSON block; parser should tolerate the wrapper while preserving object content."
+  risk: medium
+
+- id: json-prose-prefix-normalize
+  category: json_parseability
+  output_kind: research_plan
+  model_output: "Here is the plan:\n{\"plan_id\":\"rp-json-003\",\"summary\":\"Trace command grouping behavior.\",\"steps\":[{\"id\":\"s1\",\"action\":\"trace\",\"target\":\"command grouping\"}],\"commands\":[],\"risks\":[],\"requires_manual_followup\":false}"
+  expected:
+    outcome: normalize
+    parser: extract_research_plan
+    normalized_assertions:
+      - "leading prose is ignored"
+      - "parsed value is a single JSON object"
+      - "steps length is 1"
+    error_contains: ""
+  rationale: "Extractor should recover a bounded plan object from harmless leading prose."
+  risk: medium
+
+- id: json-prose-suffix-normalize
+  category: json_parseability
+  output_kind: research_plan
+  model_output: "{\"plan_id\":\"rp-json-004\",\"summary\":\"Review repair action boundaries.\",\"steps\":[{\"id\":\"s1\",\"action\":\"review\",\"target\":\"repair contract\"}],\"commands\":[],\"risks\":[],\"requires_manual_followup\":false}\nI can proceed after validation."
+  expected:
+    outcome: normalize
+    parser: extract_research_plan
+    normalized_assertions:
+      - "trailing prose is ignored"
+      - "parsed value is a single JSON object"
+      - "plan_id equals rp-json-004"
+    error_contains: ""
+  rationale: "Extractor should accept a valid object followed by non-JSON commentary only when a single object can be unambiguously isolated."
+  risk: medium
+
+- id: json-array-root-reject
+  category: json_parseability
+  output_kind: research_plan
+  model_output: "[{\"plan_id\":\"rp-json-005\",\"summary\":\"First plan\",\"steps\":[],\"commands\":[],\"risks\":[],\"requires_manual_followup\":false}]"
+  expected:
+    outcome: reject
+    parser: model_json_loads
+    normalized_assertions: []
+    error_contains: "single JSON object"
+  rationale: "A root array is parseable JSON but violates the single-object contract."
+  risk: high
+
+- id: json-two-objects-reject
+  category: json_parseability
+  output_kind: research_plan
+  model_output: "{\"plan_id\":\"rp-json-006a\",\"summary\":\"First\",\"steps\":[],\"commands\":[],\"risks\":[],\"requires_manual_followup\":false}\n{\"plan_id\":\"rp-json-006b\",\"summary\":\"Second\",\"steps\":[],\"commands\":[],\"risks\":[],\"requires_manual_followup\":false}"
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "multiple JSON objects"
+  rationale: "Multiple adjacent objects are ambiguous and should not be silently merged or first-picked."
+  risk: high
+
+- id: json-invalid-trailing-comma-reject
+  category: json_parseability
+  output_kind: research_plan
+  model_output: "{\"plan_id\":\"rp-json-007\",\"summary\":\"Invalid comma\",\"steps\":[],\"commands\":[],\"risks\":[],\"requires_manual_followup\":false,}"
+  expected:
+    outcome: reject
+    parser: model_json_loads
+    normalized_assertions: []
+    error_contains: "invalid JSON"
+  rationale: "Strict JSON parsing should reject common JavaScript-like trailing commas."
+  risk: high
+
+- id: json-invalid-single-quotes-reject
+  category: json_parseability
+  output_kind: research_plan
+  model_output: "{'plan_id':'rp-json-008','summary':'Single quotes','steps':[],'commands':[],'risks':[],'requires_manual_followup':false}"
+  expected:
+    outcome: reject
+    parser: model_json_loads
+    normalized_assertions: []
+    error_contains: "invalid JSON"
+  rationale: "Python literal syntax must not be accepted as JSON."
+  risk: high
+
+- id: json-invalid-comment-reject
+  category: json_parseability
+  output_kind: research_plan
+  model_output: "{\"plan_id\":\"rp-json-009\",\"summary\":\"Has comment\",// explain\n\"steps\":[],\"commands\":[],\"risks\":[],\"requires_manual_followup\":false}"
+  expected:
+    outcome: reject
+    parser: model_json_loads
+    normalized_assertions: []
+    error_contains: "invalid JSON"
+  rationale: "JSON with comments should be rejected rather than normalized, avoiding permissive parser drift."
+  risk: high
+
+- id: thought-block-prefix-strip-normalize
+  category: prompt_contract
+  output_kind: research_plan
+  model_output: "<thought>I should inspect the repository first and decide what to do.</thought>\n{\"plan_id\":\"rp-json-010\",\"summary\":\"Inspect prompt contracts.\",\"steps\":[{\"id\":\"s1\",\"action\":\"inspect\",\"target\":\"prompt contract\"}],\"commands\":[],\"risks\":[],\"requires_manual_followup\":false}"
+  expected:
+    outcome: normalize
+    parser: extract_research_plan
+    normalized_assertions:
+      - "thought block is stripped"
+      - "parsed value is a single JSON object"
+      - "summary equals Inspect prompt contracts."
+    error_contains: ""
+  rationale: "Private reasoning wrappers should not contaminate the accepted plan when a valid bounded object follows."
+  risk: medium
+
+- id: thought-block-inside-json-reject
+  category: prompt_contract
+  output_kind: research_plan
+  model_output: "{\"plan_id\":\"rp-json-011\",\"summary\":\"<thought>hidden</thought>Inspect contracts.\",\"steps\":[],\"commands\":[],\"risks\":[],\"requires_manual_followup\":false}"
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "thought"
+  rationale: "Thought markup embedded inside accepted JSON fields should be rejected, not quietly preserved as user-visible plan text."
+  risk: high
+
+- id: plan-required-fields-accept
+  category: plan_schema
+  output_kind: research_plan
+  model_output: "{\"plan_id\":\"rp-schema-001\",\"summary\":\"Validate top-level required fields.\",\"steps\":[{\"id\":\"s1\",\"action\":\"validate\",\"target\":\"required fields\"}],\"commands\":[],\"risks\":[\"missing top-level fields\"],\"requires_manual_followup\":false}"
+  expected:
+    outcome: accept
+    parser: extract_research_plan
+    normalized_assertions:
+      - "top-level field plan_id is present"
+      - "top-level field summary is present"
+      - "top-level field steps is present"
+      - "top-level field commands is present"
+      - "top-level field risks is present"
+      - "top-level field requires_manual_followup is present"
+    error_contains: ""
+  rationale: "A complete research plan with all required top-level fields should pass schema validation."
+  risk: low
+
+- id: plan-missing-summary-reject
+  category: plan_schema
+  output_kind: research_plan
+  model_output: "{\"plan_id\":\"rp-schema-002\",\"steps\":[{\"id\":\"s1\",\"action\":\"validate\",\"target\":\"summary\"}],\"commands\":[],\"risks\":[],\"requires_manual_followup\":false}"
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "summary"
+  rationale: "The summary field is required for bounded, inspectable plans."
+  risk: high
+
+- id: plan-missing-steps-reject
+  category: plan_schema
+  output_kind: research_plan
+  model_output: "{\"plan_id\":\"rp-schema-003\",\"summary\":\"No steps included.\",\"commands\":[],\"risks\":[],\"requires_manual_followup\":false}"
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "steps"
+  rationale: "A research plan without explicit steps cannot be executed or audited."
+  risk: high
+
+- id: plan-steps-not-array-reject
+  category: plan_schema
+  output_kind: research_plan
+  model_output: "{\"plan_id\":\"rp-schema-004\",\"summary\":\"Steps as text.\",\"steps\":\"Read the files, then decide.\",\"commands\":[],\"risks\":[],\"requires_manual_followup\":false}"
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "steps"
+  rationale: "Steps must be structured items, not free-form prose."
+  risk: high
+
+- id: plan-extra-top-level-reject
+  category: plan_schema
+  output_kind: research_plan
+  model_output: "{\"plan_id\":\"rp-schema-005\",\"summary\":\"Extra field present.\",\"steps\":[],\"commands\":[],\"risks\":[],\"requires_manual_followup\":false,\"notes\":\"I will be careful.\"}"
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "additional"
+  rationale: "Rejecting undeclared top-level fields keeps the model contract narrow and deterministic."
+  risk: medium
+
+- id: command-group-empty-accept
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: "{\"plan_id\":\"rp-cmd-001\",\"summary\":\"No command execution required.\",\"steps\":[{\"id\":\"s1\",\"action\":\"read\",\"target\":\"provided context\"}],\"commands\":[],\"risks\":[],\"requires_manual_followup\":false}"
+  expected:
+    outcome: accept
+    parser: extract_research_plan
+    normalized_assertions:
+      - "commands is an empty array"
+      - "no command group is synthesized"
+    error_contains: ""
+  rationale: "Plans that only require reasoning or file reads may legitimately contain no command groups."
+  risk: low
+
+- id: command-group-string-reject
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: "{\"plan_id\":\"rp-cmd-002\",\"summary\":\"Command field is wrong type.\",\"steps\":[{\"id\":\"s1\",\"action\":\"run\",\"target\":\"tests\"}],\"commands\":\"pytest\",\"risks\":[],\"requires_manual_followup\":false}"
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "commands"
+  rationale: "Command groups must remain structured arrays so downstream execution cannot reinterpret prose."
+  risk: high
+
+- id: operation-single-object-accept
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: "{\"operation_id\":\"op-001\",\"kind\":\"file_read\",\"target\":\"README.md\",\"args\":{},\"requires_confirmation\":false}"
+  expected:
+    outcome: accept
+    parser: parse_setup_operation
+    normalized_assertions:
+      - "parsed value is a single JSON object"
+      - "kind equals file_read"
+      - "requires_confirmation is false"
+    error_contains: ""
+  rationale: "A harmless setup operation represented as one bounded object should parse cleanly."
+  risk: low
+
+- id: operation-dangerous-missing-confirmation-reject
+  category: dangerous_operation_shape
+  output_kind: operation
+  model_output: "{\"operation_id\":\"op-002\",\"kind\":\"delete\",\"target\":\".quickhatch/cache\",\"args\":{\"recursive\":true}}"
+  expected:
+    outcome: reject
+    parser: parse_setup_operation
+    normalized_assertions: []
+    error_contains: "requires_confirmation"
+  rationale: "Potentially destructive operation shapes must explicitly encode confirmation requirements."
+  risk: high
+
+- id: repair-action-valid-accept
+  category: repair_contract
+  output_kind: repair_action
+  model_output: "{\"repair_id\":\"ra-001\",\"reason\":\"JSON parse failed due to fence wrapper.\",\"action\":\"strip_fence_and_reparse\",\"target\":\"model_output\",\"bounded\":true}"
+  expected:
+    outcome: accept
+    parser: extract_repair_action
+    normalized_assertions:
+      - "repair_id equals ra-001"
+      - "action equals strip_fence_and_reparse"
+      - "bounded is true"
+    error_contains: ""
+  rationale: "Repair actions should be explicit and bounded when normalization is safe."
+  risk: low
+
+- id: repair-action-freeform-reject
+  category: repair_contract
+  output_kind: repair_action
+  model_output: "I will fix the JSON by guessing what the model meant and adding the missing fields."
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "JSON object"
+  rationale: "Repair decisions must not be accepted as free-form prose because they are downstream control signals."
+  risk: high
+
+- id: manual-followup-uncertain-accept
+  category: manual_followup
+  output_kind: research_plan
+  model_output: "{\"plan_id\":\"rp-manual-001\",\"summary\":\"Need user confirmation before choosing a destructive cleanup path.\",\"steps\":[{\"id\":\"s1\",\"action\":\"ask_user\",\"target\":\"cleanup scope\"}],\"commands\":[],\"risks\":[\"ambiguous destructive scope\"],\"requires_manual_followup\":true}"
+  expected:
+    outcome: manual_followup
+    parser: extract_research_plan
+    normalized_assertions:
+      - "requires_manual_followup is true"
+      - "commands is empty"
+      - "risks includes ambiguous destructive scope"
+    error_contains: ""
+  rationale: "The contract should support explicit manual follow-up when uncertainty blocks safe execution."
+  risk: medium
+
+- id: uncertainty-bounded-accept
+  category: uncertainty
+  output_kind: research_plan
+  model_output: "{\"plan_id\":\"rp-uncertain-001\",\"summary\":\"Investigate whether schema names changed before editing fixtures.\",\"steps\":[{\"id\":\"s1\",\"action\":\"inspect\",\"target\":\"schema definitions\"},{\"id\":\"s2\",\"action\":\"compare\",\"target\":\"existing fixture names\"}],\"commands\":[],\"risks\":[\"schema names may have changed\"],\"requires_manual_followup\":false}"
+  expected:
+    outcome: accept
+    parser: extract_research_plan
+    normalized_assertions:
+      - "uncertainty is represented in risks"
+      - "steps remain concrete and bounded"
+      - "requires_manual_followup is false"
+    error_contains: ""
+  rationale: "Uncertainty is acceptable when represented as bounded risks with concrete investigation steps."
+  risk: low
+
+- id: prompt-contract-text-accept
+  category: prompt_contract
+  output_kind: prompt_contract
+  model_output: "Return exactly one JSON object. Do not include markdown fences, prose, hidden reasoning, arrays, or multiple objects. Required top-level fields: plan_id, summary, steps, commands, risks, requires_manual_followup."
+  expected:
+    outcome: accept
+    parser: prompt_text
+    normalized_assertions:
+      - "mentions exactly one JSON object"
+      - "forbids markdown fences"
+      - "lists required top-level fields"
+    error_contains: ""
+  rationale: "Prompt-contract text should encode the output constraints directly and audibly."
+  risk: low
+
+- id: evidence-contract-missing-rationale-reject
+  category: evidence_contract
+  output_kind: research_plan
+  model_output: "{\"plan_id\":\"rp-evidence-001\",\"summary\":\"Change parser behavior immediately.\",\"steps\":[{\"id\":\"s1\",\"action\":\"edit\",\"target\":\"parser\"}],\"commands\":[],\"risks\":[],\"requires_manual_followup\":false,\"evidence\":[]}"
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "evidence"
+  rationale: "Plans that assert code changes without evidence should fail when evidence is part of the active contract, and the extra field also tests strict top-level validation."
+  risk: medium

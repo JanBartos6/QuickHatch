@@ -1,0 +1,326 @@
+- id: repair-repo-action-minimal
+  category: repair_contract
+  output_kind: repair_action
+  model_output: '{"action":"repo_search","query":"extract_repair_action","path_glob":"**/*.py","reason":"Find the parser boundary before proposing a fixture-only repair."}'
+  expected:
+    outcome: accept
+    parser: extract_repair_action
+    normalized_assertions:
+      - action == "repo_search"
+      - query == "extract_repair_action"
+      - path_glob == "**/*.py"
+      - reason is bounded string
+    error_contains: ""
+  rationale: "Valid repo search repair action with explicit query, scoped glob, and bounded reason."
+  risk: low
+
+- id: repair-community-search-scoped
+  category: repair_contract
+  output_kind: repair_action
+  model_output: '{"action":"community_search","query":"QuickHatch repair_action schema retry_group fallback stage","sources":["issues","discussions"],"reason":"Check whether the community has examples of fallback-stage retry grouping."}'
+  expected:
+    outcome: accept
+    parser: extract_repair_action
+    normalized_assertions:
+      - action == "community_search"
+      - sources == ["issues", "discussions"]
+      - query includes "retry_group"
+      - reason is bounded string
+    error_contains: ""
+  rationale: "Valid community search action constrained to known community surfaces."
+  risk: low
+
+- id: repair-web-search-bounded
+  category: repair_contract
+  output_kind: repair_action
+  model_output: '{"action":"web_search","query":"JSON schema repair action contract fallback retry group","max_results":3,"reason":"Compare schema-contract wording with public JSON repair examples."}'
+  expected:
+    outcome: accept
+    parser: extract_repair_action
+    normalized_assertions:
+      - action == "web_search"
+      - max_results == 3
+      - query is bounded string
+      - no command field present
+    error_contains: ""
+  rationale: "Valid web search repair action with bounded result count and no executable command payload."
+  risk: low
+
+- id: repair-question-single-choice
+  category: repair_contract
+  output_kind: repair_action
+  model_output: '{"action":"question","question":"Should repair actions allow repo_search to inspect generated corpus candidates only, or the full repository contract surface?","choices":["generated corpus candidates only","full repository contract surface"],"reason":"The scope affects whether additional evidence is needed before writing cases."}'
+  expected:
+    outcome: accept
+    parser: extract_repair_action
+    normalized_assertions:
+      - action == "question"
+      - choices length == 2
+      - question is bounded string
+      - reason is bounded string
+    error_contains: ""
+  rationale: "Valid clarification action that is structured and offers bounded mutually exclusive choices."
+  risk: low
+
+- id: repair-retry-group-fallback-stage
+  category: repair_contract
+  output_kind: repair_action
+  model_output: '{"action":"retry_group","stage":"fallback","group_id":"repair-schema-fallback","reason":"The primary extraction path failed; retry only the fallback-stage repair schema checks.","items":[{"action":"repo_search","query":"fallback repair action schema","path_glob":"**/*.py"},{"action":"repo_search","query":"manual_followup app_names reason","path_glob":"**/*.yaml"}]}'
+  expected:
+    outcome: accept
+    parser: extract_repair_action
+    normalized_assertions:
+      - action == "retry_group"
+      - stage == "fallback"
+      - group_id == "repair-schema-fallback"
+      - items length == 2
+    error_contains: ""
+  rationale: "Valid retry_group because it is explicitly scoped to fallback stage and contains structured retryable actions."
+  risk: medium
+
+- id: repair-retry-group-stage-drift-primary
+  category: repair_contract
+  output_kind: repair_action
+  model_output: '{"action":"retry_group","stage":"primary","group_id":"repair-schema-primary-rerun","reason":"Retry the whole primary setup because fallback did not find enough evidence.","items":[{"action":"repo_search","query":"repair action schema","path_glob":"**/*"}]}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "retry_group stage"
+  rationale: "retry_group repair actions must not drift from fallback-stage scope into a primary-stage rerun."
+  risk: high
+
+- id: repair-retry-group-stage-drift-setup
+  category: repair_contract
+  output_kind: repair_action
+  model_output: '{"action":"retry_group","stage":"setup","group_id":"rerun-setup","reason":"Rerun setup from scratch to refresh all context.","items":[{"action":"repo_search","query":"*","path_glob":"**/*"}]}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "fallback"
+  rationale: "Rejects broad setup-stage retry masquerading as a repair action."
+  risk: high
+
+- id: repair-broad-setup-rerun
+  category: repair_contract
+  output_kind: repair_action
+  model_output: '{"action":"setup_rerun","scope":"all","reason":"Start over and rerun dependency discovery, test collection, fixture loading, and release smoke before creating repair cases."}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "unsupported action"
+  rationale: "A repair action contract should reject broad setup reruns that escape the bounded repair surface."
+  risk: high
+
+- id: repair-manual-followup-apps
+  category: manual_followup
+  output_kind: repair_action
+  model_output: '{"action":"manual_followup","app_names":["GitHub","Slack"],"reason":"Need maintainer confirmation about whether community discussion examples are authoritative for repair action schema fixtures."}'
+  expected:
+    outcome: manual_followup
+    parser: extract_repair_action
+    normalized_assertions:
+      - action == "manual_followup"
+      - app_names == ["GitHub", "Slack"]
+      - reason is bounded string
+    error_contains: ""
+  rationale: "Valid manual follow-up action includes both target apps and a concrete reason."
+  risk: medium
+
+- id: repair-manual-followup-missing-app-names
+  category: manual_followup
+  output_kind: repair_action
+  model_output: '{"action":"manual_followup","reason":"Ask someone whether this repair should be accepted."}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "app_names"
+  rationale: "manual_followup must be routed through explicit apps instead of vague human escalation."
+  risk: medium
+
+- id: repair-manual-followup-missing-reason
+  category: manual_followup
+  output_kind: repair_action
+  model_output: '{"action":"manual_followup","app_names":["GitHub"]}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "reason"
+  rationale: "manual_followup requires a reason so downstream handling remains auditable."
+  risk: medium
+
+- id: repair-heredoc-command-rejected
+  category: command_group_contract
+  output_kind: repair_action
+  model_output: '{"action":"repo_search","query":"cat <<EOF > /tmp/repair.json\n{\"action\":\"repo_search\"}\nEOF","path_glob":"**/*.py","reason":"Use a heredoc to generate the search payload."}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "heredoc"
+  rationale: "Executable heredoc-shaped content must not be accepted inside a repair search query."
+  risk: high
+
+- id: repair-prose-instead-of-json
+  category: json_parseability
+  output_kind: repair_action
+  model_output: "I will search the repository for the repair schema, then ask a question if anything is unclear."
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "JSON"
+  rationale: "Repair actions must be parseable structured output, not prose plans."
+  risk: high
+
+- id: repair-fenced-json-normalized
+  category: json_parseability
+  output_kind: repair_action
+  model_output: "```json\n{\"action\":\"repo_search\",\"query\":\"repair action contract\",\"path_glob\":\".quickhatch/**/*.yaml\",\"reason\":\"Inspect candidate fixtures only.\"}\n```"
+  expected:
+    outcome: normalize
+    parser: extract_repair_action
+    normalized_assertions:
+      - action == "repo_search"
+      - query == "repair action contract"
+      - path_glob == ".quickhatch/**/*.yaml"
+      - markdown fence removed
+    error_contains: ""
+  rationale: "Extractor may normalize a single fenced JSON object while still enforcing the repair schema."
+  risk: low
+
+- id: repair-standalone-variable-rejected
+  category: command_group_contract
+  output_kind: repair_action
+  model_output: '{"action":"repo_search","query":"SCHEMA_PATH=.quickhatch/contracts/repair_action.yaml","path_glob":"**/*","reason":"Set the schema path before searching."}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "standalone variable"
+  rationale: "Standalone shell-variable assignment belongs to command execution, not a structured repair action query."
+  risk: high
+
+- id: repair-dangerous-operation-delete
+  category: dangerous_operation_shape
+  output_kind: repair_action
+  model_output: '{"action":"operation","operation":{"op":"delete_path","path":".quickhatch/corpus-candidates/obsolete.yaml","recursive":true},"reason":"Remove old candidates before regenerating."}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "dangerous operation"
+  rationale: "Repair action extraction should reject typed destructive operations embedded in repair output."
+  risk: high
+
+- id: repair-dangerous-operation-git-reset
+  category: dangerous_operation_shape
+  output_kind: repair_action
+  model_output: '{"action":"operation","operation":{"op":"git_reset","mode":"hard","target":"HEAD"},"reason":"Clear unrelated changes before retrying fallback repair."}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "git_reset"
+  rationale: "Dangerous typed git operations must not be accepted as repair actions."
+  risk: high
+
+- id: repair-dangerous-operation-network-post
+  category: dangerous_operation_shape
+  output_kind: repair_action
+  model_output: '{"action":"operation","operation":{"op":"http_request","method":"POST","url":"https://example.invalid/collect","body":{"repo":"QuickHatch"}},"reason":"Upload context for external schema repair."}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "dangerous operation"
+  rationale: "Outbound mutation or data exfiltration operations are outside the repair action contract."
+  risk: high
+
+- id: repair-schema-extra-command-field
+  category: plan_schema
+  output_kind: repair_action
+  model_output: '{"action":"web_search","query":"repair action schema","max_results":2,"command":"curl https://example.invalid/schema","reason":"Search the web and fetch the best result."}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "command"
+  rationale: "Valid action names must still reject extra executable command fields."
+  risk: high
+
+- id: repair-unbounded-web-search
+  category: repair_contract
+  output_kind: repair_action
+  model_output: '{"action":"web_search","query":"repair action schema examples","max_results":1000,"reason":"Gather as much context as possible before deciding."}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "max_results"
+  rationale: "The repair action contract should keep external searches bounded."
+  risk: medium
+
+- id: repair-question-unbounded-open-ended
+  category: uncertainty
+  output_kind: repair_action
+  model_output: '{"action":"question","question":"What should I do next?","choices":[],"reason":"I am uncertain."}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "choices"
+  rationale: "Questions should be concrete and bounded rather than open-ended delegation."
+  risk: medium
+
+- id: repair-repo-search-root-glob-too-broad
+  category: repair_contract
+  output_kind: repair_action
+  model_output: '{"action":"repo_search","query":"repair","path_glob":"/","reason":"Search the entire filesystem for possible repair context."}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "path_glob"
+  rationale: "Repo repair search must not expand to the filesystem root."
+  risk: high
+
+- id: repair-retry-group-nested-dangerous-op
+  category: dangerous_operation_shape
+  output_kind: repair_action
+  model_output: '{"action":"retry_group","stage":"fallback","group_id":"fallback-with-cleanup","reason":"Retry fallback after cleaning old outputs.","items":[{"action":"operation","operation":{"op":"delete_path","path":".quickhatch/corpus-candidates","recursive":true}},{"action":"repo_search","query":"repair action","path_glob":"**/*.yaml"}]}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "dangerous operation"
+  rationale: "Even correctly scoped retry groups must reject nested destructive typed operations."
+  risk: high
+
+- id: repair-multiple-json-objects-rejected
+  category: json_parseability
+  output_kind: repair_action
+  model_output: '{"action":"repo_search","query":"repair action","path_glob":"**/*.py","reason":"Find parser."}\n{"action":"web_search","query":"repair action schema","max_results":3,"reason":"Compare examples."}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "single JSON object"
+  rationale: "Repair action output should be exactly one parseable object, not newline-delimited actions."
+  risk: high
+
+- id: repair-json-array-rejected
+  category: json_parseability
+  output_kind: repair_action
+  model_output: '[{"action":"repo_search","query":"repair action","path_glob":"**/*.py","reason":"Find parser."},{"action":"question","question":"Use these cases?","choices":["yes","no"],"reason":"Confirm scope."}]'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "object"
+  rationale: "Top-level arrays obscure the single-action repair contract and should be rejected."
+  risk: medium

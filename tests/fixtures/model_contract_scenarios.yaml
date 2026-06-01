@@ -1,0 +1,1290 @@
+metadata:
+  version: 1
+  lane: model_contract_output_schema
+  source: Merged from model-contract candidate agents; fixture uses deterministic base payload patches to avoid repeated full JSON blobs.
+  candidate_files:
+  - .quickhatch/corpus-candidates/model-contract-agent-1-json-schema.yaml
+  - .quickhatch/corpus-candidates/model-contract-agent-2-command-groups.yaml
+  - .quickhatch/corpus-candidates/model-contract-agent-3-dangerous-operations.yaml
+  - .quickhatch/corpus-candidates/model-contract-agent-4-repair-focus.yaml
+  - .quickhatch/corpus-candidates/model-contract-agent-5-uncertainty-followup.yaml
+  policy: QuickHatch model outputs must be parseable, stage-bounded, explicit about uncertainty, and must express high-blast-radius effects as typed operations rather than raw shell.
+cases:
+- id: json-object-valid
+  category: json_parseability
+  parser: model_json_loads
+  input:
+    raw_payload:
+      action: question
+      question: Which disk?
+      required: true
+  expected:
+    outcome: accept
+    path_equals:
+      action: question
+      required: true
+  source_agents:
+  - model-contract-agent-1-json-schema
+  rationale: A valid model response is a single JSON object.
+  risk: low
+- id: json-thought-prefix-stripped
+  category: json_parseability
+  parser: model_json_loads
+  input:
+    raw_text: <thought>{"action":"question","question":"ignored"}</thought>{"action":"question","question":"Which disk?","required":true}
+  expected:
+    outcome: normalize
+    path_equals:
+      action: question
+      question: Which disk?
+  source_agents:
+  - model-contract-agent-1-json-schema
+  rationale: Provider reasoning blocks before the JSON should not poison parseability.
+  risk: low
+- id: json-array-root-rejected
+  category: json_parseability
+  parser: model_json_loads
+  input:
+    raw_text: '[{"action":"question","question":"Which disk?"}]'
+  expected:
+    outcome: reject
+    error_contains: single JSON object
+  source_agents:
+  - model-contract-agent-1-json-schema
+  - model-contract-agent-4-repair-focus
+  rationale: The contract is one object, not a list of candidate objects.
+  risk: medium
+- id: json-trailing-comma-rejected
+  category: json_parseability
+  parser: model_json_loads
+  input:
+    raw_text: '{"action":"question","question":"Which disk?",}'
+  expected:
+    outcome: reject
+    error_contains: trailing comma
+  source_agents:
+  - model-contract-agent-1-json-schema
+  rationale: Malformed JSON must trigger a retry instead of partial parsing.
+  risk: medium
+- id: research-plan-fenced-json-normalized
+  category: json_parseability
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    wrap: fenced_json
+  expected:
+    outcome: normalize
+    plan:
+      distro_family: arch
+      command_group_count: 1
+  source_agents:
+  - model-contract-agent-1-json-schema
+  - model-contract-agent-2-command-groups
+  rationale: The parser tolerates common fenced JSON model responses.
+  risk: low
+- id: research-plan-prose-around-json-normalized
+  category: json_parseability
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    wrap: prose
+  expected:
+    outcome: normalize
+    plan:
+      package_manager: pacman
+      command_group_count: 1
+  source_agents:
+  - model-contract-agent-1-json-schema
+  - model-contract-agent-2-command-groups
+  rationale: Short prose around an otherwise complete JSON object is recoverable.
+  risk: low
+- id: repair-action-fenced-json-normalized
+  category: json_parseability
+  parser: extract_repair_action
+  input:
+    payload:
+      action: repo_search
+      query: arch vlc package
+      reason: Verify current package name.
+    wrap: fenced_json
+    fallback_stage: apps
+  expected:
+    outcome: normalize
+    repair_action: repo_search
+    path_equals:
+      query: arch vlc package
+  source_agents:
+  - model-contract-agent-4-repair-focus
+  rationale: Repair parser should tolerate fenced JSON while still returning a single action.
+  risk: low
+- id: repair-action-prose-rejected
+  category: json_parseability
+  parser: extract_repair_action
+  input:
+    raw_text: Try installing the missing package again after updating the repos.
+    fallback_stage: apps
+  expected:
+    outcome: reject
+    error_contains: valid JSON
+  source_agents:
+  - model-contract-agent-4-repair-focus
+  rationale: Free-form repair prose is not an executable contract.
+  risk: medium
+- id: research-plan-base-accepted
+  category: plan_schema
+  parser: extract_research_plan
+  input:
+    base: research_plan
+  expected:
+    outcome: accept
+    plan:
+      command_group_count: 1
+      first_group_stage: apps
+  source_agents:
+  - model-contract-agent-1-json-schema
+  - model-contract-agent-2-command-groups
+  rationale: A complete plan with one app command group is accepted.
+  risk: low
+- id: plan-missing-target-summary-rejected
+  category: plan_schema
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    remove:
+    - target_summary
+  expected:
+    outcome: reject
+    error_contains: target_summary
+  source_agents:
+  - model-contract-agent-1-json-schema
+  rationale: Top-level plan identity fields are required.
+  risk: medium
+- id: plan-missing-command-groups-rejected
+  category: plan_schema
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    remove:
+    - command_groups
+  expected:
+    outcome: reject
+    error_contains: command_groups
+  source_agents:
+  - model-contract-agent-1-json-schema
+  rationale: A plan without executable or explicitly deferred work is incomplete.
+  risk: medium
+- id: command-groups-not-list-rejected
+  category: command_group_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups: install vlc
+  expected:
+    outcome: reject
+    error_contains: command_groups must be a non-empty list
+  source_agents:
+  - model-contract-agent-1-json-schema
+  - model-contract-agent-2-command-groups
+  rationale: Command groups must be structured objects, not strings.
+  risk: medium
+- id: command-group-missing-id-rejected
+  category: command_group_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - stage: apps
+        title: Install VLC
+        commands:
+        - sudo pacman -S --noconfirm vlc
+        rationale: Install requested media player.
+  expected:
+    outcome: reject
+    error_contains: id, title, stage
+  source_agents:
+  - model-contract-agent-2-command-groups
+  rationale: A group id is needed for runlog, repair, and status routing.
+  risk: medium
+- id: command-group-missing-title-rejected
+  category: command_group_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: apps-vlc
+        stage: apps
+        commands:
+        - sudo pacman -S --noconfirm vlc
+        rationale: Install requested media player.
+  expected:
+    outcome: reject
+    error_contains: id, title, stage
+  source_agents:
+  - model-contract-agent-2-command-groups
+  rationale: A human-readable title is needed for summaries and support bundles.
+  risk: medium
+- id: command-group-reason-alias-normalized
+  category: command_group_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: apps-vlc
+        stage: apps
+        title: Install VLC
+        commands:
+        - sudo pacman -S --noconfirm vlc
+        reason: Install the requested media player from official repos.
+  expected:
+    outcome: normalize
+    plan:
+      first_group_rationale: Install the requested media player from official repos.
+  source_agents:
+  - model-contract-agent-2-command-groups
+  rationale: The user-facing contract says reason; the internal model field is rationale, so the parser should accept both.
+  risk: medium
+- id: stage-alias-disk-prepare-normalized
+  category: command_group_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: disk-check
+        stage: disk_prepare
+        title: Inspect target disk
+        commands:
+        - lsblk -f
+        rationale: Inspect block devices before install operations.
+  expected:
+    outcome: normalize
+    plan:
+      first_group_stage: install_or_skip
+  source_agents:
+  - model-contract-agent-2-command-groups
+  rationale: Common model stage aliases should normalize to canonical stage routing.
+  risk: medium
+- id: harness-owned-stage-rejected
+  category: command_group_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: probe
+        stage: connect_and_probe
+        title: Probe target
+        commands:
+        - uname -a
+        rationale: Probe target facts.
+  expected:
+    outcome: reject
+    error_contains: harness-owned
+  source_agents:
+  - model-contract-agent-2-command-groups
+  rationale: The model cannot take over harness-owned stages.
+  risk: medium
+- id: unknown-stage-rejected
+  category: command_group_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: random
+        stage: make_it_so
+        title: Unknown stage
+        commands:
+        - 'true'
+        rationale: Invalid stage.
+  expected:
+    outcome: reject
+    error_contains: Unknown setup stage
+  source_agents:
+  - model-contract-agent-2-command-groups
+  rationale: Unknown stages must not silently route to an unsafe default.
+  risk: medium
+- id: optional-empty-group-dropped
+  category: command_group_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    append_command_groups:
+    - id: optional-noop
+      stage: apps
+      title: No safe action for optional app
+      commands: []
+      operations: []
+      verification: []
+      optional: true
+      rationale: No safe install action exists.
+  expected:
+    outcome: normalize
+    plan:
+      command_group_count: 1
+  source_agents:
+  - model-contract-agent-2-command-groups
+  rationale: Optional no-op groups should not break an otherwise useful plan.
+  risk: medium
+- id: required-empty-group-rejected
+  category: command_group_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: required-empty
+        stage: apps
+        title: Required app
+        commands: []
+        operations: []
+        optional: false
+        rationale: Required work with no action.
+  expected:
+    outcome: reject
+    error_contains: at least one command or operation
+  source_agents:
+  - model-contract-agent-2-command-groups
+  rationale: Required work cannot be represented as an empty executable group.
+  risk: medium
+- id: blank-command-rejected
+  category: command_group_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: blank
+        stage: apps
+        title: Blank command
+        commands:
+        - '   '
+        rationale: Invalid blank command.
+  expected:
+    outcome: reject
+    error_contains: at least one command or operation
+  source_agents:
+  - model-contract-agent-2-command-groups
+  rationale: Blank commands should not become silent no-ops.
+  risk: medium
+- id: prose-command-rejected
+  category: command_group_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: prose
+        stage: apps
+        title: Prose command
+        commands:
+        - pacman should install vlc
+        rationale: Invalid prose command.
+  expected:
+    outcome: reject
+    error_contains: not a real shell command
+  source_agents:
+  - model-contract-agent-2-command-groups
+  rationale: Command fields must be executable shell, not prose.
+  risk: medium
+- id: heredoc-command-rejected
+  category: command_group_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: heredoc
+        stage: install_or_skip
+        title: Bad heredoc
+        commands:
+        - arch-chroot /mnt sh <<EOF
+        - locale-gen
+        - EOF
+        rationale: Heredoc fragments split across SSH sessions.
+  expected:
+    outcome: reject
+    error_contains: heredoc syntax
+  source_agents:
+  - model-contract-agent-2-command-groups
+  - model-contract-agent-4-repair-focus
+  rationale: Each command runs separately, so heredoc fragments are unsafe contract shape.
+  risk: medium
+- id: standalone-shell-variable-rejected
+  category: command_group_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: var
+        stage: install_or_skip
+        title: Standalone variable
+        commands:
+        - ROOT=/dev/sda2
+        - mkfs.ext4 $ROOT
+        rationale: Variables do not persist across commands.
+  expected:
+    outcome: reject
+    error_contains: standalone shell variable assignment
+  source_agents:
+  - model-contract-agent-2-command-groups
+  - model-contract-agent-4-repair-focus
+  rationale: Standalone shell variables are invalid because command items use fresh SSH sessions.
+  risk: medium
+- id: verification-string-normalized
+  category: command_group_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: apps-vlc
+        stage: apps
+        title: Install VLC
+        commands:
+        - sudo pacman -S --noconfirm vlc
+        verification: pacman -Q vlc
+        rationale: Install requested media player.
+  expected:
+    outcome: normalize
+    plan:
+      first_group_verification:
+      - pacman -Q vlc
+  source_agents:
+  - model-contract-agent-2-command-groups
+  rationale: Single verification strings are normalized to command lists.
+  risk: medium
+- id: optional-slow-only-when-optional
+  category: command_group_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: slow-required
+        stage: apps
+        title: Required app
+        commands:
+        - sudo pacman -S --noconfirm vlc
+        optional: false
+        optional_slow: true
+        rationale: Required app should not become optional slow.
+  expected:
+    outcome: normalize
+    plan:
+      first_group_optional_slow: false
+  source_agents:
+  - model-contract-agent-2-command-groups
+  rationale: Required groups cannot be downgraded by optional_slow.
+  risk: medium
+- id: operation-format-valid
+  category: dangerous_operation_shape
+  parser: parse_setup_operation
+  input:
+    payload:
+      kind: format_partition
+      target: /dev/sda2
+      filesystem: ext4
+      options:
+        role: root
+  expected:
+    outcome: accept
+    operation:
+      kind: format_partition
+      target: /dev/sda2
+      filesystem: ext4
+      capability_kind: format_filesystem
+      erases_data: true
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: Formatting is represented as typed intent with target and filesystem.
+  risk: medium
+- id: operation-partition-valid
+  category: dangerous_operation_shape
+  parser: parse_setup_operation
+  input:
+    payload:
+      kind: partition_disk
+      target: /dev/sda
+      options:
+        scheme: gpt
+  expected:
+    outcome: accept
+    operation:
+      kind: partition_disk
+      target: /dev/sda
+      capability_kind: disk_partition
+      erases_data: true
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: Partitioning is typed and capability mappable.
+  risk: medium
+- id: operation-mount-valid
+  category: dangerous_operation_shape
+  parser: parse_setup_operation
+  input:
+    payload:
+      kind: mount_partition
+      target: /dev/sda2
+      mountpoint: /mnt
+  expected:
+    outcome: accept
+    operation:
+      kind: mount_partition
+      target: /dev/sda2
+      mountpoint: /mnt
+      capability_kind: mount_target
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: Mounting the install target is typed and target-specific.
+  risk: medium
+- id: operation-write-fstab-valid
+  category: dangerous_operation_shape
+  parser: parse_setup_operation
+  input:
+    payload:
+      kind: write_fstab
+      target: /target-root/etc/fstab
+      options:
+        root: /mnt
+  expected:
+    outcome: accept
+    operation:
+      kind: write_fstab
+      target: /target-root/etc/fstab
+      capability_kind: write_fstab
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: fstab writes are typed instead of raw redirection.
+  risk: medium
+- id: operation-bootloader-valid
+  category: dangerous_operation_shape
+  parser: parse_setup_operation
+  input:
+    payload:
+      kind: install_bootloader
+      target: /dev/sda
+      options:
+        efi_directory: /mnt/boot/efi
+  expected:
+    outcome: accept
+    operation:
+      kind: install_bootloader
+      target: /dev/sda
+      capability_kind: bootloader_install
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: Bootloader install is typed and auditable.
+  risk: medium
+- id: operation-network-security-valid
+  category: dangerous_operation_shape
+  parser: parse_setup_operation
+  input:
+    payload:
+      kind: network_security_change
+      options:
+        command: sudo ufw enable
+  expected:
+    outcome: accept
+    operation:
+      kind: network_security_change
+      capability_kind: network_security_change
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: VPN/firewall activation is typed and capability-gated.
+  risk: medium
+- id: operation-package-db-repair-valid
+  category: dangerous_operation_shape
+  parser: parse_setup_operation
+  input:
+    payload:
+      kind: package_db_repair
+      target: /var/lib/rpm
+      options:
+        command: sudo rpm --rebuilddb
+  expected:
+    outcome: accept
+    operation:
+      kind: package_db_repair
+      capability_kind: package_db_repair
+      erases_data: true
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: Package DB repair is typed and visible to capability previews.
+  risk: medium
+- id: operation-unsupported-kind-rejected
+  category: dangerous_operation_shape
+  parser: parse_setup_operation
+  input:
+    payload:
+      kind: wipe_disk
+      target: /dev/sda
+  expected:
+    outcome: reject
+    error_contains: unsupported
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: Unsupported dangerous-operation kinds cannot sneak into execution.
+  risk: medium
+- id: operation-format-missing-target-rejected
+  category: dangerous_operation_shape
+  parser: parse_setup_operation
+  input:
+    payload:
+      kind: format_partition
+      filesystem: ext4
+  expected:
+    outcome: reject
+    error_contains: target is required
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: Format operations need an exact target.
+  risk: medium
+- id: operation-format-missing-filesystem-rejected
+  category: dangerous_operation_shape
+  parser: parse_setup_operation
+  input:
+    payload:
+      kind: format_partition
+      target: /dev/sda2
+  expected:
+    outcome: reject
+    error_contains: filesystem is required
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: Format operations need an explicit filesystem.
+  risk: medium
+- id: operation-options-not-object-rejected
+  category: dangerous_operation_shape
+  parser: parse_setup_operation
+  input:
+    payload:
+      kind: partition_disk
+      target: /dev/sda
+      options: gpt
+  expected:
+    outcome: reject
+    error_contains: options must be an object
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: Operation options must stay structured.
+  risk: medium
+- id: research-plan-typed-storage-sequence-accepted
+  category: dangerous_operation_shape
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: typed-install
+        stage: install_or_skip
+        title: Prepare confirmed target
+        commands: []
+        operations:
+        - kind: partition_disk
+          target: /dev/sda
+          options:
+            scheme: gpt
+        - kind: format_partition
+          target: /dev/sda2
+          filesystem: ext4
+        - kind: mount_partition
+          target: /dev/sda2
+          mountpoint: /mnt
+        - kind: write_fstab
+          target: /target-root/etc/fstab
+          options:
+            root: /mnt
+        verification:
+        - mountpoint -q /mnt
+        rationale: Use typed install-spine operations after disk confirmation.
+  expected:
+    outcome: accept
+    plan:
+      first_group_stage: install_or_skip
+      first_group_operation_kinds:
+      - partition_disk
+      - format_partition
+      - mount_partition
+      - write_fstab
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: A dangerous install sequence is valid when expressed as typed operations.
+  risk: medium
+- id: raw-mkfs-command-rejected
+  category: dangerous_operation_shape
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: raw-format
+        stage: install_or_skip
+        title: Format root
+        commands:
+        - sudo mkfs.ext4 /dev/sda2
+        rationale: Raw format should use typed operation.
+  expected:
+    outcome: reject
+    error_contains: typed operation
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: Filesystem formatting must not appear as raw model shell.
+  risk: medium
+- id: raw-fstab-write-rejected
+  category: dangerous_operation_shape
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: raw-fstab
+        stage: install_or_skip
+        title: Write fstab
+        commands:
+        - genfstab -U /mnt | sudo tee /mnt/etc/fstab
+        rationale: Raw fstab write should use typed operation.
+  expected:
+    outcome: reject
+    error_contains: typed operation
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: fstab writes must route through typed operation/capability previews.
+  risk: medium
+- id: raw-bootloader-install-rejected
+  category: dangerous_operation_shape
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: raw-grub
+        stage: install_or_skip
+        title: Install GRUB
+        commands:
+        - sudo arch-chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot/efi
+        rationale: Raw bootloader install should use typed operation.
+  expected:
+    outcome: reject
+    error_contains: typed operation
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: Bootloader install should be typed for capability and final-audit evidence.
+  risk: medium
+- id: raw-reboot-command-rejected
+  category: dangerous_operation_shape
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: raw-reboot
+        stage: install_or_skip
+        title: Reboot
+        commands:
+        - sudo reboot
+        rationale: Raw reboot should be harness-owned.
+  expected:
+    outcome: reject
+    error_contains: typed operation
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: Reboot must be controlled by the harness, not raw shell.
+  risk: medium
+- id: raw-firewall-activation-rejected
+  category: dangerous_operation_shape
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: raw-firewall
+        stage: apps
+        title: Enable firewall
+        commands:
+        - sudo ufw enable
+        rationale: Raw network security activation should be typed.
+  expected:
+    outcome: reject
+    error_contains: typed operation
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: Network-security activation can cut SSH and must be a typed consent path.
+  risk: medium
+- id: repair-repo-search-accepted
+  category: repair_contract
+  parser: extract_repair_action
+  input:
+    payload:
+      action: repo_search
+      query: pacman package vlc
+      reason: Check current official package name.
+    fallback_stage: apps
+  expected:
+    outcome: accept
+    repair_action: repo_search
+    path_equals:
+      query: pacman package vlc
+  source_agents:
+  - model-contract-agent-4-repair-focus
+  rationale: Search actions are structured and bounded by the harness loop.
+  risk: low
+- id: repair-community-search-accepted
+  category: repair_contract
+  parser: extract_repair_action
+  input:
+    payload:
+      action: community_search
+      query: AUR brave-bin
+      reason: Check current AUR package name.
+    fallback_stage: apps
+  expected:
+    outcome: accept
+    repair_action: community_search
+  source_agents:
+  - model-contract-agent-4-repair-focus
+  rationale: Community search is a focused repair action for package uncertainty.
+  risk: low
+- id: repair-web-search-bounded-accepted
+  category: repair_contract
+  parser: extract_repair_action
+  input:
+    payload:
+      action: web_search
+      query: official LocalSend Linux package
+      max_results: 5
+      reason: Find current official package source.
+    fallback_stage: apps
+  expected:
+    outcome: accept
+    repair_action: web_search
+    path_equals:
+      max_results: 5
+  source_agents:
+  - model-contract-agent-4-repair-focus
+  rationale: Web repair search is allowed with a small result budget.
+  risk: low
+- id: repair-web-search-unbounded-rejected
+  category: repair_contract
+  parser: extract_repair_action
+  input:
+    payload:
+      action: web_search
+      query: everything about Linux apps
+      max_results: 100
+      reason: Unbounded search.
+    fallback_stage: apps
+  expected:
+    outcome: reject
+    error_contains: max_results
+  source_agents:
+  - model-contract-agent-4-repair-focus
+  rationale: Repair search must remain bounded.
+  risk: medium
+- id: repair-question-accepted
+  category: repair_contract
+  parser: extract_repair_action
+  input:
+    payload:
+      action: question
+      question: Should I skip this optional app?
+      choices:
+      - skip
+      - manual follow-up
+      required: false
+    fallback_stage: apps
+  expected:
+    outcome: accept
+    repair_action: question
+    path_equals:
+      required: false
+  source_agents:
+  - model-contract-agent-4-repair-focus
+  rationale: Questions are structured and explicit.
+  risk: medium
+- id: repair-retry-group-fallback-stage-accepted
+  category: repair_contract
+  parser: extract_repair_action
+  input:
+    payload:
+      action: retry_group
+      group:
+        id: vlc-repair
+        stage: apps
+        title: Install VLC after repo search
+        commands:
+        - sudo pacman -S --noconfirm vlc
+        rationale: Retry with verified package name.
+        evidence:
+        - source_type: repo_search
+          query: pacman -Ss vlc
+          summary: vlc is available in official repos.
+    fallback_stage: apps
+  expected:
+    outcome: accept
+    repair_action: retry_group
+    plan:
+      first_group_stage: apps
+  source_agents:
+  - model-contract-agent-4-repair-focus
+  rationale: Retry groups must stay scoped to the failed stage.
+  risk: medium
+- id: repair-retry-group-stage-drift-rejected
+  category: repair_contract
+  parser: extract_repair_action
+  input:
+    payload:
+      action: retry_group
+      group:
+        id: wrong-stage
+        stage: desktop
+        title: Repair app in desktop stage
+        commands:
+        - sudo pacman -S --noconfirm vlc
+        rationale: Wrong stage.
+    fallback_stage: apps
+  expected:
+    outcome: reject
+    error_contains: stage must remain apps
+  source_agents:
+  - model-contract-agent-4-repair-focus
+  rationale: Repair cannot drift into another stage.
+  risk: medium
+- id: repair-manual-followup-specific-accepted
+  category: manual_followup
+  parser: extract_repair_action
+  input:
+    payload:
+      action: manual_followup
+      reason: Brave package was unavailable after repo and AUR search; install manually from the vendor or skip.
+      app_names:
+      - Brave
+    fallback_stage: apps
+  expected:
+    outcome: manual_followup
+    repair_action: manual_followup
+    manual_app_names:
+    - Brave
+  source_agents:
+  - model-contract-agent-4-repair-focus
+  - model-contract-agent-5-uncertainty-followup
+  rationale: Manual follow-up must name the unresolved item and reason.
+  risk: medium
+- id: repair-manual-followup-missing-reason-rejected
+  category: manual_followup
+  parser: extract_repair_action
+  input:
+    payload:
+      action: manual_followup
+      app_names:
+      - Brave
+    fallback_stage: apps
+  expected:
+    outcome: reject
+    error_contains: reason
+  source_agents:
+  - model-contract-agent-4-repair-focus
+  rationale: Manual follow-up without a reason hides uncertainty.
+  risk: medium
+- id: repair-manual-followup-missing-app-name-rejected
+  category: manual_followup
+  parser: extract_repair_action
+  input:
+    payload:
+      action: manual_followup
+      reason: A requested app remained unresolved after safe search attempts.
+    fallback_stage: apps
+  expected:
+    outcome: reject
+    error_contains: app_names
+  source_agents:
+  - model-contract-agent-4-repair-focus
+  - model-contract-agent-5-uncertainty-followup
+  rationale: App-stage manual follow-up must identify the affected app(s).
+  risk: medium
+- id: repair-heredoc-retry-rejected
+  category: repair_contract
+  parser: extract_repair_action
+  input:
+    payload:
+      action: retry_group
+      group:
+        id: heredoc-repair
+        stage: install_or_skip
+        title: Repair chroot
+        commands:
+        - arch-chroot /mnt sh <<EOF
+        - EOF
+        rationale: Invalid heredoc.
+    fallback_stage: install_or_skip
+  expected:
+    outcome: reject
+    error_contains: heredoc syntax
+  source_agents:
+  - model-contract-agent-4-repair-focus
+  rationale: Repair retry groups inherit command hygiene rules.
+  risk: medium
+- id: repair-raw-mkfs-rejected
+  category: dangerous_operation_shape
+  parser: extract_repair_action
+  input:
+    payload:
+      action: retry_group
+      group:
+        id: raw-format-repair
+        stage: install_or_skip
+        title: Repair format
+        commands:
+        - sudo mkfs.ext4 /dev/sda2
+        rationale: Raw dangerous repair.
+    fallback_stage: install_or_skip
+  expected:
+    outcome: reject
+    error_contains: typed operation
+  source_agents:
+  - model-contract-agent-4-repair-focus
+  - model-contract-agent-3-dangerous-operations
+  rationale: Dangerous final or repair work must use typed operations too.
+  risk: medium
+- id: unresolved-questions-array-accepted
+  category: uncertainty
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      unresolved_questions:
+      - question: Which disk should be erased?
+        required: true
+        choices:
+        - /dev/sda
+        - /dev/nvme0n1
+  expected:
+    outcome: accept
+    plan:
+      unresolved_question_count: 1
+  source_agents:
+  - model-contract-agent-5-uncertainty-followup
+  rationale: Blocking uncertainty is represented as a structured question.
+  risk: medium
+- id: unresolved-questions-string-rejected
+  category: uncertainty
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      unresolved_questions: Which disk?
+  expected:
+    outcome: reject
+    error_contains: Each unresolved question
+  source_agents:
+  - model-contract-agent-5-uncertainty-followup
+  rationale: Unresolved questions need structure, not prose.
+  risk: medium
+- id: requested-app-omission-becomes-manual-followup
+  category: manual_followup
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    profile_apps:
+    - VLC
+    - LocalSend
+    patch:
+      apps:
+      - name: VLC
+        package_name: vlc
+        source: repo
+        status: pending
+        required: true
+        reason: Found in official repos.
+  expected:
+    outcome: manual_followup
+    apps:
+      LocalSend:
+        status: manual_followup
+        reason_contains: did not resolve
+  source_agents:
+  - model-contract-agent-5-uncertainty-followup
+  rationale: A requested app missing from the plan is explicit manual follow-up, not hidden success.
+  risk: medium
+- id: app-installed-claim-normalized-to-pending
+  category: uncertainty
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      apps:
+      - name: VLC
+        package_name: vlc
+        source: repo
+        status: installed
+        required: true
+        reason: Planner claims installed without execution.
+  expected:
+    outcome: normalize
+    apps:
+      VLC:
+        status: pending
+  source_agents:
+  - model-contract-agent-5-uncertainty-followup
+  rationale: Planner output is not execution evidence; installed claims normalize to pending.
+  risk: medium
+- id: source-alias-normalized
+  category: evidence_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      apps:
+      - name: VLC
+        package_name: vlc
+        source: official_docs
+        status: pending
+        required: true
+        reason: Official repo docs show VLC.
+  expected:
+    outcome: normalize
+    apps:
+      VLC:
+        source: repo
+  source_agents:
+  - model-contract-agent-5-uncertainty-followup
+  - model-contract-agent-2-command-groups
+  rationale: Official/package-manager source aliases normalize to repo without changing success state.
+  risk: medium
+- id: provider-native-evidence-without-url-accepted
+  category: evidence_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      driver_strategy:
+        strategy: mesa
+        confidence: medium
+        source: repo
+        packages:
+        - mesa
+        services: []
+        notes: Use Mesa for Intel graphics.
+        evidence:
+        - source_type: provider_native_search
+          query: fedora intel mesa packages
+          summary: Mesa packages are distro-provided.
+          confidence: medium
+  expected:
+    outcome: accept
+    plan:
+      driver_evidence_source: provider_native_search
+  source_agents:
+  - model-contract-agent-5-uncertainty-followup
+  rationale: Provider-native search may not provide a URL; summary/query are still structured evidence.
+  risk: medium
+- id: malformed-evidence-rejected
+  category: evidence_contract
+  parser: extract_research_plan
+  input:
+    base: research_plan
+    patch:
+      command_groups:
+      - id: apps-vlc
+        stage: apps
+        title: Install VLC
+        commands:
+        - sudo pacman -S --noconfirm vlc
+        rationale: Install requested app.
+        evidence:
+        - source_type: repo_search
+  expected:
+    outcome: reject
+    error_contains: needs source_type and summary
+  source_agents:
+  - model-contract-agent-1-json-schema
+  - model-contract-agent-2-command-groups
+  rationale: Evidence objects need enough detail to audit model decisions.
+  risk: medium
+- id: research-prompt-demands-json-only
+  category: prompt_contract
+  parser: prompt_text
+  input:
+    prompt: research
+  expected:
+    outcome: accept
+    prompt_contains:
+    - Return JSON only
+    - The plan schema MUST contain
+    - command_groups (non-empty list
+    - operations are typed setup intents
+  source_agents:
+  - model-contract-agent-1-json-schema
+  - model-contract-agent-2-command-groups
+  rationale: The research prompt states the output schema explicitly.
+  risk: low
+- id: research-prompt-demands-typed-dangerous-work
+  category: prompt_contract
+  parser: prompt_text
+  input:
+    prompt: research
+  expected:
+    outcome: accept
+    prompt_contains:
+    - Prefer typed `operations` for disk
+    - Raw destructive shell
+    - VPN/firewall activation requires explicit consent
+  source_agents:
+  - model-contract-agent-3-dangerous-operations
+  rationale: Prompt guardrails steer dangerous effects into structured operations.
+  risk: low
+- id: research-prompt-demands-uncertainty-honesty
+  category: prompt_contract
+  parser: prompt_text
+  input:
+    prompt: research
+  expected:
+    outcome: accept
+    prompt_contains:
+    - If an app is unresolved
+    - manual_followup
+    - Do not install a merely similar alternative and claim the requested app was installed
+    - Never assume Arch, KDE, NVIDIA, AUR
+  source_agents:
+  - model-contract-agent-5-uncertainty-followup
+  rationale: The model contract says to expose uncertainty rather than invent success.
+  risk: low
+- id: repair-prompt-demands-focused-repair
+  category: prompt_contract
+  parser: prompt_text
+  input:
+    prompt: repair
+    fallback_stage: apps
+  expected:
+    outcome: accept
+    prompt_contains:
+    - repairing ONE failed remote-setup command group
+    - Repair only the current failed group
+    - Search-first repair policy
+    - Manual follow-up is the last resort
+  source_agents:
+  - model-contract-agent-4-repair-focus
+  rationale: Repair prompt bounds the model to one focused group.
+  risk: low
+- id: repair-prompt-demands-typed-dangerous-repair
+  category: prompt_contract
+  parser: prompt_text
+  input:
+    prompt: repair
+    fallback_stage: install_or_skip
+  expected:
+    outcome: accept
+    prompt_contains:
+    - If repair needs disk, bootloader, fstab, controlled reboot, package DB surgery, or VPN/firewall activation
+    - emit typed operations
+    - Raw destructive shell
+  source_agents:
+  - model-contract-agent-4-repair-focus
+  - model-contract-agent-3-dangerous-operations
+  rationale: Repair prompt applies the same dangerous-operation contract as planning.
+  risk: low

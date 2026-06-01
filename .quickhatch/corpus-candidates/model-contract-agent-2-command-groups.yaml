@@ -1,0 +1,341 @@
+- id: command-groups-minimal-valid
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"system","title":"Inspect environment","commands":["python --version"],"rationale":"Confirm the local interpreter before selecting setup steps.","source":"runtime","required":true,"evidence":["Python version is needed to choose compatible commands."],"verification_commands":["python --version"]}]}'
+  expected:
+    outcome: accept
+    parser: extract_research_plan
+    normalized_assertions:
+      - "one command group is present"
+      - "stage is system"
+      - "required is true"
+      - "commands and verification_commands are arrays"
+    error_contains: ""
+  rationale: "Baseline valid command group with all expected fields represented as bounded JSON."
+  risk: low
+
+- id: stage-alias-dependencies-normalizes
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"deps","id":"install-packages","title":"Install packages","commands":["npm ci"],"reason":"Install lockfile-pinned dependencies.","packages":["package-lock.json"],"status":"required","evidence":["package-lock.json exists in the project root."],"verification_commands":["npm test -- --runInBand"]}]}'
+  expected:
+    outcome: normalize
+    parser: extract_research_plan
+    normalized_assertions:
+      - "stage alias deps normalizes to dependencies"
+      - "reason normalizes to rationale"
+      - "status required normalizes to required true"
+      - "packages are preserved as source/package evidence"
+    error_contains: ""
+  rationale: "Models often use short stage aliases and status strings; the contract should normalize common safe aliases."
+  risk: medium
+
+- id: stage-alias-verify-normalizes
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"command_groups":[{"stage":"verify","title":"Run checks","commands":["npm run lint","npm test"],"rationale":"Validate the proposed change before delivery.","required":true,"evidence":["Project scripts expose lint and test commands."],"verification_commands":["npm run lint","npm test"]}]}'
+  expected:
+    outcome: normalize
+    parser: extract_research_plan
+    normalized_assertions:
+      - "command_groups key is accepted as plan groups"
+      - "stage alias verify normalizes to verification"
+      - "verification commands are preserved in order"
+    error_contains: ""
+  rationale: "Accepts a common alternate top-level key and a common verification stage alias without losing command order."
+  risk: medium
+
+- id: harness-owned-stage-rejects-command
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"harness","title":"Run release smoke","commands":["./release-smoke/run.sh"],"rationale":"The harness should validate the package.","required":true,"evidence":["Release smoke exists."],"verification_commands":["./release-smoke/run.sh"]}]}'
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "harness-owned"
+  rationale: "Harness-owned stages should not be emitted as executable model command groups."
+  risk: high
+
+- id: harness-owned-stage-no-commands-manual
+  category: manual_followup
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"harness","title":"Harness validation","operations":[],"rationale":"The external harness should run its managed validations.","required":false,"evidence":["No local command should be executed by the model."],"verification_commands":[]}]}'
+  expected:
+    outcome: manual_followup
+    parser: extract_research_plan
+    normalized_assertions:
+      - "harness-owned stage without commands becomes manual follow-up"
+      - "required false is preserved"
+    error_contains: ""
+  rationale: "A harness-owned stage may be useful as a non-executable handoff, but it must not become a runnable command group."
+  risk: medium
+
+- id: missing-title-and-id-rejects
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"dependencies","commands":["npm ci"],"rationale":"Install dependencies.","required":true,"evidence":["package-lock.json"],"verification_commands":["npm test"]}]}'
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "title"
+  rationale: "Each command group needs a stable human label or id for auditability and repair targeting."
+  risk: medium
+
+- id: id-only-title-normalizes
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"verification","id":"unit-test-pass","commands":["pytest -q"],"rationale":"Run the unit test suite.","required":true,"evidence":["pyproject.toml configures pytest."],"verification_commands":["pytest -q"]}]}'
+  expected:
+    outcome: normalize
+    parser: extract_research_plan
+    normalized_assertions:
+      - "id can satisfy title/id requirement"
+      - "id is preserved"
+      - "stage remains verification"
+    error_contains: ""
+  rationale: "The contract allows either a title or id; id-only output should remain parseable and bounded."
+  risk: low
+
+- id: blank-command-string-rejects
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"setup","title":"Prepare workspace","commands":[""],"rationale":"Prepare the repository.","required":true,"evidence":["Setup is needed."],"verification_commands":["npm test"]}]}'
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "blank command"
+  rationale: "Blank commands are unbounded placeholders and should not be accepted as executable steps."
+  risk: high
+
+- id: prose-command-rejects
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"setup","title":"Install dependencies","commands":["Install the Node packages and then run the tests."],"rationale":"Dependencies must be installed.","required":true,"evidence":["package.json"],"verification_commands":["npm test"]}]}'
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "command"
+  rationale: "Executable command slots must contain commands, not prose instructions that require interpretation."
+  risk: high
+
+- id: heredoc-command-rejects
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"setup","title":"Write config","commands":["cat <<EOF > config.json\n{\"debug\":true}\nEOF"],"rationale":"Create a temporary config file.","required":true,"evidence":["A config file is needed."],"verification_commands":["cat config.json"]}]}'
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "heredoc"
+  rationale: "Heredoc commands can hide multi-line file writes and should be rejected by the model contract."
+  risk: high
+
+- id: optional-empty-group-accepts
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"optional","title":"Browser screenshot check","commands":[],"rationale":"A visual check is useful only when a browser plugin is available.","required":false,"evidence":["Frontend changes may need visual confirmation."],"verification_commands":[]}]}'
+  expected:
+    outcome: accept
+    parser: extract_research_plan
+    normalized_assertions:
+      - "optional empty command group is allowed"
+      - "required false is preserved"
+      - "commands and verification_commands are empty arrays"
+    error_contains: ""
+  rationale: "Optional groups may be intentionally empty when they represent non-blocking capability-dependent work."
+  risk: low
+
+- id: required-empty-group-rejects
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"verification","title":"Run mandatory checks","commands":[],"rationale":"Tests must pass before completion.","required":true,"evidence":["The project has a test suite."],"verification_commands":[]}]}'
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "required"
+  rationale: "A required command group with no commands or operations is not actionable and should fail validation."
+  risk: high
+
+- id: app-required-status-normalizes
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"app","title":"Use GitHub connector","operations":[{"app":"GitHub","action":"inspect pull request","required":true}],"rationale":"The requested review depends on PR metadata from GitHub.","status":"required","evidence":["The user supplied a GitHub PR URL."],"verification_commands":[]}]}'
+  expected:
+    outcome: normalize
+    parser: extract_research_plan
+    normalized_assertions:
+      - "app stage is preserved"
+      - "status required normalizes to required true"
+      - "operation-level required true is preserved"
+      - "empty verification commands are allowed for app operations"
+    error_contains: ""
+  rationale: "App operations need clear required status while remaining parseable without shell commands."
+  risk: medium
+
+- id: app-optional-status-normalizes
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"app","title":"Optional calendar context","operations":[{"app":"Google Calendar","action":"check availability","status":"optional"}],"rationale":"Availability context can improve scheduling but is not required.","required":false,"evidence":["The user asked for possible meeting times."],"verification_commands":[]}]}'
+  expected:
+    outcome: normalize
+    parser: extract_research_plan
+    normalized_assertions:
+      - "operation-level status optional normalizes to required false"
+      - "group required false is preserved"
+      - "operation action remains structured"
+    error_contains: ""
+  rationale: "Optional app work should be represented as structured operations rather than vague prose."
+  risk: medium
+
+- id: app-status-conflict-rejects
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"app","title":"Inspect GitHub issue","operations":[{"app":"GitHub","action":"read issue","required":false}],"rationale":"Issue data is necessary to answer the request.","status":"required","evidence":["The task is defined only in the issue."],"verification_commands":[]}]}'
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "required"
+  rationale: "Conflicting required/optional status between a group and its operation should not silently normalize."
+  risk: high
+
+- id: source-packages-array-accepts
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"dependencies","title":"Install Python dependencies","commands":["pip install -r requirements.txt"],"rationale":"Install declared dependencies before running tests.","source":["requirements.txt","pyproject.toml"],"packages":["pytest","ruff"],"required":true,"evidence":["requirements.txt lists pytest.","pyproject.toml configures ruff."],"verification_commands":["pytest -q","ruff check ."]}]}'
+  expected:
+    outcome: accept
+    parser: extract_research_plan
+    normalized_assertions:
+      - "source array is preserved"
+      - "packages array is preserved"
+      - "multiple verification commands remain ordered"
+    error_contains: ""
+  rationale: "Command groups often cite both files and package names; both should remain structured evidence."
+  risk: low
+
+- id: evidence-required-for-required-group
+  category: evidence_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"verification","title":"Run tests","commands":["npm test"],"rationale":"Verify correctness.","required":true,"evidence":[],"verification_commands":["npm test"]}]}'
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "evidence"
+  rationale: "Required executable work should cite evidence for why the command is appropriate."
+  risk: medium
+
+- id: verification-commands-string-normalizes
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"verification","title":"Run typecheck","commands":["npm run typecheck"],"rationale":"Validate static types.","required":true,"evidence":["package.json defines typecheck."],"verification_commands":"npm run typecheck"}]}'
+  expected:
+    outcome: normalize
+    parser: extract_research_plan
+    normalized_assertions:
+      - "verification_commands string normalizes to single-item array"
+      - "command text is unchanged"
+    error_contains: ""
+  rationale: "A single verification command emitted as a string is a low-risk normalization target."
+  risk: low
+
+- id: operations-and-commands-mixed-rejects
+  category: command_group_contract
+  output_kind: research_plan
+  model_output: '{"plan":[{"stage":"setup","title":"Prepare and inspect","commands":["npm ci"],"operations":[{"app":"GitHub","action":"read pull request"}],"rationale":"Prepare local dependencies and inspect PR metadata.","required":true,"evidence":["package-lock.json","PR URL was supplied."],"verification_commands":["npm test"]}]}'
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "commands"
+  rationale: "Shell commands and app operations should be separated into distinct groups so execution semantics stay clear."
+  risk: high
+
+- id: fenced-json-plan-extracts
+  category: json_parseability
+  output_kind: research_plan
+  model_output: "```json\n{\"plan\":[{\"stage\":\"setup\",\"title\":\"Install dependencies\",\"commands\":[\"npm ci\"],\"rationale\":\"Install dependencies exactly from the lockfile.\",\"required\":true,\"evidence\":[\"package-lock.json is present.\"],\"verification_commands\":[\"npm test\"]}]}\n```"
+  expected:
+    outcome: accept
+    parser: extract_research_plan
+    normalized_assertions:
+      - "JSON is extracted from fenced block"
+      - "one setup command group is parsed"
+    error_contains: ""
+  rationale: "The parser should tolerate a single fenced JSON response while still enforcing schema contents."
+  risk: low
+
+- id: prose-preface-with-json-normalizes
+  category: json_parseability
+  output_kind: research_plan
+  model_output: "Here is the bounded plan:\n{\"plan\":[{\"stage\":\"verification\",\"title\":\"Run lint\",\"commands\":[\"npm run lint\"],\"rationale\":\"Lint catches style and static issues.\",\"required\":true,\"evidence\":[\"package.json defines lint.\"],\"verification_commands\":[\"npm run lint\"]}]}"
+  expected:
+    outcome: normalize
+    parser: extract_research_plan
+    normalized_assertions:
+      - "JSON object is extracted after prose preface"
+      - "preface text is discarded"
+    error_contains: ""
+  rationale: "Models sometimes add a short preface; extraction should recover the structured plan without accepting prose as schema."
+  risk: medium
+
+- id: markdown-bullets-rejects
+  category: plan_schema
+  output_kind: research_plan
+  model_output: "- Stage: setup\n- Title: Install dependencies\n- Commands: npm ci\n- Rationale: Install lockfile dependencies.\n- Required: yes\n- Verify: npm test"
+  expected:
+    outcome: reject
+    parser: extract_research_plan
+    normalized_assertions: []
+    error_contains: "JSON"
+  rationale: "Bullet-list plans are not reliably parseable as bounded model contracts."
+  risk: high
+
+- id: repair-action-command-group-valid
+  category: repair_contract
+  output_kind: repair_action
+  model_output: '{"action":"replace_command_group","target_id":"install-packages","replacement":{"stage":"dependencies","title":"Install packages with lockfile","commands":["npm ci"],"rationale":"Use the lockfile instead of floating installs.","required":true,"evidence":["package-lock.json is present."],"verification_commands":["npm test"]}}'
+  expected:
+    outcome: accept
+    parser: extract_repair_action
+    normalized_assertions:
+      - "repair action targets a stable command group id"
+      - "replacement command group satisfies required fields"
+      - "replacement command is bounded"
+    error_contains: ""
+  rationale: "Repair output should be able to replace a malformed group with a complete structured group."
+  risk: medium
+
+- id: repair-action-prose-rejects
+  category: repair_contract
+  output_kind: repair_action
+  model_output: '{"action":"replace_command_group","target_id":"install-packages","replacement":"Use npm ci because it is safer, then run the tests."}'
+  expected:
+    outcome: reject
+    parser: extract_repair_action
+    normalized_assertions: []
+    error_contains: "replacement"
+  rationale: "Repair actions must carry parseable replacement structure, not prose guidance."
+  risk: high
+
+- id: prompt-contract-demands-command-groups
+  category: prompt_contract
+  output_kind: prompt_contract
+  model_output: "Return only JSON. Each command group must include stage, title or id, commands or operations, rationale, required status, evidence, and verification_commands. Do not include heredocs, prose commands, or harness-owned executable stages."
+  expected:
+    outcome: accept
+    parser: prompt_text
+    normalized_assertions:
+      - "prompt mentions stage"
+      - "prompt mentions title or id"
+      - "prompt distinguishes commands or operations"
+      - "prompt prohibits heredocs and harness-owned executable stages"
+    error_contains: ""
+  rationale: "The prompt contract itself should state the command group structure and key forbidden shapes."
+  risk: low

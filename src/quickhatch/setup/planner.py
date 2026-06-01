@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import json
 import re
+import shlex
 from dataclasses import asdict
 from typing import Any
 
 from quickhatch.analysis.app_catalog import selected_app_catalog_context
 from quickhatch.config import UserProfile
 
+from .capabilities import dangerous_command_requirements
 from .operations import parse_setup_operation
 from .types import (
     AppPlanItem,
@@ -436,6 +438,28 @@ def _normalize_shell_command(command: str) -> str:
     return stripped
 
 
+def _is_standalone_shell_assignment(command: str) -> bool:
+    try:
+        tokens = shlex.split(str(command or ""), posix=True)
+    except ValueError:
+        return False
+    return bool(tokens) and all(
+        "=" in token and not token.startswith("-") and token.split("=", 1)[0].isidentifier()
+        for token in tokens
+    )
+
+
+def _dangerous_shell_contract_error(command: str) -> str:
+    requirements = dangerous_command_requirements(command)
+    if not requirements:
+        return ""
+    details = ", ".join(
+        f"{requirement.get('kind', '<unknown>')} target={requirement.get('target') or '<none>'}"
+        for requirement in requirements
+    )
+    return f"contains a dangerous raw shell operation; use a typed operation instead ({details})."
+
+
 def _clean_shell_commands(raw: Any, *, field_name: str) -> list[str]:
     raw_items = _shell_command_items(raw, field_name=field_name)
     commands: list[str] = []
@@ -461,6 +485,15 @@ def _clean_shell_commands(raw: Any, *, field_name: str) -> list[str]:
                 "Each command runs in a separate SSH session; use a single quoted "
                 "`bash -lc`/`sh -c` command or direct file edits instead."
             )
+        if _is_standalone_shell_assignment(command):
+            raise ResearchPlanValidationError(
+                f"{field_name}[{index}] is a standalone shell variable assignment: "
+                f"{command!r}. Each command runs in a fresh SSH session; combine the "
+                "assignment with the command that uses it."
+            )
+        dangerous_error = _dangerous_shell_contract_error(command)
+        if dangerous_error:
+            raise ResearchPlanValidationError(f"{field_name}[{index}] {dangerous_error}")
         commands.append(command)
     return commands
 
@@ -500,7 +533,7 @@ def _parse_command_group(item: Any) -> CommandGroup:
             item.get("verification", []),
             field_name=f"command_groups[{gid or title or '?'}].verification",
         ),
-        rationale=str(item.get("rationale", "") or ""),
+        rationale=str(item.get("rationale", item.get("reason", "")) or ""),
         source=_normalize_package_source(str(item.get("source", "repo") or "repo")),
         packages=[str(pkg) for pkg in (item.get("packages", []) or []) if str(pkg).strip()],
         optional=optional,
@@ -830,11 +863,14 @@ def extract_repair_action(
         query = str(payload.get("query", "")).strip()
         if not query:
             raise RepairActionValidationError(f"{action} requires a non-empty query.")
+        max_results = int(payload.get("max_results", 5) or 5)
+        if action == "web_search" and not 1 <= max_results <= 10:
+            raise RepairActionValidationError("web_search max_results must be between 1 and 10.")
         return {
             "action": action,
             "query": query,
             "reason": str(payload.get("reason", "") or ""),
-            "max_results": int(payload.get("max_results", 5) or 5),
+            "max_results": max_results,
         }
     if action == "question":
         question = str(payload.get("question", "")).strip()
@@ -848,14 +884,20 @@ def extract_repair_action(
             "timeout_seconds": float(payload.get("timeout_seconds", 600) or 600),
         }
     if action == "manual_followup":
+        reason = str(payload.get("reason", "") or "").strip()
+        if not reason:
+            raise RepairActionValidationError("manual_followup requires a specific reason.")
+        app_names = [
+            str(name) for name in (payload.get("app_names", []) or []) if str(name).strip()
+        ]
+        if fallback_stage == SetupStage.APPS and not app_names:
+            raise RepairActionValidationError(
+                "manual_followup requires app_names for app-stage repairs."
+            )
         return {
             "action": action,
-            "reason": str(
-                payload.get("reason", "") or "Model deferred this item to manual follow-up."
-            ),
-            "app_names": [
-                str(name) for name in (payload.get("app_names", []) or []) if str(name).strip()
-            ],
+            "reason": reason,
+            "app_names": app_names,
         }
     group_payload = payload.get("group")
     if not isinstance(group_payload, dict):
