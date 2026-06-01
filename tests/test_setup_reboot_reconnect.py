@@ -346,6 +346,18 @@ def test_checkpoint_state_is_persisted_before_controlled_install_reboot() -> Non
         "controlled install reboot should persist run id, plan, stage state, completed groups, "
         "manual follow-ups, repair attempts, and pending questions before issuing reboot"
     )
+    checkpoint = orchestrator.bridge.snapshot_setup_run()["reboot_checkpoint"]
+    assert checkpoint["run_id"] == orchestrator.ctx.run_id
+    assert checkpoint["stage"] == SetupStage.INSTALL_OR_SKIP.value
+    assert (
+        checkpoint["stage_state"][SetupStage.INSTALL_OR_SKIP.value]["completed_groups"]
+        == scenario["stage_state_before"]["completed_groups"]
+    )
+    assert checkpoint["manual_followups"] == scenario["stage_state_before"]["manual_followups"]
+    assert (
+        checkpoint["repair_attempts"][SetupStage.INSTALL_OR_SKIP.value]
+        == scenario["stage_state_before"]["repair_attempts"]
+    )
 
 
 @pytest.mark.parametrize(

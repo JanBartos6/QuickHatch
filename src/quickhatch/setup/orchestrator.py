@@ -1611,6 +1611,10 @@ class SetupOrchestrator:
                         "checks; skipping destructive disk/base install commands.",
                     )
                     self._ensure_reconnect_ssh_key()
+                    self._save_reboot_checkpoint(
+                        stage=SetupStage.INSTALL_OR_SKIP,
+                        reason="controlled install reboot after resume precheck",
+                    )
                     self._issue_install_reboot()
                     reconnect_user = self.ctx.created_user or self.runtime.user
                     reconnected, fresh_info, new_user = self.runtime.wait_for_reconnect(
@@ -1674,6 +1678,10 @@ class SetupOrchestrator:
             )
             if not ok:
                 raise RuntimeError(summary or "; ".join(failures))
+            self._save_reboot_checkpoint(
+                stage=SetupStage.INSTALL_OR_SKIP,
+                reason="controlled install reboot after pre-reboot checks",
+            )
             self._issue_install_reboot()
         reconnect_user = self.ctx.created_user or self.runtime.user
         reconnected, fresh_info, new_user = self.runtime.wait_for_reconnect(reconnect_user)
@@ -1699,6 +1707,84 @@ class SetupOrchestrator:
             stage_state=self.ctx.stage_state[SetupStage.INSTALL_OR_SKIP.value],
         )
         self._record_stage_result(result)
+
+    @staticmethod
+    def _json_safe_checkpoint(value: Any) -> Any:
+        return json.loads(json.dumps(value, default=str))
+
+    def _checkpoint_pending_questions(self) -> list[dict[str, Any]]:
+        questions: list[dict[str, Any]] = []
+        for question in self.bridge.get_pending_questions():
+            questions.append(
+                {
+                    "id": question.id,
+                    "question": question.question,
+                    "choices": list(question.choices or []),
+                    "blocking": question.blocking,
+                    "phase": question.phase,
+                    "context": copy.deepcopy(question.context),
+                }
+            )
+        return questions
+
+    @staticmethod
+    def _checkpoint_list_values(stage_state: dict[str, dict[str, Any]], key: str) -> list[Any]:
+        values: list[Any] = []
+        for state in stage_state.values():
+            raw = state.get(key)
+            if isinstance(raw, list):
+                values.extend(copy.deepcopy(raw))
+            elif raw:
+                values.append(copy.deepcopy(raw))
+        return values
+
+    def _save_reboot_checkpoint(self, *, stage: SetupStage, reason: str) -> None:
+        setup_snapshot = self.bridge.snapshot_setup_run()
+        checkpoint: dict[str, Any] = {
+            "run_id": self.ctx.run_id,
+            "stage": stage.value,
+            "reason": reason,
+            "created_user": self.ctx.created_user,
+            "runtime_user": self.runtime.user,
+            "plan": asdict(self.ctx.plan) if self.ctx.plan else None,
+            "stage_state": copy.deepcopy(self.ctx.stage_state),
+            "stage_results": [asdict(result) for result in self.ctx.stage_results],
+            "completed_groups": self._checkpoint_list_values(
+                self.ctx.stage_state, "completed_groups"
+            ),
+            "manual_followups": self._checkpoint_list_values(
+                self.ctx.stage_state, "manual_followups"
+            ),
+            "repair_attempts": {
+                stage_name: copy.deepcopy(state.get("repair_attempts", {}))
+                for stage_name, state in self.ctx.stage_state.items()
+                if state.get("repair_attempts")
+            },
+            "attempt_loop_counts": {
+                stage_name: copy.deepcopy(state.get("attempt_loop_counts", {}))
+                for stage_name, state in self.ctx.stage_state.items()
+                if state.get("attempt_loop_counts")
+            },
+            "pending_questions": self._checkpoint_pending_questions(),
+            "active_question_id": setup_snapshot.get("active_question_id", ""),
+            "waiting_for_input": setup_snapshot.get("waiting_for_input", False),
+            "system_info_tail": (self.ctx.system_info or "")[-2000:],
+            "results_log_tail": self.ctx.results_log[-10:],
+        }
+        if self.ctx.capability_store is not None:
+            checkpoint["capability_store"] = self.ctx.capability_store.to_payload()
+        checkpoint = self._json_safe_checkpoint(checkpoint)
+        self.bridge.update_setup_run(
+            stage=stage.value,
+            status="running",
+            reboot_checkpoint=checkpoint,
+        )
+        self.runlog.record(
+            "setup_checkpoint_saved",
+            stage=stage.value,
+            reason=reason,
+            checkpoint=checkpoint,
+        )
 
     def _ensure_live_install_target_user(self) -> None:
         candidate = self._profile_target_username()
