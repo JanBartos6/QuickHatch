@@ -32,6 +32,7 @@ TARGETED_PYTEST_FILES = (
     "tests/test_bridge_state.py",
     "tests/test_gui_endpoints.py",
     "tests/test_support_bundle.py",
+    "tests/test_support_bundle_diagnostics.py",
     "tests/test_release_smoke.py",
 )
 
