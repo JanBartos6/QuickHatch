@@ -1,0 +1,818 @@
+- id: required-app-vendor-manual-followup
+  category: app_theme_driver_followup
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "command_group_started"
+      payload:
+        stage: "apps"
+        group_id: "apps-required-zoom"
+        title: "Install required Zoom client"
+    - event_type: "group_manual_followup"
+      payload:
+        stage: "apps"
+        group_id: "apps-required-zoom"
+        app_names:
+          - "Zoom"
+        reason: "Required app Zoom needs a vendor package download and manual license acceptance."
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "manual_followup_required"
+          findings:
+            - id: "apps:zoom_manual_vendor"
+              severity: "manual_followup"
+              category: "apps"
+              summary: "Zoom still needs manual vendor installation and license acceptance."
+          details:
+            app_verification_manual_followups:
+              - app: "Zoom"
+                package: "zoom"
+                reason: "Vendor package and license acceptance could not be automated safely."
+                source: "vendor"
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+    - "final-audit.json"
+    - "manual-followups.json"
+    - "app-verification.json"
+  required_evidence:
+    - "final status is manual_followup_required"
+    - "manual-followups.json names Zoom and the vendor/license reason"
+    - "failed or deferred group id apps-required-zoom is visible"
+    - "final-audit.json preserves the apps finding"
+  redaction_expectations:
+    - "sk-vendor-download-token"
+  current_likely_gap: "stage-level group_manual_followup may not appear in manual-followups.json unless final audit repeats it"
+  rationale: "Required app manual follow-up must be easy to diagnose from the bundle, not buried only in raw runlog events."
+  risk: medium
+
+- id: optional-browser-warning-only
+  category: success_with_warnings
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "command_group_started"
+      payload:
+        stage: "apps"
+        group_id: "apps-optional-brave"
+        title: "Install optional Brave browser"
+    - event_type: "verification"
+      payload:
+        stage: "apps"
+        group_id: "apps-optional-brave"
+        command: "command -v brave-browser"
+        rc: 1
+        stdout_tail: ""
+        stderr_tail: ""
+        failure_classification: "warning"
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "success_with_warnings"
+          findings:
+            - id: "apps:brave_optional_missing"
+              severity: "warning"
+              category: "apps"
+              summary: "Optional browser Brave is not installed; core setup is usable."
+          details:
+            app_verification:
+              apps:
+                - app: "Brave"
+                  requested: true
+                  required: false
+                  verified: false
+                  reason: "Optional app was unavailable."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "app-verification.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "final status is success_with_warnings, not success"
+    - "warning finding names optional Brave"
+    - "verification failure command and group id remain visible"
+    - "manual-followups.json is not required for warning-only status"
+  redaction_expectations:
+    - "Bearer optional-app-token"
+  current_likely_gap: "none"
+  rationale: "Warning-only app failures should be visible without making the run look blocked or perfect."
+  risk: low
+
+- id: optional-theme-asset-warning
+  category: success_with_warnings
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "desktop_cosmetic_verification_manual_followup"
+      payload:
+        stage: "desktop"
+        group_id: "desktop-theme-nord"
+        command: "gsettings get org.gnome.desktop.interface gtk-theme"
+        rc: 1
+        stdout_tail: ""
+        stderr_tail: "No such schema on this desktop"
+        reason: "Cosmetic desktop verification did not pass for 'Apply Nord theme'. Leaving this theme check as manual follow-up."
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "success_with_warnings"
+          findings:
+            - id: "desktop:theme_nord_unverified"
+              severity: "warning"
+              category: "desktop"
+              summary: "Requested Nord theme could not be verified after command execution."
+          details:
+            desktop_design:
+              theme:
+                requested: "Nord"
+                observed: ""
+                status: "attempted_but_failed"
+                reason: "Theme verification command failed on this desktop."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "desktop finding names the theme element"
+    - "verification command and stderr tail are redacted but present"
+    - "final status remains success_with_warnings"
+  redaction_expectations:
+    - "password=themeSecret123"
+  current_likely_gap: "desktop_cosmetic_verification_manual_followup is not collected into manual-followups.json unless final audit repeats it"
+  rationale: "Cosmetic theme failures are non-fatal, but the bundle should still show exactly which design element failed."
+  risk: low
+
+- id: desktop-no-session-wallpaper-followup
+  category: desktop_no_session
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "desktop_runtime_item_manual_followup"
+      payload:
+        stage: "desktop"
+        group_id: "desktop-wallpaper-live"
+        item_kind: "wallpaper"
+        command: "gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/wallpaper.jpg"
+        reason: "Skipped display-dependent desktop wallpaper in group 'Apply wallpaper' because no active target display facts were available over the real GUI session."
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "manual_followup_required"
+          findings:
+            - id: "desktop:wallpaper_no_session"
+              severity: "manual_followup"
+              category: "desktop"
+              summary: "Wallpaper requires manual follow-up because no active GUI session was available."
+          details:
+            desktop_design_manual_followups:
+              - element: "wallpaper"
+                group_id: "desktop-wallpaper-live"
+                reason: "No active GUI session was available for live wallpaper apply."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+    - "final-audit.json"
+    - "manual-followups.json"
+  required_evidence:
+    - "manual follow-up names wallpaper"
+    - "no active GUI session reason is preserved"
+    - "skipped live-apply command is present and redacted"
+    - "group id desktop-wallpaper-live is visible"
+  redaction_expectations:
+    - "qh_pw=WallpaperSecret!"
+  current_likely_gap: "desktop_runtime_item_manual_followup is not directly collected into manual-followups.json unless final audit repeats it"
+  rationale: "No-session desktop cases are common over SSH and must be distinguishable from command success."
+  risk: medium
+
+- id: desktop-no-session-icons-persisted-warning
+  category: desktop_no_session
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "command"
+      payload:
+        stage: "desktop"
+        group_id: "desktop-icons-persistent"
+        command: "mkdir -p /home/quickhatch/.config && kwriteconfig5 --file kdeglobals --group Icons --key Theme Papirus"
+        rc: 0
+        stdout_tail: ""
+        stderr_tail: ""
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "success_with_warnings"
+          findings:
+            - id: "desktop:icons_persisted_unverified"
+              severity: "warning"
+              category: "desktop"
+              summary: "Papirus icons were persisted in config but could not be live-verified without a GUI session."
+          details:
+            desktop_design:
+              icons:
+                requested: "Papirus"
+                observed: ""
+                status: "persisted_but_not_live_verified"
+                reason: "No active GUI session was available for visual verification."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "icons are marked persisted_but_not_live_verified"
+    - "final status is success_with_warnings"
+    - "bundle does not claim applied_and_verified"
+  redaction_expectations:
+    - "authorized_keys ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeKey user@example"
+  current_likely_gap: "unknown"
+  rationale: "Persistent config can be useful, but support evidence must not confuse it with visual success."
+  risk: low
+
+- id: desktop-effects-unsupported-safe
+  category: unsupported_safe
+  status: unsupported_safe
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "unsupported_safe"
+          findings:
+            - id: "desktop:effects_unsupported_wayland"
+              severity: "unsupported_safe"
+              category: "desktop"
+              summary: "Requested compositor effects are unsupported on the detected session; setup remains safe."
+          details:
+            desktop_design:
+              effects:
+                requested:
+                  - "wobbly_windows"
+                observed: []
+                status: "unavailable"
+                reason: "Detected desktop/session does not expose a supported effect API."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "unsupported_safe final status is preserved"
+    - "finding category desktop and effect name are visible"
+    - "summary says unsupported-safe, not blocked"
+  redaction_expectations:
+    - "sk-effects-secret"
+  current_likely_gap: "unsupported_safe status is normalized, but sparse tests may not cover desktop unsupported-safe bundles"
+  rationale: "Unsupported desktop polish should be diagnosable without implying the system failed."
+  risk: low
+
+- id: nvidia-legacy-driver-manual-followup
+  category: app_theme_driver_followup
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "command_group_started"
+      payload:
+        stage: "postboot_driver"
+        group_id: "driver-nvidia-legacy"
+        title: "Resolve NVIDIA legacy driver"
+    - event_type: "group_manual_followup"
+      payload:
+        stage: "postboot_driver"
+        group_id: "driver-nvidia-legacy"
+        app_names: []
+        reason: "Detected legacy NVIDIA generation; do not install modern nvidia-open blindly."
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "manual_followup_required"
+          findings:
+            - id: "driver:nvidia_legacy_manual"
+              severity: "manual_followup"
+              category: "driver"
+              summary: "Legacy NVIDIA hardware needs manual driver selection."
+          details:
+            driver:
+              vendor: "nvidia"
+              model: "GeForce GTX 750 Ti"
+              strategy: "nvidia_legacy_manual_followup"
+              reason: "Pre-Turing hardware should not be routed to nvidia-open without verification."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "manual-followups.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "driver finding names NVIDIA legacy hardware"
+    - "manual-followups.json includes driver category and reason"
+    - "group id driver-nvidia-legacy is recoverable from runlog"
+  redaction_expectations:
+    - "Bearer driverVendorToken"
+  current_likely_gap: "stage-level postboot driver group_manual_followup may not be included in manual-followups.json unless final audit repeats it"
+  rationale: "Driver uncertainty is high-impact but should not erase other setup successes or masquerade as verified."
+  risk: high
+
+- id: secure-boot-mok-manual-followup
+  category: app_theme_driver_followup
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "manual_followup_required"
+          findings:
+            - id: "driver:secure_boot_mok"
+              severity: "manual_followup"
+              category: "driver"
+              summary: "Secure Boot is enabled and NVIDIA module signing/MOK enrollment still requires manual follow-up."
+          details:
+            driver:
+              vendor: "nvidia"
+              secure_boot: "enabled"
+              module_loaded: false
+              reason: "Unsigned DKMS module cannot be treated as verified until MOK enrollment and reboot verification complete."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "manual-followups.json"
+    - "setup-facts-summary.json"
+  required_evidence:
+    - "Secure Boot state is visible"
+    - "manual follow-up reason mentions MOK/module signing"
+    - "final status is not success"
+  redaction_expectations:
+    - "MOK_PASSWORD=EnrollSecret!"
+  current_likely_gap: "facts summary has secure_boot fields, but driver-specific manual-followup extraction depends on final-audit finding quality"
+  rationale: "Secure Boot driver uncertainty is a common support path and must not look like a completed driver install."
+  risk: high
+
+- id: vm-gpu-unsupported-safe
+  category: unsupported_safe
+  status: unsupported_safe
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "unsupported_safe"
+          findings:
+            - id: "driver:vm_gpu_not_certified"
+              severity: "unsupported_safe"
+              category: "driver"
+              summary: "Virtual GPU detected; real NVIDIA/AMD hardware driver certification is not applicable."
+          details:
+            driver:
+              is_vm: true
+              gpu_vendors:
+                - "virtio"
+              status: "skipped"
+              reason: "VM graphics cannot certify physical GPU drivers."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "setup-facts-summary.json"
+  required_evidence:
+    - "unsupported_safe final status is present"
+    - "facts summary shows VM or virtual graphics context where available"
+    - "driver skip reason is visible"
+  redaction_expectations:
+    - "api_key=vmSecretKey"
+  current_likely_gap: "unsupported-safe driver skip evidence is present only if final audit details carry it"
+  rationale: "Support reviewers need to know VM graphics were skipped intentionally, not silently forgotten."
+  risk: medium
+
+- id: amd-firmware-warning
+  category: app_theme_driver_followup
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "verification"
+      payload:
+        stage: "postboot_driver"
+        group_id: "driver-amd-firmware"
+        command: "journalctl -k --no-pager | grep -i firmware"
+        rc: 0
+        stdout_tail: "amdgpu: firmware file missing for optional video decode block"
+        stderr_tail: ""
+        failure_classification: "warning"
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "success_with_warnings"
+          findings:
+            - id: "driver:amd_optional_firmware"
+              severity: "warning"
+              category: "driver"
+              summary: "AMD GPU is usable, but optional firmware warning remains."
+          details:
+            driver:
+              vendor: "amd"
+              module_loaded: true
+              firmware_present: "partial"
+              reason: "Optional firmware warning should be reviewed if media acceleration is needed."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "driver warning is preserved"
+    - "verification command and warning tail are visible"
+    - "final status is success_with_warnings"
+  redaction_expectations:
+    - "root_pw=FirmwareSecret!"
+  current_likely_gap: "none"
+  rationale: "Normal AMD/Intel warnings should not overblock, but support bundles must explain the degraded state."
+  risk: medium
+
+- id: provider-429-desktop-repair-manual-followup
+  category: manual_followup_required
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "repair_model_unavailable_manual_followup"
+      payload:
+        stage: "desktop"
+        group_id: "desktop-cursor-bibata"
+        repair_attempt: 2
+        repair_turn: 1
+        error: "provider returned 429 rate limit for request with Authorization: Bearer provider-secret"
+        reason: "Repair LLM unavailable for 'Apply Bibata cursor': provider returned 429. Leaving this non-install group as manual follow-up instead of blocking setup."
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "manual_followup_required"
+          findings:
+            - id: "desktop:cursor_repair_provider_429"
+              severity: "manual_followup"
+              category: "desktop"
+              summary: "Bibata cursor repair could not be generated because the provider was rate-limited."
+          details:
+            desktop_design_manual_followups:
+              - element: "cursor"
+                group_id: "desktop-cursor-bibata"
+                reason: "Repair provider returned 429; cursor remains manual follow-up."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "manual-followups.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "provider error category or 429 text is visible without secret payload"
+    - "manual follow-up names cursor and group id"
+    - "repair attempt count is preserved"
+  redaction_expectations:
+    - "Bearer provider-secret"
+  current_likely_gap: "provider/model errors are preserved in raw runlog but not extracted into a dedicated provider-errors artifact"
+  rationale: "Provider rate limits should produce actionable support evidence without leaking authorization data."
+  risk: medium
+
+- id: repair-loop-exhausted-optional-theme-warning
+  category: success_with_warnings
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "repair_signature_repeated"
+      payload:
+        stage: "desktop"
+        group_id: "desktop-theme-dracula"
+        signature: "desktop-theme-dracula|gsettings set gtk-theme Dracula"
+        repair_attempt: 3
+        reason: "Repeated identical repair command detected."
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "success_with_warnings"
+          findings:
+            - id: "desktop:theme_repair_exhausted"
+              severity: "warning"
+              category: "desktop"
+              summary: "Optional Dracula theme repair budget was exhausted; theme remains unverified."
+          details:
+            final_audit_repairs: []
+            repair_loop:
+              group_id: "desktop-theme-dracula"
+              attempts: 3
+              exhausted: true
+              disposition: "warning"
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+    - "final-audit.json"
+  required_evidence:
+    - "repair attempt count is visible"
+    - "exhausted budget is visible"
+    - "warning remains tied to Dracula theme"
+  redaction_expectations:
+    - "sk-repair-theme-secret"
+  current_likely_gap: "repair-loop exhaustion is not summarized into a dedicated repair-events artifact"
+  rationale: "A warning caused by bounded repair exhaustion needs enough evidence to prove the loop stopped safely."
+  risk: medium
+
+- id: final-audit-repair-manual-followup-theme
+  category: manual_followup_required
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "final_audit_repair_manual_followup"
+      payload:
+        stage: "final_audit"
+        group_id: "final-audit-repair-desktop-theme"
+        reason: "Theme repair requires user-specific GUI confirmation and cannot be safely applied headlessly."
+        findings:
+          - "desktop:theme_unverified"
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "manual_followup_required"
+          findings:
+            - id: "desktop:theme_unverified"
+              severity: "manual_followup"
+              category: "desktop"
+              summary: "Theme remains unverified after final-audit repair review."
+          details:
+            final_audit_repairs:
+              - action: "manual_followup"
+                reason: "Theme repair requires user-specific GUI confirmation."
+                findings:
+                  - "desktop:theme_unverified"
+  expected_bundle_artifacts:
+    - "manual-followups.json"
+    - "final-audit.json"
+    - "support-summary.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "final-audit repair manual-followup event is extracted"
+    - "finding id desktop:theme_unverified is visible"
+    - "summary does not claim final repair success"
+  redaction_expectations:
+    - "PRIVATE_KEY_FOR_THEME_REPAIR"
+  current_likely_gap: "none"
+  rationale: "Final-audit repairs that intentionally defer need to appear as deliberate manual follow-up."
+  risk: medium
+
+- id: unsupported-snap-store
+  category: unsupported_safe
+  status: unsupported_safe
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "unsupported_safe"
+          findings:
+            - id: "apps:snap_unavailable"
+              severity: "unsupported_safe"
+              category: "apps"
+              summary: "Requested Snap-only app is unsupported because snapd is unavailable on this target."
+          details:
+            app_verification_manual_followups:
+              - app: "Proprietary Chat"
+                package: "proprietary-chat"
+                source: "snap"
+                reason: "Snap support is unavailable; app cannot be installed through the requested source."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "manual-followups.json"
+    - "app-verification.json"
+  required_evidence:
+    - "unsupported_safe status is preserved"
+    - "app name, source snap, and unavailable snapd reason are visible"
+    - "bundle distinguishes unsupported from blocked"
+  redaction_expectations:
+    - "snap_login_token=SnapSecret"
+  current_likely_gap: "manual-followups extraction handles app verification, but unsupported-safe app cases need explicit fixture coverage"
+  rationale: "Unsupported app source should be actionable without being confused with a safety block."
+  risk: low
+
+- id: app-alternative-installed-warning
+  category: app_theme_driver_followup
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "success_with_warnings"
+          findings:
+            - id: "apps:mail_client_alternative"
+              severity: "warning"
+              category: "apps"
+              summary: "Thunderbird was unavailable, but Evolution was installed as an alternative."
+          details:
+            app_verification:
+              apps:
+                - app: "Thunderbird"
+                  requested: true
+                  required: false
+                  verified: false
+                  alternative:
+                    app: "Evolution"
+                    verified: true
+                  reason: "Alternative mail client installed; original request not marked complete."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "app-verification.json"
+  required_evidence:
+    - "requested app Thunderbird is not marked verified"
+    - "alternative app Evolution is recorded separately"
+    - "final status is success_with_warnings"
+  redaction_expectations:
+    - "email_password=MailSecret!"
+  current_likely_gap: "none"
+  rationale: "Alternatives are useful, but support evidence must not imply the original requested app was installed."
+  risk: medium
+
+- id: display-scaling-manual-followup
+  category: desktop_no_session
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "display_preference_manual_followup"
+      payload:
+        stage: "desktop"
+        group_id: "desktop-display-scaling"
+        reason: "Requested 125% scaling for HDMI-A-1 could not be applied without verified target display facts."
+        displays:
+          - name: "HDMI-A-1"
+            scale: "125%"
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "manual_followup_required"
+          findings:
+            - id: "desktop:display_scaling_manual"
+              severity: "manual_followup"
+              category: "desktop"
+              summary: "Display scaling preference needs manual follow-up because the active display could not be verified."
+          details:
+            desktop_design_manual_followups:
+              - element: "display_scaling"
+                reason: "HDMI-A-1 was requested but active display facts were unavailable."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "manual-followups.json"
+    - "setup-facts-summary.json"
+  required_evidence:
+    - "display name and scaling request are visible"
+    - "manual-followup reason is display-specific"
+    - "facts summary shows display/session context where available"
+  redaction_expectations:
+    - "display_api_token=DisplaySecret"
+  current_likely_gap: "display_preference_manual_followup is not directly collected into manual-followups.json unless final audit repeats it"
+  rationale: "Display preferences are easy to misdiagnose after SSH setup; the bundle should explain the exact unresolved display request."
+  risk: medium
+
+- id: driver-reboot-required-warning
+  category: app_theme_driver_followup
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "command"
+      payload:
+        stage: "postboot_driver"
+        group_id: "driver-nvidia-reboot-required"
+        command: "sudo pacman -S --needed nvidia nvidia-utils"
+        rc: 0
+        stdout_tail: "installed nvidia package; reboot required"
+        stderr_tail: ""
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "success_with_warnings"
+          findings:
+            - id: "driver:nvidia_reboot_unverified"
+              severity: "warning"
+              category: "driver"
+              summary: "NVIDIA driver packages installed, but module load was not verified after reboot."
+          details:
+            driver:
+              vendor: "nvidia"
+              package_installed: true
+              module_loaded: false
+              reboot_required: true
+              status: "installed_unverified"
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+    - "final-audit.json"
+  required_evidence:
+    - "driver package command result is present"
+    - "reboot_required and installed_unverified are visible"
+    - "final status is not success"
+  redaction_expectations:
+    - "sudo_password=DriverSecret!"
+  current_likely_gap: "unknown"
+  rationale: "Driver install success before reboot is not driver verification; support evidence must preserve that distinction."
+  risk: high
+
+- id: headless-fonts-warning
+  category: success_with_warnings
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "command"
+      payload:
+        stage: "desktop"
+        group_id: "desktop-fonts"
+        command: "fc-cache -f"
+        rc: 0
+        stdout_tail: ""
+        stderr_tail: ""
+    - event_type: "verification"
+      payload:
+        stage: "desktop"
+        group_id: "desktop-fonts"
+        command: "fc-match Inter"
+        rc: 1
+        stdout_tail: ""
+        stderr_tail: "font not found"
+        failure_classification: "warning"
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "success_with_warnings"
+          findings:
+            - id: "desktop:font_missing"
+              severity: "warning"
+              category: "desktop"
+              summary: "Requested Inter font could not be verified; setup otherwise completed."
+          details:
+            desktop_design:
+              fonts:
+                requested:
+                  - "Inter"
+                observed: []
+                status: "attempted_but_failed"
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "font name Inter appears in final audit details"
+    - "verification failure remains warning-classified"
+    - "command success is not enough to claim font verified"
+  redaction_expectations:
+    - "font_repo_token=FontSecret"
+  current_likely_gap: "font/design details may not be summarized unless final audit includes desktop_design"
+  rationale: "Fonts are cosmetic but user-visible; warning evidence should survive support bundle export."
+  risk: low
+
+- id: package-app-provider-timeout-manual-followup
+  category: manual_followup_required
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "repair_model_unavailable_manual_followup"
+      payload:
+        stage: "apps"
+        group_id: "apps-required-obsidian"
+        repair_attempt: 1
+        repair_turn: 1
+        error: "timeout while asking model to repair package source; api_key=provider-secret"
+        reason: "Repair LLM unavailable for 'Install Obsidian': timeout. Leaving this non-install group as manual follow-up instead of blocking setup."
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "manual_followup_required"
+          findings:
+            - id: "apps:obsidian_provider_timeout"
+              severity: "manual_followup"
+              category: "apps"
+              summary: "Required Obsidian app still needs manual follow-up because package repair timed out."
+          details:
+            app_verification_manual_followups:
+              - app: "Obsidian"
+                package: "obsidian"
+                reason: "Repair provider timed out before producing a safe fallback source."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "manual-followups.json"
+    - "app-verification.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "provider timeout is visible as category/context without secret-bearing payload"
+    - "manual follow-up names Obsidian"
+    - "repair attempt count is preserved"
+  redaction_expectations:
+    - "api_key=provider-secret"
+  current_likely_gap: "provider/model errors are not extracted as a dedicated provider-errors artifact"
+  rationale: "Provider outages should be diagnosable while preserving installed progress and redacting credentials."
+  risk: medium
+
+- id: unsupported-safe-headless-theme
+  category: unsupported_safe
+  status: unsupported_safe
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        result:
+          status: "unsupported_safe"
+          findings:
+            - id: "desktop:headless_theme_unsupported"
+              severity: "unsupported_safe"
+              category: "desktop"
+              summary: "Theme request is unsupported on the headless target; no unsafe desktop mutation was attempted."
+          details:
+            desktop_design:
+              theme:
+                requested: "Catppuccin"
+                observed: ""
+                status: "unavailable"
+                reason: "Target has no desktop environment or GUI session."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "setup-facts-summary.json"
+  required_evidence:
+    - "headless/no desktop context is visible"
+    - "unsupported_safe status is preserved"
+    - "bundle does not imply blocked setup"
+  redaction_expectations:
+    - "ssh_password=HeadlessSecret!"
+  current_likely_gap: "unknown"
+  rationale: "A headless target should be reported as safely unsupported for desktop polish, not as a mysterious missing theme."
+  risk: low
