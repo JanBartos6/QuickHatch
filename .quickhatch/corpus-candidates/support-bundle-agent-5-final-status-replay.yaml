@@ -1,0 +1,528 @@
+- id: enum-success-warnings-final-audit
+  category: final_status_serialization
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        run_id: "status-enum-warnings"
+        result:
+          passed: true
+          final_status: "FinalSetupStatus.SUCCESS_WITH_WARNINGS"
+          findings:
+            - severity: "warning"
+              category: "apps"
+              summary: "Alternative package was installed for one requested app."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "support-summary.json final_status is normalized to success_with_warnings"
+    - "final-audit.json status is normalized to success_with_warnings"
+    - "warning finding is preserved with category and summary"
+  redaction_expectations: []
+  current_likely_gap: "none"
+  rationale: "Enum-style final statuses should serialize consistently across support and replay artifacts."
+  risk: medium
+
+- id: enum-manual-followup-final-audit
+  category: final_status_serialization
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        run_id: "status-enum-manual"
+        result:
+          passed: false
+          final_status: "FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED"
+          findings:
+            - severity: "manual_followup"
+              category: "desktop"
+              summary: "Wallpaper could not be verified in the active user session."
+          details:
+            desktop_design:
+              wallpaper:
+                status: "manual_followup_required"
+                reason: "No active GUI session was available for live verification."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "manual-followups.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "manual follow-up count is nonzero"
+    - "manual follow-up item includes desktop category and wallpaper reason"
+    - "replay summary records manual_followup audit finding"
+  redaction_expectations: []
+  current_likely_gap: "manual-followups extraction is final-audit-centric and may miss stage-level desktop follow-up if final audit omits it"
+  rationale: "Manual follow-up must remain visible and specific in the support bundle."
+  risk: high
+
+- id: enum-unsupported-safe-final-audit
+  category: final_status_serialization
+  status: unsupported_safe
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        run_id: "status-enum-unsupported"
+        result:
+          passed: false
+          final_status: "FinalSetupStatus.UNSUPPORTED_SAFE"
+          findings:
+            - severity: "unsupported_safe"
+              category: "driver"
+              summary: "Virtual GPU does not support real hardware driver certification."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "unsupported_safe status is normalized in support-summary.json"
+    - "unsupported_safe finding category and summary are preserved"
+    - "replay-summary.json audit_findings includes unsupported_safe:driver"
+  redaction_expectations: []
+  current_likely_gap: "unsupported_safe bundle behavior appears supported but lightly tested"
+  rationale: "Unsupported-but-safe outcomes must not be flattened into either success or blocked."
+  risk: high
+
+- id: blocked-final-audit-core-finding
+  category: final_audit_findings
+  status: blocked
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        run_id: "blocked-core-final"
+        result:
+          passed: false
+          final_status: "blocked"
+          blockers:
+            - "Missing bootloader installation."
+          findings:
+            - severity: "fatal"
+              category: "bootability"
+              summary: "Bootloader was not installed on the target system."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "final status is blocked"
+    - "blocker text is preserved"
+    - "fatal bootability finding is preserved"
+    - "replay summary last_failure_type is final_audit"
+  redaction_expectations: []
+  current_likely_gap: "none"
+  rationale: "Fatal core audit failures need enough serialized evidence for diagnosis without rerunning setup."
+  risk: high
+
+- id: warning-only-final-audit-status
+  category: final_audit_findings
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        run_id: "warning-only-final"
+        result:
+          passed: true
+          final_status: "success_with_warnings"
+          blockers: []
+          findings:
+            - severity: "warning"
+              category: "apps"
+              summary: "Optional theme package was unavailable."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "warning finding is retained"
+    - "status remains success_with_warnings rather than success"
+    - "support summary audit_finding_count includes warning"
+  redaction_expectations: []
+  current_likely_gap: "none"
+  rationale: "Warning-only outcomes should stay visibly different from clean success."
+  risk: medium
+
+- id: final-audit-after-run-finished-conflict
+  category: status_summary_agreement
+  status: blocked
+  representative_runlog_events:
+    - event_type: "run_finished"
+      payload:
+        run_id: "conflict-final-wins"
+        final_status: "success"
+    - event_type: "final_audit"
+      payload:
+        run_id: "conflict-final-wins"
+        result:
+          passed: false
+          final_status: "blocked"
+          blockers:
+            - "SSH reconnect failed after controlled reboot."
+          findings:
+            - severity: "fatal"
+              category: "ssh_reconnect"
+              summary: "Target did not reconnect."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "final audit blocked status takes precedence in support-summary.json"
+    - "replay-summary.json final_status agrees with final-audit status"
+    - "conflicting earlier run_finished status is still inspectable in redacted runlog"
+  redaction_expectations: []
+  current_likely_gap: "none if events are ordered with final_audit last"
+  rationale: "A late final audit must be able to override optimistic earlier status events."
+  risk: high
+
+- id: run-finished-after-blocked-final-conflict
+  category: status_summary_agreement
+  status: blocked
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        run_id: "conflict-run-finished-last"
+        result:
+          passed: false
+          final_status: "blocked"
+          blockers:
+            - "Package database corruption remains unresolved."
+          findings:
+            - severity: "fatal"
+              category: "package_db"
+              summary: "Package database integrity check failed."
+    - event_type: "run_finished"
+      payload:
+        run_id: "conflict-run-finished-last"
+        final_status: "success"
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "support-summary.json uses final_audit blocked status"
+    - "replay-summary.json does not silently disagree with final-audit.json"
+    - "status conflict is detectable or summarized"
+  redaction_expectations: []
+  current_likely_gap: "replay summary currently uses the last status-bearing event, so it may report success while support-summary reports blocked"
+  rationale: "Conflicting terminal events should not make replay and support artifacts tell different stories."
+  risk: high
+
+- id: setup-run-finished-no-final-audit-manual
+  category: support_summary
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "setup_run_finished"
+      payload:
+        run_id: "manual-no-final"
+        final_status: "manual_followup_required"
+        summary: "Manual follow-up required for NVIDIA driver verification."
+    - event_type: "driver_manual_followup"
+      payload:
+        run_id: "manual-no-final"
+        category: "driver"
+        reason: "Secure Boot requires manual MOK enrollment."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "replay-summary.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "support-summary.json final_status is manual_followup_required"
+    - "absence of final-audit.json is explicitly listed as skipped"
+    - "driver follow-up reason remains discoverable"
+  redaction_expectations: []
+  current_likely_gap: "manual-followups.json is not populated from generic driver_manual_followup events"
+  rationale: "Runs that end before final audit still need actionable support evidence."
+  risk: high
+
+- id: run-failed-blocked-without-final-audit
+  category: replay_summary
+  status: blocked
+  representative_runlog_events:
+    - event_type: "command_preflight_blocked"
+      payload:
+        run_id: "blocked-no-final"
+        stage: "install_or_skip"
+        group_id: "fresh-install-leak"
+        command: "mkfs.ext4 /dev/sda1"
+        reason: "format_filesystem capability required for /dev/sda1"
+    - event_type: "run_failed"
+      payload:
+        run_id: "blocked-no-final"
+        status: "blocked"
+        error: "Preflight blocked destructive filesystem formatting."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "preflight-events.json"
+    - "replay-summary.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "support-summary.json final_status is blocked"
+    - "blocked command and reason appear redacted in preflight-events.json"
+    - "replay summary blockers include preflight reason"
+  redaction_expectations: []
+  current_likely_gap: "replay currently treats run_failed as a blocker but not as a final_status source"
+  rationale: "Pre-final hard blocks must not export as unknown status just because final audit did not run."
+  risk: high
+
+- id: malformed-jsonl-preserves-status
+  category: replay_summary
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "jsonl_decode_error"
+      payload:
+        run_id: "malformed-status"
+        line_no: 3
+        note: "Represents one malformed JSONL line in the source runlog."
+    - event_type: "final_audit"
+      payload:
+        run_id: "malformed-status"
+        result:
+          passed: true
+          final_status: "success_with_warnings"
+          findings:
+            - severity: "warning"
+              category: "setup"
+              summary: "One support diagnostic line could not be parsed."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "replay-summary.json"
+    - "support-summary.json"
+    - "final-audit.json"
+  required_evidence:
+    - "malformed line is tolerated during bundle export"
+    - "jsonl decode diagnostic remains visible in replay-summary.json"
+    - "valid later final status is still preserved"
+  redaction_expectations: []
+  current_likely_gap: "decode tolerance exists, but README/support summary do not call out malformed-line diagnostics directly"
+  rationale: "Support export should survive a partially corrupt runlog and still retain the terminal status."
+  risk: medium
+
+- id: failed-final-audit-without-final-status
+  category: final_status_serialization
+  status: blocked
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        run_id: "failed-final-no-status"
+        result:
+          passed: false
+          blockers:
+            - "Target is still running from the live ISO."
+          findings:
+            - severity: "fatal"
+              category: "bootability"
+              summary: "Post-reboot facts still identify a live environment."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "failed final audit without explicit final_status exports as blocked"
+    - "blocker and fatal finding are preserved"
+    - "support and replay summaries agree"
+  redaction_expectations: []
+  current_likely_gap: "support-summary likely reports unknown when final_audit passed=false omits final_status"
+  rationale: "Older or partial final-audit events should still serialize a conservative blocked outcome."
+  risk: high
+
+- id: final-audit-event-status-only
+  category: final_status_serialization
+  status: unsupported_safe
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        run_id: "final-status-event-only"
+        status: "FinalSetupStatus.UNSUPPORTED_SAFE"
+        result:
+          passed: false
+          findings:
+            - severity: "unsupported_safe"
+              category: "hardware"
+              summary: "Hardware probe could not certify proprietary GPU support in a VM."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "event-level final_audit status is normalized"
+    - "final-audit.json status matches support-summary.json"
+    - "unsupported_safe finding is preserved"
+  redaction_expectations: []
+  current_likely_gap: "none"
+  rationale: "Support bundle should handle final-audit status stored at event level as well as result level."
+  risk: medium
+
+- id: unsupported-safe-with-manual-followup-conflict
+  category: status_summary_agreement
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        run_id: "unsupported-manual-conflict"
+        result:
+          passed: false
+          final_status: "unsupported_safe"
+          findings:
+            - severity: "unsupported_safe"
+              category: "driver"
+              summary: "NVIDIA legacy generation is unsupported for automatic proprietary setup."
+            - severity: "manual_followup"
+              category: "driver"
+              summary: "User must choose a legacy driver path manually."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "manual-followups.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "manual follow-up is not hidden by unsupported_safe status"
+    - "both findings are preserved"
+    - "support summary status/follow-up count make the conflict visible"
+  redaction_expectations: []
+  current_likely_gap: "status precedence conflicts are not explicitly flagged in support-summary.json"
+  rationale: "Mixed unsupported-safe and manual-followup outcomes need an honest next action."
+  risk: high
+
+- id: success-status-with-warning-finding-conflict
+  category: status_summary_agreement
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        run_id: "success-warning-conflict"
+        result:
+          passed: true
+          final_status: "success"
+          findings:
+            - severity: "warning"
+              category: "desktop"
+              summary: "Requested cursor theme persisted but could not be live-verified."
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "warning finding prevents a plain green success interpretation"
+    - "support summary and final audit agree on either success_with_warnings or a visible conflict"
+    - "warning remains visible with desktop category"
+  redaction_expectations: []
+  current_likely_gap: "support bundle currently trusts final_status over warning findings and may serialize plain success"
+  rationale: "A status/finding mismatch should be obvious to future diagnostics instead of visually disappearing."
+  risk: high
+
+- id: final-audit-repair-failed-summary
+  category: final_audit_findings
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "final_audit_repair_failed"
+      payload:
+        run_id: "repair-failed-summary"
+        finding_id: "apps:missing-required"
+        category: "apps"
+        summary: "Repair command did not install required app."
+        attempts: 2
+        exhausted: true
+    - event_type: "final_audit"
+      payload:
+        run_id: "repair-failed-summary"
+        result:
+          passed: false
+          final_status: "manual_followup_required"
+          findings:
+            - severity: "manual_followup"
+              category: "apps"
+              summary: "Required app remains unresolved after final-audit repair."
+          details:
+            final_audit_repairs:
+              - action: "repair"
+                outcome: "failure"
+                attempts: 2
+                exhausted: true
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "final-audit.json"
+    - "manual-followups.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "failed final-audit repair is retained"
+    - "attempt count and exhausted flag are visible"
+    - "final status remains manual_followup_required"
+  redaction_expectations: []
+  current_likely_gap: "manual-followups extraction captures manual follow-up findings but not all failed repair records as first-class evidence"
+  rationale: "A failed final repair should leave enough evidence to explain why the final status is not success."
+  risk: high
+
+- id: provider-error-before-final-status
+  category: support_summary
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "model_call_failed"
+      payload:
+        run_id: "provider-before-final"
+        provider: "openai"
+        error_category: "rate_limited"
+        status_code: 429
+        message: "429 while repairing missing app; token sk-provider-secret must not leak"
+    - event_type: "final_audit"
+      payload:
+        run_id: "provider-before-final"
+        result:
+          passed: false
+          final_status: "manual_followup_required"
+          findings:
+            - severity: "manual_followup"
+              category: "apps"
+              summary: "Provider rate limit prevented automatic app repair."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+    - "final-audit.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "provider error category is visible"
+    - "manual follow-up reason references provider rate limit"
+    - "final status is manual_followup_required"
+  redaction_expectations:
+    - "sk-provider-secret"
+  current_likely_gap: "no dedicated provider-errors.json artifact; provider evidence is only in redacted runlog/replay"
+  rationale: "Provider failures are common non-perfect outcomes and must be diagnosable without leaking request payloads."
+  risk: medium
+
+- id: redacted-final-audit-details
+  category: final_audit_findings
+  status: blocked
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        run_id: "redacted-final-details"
+        result:
+          passed: false
+          final_status: "blocked"
+          blockers:
+            - "SSH reconnect failed for user token=secret-token-value."
+          findings:
+            - severity: "fatal"
+              category: "ssh_reconnect"
+              summary: "Reconnect failed after reboot."
+          details:
+            reconnect:
+              command: "ssh quickhatch@example --password super-secret-password"
+              provider_payload: "Authorization: Bearer secret-bearer-token"
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+    - "final-audit.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "blocked reconnect finding is preserved"
+    - "secret-bearing blocker/detail text is redacted"
+    - "support and replay summaries still expose the failure category"
+  redaction_expectations:
+    - "secret-token-value"
+    - "super-secret-password"
+    - "secret-bearer-token"
+  current_likely_gap: "none"
+  rationale: "Final-audit details are high-value diagnostics and must remain useful after redaction."
+  risk: high
