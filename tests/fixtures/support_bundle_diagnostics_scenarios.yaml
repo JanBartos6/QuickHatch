@@ -1,0 +1,3704 @@
+# Curated support-bundle/runlog diagnostics scenario corpus.
+#
+# This fixture models the evidence QuickHatch support bundles should expose
+# for non-perfect outcomes. Tests must synthesize runlog events and inspect
+# generated bundles only; do not execute commands from this file.
+merge_summary:
+  source: Merged from .quickhatch/corpus-candidates/support-bundle-agent-*.yaml
+  total_source_candidates: 93
+  total_scenarios: 93
+  source_files:
+  - .quickhatch/corpus-candidates/support-bundle-agent-1-blocked-core.yaml
+  - .quickhatch/corpus-candidates/support-bundle-agent-2-followups-warnings.yaml
+  - .quickhatch/corpus-candidates/support-bundle-agent-3-provider-repair.yaml
+  - .quickhatch/corpus-candidates/support-bundle-agent-4-redaction-readme.yaml
+  - .quickhatch/corpus-candidates/support-bundle-agent-5-final-status-replay.yaml
+  scenarios_by_category:
+    app_theme_driver_followup: 6
+    artifact_manifest: 4
+    blocked_run: 4
+    capability_mismatch: 5
+    desktop_no_session: 3
+    executed_commands_redaction: 4
+    final_audit_findings: 4
+    final_audit_repair_failure: 6
+    final_audit_repair_manual_followup: 2
+    final_status_serialization: 5
+    manual_followup_required: 3
+    model_error: 1
+    package_db_corruption: 3
+    preflight_block: 3
+    profile_facts_minimization: 2
+    provider_error: 4
+    reconnect_failure: 3
+    redaction: 5
+    repair_loop_exhaustion: 7
+    replay_summary: 2
+    status_summary_agreement: 4
+    success_with_warnings: 4
+    support_readme: 3
+    support_summary: 2
+    unsupported_safe: 4
+  statuses:
+    blocked: 27
+    manual_followup_required: 24
+    success_with_warnings: 17
+    unknown: 18
+    unsupported_safe: 7
+  expected_artifacts_mentioned:
+    README.txt: 4
+    app-verification.json: 5
+    capability-events.json: 6
+    dangerous-operation-previews.json: 5
+    executed-commands.sh: 5
+    final-audit.json: 53
+    manifest.json: 6
+    manual-followups.json: 21
+    preflight-events.json: 11
+    profile-summary.json: 2
+    replay-summary.json: 34
+    setup-facts-summary.json: 7
+    setup-runlog-redacted.jsonl: 65
+    support-metadata.json: 1
+    support-summary.json: 71
+  rejected_ambiguous_cases: []
+  omitted_duplicate_cases: []
+  coverage_gaps:
+  - This fixture models expected support-bundle and runlog evidence only; commands and events are representative and must
+    not be executed.
+  - Some current_likely_gap values are candidate-agent hypotheses and should be verified by focused tests before runtime changes.
+  - The fixture intentionally includes pre-final-audit blocked runs where the current support-summary final_status may be
+    unknown without a terminal run event.
+  - Capability mismatch, provider-error category, repair-exhaustion summary, and README discoverability cases may require
+    new diagnostic extraction tests before implementation.
+  notes: Support-bundle diagnostics scenarios are fixture data for local tests using synthetic runlog events only.
+scenarios:
+- id: blocked-before-final-audit-safe-abort
+  category: blocked_run
+  status: unknown
+  representative_runlog_events:
+  - event_type: setup_started
+    payload:
+      profile:
+        install_profile: full_disk_wipe
+        remote_setup_mode: ssh
+  - event_type: dangerous_operation_preview
+    payload:
+      stage: install_or_skip
+      group_id: disk-format
+      preview:
+        preview_id: prev-format-sda1
+        operation:
+          kind: format_partition
+          target: /dev/sda1
+        confirmation_token: FORMAT-/dev/sda1
+  - event_type: blocking_question_timeout
+    payload:
+      stage: install_or_skip
+      question_id: confirm-format-sda1
+  - event_type: safe_abort
+    payload:
+      stage: install_or_skip
+      group_id: disk-format
+      reason: Dangerous operation was not confirmed with the required token.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  - replay-summary.json
+  - dangerous-operation-previews.json
+  required_evidence:
+  - final status is unknown or blocked because no final_audit was reached
+  - safe_abort reason
+  - blocking question timeout id
+  - dangerous preview id, operation kind, target, and confirmation token redacted if needed
+  redaction_expectations:
+  - confirmation token should not be exposed as a reusable secret if future tokens become secret-bearing
+  - sk-blocked-core-secret
+  current_likely_gap: early safe_abort has no terminal setup_run_finished event, so support-summary final_status may remain
+    unknown
+  rationale: A user needs enough evidence to distinguish an intentional safety stop from a crash when a destructive confirmation
+    is not completed.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: blocked-final-audit-missing-bootloader
+  category: blocked_run
+  status: blocked
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      result:
+        passed: false
+        final_status: blocked
+        blockers:
+        - Installed system bootloader was not verified.
+        findings:
+        - id: bootloader:missing
+          severity: fatal
+          category: bootability
+          summary: Bootloader is missing or unverified.
+          required_capability_kinds:
+          - bootloader_install
+        details:
+          pre_reboot_checks_passed: false
+  expected_bundle_artifacts:
+  - final-audit.json
+  - support-summary.json
+  - replay-summary.json
+  required_evidence:
+  - final status blocked
+  - fatal audit finding category bootability
+  - blocker text
+  - required capability kind bootloader_install
+  redaction_expectations:
+  - root_pw=blocked-final-audit-secret
+  current_likely_gap: none
+  rationale: A missing bootloader is a core fatal condition and the bundle should make the blocker obvious without requiring
+    runlog archaeology.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: preflight-block-fstab-write-without-capability
+  category: preflight_block
+  status: unknown
+  representative_runlog_events:
+  - event_type: command_group_started
+    payload:
+      stage: install_or_skip
+      group:
+        id: write-fstab
+        title: Write target fstab
+  - event_type: command_preflight_blocked
+    payload:
+      stage: install_or_skip
+      group_id: write-fstab
+      command: sudo sh -c 'echo UUID=abc / ext4 defaults 0 1 > /mnt/etc/fstab'
+      decision:
+        kind: block
+        category: fstab
+        reason: Writing target fstab requires confirmed write_fstab capability.
+        capability_kind: write_fstab
+        target: /mnt/etc/fstab
+      reason: Writing target fstab requires confirmed write_fstab capability.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - preflight-events.json
+  - support-summary.json
+  - replay-summary.json
+  required_evidence:
+  - blocked command safely redacted
+  - preflight decision kind block
+  - preflight category fstab
+  - required capability kind write_fstab and target /mnt/etc/fstab
+  - group id and human-readable group title
+  redaction_expectations:
+  - UUID should remain if not sensitive, but passwords in adjacent shell should redact
+  - password=topsecret-fstab
+  current_likely_gap: preflight event has group_id but not the group title; the title is only recoverable from command_group_started
+  rationale: Fstab writes are dangerous but repairable with explicit authority; the bundle should identify both the command
+    and the user-facing plan group.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: preflight-block-raw-reboot-command
+  category: preflight_block
+  status: unknown
+  representative_runlog_events:
+  - event_type: command_group_started
+    payload:
+      stage: install_or_skip
+      group:
+        id: model-reboot
+        title: Model requested reboot
+  - event_type: command_preflight_blocked
+    payload:
+      stage: install_or_skip
+      group_id: model-reboot
+      command: sudo reboot now
+      decision:
+        kind: block
+        category: power_transition
+        reason: Raw reboot commands are harness-owned and require controlled reboot handling.
+      reason: Raw reboot commands are harness-owned and require controlled reboot handling.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - preflight-events.json
+  - replay-summary.json
+  required_evidence:
+  - blocked raw reboot command
+  - reason states reboot is harness-owned
+  - stage and group id/title
+  - final status unknown if final_audit was not reached
+  redaction_expectations:
+  - ssh private key text in surrounding output must be redacted
+  current_likely_gap: no terminal blocked status event if the run exits before final_audit
+  rationale: Support needs to prove QuickHatch blocked a model raw reboot rather than silently rebooting the target.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: preflight-block-target-root-delete
+  category: preflight_block
+  status: unknown
+  representative_runlog_events:
+  - event_type: command_group_started
+    payload:
+      stage: install_or_skip
+      group:
+        id: cleanup-target-root
+        title: Clean target root
+  - event_type: command_preflight_blocked
+    payload:
+      stage: install_or_skip
+      group_id: cleanup-target-root
+      command: sudo rm -rf /mnt
+      decision:
+        kind: block
+        category: target_root
+        reason: Uncontrolled target-root deletion is not allowed.
+        target: /mnt
+      reason: Uncontrolled target-root deletion is not allowed.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - preflight-events.json
+  - support-summary.json
+  required_evidence:
+  - blocked command
+  - target-root category
+  - target path
+  - blocked group id/title
+  redaction_expectations:
+  - Bearer qh-target-root-token
+  current_likely_gap: group title is not included directly in command_preflight_blocked extraction
+  rationale: Target-root deletion can destroy the install tree; diagnostics must show that the effect was blocked intentionally.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: capability-mismatch-format-wrong-partition
+  category: capability_mismatch
+  status: unknown
+  representative_runlog_events:
+  - event_type: capability_granted
+    payload:
+      stage: install_or_skip
+      group_id: format-root
+      capability:
+        id: cap-format-sda1
+        kind: format_filesystem
+        target: /dev/sda1
+        preview_id: prev-format-sda1
+        consumed: false
+  - event_type: command_preflight_blocked
+    payload:
+      stage: install_or_skip
+      group_id: format-root
+      command: sudo mkfs.ext4 -F /dev/sda2
+      decision:
+        kind: block
+        category: capability_required
+        reason: Formatting /dev/sda2 requires a matching format_filesystem capability.
+        capability_kind: format_filesystem
+        target: /dev/sda2
+      reason: Formatting /dev/sda2 requires a matching format_filesystem capability.
+  expected_bundle_artifacts:
+  - capability-events.json
+  - preflight-events.json
+  - dangerous-operation-previews.json
+  - support-summary.json
+  required_evidence:
+  - granted capability kind and target /dev/sda1
+  - blocked command target /dev/sda2
+  - mismatch reason
+  - preview id for the existing grant
+  redaction_expectations:
+  - sk-capability-mismatch-secret
+  current_likely_gap: no dedicated capability_mismatch event; mismatch must be inferred by joining capability_granted and
+    preflight block
+  rationale: Near-target misses are dangerous and support needs to see that the correct disk was not authorized.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: capability-mismatch-consumed-one-time-grant
+  category: capability_mismatch
+  status: unknown
+  representative_runlog_events:
+  - event_type: capability_granted
+    payload:
+      stage: install_or_skip
+      group_id: format-root
+      capability:
+        id: cap-format-sda1
+        kind: format_filesystem
+        target: /dev/sda1
+        preview_id: prev-format-sda1
+        consumed: false
+        one_time_use: true
+  - event_type: capability_consumed
+    payload:
+      stage: install_or_skip
+      group_id: format-root
+      command: sudo mkfs.ext4 -F /dev/sda1
+      capability_id: cap-format-sda1
+      kind: format_filesystem
+      target: /dev/sda1
+      consumed: true
+  - event_type: command_preflight_blocked
+    payload:
+      stage: install_or_skip
+      group_id: format-root-repeat
+      command: sudo mkfs.ext4 -F /dev/sda1
+      decision:
+        kind: block
+        category: capability_required
+        reason: Formatting /dev/sda1 requires an unconsumed format_filesystem capability.
+        capability_kind: format_filesystem
+        target: /dev/sda1
+      reason: Formatting /dev/sda1 requires an unconsumed format_filesystem capability.
+  expected_bundle_artifacts:
+  - capability-events.json
+  - preflight-events.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - capability consumed state
+  - repeat command blocked
+  - reason identifies consumed or unavailable one-time grant
+  - original preview id
+  redaction_expectations:
+  - qh_pw=ConsumedGrantSecret123
+  current_likely_gap: consumed grant appears as an event, but support-summary does not summarize consumed-capability mismatch
+  rationale: One-time destructive consent must not be reusable, and the bundle should make that visible.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: capability-mismatch-internal-network-reconnect
+  category: capability_mismatch
+  status: unknown
+  representative_runlog_events:
+  - event_type: internal_capability_check
+    payload:
+      stage: install_or_skip
+      group_id: network-reconnect
+      capability_kind: enable_network_reconnect
+      target: /mnt/etc/NetworkManager/system-connections/quickhatch-reconnect.nmconnection
+      allowed: false
+      reason: write installed network reconnect config
+  - event_type: safe_abort
+    payload:
+      stage: install_or_skip
+      group_id: network-reconnect
+      reason: Internal write installed network reconnect config needs confirmed QuickHatch capability enable_network_reconnect
+        target=/mnt/etc/NetworkManager/system-connections/quickhatch-reconnect.nmconnection.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  - replay-summary.json
+  required_evidence:
+  - internal capability kind
+  - target path
+  - allowed false
+  - safe_abort reason
+  redaction_expectations:
+  - wifi password=NetworkSecret123
+  current_likely_gap: internal_capability_check does not start with capability_, so it is not extracted into capability-events.json
+  rationale: Internal harness-owned writes can be just as important as model commands; support should not miss a capability
+    denial because of event naming.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: reconnect-failure-after-install-reboot
+  category: reconnect_failure
+  status: unknown
+  representative_runlog_events:
+  - event_type: setup_checkpoint_saved
+    payload:
+      stage: install_or_skip
+      reason: controlled install reboot after pre-reboot checks
+      checkpoint:
+        run_id: run-reconnect-fail
+        stage: install_or_skip
+        completed_groups:
+        - bootstrap-base
+        manual_followups: []
+  - event_type: install_reboot
+    payload:
+      stage: install_or_skip
+      command: sudo umount -R /mnt 2>/dev/null || true; sudo sh -c 'nohup sh -c reboot >/tmp/quickhatch-reboot.log 2>&1 </dev/null
+        &'
+  - event_type: install_reboot_result
+    payload:
+      stage: install_or_skip
+      rc: 255
+      stdout_tail: ''
+      stderr_tail: Connection to 192.0.2.10 closed by remote host.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - replay-summary.json
+  - support-summary.json
+  required_evidence:
+  - checkpoint was saved before reboot
+  - install reboot command was attempted through harness
+  - reconnect outcome or absence of reconnect should be explicit
+  - completed groups survived in checkpoint
+  redaction_expectations:
+  - 192.0.2.10 may remain, but ssh password and private keys must redact
+  - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeKey user@example.com
+  current_likely_gap: there may be no runlog event for wait_for_reconnect failure before RuntimeError, leaving final status
+    unknown
+  rationale: A failed reconnect is a core blocked outcome; diagnostics should prove the reboot path was controlled and stopped
+    safely.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: reconnect-failure-live-iso-after-reboot
+  category: reconnect_failure
+  status: unknown
+  representative_runlog_events:
+  - event_type: install_reboot_result
+    payload:
+      stage: install_or_skip
+      rc: 0
+      stdout_tail: ''
+      stderr_tail: ''
+  - event_type: facts_refresh
+    payload:
+      stage: install_or_skip
+      facts:
+        is_live: true
+        distro_id: ubuntu
+        package_manager: apt
+  - event_type: stage_audit
+    payload:
+      stage: install_or_skip
+      result:
+        passed: false
+        blockers:
+        - Target reconnected, but it is still reporting a live environment after install reboot.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - setup-facts-summary.json
+  - replay-summary.json
+  required_evidence:
+  - post-reboot facts refresh
+  - is_live true after expected reboot
+  - blocked reason
+  - install_or_skip stage
+  redaction_expectations:
+  - Bearer live-iso-reconnect-token
+  current_likely_gap: support-summary may not normalize this to blocked unless a final_audit or terminal run_failed event
+    exists
+  rationale: Booting back into the live ISO after install should be diagnosed as a core boot/reconnect failure.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: reconnect-failure-nvidia-postboot-driver
+  category: reconnect_failure
+  status: blocked
+  representative_runlog_events:
+  - event_type: nvidia_driver_reconnect
+    payload:
+      stage: postboot_driver
+      group_id: nvidia-reboot-verify
+      reconnected: false
+      fresh_info: SSH timed out after driver reboot.
+      new_user: ''
+  - event_type: final_audit
+    payload:
+      result:
+        passed: false
+        final_status: blocked
+        blockers:
+        - NVIDIA driver reboot/reconnect failed.
+        findings:
+        - id: driver:nvidia-reconnect
+          severity: fatal
+          category: driver
+          summary: Postboot NVIDIA reboot did not reconnect.
+        details:
+          driver_reconnect:
+            reconnected: false
+            reason: SSH timed out after driver reboot.
+  expected_bundle_artifacts:
+  - final-audit.json
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  required_evidence:
+  - postboot_driver stage
+  - nvidia reconnect false
+  - driver audit finding
+  - final status blocked
+  redaction_expectations:
+  - NVIDIA-LICENSE-TOKEN=secret-driver-token
+  current_likely_gap: none if final_audit is reached; early exception before final_audit would have the same terminal-status
+    gap as install reconnect
+  rationale: Driver-induced reconnect failures must be distinguishable from app/theme failures because they can threaten boot
+    continuity.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: package-db-corruption-preflight-broad-kill
+  category: package_db_corruption
+  status: unknown
+  representative_runlog_events:
+  - event_type: command_group_started
+    payload:
+      stage: apps
+      group:
+        id: clear-package-locks
+        title: Clear package locks
+  - event_type: command_preflight_blocked
+    payload:
+      stage: apps
+      group_id: clear-package-locks
+      command: sudo pkill -9 -f 'apt|dpkg|snapd|packagekit|debconf' || true
+      decision:
+        kind: block
+        category: package_database_integrity
+        reason: Broad package process kill can leave dpkg half-written.
+      reason: Broad package process kill can leave dpkg half-written.
+  expected_bundle_artifacts:
+  - preflight-events.json
+  - replay-summary.json
+  - support-summary.json
+  required_evidence:
+  - package_database_integrity preflight category
+  - blocked command
+  - group title Clear package locks
+  - reason mentions dpkg half-written or package database risk
+  redaction_expectations:
+  - APT_AUTH_CONF=/tmp/apt-secret.conf
+  current_likely_gap: group title is not directly attached to command_preflight_blocked
+  rationale: Package DB corruption prevention should be visible as a safety block, not confused with a package install failure.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: package-db-corruption-final-audit-dpkg-interrupted
+  category: package_db_corruption
+  status: blocked
+  representative_runlog_events:
+  - event_type: verification
+    payload:
+      stage: final_audit
+      command: dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n'
+      rc: 1
+      stdout_tail: ''
+      stderr_tail: dpkg was interrupted, you must manually run 'sudo dpkg --configure -a'
+  - event_type: final_audit
+    payload:
+      result:
+        passed: false
+        final_status: blocked
+        blockers:
+        - Package database is interrupted and no safe automated repair path was confirmed.
+        findings:
+        - id: package-db:dpkg-interrupted
+          severity: fatal
+          category: package_db
+          summary: dpkg is interrupted.
+          required_capability_kinds:
+          - package_db_repair
+  expected_bundle_artifacts:
+  - final-audit.json
+  - setup-runlog-redacted.jsonl
+  - replay-summary.json
+  - support-summary.json
+  required_evidence:
+  - verification command and stderr tail
+  - fatal package_db finding
+  - required capability kind package_db_repair
+  - final status blocked
+  redaction_expectations:
+  - Acquire::http::Proxy::Password=secret-proxy-password
+  current_likely_gap: none if final_audit finding is present; package DB details outside final_audit are not separately extracted
+  rationale: Interrupted dpkg can derail all app installs and must not be flattened into a generic command failure.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: package-db-corruption-repair-capability-denied
+  category: package_db_corruption
+  status: unknown
+  representative_runlog_events:
+  - event_type: command_group_started
+    payload:
+      stage: apps
+      group:
+        id: repair-dpkg
+        title: Repair interrupted dpkg
+  - event_type: dangerous_operation_preview
+    payload:
+      stage: apps
+      group_id: repair-dpkg
+      preview:
+        preview_id: prev-package-db-repair
+        operation:
+          kind: package_db_repair
+          target: /var/lib/dpkg
+        confirmation_token: REPAIR-DPKG
+  - event_type: safe_abort
+    payload:
+      stage: apps
+      group_id: repair-dpkg
+      reason: Package database repair was not confirmed.
+  expected_bundle_artifacts:
+  - dangerous-operation-previews.json
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  required_evidence:
+  - package_db_repair operation kind
+  - target /var/lib/dpkg
+  - confirmation was declined or missing
+  - safe_abort reason
+  redaction_expectations:
+  - DPKG_FRONTEND_PASSWORD=dpkg-secret
+  current_likely_gap: dangerous preview is extracted, but denied capability is only visible as safe_abort rather than a capability
+    denial artifact
+  rationale: A declined package DB repair is a safe blocked state and the support bundle should explain why the repair did
+    not run.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: capability-mismatch-wrong-run-profile
+  category: capability_mismatch
+  status: unknown
+  representative_runlog_events:
+  - event_type: capability_granted
+    payload:
+      stage: install_or_skip
+      group_id: partition-disk
+      capability:
+        id: cap-old-run-partition-sda
+        kind: disk_partition
+        target: /dev/sda
+        run_id: run-old
+        install_profile: full_disk_wipe
+        preview_id: prev-old-run
+        consumed: false
+  - event_type: command_preflight_blocked
+    payload:
+      stage: install_or_skip
+      group_id: partition-disk
+      command: sudo parted -s /dev/sda mklabel gpt
+      decision:
+        kind: block
+        category: capability_required
+        reason: Disk partitioning requires a capability for the current run and install profile.
+        capability_kind: disk_partition
+        target: /dev/sda
+      reason: Disk partitioning requires a capability for the current run and install profile.
+  expected_bundle_artifacts:
+  - capability-events.json
+  - preflight-events.json
+  - support-summary.json
+  required_evidence:
+  - old run id and current mismatch reason
+  - install profile associated with stale grant
+  - blocked partition command
+  - capability kind disk_partition
+  redaction_expectations:
+  - api_key=sk-old-run-secret
+  current_likely_gap: wrong-run/profile mismatch is not represented as a first-class capability denial event
+  rationale: Restored or stale local state must not silently authorize current destructive operations.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: blocked-run-provider-error-before-plan
+  category: blocked_run
+  status: unknown
+  representative_runlog_events:
+  - event_type: model_call_failed
+    payload:
+      stage: research_and_plan
+      provider: openai
+      error_category: rate_limited
+      status_code: 429
+      message: rate limit exceeded for request req_blocked_core_secret
+  - event_type: blocking_question_timeout
+    payload:
+      stage: research_and_plan
+      question_id: repair-budget
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - replay-summary.json
+  - support-summary.json
+  required_evidence:
+  - provider/model error category
+  - status code 429
+  - no raw secret-bearing provider payload
+  - blocking timeout if user input was requested
+  redaction_expectations:
+  - req_blocked_core_secret
+  - 'Authorization: Bearer provider-secret-token'
+  current_likely_gap: provider errors are only present in raw redacted runlog, with no dedicated provider-errors.json extraction
+  rationale: A run may block before a plan exists; support still needs to tell provider failure apart from target safety failure.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: blocked-run-pre-reboot-check-failure
+  category: blocked_run
+  status: unknown
+  representative_runlog_events:
+  - event_type: pre_reboot_check_attempt
+    payload:
+      attempt: 1
+      passed: false
+      failures:
+      - Missing /mnt/boot/vmlinuz-*
+      - SSH authorized_keys missing for target user
+      summary: Pre-reboot checks failed.
+  - event_type: pre_reboot_checks
+    payload:
+      passed: false
+      failures:
+      - Missing /mnt/boot/vmlinuz-*
+      - SSH authorized_keys missing for target user
+      summary: The target would not be boot/reconnect safe.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - replay-summary.json
+  - support-summary.json
+  required_evidence:
+  - pre-reboot check attempt count
+  - failed boot artifact check
+  - failed SSH continuity check
+  - reason that reboot was not issued
+  redaction_expectations:
+  - target_user_password=PreRebootSecret
+  current_likely_gap: pre_reboot_checks is not a preflight/final_audit artifact, so key boot/reconnect blockers may only be
+    visible in raw runlog
+  rationale: Blocking before reboot is the safest outcome, but support needs the exact failed guard checks.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: capability-mismatch-bootloader-install-target
+  category: capability_mismatch
+  status: unknown
+  representative_runlog_events:
+  - event_type: capability_granted
+    payload:
+      stage: install_or_skip
+      group_id: bootloader
+      capability:
+        id: cap-boot-sda
+        kind: bootloader_install
+        target: /dev/sda
+        preview_id: prev-boot-sda
+        consumed: false
+  - event_type: command_preflight_blocked
+    payload:
+      stage: install_or_skip
+      group_id: bootloader
+      command: sudo grub-install /dev/sdb
+      decision:
+        kind: block
+        category: capability_required
+        reason: Bootloader install on /dev/sdb requires matching bootloader_install capability.
+        capability_kind: bootloader_install
+        target: /dev/sdb
+      reason: Bootloader install on /dev/sdb requires matching bootloader_install capability.
+  expected_bundle_artifacts:
+  - capability-events.json
+  - preflight-events.json
+  - support-summary.json
+  required_evidence:
+  - authorized bootloader target /dev/sda
+  - blocked bootloader command target /dev/sdb
+  - mismatch reason
+  - preview id
+  redaction_expectations:
+  - root_password=BootSecret123
+  current_likely_gap: no explicit mismatch artifact; diagnostics require manual join between capability and preflight events
+  rationale: Bootloader target mismatches can make the wrong disk unbootable and must be easy to audit.
+  risk: high
+  source_agents:
+  - support-bundle-agent-1-blocked-core
+- id: required-app-vendor-manual-followup
+  category: app_theme_driver_followup
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: command_group_started
+    payload:
+      stage: apps
+      group_id: apps-required-zoom
+      title: Install required Zoom client
+  - event_type: group_manual_followup
+    payload:
+      stage: apps
+      group_id: apps-required-zoom
+      app_names:
+      - Zoom
+      reason: Required app Zoom needs a vendor package download and manual license acceptance.
+  - event_type: final_audit
+    payload:
+      result:
+        status: manual_followup_required
+        findings:
+        - id: apps:zoom_manual_vendor
+          severity: manual_followup
+          category: apps
+          summary: Zoom still needs manual vendor installation and license acceptance.
+        details:
+          app_verification_manual_followups:
+          - app: Zoom
+            package: zoom
+            reason: Vendor package and license acceptance could not be automated safely.
+            source: vendor
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  - final-audit.json
+  - manual-followups.json
+  - app-verification.json
+  required_evidence:
+  - final status is manual_followup_required
+  - manual-followups.json names Zoom and the vendor/license reason
+  - failed or deferred group id apps-required-zoom is visible
+  - final-audit.json preserves the apps finding
+  redaction_expectations:
+  - sk-vendor-download-token
+  current_likely_gap: stage-level group_manual_followup may not appear in manual-followups.json unless final audit repeats
+    it
+  rationale: Required app manual follow-up must be easy to diagnose from the bundle, not buried only in raw runlog events.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: optional-browser-warning-only
+  category: success_with_warnings
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: command_group_started
+    payload:
+      stage: apps
+      group_id: apps-optional-brave
+      title: Install optional Brave browser
+  - event_type: verification
+    payload:
+      stage: apps
+      group_id: apps-optional-brave
+      command: command -v brave-browser
+      rc: 1
+      stdout_tail: ''
+      stderr_tail: ''
+      failure_classification: warning
+  - event_type: final_audit
+    payload:
+      result:
+        status: success_with_warnings
+        findings:
+        - id: apps:brave_optional_missing
+          severity: warning
+          category: apps
+          summary: Optional browser Brave is not installed; core setup is usable.
+        details:
+          app_verification:
+            apps:
+            - app: Brave
+              requested: true
+              required: false
+              verified: false
+              reason: Optional app was unavailable.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - app-verification.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - final status is success_with_warnings, not success
+  - warning finding names optional Brave
+  - verification failure command and group id remain visible
+  - manual-followups.json is not required for warning-only status
+  redaction_expectations:
+  - Bearer optional-app-token
+  current_likely_gap: none
+  rationale: Warning-only app failures should be visible without making the run look blocked or perfect.
+  risk: low
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: optional-theme-asset-warning
+  category: success_with_warnings
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: desktop_cosmetic_verification_manual_followup
+    payload:
+      stage: desktop
+      group_id: desktop-theme-nord
+      command: gsettings get org.gnome.desktop.interface gtk-theme
+      rc: 1
+      stdout_tail: ''
+      stderr_tail: No such schema on this desktop
+      reason: Cosmetic desktop verification did not pass for 'Apply Nord theme'. Leaving this theme check as manual follow-up.
+  - event_type: final_audit
+    payload:
+      result:
+        status: success_with_warnings
+        findings:
+        - id: desktop:theme_nord_unverified
+          severity: warning
+          category: desktop
+          summary: Requested Nord theme could not be verified after command execution.
+        details:
+          desktop_design:
+            theme:
+              requested: Nord
+              observed: ''
+              status: attempted_but_failed
+              reason: Theme verification command failed on this desktop.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - desktop finding names the theme element
+  - verification command and stderr tail are redacted but present
+  - final status remains success_with_warnings
+  redaction_expectations:
+  - password=themeSecret123
+  current_likely_gap: desktop_cosmetic_verification_manual_followup is not collected into manual-followups.json unless final
+    audit repeats it
+  rationale: Cosmetic theme failures are non-fatal, but the bundle should still show exactly which design element failed.
+  risk: low
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: desktop-no-session-wallpaper-followup
+  category: desktop_no_session
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: desktop_runtime_item_manual_followup
+    payload:
+      stage: desktop
+      group_id: desktop-wallpaper-live
+      item_kind: wallpaper
+      command: gsettings set org.gnome.desktop.background picture-uri file:///home/quickhatch/Pictures/wallpaper.jpg
+      reason: Skipped display-dependent desktop wallpaper in group 'Apply wallpaper' because no active target display facts
+        were available over the real GUI session.
+  - event_type: final_audit
+    payload:
+      result:
+        status: manual_followup_required
+        findings:
+        - id: desktop:wallpaper_no_session
+          severity: manual_followup
+          category: desktop
+          summary: Wallpaper requires manual follow-up because no active GUI session was available.
+        details:
+          desktop_design_manual_followups:
+          - element: wallpaper
+            group_id: desktop-wallpaper-live
+            reason: No active GUI session was available for live wallpaper apply.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  - final-audit.json
+  - manual-followups.json
+  required_evidence:
+  - manual follow-up names wallpaper
+  - no active GUI session reason is preserved
+  - skipped live-apply command is present and redacted
+  - group id desktop-wallpaper-live is visible
+  redaction_expectations:
+  - qh_pw=WallpaperSecret!
+  current_likely_gap: desktop_runtime_item_manual_followup is not directly collected into manual-followups.json unless final
+    audit repeats it
+  rationale: No-session desktop cases are common over SSH and must be distinguishable from command success.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: desktop-no-session-icons-persisted-warning
+  category: desktop_no_session
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: command
+    payload:
+      stage: desktop
+      group_id: desktop-icons-persistent
+      command: mkdir -p /home/quickhatch/.config && kwriteconfig5 --file kdeglobals --group Icons --key Theme Papirus
+      rc: 0
+      stdout_tail: ''
+      stderr_tail: ''
+  - event_type: final_audit
+    payload:
+      result:
+        status: success_with_warnings
+        findings:
+        - id: desktop:icons_persisted_unverified
+          severity: warning
+          category: desktop
+          summary: Papirus icons were persisted in config but could not be live-verified without a GUI session.
+        details:
+          desktop_design:
+            icons:
+              requested: Papirus
+              observed: ''
+              status: persisted_but_not_live_verified
+              reason: No active GUI session was available for visual verification.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - icons are marked persisted_but_not_live_verified
+  - final status is success_with_warnings
+  - bundle does not claim applied_and_verified
+  redaction_expectations:
+  - authorized_keys ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeKey user@example
+  current_likely_gap: unknown
+  rationale: Persistent config can be useful, but support evidence must not confuse it with visual success.
+  risk: low
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: desktop-effects-unsupported-safe
+  category: unsupported_safe
+  status: unsupported_safe
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      result:
+        status: unsupported_safe
+        findings:
+        - id: desktop:effects_unsupported_wayland
+          severity: unsupported_safe
+          category: desktop
+          summary: Requested compositor effects are unsupported on the detected session; setup remains safe.
+        details:
+          desktop_design:
+            effects:
+              requested:
+              - wobbly_windows
+              observed: []
+              status: unavailable
+              reason: Detected desktop/session does not expose a supported effect API.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - unsupported_safe final status is preserved
+  - finding category desktop and effect name are visible
+  - summary says unsupported-safe, not blocked
+  redaction_expectations:
+  - sk-effects-secret
+  current_likely_gap: unsupported_safe status is normalized, but sparse tests may not cover desktop unsupported-safe bundles
+  rationale: Unsupported desktop polish should be diagnosable without implying the system failed.
+  risk: low
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: nvidia-legacy-driver-manual-followup
+  category: app_theme_driver_followup
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: command_group_started
+    payload:
+      stage: postboot_driver
+      group_id: driver-nvidia-legacy
+      title: Resolve NVIDIA legacy driver
+  - event_type: group_manual_followup
+    payload:
+      stage: postboot_driver
+      group_id: driver-nvidia-legacy
+      app_names: []
+      reason: Detected legacy NVIDIA generation; do not install modern nvidia-open blindly.
+  - event_type: final_audit
+    payload:
+      result:
+        status: manual_followup_required
+        findings:
+        - id: driver:nvidia_legacy_manual
+          severity: manual_followup
+          category: driver
+          summary: Legacy NVIDIA hardware needs manual driver selection.
+        details:
+          driver:
+            vendor: nvidia
+            model: GeForce GTX 750 Ti
+            strategy: nvidia_legacy_manual_followup
+            reason: Pre-Turing hardware should not be routed to nvidia-open without verification.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - manual-followups.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - driver finding names NVIDIA legacy hardware
+  - manual-followups.json includes driver category and reason
+  - group id driver-nvidia-legacy is recoverable from runlog
+  redaction_expectations:
+  - Bearer driverVendorToken
+  current_likely_gap: stage-level postboot driver group_manual_followup may not be included in manual-followups.json unless
+    final audit repeats it
+  rationale: Driver uncertainty is high-impact but should not erase other setup successes or masquerade as verified.
+  risk: high
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: secure-boot-mok-manual-followup
+  category: app_theme_driver_followup
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      result:
+        status: manual_followup_required
+        findings:
+        - id: driver:secure_boot_mok
+          severity: manual_followup
+          category: driver
+          summary: Secure Boot is enabled and NVIDIA module signing/MOK enrollment still requires manual follow-up.
+        details:
+          driver:
+            vendor: nvidia
+            secure_boot: enabled
+            module_loaded: false
+            reason: Unsigned DKMS module cannot be treated as verified until MOK enrollment and reboot verification complete.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - manual-followups.json
+  - setup-facts-summary.json
+  required_evidence:
+  - Secure Boot state is visible
+  - manual follow-up reason mentions MOK/module signing
+  - final status is not success
+  redaction_expectations:
+  - MOK_PASSWORD=EnrollSecret!
+  current_likely_gap: facts summary has secure_boot fields, but driver-specific manual-followup extraction depends on final-audit
+    finding quality
+  rationale: Secure Boot driver uncertainty is a common support path and must not look like a completed driver install.
+  risk: high
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: vm-gpu-unsupported-safe
+  category: unsupported_safe
+  status: unsupported_safe
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      result:
+        status: unsupported_safe
+        findings:
+        - id: driver:vm_gpu_not_certified
+          severity: unsupported_safe
+          category: driver
+          summary: Virtual GPU detected; real NVIDIA/AMD hardware driver certification is not applicable.
+        details:
+          driver:
+            is_vm: true
+            gpu_vendors:
+            - virtio
+            status: skipped
+            reason: VM graphics cannot certify physical GPU drivers.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - setup-facts-summary.json
+  required_evidence:
+  - unsupported_safe final status is present
+  - facts summary shows VM or virtual graphics context where available
+  - driver skip reason is visible
+  redaction_expectations:
+  - api_key=vmSecretKey
+  current_likely_gap: unsupported-safe driver skip evidence is present only if final audit details carry it
+  rationale: Support reviewers need to know VM graphics were skipped intentionally, not silently forgotten.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: amd-firmware-warning
+  category: app_theme_driver_followup
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: verification
+    payload:
+      stage: postboot_driver
+      group_id: driver-amd-firmware
+      command: journalctl -k --no-pager | grep -i firmware
+      rc: 0
+      stdout_tail: 'amdgpu: firmware file missing for optional video decode block'
+      stderr_tail: ''
+      failure_classification: warning
+  - event_type: final_audit
+    payload:
+      result:
+        status: success_with_warnings
+        findings:
+        - id: driver:amd_optional_firmware
+          severity: warning
+          category: driver
+          summary: AMD GPU is usable, but optional firmware warning remains.
+        details:
+          driver:
+            vendor: amd
+            module_loaded: true
+            firmware_present: partial
+            reason: Optional firmware warning should be reviewed if media acceleration is needed.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - driver warning is preserved
+  - verification command and warning tail are visible
+  - final status is success_with_warnings
+  redaction_expectations:
+  - root_pw=FirmwareSecret!
+  current_likely_gap: none
+  rationale: Normal AMD/Intel warnings should not overblock, but support bundles must explain the degraded state.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: provider-429-desktop-repair-manual-followup
+  category: manual_followup_required
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: repair_model_unavailable_manual_followup
+    payload:
+      stage: desktop
+      group_id: desktop-cursor-bibata
+      repair_attempt: 2
+      repair_turn: 1
+      error: 'provider returned 429 rate limit for request with Authorization: Bearer provider-secret'
+      reason: 'Repair LLM unavailable for ''Apply Bibata cursor'': provider returned 429. Leaving this non-install group as
+        manual follow-up instead of blocking setup.'
+  - event_type: final_audit
+    payload:
+      result:
+        status: manual_followup_required
+        findings:
+        - id: desktop:cursor_repair_provider_429
+          severity: manual_followup
+          category: desktop
+          summary: Bibata cursor repair could not be generated because the provider was rate-limited.
+        details:
+          desktop_design_manual_followups:
+          - element: cursor
+            group_id: desktop-cursor-bibata
+            reason: Repair provider returned 429; cursor remains manual follow-up.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - manual-followups.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - provider error category or 429 text is visible without secret payload
+  - manual follow-up names cursor and group id
+  - repair attempt count is preserved
+  redaction_expectations:
+  - Bearer provider-secret
+  current_likely_gap: provider/model errors are preserved in raw runlog but not extracted into a dedicated provider-errors
+    artifact
+  rationale: Provider rate limits should produce actionable support evidence without leaking authorization data.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: repair-loop-exhausted-optional-theme-warning
+  category: success_with_warnings
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: repair_signature_repeated
+    payload:
+      stage: desktop
+      group_id: desktop-theme-dracula
+      signature: desktop-theme-dracula|gsettings set gtk-theme Dracula
+      repair_attempt: 3
+      reason: Repeated identical repair command detected.
+  - event_type: final_audit
+    payload:
+      result:
+        status: success_with_warnings
+        findings:
+        - id: desktop:theme_repair_exhausted
+          severity: warning
+          category: desktop
+          summary: Optional Dracula theme repair budget was exhausted; theme remains unverified.
+        details:
+          final_audit_repairs: []
+          repair_loop:
+            group_id: desktop-theme-dracula
+            attempts: 3
+            exhausted: true
+            disposition: warning
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  - final-audit.json
+  required_evidence:
+  - repair attempt count is visible
+  - exhausted budget is visible
+  - warning remains tied to Dracula theme
+  redaction_expectations:
+  - sk-repair-theme-secret
+  current_likely_gap: repair-loop exhaustion is not summarized into a dedicated repair-events artifact
+  rationale: A warning caused by bounded repair exhaustion needs enough evidence to prove the loop stopped safely.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: final-audit-repair-manual-followup-theme
+  category: manual_followup_required
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: final_audit_repair_manual_followup
+    payload:
+      stage: final_audit
+      group_id: final-audit-repair-desktop-theme
+      reason: Theme repair requires user-specific GUI confirmation and cannot be safely applied headlessly.
+      findings:
+      - desktop:theme_unverified
+  - event_type: final_audit
+    payload:
+      result:
+        status: manual_followup_required
+        findings:
+        - id: desktop:theme_unverified
+          severity: manual_followup
+          category: desktop
+          summary: Theme remains unverified after final-audit repair review.
+        details:
+          final_audit_repairs:
+          - action: manual_followup
+            reason: Theme repair requires user-specific GUI confirmation.
+            findings:
+            - desktop:theme_unverified
+  expected_bundle_artifacts:
+  - manual-followups.json
+  - final-audit.json
+  - support-summary.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - final-audit repair manual-followup event is extracted
+  - finding id desktop:theme_unverified is visible
+  - summary does not claim final repair success
+  redaction_expectations:
+  - PRIVATE_KEY_FOR_THEME_REPAIR
+  current_likely_gap: none
+  rationale: Final-audit repairs that intentionally defer need to appear as deliberate manual follow-up.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: unsupported-snap-store
+  category: unsupported_safe
+  status: unsupported_safe
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      result:
+        status: unsupported_safe
+        findings:
+        - id: apps:snap_unavailable
+          severity: unsupported_safe
+          category: apps
+          summary: Requested Snap-only app is unsupported because snapd is unavailable on this target.
+        details:
+          app_verification_manual_followups:
+          - app: Proprietary Chat
+            package: proprietary-chat
+            source: snap
+            reason: Snap support is unavailable; app cannot be installed through the requested source.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - manual-followups.json
+  - app-verification.json
+  required_evidence:
+  - unsupported_safe status is preserved
+  - app name, source snap, and unavailable snapd reason are visible
+  - bundle distinguishes unsupported from blocked
+  redaction_expectations:
+  - snap_login_token=SnapSecret
+  current_likely_gap: manual-followups extraction handles app verification, but unsupported-safe app cases need explicit fixture
+    coverage
+  rationale: Unsupported app source should be actionable without being confused with a safety block.
+  risk: low
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: app-alternative-installed-warning
+  category: app_theme_driver_followup
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      result:
+        status: success_with_warnings
+        findings:
+        - id: apps:mail_client_alternative
+          severity: warning
+          category: apps
+          summary: Thunderbird was unavailable, but Evolution was installed as an alternative.
+        details:
+          app_verification:
+            apps:
+            - app: Thunderbird
+              requested: true
+              required: false
+              verified: false
+              alternative:
+                app: Evolution
+                verified: true
+              reason: Alternative mail client installed; original request not marked complete.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - app-verification.json
+  required_evidence:
+  - requested app Thunderbird is not marked verified
+  - alternative app Evolution is recorded separately
+  - final status is success_with_warnings
+  redaction_expectations:
+  - email_password=MailSecret!
+  current_likely_gap: none
+  rationale: Alternatives are useful, but support evidence must not imply the original requested app was installed.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: display-scaling-manual-followup
+  category: desktop_no_session
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: display_preference_manual_followup
+    payload:
+      stage: desktop
+      group_id: desktop-display-scaling
+      reason: Requested 125% scaling for HDMI-A-1 could not be applied without verified target display facts.
+      displays:
+      - name: HDMI-A-1
+        scale: 125%
+  - event_type: final_audit
+    payload:
+      result:
+        status: manual_followup_required
+        findings:
+        - id: desktop:display_scaling_manual
+          severity: manual_followup
+          category: desktop
+          summary: Display scaling preference needs manual follow-up because the active display could not be verified.
+        details:
+          desktop_design_manual_followups:
+          - element: display_scaling
+            reason: HDMI-A-1 was requested but active display facts were unavailable.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - manual-followups.json
+  - setup-facts-summary.json
+  required_evidence:
+  - display name and scaling request are visible
+  - manual-followup reason is display-specific
+  - facts summary shows display/session context where available
+  redaction_expectations:
+  - display_api_token=DisplaySecret
+  current_likely_gap: display_preference_manual_followup is not directly collected into manual-followups.json unless final
+    audit repeats it
+  rationale: Display preferences are easy to misdiagnose after SSH setup; the bundle should explain the exact unresolved display
+    request.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: driver-reboot-required-warning
+  category: app_theme_driver_followup
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: command
+    payload:
+      stage: postboot_driver
+      group_id: driver-nvidia-reboot-required
+      command: sudo pacman -S --needed nvidia nvidia-utils
+      rc: 0
+      stdout_tail: installed nvidia package; reboot required
+      stderr_tail: ''
+  - event_type: final_audit
+    payload:
+      result:
+        status: success_with_warnings
+        findings:
+        - id: driver:nvidia_reboot_unverified
+          severity: warning
+          category: driver
+          summary: NVIDIA driver packages installed, but module load was not verified after reboot.
+        details:
+          driver:
+            vendor: nvidia
+            package_installed: true
+            module_loaded: false
+            reboot_required: true
+            status: installed_unverified
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  - final-audit.json
+  required_evidence:
+  - driver package command result is present
+  - reboot_required and installed_unverified are visible
+  - final status is not success
+  redaction_expectations:
+  - sudo_password=DriverSecret!
+  current_likely_gap: unknown
+  rationale: Driver install success before reboot is not driver verification; support evidence must preserve that distinction.
+  risk: high
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: headless-fonts-warning
+  category: success_with_warnings
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: command
+    payload:
+      stage: desktop
+      group_id: desktop-fonts
+      command: fc-cache -f
+      rc: 0
+      stdout_tail: ''
+      stderr_tail: ''
+  - event_type: verification
+    payload:
+      stage: desktop
+      group_id: desktop-fonts
+      command: fc-match Inter
+      rc: 1
+      stdout_tail: ''
+      stderr_tail: font not found
+      failure_classification: warning
+  - event_type: final_audit
+    payload:
+      result:
+        status: success_with_warnings
+        findings:
+        - id: desktop:font_missing
+          severity: warning
+          category: desktop
+          summary: Requested Inter font could not be verified; setup otherwise completed.
+        details:
+          desktop_design:
+            fonts:
+              requested:
+              - Inter
+              observed: []
+              status: attempted_but_failed
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - font name Inter appears in final audit details
+  - verification failure remains warning-classified
+  - command success is not enough to claim font verified
+  redaction_expectations:
+  - font_repo_token=FontSecret
+  current_likely_gap: font/design details may not be summarized unless final audit includes desktop_design
+  rationale: Fonts are cosmetic but user-visible; warning evidence should survive support bundle export.
+  risk: low
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: package-app-provider-timeout-manual-followup
+  category: manual_followup_required
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: repair_model_unavailable_manual_followup
+    payload:
+      stage: apps
+      group_id: apps-required-obsidian
+      repair_attempt: 1
+      repair_turn: 1
+      error: timeout while asking model to repair package source; api_key=provider-secret
+      reason: 'Repair LLM unavailable for ''Install Obsidian'': timeout. Leaving this non-install group as manual follow-up
+        instead of blocking setup.'
+  - event_type: final_audit
+    payload:
+      result:
+        status: manual_followup_required
+        findings:
+        - id: apps:obsidian_provider_timeout
+          severity: manual_followup
+          category: apps
+          summary: Required Obsidian app still needs manual follow-up because package repair timed out.
+        details:
+          app_verification_manual_followups:
+          - app: Obsidian
+            package: obsidian
+            reason: Repair provider timed out before producing a safe fallback source.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - manual-followups.json
+  - app-verification.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - provider timeout is visible as category/context without secret-bearing payload
+  - manual follow-up names Obsidian
+  - repair attempt count is preserved
+  redaction_expectations:
+  - api_key=provider-secret
+  current_likely_gap: provider/model errors are not extracted as a dedicated provider-errors artifact
+  rationale: Provider outages should be diagnosable while preserving installed progress and redacting credentials.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: unsupported-safe-headless-theme
+  category: unsupported_safe
+  status: unsupported_safe
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      result:
+        status: unsupported_safe
+        findings:
+        - id: desktop:headless_theme_unsupported
+          severity: unsupported_safe
+          category: desktop
+          summary: Theme request is unsupported on the headless target; no unsafe desktop mutation was attempted.
+        details:
+          desktop_design:
+            theme:
+              requested: Catppuccin
+              observed: ''
+              status: unavailable
+              reason: Target has no desktop environment or GUI session.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - setup-facts-summary.json
+  required_evidence:
+  - headless/no desktop context is visible
+  - unsupported_safe status is preserved
+  - bundle does not imply blocked setup
+  redaction_expectations:
+  - ssh_password=HeadlessSecret!
+  current_likely_gap: unknown
+  rationale: A headless target should be reported as safely unsupported for desktop polish, not as a mysterious missing theme.
+  risk: low
+  source_agents:
+  - support-bundle-agent-2-followups-warnings
+- id: provider-planning-429-blocked
+  category: provider_error
+  status: blocked
+  representative_runlog_events:
+  - event_type: run_started
+    payload:
+      host: 192.0.2.10
+      user: quickhatch
+  - event_type: model_call_failed
+    payload:
+      context: planning
+      attempt: 1
+      elapsed_seconds: 2.4
+      timeout_seconds: 180
+      error: HTTP 429 rate_limit_exceeded for Bearer sk-provider-secret
+  - event_type: model_call_failed
+    payload:
+      context: planning
+      attempt: 2
+      elapsed_seconds: 2.7
+      timeout_seconds: 180
+      error: HTTP 429 rate_limit_exceeded for Bearer sk-provider-secret
+  - event_type: model_call_failed
+    payload:
+      context: planning
+      attempt: 3
+      elapsed_seconds: 3.1
+      timeout_seconds: 180
+      error: HTTP 429 rate_limit_exceeded for Bearer sk-provider-secret
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  - replay-summary.json
+  - manifest.json
+  - README.txt
+  required_evidence:
+  - model_call_failed context=planning
+  - attempt count 3
+  - provider error category or rate-limit marker
+  - terminal status or blocker explaining planning could not continue
+  redaction_expectations:
+  - sk-provider-secret must be redacted
+  - Bearer token must be redacted
+  current_likely_gap: pre-final model failure may leave support-summary final_status unknown unless a terminal run_failed/setup_blocked
+    event exists
+  rationale: A setup that cannot even produce a plan due to provider 429 needs enough evidence to distinguish quota/rate-limit
+    from a harness safety block.
+  risk: high
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: provider-repair-429-app-manual-followup
+  category: provider_error
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: command_group_started
+    payload:
+      stage: apps
+      group:
+        id: apps-chat
+        title: Install chat apps
+  - event_type: command
+    payload:
+      stage: apps
+      group_id: apps-chat
+      command: apt install definitely-missing-chat-app
+      visible_command: apt install definitely-missing-chat-app
+      rc: 100
+      stdout_tail: ''
+      stderr_tail: 'E: Unable to locate package definitely-missing-chat-app'
+  - event_type: repair_prompt
+    payload:
+      stage: apps
+      group_id: apps-chat
+      repair_attempt: 1
+      prompt: repair failed app install; api_key=sk-repair-secret
+  - event_type: model_call_failed
+    payload:
+      context: repair
+      attempt: 1
+      elapsed_seconds: 1.9
+      timeout_seconds: 180
+      error: HTTP 429 insufficient_quota sk-repair-secret
+  - event_type: model_call_failed
+    payload:
+      context: repair
+      attempt: 2
+      elapsed_seconds: 2.2
+      timeout_seconds: 180
+      error: HTTP 429 insufficient_quota sk-repair-secret
+  - event_type: model_call_failed
+    payload:
+      context: repair
+      attempt: 3
+      elapsed_seconds: 2.5
+      timeout_seconds: 180
+      error: HTTP 429 insufficient_quota sk-repair-secret
+  - event_type: repair_model_unavailable_manual_followup
+    payload:
+      stage: apps
+      group_id: apps-chat
+      repair_attempt: 1
+      repair_turn: 1
+      error: 'Repair LLM call failed after 3 attempts: HTTP 429 insufficient_quota sk-repair-secret'
+      reason: 'Repair LLM unavailable for ''Install chat apps'': provider 429. Leaving this non-install group as manual follow-up.'
+  - event_type: group_manual_followup
+    payload:
+      stage: apps
+      group_id: apps-chat
+      reason: 'Repair LLM unavailable for ''Install chat apps'': provider 429. Leaving this non-install group as manual follow-up.'
+  - event_type: final_audit
+    payload:
+      result:
+        final_status: manual_followup_required
+        findings:
+        - severity: manual_followup
+          category: apps
+          summary: Chat app install needs manual follow-up after provider 429.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - manual-followups.json
+  - final-audit.json
+  - support-summary.json
+  required_evidence:
+  - failed app group id apps-chat
+  - repair model unavailable reason
+  - provider error category 429
+  - manual follow-up item and reason
+  redaction_expectations:
+  - sk-repair-secret must be redacted in prompt and errors
+  current_likely_gap: provider failures are preserved in runlog but not extracted into a dedicated provider-errors diagnostic
+    artifact
+  rationale: Provider rate limiting during non-critical app repair should not erase progress, and the support bundle should
+    make the manual follow-up cause obvious.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: provider-repair-timeout-desktop-followup
+  category: provider_error
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: command_group_started
+    payload:
+      stage: desktop
+      group:
+        id: desktop-theme
+        title: Apply theme and wallpaper
+  - event_type: command
+    payload:
+      stage: desktop
+      group_id: desktop-theme
+      command: gsettings set org.gnome.desktop.interface gtk-theme MissingTheme
+      visible_command: gsettings set org.gnome.desktop.interface gtk-theme MissingTheme
+      rc: 1
+      stderr_tail: No such schema or unavailable session
+  - event_type: model_call_failed
+    payload:
+      context: repair
+      attempt: 1
+      elapsed_seconds: 180.0
+      timeout_seconds: 180
+      error: ReadTimeout after 180 seconds with request_id=req_timeout_123 token=secret-timeout
+  - event_type: model_call_failed
+    payload:
+      context: repair
+      attempt: 2
+      elapsed_seconds: 180.0
+      timeout_seconds: 180
+      error: ReadTimeout after 180 seconds with request_id=req_timeout_123 token=secret-timeout
+  - event_type: model_call_failed
+    payload:
+      context: repair
+      attempt: 3
+      elapsed_seconds: 180.0
+      timeout_seconds: 180
+      error: ReadTimeout after 180 seconds with request_id=req_timeout_123 token=secret-timeout
+  - event_type: repair_model_unavailable_manual_followup
+    payload:
+      stage: desktop
+      group_id: desktop-theme
+      repair_attempt: 1
+      repair_turn: 1
+      error: 'Repair LLM call failed after 3 attempts: ReadTimeout'
+      reason: 'Repair LLM unavailable for ''Apply theme and wallpaper'': timeout. Leaving desktop customization as manual
+        follow-up.'
+  - event_type: final_audit
+    payload:
+      result:
+        final_status: manual_followup_required
+        details:
+          desktop_manual_followups:
+          - reason: Theme repair timed out; apply MissingTheme manually.
+        findings:
+        - severity: manual_followup
+          category: desktop
+          summary: Theme repair timed out.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - manual-followups.json
+  - final-audit.json
+  required_evidence:
+  - timeout category
+  - repair attempt number
+  - desktop element or group reason
+  - final manual_followup_required status
+  redaction_expectations:
+  - secret-timeout must be redacted
+  current_likely_gap: none
+  rationale: Timeouts during cosmetic repair should produce specific follow-up evidence without blocking core setup.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: model-invalid-planner-json-exhausted
+  category: model_error
+  status: blocked
+  representative_runlog_events:
+  - event_type: planner_prompt
+    payload:
+      stage: research_and_plan
+      prompt: produce setup plan with profile api_key=sk-planner-secret
+  - event_type: planner_response
+    payload:
+      stage: research_and_plan
+      text: '{"action": "plan", "plan": {'
+  - event_type: planner_response_invalid
+    payload:
+      stage: research_and_plan
+      error: 'Planner returned invalid JSON: Expecting property name enclosed in double quotes'
+  - event_type: planner_response_invalid
+    payload:
+      stage: research_and_plan
+      error: 'Research plan validation failed: command group has non-list commands'
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  - replay-summary.json
+  required_evidence:
+  - planner invalid response count
+  - last parser or validation error
+  - terminal blocked status or explicit unknown pre-final status
+  redaction_expectations:
+  - sk-planner-secret must be redacted
+  current_likely_gap: planner invalid-response exhaustion is only visible in raw runlog; support-summary does not summarize
+    model parser failures
+  rationale: Invalid model output can stop setup before final audit, so diagnostics should not require manually reading the
+    full JSONL.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: model-invalid-repair-json-app-exhaustion
+  category: repair_loop_exhaustion
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: repair_prompt
+    payload:
+      stage: apps
+      group_id: apps-browser
+      repair_attempt: 1
+      prompt: repair browser package
+  - event_type: repair_response
+    payload:
+      stage: apps
+      group_id: apps-browser
+      repair_attempt: 1
+      repair_turn: 1
+      text: Try installing chromium instead.
+  - event_type: repair_response_invalid
+    payload:
+      stage: apps
+      group_id: apps-browser
+      repair_attempt: 1
+      repair_turn: 1
+      error: Repair action response must be JSON
+  - event_type: repair_response
+    payload:
+      stage: apps
+      group_id: apps-browser
+      repair_attempt: 1
+      repair_turn: 2
+      text: '{"action":"retry_group"'
+  - event_type: repair_response_invalid
+    payload:
+      stage: apps
+      group_id: apps-browser
+      repair_attempt: 1
+      repair_turn: 2
+      error: Invalid JSON
+  - event_type: group_manual_followup
+    payload:
+      stage: apps
+      group_id: apps-browser
+      reason: Repair loop exhausted for 'Install browser' after invalid or non-actionable repair turns.
+  - event_type: final_audit
+    payload:
+      result:
+        final_status: manual_followup_required
+        findings:
+        - severity: manual_followup
+          category: apps
+          summary: Browser install repair exhausted invalid model turns.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - manual-followups.json
+  - final-audit.json
+  required_evidence:
+  - repair_response_invalid events with repair_turn
+  - repair loop exhausted reason
+  - manual follow-up group id apps-browser
+  redaction_expectations:
+  - secret-like text in repair responses must be redacted if present
+  current_likely_gap: repair-loop exhaustion has no dedicated extracted artifact with invalid turn count and max turn budget
+  rationale: A non-install group can degrade to manual follow-up after invalid repair JSON; the bundle should show exhaustion
+    rather than looking like an arbitrary skip.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: model-invalid-repair-json-install-blocked
+  category: repair_loop_exhaustion
+  status: blocked
+  representative_runlog_events:
+  - event_type: command_group_started
+    payload:
+      stage: install_or_skip
+      group:
+        id: install-base
+        title: Bootstrap target system
+  - event_type: command
+    payload:
+      stage: install_or_skip
+      group_id: install-base
+      command: pacstrap -K /mnt base linux
+      visible_command: pacstrap -K /mnt base linux
+      rc: 1
+      stderr_tail: failed to init transaction
+  - event_type: repair_response_invalid
+    payload:
+      stage: install_or_skip
+      group_id: install-base
+      repair_attempt: 1
+      repair_turn: 1
+      error: Repair response used prose instead of JSON
+  - event_type: repair_response_invalid
+    payload:
+      stage: install_or_skip
+      group_id: install-base
+      repair_attempt: 1
+      repair_turn: 2
+      error: Repair response missing action
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  - replay-summary.json
+  required_evidence:
+  - install_or_skip group id install-base
+  - failed install command
+  - repair invalid-response attempts
+  - blocked terminal status because install repair cannot be deferred
+  redaction_expectations:
+  - failed command output must still redact secrets
+  current_likely_gap: install repair exhaustion may surface as an exception without terminal runlog status/final audit
+  rationale: Core install repair loops are safety-critical and should block with a clear diagnostic trail.
+  risk: high
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: repair-budget-gate-user-stop-install
+  category: repair_loop_exhaustion
+  status: blocked
+  representative_runlog_events:
+  - event_type: repair_attempt_signature
+    payload:
+      stage: install_or_skip
+      group_id: install-base
+      command: debootstrap stable /mnt
+      loop_key:
+      - install_or_skip
+      - install-base
+      - package_install
+      - debootstrap
+      same_loop_count: 2
+      diagnostic: false
+      consumes_budget: true
+      loop_exhausted: false
+  - event_type: repair_budget_gate_answer
+    payload:
+      stage: install_or_skip
+      group_id: install-base
+      attempts_used: 2
+      current_budget: 2
+      answer: stop setup
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  - replay-summary.json
+  required_evidence:
+  - repair budget exhausted context
+  - attempts_used and current_budget
+  - user selected stop setup
+  - blocked final disposition
+  redaction_expectations:
+  - any command tail secrets must be redacted
+  current_likely_gap: repair_budget_gate_answer is retained in JSONL but not promoted into support-summary or repair diagnostics
+  rationale: When the user stops after repair budget exhaustion, support needs to explain that no later stages were skipped
+    silently.
+  risk: high
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: repair-budget-gate-manual-followup-apps
+  category: repair_loop_exhaustion
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: repair_attempt_signature
+    payload:
+      stage: apps
+      group_id: apps-media
+      command: flatpak install -y flathub bad.media.App
+      same_loop_count: 2
+      diagnostic: false
+      consumes_budget: true
+      loop_exhausted: false
+  - event_type: repair_budget_gate_answer
+    payload:
+      stage: apps
+      group_id: apps-media
+      attempts_used: 2
+      current_budget: 2
+      answer: manual follow-up
+  - event_type: group_manual_followup
+    payload:
+      stage: apps
+      group_id: apps-media
+      reason: 'User chose manual follow-up after 2 failed repair attempt(s): Flatpak app not found.'
+  - event_type: final_audit
+    payload:
+      result:
+        final_status: manual_followup_required
+        findings:
+        - severity: manual_followup
+          category: apps
+          summary: Media app unresolved after repair budget.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - manual-followups.json
+  - final-audit.json
+  required_evidence:
+  - repair budget gate answer manual follow-up
+  - attempt count and budget
+  - manual follow-up reason
+  redaction_expectations:
+  - none
+  current_likely_gap: group_manual_followup events are not currently extracted into manual-followups.json unless final audit
+    repeats them
+  rationale: Optional app work can stop at manual follow-up, but the support bundle should retain the budget decision even
+    if final audit is sparse.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: identical-repair-loop-apps-followup
+  category: repair_loop_exhaustion
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: repair_attempt_signature
+    payload:
+      stage: apps
+      group_id: apps-video
+      command: apt install missing-video-tool
+      signature:
+        failure_category: package_unavailable
+        operation: install
+        tool: apt
+        packages:
+        - missing-video-tool
+        strategy: repo
+      loop_key:
+      - apps
+      - apps-video
+      - package_unavailable
+      - apt
+      - missing-video-tool
+      - repo
+      same_loop_count: 3
+      diagnostic: false
+      consumes_budget: true
+      loop_exhausted: true
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  required_evidence:
+  - same_loop_count 3
+  - loop_exhausted true
+  - group id apps-video
+  - manual follow-up status or reason after loop exhaustion
+  redaction_expectations:
+  - none
+  current_likely_gap: identical-loop manual follow-up branch marks state but does not appear to emit group_manual_followup
+  rationale: Repeated identical package repair attempts should be diagnosable as loop control rather than a mysterious app
+    omission.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: identical-repair-loop-install-blocked
+  category: repair_loop_exhaustion
+  status: blocked
+  representative_runlog_events:
+  - event_type: repair_attempt_signature
+    payload:
+      stage: install_or_skip
+      group_id: bootloader-install
+      command: grub-install /dev/sda
+      signature:
+        failure_category: bootloader
+        operation: install
+        tool: grub-install
+        target: /dev/sda
+        strategy: same
+      loop_key:
+      - install_or_skip
+      - bootloader-install
+      - bootloader
+      - grub-install
+      - /dev/sda
+      - same
+      same_loop_count: 3
+      diagnostic: false
+      consumes_budget: true
+      loop_exhausted: true
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  - replay-summary.json
+  required_evidence:
+  - loop_exhausted true
+  - bootloader target /dev/sda
+  - blocked status because install/boot repair cannot be deferred
+  redaction_expectations:
+  - none
+  current_likely_gap: blocked exception may not become a terminal runlog status or final audit
+  rationale: A repeated failed bootloader repair attempt is core safety evidence and should be easy to find.
+  risk: high
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: final-audit-repair-provider-error-core
+  category: final_audit_repair_failure
+  status: blocked
+  representative_runlog_events:
+  - event_type: final_audit_repair_failed
+    payload:
+      executed: false
+      error: 'Repair LLM call failed after 3 attempts: HTTP 429 rate_limit_exceeded sk-final-secret'
+      findings:
+      - Missing bootloader on target disk.
+  - event_type: final_audit
+    payload:
+      result:
+        final_status: blocked
+        findings:
+        - severity: fatal
+          category: bootability
+          summary: Missing bootloader on target disk.
+        details:
+          final_audit_repair_failures:
+          - executed: false
+            error: 'Repair LLM call failed after 3 attempts: HTTP 429 rate_limit_exceeded sk-final-secret'
+            findings:
+            - Missing bootloader on target disk.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - final-audit.json
+  - support-summary.json
+  required_evidence:
+  - final audit repair failure
+  - unresolved fatal bootability finding
+  - provider/model error category
+  - blocked final status
+  redaction_expectations:
+  - sk-final-secret must be redacted
+  current_likely_gap: final_audit_repair_failed is not extracted into manual-followups.json or a repair diagnostics artifact
+  rationale: Final audit core repair failures must be unmistakable in support diagnostics.
+  risk: high
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: final-audit-fstab-repair-preflight-block
+  category: final_audit_repair_failure
+  status: blocked
+  representative_runlog_events:
+  - event_type: command_group_started
+    payload:
+      stage: install_or_skip
+      group:
+        id: final-audit-repair-1
+        title: Focused final audit repair
+  - event_type: command_preflight_blocked
+    payload:
+      stage: install_or_skip
+      group_id: final-audit-repair-1
+      command: printf 'UUID=bad / ext4 defaults 0 1' > /target-root/etc/fstab
+      decision:
+        kind: block
+        category: fstab
+        reason: Writing target fstab requires write_fstab capability for /target-root/etc/fstab.
+        capability_kind: write_fstab
+        target: /target-root/etc/fstab
+      reason: Writing target fstab requires write_fstab capability for /target-root/etc/fstab.
+  - event_type: final_audit_repair_executed
+    payload:
+      executed: false
+      action: retry_group
+      stage: install_or_skip
+      findings:
+      - Target fstab missing root filesystem entry.
+      group:
+        id: final-audit-repair-1
+        title: Focused final audit repair
+      error: Writing target fstab requires write_fstab capability for /target-root/etc/fstab.
+  - event_type: final_audit
+    payload:
+      result:
+        final_status: blocked
+        findings:
+        - severity: fatal
+          category: fstab
+          summary: Target fstab still invalid after repair was blocked.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - preflight-events.json
+  - final-audit.json
+  - support-summary.json
+  required_evidence:
+  - blocked command safely redacted
+  - preflight category fstab
+  - required capability kind write_fstab
+  - target /target-root/etc/fstab
+  - final audit repair failure error
+  redaction_expectations:
+  - fstab command must be redacted if it contains credentials or secrets
+  current_likely_gap: preflight event is extracted, but failed repair records are not summarized separately with capability
+    requirement
+  rationale: Final audit repairs must obey the same fstab capability policy and leave evidence when blocked.
+  risk: high
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: final-audit-boot-repair-capability-mismatch
+  category: final_audit_repair_failure
+  status: blocked
+  representative_runlog_events:
+  - event_type: dangerous_operation_preview
+    payload:
+      stage: install_or_skip
+      group_id: final-audit-repair-1
+      preview:
+        preview_id: preview-boot-001
+        operation:
+          kind: bootloader_install
+          target: /dev/sda
+        rendered_commands:
+        - grub-install /dev/sda
+        confirmation_token: BOOT-1234
+  - event_type: capability_granted
+    payload:
+      stage: install_or_skip
+      group_id: final-audit-repair-1
+      capability:
+        id: cap-boot-sdb
+        kind: bootloader_install
+        target: /dev/sdb
+        preview_id: preview-boot-000
+        consumed: false
+  - event_type: internal_capability_check
+    payload:
+      stage: install_or_skip
+      group_id: final-audit-repair-1
+      capability_kind: bootloader_install
+      target: /dev/sda
+      allowed: false
+      reason: final audit boot repair target mismatch
+  - event_type: safe_abort
+    payload:
+      stage: install_or_skip
+      group_id: final-audit-repair-1
+      reason: Internal final audit boot repair target mismatch needs confirmed QuickHatch capability bootloader_install target=/dev/sda.
+  - event_type: final_audit
+    payload:
+      result:
+        final_status: blocked
+        findings:
+        - severity: fatal
+          category: bootability
+          summary: Bootloader repair did not have a matching capability for /dev/sda.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - capability-events.json
+  - dangerous-operation-previews.json
+  - final-audit.json
+  required_evidence:
+  - preview id
+  - granted capability kind and target
+  - requested target /dev/sda
+  - mismatched granted target /dev/sdb
+  - allowed false and safe_abort reason
+  redaction_expectations:
+  - confirmation token should not expose unrelated secrets
+  current_likely_gap: capability mismatch reason is only inferable from internal_capability_check/safe_abort, not a dedicated
+    mismatch event
+  rationale: Wrong-target capability reuse is exactly the kind of support case that needs precise evidence.
+  risk: high
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: final-audit-package-db-repair-preflight-block
+  category: final_audit_repair_failure
+  status: blocked
+  representative_runlog_events:
+  - event_type: command_preflight_blocked
+    payload:
+      stage: apps
+      group_id: final-audit-repair-1
+      command: rm -rf /var/lib/pacman/local
+      decision:
+        kind: block
+        category: package_db
+        reason: Package database surgery requires explicit package_db_repair capability.
+        capability_kind: package_db_repair
+        target: /var/lib/pacman/local
+      reason: Package database surgery requires explicit package_db_repair capability.
+  - event_type: final_audit_repair_executed
+    payload:
+      executed: false
+      action: retry_group
+      stage: apps
+      findings:
+      - Package database appears corrupted.
+      group:
+        id: final-audit-repair-1
+        title: Focused final audit repair
+      error: Package database surgery requires explicit package_db_repair capability.
+  - event_type: final_audit
+    payload:
+      result:
+        final_status: blocked
+        findings:
+        - severity: fatal
+          category: package_db
+          summary: Package database corruption remains unresolved.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - preflight-events.json
+  - final-audit.json
+  required_evidence:
+  - package_db finding
+  - blocked command rm -rf /var/lib/pacman/local
+  - required capability kind package_db_repair
+  - final blocked status
+  redaction_expectations:
+  - none
+  current_likely_gap: package DB repair failures are visible but not grouped as package-db diagnostics
+  rationale: Package DB corruption is a non-perfect outcome where the user needs to know that risky repair was not executed.
+  risk: high
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: final-audit-desktop-repair-manual-followup
+  category: final_audit_repair_manual_followup
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: final_audit_repair_manual_followup
+    payload:
+      executed: false
+      action: manual_followup
+      findings:
+      - Wallpaper could not be verified without an active GUI session.
+      reason: Apply wallpaper manually after logging into the target desktop session.
+  - event_type: final_audit
+    payload:
+      result:
+        final_status: manual_followup_required
+        findings:
+        - severity: manual_followup
+          category: desktop
+          summary: Wallpaper could not be verified without an active GUI session.
+        details:
+          final_audit_repairs:
+          - executed: false
+            action: manual_followup
+            findings:
+            - Wallpaper could not be verified without an active GUI session.
+            reason: Apply wallpaper manually after logging into the target desktop session.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - manual-followups.json
+  - final-audit.json
+  required_evidence:
+  - source final_audit_repair_event
+  - desktop finding
+  - exact wallpaper follow-up reason
+  redaction_expectations:
+  - none
+  current_likely_gap: none
+  rationale: Final-audit repair can intentionally become manual follow-up; the bundle should preserve the exact desktop item
+    and reason.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: final-audit-driver-secureboot-manual-followup
+  category: final_audit_repair_manual_followup
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: final_audit_repair_manual_followup
+    payload:
+      executed: false
+      action: manual_followup
+      findings:
+      - NVIDIA module installed but Secure Boot MOK enrollment remains unverified.
+      reason: Enroll the NVIDIA module signing key in MOK manager and reboot; QuickHatch cannot verify module load yet.
+  - event_type: final_audit
+    payload:
+      result:
+        final_status: manual_followup_required
+        findings:
+        - severity: manual_followup
+          category: driver
+          summary: NVIDIA module installed but Secure Boot MOK enrollment remains unverified.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - manual-followups.json
+  - final-audit.json
+  required_evidence:
+  - driver category
+  - Secure Boot/MOK reason
+  - manual_followup_required final status
+  redaction_expectations:
+  - none
+  current_likely_gap: none
+  rationale: Driver follow-up must be specific enough for support to know whether this is Secure Boot, module load, or package
+    install uncertainty.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: final-audit-warning-only-repair-failed
+  category: final_audit_repair_failure
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: final_audit_repair_executed
+    payload:
+      executed: false
+      action: retry_group
+      stage: apps
+      findings:
+      - Optional non-critical font package is missing.
+      group:
+        id: final-audit-repair-1
+        title: Focused final audit repair
+      error: Optional font package unavailable from configured repository.
+  - event_type: final_audit
+    payload:
+      result:
+        final_status: success_with_warnings
+        findings:
+        - severity: warning
+          category: apps
+          summary: Optional non-critical font package is missing.
+        details:
+          final_audit_repairs:
+          - executed: false
+            action: retry_group
+            error: Optional font package unavailable from configured repository.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - final-audit.json
+  - support-summary.json
+  required_evidence:
+  - success_with_warnings final status
+  - warning-only final audit finding
+  - failed optional repair error
+  redaction_expectations:
+  - none
+  current_likely_gap: failed repairs are in final-audit details but not highlighted in manual-followups or repair diagnostics
+  rationale: A warning-only failed repair should not look like clean success, and support should see what was attempted.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: final-audit-repair-unsupported-action
+  category: final_audit_repair_failure
+  status: blocked
+  representative_runlog_events:
+  - event_type: repair_response
+    payload:
+      stage: install_or_skip
+      group_id: final-audit-repair-1
+      repair_attempt: 1
+      repair_turn: 1
+      text: '{"action":"rerun_everything","reason":"start over"}'
+  - event_type: repair_action
+    payload:
+      stage: install_or_skip
+      group_id: final-audit-repair-1
+      repair_attempt: 1
+      repair_turn: 1
+      action: rerun_everything
+  - event_type: final_audit_repair_failed
+    payload:
+      executed: false
+      action: rerun_everything
+      findings:
+      - Missing initramfs artifact.
+      error: 'Unsupported final-audit repair action: rerun_everything'
+  - event_type: final_audit
+    payload:
+      result:
+        final_status: blocked
+        findings:
+        - severity: fatal
+          category: bootability
+          summary: Missing initramfs artifact.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - final-audit.json
+  - support-summary.json
+  required_evidence:
+  - unsupported repair action
+  - fatal bootability finding remains
+  - final blocked status
+  redaction_expectations:
+  - none
+  current_likely_gap: unsupported final-audit repair action is logged but not extracted into a repair-failures artifact
+  rationale: Broad rerun-style final audit repair actions must be rejected and visible.
+  risk: high
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: repair-retry-rejected-missing-evidence-exhaustion
+  category: repair_loop_exhaustion
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: repair_response
+    payload:
+      stage: postboot_driver
+      group_id: driver-nvidia
+      repair_attempt: 1
+      repair_turn: 1
+      text: '{"action":"retry_group","group":{"commands":["apt install nvidia-open"],"evidence":[]}}'
+  - event_type: repair_action
+    payload:
+      stage: postboot_driver
+      group_id: driver-nvidia
+      repair_attempt: 1
+      repair_turn: 1
+      action: retry_group
+  - event_type: repair_retry_rejected_missing_evidence
+    payload:
+      stage: postboot_driver
+      group_id: driver-nvidia
+      repair_attempt: 1
+      repair_turn: 1
+  - event_type: repair_response_invalid
+    payload:
+      stage: postboot_driver
+      group_id: driver-nvidia
+      repair_attempt: 1
+      repair_turn: 2
+      error: Still missing source evidence for changed driver command.
+  - event_type: group_manual_followup
+    payload:
+      stage: postboot_driver
+      group_id: driver-nvidia
+      reason: Repair loop exhausted for 'NVIDIA driver setup' after invalid or non-actionable repair turns.
+  - event_type: final_audit
+    payload:
+      result:
+        final_status: manual_followup_required
+        findings:
+        - severity: manual_followup
+          category: driver
+          summary: NVIDIA driver setup needs manual follow-up after repair evidence was missing.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - manual-followups.json
+  - final-audit.json
+  required_evidence:
+  - repair_retry_rejected_missing_evidence
+  - driver group id
+  - manual follow-up reason
+  - repair turn count
+  redaction_expectations:
+  - none
+  current_likely_gap: missing-evidence repair rejection is raw runlog-only and not summarized
+  rationale: Driver repairs should not silently retry model-invented commands without evidence; support should see the policy
+    rejection.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: provider-error-redaction-raw-payload
+  category: provider_error
+  status: unknown
+  representative_runlog_events:
+  - event_type: model_call_failed
+    payload:
+      context: repair
+      attempt: 1
+      elapsed_seconds: 0.8
+      timeout_seconds: 180
+      error: '401 Unauthorized api_key="sk-live-secret" Authorization: Bearer secret-bearer-token request={"password":"hunter2","messages":[{"content":"token=raw-secret"}]}'
+  - event_type: repair_response_invalid
+    payload:
+      stage: apps
+      group_id: apps-secrets
+      repair_attempt: 1
+      repair_turn: 1
+      error: Model echoed password=hunter2 in invalid JSON
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  - manifest.json
+  required_evidence:
+  - provider auth failure category without raw secret-bearing payload
+  - redaction applied across JSONL and extracted artifacts
+  redaction_expectations:
+  - sk-live-secret must be redacted
+  - secret-bearer-token must be redacted
+  - hunter2 must be redacted
+  - raw-secret must be redacted
+  current_likely_gap: none
+  rationale: Support bundles are often shared externally; provider errors are high-risk for accidental credential leakage.
+  risk: high
+  source_agents:
+  - support-bundle-agent-3-provider-repair
+- id: redact-api-key-command-env
+  category: redaction
+  status: blocked
+  representative_runlog_events:
+  - event_type: command
+    payload:
+      stage: apps
+      group_id: apps-browser
+      command: OPENAI_API_KEY=sk-fake-command-secret-1234567890 curl --token fake-cli-token https://provider.example/v1
+      rc: 1
+      stderr_tail: 'Authorization: Bearer fake-provider-bearer-token-abcdef'
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - executed-commands.sh
+  - support-summary.json
+  required_evidence:
+  - failed command is present in redacted runlog with stage and group_id
+  - executed command script comments failed command instead of replaying it
+  - support summary preserves blocked/unknown status without leaking provider credentials
+  redaction_expectations:
+  - sk-fake-command-secret-1234567890
+  - fake-cli-token
+  - fake-provider-bearer-token-abcdef
+  current_likely_gap: none
+  rationale: Command payloads are the highest-risk support evidence because they are useful for debugging and likely to contain
+    provider or CLI credentials.
+  risk: high
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: redact-provider-payload-error
+  category: redaction
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: repair_model_unavailable_manual_followup
+    payload:
+      stage: apps
+      group_id: apps-chat
+      app: Chat Client
+      provider_error: 429 rate limit
+      request_payload:
+        model: gpt-fake
+        api_key: sk-provider-payload-secret-1234567890
+        messages:
+        - role: user
+          content: Install Chat Client; bearer_token=payload-bearer-secret
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - manual-followups.json
+  - support-summary.json
+  required_evidence:
+  - provider error category is visible
+  - manual follow-up item names the affected app/group
+  - raw provider request body is redacted if included
+  redaction_expectations:
+  - sk-provider-payload-secret-1234567890
+  - payload-bearer-secret
+  current_likely_gap: provider/model errors are not extracted into a dedicated artifact
+  rationale: Support needs to know the provider failed without receiving raw prompt payloads or API keys.
+  risk: high
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: redact-private-key-block
+  category: redaction
+  status: blocked
+  representative_runlog_events:
+  - event_type: planner_prompt
+    payload:
+      prompt: 'Use this SSH key:
+
+        -----BEGIN OPENSSH PRIVATE KEY-----
+
+        fake-private-key-material
+
+        -----END OPENSSH PRIVATE KEY-----'
+      profile:
+        default_setup_password: fake-default-password
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - profile-summary.json
+  required_evidence:
+  - planner prompt exists only in redacted runlog
+  - profile summary excludes raw password-bearing fields
+  redaction_expectations:
+  - BEGIN OPENSSH PRIVATE KEY
+  - fake-private-key-material
+  - fake-default-password
+  current_likely_gap: none
+  rationale: A support bundle must never expose private key blocks or default setup passwords copied through model context.
+  risk: high
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: redact-ssh-public-key-comment
+  category: redaction
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: facts_refresh
+    payload:
+      facts:
+        current_user: jan
+        authorized_keys_preview:
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeKeyData user@private-laptop
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - setup-facts-summary.json
+  required_evidence:
+  - runlog remains useful without exposing SSH key material or identifying comments
+  - facts summary excludes authorized_keys-style raw data
+  redaction_expectations:
+  - AAAAC3NzaC1lZDI1NTE5AAAAIFakeKeyData
+  - user@private-laptop
+  current_likely_gap: none
+  rationale: SSH public key comments can identify the owner or device even when the public key itself is not secret.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: redact-chpasswd-command
+  category: executed_commands_redaction
+  status: blocked
+  representative_runlog_events:
+  - event_type: command
+    payload:
+      stage: users
+      group_id: create-user
+      command: echo 'quickhatch:fake-user-password' | sudo chroot /mnt chpasswd
+      rc: 0
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - executed-commands.sh
+  required_evidence:
+  - successful password command is omitted or commented with redaction in replay script
+  - redacted runlog preserves stage/group_id without secret
+  redaction_expectations:
+  - fake-user-password
+  - quickhatch:fake-user-password
+  current_likely_gap: none
+  rationale: Executed command replay must not turn a support artifact into a password disclosure or a blindly runnable password
+    reset script.
+  risk: high
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: redact-password-variable-command
+  category: executed_commands_redaction
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: command
+    payload:
+      stage: users
+      group_id: set-password
+      command: root_pw=fake-root-password user_pw=fake-user-password ./configure-user.sh
+      rc: 0
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - executed-commands.sh
+  required_evidence:
+  - replay script keeps redacted command as edit-required comment
+  - runlog redacts root_pw and user_pw values
+  redaction_expectations:
+  - fake-root-password
+  - fake-user-password
+  current_likely_gap: none
+  rationale: Password variables are common in setup scripts and must be redacted in both JSONL and generated shell replay.
+  risk: high
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: support-readme-nonperfect-map
+  category: support_readme
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      status: manual_followup_required
+      result:
+        final_status: manual_followup_required
+        findings:
+        - severity: manual_followup
+          category: desktop
+          summary: Wallpaper could not be verified without an active GUI session.
+  expected_bundle_artifacts:
+  - README.txt
+  - support-summary.json
+  - final-audit.json
+  - manual-followups.json
+  required_evidence:
+  - README explains where to find final status
+  - README explains where to find manual follow-up items
+  - README explains that artifacts are redacted and some optional artifacts may be skipped
+  redaction_expectations: []
+  current_likely_gap: README is currently sparse and does not enumerate artifact meanings
+  rationale: A support bundle should be self-orienting when the outcome is not perfect and the user uploads only the ZIP.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: support-readme-artifact-index
+  category: support_readme
+  status: unsupported_safe
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      status: unsupported_safe
+      result:
+        final_status: unsupported_safe
+        findings:
+        - severity: unsupported_safe
+          category: driver
+          summary: Secure Boot prevents automatic NVIDIA module verification.
+  expected_bundle_artifacts:
+  - README.txt
+  - manifest.json
+  - support-summary.json
+  - final-audit.json
+  required_evidence:
+  - README lists core artifact names and purpose
+  - README points unsupported_safe cases to final-audit.json and manual-followups.json when present
+  - README warns that secrets should already be redacted but bundle should still be shared intentionally
+  redaction_expectations: []
+  current_likely_gap: README is currently sparse and does not list core artifacts
+  rationale: Unsupported-safe outcomes need explanation so they are not confused with either success or a crash.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: manifest-skipped-optional-artifacts
+  category: artifact_manifest
+  status: unknown
+  representative_runlog_events:
+  - event_type: setup_started
+    payload:
+      run_id: run-no-final-audit
+  expected_bundle_artifacts:
+  - manifest.json
+  - support-summary.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - manifest included list contains present artifacts
+  - manifest skipped map explains missing final audit/manual follow-up/app verification artifacts
+  - support summary final_status is unknown when no terminal status is available
+  redaction_expectations: []
+  current_likely_gap: none
+  rationale: Incomplete or interrupted runs still need a bundle that explains absence of optional diagnostics rather than
+    looking corrupt.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: manifest-selected-runlog-privacy
+  category: artifact_manifest
+  status: blocked
+  representative_runlog_events:
+  - event_type: setup_started
+    payload:
+      run_id: run-private-path
+      source_path: /Users/jan/Documents/Clients/PrivateCustomer/.quickhatch/setup-runs/run-private-path.jsonl
+  expected_bundle_artifacts:
+  - manifest.json
+  - support-metadata.json
+  required_evidence:
+  - manifest identifies selected runlog enough for support correlation
+  - manifest does not needlessly expose private customer/project directory names
+  redaction_expectations:
+  - PrivateCustomer
+  current_likely_gap: manifest currently records selected_runlog as a full path
+  rationale: A bundle can leak sensitive project or customer names through local filesystem paths even when JSON payload redaction
+    works.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: executed-script-failed-command-comment
+  category: executed_commands_redaction
+  status: blocked
+  representative_runlog_events:
+  - event_type: command
+    payload:
+      stage: install
+      group_id: bootstrap
+      command: sudo pacstrap -K /mnt base linux
+      rc: 1
+      stderr_tail: failed to initialize package manager
+  expected_bundle_artifacts:
+  - executed-commands.sh
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - failed command appears only as a comment in executed-commands.sh
+  - runlog keeps rc and stderr tail for debugging
+  - script header warns review is required before reuse
+  redaction_expectations: []
+  current_likely_gap: none
+  rationale: Support needs to see what failed, but generated replay must not automatically repeat failed install-spine commands.
+  risk: high
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: executed-script-redacted-success-not-runnable
+  category: executed_commands_redaction
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: command
+    payload:
+      stage: apps
+      group_id: vendor-login
+      command: 'curl -H ''Authorization: Bearer fake-success-bearer-token'' https://repo.example/install.sh | bash'
+      rc: 0
+  expected_bundle_artifacts:
+  - executed-commands.sh
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - successful command with redacted credential is not emitted as runnable shell
+  - script contains edit-required comment with redacted placeholder
+  redaction_expectations:
+  - fake-success-bearer-token
+  current_likely_gap: none
+  rationale: A successful command can still contain credentials; replay generation should prefer safety over completeness.
+  risk: high
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: profile-summary-minimizes-ai-config
+  category: profile_facts_minimization
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: planner_prompt
+    payload:
+      profile:
+        install_profile: configure_existing
+        remote_setup_mode: safe
+        apps_to_install:
+        - Firefox
+        - Signal
+        ai_config:
+          api_key: sk-profile-ai-secret-1234567890
+          provider: private-provider
+        preferences:
+          distro_preference: fedora
+          hardware_search_opt_in: true
+          personal_note: I work for Private Employer
+  expected_bundle_artifacts:
+  - profile-summary.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - profile summary includes install profile and app count
+  - profile summary excludes ai_config and non-allowlisted preference fields
+  - raw redacted runlog does not expose API key
+  redaction_expectations:
+  - sk-profile-ai-secret-1234567890
+  - Private Employer
+  current_likely_gap: none
+  rationale: Support usually needs the selected mode and counts, not raw AI provider credentials or personal notes.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: facts-summary-minimizes-host-identity
+  category: profile_facts_minimization
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: facts_refresh
+    payload:
+      facts:
+        distro_family: ubuntu
+        package_manager: apt
+        current_user: jan
+        hostname: jan-private-host
+        fqdn: jan-private-host.private.lan
+        ip_addresses:
+        - 192.168.55.42
+        mac_addresses:
+        - de:ad:be:ef:00:01
+        gpu_vendors:
+        - intel
+  expected_bundle_artifacts:
+  - setup-facts-summary.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - facts summary keeps distro/package/GPU facts useful for debugging
+  - facts summary excludes hostnames, IP addresses, FQDN, and MAC addresses
+  redaction_expectations:
+  - jan-private-host
+  - 192.168.55.42
+  - de:ad:be:ef:00:01
+  current_likely_gap: redacted raw runlog may still include non-secret host/IP/MAC facts
+  rationale: Hardware and distro facts are useful, but private network identity is rarely needed in summarized support evidence.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: dangerous-preview-redacts-secret-rendered-command
+  category: redaction
+  status: blocked
+  representative_runlog_events:
+  - event_type: dangerous_operation_preview
+    payload:
+      preview:
+        operation:
+          kind: write_fstab
+          target: /mnt/etc/fstab
+        rendered_commands:
+        - printf 'credentials=ssh-private-token-secret' >> /mnt/etc/fstab
+  expected_bundle_artifacts:
+  - dangerous-operation-previews.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - dangerous operation kind and target are preserved
+  - rendered command is redacted before inclusion
+  redaction_expectations:
+  - ssh-private-token-secret
+  current_likely_gap: none
+  rationale: Dangerous previews are important for consent debugging, but rendered command text can contain credentials or
+    private mount options.
+  risk: high
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: capability-event-target-with-private-path
+  category: artifact_manifest
+  status: blocked
+  representative_runlog_events:
+  - event_type: capability_granted
+    payload:
+      capability:
+        kind: write_fstab
+        target: /Users/jan/Clients/PrivateCustomer/target-root/etc/fstab
+        preview_id: preview-private-path
+        consumed: false
+  expected_bundle_artifacts:
+  - capability-events.json
+  - support-summary.json
+  required_evidence:
+  - capability kind, target, preview id, and consumed state are visible
+  - private host-side path components are minimized or redacted where possible
+  redaction_expectations:
+  - PrivateCustomer
+  current_likely_gap: capability event extraction preserves full targets
+  rationale: Capability evidence is essential for safety debugging, but host-side paths can disclose customer or project names.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: support-summary-status-without-final-audit
+  category: artifact_manifest
+  status: blocked
+  representative_runlog_events:
+  - event_type: setup_blocked
+    payload:
+      final_status: blocked
+      reason: SSH reconnect failed after controlled reboot.
+      stage: reconnect
+  expected_bundle_artifacts:
+  - support-summary.json
+  - replay-summary.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - support summary final_status is blocked even without final_audit event
+  - replay summary exposes terminal blocked reason
+  - runlog shows reconnect failure context
+  redaction_expectations: []
+  current_likely_gap: orchestrator may not emit a terminal setup_blocked event for all pre-final failures
+  rationale: Interrupted blocked runs often cannot reach final audit, so support evidence needs a terminal status outside
+    final_audit.
+  risk: high
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: readme-redaction-boundary-warning
+  category: support_readme
+  status: unknown
+  representative_runlog_events:
+  - event_type: setup_started
+    payload:
+      run_id: run-readme-redaction-warning
+  expected_bundle_artifacts:
+  - README.txt
+  - manifest.json
+  required_evidence:
+  - README states the bundle is redacted but may still contain system identity and command context
+  - README advises reviewing before sharing outside trusted support channels
+  - README explains skipped artifacts and manifest privacy note
+  redaction_expectations: []
+  current_likely_gap: README currently gives only a short redaction statement
+  rationale: Redaction reduces risk but does not remove every potentially identifying diagnostic detail, so the user needs
+    clear sharing guidance.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-4-redaction-readme
+- id: enum-success-warnings-final-audit
+  category: final_status_serialization
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      run_id: status-enum-warnings
+      result:
+        passed: true
+        final_status: FinalSetupStatus.SUCCESS_WITH_WARNINGS
+        findings:
+        - severity: warning
+          category: apps
+          summary: Alternative package was installed for one requested app.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - replay-summary.json
+  required_evidence:
+  - support-summary.json final_status is normalized to success_with_warnings
+  - final-audit.json status is normalized to success_with_warnings
+  - warning finding is preserved with category and summary
+  redaction_expectations: []
+  current_likely_gap: none
+  rationale: Enum-style final statuses should serialize consistently across support and replay artifacts.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
+- id: enum-manual-followup-final-audit
+  category: final_status_serialization
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      run_id: status-enum-manual
+      result:
+        passed: false
+        final_status: FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED
+        findings:
+        - severity: manual_followup
+          category: desktop
+          summary: Wallpaper could not be verified in the active user session.
+        details:
+          desktop_design:
+            wallpaper:
+              status: manual_followup_required
+              reason: No active GUI session was available for live verification.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - manual-followups.json
+  - replay-summary.json
+  required_evidence:
+  - manual follow-up count is nonzero
+  - manual follow-up item includes desktop category and wallpaper reason
+  - replay summary records manual_followup audit finding
+  redaction_expectations: []
+  current_likely_gap: manual-followups extraction is final-audit-centric and may miss stage-level desktop follow-up if final
+    audit omits it
+  rationale: Manual follow-up must remain visible and specific in the support bundle.
+  risk: high
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
+- id: enum-unsupported-safe-final-audit
+  category: final_status_serialization
+  status: unsupported_safe
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      run_id: status-enum-unsupported
+      result:
+        passed: false
+        final_status: FinalSetupStatus.UNSUPPORTED_SAFE
+        findings:
+        - severity: unsupported_safe
+          category: driver
+          summary: Virtual GPU does not support real hardware driver certification.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - replay-summary.json
+  required_evidence:
+  - unsupported_safe status is normalized in support-summary.json
+  - unsupported_safe finding category and summary are preserved
+  - replay-summary.json audit_findings includes unsupported_safe:driver
+  redaction_expectations: []
+  current_likely_gap: unsupported_safe bundle behavior appears supported but lightly tested
+  rationale: Unsupported-but-safe outcomes must not be flattened into either success or blocked.
+  risk: high
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
+- id: blocked-final-audit-core-finding
+  category: final_audit_findings
+  status: blocked
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      run_id: blocked-core-final
+      result:
+        passed: false
+        final_status: blocked
+        blockers:
+        - Missing bootloader installation.
+        findings:
+        - severity: fatal
+          category: bootability
+          summary: Bootloader was not installed on the target system.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - replay-summary.json
+  required_evidence:
+  - final status is blocked
+  - blocker text is preserved
+  - fatal bootability finding is preserved
+  - replay summary last_failure_type is final_audit
+  redaction_expectations: []
+  current_likely_gap: none
+  rationale: Fatal core audit failures need enough serialized evidence for diagnosis without rerunning setup.
+  risk: high
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
+- id: warning-only-final-audit-status
+  category: final_audit_findings
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      run_id: warning-only-final
+      result:
+        passed: true
+        final_status: success_with_warnings
+        blockers: []
+        findings:
+        - severity: warning
+          category: apps
+          summary: Optional theme package was unavailable.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - replay-summary.json
+  required_evidence:
+  - warning finding is retained
+  - status remains success_with_warnings rather than success
+  - support summary audit_finding_count includes warning
+  redaction_expectations: []
+  current_likely_gap: none
+  rationale: Warning-only outcomes should stay visibly different from clean success.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
+- id: final-audit-after-run-finished-conflict
+  category: status_summary_agreement
+  status: blocked
+  representative_runlog_events:
+  - event_type: run_finished
+    payload:
+      run_id: conflict-final-wins
+      final_status: success
+  - event_type: final_audit
+    payload:
+      run_id: conflict-final-wins
+      result:
+        passed: false
+        final_status: blocked
+        blockers:
+        - SSH reconnect failed after controlled reboot.
+        findings:
+        - severity: fatal
+          category: ssh_reconnect
+          summary: Target did not reconnect.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - replay-summary.json
+  required_evidence:
+  - final audit blocked status takes precedence in support-summary.json
+  - replay-summary.json final_status agrees with final-audit status
+  - conflicting earlier run_finished status is still inspectable in redacted runlog
+  redaction_expectations: []
+  current_likely_gap: none if events are ordered with final_audit last
+  rationale: A late final audit must be able to override optimistic earlier status events.
+  risk: high
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
+- id: run-finished-after-blocked-final-conflict
+  category: status_summary_agreement
+  status: blocked
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      run_id: conflict-run-finished-last
+      result:
+        passed: false
+        final_status: blocked
+        blockers:
+        - Package database corruption remains unresolved.
+        findings:
+        - severity: fatal
+          category: package_db
+          summary: Package database integrity check failed.
+  - event_type: run_finished
+    payload:
+      run_id: conflict-run-finished-last
+      final_status: success
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - replay-summary.json
+  required_evidence:
+  - support-summary.json uses final_audit blocked status
+  - replay-summary.json does not silently disagree with final-audit.json
+  - status conflict is detectable or summarized
+  redaction_expectations: []
+  current_likely_gap: replay summary currently uses the last status-bearing event, so it may report success while support-summary
+    reports blocked
+  rationale: Conflicting terminal events should not make replay and support artifacts tell different stories.
+  risk: high
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
+- id: setup-run-finished-no-final-audit-manual
+  category: support_summary
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: setup_run_finished
+    payload:
+      run_id: manual-no-final
+      final_status: manual_followup_required
+      summary: Manual follow-up required for NVIDIA driver verification.
+  - event_type: driver_manual_followup
+    payload:
+      run_id: manual-no-final
+      category: driver
+      reason: Secure Boot requires manual MOK enrollment.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - replay-summary.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - support-summary.json final_status is manual_followup_required
+  - absence of final-audit.json is explicitly listed as skipped
+  - driver follow-up reason remains discoverable
+  redaction_expectations: []
+  current_likely_gap: manual-followups.json is not populated from generic driver_manual_followup events
+  rationale: Runs that end before final audit still need actionable support evidence.
+  risk: high
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
+- id: run-failed-blocked-without-final-audit
+  category: replay_summary
+  status: blocked
+  representative_runlog_events:
+  - event_type: command_preflight_blocked
+    payload:
+      run_id: blocked-no-final
+      stage: install_or_skip
+      group_id: fresh-install-leak
+      command: mkfs.ext4 /dev/sda1
+      reason: format_filesystem capability required for /dev/sda1
+  - event_type: run_failed
+    payload:
+      run_id: blocked-no-final
+      status: blocked
+      error: Preflight blocked destructive filesystem formatting.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - preflight-events.json
+  - replay-summary.json
+  - setup-runlog-redacted.jsonl
+  required_evidence:
+  - support-summary.json final_status is blocked
+  - blocked command and reason appear redacted in preflight-events.json
+  - replay summary blockers include preflight reason
+  redaction_expectations: []
+  current_likely_gap: replay currently treats run_failed as a blocker but not as a final_status source
+  rationale: Pre-final hard blocks must not export as unknown status just because final audit did not run.
+  risk: high
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
+- id: malformed-jsonl-preserves-status
+  category: replay_summary
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: jsonl_decode_error
+    payload:
+      run_id: malformed-status
+      line_no: 3
+      note: Represents one malformed JSONL line in the source runlog.
+  - event_type: final_audit
+    payload:
+      run_id: malformed-status
+      result:
+        passed: true
+        final_status: success_with_warnings
+        findings:
+        - severity: warning
+          category: setup
+          summary: One support diagnostic line could not be parsed.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - replay-summary.json
+  - support-summary.json
+  - final-audit.json
+  required_evidence:
+  - malformed line is tolerated during bundle export
+  - jsonl decode diagnostic remains visible in replay-summary.json
+  - valid later final status is still preserved
+  redaction_expectations: []
+  current_likely_gap: decode tolerance exists, but README/support summary do not call out malformed-line diagnostics directly
+  rationale: Support export should survive a partially corrupt runlog and still retain the terminal status.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
+- id: failed-final-audit-without-final-status
+  category: final_status_serialization
+  status: blocked
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      run_id: failed-final-no-status
+      result:
+        passed: false
+        blockers:
+        - Target is still running from the live ISO.
+        findings:
+        - severity: fatal
+          category: bootability
+          summary: Post-reboot facts still identify a live environment.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - replay-summary.json
+  required_evidence:
+  - failed final audit without explicit final_status exports as blocked
+  - blocker and fatal finding are preserved
+  - support and replay summaries agree
+  redaction_expectations: []
+  current_likely_gap: support-summary likely reports unknown when final_audit passed=false omits final_status
+  rationale: Older or partial final-audit events should still serialize a conservative blocked outcome.
+  risk: high
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
+- id: final-audit-event-status-only
+  category: final_status_serialization
+  status: unsupported_safe
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      run_id: final-status-event-only
+      status: FinalSetupStatus.UNSUPPORTED_SAFE
+      result:
+        passed: false
+        findings:
+        - severity: unsupported_safe
+          category: hardware
+          summary: Hardware probe could not certify proprietary GPU support in a VM.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - replay-summary.json
+  required_evidence:
+  - event-level final_audit status is normalized
+  - final-audit.json status matches support-summary.json
+  - unsupported_safe finding is preserved
+  redaction_expectations: []
+  current_likely_gap: none
+  rationale: Support bundle should handle final-audit status stored at event level as well as result level.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
+- id: unsupported-safe-with-manual-followup-conflict
+  category: status_summary_agreement
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      run_id: unsupported-manual-conflict
+      result:
+        passed: false
+        final_status: unsupported_safe
+        findings:
+        - severity: unsupported_safe
+          category: driver
+          summary: NVIDIA legacy generation is unsupported for automatic proprietary setup.
+        - severity: manual_followup
+          category: driver
+          summary: User must choose a legacy driver path manually.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - manual-followups.json
+  - replay-summary.json
+  required_evidence:
+  - manual follow-up is not hidden by unsupported_safe status
+  - both findings are preserved
+  - support summary status/follow-up count make the conflict visible
+  redaction_expectations: []
+  current_likely_gap: status precedence conflicts are not explicitly flagged in support-summary.json
+  rationale: Mixed unsupported-safe and manual-followup outcomes need an honest next action.
+  risk: high
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
+- id: success-status-with-warning-finding-conflict
+  category: status_summary_agreement
+  status: success_with_warnings
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      run_id: success-warning-conflict
+      result:
+        passed: true
+        final_status: success
+        findings:
+        - severity: warning
+          category: desktop
+          summary: Requested cursor theme persisted but could not be live-verified.
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - replay-summary.json
+  required_evidence:
+  - warning finding prevents a plain green success interpretation
+  - support summary and final audit agree on either success_with_warnings or a visible conflict
+  - warning remains visible with desktop category
+  redaction_expectations: []
+  current_likely_gap: support bundle currently trusts final_status over warning findings and may serialize plain success
+  rationale: A status/finding mismatch should be obvious to future diagnostics instead of visually disappearing.
+  risk: high
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
+- id: final-audit-repair-failed-summary
+  category: final_audit_findings
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: final_audit_repair_failed
+    payload:
+      run_id: repair-failed-summary
+      finding_id: apps:missing-required
+      category: apps
+      summary: Repair command did not install required app.
+      attempts: 2
+      exhausted: true
+  - event_type: final_audit
+    payload:
+      run_id: repair-failed-summary
+      result:
+        passed: false
+        final_status: manual_followup_required
+        findings:
+        - severity: manual_followup
+          category: apps
+          summary: Required app remains unresolved after final-audit repair.
+        details:
+          final_audit_repairs:
+          - action: repair
+            outcome: failure
+            attempts: 2
+            exhausted: true
+  expected_bundle_artifacts:
+  - support-summary.json
+  - final-audit.json
+  - manual-followups.json
+  - replay-summary.json
+  required_evidence:
+  - failed final-audit repair is retained
+  - attempt count and exhausted flag are visible
+  - final status remains manual_followup_required
+  redaction_expectations: []
+  current_likely_gap: manual-followups extraction captures manual follow-up findings but not all failed repair records as
+    first-class evidence
+  rationale: A failed final repair should leave enough evidence to explain why the final status is not success.
+  risk: high
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
+- id: provider-error-before-final-status
+  category: support_summary
+  status: manual_followup_required
+  representative_runlog_events:
+  - event_type: model_call_failed
+    payload:
+      run_id: provider-before-final
+      provider: openai
+      error_category: rate_limited
+      status_code: 429
+      message: 429 while repairing missing app; token sk-provider-secret must not leak
+  - event_type: final_audit
+    payload:
+      run_id: provider-before-final
+      result:
+        passed: false
+        final_status: manual_followup_required
+        findings:
+        - severity: manual_followup
+          category: apps
+          summary: Provider rate limit prevented automatic app repair.
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  - final-audit.json
+  - replay-summary.json
+  required_evidence:
+  - provider error category is visible
+  - manual follow-up reason references provider rate limit
+  - final status is manual_followup_required
+  redaction_expectations:
+  - sk-provider-secret
+  current_likely_gap: no dedicated provider-errors.json artifact; provider evidence is only in redacted runlog/replay
+  rationale: Provider failures are common non-perfect outcomes and must be diagnosable without leaking request payloads.
+  risk: medium
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
+- id: redacted-final-audit-details
+  category: final_audit_findings
+  status: blocked
+  representative_runlog_events:
+  - event_type: final_audit
+    payload:
+      run_id: redacted-final-details
+      result:
+        passed: false
+        final_status: blocked
+        blockers:
+        - SSH reconnect failed for user token=secret-token-value.
+        findings:
+        - severity: fatal
+          category: ssh_reconnect
+          summary: Reconnect failed after reboot.
+        details:
+          reconnect:
+            command: ssh quickhatch@example --password super-secret-password
+            provider_payload: 'Authorization: Bearer secret-bearer-token'
+  expected_bundle_artifacts:
+  - setup-runlog-redacted.jsonl
+  - support-summary.json
+  - final-audit.json
+  - replay-summary.json
+  required_evidence:
+  - blocked reconnect finding is preserved
+  - secret-bearing blocker/detail text is redacted
+  - support and replay summaries still expose the failure category
+  redaction_expectations:
+  - secret-token-value
+  - super-secret-password
+  - secret-bearer-token
+  current_likely_gap: none
+  rationale: Final-audit details are high-value diagnostics and must remain useful after redaction.
+  risk: high
+  source_agents:
+  - support-bundle-agent-5-final-status-replay
