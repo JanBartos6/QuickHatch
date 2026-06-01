@@ -3385,7 +3385,14 @@ class SetupOrchestrator:
                 for repair in repairs
                 if not repair.get("executed") and repair.get("action") != "manual_followup"
             ]
-            if failed_repairs and result.final_status != FinalSetupStatus.BLOCKED:
+            warning_only_after_failed_repair = self._failed_final_audit_repairs_are_warning_only(
+                result, failed_repairs
+            )
+            if (
+                failed_repairs
+                and result.final_status != FinalSetupStatus.BLOCKED
+                and not warning_only_after_failed_repair
+            ):
                 result.findings.append(
                     AuditFinding(
                         id="final_audit:repair_failed",
@@ -3570,6 +3577,31 @@ class SetupOrchestrator:
         if "desktop" in categories:
             return SetupStage.DESKTOP
         return SetupStage.APPS
+
+    @staticmethod
+    def _failed_final_audit_repairs_are_warning_only(
+        result: AuditResult,
+        failed_repairs: list[dict[str, Any]],
+    ) -> bool:
+        if result.final_status != FinalSetupStatus.SUCCESS_WITH_WARNINGS or not result.findings:
+            return False
+        if all(finding.severity == AuditFindingSeverity.WARNING for finding in result.findings):
+            return True
+        if any(
+            finding.severity not in {AuditFindingSeverity.WARNING, AuditFindingSeverity.REPAIRABLE}
+            for finding in result.findings
+        ):
+            return False
+        text = " ".join(
+            [
+                *(finding.summary for finding in result.findings),
+                *(
+                    str(repair.get("error") or repair.get("action") or "")
+                    for repair in failed_repairs
+                ),
+            ]
+        ).lower()
+        return any(marker in text for marker in ("optional", "non-critical", "noncritical"))
 
     @staticmethod
     def _final_status_from_findings(result: AuditResult) -> FinalSetupStatus:
