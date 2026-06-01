@@ -1,0 +1,2445 @@
+# Curated stop/abort orchestration scenario corpus.
+#
+# This fixture models user stop, safe abort, pending-question abandonment,
+# repair-loop exit, pre-reboot cancellation, capability mismatch, preflight
+# block, and support-bundle evidence policy. Use fake runtimes/facts only;
+# do not execute commands from this file.
+merge_summary:
+  source: Merged from .quickhatch/corpus-candidates/abort-agent-*.yaml
+  total_source_candidates: 74
+  total_scenarios: 74
+  source_files:
+  - .quickhatch/corpus-candidates/abort-agent-1-user-stop.yaml
+  - .quickhatch/corpus-candidates/abort-agent-2-repair-loop.yaml
+  - .quickhatch/corpus-candidates/abort-agent-3-pre-reboot.yaml
+  - .quickhatch/corpus-candidates/abort-agent-4-pending-question.yaml
+  - .quickhatch/corpus-candidates/abort-agent-5-safe-abort.yaml
+  scenarios_by_category:
+    capability_mismatch: 4
+    pending_question_stop: 15
+    pre_reboot_stop: 12
+    preflight_block: 8
+    repair_loop_stop: 12
+    safe_abort: 5
+    support_bundle: 1
+    user_stop: 17
+  scenarios_by_mode:
+    configure_existing: 31
+    fresh_install: 31
+    postboot_setup: 12
+  scenarios_by_stage:
+    apps: 8
+    capability_check: 12
+    desktop: 5
+    final_audit: 13
+    pending_question: 4
+    pre_reboot: 9
+    reboot: 4
+    repair: 19
+  event_types:
+    capability_mismatch: 4
+    preflight_block: 7
+    safe_abort: 5
+    user_stop: 58
+  final_statuses:
+    aborted: 58
+    blocked: 16
+  rejected_ambiguous_cases: []
+  omitted_near_duplicate_cases: []
+  coverage_gaps:
+  - This fixture models stop/abort orchestration policy only; commands, stages, reboots, reconnects, and package operations
+    must be faked in tests.
+  - No real Docker, VM, SSH, reboot, package-manager, or shell execution is represented.
+  - The fixture does not define the exact persisted checkpoint/runlog schema; tests should bind expected evidence to existing
+    harness APIs.
+  - Status labels preserve both aborted and blocked expectations, but later tests may need adapter logic if the current runtime
+    only has a blocked terminal status.
+  notes: Stop/abort scenarios cover user stops, repair-loop exits, pre-reboot cancellation, pending-question abandonment,
+    capability mismatches, preflight blocks, safe aborts, and support-bundle evidence.
+scenarios:
+- id: user-stop-app-install-first-command
+  category: user_stop
+  mode: configure_existing
+  stage: apps
+  state_before:
+    completed_groups: []
+    active_group: Install requested apps
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User clicked stop while the first app install command was active
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - Install requested apps
+    summary_must_not_claim:
+    - setup completed successfully
+    - all requested apps installed
+  rationale: A user stop during an app command may let the active command settle, but no later app or desktop groups should
+    begin and the final summary must not be success.
+- id: user-stop-app-install-after-partial-success
+  category: user_stop
+  mode: configure_existing
+  stage: apps
+  state_before:
+    completed_groups:
+    - Install browser
+    active_group: Install media apps
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped after one app group completed and the next app group started
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - Install browser
+    - Install media apps
+    summary_must_not_claim:
+    - all requested apps installed
+    - success
+  rationale: Completed app progress should be preserved, but unrelated later groups must not start after the stop.
+- id: user-stop-app-install-before-next-package-group
+  category: user_stop
+  mode: fresh_install
+  stage: apps
+  state_before:
+    completed_groups:
+    - Bootstrap base system
+    - Install shell tools
+    active_group: ''
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped between app package groups
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - between groups
+    summary_must_not_claim:
+    - postboot setup complete
+    - success
+  rationale: A stop observed between groups should prevent the next group from starting even when prior groups completed cleanly.
+- id: user-stop-app-install-required-app-unresolved
+  category: user_stop
+  mode: postboot_setup
+  stage: apps
+  state_before:
+    completed_groups:
+    - Install base apps
+    active_group: Install required creative apps
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped after a required app failed but before repair began
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - required creative apps
+    summary_must_not_claim:
+    - required apps completed
+    - success
+  rationale: The stop should prevent entering repair for the failed required app and must keep the unresolved app visible.
+- id: user-stop-desktop-live-apply
+  category: user_stop
+  mode: configure_existing
+  stage: desktop
+  state_before:
+    completed_groups:
+    - Install theme packages
+    active_group: Apply desktop theme
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped while live desktop theme apply was active
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - Apply desktop theme
+    summary_must_not_claim:
+    - theme verified
+    - desktop customization complete
+  rationale: Desktop live-apply work is cosmetic and should stop cleanly without claiming the visual result was verified.
+- id: user-stop-desktop-wallpaper-after-theme-success
+  category: user_stop
+  mode: configure_existing
+  stage: desktop
+  state_before:
+    completed_groups:
+    - Apply theme
+    - Apply icons
+    active_group: Apply wallpaper
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped after theme and icons succeeded but wallpaper was still active
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - Apply theme
+    - Apply wallpaper
+    summary_must_not_claim:
+    - wallpaper verified
+    - all design changes applied
+  rationale: Per-element desktop progress should remain visible while the stopped wallpaper element must not be reported as
+    applied.
+- id: user-stop-desktop-between-cosmetic-groups
+  category: user_stop
+  mode: postboot_setup
+  stage: desktop
+  state_before:
+    completed_groups:
+    - Persist desktop settings
+    active_group: ''
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - Wallpaper requires active GUI session
+  event:
+    type: user_stop
+    reason: User stopped between cosmetic desktop groups
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - Wallpaper requires active GUI session
+    summary_must_not_claim:
+    - desktop setup successful
+    - manual follow-up resolved
+  rationale: Existing manual follow-up should survive a stop between groups and later desktop groups must not begin.
+- id: user-stop-final-audit-start
+  category: user_stop
+  mode: fresh_install
+  stage: final_audit
+  state_before:
+    completed_groups:
+    - Install base system
+    - Configure bootloader
+    - Reconnect after reboot
+    - Install requested apps
+    active_group: Final audit
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped as final audit began
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - Final audit
+    summary_must_not_claim:
+    - final audit passed
+    - success
+  rationale: Stopping final audit should preserve completed setup evidence but must not fabricate a passed audit.
+- id: user-stop-final-audit-after-warning-finding
+  category: user_stop
+  mode: postboot_setup
+  stage: final_audit
+  state_before:
+    completed_groups:
+    - Install apps
+    - Apply desktop settings
+    active_group: Final audit
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - Optional wallpaper could not be verified
+  event:
+    type: user_stop
+    reason: User stopped after final audit recorded a warning
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - Optional wallpaper could not be verified
+    summary_must_not_claim:
+    - warnings resolved
+    - success
+  rationale: Warnings already found by audit should remain visible and should not be collapsed into success after stop.
+- id: user-stop-final-audit-before-repair
+  category: user_stop
+  mode: fresh_install
+  stage: final_audit
+  state_before:
+    completed_groups:
+    - Install base system
+    - Pre-reboot checks
+    - Reconnect after reboot
+    active_group: Final audit
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped after a repairable final-audit finding was detected but before repair planning
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - final-audit finding
+    summary_must_not_claim:
+    - repair completed
+    - success
+  rationale: A stop before final-audit repair should prevent repair planning and leave the finding traceable.
+- id: user-stop-between-install-and-postboot
+  category: user_stop
+  mode: fresh_install
+  stage: apps
+  state_before:
+    completed_groups:
+    - Install base system
+    - Configure bootloader
+    - Reconnect after reboot
+    active_group: ''
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped between postboot stage groups
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - Reconnect after reboot
+    summary_must_not_claim:
+    - postboot setup complete
+    - success
+  rationale: A stop after reconnect but before postboot app work should not rerun install work or begin new postboot groups.
+- id: user-stop-after-driver-warning-before-apps
+  category: user_stop
+  mode: postboot_setup
+  stage: apps
+  state_before:
+    completed_groups:
+    - Driver verification
+    active_group: ''
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - NVIDIA module installed but not verified after reboot
+  event:
+    type: user_stop
+    reason: User stopped after driver warning before app setup began
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - NVIDIA module installed but not verified after reboot
+    summary_must_not_claim:
+    - driver verified
+    - apps installed
+  rationale: Existing driver uncertainty should be preserved and app setup should not start after stop.
+- id: user-stop-after-optional-app-failure
+  category: user_stop
+  mode: configure_existing
+  stage: apps
+  state_before:
+    completed_groups:
+    - Install required apps
+    active_group: Install optional apps
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - Optional app StreamDeck unavailable
+  event:
+    type: user_stop
+    reason: User stopped after optional app failure was recorded
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - Optional app StreamDeck unavailable
+    summary_must_not_claim:
+    - optional app installed
+    - success
+  rationale: Optional failure should remain a specific follow-up or warning, and stop should prevent unrelated later work.
+- id: user-stop-after-safe-diagnostics-before-desktop
+  category: user_stop
+  mode: configure_existing
+  stage: desktop
+  state_before:
+    completed_groups:
+    - Collect diagnostics
+    - Install app packages
+    active_group: ''
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped after diagnostics and app packages before desktop changes
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - Collect diagnostics
+    - Install app packages
+    summary_must_not_claim:
+    - desktop changes applied
+    - success
+  rationale: Stop between stages should preserve diagnostics/app evidence while preventing the desktop stage from starting.
+- id: user-stop-final-audit-after-partial-success-and-followup
+  category: user_stop
+  mode: configure_existing
+  stage: final_audit
+  state_before:
+    completed_groups:
+    - Install browser
+    - Apply icon theme
+    - Collect service diagnostics
+    active_group: Final audit
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - Cursor theme not available
+  event:
+    type: user_stop
+    reason: User stopped during final audit after partial success and manual follow-up
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - Cursor theme not available
+    - Install browser
+    summary_must_not_claim:
+    - all requested design changes applied
+    - success
+  rationale: The run should show both preserved partial progress and unresolved manual follow-up, not a successful final state.
+- id: user-stop-desktop-before-live-only-command
+  category: user_stop
+  mode: postboot_setup
+  stage: desktop
+  state_before:
+    completed_groups:
+    - Persist wallpaper setting
+    active_group: ''
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped before a live-only desktop command would be dispatched
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - Persist wallpaper setting
+    summary_must_not_claim:
+    - live desktop apply completed
+    - wallpaper verified
+  rationale: Stop should prevent the live-only apply command from beginning while preserving prior persistent config evidence.
+- id: user-stop-app-stage-with-destructive-capability-pending
+  category: user_stop
+  mode: fresh_install
+  stage: apps
+  state_before:
+    completed_groups:
+    - Reconnect after reboot
+    active_group: Install apps
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped while a stale destructive capability preview was still pending
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - destructive capability
+    summary_must_not_claim:
+    - capability approved
+    - success
+  rationale: A pending destructive capability must not be consumed or broadened after the user stops.
+- id: user-stop-final-audit-before-support-export
+  category: support_bundle
+  mode: fresh_install
+  stage: final_audit
+  state_before:
+    completed_groups:
+    - Install base system
+    - Reconnect after reboot
+    - Install apps
+    active_group: Final audit
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - Optional app unavailable
+  event:
+    type: user_stop
+    reason: User stopped during final audit and then exported support bundle
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stop
+    - Optional app unavailable
+    - support bundle
+    summary_must_not_claim:
+    - final audit passed
+    - success
+  rationale: Support artifacts for a stopped run should explain the stop and preserve manual follow-up evidence without exposing
+    a false success.
+- id: repair-stop-model-after-app-failure
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+    - install-vlc
+    active_group: install-obsidian
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped setup while model repair was being requested after an app install failure.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - stopped
+    - install-obsidian
+    - repair
+    summary_must_not_claim:
+    - success
+    - all apps installed
+  rationale: A user stop during repair planning must prevent repair execution and preserve partial success evidence.
+- id: repair-stop-before-model-call
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+    - install-firefox
+    active_group: install-spotify
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped setup after command failure but before the model repair provider was called.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - stopped before repair
+    - install-spotify
+    summary_must_not_claim:
+    - repair completed
+    - success
+  rationale: The repair provider must not be called once a stop has been requested.
+- id: repair-stop-during-provider-429-backoff
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+    - install-keepassxc
+    active_group: install-slack
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped while repair provider retry/backoff was pending after a 429.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - provider
+    - '429'
+    - stopped
+    summary_must_not_claim:
+    - repair succeeded
+    - success
+  rationale: Provider retry/backoff must be interruptible and must not continue repair calls after stop.
+- id: repair-stop-after-provider-timeout
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+    - install-gimp
+    active_group: install-discord
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped after provider timeout while repair loop was deciding whether to retry.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - provider timeout
+    - stopped
+    - install-discord
+    summary_must_not_claim:
+    - manual follow-up resolved
+    - success
+  rationale: Provider failure should not mask the user's stop or erase already completed groups.
+- id: repair-stop-identical-package-loop
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+    - install-vscode
+    active_group: install-fake-package
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped after repeated identical package repair attempts failed.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - repeated repair
+    - stopped
+    - install-fake-package
+    summary_must_not_claim:
+    - package repaired
+    - success
+  rationale: A stopped repeated-failure loop should exit cleanly without poisoning unrelated completed apps.
+- id: repair-stop-after-strategy-change-failure
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+    - install-libreoffice
+    active_group: install-spotify
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped after repo install failed and repair proposed a Flatpak fallback.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - fallback
+    - Flatpak
+    - stopped
+    summary_must_not_claim:
+    - fallback installed
+    - success
+  rationale: Meaningful repair strategy changes may be valid, but stop must prevent the fallback from starting.
+- id: repair-stop-optional-theme-failure
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+    - install-apps
+    active_group: apply-theme
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - wallpaper not verified
+  event:
+    type: user_stop
+    reason: User stopped while repair loop was handling an optional theme failure.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - theme
+    - optional
+    - stopped
+    summary_must_not_claim:
+    - theme verified
+    - success
+  rationale: Optional cosmetic repair must not become fatal, but a user stop still prevents further repair work.
+- id: repair-stop-required-app-before-manual-followup
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+    - install-browser
+    active_group: install-required-editor
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped while repair loop was about to convert a required app failure into manual follow-up.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - required-editor
+    - unresolved
+    - stopped
+    summary_must_not_claim:
+    - required app installed
+    - success
+  rationale: Required unresolved app work must stay visible when stop interrupts repair classification.
+- id: repair-budget-prompt-stop
+  category: pending_question_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+    - install-core-apps
+    active_group: install-obsidian
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped while repair loop was asking whether to spend another repair attempt.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - repair question
+    - stopped
+    - install-obsidian
+    summary_must_not_claim:
+    - user approved repair
+    - success
+  rationale: Stop during a repair-budget prompt must not imply consent or continue with a default answer.
+- id: repair-extension-question-stop
+  category: pending_question_stop
+  mode: fresh_install
+  stage: repair
+  state_before:
+    completed_groups:
+    - bootstrap-system
+    - install-base-apps
+    active_group: install-extra-apps
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped while setup was asking whether to extend app repair attempts.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - repair attempts
+    - stopped
+    - install-extra-apps
+    summary_must_not_claim:
+    - continued repair
+    - success
+  rationale: A pending repair-extension question must be explicitly abandoned or marked stopped.
+- id: repair-stop-before-destructive-suggestion
+  category: repair_loop_stop
+  mode: fresh_install
+  stage: repair
+  state_before:
+    completed_groups:
+    - bootstrap-system
+    active_group: repair-package-db
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped after repair model suggested a risky package database operation.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - package database
+    - capability
+    - stopped
+    summary_must_not_claim:
+    - repair executed
+    - success
+  rationale: Stop plus pending destructive capability must prevent any risky repair fallback from starting.
+- id: repair-stop-after-preflight-repair-block
+  category: preflight_block
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+    - install-safe-apps
+    active_group: repair-network-service
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped after a repair command was preflight-blocked for network disruption risk.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - preflight
+    - network
+    - stopped
+    summary_must_not_claim:
+    - network repair applied
+    - success
+  rationale: A blocked repair command must not be retried through another path after the user stops.
+- id: repair-stop-provider-error-preserves-progress
+  category: repair_loop_stop
+  mode: postboot_setup
+  stage: repair
+  state_before:
+    completed_groups:
+    - verify-boot
+    - install-browser
+    - apply-wallpaper
+    active_group: repair-driver-warning
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - nvidia module not verified
+  event:
+    type: user_stop
+    reason: User stopped while provider error handling was preparing driver follow-up.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - driver
+    - manual follow-up
+    - stopped
+    summary_must_not_claim:
+    - driver verified
+    - success
+  rationale: Provider error handling must preserve previous completed work and unresolved driver evidence.
+- id: repair-stop-group-scope-only-active-group
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+    - install-firefox
+    - install-vlc
+    active_group: install-unknown-chat-client
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped while active app group repair was in progress.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - install-unknown-chat-client
+    - stopped
+    summary_must_not_claim:
+    - install-firefox failed
+    - install-vlc failed
+    - success
+  rationale: Repair-loop stop should be scoped to the active group and must not regress unrelated successful groups.
+- id: repair-stop-before-final-audit-repair-call
+  category: repair_loop_stop
+  mode: postboot_setup
+  stage: final_audit
+  state_before:
+    completed_groups:
+    - install-apps
+    - desktop-config
+    active_group: final-audit-repair-wallpaper
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - wallpaper not verified
+  event:
+    type: user_stop
+    reason: User stopped before final-audit repair provider could generate a wallpaper fix.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - final audit
+    - wallpaper
+    - stopped
+    summary_must_not_claim:
+    - final audit repaired
+    - success
+  rationale: Final-audit repair is still repair-loop work and must honor user stop before provider calls.
+- id: pre-reboot-stop-after-checks-pass
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: pre_reboot
+  state_before:
+    completed_groups:
+    - partition
+    - format
+    - bootstrap
+    - fstab
+    - bootloader
+    - ssh_continuity_check
+    active_group: pre-reboot gate
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User clicked stop after pre-reboot checks passed but before controlled reboot was issued.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stopped setup
+    - before reboot
+    - pre-reboot checks passed
+    summary_must_not_claim:
+    - reboot completed
+    - post-reboot verification passed
+    - success
+  rationale: A user stop after a safe pre-reboot gate must prevent the harness-owned reboot and preserve checkpoint evidence.
+- id: pre-reboot-stop-before-checkpoint-write
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: pre_reboot
+  state_before:
+    completed_groups:
+    - bootstrap
+    - fstab
+    - bootloader
+    active_group: checkpoint before reboot
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped setup while checkpoint preparation was starting.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stopped setup
+    - checkpoint
+    - reboot was not started
+    summary_must_not_claim:
+    - checkpoint resumed successfully
+    - reboot completed
+    - success
+  rationale: Stopping before checkpoint completion should leave logs intact and prevent reboot dispatch.
+- id: pre-reboot-stop-after-checkpoint-before-reboot-command
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: reboot
+  state_before:
+    completed_groups:
+    - bootstrap
+    - fstab
+    - bootloader
+    - pre_reboot_audit
+    active_group: controlled reboot
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups:
+    - optional wallpaper not verified
+  event:
+    type: user_stop
+    reason: User stopped setup after checkpoint was saved but before reboot command dispatch.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stopped setup
+    - checkpoint saved
+    - reboot was not started
+    - optional wallpaper not verified
+    summary_must_not_claim:
+    - postboot setup started
+    - reconnect succeeded
+    - success
+  rationale: A saved checkpoint does not authorize continuing after stop; prior manual follow-up context must survive.
+- id: reboot-queued-stop-before-dispatch
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: reboot
+  state_before:
+    completed_groups:
+    - install
+    - pre_reboot_audit
+    active_group: queued controlled reboot
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: Stop requested while controlled reboot operation was queued but not yet dispatched.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stopped setup
+    - queued reboot cancelled
+    summary_must_not_claim:
+    - reboot started
+    - target reconnected
+    - success
+  rationale: Queued reboot work is still future work and must be cancelled by a stop request.
+- id: pre-reboot-stop-after-capability-preview-before-controlled-reboot
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: reboot
+  state_before:
+    completed_groups:
+    - install
+    - pre_reboot_audit
+    active_group: controlled reboot capability
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped after reboot capability preview was created but before approval/consumption.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stopped setup
+    - controlled reboot not approved
+    - capability
+    summary_must_not_claim:
+    - capability consumed
+    - reboot completed
+    - success
+  rationale: A pending capability preview must not be consumed after the user stops.
+- id: pre-reboot-stop-with-manual-followup-existing
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: pre_reboot
+  state_before:
+    completed_groups:
+    - install
+    - apps
+    - desktop
+    - pre_reboot_audit
+    active_group: pre-reboot summary
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups:
+    - NVIDIA Secure Boot enrollment required
+    - GNOME wallpaper not live-verified
+  event:
+    type: user_stop
+    reason: User stopped before reboot with existing manual follow-up items.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stopped setup
+    - NVIDIA Secure Boot enrollment required
+    - GNOME wallpaper not live-verified
+    - reboot was not started
+    summary_must_not_claim:
+    - manual follow-up resolved
+    - post-reboot driver verified
+    - success
+  rationale: Abort reporting must not erase already known manual-follow-up items.
+- id: configure-existing-driver-reboot-stop-before-approval
+  category: pre_reboot_stop
+  mode: configure_existing
+  stage: pre_reboot
+  state_before:
+    completed_groups:
+    - apps
+    - desktop
+    - driver_install
+    active_group: driver reboot approval
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups:
+    - driver installed but module not verified until reboot
+  event:
+    type: user_stop
+    reason: User stopped configure-existing run before approving optional driver reboot.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stopped setup
+    - driver installed but module not verified until reboot
+    - reboot was not started
+    summary_must_not_claim:
+    - driver verified
+    - reboot completed
+    - success
+  rationale: Configure-existing reboot must remain explicit and stoppable, especially when verification depends on reboot.
+- id: postboot-setup-stop-before-second-reboot
+  category: pre_reboot_stop
+  mode: postboot_setup
+  stage: pre_reboot
+  state_before:
+    completed_groups:
+    - postboot_apps
+    - postboot_driver
+    active_group: postboot reboot recommendation
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups:
+    - kernel module verification pending reboot
+  event:
+    type: user_stop
+    reason: User stopped postboot setup before a recommended verification reboot.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stopped setup
+    - verification reboot not started
+    - kernel module verification pending reboot
+    summary_must_not_claim:
+    - kernel module verified
+    - reboot completed
+    - success
+  rationale: A non-core postboot reboot recommendation must not proceed after stop or become plain success.
+- id: pre-reboot-stop-during-final-audit-repair-before-reboot
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: final_audit
+  state_before:
+    completed_groups:
+    - install
+    - pre_reboot_audit
+    active_group: final audit repair before reboot
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped while final-audit repair had made the system reboot-ready but before reboot.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stopped setup
+    - final audit repair
+    - reboot was not started
+    summary_must_not_claim:
+    - final audit passed after reboot
+    - postboot setup completed
+    - success
+  rationale: Repair success before reboot is not full setup success, and stop must still cancel the pending reboot.
+- id: pre-reboot-stop-before-reconnect-loop-starts
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: reboot
+  state_before:
+    completed_groups:
+    - install
+    - checkpoint
+    active_group: reconnect loop pending reboot
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: Stop requested before reboot dispatch, while reconnect loop state was being prepared.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stopped setup
+    - reconnect loop not started
+    - reboot was not started
+    summary_must_not_claim:
+    - SSH reconnect succeeded
+    - post-reboot facts refreshed
+    - success
+  rationale: Reconnect polling is only valid after a controlled reboot actually starts.
+- id: pre-reboot-stop-after-live-install-success-before-postboot
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: pre_reboot
+  state_before:
+    completed_groups:
+    - live_install
+    - package_install
+    - bootloader_install
+    - user_setup
+    - ssh_enablement
+    active_group: transition to installed system
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped at the live-to-installed-system transition.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stopped setup
+    - installed system transition
+    - reboot was not started
+    summary_must_not_claim:
+    - installed system booted
+    - postboot facts verified
+    - success
+  rationale: Completing live install work is not enough to claim success when the reboot transition is stopped.
+- id: pre-reboot-stop-after-stale-facts-refresh-before-reboot
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: pre_reboot
+  state_before:
+    completed_groups:
+    - install
+    - facts_refresh
+    - pre_reboot_audit
+    active_group: pre-reboot facts confirmation
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped after refreshed facts confirmed reboot readiness.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - user stopped setup
+    - refreshed facts preserved
+    - reboot was not started
+    summary_must_not_claim:
+    - stale facts used after reboot
+    - post-reboot verification passed
+    - success
+  rationale: Fresh facts may be evidence, but stop must still prevent state transition into reboot.
+- id: pq-disk-confirm-stop-01
+  category: pending_question_stop
+  mode: fresh_install
+  stage: pending_question
+  state_before:
+    completed_groups: []
+    active_group: confirm target disk
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped while target disk confirmation was pending.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - stopped
+    - target disk confirmation
+    summary_must_not_claim:
+    - disk confirmed
+    - install completed
+    - success
+  rationale: A missing destructive disk confirmation must never be treated as implicit consent after stop.
+- id: pq-disk-confirm-after-probe-stop-02
+  category: pending_question_stop
+  mode: fresh_install
+  stage: pending_question
+  state_before:
+    completed_groups:
+    - hardware probe
+    - disk inventory
+    active_group: select install target
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped after disk inventory while waiting to confirm the selected disk.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - stopped
+    - selected disk was not confirmed
+    summary_must_not_claim:
+    - partitioning started
+    - formatting started
+    - success
+  rationale: Read-only discovery may be preserved, but partitioning or formatting must not start without the unanswered disk
+    confirmation.
+- id: pq-disk-confirm-capability-stop-03
+  category: pending_question_stop
+  mode: fresh_install
+  stage: capability_check
+  state_before:
+    completed_groups:
+    - disk inventory
+    active_group: request disk_partition capability
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped while a destructive disk capability prompt was open.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - stopped
+    - capability prompt
+    - disk_partition
+    summary_must_not_claim:
+    - capability granted
+    - partitioning authorized
+    - success
+  rationale: Stopping during a capability prompt must not leave a latent destructive grant or continue with a default answer.
+- id: pq-repair-extension-stop-01
+  category: pending_question_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+    - install browser
+    active_group: repair missing optional app
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - Optional app spotify failed from repo source.
+  event:
+    type: user_stop
+    reason: User stopped while asked whether to allow another repair attempt.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - stopped
+    - repair attempt
+    - spotify
+    summary_must_not_claim:
+    - spotify installed
+    - all apps completed
+    - success
+  rationale: A repair-budget extension question must not be answered implicitly, and earlier app progress should remain visible.
+- id: pq-repair-required-app-stop-02
+  category: pending_question_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+    - install required editor
+    active_group: repair required app failure
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - Required app code failed verification.
+  event:
+    type: user_stop
+    reason: User stopped while repair decision for a required app was pending.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - stopped
+    - required app
+    - code
+    summary_must_not_claim:
+    - required apps verified
+    - setup completed
+    - success
+  rationale: Required app failure cannot be flattened into success when the user stops before choosing repair or follow-up.
+- id: pq-repair-desktop-stop-03
+  category: pending_question_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+    - package setup
+    active_group: repair desktop customization
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - Wallpaper could not be verified in the active GUI session.
+  event:
+    type: user_stop
+    reason: User stopped while desktop repair question was pending.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - stopped
+    - desktop customization
+    - wallpaper
+    summary_must_not_claim:
+    - wallpaper verified
+    - desktop setup completed
+    - success
+  rationale: Desktop repair should stop cleanly and preserve element-specific follow-up instead of continuing with a guessed
+    repair.
+- id: pq-provider-api-key-stop-01
+  category: pending_question_stop
+  mode: configure_existing
+  stage: pending_question
+  state_before:
+    completed_groups:
+    - facts probe
+    active_group: request provider configuration
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: User stopped while provider/API configuration question was pending.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - stopped
+    - provider
+    - configuration
+    summary_must_not_claim:
+    - provider configured
+    - model repair completed
+    - success
+  rationale: Provider/API prompts may contain sensitive context and must be abandoned explicitly without leaking secrets or
+    continuing.
+- id: pq-provider-429-stop-02
+  category: pending_question_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+    - install terminal
+    active_group: provider retry decision
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - Model provider returned rate_limit during repair.
+  event:
+    type: user_stop
+    reason: User stopped while asked whether to retry after provider rate limit.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - stopped
+    - rate limit
+    - provider
+    summary_must_not_claim:
+    - repair succeeded
+    - all failures repaired
+    - success
+  rationale: A provider retry prompt must not trigger additional model calls after stop.
+- id: pq-provider-timeout-stop-03
+  category: pending_question_stop
+  mode: postboot_setup
+  stage: repair
+  state_before:
+    completed_groups:
+    - postboot facts refresh
+    - verify apps
+    active_group: provider timeout recovery
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - Repair provider timed out while generating driver follow-up.
+  event:
+    type: user_stop
+    reason: User stopped while timeout recovery question was pending.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - stopped
+    - provider timeout
+    - driver
+    summary_must_not_claim:
+    - driver verified
+    - repair completed
+    - success
+  rationale: Stopping during provider timeout recovery must preserve unresolved driver context and avoid another repair call.
+- id: pq-manual-followup-decision-stop-01
+  category: pending_question_stop
+  mode: configure_existing
+  stage: final_audit
+  state_before:
+    completed_groups:
+    - apps
+    - desktop
+    active_group: manual follow-up decision
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - 'Theme asset unavailable: Sweet-Dark'
+    - Wallpaper could not be live-verified.
+  event:
+    type: user_stop
+    reason: User stopped while deciding whether to accept manual follow-up items.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - stopped
+    - manual follow-up
+    - Theme asset unavailable
+    - Wallpaper could not be live-verified
+    summary_must_not_claim:
+    - manual follow-up accepted
+    - all design changes verified
+    - success
+  rationale: Manual follow-up decisions are user-visible outcome choices and must not be accepted by default after stop.
+- id: pq-manual-followup-driver-stop-02
+  category: pending_question_stop
+  mode: postboot_setup
+  stage: final_audit
+  state_before:
+    completed_groups:
+    - apps
+    - desktop
+    - driver install
+    active_group: driver manual follow-up decision
+    pending_question: true
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups:
+    - NVIDIA driver installed but module load was not verified after reboot.
+  event:
+    type: user_stop
+    reason: User stopped while deciding how to handle driver reboot verification follow-up.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - stopped
+    - driver
+    - module load was not verified
+    summary_must_not_claim:
+    - driver verified
+    - reboot completed
+    - success
+  rationale: A pending driver follow-up with reboot implications must not start reboot or claim verification after stop.
+- id: pq-manual-followup-unsupported-stop-03
+  category: pending_question_stop
+  mode: configure_existing
+  stage: final_audit
+  state_before:
+    completed_groups:
+    - facts probe
+    - safe app setup
+    active_group: unsupported-safe decision
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - Secure Boot with unsigned DKMS module requires manual enrollment.
+  event:
+    type: user_stop
+    reason: User stopped while unsupported-safe/manual enrollment decision was pending.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - stopped
+    - Secure Boot
+    - manual enrollment
+    summary_must_not_claim:
+    - unsupported-safe accepted
+    - module verified
+    - success
+  rationale: Unsupported-safe or manual enrollment decisions must remain explicit and visible when the user stops.
+- id: pq-reboot-deferral-decision-stop-01
+  category: pending_question_stop
+  mode: configure_existing
+  stage: pending_question
+  state_before:
+    completed_groups:
+    - driver packages
+    active_group: defer reboot decision
+    pending_question: true
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups:
+    - Reboot required to verify driver module.
+  event:
+    type: user_stop
+    reason: User stopped while deciding whether to reboot now or defer.
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+    - stopped
+    - reboot decision
+    - driver module
+    summary_must_not_claim:
+    - reboot started
+    - driver verified
+    - success
+  rationale: Configure-existing reboot decisions must not become automatic after a stop request.
+- id: cap-mismatch-format-target-changed
+  category: capability_mismatch
+  mode: fresh_install
+  stage: capability_check
+  state_before:
+    completed_groups:
+    - disk_probe
+    active_group: Format selected root partition
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: capability_mismatch
+    reason: format_filesystem capability was granted for /dev/sda1 but command targets /dev/sdb1
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: blocked
+    summary_must_include:
+    - capability mismatch
+    - /dev/sda1
+    - /dev/sdb1
+    summary_must_not_claim:
+    - setup completed successfully
+    - formatted target
+  rationale: A destructive filesystem operation must not proceed when the exact capability target differs from the command
+    target.
+- id: cap-mismatch-partition-kind-wrong
+  category: capability_mismatch
+  mode: fresh_install
+  stage: capability_check
+  state_before:
+    completed_groups:
+    - disk_probe
+    active_group: Partition install disk
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: capability_mismatch
+    reason: format_filesystem capability cannot authorize disk_partition command
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: blocked
+    summary_must_include:
+    - wrong capability kind
+    - disk_partition
+    summary_must_not_claim:
+    - partitioned disk
+    - setup completed successfully
+  rationale: Capability kinds are effect-specific; a format grant must not authorize partition table writes.
+- id: cap-mismatch-expired-bootloader-grant
+  category: capability_mismatch
+  mode: fresh_install
+  stage: capability_check
+  state_before:
+    completed_groups:
+    - bootstrap_base_system
+    - write_fstab
+    active_group: Install bootloader
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: capability_mismatch
+    reason: bootloader_install capability is expired or consumed
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: blocked
+    summary_must_include:
+    - bootloader_install
+    - expired
+    summary_must_not_claim:
+    - bootloader installed
+    - ready to reboot
+  rationale: Bootloader mutation must not continue with an expired or already-consumed grant.
+- id: disk-facts-changed-after-consent
+  category: safe_abort
+  mode: fresh_install
+  stage: capability_check
+  state_before:
+    completed_groups:
+    - disk_probe
+    - user_confirmed_target
+    active_group: Apply disk plan
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: safe_abort
+    reason: disk inventory changed after destructive confirmation
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: blocked
+    summary_must_include:
+    - disk inventory changed
+    - confirmation no longer valid
+    summary_must_not_claim:
+    - disk changes applied
+    - setup completed successfully
+  rationale: A destructive disk confirmation is only valid for the observed disk state at the time of consent.
+- id: disk-size-changed-before-format
+  category: safe_abort
+  mode: fresh_install
+  stage: capability_check
+  state_before:
+    completed_groups:
+    - disk_probe
+    - partition_plan
+    active_group: Format root filesystem
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: safe_abort
+    reason: target disk size or identity changed before formatting
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: blocked
+    summary_must_include:
+    - target disk changed
+    - format cancelled
+    summary_must_not_claim:
+    - formatted root filesystem
+    - safe to reboot
+  rationale: Formatting after target identity drift risks erasing the wrong disk and must safe-abort.
+- id: preflight-block-mkfs-no-capability
+  category: preflight_block
+  mode: configure_existing
+  stage: capability_check
+  state_before:
+    completed_groups:
+    - facts_refresh
+    active_group: Model suggested filesystem repair
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: preflight_block
+    reason: mkfs.ext4 /dev/sda1 requires format_filesystem capability
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: blocked
+    summary_must_include:
+    - preflight blocked
+    - format_filesystem
+    - mkfs.ext4
+    summary_must_not_claim:
+    - filesystem repaired
+    - setup completed successfully
+  rationale: Configure-existing must not run fresh-install style formatting commands without explicit destructive consent.
+- id: preflight-block-fstab-replacement-no-capability
+  category: preflight_block
+  mode: fresh_install
+  stage: pre_reboot
+  state_before:
+    completed_groups:
+    - bootstrap_base_system
+    active_group: Write final fstab
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: preflight_block
+    reason: write to /target-root/etc/fstab requires write_fstab capability
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: blocked
+    summary_must_include:
+    - fstab
+    - write_fstab
+    - reboot cancelled
+    summary_must_not_claim:
+    - fstab written
+    - reboot started
+  rationale: A blocked fstab write must prevent reboot because bootability cannot be trusted.
+- id: preflight-block-efibootmgr-mutation
+  category: preflight_block
+  mode: fresh_install
+  stage: pre_reboot
+  state_before:
+    completed_groups:
+    - bootstrap_base_system
+    - write_fstab
+    active_group: Register EFI boot entry
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: preflight_block
+    reason: efibootmgr boot order mutation requires bootloader_install capability
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: blocked
+    summary_must_include:
+    - efibootmgr
+    - bootloader_install
+    - blocked
+    summary_must_not_claim:
+    - EFI entry updated
+    - setup completed successfully
+  rationale: Boot-order mutation is boot-impacting and must remain capability-gated.
+- id: ssh-continuity-risk-stop-sshd
+  category: preflight_block
+  mode: configure_existing
+  stage: capability_check
+  state_before:
+    completed_groups:
+    - facts_refresh
+    active_group: Apply service changes
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: preflight_block
+    reason: systemctl stop sshd would break remote setup continuity
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: blocked
+    summary_must_include:
+    - SSH continuity
+    - systemctl stop sshd
+    summary_must_not_claim:
+    - service changes applied
+    - setup completed successfully
+  rationale: Remote setup must block commands that can sever the active control channel.
+- id: ssh-continuity-risk-firewall-enable
+  category: preflight_block
+  mode: configure_existing
+  stage: capability_check
+  state_before:
+    completed_groups:
+    - apps_completed
+    active_group: Enable firewall
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: preflight_block
+    reason: ufw enable may disrupt SSH and requires network_security_change consent
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: blocked
+    summary_must_include:
+    - network_security_change
+    - SSH
+    - ufw enable
+    summary_must_not_claim:
+    - firewall enabled
+    - setup completed successfully
+  rationale: Firewall activation can lock out remote setup and must not be retried or bypassed after preflight blocks it.
+- id: ssh-continuity-risk-route-delete
+  category: preflight_block
+  mode: postboot_setup
+  stage: capability_check
+  state_before:
+    completed_groups:
+    - reconnect_verified
+    active_group: Network cleanup
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: preflight_block
+    reason: ip route del default can break remote connectivity
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: blocked
+    summary_must_include:
+    - remote connectivity
+    - ip route del default
+    summary_must_not_claim:
+    - network cleanup completed
+    - setup completed successfully
+  rationale: Deleting the default route is a high-risk network continuity operation and must stop later stages.
+- id: fatal-audit-live-iso-after-reboot
+  category: safe_abort
+  mode: fresh_install
+  stage: final_audit
+  state_before:
+    completed_groups:
+    - controlled_reboot
+    - reconnect
+    active_group: Final audit
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: safe_abort
+    reason: post-reboot facts still show live ISO environment
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: blocked
+    summary_must_include:
+    - live ISO
+    - final audit
+    - blocked
+    summary_must_not_claim:
+    - installed system verified
+    - setup completed successfully
+  rationale: A fresh install cannot be considered complete if reconnect lands back in the live environment.
+- id: fatal-audit-missing-bootloader-no-repair
+  category: safe_abort
+  mode: fresh_install
+  stage: final_audit
+  state_before:
+    completed_groups:
+    - bootstrap_base_system
+    - write_fstab
+    active_group: Final audit
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: safe_abort
+    reason: final audit found missing bootloader and no safe repair capability is available
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: blocked
+    summary_must_include:
+    - missing bootloader
+    - no safe repair
+    summary_must_not_claim:
+    - bootable
+    - setup completed successfully
+  rationale: A fatal bootability finding must remain blocked unless a bounded, capability-authorized repair actually succeeds.
+- id: fatal-audit-package-db-corrupt
+  category: safe_abort
+  mode: postboot_setup
+  stage: final_audit
+  state_before:
+    completed_groups:
+    - reconnect_verified
+    - app_install_partial
+    active_group: Final audit
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+    - Optional media app unavailable
+  event:
+    type: safe_abort
+    reason: package database corruption found and no safe repair path is authorized
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: blocked
+    summary_must_include:
+    - package database
+    - blocked
+    summary_must_not_claim:
+    - all packages healthy
+    - setup completed successfully
+  rationale: Package DB corruption can undermine later package operations and should not be hidden behind unrelated partial
+    success.
+- id: safe-abort-capability-preview-stale
+  category: capability_mismatch
+  mode: fresh_install
+  stage: capability_check
+  state_before:
+    completed_groups:
+    - disk_probe
+    - capability_preview
+    active_group: Apply destructive disk operation
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: capability_mismatch
+    reason: capability preview id does not match the command being executed
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: blocked
+    summary_must_include:
+    - preview id mismatch
+    - destructive operation cancelled
+    summary_must_not_claim:
+    - operation authorized
+    - setup completed successfully
+  rationale: A stale preview must not authorize a later command whose destructive effect may differ.
+- id: preflight-block-raw-reboot-command
+  category: preflight_block
+  mode: configure_existing
+  stage: capability_check
+  state_before:
+    completed_groups:
+    - apps_completed
+    active_group: Model requested reboot
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: preflight_block
+    reason: raw reboot command is not a harness-controlled reboot
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: blocked
+    summary_must_include:
+    - controlled reboot
+    - raw reboot blocked
+    summary_must_not_claim:
+    - reboot started
+    - setup completed successfully
+  rationale: The model must not be able to bypass harness-owned reboot orchestration with a raw shell command.
