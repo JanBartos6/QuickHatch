@@ -1,0 +1,87 @@
+- id: common-vlc-ubuntu-repo
+  category: common_app
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    community_helper: none
+  requested_apps:
+    - VLC
+  catalog_hint:
+    compatibility: native
+    source_hint: repo
+    active_install_hint:
+      family: ubuntu
+      source: repo
+      packages: [vlc]
+  expected:
+    package_name: vlc
+    source: repo
+    status: pending
+    evidence_source: repo_search
+  rationale: Common app with target repo evidence should resolve to the known distro package.
+
+- id: common-firefox-fedora-repo
+  category: common_app
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    community_helper: none
+  requested_apps:
+    - Firefox
+  catalog_hint:
+    compatibility: native
+    source_hint: repo
+    active_install_hint:
+      family: fedora
+      source: repo
+      packages: [firefox]
+  expected:
+    package_name: firefox
+    source: repo
+    status: pending
+    evidence_source: selected_app_catalog
+  rationale: A high-confidence native catalog hint can seed a repo package but must still be verified during execution.
+
+- id: stale-lm-studio-arch-community
+  category: stale_package
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    community_helper: yay
+  requested_apps:
+    - LM Studio
+  initial_package: lm-studio-bin
+  search_results:
+    repo_search:
+      lm-studio-bin: ""
+      LM Studio: ""
+    community_search:
+      lm-studio-bin: "aur/lmstudio-bin 0.3.0\n    LM Studio desktop package"
+  expected:
+    package_name: lmstudio-bin
+    source: community
+    status: pending
+    retry_command: yay -S --noconfirm lmstudio-bin
+  rationale: Stale package spelling should be repaired from target community search, not treated as catalog truth.
+
+- id: stale-github-desktop-arch-community
+  category: stale_package
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    community_helper: yay
+  requested_apps:
+    - GitHub Desktop
+  initial_package: github-desktop-bin
+  search_results:
+    repo_search:
+      github-desktop-bin: ""
+      GitHub Desktop: ""
+    community_search:
+      github-desktop-bin: "aur/github-desktop 3.4.0\n    GitHub Desktop for Linux"
+  expected:
+    package_name: github-desktop
+    source: community
+    status: pending
+    retry_command: yay -S --noconfirm github-desktop
+  rationale: App names with changing community packages should prefer current target search evidence.

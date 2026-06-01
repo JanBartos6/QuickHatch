@@ -1,0 +1,68 @@
+- id: wrong-package-manager-debian-aur-manual-followup
+  category: wrong_package_manager
+  facts_profile:
+    family: debian
+    package_manager: apt
+    community_helper: none
+  requested_apps:
+    - Brave
+  planner_app:
+    package_name: brave-bin
+    source: community
+  expected:
+    status: manual_followup
+    reason_contains: not supported automatically
+  rationale: AUR/community package source is not executable on apt targets; it should be follow-up, not a wrong package-manager command.
+
+- id: already-installed-vlc-skips-command
+  category: already_installed
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    community_helper: none
+  requested_apps:
+    - VLC
+  command_group:
+    command: sudo pacman -S --noconfirm vlc firefox
+    packages: [vlc, firefox]
+  installed_packages:
+    - vlc
+  expected:
+    rewritten_command: sudo pacman -S --noconfirm firefox
+    installed_app: VLC
+    missing_packages: [firefox]
+  rationale: Already installed apps should be marked installed and removed from the install command without skipping unrelated apps.
+
+- id: already-installed-alias-lmstudio
+  category: already_installed
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    community_helper: yay
+  requested_apps:
+    - LM Studio
+  command_group:
+    command: yay -S --noconfirm lm-studio-bin
+    packages: [lm-studio-bin]
+  installed_packages:
+    - lmstudio-bin
+  expected:
+    skipped_group: true
+    installed_app: LM Studio
+  rationale: Known package aliases should satisfy already-installed checks.
+
+- id: wrong-package-manager-fedora-apt-source-advisory
+  category: wrong_package_manager
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    community_helper: none
+  requested_apps:
+    - Example
+  command_group:
+    command: sudo apt-get install -y example
+    packages: [example]
+  expected:
+    hard_block: false
+    advisory_allowed: true
+  rationale: Wrong package-manager commands are recoverable command mistakes, not dangerous effects.

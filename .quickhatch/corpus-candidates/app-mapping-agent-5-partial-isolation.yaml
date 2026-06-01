@@ -1,0 +1,68 @@
+- id: multi-app-one-unavailable-isolated
+  category: partial_failure
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    community_helper: yay
+  requested_apps:
+    - Brave
+    - Spotify
+    - Cursor
+  command_group:
+    command: yay -S --noconfirm brave-bin spotify cursor-bin
+    packages: [brave-bin, spotify, cursor-bin]
+  failure:
+    missing_packages: [cursor-bin]
+    stderr: "error: target not found: cursor-bin"
+  expected:
+    retry_command: yay -S --noconfirm brave-bin spotify
+    manual_followup_apps: [Cursor]
+    unaffected_apps: [Brave, Spotify]
+  rationale: One missing app package should not poison other app installs in the same group.
+
+- id: required-missing-app-not-success
+  category: partial_failure
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    community_helper: none
+  requested_apps:
+    - ZebraNotes Enterprise 2099
+  planner_app:
+    package_name: zebra-notes-enterprise
+    source: manual_followup
+    required: true
+  expected:
+    status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: Required unresolved apps must not be hidden as success.
+
+- id: optional-missing-app-warning
+  category: partial_failure
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    community_helper: none
+  requested_apps:
+    - Fancy Optional Theme Tool
+  planner_app:
+    package_name: fancy-theme-tool
+    source: manual_followup
+    required: false
+  expected:
+    status: manual_followup
+    final_status_effect: success_with_warnings
+  rationale: Optional app failure should be isolated and non-fatal while still visible.
+
+- id: catalog-unknown-app-needs-research
+  category: unavailable_app
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    community_helper: yay
+  requested_apps:
+    - Totally Unknown Enterprise Tool
+  expected:
+    catalog_source_hint: needs_research
+    compatibility: unknown
+  rationale: Unknown catalog entries should prompt research instead of creating a guessed package.

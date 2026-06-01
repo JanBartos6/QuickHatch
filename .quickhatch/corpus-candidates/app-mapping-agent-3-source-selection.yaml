@@ -1,0 +1,69 @@
+- id: arch-cursor-aur-source
+  category: source_selection
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    community_helper: yay
+  requested_apps:
+    - Cursor
+  search_results:
+    community_search:
+      cursor editor AUR: "aur/cursor-bin 0.49.0\n    AI code editor"
+  expected:
+    package_name: cursor-bin
+    source: community
+    command: yay -S --noconfirm cursor-bin
+  rationale: AUR apps should be labeled community and installed through the configured helper.
+
+- id: ubuntu-spotify-flatpak-fallback
+  category: source_selection
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    community_helper: none
+  requested_apps:
+    - Spotify
+  initial_package: spotify-client
+  search_results:
+    repo_search:
+      spotify-client: ""
+      Spotify: ""
+    flatpak_search:
+      Spotify: "com.spotify.Client Spotify\n"
+  expected:
+    package_name: com.spotify.Client
+    source: flatpak
+    command: flatpak install -y flathub com.spotify.Client
+  rationale: Apt missing package can fall back to Flatpak when target flatpak search finds an exact app.
+
+- id: fedora-rpmfusion-vlc-repo-source
+  category: source_selection
+  facts_profile:
+    family: fedora
+    package_manager: dnf
+    community_helper: none
+  requested_apps:
+    - VLC
+  planner_app:
+    package_name: vlc
+    source: repo_rpmfusion
+  expected:
+    package_name: vlc
+    source: repo
+  rationale: External distro repo labels should normalize to repo, not an unsupported bespoke source.
+
+- id: snap-source-preserved
+  category: source_selection
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    community_helper: none
+  requested_apps:
+    - Code
+  planner_app:
+    package_name: code
+    source: snap
+  expected:
+    package_name: code
+    source: snap
+  rationale: Snap is a distinct app source and should not be normalized into apt repo.

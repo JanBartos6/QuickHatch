@@ -1,0 +1,490 @@
+metadata:
+  purpose: >
+    App/package mapping policy coverage. User-selected apps should map to
+    install strategies from target evidence without treating the catalog as a
+    source of truth. Safe wrong mappings can fail and repair; unresolved apps
+    remain visible as manual follow-up.
+  source_candidates:
+    - .quickhatch/corpus-candidates/app-mapping-agent-1-common-stale.yaml
+    - .quickhatch/corpus-candidates/app-mapping-agent-2-unavailable-windows-alt.yaml
+    - .quickhatch/corpus-candidates/app-mapping-agent-3-source-selection.yaml
+    - .quickhatch/corpus-candidates/app-mapping-agent-4-wrong-pm-installed.yaml
+    - .quickhatch/corpus-candidates/app-mapping-agent-5-partial-isolation.yaml
+  merge_report:
+    total_cases: 18
+    by_category:
+      common_app: 3
+      unavailable_app: 3
+      stale_package: 2
+      windows_only: 1
+      linux_alternative: 1
+      source_selection: 3
+      wrong_package_manager: 2
+      already_installed: 2
+      partial_failure: 1
+    rejected_ambiguous: []
+    coverage_gaps:
+      - Real package availability is intentionally mocked; these tests validate harness policy, not current distro repositories.
+
+cases:
+  - id: mapper-windows-only-microsoft-store
+    mode: app_mapper
+    category: windows_only
+    facts_profile:
+      family: generic
+      package_manager: generic
+      community_helper: none
+    requested_apps:
+      - Microsoft Store
+    expected:
+      app: Microsoft Store
+      compatibility: none
+      linux_alternative: Do not migrate
+      notes_contains: Windows app store
+
+  - id: mapper-logitech-ghub-alternative
+    mode: app_mapper
+    category: linux_alternative
+    facts_profile:
+      family: generic
+      package_manager: generic
+      community_helper: none
+    requested_apps:
+      - Logitech G HUB
+    expected:
+      app: Logitech G HUB
+      compatibility: alternative
+      linux_alternative_contains: Piper
+
+  - id: catalog-unknown-app-needs-research
+    mode: catalog_context
+    category: unavailable_app
+    facts_profile:
+      family: arch
+      package_manager: pacman
+      community_helper: yay
+    requested_apps:
+      - Totally Unknown Enterprise Tool
+    expected:
+      name: Totally Unknown Enterprise Tool
+      compatibility: unknown
+      source_hint: needs_research
+      notes_contains: research before installing
+
+  - id: catalog-common-vlc-ubuntu-active-hint
+    mode: catalog_context
+    category: common_app
+    facts_profile:
+      family: ubuntu
+      package_manager: apt
+      community_helper: none
+    requested_apps:
+      - VLC
+    catalog_entry:
+      name: VLC
+      compatibility: native
+      source_hint: repo
+      confidence: high
+      alternatives: [VLC]
+      install_hints:
+        ubuntu:
+          source: repo
+          packages: [vlc]
+          notes: Ubuntu repo package.
+        arch:
+          source: repo
+          packages: [vlc]
+          notes: Arch repo package.
+    expected:
+      name: VLC
+      compatibility: native
+      active_install_hint:
+        family: ubuntu
+        source: repo
+        packages: [vlc]
+
+  - id: prompt-catalog-hint-is-advisory-for-apps
+    mode: prompt_contract
+    category: common_app
+    facts_profile:
+      family: ubuntu
+      package_manager: apt
+      community_helper: none
+    requested_apps:
+      - VLC
+    expected:
+      contains:
+        - selected_app_catalog
+        - Treat catalog package hints as useful but fallible
+        - Missing app package strategy
+        - Do not install a merely similar alternative and claim the requested app was installed
+
+  - id: planner-common-vlc-from-repo-evidence
+    mode: planner_loop
+    category: common_app
+    facts_profile:
+      family: ubuntu
+      package_manager: apt
+      community_helper: none
+    requested_apps:
+      - VLC
+    model_steps:
+      - action: repo_search
+        query: vlc ubuntu package
+        reason: Verify current target package.
+      - plan_app: VLC
+        package_name: vlc
+        source: repo
+        status: pending
+        evidence_source: repo_search
+    search_results:
+      repo_search:
+        vlc ubuntu package: "vlc - multimedia player and streamer"
+    expected:
+      search_calls:
+        - action: repo_search
+          query: vlc ubuntu package
+      apps:
+        VLC:
+          package_name: vlc
+          source: repo
+          status: pending
+
+  - id: planner-unavailable-app-manual-followup
+    mode: planner_loop
+    category: unavailable_app
+    facts_profile:
+      family: ubuntu
+      package_manager: apt
+      community_helper: none
+    requested_apps:
+      - ZebraNotes Enterprise 2099
+    model_steps:
+      - action: repo_search
+        query: ZebraNotes Enterprise 2099 Linux package
+        reason: Verify whether package exists.
+      - action: web_search
+        query: ZebraNotes Enterprise 2099 Linux
+        max_results: 5
+        reason: Look for vendor package.
+      - plan_app: ZebraNotes Enterprise 2099
+        package_name: ""
+        source: manual_followup
+        status: manual_followup
+        reason: No target repo, Flatpak, Snap, AUR, or vendor Linux package could be verified.
+        evidence_source: web_search
+    search_results:
+      repo_search:
+        ZebraNotes Enterprise 2099 Linux package: ""
+      web_search:
+        ZebraNotes Enterprise 2099 Linux: ""
+    expected:
+      search_calls:
+        - action: repo_search
+          query: ZebraNotes Enterprise 2099 Linux package
+        - action: web_search
+          query: ZebraNotes Enterprise 2099 Linux
+          max_results: 5
+      apps:
+        ZebraNotes Enterprise 2099:
+          package_name: ""
+          source: manual_followup
+          status: manual_followup
+          reason_contains: could be verified
+
+  - id: planner-source-normalizes-rpmfusion-repo
+    mode: planner_parse
+    category: source_selection
+    facts_profile:
+      family: fedora
+      package_manager: dnf
+      community_helper: none
+    requested_apps:
+      - VLC
+    planner_apps:
+      - name: VLC
+        package_name: vlc
+        source: repo_rpmfusion
+        status: installed
+        required: true
+    expected:
+      apps:
+        VLC:
+          package_name: vlc
+          source: repo
+          status: pending
+
+  - id: planner-preserves-snap-source
+    mode: planner_parse
+    category: source_selection
+    facts_profile:
+      family: ubuntu
+      package_manager: apt
+      community_helper: none
+    requested_apps:
+      - Code
+    planner_apps:
+      - name: Code
+        package_name: code
+        source: snap
+        status: pending
+        required: true
+    expected:
+      apps:
+        Code:
+          package_name: code
+          source: snap
+          status: pending
+
+  - id: planner-omitted-requested-app-backfills-followup
+    mode: planner_parse
+    category: unavailable_app
+    facts_profile:
+      family: arch
+      package_manager: pacman
+      community_helper: yay
+    requested_apps:
+      - Totally Unknown Enterprise Tool
+    planner_apps: []
+    expected:
+      apps:
+        Totally Unknown Enterprise Tool:
+          source: manual_followup
+          status: manual_followup
+          reason_contains: did not resolve
+
+  - id: repair-stale-lm-studio-arch-community
+    mode: missing_repair
+    category: stale_package
+    facts_profile:
+      family: arch
+      package_manager: pacman
+      community_helper: yay
+    requested_apps:
+      - LM Studio
+    app:
+      name: LM Studio
+      package_name: lm-studio-bin
+      source: community
+      required: true
+    command_group:
+      command: yay -S --noconfirm lm-studio-bin
+      packages: [lm-studio-bin]
+    failure:
+      missing_packages: [lm-studio-bin]
+      stderr: "error: target not found: lm-studio-bin"
+    search_results:
+      repo_search:
+        lm-studio-bin: ""
+        LM Studio: ""
+      community_search:
+        lm-studio-bin: "aur/lmstudio-bin 0.3.0\n    LM Studio desktop package"
+    expected:
+      package_name: lmstudio-bin
+      source: community
+      retry_command: yay -S --noconfirm lmstudio-bin
+
+  - id: repair-stale-github-desktop-arch-community
+    mode: missing_repair
+    category: stale_package
+    facts_profile:
+      family: arch
+      package_manager: pacman
+      community_helper: yay
+    requested_apps:
+      - GitHub Desktop
+    app:
+      name: GitHub Desktop
+      package_name: github-desktop-bin
+      source: community
+      required: true
+    command_group:
+      command: yay -S --noconfirm github-desktop-bin
+      packages: [github-desktop-bin]
+    failure:
+      missing_packages: [github-desktop-bin]
+      stderr: "error: target not found: github-desktop-bin"
+    search_results:
+      repo_search:
+        github-desktop-bin: ""
+        GitHub Desktop: ""
+      community_search:
+        github-desktop-bin: "aur/github-desktop 3.4.0\n    GitHub Desktop for Linux"
+    expected:
+      package_name: github-desktop
+      source: community
+      retry_command: yay -S --noconfirm github-desktop
+
+  - id: repair-spotify-ubuntu-flatpak-fallback
+    mode: missing_repair
+    category: source_selection
+    facts_profile:
+      family: ubuntu
+      package_manager: apt
+      community_helper: none
+    requested_apps:
+      - Spotify
+    app:
+      name: Spotify
+      package_name: spotify-client
+      source: repo
+      required: true
+    command_group:
+      command: sudo apt-get install -y spotify-client
+      packages: [spotify-client]
+    failure:
+      missing_packages: [spotify-client]
+      stderr: "E: Unable to locate package spotify-client"
+    search_results:
+      repo_search:
+        spotify-client: ""
+        Spotify: ""
+      flatpak_search:
+        Spotify: "com.spotify.Client Spotify\n"
+    expected:
+      package_name: com.spotify.Client
+      source: flatpak
+      retry_command: flatpak install -y flathub com.spotify.Client
+
+  - id: run-apps-debian-aur-source-manual-followup
+    mode: run_apps
+    category: wrong_package_manager
+    facts_profile:
+      family: debian
+      package_manager: apt
+      community_helper: none
+    requested_apps:
+      - Brave
+    planner_apps:
+      - name: Brave
+        package_name: brave-bin
+        source: community
+        status: pending
+        required: true
+    expected:
+      apps:
+        Brave:
+          status: manual_followup
+          reason_contains: not supported automatically
+      no_install_commands: true
+
+  - id: prefilter-installed-vlc-rewrites-command
+    mode: prefilter
+    category: already_installed
+    facts_profile:
+      family: arch
+      package_manager: pacman
+      community_helper: none
+    requested_apps:
+      - VLC
+      - Firefox
+    planner_apps:
+      - name: VLC
+        package_name: vlc
+        source: repo
+        status: pending
+        required: true
+      - name: Firefox
+        package_name: firefox
+        source: repo
+        status: pending
+        required: true
+    command_group:
+      command: sudo pacman -S --noconfirm vlc firefox
+      packages: [vlc, firefox]
+    installed_packages: [vlc]
+    expected:
+      replacement_command: sudo pacman -S --needed --noconfirm firefox
+      replacement_packages: [firefox]
+      apps:
+        VLC:
+          status: installed
+        Firefox:
+          status: pending
+
+  - id: prefilter-installed-alias-lmstudio-skips-group
+    mode: prefilter
+    category: already_installed
+    facts_profile:
+      family: arch
+      package_manager: pacman
+      community_helper: yay
+    requested_apps:
+      - LM Studio
+    planner_apps:
+      - name: LM Studio
+        package_name: lm-studio-bin
+        source: community
+        status: pending
+        required: true
+    command_group:
+      command: yay -S --noconfirm lm-studio-bin
+      packages: [lm-studio-bin]
+    installed_packages: [lmstudio-bin]
+    expected:
+      skipped_group: true
+      apps:
+        LM Studio:
+          status: installed
+
+  - id: partial-missing-cursor-isolated
+    mode: partial_failure
+    category: partial_failure
+    facts_profile:
+      family: arch
+      package_manager: pacman
+      community_helper: yay
+    requested_apps:
+      - Brave
+      - Spotify
+      - Cursor
+    planner_apps:
+      - name: Brave
+        package_name: brave-bin
+        source: community
+        status: pending
+        required: true
+      - name: Spotify
+        package_name: spotify
+        source: community
+        status: pending
+        required: true
+      - name: Cursor
+        package_name: cursor-bin
+        source: community
+        status: pending
+        required: true
+    command_group:
+      command: yay -S --noconfirm brave-bin spotify cursor-bin
+      packages: [brave-bin, spotify, cursor-bin]
+    failure:
+      missing_packages: [cursor-bin]
+      stderr: "error: target not found: cursor-bin"
+    search_results:
+      repo_search:
+        cursor-bin: ""
+        Cursor: ""
+      community_search:
+        cursor-bin: ""
+        Cursor: ""
+    expected:
+      retry_command: yay -S --noconfirm brave-bin spotify
+      apps:
+        Brave:
+          status: pending
+        Spotify:
+          status: pending
+        Cursor:
+          status: manual_followup
+          reason_contains: unresolved
+
+  - id: preflight-wrong-package-manager-is-not-hard-block
+    mode: preflight
+    category: wrong_package_manager
+    facts_profile:
+      family: fedora
+      package_manager: dnf
+      community_helper: none
+    command: sudo apt-get install -y example-app
+    expected:
+      hard_block: false

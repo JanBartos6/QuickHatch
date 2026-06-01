@@ -1,0 +1,68 @@
+- id: unavailable-fictional-app-manual-followup
+  category: unavailable_app
+  facts_profile:
+    family: ubuntu
+    package_manager: apt
+    community_helper: none
+  requested_apps:
+    - ZebraNotes Enterprise 2099
+  search_results:
+    repo_search:
+      zebra-notes-enterprise: ""
+      ZebraNotes Enterprise 2099: ""
+    flatpak_search:
+      ZebraNotes Enterprise 2099: ""
+  expected:
+    package_name: zebra-notes-enterprise
+    source: repo
+    status: manual_followup
+    final_status_effect: manual_followup_required
+  rationale: Nonexistent apps should become specific manual follow-up after search/fallback paths fail.
+
+- id: windows-only-microsoft-store-do-not-migrate
+  category: windows_only
+  facts_profile:
+    family: generic
+    package_manager: generic
+    community_helper: none
+  requested_apps:
+    - Microsoft Store
+  expected:
+    compatibility: none
+    linux_alternative: Do not migrate
+    notes_contains: Windows app store
+  rationale: Windows platform components are not Linux package targets.
+
+- id: linux-alternative-adobe-reader-okular
+  category: linux_alternative
+  facts_profile:
+    family: arch
+    package_manager: pacman
+    community_helper: yay
+  requested_apps:
+    - Adobe Acrobat Reader
+  catalog_hint:
+    compatibility: alternative
+    alternatives: [Okular]
+    active_install_hint:
+      family: arch
+      source: repo
+      packages: [okular]
+  expected:
+    alternative: Okular
+    original_status: manual_followup
+    should_install_automatically: false
+  rationale: A useful alternative must stay labeled as an alternative, not as the requested proprietary app.
+
+- id: windows-only-logitech-ghub-alternative
+  category: linux_alternative
+  facts_profile:
+    family: generic
+    package_manager: generic
+    community_helper: none
+  requested_apps:
+    - Logitech G HUB
+  expected:
+    compatibility: alternative
+    alternative_contains: Piper
+  rationale: Hardware control suites may map to Linux alternatives but should not become silent original-app success.
