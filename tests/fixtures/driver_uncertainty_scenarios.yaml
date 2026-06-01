@@ -1,0 +1,3067 @@
+# Curated driver/hardware uncertainty scenario corpus.
+#
+# This fixture models GPU driver planning, Secure Boot uncertainty, VM graphics,
+# reboot-dependent verification, and final-audit honesty. Use fake facts, fake
+# executors, fake reconnects, and fake model/provider responses only; do not
+# execute commands from this file and do not treat any scenario as real hardware
+# certification evidence.
+merge_summary:
+  source: Merged from .quickhatch/corpus-candidates/driver-agent-*.yaml
+  total_source_candidates: 84
+  total_scenarios: 72
+  scenarios_by_category:
+    amd: 6
+    driver_failure: 9
+    final_audit: 4
+    headless: 6
+    hybrid: 6
+    intel: 6
+    nvidia: 15
+    reboot_required: 3
+    secure_boot: 11
+    vm_gpu: 6
+  driver_statuses:
+    blocked: 3
+    installed_unverified: 16
+    manual_followup_required: 34
+    skipped: 6
+    unsupported_safe: 1
+    verified: 12
+  final_status_effects:
+    blocked: 3
+    manual_followup_required: 39
+    none: 13
+    success_with_warnings: 15
+    unsupported_safe: 2
+  rejected_ambiguous_cases: []
+  omitted_near_duplicate_cases:
+  - id: nvidia-modern-rtx4070-installed-before-reboot-unverified
+    reason: Near duplicate of drv4-nvidia-installed-module-pending-reboot; retained the richer pre-reboot
+      facts-refresh/reboot-required variant.
+  - id: drv4-nvidia-reboot-verify-success
+    reason: Near duplicate of nvidia-modern-rtx3060-healthy-after-reboot; retained the NVIDIA-lane positive
+      control.
+  - id: final-postreboot-verification-passes
+    reason: Near duplicate of nvidia-modern-rtx3060-healthy-after-reboot; retained one verified post-reboot
+      positive control.
+  - id: final-reboot-required-not-yet-verified
+    reason: Near duplicate of drv4-nvidia-installed-module-pending-reboot; retained the reboot-verification
+      lane case.
+  - id: final-nvidia-installed-module-missing
+    reason: Near duplicate of nvidia-modern-rtx3080-postreboot-module-missing; retained the direct module-missing
+      failure case.
+  - id: drv4-secureboot-module-rejected-after-reboot
+    reason: Near duplicate of secureboot-nvidia-unsigned-dkms-rejected and final-secureboot-unsigned-nvidia-module;
+      retained signed/unsigned Secure Boot coverage elsewhere.
+  - id: drv4-secureboot-mok-enrollment-pending
+    reason: Near duplicate of secureboot-nvidia-mok-enrollment-pending; retained the clearer MOK enrollment
+      case.
+  - id: secureboot-provider-suggests-vendor-curl-script
+    reason: Near duplicate of final-vendor-curl-script-deferred; retained the final-audit risky external
+      payload case.
+  - id: nvidia-vendor-script-suggested-not-trusted
+    reason: Near duplicate of final-vendor-curl-script-deferred; retained the final-audit risky external
+      payload case.
+  - id: drv4-amd-firmware-missing-after-reboot
+    reason: Near duplicate of amd-missing-firmware-manual-followup; retained the direct AMD firmware failure
+      case.
+  - id: final-amd-firmware-missing-nonfatal
+    reason: Near duplicate of amd-missing-firmware-manual-followup; retained one deterministic AMD firmware
+      manual-followup case.
+  - id: secureboot-nouveau-conflict-after-driver-install
+    reason: Near duplicate of nvidia-nouveau-bound-after-proprietary-install and final-nouveau-conflict-after-proprietary-install;
+      retained non-Secure-Boot and final-audit conflict variants.
+  coverage_gaps:
+  - No real hardware certification is claimed; all scenarios require fake facts/executor/model plumbing.
+  - AMD firmware presence is modeled as a scenario fact even though current SetupFacts has no first-class
+    firmware field.
+  - Hybrid PRIME/offload verification is represented as uncertainty; exact runtime probes remain a later
+    test-design decision.
+  notes: 'Driver status expectations are evidence-based: package success is not real hardware certification
+    without refreshed module/runtime facts.'
+scenarios:
+- id: nvidia-unknown-generation-arch-open-unverified
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA Corporation Device 28ff
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: unknown
+    nouveau_loaded: unknown
+    nvidia_driver_installed: unknown
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-open
+    - nvidia-utils
+    - linux-headers
+    confidence: low
+    notes: PCI ID is NVIDIA but generation is unknown, so open kernel module suitability is not proven.
+  simulated_events:
+  - type: command_success
+    detail: Repo NVIDIA packages appear to install cleanly.
+    rc: 0
+    stdout: installed nvidia-open nvidia-utils
+    stderr: ''
+  - type: facts_refresh
+    detail: Refreshed facts still do not prove nvidia_smi or the loaded kernel module.
+    rc: 0
+    stdout: nvidia_smi_state=unknown nvidia_kernel_driver=unknown
+    stderr: ''
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Unknown NVIDIA generation may be repairable, but command success alone must not certify the
+    driver.
+  source_agents:
+  - driver-agent-1-nvidia
+- id: nvidia-no-inventory-requested-low-confidence
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models: []
+    secure_boot: unknown
+    is_vm: unknown
+    has_gui_session: unknown
+    kernel_module_loaded: unknown
+    nouveau_loaded: unknown
+    nvidia_driver_installed: unknown
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: true
+    source: unknown
+    packages: []
+    confidence: manual_followup_required
+    notes: NVIDIA vendor hint exists, but there is no inventory/model evidence to choose a safe package
+      family.
+  simulated_events:
+  - type: facts_refresh
+    detail: Fact probe cannot resolve model, module, or Secure Boot state.
+    rc: 0
+    stdout: gpu_inventory=[] secure_boot=unknown
+    stderr: ''
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: A vendor-only hint is not enough to claim success or pick a risky driver path.
+  source_agents:
+  - driver-agent-1-nvidia
+- id: nvidia-pre-turing-gtx970-arch-open-rejected
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce GTX 970
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-open
+    - nvidia-utils
+    confidence: low
+    notes: GTX 970 is pre-Turing and should not be routed blindly to nvidia-open.
+  simulated_events:
+  - type: command_failure
+    detail: Modern open driver package selected for unsupported pre-Turing card.
+    rc: 1
+    stdout: ''
+    stderr: nvidia-open does not support this GPU generation
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Pre-Turing NVIDIA needs legacy/manual handling; selecting modern open packages is a strategy
+    bug, not a fatal whole-setup failure.
+  source_agents:
+  - driver-agent-1-nvidia
+- id: nvidia-legacy-gt710-manual-followup
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce GT 710
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: manual_followup
+    packages: []
+    confidence: manual_followup_required
+    notes: Legacy NVIDIA card likely requires unsupported/legacy branch decisions outside automated safe
+      setup.
+  simulated_events:
+  - type: facts_refresh
+    detail: Legacy card remains on nouveau with no proprietary module loaded.
+    rc: 0
+    stdout: nouveau_loaded=true nvidia_kernel_driver=missing
+    stderr: ''
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Legacy NVIDIA uncertainty should be explicit manual follow-up and must not erase unrelated
+    completed work.
+  source_agents:
+  - driver-agent-1-nvidia
+- id: nvidia-modern-rtx3060-healthy-after-reboot
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 3060
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-open
+    - nvidia-utils
+    - nvidia-settings
+    - linux-headers
+    confidence: high
+    notes: Modern RTX card with Secure Boot disabled is a normal repo-driver path.
+  simulated_events:
+  - type: command_success
+    detail: Modern NVIDIA packages installed.
+    rc: 0
+    stdout: installed nvidia-open nvidia-utils nvidia-settings linux-headers
+    stderr: ''
+  - type: reboot_required
+    detail: Module-load verification requires reboot into installed kernel.
+    rc: 0
+    stdout: ''
+    stderr: ''
+  - type: module_probe
+    detail: After reboot, nvidia module and nvidia-smi are healthy.
+    rc: 0
+    stdout: nvidia_smi_state=ok nvidia_kernel_driver=nvidia
+    stderr: ''
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: 'This is the positive control: verified module/runtime facts after reboot may be plain success.'
+  source_agents:
+  - driver-agent-1-nvidia
+- id: nvidia-modern-rtx3080-postreboot-module-missing
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 3080
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    confidence: high
+    notes: Ubuntu/Debian repo strategy looked valid, but post-reboot module verification failed.
+  simulated_events:
+  - type: command_success
+    detail: NVIDIA driver package installed.
+    rc: 0
+    stdout: nvidia-driver installed
+    stderr: ''
+  - type: module_probe
+    detail: After reboot, nvidia module is still missing.
+    rc: 1
+    stdout: ''
+    stderr: 'modprobe: FATAL: Module nvidia not found'
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Post-reboot module failure is unresolved driver work, not a successful setup.
+  source_agents:
+  - driver-agent-1-nvidia
+- id: nvidia-nouveau-bound-after-proprietary-install
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 2070
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia
+    - nvidia-utils
+    confidence: medium
+    notes: Proprietary stack installed, but nouveau remains bound to the GPU.
+  simulated_events:
+  - type: command_success
+    detail: NVIDIA packages installed.
+    rc: 0
+    stdout: installed nvidia nvidia-utils
+    stderr: ''
+  - type: facts_refresh
+    detail: Refreshed facts show nouveau still bound.
+    rc: 0
+    stdout: nvidia_nouveau_bound=true nvidia_kernel_driver=nouveau
+    stderr: ''
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Nouveau/proprietary conflict should trigger bounded repair or manual follow-up, not success.
+  source_agents:
+  - driver-agent-1-nvidia
+- id: nvidia-nouveau-only-user-did-not-request-proprietary
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce GTX 1660
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: true
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: false
+    source: unknown
+    packages: []
+    confidence: medium
+    notes: User did not request proprietary NVIDIA setup; nouveau is loaded and the display stack is present.
+  simulated_events:
+  - type: facts_refresh
+    detail: Facts show nouveau loaded with no proprietary driver request.
+    rc: 0
+    stdout: nouveau_loaded=true
+    stderr: ''
+  expected:
+    driver_status: skipped
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: If proprietary NVIDIA work was not requested, nouveau should not become a fatal failure,
+    but the limitation should remain visible.
+  source_agents:
+  - driver-agent-1-nvidia
+- id: nvidia-driver-library-version-mismatch
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 2060
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    confidence: high
+    notes: Driver package is installed, but runtime library and kernel module versions disagree.
+  simulated_events:
+  - type: module_probe
+    detail: nvidia-smi reports a driver/library mismatch.
+    rc: 1
+    stdout: ''
+    stderr: 'Failed to initialize NVML: Driver/library version mismatch'
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: A loaded module with broken NVIDIA runtime is not verified success.
+  source_agents:
+  - driver-agent-1-nvidia
+- id: nvidia-pre-turing-wrong-open-package-fedora
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce GTX 780 Ti
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - akmod-nvidia-open
+    - xorg-x11-drv-nvidia-cuda
+    confidence: low
+    notes: Open kernel module strategy is inappropriate for this legacy generation.
+  simulated_events:
+  - type: command_failure
+    detail: Wrong package strategy fails or cannot bind to the legacy GPU.
+    rc: 1
+    stdout: ''
+    stderr: NVIDIA open kernel modules do not support this GPU
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Wrong NVIDIA generation/package strategy should be honest manual follow-up, not a whole-setup
+    block.
+  source_agents:
+  - driver-agent-1-nvidia
+- id: nvidia-wrong-distro-package-name-debian-open
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 3070
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-open
+    - nvidia-utils
+    confidence: low
+    notes: Arch-style package names were proposed for an apt-based system.
+  simulated_events:
+  - type: command_failure
+    detail: Apt cannot locate the distro-mismatched package names.
+    rc: 100
+    stdout: ''
+    stderr: 'E: Unable to locate package nvidia-open'
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Wrong package names are repairable model mistakes; they should not hide the unresolved NVIDIA
+    request.
+  source_agents:
+  - driver-agent-1-nvidia
+- id: nvidia-hybrid-intel-rtx-unknown-prime-state
+  category: hybrid
+  facts_profile:
+    gpu_vendors:
+    - intel
+    - nvidia
+    gpu_models:
+    - Intel UHD Graphics
+    - NVIDIA GeForce RTX 3050 Laptop GPU
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    - nvidia-prime
+    confidence: medium
+    notes: Hybrid laptop needs PRIME/offload verification in addition to package success.
+  simulated_events:
+  - type: command_success
+    detail: NVIDIA and PRIME packages installed.
+    rc: 0
+    stdout: installed nvidia-driver nvidia-prime
+    stderr: ''
+  - type: facts_refresh
+    detail: Module is loaded but offload/active GPU state is unknown.
+    rc: 0
+    stdout: nvidia_kernel_driver=nvidia prime_state=unknown
+    stderr: ''
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Hybrid driver presence can be partially successful while still needing user-visible offload
+    verification.
+  source_agents:
+  - driver-agent-1-nvidia
+- id: nvidia-headless-compute-verified-without-gui
+  category: headless
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA RTX A4000
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: false
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    - nvidia-utils
+    confidence: high
+    notes: Headless NVIDIA system can verify compute driver via module and nvidia-smi without a GUI session.
+  simulated_events:
+  - type: module_probe
+    detail: nvidia-smi and kernel module checks pass over non-GUI session.
+    rc: 0
+    stdout: nvidia_smi_state=ok nvidia_kernel_driver=nvidia
+    stderr: ''
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: No GUI session should not invalidate a compute-focused NVIDIA verification when module/runtime
+    facts are healthy.
+  source_agents:
+  - driver-agent-1-nvidia
+- id: nvidia-egpu-disappears-after-install
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 2080 eGPU
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: unknown
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    confidence: medium
+    notes: External GPU was present initially but disappears before verification.
+  simulated_events:
+  - type: command_success
+    detail: NVIDIA driver package installed while eGPU was visible.
+    rc: 0
+    stdout: installed nvidia-driver
+    stderr: ''
+  - type: facts_refresh
+    detail: Refreshed facts no longer list the NVIDIA GPU.
+    rc: 0
+    stdout: gpu_vendors=[] gpu_inventory=[]
+    stderr: ''
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Transient hardware should not be marked verified, but unrelated setup can continue with a
+    warning.
+  source_agents:
+  - driver-agent-1-nvidia
+- id: nvidia-open-success-but-nvidia-smi-fails
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 4060
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-open
+    - nvidia-utils
+    confidence: high
+    notes: Modern open-driver package install succeeded, but runtime tool still fails.
+  simulated_events:
+  - type: command_success
+    detail: Repo driver packages installed successfully.
+    rc: 0
+    stdout: installed nvidia-open nvidia-utils
+    stderr: ''
+  - type: module_probe
+    detail: nvidia-smi fails despite the module being loaded.
+    rc: 1
+    stdout: ''
+    stderr: NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Kernel-module presence and package success are insufficient if NVIDIA runtime verification
+    fails.
+  source_agents:
+  - driver-agent-1-nvidia
+- id: secureboot-nvidia-unsigned-dkms-rejected
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 3070
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    - dkms
+    confidence: medium
+    notes: DKMS NVIDIA module installed but rejected by Secure Boot because it is unsigned.
+  simulated_events:
+  - type: command_success
+    detail: nvidia driver packages installed from distro repository
+    rc: 0
+    stdout: Setting up nvidia-dkms...
+    stderr: ''
+  - type: module_probe
+    detail: kernel refuses unsigned NVIDIA module
+    rc: 1
+    stdout: ''
+    stderr: 'modprobe: ERROR: could not insert ''nvidia'': Key was rejected by service'
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Secure Boot can reject unsigned DKMS modules after a successful package install; the harness
+    must not claim verified driver success until signing/MOK enrollment and reboot verification complete.
+  source_agents:
+  - driver-agent-2-secureboot
+- id: secureboot-nvidia-mok-enrollment-pending
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 4070
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver-550
+    - dkms
+    confidence: medium
+    notes: Package install generated a Machine Owner Key enrollment prompt that requires physical-console
+      confirmation.
+  simulated_events:
+  - type: command_success
+    detail: driver package install schedules MOK enrollment
+    rc: 0
+    stdout: A new Machine-Owner Key has been generated. Reboot to enroll MOK.
+    stderr: ''
+  - type: reboot_required
+    detail: MOK enrollment requires reboot and manual firmware UI interaction
+    rc: 0
+    stdout: ''
+    stderr: ''
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: MOK enrollment cannot be completed safely by the harness over an unattended setup session,
+    so driver success remains manual follow-up until the user enrolls the key and verifies module load.
+  source_agents:
+  - driver-agent-2-secureboot
+- id: secureboot-nvidia-distro-signed-module-loaded
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 3060
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - akmod-nvidia
+    - xorg-x11-drv-nvidia-cuda
+    confidence: medium
+    notes: Distro-packaged NVIDIA module is installed and post-reboot probe shows the NVIDIA kernel module
+      loaded.
+  simulated_events:
+  - type: command_success
+    detail: distro driver packages installed
+    rc: 0
+    stdout: 'Installed: akmod-nvidia'
+    stderr: ''
+  - type: reboot_required
+    detail: driver stack needs reboot before verification
+    rc: 0
+    stdout: ''
+    stderr: ''
+  - type: facts_refresh
+    detail: post-reboot facts show NVIDIA module loaded and nouveau absent
+    rc: 0
+    stdout: nvidia module loaded
+    stderr: ''
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Secure Boot is not by itself fatal when refreshed facts prove the signed NVIDIA module loads
+    successfully after reboot.
+  source_agents:
+  - driver-agent-2-secureboot
+- id: secureboot-enabled-nvidia-open-installed-but-not-loaded
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 4080
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-open
+    - nvidia-utils
+    confidence: high
+    notes: Modern NVIDIA open kernel module package installed, but refreshed facts do not show the module
+      loaded.
+  simulated_events:
+  - type: command_success
+    detail: Arch NVIDIA open packages installed
+    rc: 0
+    stdout: installed nvidia-open nvidia-utils
+    stderr: ''
+  - type: facts_refresh
+    detail: post-install facts do not show nvidia module loaded
+    rc: 0
+    stdout: nvidia_smi=failed; kernel_driver=missing
+    stderr: ''
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: A successful package install is insufficient when Secure Boot is enabled and the NVIDIA module
+    is not observed loaded.
+  source_agents:
+  - driver-agent-2-secureboot
+- id: secureboot-unknown-nvidia-installed-unverified
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GPU
+    secure_boot: unknown
+    is_vm: false
+    has_gui_session: unknown
+    kernel_module_loaded: unknown
+    nouveau_loaded: unknown
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    confidence: low
+    notes: Secure Boot state and module state are unknown after an NVIDIA driver install.
+  simulated_events:
+  - type: command_success
+    detail: NVIDIA package install reports success
+    rc: 0
+    stdout: nvidia-driver installed
+    stderr: ''
+  - type: facts_refresh
+    detail: Secure Boot and module probes are inconclusive
+    rc: 0
+    stdout: secure_boot=unknown; nvidia_module=unknown
+    stderr: ''
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Unknown Secure Boot and module state should not be hard-blocked, but also should not be reported
+    as verified success.
+  source_agents:
+  - driver-agent-2-secureboot
+- id: secureboot-module-signing-command-succeeds-but-no-load
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 2060
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-dkms
+    confidence: low
+    notes: Module signing helper reports success, but refreshed facts still do not show NVIDIA loaded.
+  simulated_events:
+  - type: command_success
+    detail: sign-file helper exits successfully
+    rc: 0
+    stdout: Signed nvidia.ko
+    stderr: ''
+  - type: module_probe
+    detail: module still fails to load after signing attempt
+    rc: 1
+    stdout: ''
+    stderr: 'modprobe: ERROR: could not insert ''nvidia'': Required key not available'
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Command success from a signing helper is not proof of usable graphics; module-load verification
+    remains required.
+  source_agents:
+  - driver-agent-2-secureboot
+- id: secureboot-pre-turing-nvidia-modern-open-rejected
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce GTX 970
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-open
+    - nvidia-utils
+    confidence: low
+    notes: Provider selected nvidia-open for a pre-Turing GPU under Secure Boot.
+  simulated_events:
+  - type: command_failure
+    detail: open kernel module package is not appropriate for this legacy GPU generation
+    rc: 1
+    stdout: ''
+    stderr: unsupported device for nvidia-open
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Legacy NVIDIA hardware should not be routed blindly to modern nvidia-open assumptions, especially
+    with Secure Boot signing constraints.
+  source_agents:
+  - driver-agent-2-secureboot
+- id: secureboot-hybrid-intel-nvidia-nvidia-unverified
+  category: hybrid
+  facts_profile:
+    gpu_vendors:
+    - intel
+    - nvidia
+    gpu_models:
+    - Intel UHD Graphics
+    - NVIDIA GeForce RTX 3050 Laptop GPU
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    - nvidia-prime
+    confidence: medium
+    notes: Hybrid laptop retains Intel display path while NVIDIA module remains unverified under Secure
+      Boot.
+  simulated_events:
+  - type: facts_refresh
+    detail: Intel graphics active, NVIDIA module not loaded
+    rc: 0
+    stdout: i915 loaded; nvidia absent
+    stderr: ''
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: A working Intel display path should allow unrelated setup to continue, but the requested
+    NVIDIA driver remains unverified and needs an honest warning or follow-up.
+  source_agents:
+  - driver-agent-2-secureboot
+- id: secureboot-headless-nvidia-no-gui-module-rejected
+  category: headless
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA Tesla T4
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: false
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    - nvidia-cuda-toolkit
+    confidence: medium
+    notes: Headless NVIDIA compute driver installed but Secure Boot prevents module load.
+  simulated_events:
+  - type: module_probe
+    detail: nvidia-smi fails because the module is unavailable
+    rc: 1
+    stdout: ''
+    stderr: NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: No GUI session does not remove the need to verify NVIDIA module load for requested compute
+    drivers.
+  source_agents:
+  - driver-agent-2-secureboot
+- id: secureboot-disabled-dkms-module-loads
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 2080
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    - dkms
+    confidence: medium
+    notes: Secure Boot is disabled and refreshed facts show the NVIDIA module loaded.
+  simulated_events:
+  - type: command_success
+    detail: DKMS module built and installed
+    rc: 0
+    stdout: DKMS install completed
+    stderr: ''
+  - type: facts_refresh
+    detail: module load verified
+    rc: 0
+    stdout: nvidia module loaded; nvidia-smi ok
+    stderr: ''
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: The harness should not overblock normal DKMS NVIDIA success when Secure Boot is disabled
+    and post-reboot facts verify the driver.
+  source_agents:
+  - driver-agent-2-secureboot
+- id: secureboot-fedora-akmods-build-pending
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 3070 Ti
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - akmod-nvidia
+    - xorg-x11-drv-nvidia
+    confidence: medium
+    notes: akmods package install completed, but module build/signing is pending and not yet verified.
+  simulated_events:
+  - type: command_success
+    detail: akmods package installed
+    rc: 0
+    stdout: 'Installed: akmod-nvidia'
+    stderr: ''
+  - type: facts_refresh
+    detail: nvidia module not present yet
+    rc: 0
+    stdout: nvidia module absent; akmods build pending
+    stderr: ''
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Fedora akmods can require build time and reboot; package success should become an honest
+    unverified/warning state until module load is proven.
+  source_agents:
+  - driver-agent-2-secureboot
+- id: secureboot-ubuntu-oem-signed-driver-verified
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA RTX A2000 Laptop GPU
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - linux-modules-nvidia-535-generic
+    - nvidia-driver-535
+    confidence: high
+    notes: Ubuntu signed NVIDIA module package is installed and verified loaded with Secure Boot enabled.
+  simulated_events:
+  - type: command_success
+    detail: signed Ubuntu NVIDIA modules installed
+    rc: 0
+    stdout: linux-modules-nvidia installed
+    stderr: ''
+  - type: facts_refresh
+    detail: post-reboot facts verify NVIDIA module and nvidia-smi
+    rc: 0
+    stdout: secure_boot=enabled; nvidia_smi=ok; nvidia_kernel_driver=nvidia
+    stderr: ''
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Signed distro modules can be a valid Secure Boot path when refreshed facts verify module
+    load and NVIDIA tooling.
+  source_agents:
+  - driver-agent-2-secureboot
+- id: secureboot-key-rejection-after-repair-retry
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 3060 Laptop GPU
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    - dkms
+    confidence: medium
+    notes: Repair retry still hits Secure Boot key rejection.
+  simulated_events:
+  - type: command_failure
+    detail: initial module probe fails with Secure Boot key rejection
+    rc: 1
+    stdout: ''
+    stderr: Key was rejected by service
+  - type: command_failure
+    detail: bounded repair retry fails with the same key rejection
+    rc: 1
+    stdout: ''
+    stderr: Required key not available
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Repeated Secure Boot key rejection should stop as manual follow-up rather than loop or become
+    blocked system failure.
+  source_agents:
+  - driver-agent-2-secureboot
+- id: secureboot-unknown-provider-claims-success-without-facts
+  category: final_audit
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GPU
+    secure_boot: unknown
+    is_vm: unknown
+    has_gui_session: unknown
+    kernel_module_loaded: unknown
+    nouveau_loaded: unknown
+    nvidia_driver_installed: unknown
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: true
+    source: unknown
+    packages: []
+    confidence: low
+    notes: Provider says the driver is done, but no Secure Boot or module facts are available.
+  simulated_events:
+  - type: provider_error
+    detail: provider output is unsupported by refreshed facts
+    rc: 0
+    stdout: NVIDIA should be working now
+    stderr: ''
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Model/provider text cannot substitute for Secure Boot and module-load facts; final status
+    must stay cautious when evidence is missing.
+  source_agents:
+  - driver-agent-2-secureboot
+- id: amd-mesa-firmware-normal
+  category: amd
+  facts_profile:
+    gpu_vendors:
+    - amd
+    gpu_models:
+    - AMD Radeon RX 6600
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: true
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - mesa-vulkan-drivers
+    - firmware-amd-graphics
+    confidence: high
+    notes: Normal AMD Mesa and firmware path; no proprietary driver expectation.
+  simulated_events:
+  - type: command_success
+    detail: Mesa and AMD firmware package check completed
+    rc: 0
+    stdout: mesa-vulkan-drivers firmware-amd-graphics installed
+    stderr: ''
+  - type: facts_refresh
+    detail: amdgpu module present after refresh
+    rc: 0
+    stdout: amdgpu
+    stderr: ''
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: AMD with amdgpu loaded and firmware present should verify through normal Mesa/firmware facts
+    without overblocking.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: amd-missing-firmware-manual-followup
+  category: amd
+  facts_profile:
+    gpu_vendors:
+    - amd
+    gpu_models:
+    - AMD Radeon RX 7900 XT
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: false
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - firmware-amd-graphics
+    - mesa-vulkan-drivers
+    confidence: medium
+    notes: Firmware is missing or unavailable; exact package availability may vary by distro release.
+  simulated_events:
+  - type: command_failure
+    detail: Firmware package unavailable or not enabled in configured repositories
+    rc: 100
+    stdout: ''
+    stderr: Unable to locate package firmware-amd-graphics
+  - type: facts_refresh
+    detail: amdgpu still not loaded after package attempt
+    rc: 0
+    stdout: ''
+    stderr: ''
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Missing AMD firmware should produce specific follow-up, not plain success and not a fatal
+    core setup block.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: amd-vulkan-tooling-missing-warning
+  category: amd
+  facts_profile:
+    gpu_vendors:
+    - amd
+    gpu_models:
+    - AMD Radeon RX 580
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: true
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - mesa
+    - vulkan-radeon
+    confidence: high
+    notes: Optional Vulkan userspace tooling may be absent even when the kernel driver is healthy.
+  simulated_events:
+  - type: command_success
+    detail: AMD Mesa packages installed
+    rc: 0
+    stdout: mesa vulkan-radeon installed
+    stderr: ''
+  - type: facts_refresh
+    detail: amdgpu loaded but vulkaninfo helper missing
+    rc: 0
+    stdout: driver=amdgpu vulkan_state=unknown
+    stderr: 'vulkaninfo: command not found'
+  expected:
+    driver_status: verified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: A healthy amdgpu kernel path should not be blocked solely because optional Vulkan diagnostic
+    tooling is unavailable.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: amd-legacy-radeon-bound-followup
+  category: amd
+  facts_profile:
+    gpu_vendors:
+    - amd
+    gpu_models:
+    - AMD Radeon R9 390
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: true
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - mesa-dri-drivers
+    - mesa-vulkan-drivers
+    confidence: medium
+    notes: Modern AMD card expected to use amdgpu but system reports legacy radeon binding.
+  simulated_events:
+  - type: facts_refresh
+    detail: legacy radeon module bound instead of amdgpu
+    rc: 0
+    stdout: driver=radeon
+    stderr: ''
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: A topology or module binding mismatch needs explicit follow-up and usually reboot verification,
+    but should not erase unrelated setup progress.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: intel-mesa-normal
+  category: intel
+  facts_profile:
+    gpu_vendors:
+    - intel
+    gpu_models:
+    - Intel UHD Graphics 620
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - mesa-vulkan-drivers
+    - intel-media-va-driver
+    confidence: high
+    notes: Intel graphics normally uses in-kernel i915 plus Mesa/VAAPI packages; Secure Boot does not
+      imply DKMS signing.
+  simulated_events:
+  - type: command_success
+    detail: Intel Mesa and media packages present
+    rc: 0
+    stdout: mesa-vulkan-drivers intel-media-va-driver installed
+    stderr: ''
+  - type: facts_refresh
+    detail: i915 loaded and display stack healthy
+    rc: 0
+    stdout: driver=i915
+    stderr: ''
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Normal Intel graphics should not be overblocked by Secure Boot because no unsigned proprietary
+    module is implied.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: intel-missing-kernel-driver-followup
+  category: intel
+  facts_profile:
+    gpu_vendors:
+    - intel
+    gpu_models:
+    - Intel Arc A770
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - mesa-dri-drivers
+    - mesa-vulkan-drivers
+    - intel-media-driver
+    confidence: medium
+    notes: Userspace packages may be present, but missing kernel module means driver success is unverified.
+  simulated_events:
+  - type: command_success
+    detail: Intel userspace packages installed
+    rc: 0
+    stdout: 'Installed: mesa-dri-drivers mesa-vulkan-drivers intel-media-driver'
+    stderr: ''
+  - type: module_probe
+    detail: No i915 or xe module detected for Intel GPU
+    rc: 1
+    stdout: ''
+    stderr: module not loaded
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Command success for Intel packages is not enough when refreshed facts show no matching kernel
+    module.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: intel-vulkan-diagnostic-failure-warning
+  category: intel
+  facts_profile:
+    gpu_vendors:
+    - intel
+    gpu_models:
+    - Intel Iris Xe
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - mesa
+    - vulkan-intel
+    confidence: high
+    notes: Kernel driver is healthy but Vulkan probe reports a userspace diagnostic failure.
+  simulated_events:
+  - type: facts_refresh
+    detail: i915 loaded; vulkan probe failed
+    rc: 0
+    stdout: driver=i915 vulkan_state=present_but_failing
+    stderr: ERROR_INITIALIZATION_FAILED
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: A failing graphics API probe should be honest manual follow-up, not plain success, while
+    allowing unrelated setup to continue.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: vm-virtio-gpu-skip-certification
+  category: vm_gpu
+  facts_profile:
+    gpu_vendors:
+    - virtual
+    gpu_models:
+    - Virtio GPU
+    secure_boot: unknown
+    is_vm: true
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: false
+    source: manual_followup
+    packages: []
+    confidence: low
+    notes: Virtual GPU should not be treated as proof of physical NVIDIA or AMD driver success.
+  simulated_events:
+  - type: facts_refresh
+    detail: Virtual adapter detected
+    rc: 0
+    stdout: Virtio GPU
+    stderr: ''
+  expected:
+    driver_status: skipped
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: VM graphics should skip real hardware driver certification and avoid false confidence about
+    physical GPU setup.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: vm-qxl-headless-skip-driver-stage
+  category: vm_gpu
+  facts_profile:
+    gpu_vendors:
+    - virtual
+    gpu_models:
+    - QXL paravirtual graphic card
+    secure_boot: disabled
+    is_vm: true
+    has_gui_session: false
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: false
+    source: manual_followup
+    packages: []
+    confidence: low
+    notes: Headless VM with virtual graphics should not run vendor GPU recovery.
+  simulated_events:
+  - type: facts_refresh
+    detail: No GUI session and only virtual graphics present
+    rc: 0
+    stdout: qxl
+    stderr: ''
+  expected:
+    driver_status: skipped
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Absence of a live GUI in a VM should not become a fatal driver failure or trigger physical
+    GPU assumptions.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: vm-passthrough-nvidia-uncertain
+  category: vm_gpu
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    - virtual
+    gpu_models:
+    - NVIDIA Corporation Device 2684
+    - Virtio GPU
+    secure_boot: unknown
+    is_vm: true
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: manual_followup
+    packages: []
+    confidence: manual_followup_required
+    notes: Possible GPU passthrough with unknown NVIDIA generation; avoid treating VM display as driver
+      certification.
+  simulated_events:
+  - type: facts_refresh
+    detail: NVIDIA PCI device appears alongside virtual display, but no NVIDIA module is loaded
+    rc: 0
+    stdout: gpu=nvidia,virtio module=none
+    stderr: ''
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Passthrough-like facts need honest uncertainty and post-reboot/module verification rather
+    than VM graphics success.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: hybrid-intel-nvidia-nouveau-conflict
+  category: hybrid
+  facts_profile:
+    gpu_vendors:
+    - intel
+    - nvidia
+    gpu_models:
+    - Intel UHD Graphics 630
+    - NVIDIA GeForce GTX 1650
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    - nvidia-settings
+    confidence: medium
+    notes: Hybrid system with Intel display path but nouveau bound for NVIDIA dGPU.
+  simulated_events:
+  - type: command_success
+    detail: NVIDIA packages installed
+    rc: 0
+    stdout: nvidia-driver installed
+    stderr: ''
+  - type: facts_refresh
+    detail: Intel path works but NVIDIA remains bound to nouveau
+    rc: 0
+    stdout: i915 loaded nouveau loaded nvidia absent
+    stderr: ''
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: A working Intel display must not hide unresolved NVIDIA/nouveau conflict on a requested hybrid-driver
+    setup.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: hybrid-intel-amd-normal
+  category: hybrid
+  facts_profile:
+    gpu_vendors:
+    - intel
+    - amd
+    gpu_models:
+    - Intel Iris Xe
+    - AMD Radeon RX 6800M
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: true
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - mesa-dri-drivers
+    - mesa-vulkan-drivers
+    - amd-gpu-firmware
+    - intel-media-driver
+    confidence: high
+    notes: Hybrid Intel+AMD setup should stay in normal Mesa/firmware lane.
+  simulated_events:
+  - type: command_success
+    detail: Mesa and firmware packages installed
+    rc: 0
+    stdout: Installed mesa-dri-drivers mesa-vulkan-drivers amd-gpu-firmware intel-media-driver
+    stderr: ''
+  - type: facts_refresh
+    detail: Both i915 and amdgpu are loaded
+    rc: 0
+    stdout: i915 amdgpu
+    stderr: ''
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Hybrid Intel+AMD should not be overclassified as risky proprietary-driver work when kernel
+    modules and firmware are healthy.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: headless-amd-server-no-gui
+  category: headless
+  facts_profile:
+    gpu_vendors:
+    - amd
+    gpu_models:
+    - AMD Radeon Pro WX 3200
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: false
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: true
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - firmware-amd-graphics
+    - mesa-vulkan-drivers
+    confidence: medium
+    notes: Kernel driver can be checked, but live GUI/display acceleration cannot be visually verified
+      on a headless target.
+  simulated_events:
+  - type: facts_refresh
+    detail: amdgpu loaded but no active GUI session
+    rc: 0
+    stdout: driver=amdgpu has_gui_session=false
+    stderr: ''
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Headless systems can have healthy kernel driver facts while still requiring honest visual-verification
+    caveats.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: headless-intel-no-display-tools
+  category: headless
+  facts_profile:
+    gpu_vendors:
+    - intel
+    gpu_models:
+    - Intel HD Graphics 530
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: false
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - mesa
+    confidence: medium
+    notes: Generic/headless Intel target may not have display or Vulkan probes installed.
+  simulated_events:
+  - type: facts_refresh
+    detail: i915 loaded; display/Vulkan probes unavailable
+    rc: 0
+    stdout: driver=i915 display=none
+    stderr: 'vulkaninfo: command not found'
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Headless Intel kernel success should not be promoted to full visual-driver verification when
+    display probes are unavailable.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: vm-spice-plus-amd-device-ambiguous
+  category: vm_gpu
+  facts_profile:
+    gpu_vendors:
+    - virtual
+    - amd
+    gpu_models:
+    - Red Hat QXL controller
+    - AMD Device 15bf
+    secure_boot: unknown
+    is_vm: true
+    has_gui_session: true
+    kernel_module_loaded: unknown
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: true
+    source: manual_followup
+    packages: []
+    confidence: low
+    notes: Ambiguous VM facts include a virtual display and a generic AMD device ID.
+  simulated_events:
+  - type: facts_refresh
+    detail: Virtual display is active; AMD device lacks module/firmware confirmation
+    rc: 0
+    stdout: display=qxl pci=amd_device_15bf
+    stderr: ''
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Ambiguous virtual plus AMD hardware facts should not be certified as real AMD driver success
+    without module and firmware evidence.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: amd-provider-error-preserves-progress
+  category: amd
+  facts_profile:
+    gpu_vendors:
+    - amd
+    gpu_models:
+    - AMD Radeon RX 7600
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - mesa-dri-drivers
+    - mesa-vulkan-drivers
+    confidence: medium
+    notes: Driver facts are mostly healthy, but model repair/provider is unavailable for firmware uncertainty.
+  simulated_events:
+  - type: command_success
+    detail: Mesa packages installed
+    rc: 0
+    stdout: Installed mesa-dri-drivers mesa-vulkan-drivers
+    stderr: ''
+  - type: provider_error
+    detail: Repair provider timed out while deciding optional firmware follow-up
+    rc: 0
+    stdout: ''
+    stderr: provider timeout
+  - type: facts_refresh
+    detail: amdgpu is loaded after provider error
+    rc: 0
+    stdout: driver=amdgpu
+    stderr: ''
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Provider uncertainty should not erase healthy AMD progress, but unknown firmware evidence
+    should avoid overclaiming plain verification.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: intel-optional-media-driver-unavailable
+  category: intel
+  facts_profile:
+    gpu_vendors:
+    - intel
+    gpu_models:
+    - Intel UHD Graphics 770
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - intel-media-va-driver-non-free
+    - mesa-vulkan-drivers
+    confidence: medium
+    notes: Optional media acceleration package may be unavailable while base Intel graphics remains healthy.
+  simulated_events:
+  - type: command_failure
+    detail: Optional media driver package unavailable
+    rc: 100
+    stdout: ''
+    stderr: Package intel-media-va-driver-non-free has no installation candidate
+  - type: facts_refresh
+    detail: i915 loaded and display stack present
+    rc: 0
+    stdout: driver=i915 display=active
+    stderr: ''
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Optional Intel media acceleration failure should become warning/follow-up, not a fatal driver
+    block or false full success.
+  source_agents:
+  - driver-agent-3-amd-intel-vm
+- id: drv4-nvidia-installed-module-pending-reboot
+  category: reboot_required
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 3060
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-open
+    - nvidia-utils
+    - linux-headers
+    confidence: high
+    notes: Packages installed but the NVIDIA kernel module is not loaded until reboot.
+  simulated_events:
+  - type: command_success
+    detail: repo driver packages installed and initramfs hook completed
+    rc: 0
+    stdout: installed nvidia-open nvidia-utils linux-headers
+    stderr: ''
+  - type: facts_refresh
+    detail: pre-reboot facts still show no loaded NVIDIA module
+    rc: 0
+    stdout: nvidia_smi=missing kernel_driver=missing
+    stderr: ''
+  - type: reboot_required
+    detail: driver stage requires reboot before verification
+    rc: 0
+    stdout: ''
+    stderr: ''
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Successful package installation is not driver success until a reboot and refreshed facts
+    prove the module loaded.
+  source_agents:
+  - driver-agent-4-reboot-verification
+- id: drv4-nvidia-reboot-reconnect-fails
+  category: reboot_required
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 3080
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: unknown
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    confidence: medium
+    notes: Driver install requested a reboot but the machine did not reconnect.
+  simulated_events:
+  - type: command_success
+    detail: driver package install completed
+    rc: 0
+    stdout: Setting up nvidia-driver
+    stderr: ''
+  - type: reboot_required
+    detail: controlled reboot started for driver verification
+    rc: 0
+    stdout: ''
+    stderr: ''
+  - type: command_failure
+    detail: post-reboot reconnect failed
+    rc: 255
+    stdout: ''
+    stderr: ssh reconnect timed out
+  expected:
+    driver_status: blocked
+    final_status_effect: blocked
+    should_reboot_verify: true
+    should_continue_unrelated_setup: false
+  rationale: Loss of reconnect after a driver reboot is a core safety failure, not a cosmetic driver warning.
+  source_agents:
+  - driver-agent-4-reboot-verification
+- id: drv4-nvidia-stale-healthy-before-install
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 3070
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-open
+    - nvidia-utils
+    confidence: high
+    notes: Earlier facts were healthy but post-install probe failed.
+  simulated_events:
+  - type: command_success
+    detail: driver package reinstall completed
+    rc: 0
+    stdout: reinstalled nvidia-open
+    stderr: ''
+  - type: facts_refresh
+    detail: post-install fact probe failed and must invalidate earlier healthy state
+    rc: 1
+    stdout: ''
+    stderr: fact probe failed before nvidia_smi check
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Stale healthy driver facts cannot prove success after a mutating driver install.
+  source_agents:
+  - driver-agent-4-reboot-verification
+- id: drv4-nouveau-cleared-after-reboot
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce GTX 1660
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    confidence: medium
+    notes: nouveau was bound before reboot and blacklisting takes effect after reboot.
+  simulated_events:
+  - type: command_success
+    detail: driver installed and nouveau blacklist written by packaged tooling
+    rc: 0
+    stdout: nvidia-driver installed
+    stderr: ''
+  - type: reboot_required
+    detail: reboot required to unload nouveau
+    rc: 0
+    stdout: ''
+    stderr: ''
+  - type: facts_refresh
+    detail: after reboot, nouveau is gone and nvidia module is loaded
+    rc: 0
+    stdout: nouveau=false kernel_driver=nvidia nvidia_smi=ok
+    stderr: ''
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: A nouveau conflict can be resolved only after refreshed post-reboot facts confirm nouveau
+    is no longer bound.
+  source_agents:
+  - driver-agent-4-reboot-verification
+- id: drv4-nouveau-persists-after-reboot
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce GTX 1650
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - akmod-nvidia
+    - xorg-x11-drv-nvidia-cuda
+    confidence: medium
+    notes: nouveau remains bound after reboot.
+  simulated_events:
+  - type: command_success
+    detail: NVIDIA packages installed
+    rc: 0
+    stdout: 'Installed: akmod-nvidia'
+    stderr: ''
+  - type: reboot_required
+    detail: reboot completed
+    rc: 0
+    stdout: ''
+    stderr: ''
+  - type: facts_refresh
+    detail: nouveau is still bound and nvidia-smi is unavailable
+    rc: 0
+    stdout: nouveau=true kernel_driver=nouveau nvidia_smi=missing
+    stderr: ''
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Persistent nouveau binding means the proprietary/open NVIDIA stack is not verified even if
+    packages installed.
+  source_agents:
+  - driver-agent-4-reboot-verification
+- id: drv4-amdgpu-after-firmware-reboot-success
+  category: amd
+  facts_profile:
+    gpu_vendors:
+    - amd
+    gpu_models:
+    - AMD Radeon RX 6600
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: true
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - firmware-amd-graphics
+    - mesa-vulkan-drivers
+    confidence: high
+    notes: AMD firmware/Mesa refresh needs reboot before amdgpu verification.
+  simulated_events:
+  - type: command_success
+    detail: AMD firmware and Mesa packages installed
+    rc: 0
+    stdout: installed firmware-amd-graphics mesa-vulkan-drivers
+    stderr: ''
+  - type: reboot_required
+    detail: firmware update requires reboot for amdgpu probe
+    rc: 0
+    stdout: ''
+    stderr: ''
+  - type: facts_refresh
+    detail: after reboot, amdgpu is loaded
+    rc: 0
+    stdout: kernel_driver=amdgpu vulkan=ok
+    stderr: ''
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Normal AMD firmware/Mesa setup should verify cleanly after refreshed post-reboot facts.
+  source_agents:
+  - driver-agent-4-reboot-verification
+- id: drv4-intel-kernel-update-pending-reboot
+  category: intel
+  facts_profile:
+    gpu_vendors:
+    - intel
+    gpu_models:
+    - Intel Iris Xe Graphics
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - mesa-dri-drivers
+    - mesa-vulkan-drivers
+    - linux-firmware
+    confidence: high
+    notes: Intel graphics stack update needs reboot before i915 verification.
+  simulated_events:
+  - type: command_success
+    detail: Mesa and firmware packages updated
+    rc: 0
+    stdout: 'Upgraded: mesa-vulkan-drivers linux-firmware'
+    stderr: ''
+  - type: facts_refresh
+    detail: before reboot, refreshed facts still do not prove i915 on the running kernel
+    rc: 0
+    stdout: kernel_driver=missing
+    stderr: ''
+  - type: reboot_required
+    detail: kernel/firmware refresh requires reboot
+    rc: 0
+    stdout: ''
+    stderr: ''
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Intel/Mesa updates are safe, but success still depends on post-reboot driver facts when the
+    current probe is missing.
+  source_agents:
+  - driver-agent-4-reboot-verification
+- id: drv4-hybrid-intel-ok-nvidia-unverified
+  category: hybrid
+  facts_profile:
+    gpu_vendors:
+    - intel
+    - nvidia
+    gpu_models:
+    - Intel UHD Graphics
+    - NVIDIA GeForce RTX 3050 Laptop GPU
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - akmod-nvidia
+    - xorg-x11-drv-nvidia-cuda
+    - mesa-dri-drivers
+    confidence: medium
+    notes: Hybrid graphics has working Intel but unverified NVIDIA after reboot.
+  simulated_events:
+  - type: command_success
+    detail: hybrid driver packages installed
+    rc: 0
+    stdout: Installed akmod-nvidia mesa-dri-drivers
+    stderr: ''
+  - type: reboot_required
+    detail: reboot completed
+    rc: 0
+    stdout: ''
+    stderr: ''
+  - type: facts_refresh
+    detail: Intel driver is active but NVIDIA module remains absent
+    rc: 0
+    stdout: intel=i915 nvidia_smi=missing nvidia_kernel=missing
+    stderr: ''
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Working integrated graphics should not hide an unresolved requested discrete NVIDIA driver.
+  source_agents:
+  - driver-agent-4-reboot-verification
+- id: drv4-vm-virtio-gpu-no-real-driver-verification
+  category: vm_gpu
+  facts_profile:
+    gpu_vendors:
+    - virtual
+    gpu_models:
+    - Virtio GPU
+    secure_boot: unknown
+    is_vm: true
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: false
+    source: manual_followup
+    packages: []
+    confidence: low
+    notes: Virtual GPU should not certify a real vendor driver path.
+  simulated_events:
+  - type: facts_refresh
+    detail: post-reboot facts show only virtual graphics
+    rc: 0
+    stdout: gpu=virtio kernel_driver=virtio_gpu
+    stderr: ''
+  expected:
+    driver_status: skipped
+    final_status_effect: unsupported_safe
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: VM graphics can validate display availability but not real NVIDIA/AMD hardware driver success.
+  source_agents:
+  - driver-agent-4-reboot-verification
+- id: drv4-headless-nvidia-module-verified
+  category: headless
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA Tesla T4
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: false
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    confidence: medium
+    notes: Headless system can verify compute driver without a GUI session.
+  simulated_events:
+  - type: command_success
+    detail: NVIDIA driver installed
+    rc: 0
+    stdout: nvidia-driver installed
+    stderr: ''
+  - type: reboot_required
+    detail: driver reboot completed
+    rc: 0
+    stdout: ''
+    stderr: ''
+  - type: module_probe
+    detail: nvidia kernel module and nvidia-smi work without DISPLAY
+    rc: 0
+    stdout: NVIDIA-SMI 550.54.15
+    stderr: ''
+  expected:
+    driver_status: verified
+    final_status_effect: none
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Driver verification should rely on module/runtime facts, not require an active desktop session
+    for headless systems.
+  source_agents:
+  - driver-agent-4-reboot-verification
+- id: drv4-provider-error-during-post-reboot-repair
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 2070
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia
+    - nvidia-utils
+    confidence: medium
+    notes: Post-reboot verification failed and model repair provider is unavailable.
+  simulated_events:
+  - type: facts_refresh
+    detail: after reboot, nvidia-smi reports driver/library mismatch
+    rc: 0
+    stdout: nvidia_smi=failed
+    stderr: 'Failed to initialize NVML: Driver/library version mismatch'
+  - type: provider_error
+    detail: repair provider returned 429 during focused driver repair
+    rc: 0
+    stdout: ''
+    stderr: provider_error=rate_limited
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Provider failure must not create an endless repair loop or erase prior non-driver progress.
+  source_agents:
+  - driver-agent-4-reboot-verification
+- id: drv4-nvidia-version-mismatch-after-reboot
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 2080
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia
+    - nvidia-utils
+    confidence: medium
+    notes: Module is loaded but userland/kernel driver versions disagree.
+  simulated_events:
+  - type: command_success
+    detail: NVIDIA packages installed
+    rc: 0
+    stdout: installed nvidia nvidia-utils
+    stderr: ''
+  - type: reboot_required
+    detail: reboot completed
+    rc: 0
+    stdout: ''
+    stderr: ''
+  - type: module_probe
+    detail: nvidia module exists but nvidia-smi reports version mismatch
+    rc: 1
+    stdout: ''
+    stderr: 'Failed to initialize NVML: Driver/library version mismatch'
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: A loaded module alone is not verified success when runtime driver tooling proves mismatch.
+  source_agents:
+  - driver-agent-4-reboot-verification
+- id: drv4-final-audit-driver-pending-does-not-erase-apps
+  category: final_audit
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 3060 Laptop GPU
+    secure_boot: unknown
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - akmod-nvidia
+    confidence: medium
+    notes: Driver work remains pending while unrelated apps already completed.
+  simulated_events:
+  - type: command_success
+    detail: unrelated app/theme setup completed before driver verification
+    rc: 0
+    stdout: completed apps and desktop groups
+    stderr: ''
+  - type: facts_refresh
+    detail: final audit still cannot verify NVIDIA module
+    rc: 0
+    stdout: nvidia_kernel=missing nvidia_smi=missing
+    stderr: ''
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Unresolved driver verification should change final status honestly without regressing unrelated
+    successful setup work.
+  source_agents:
+  - driver-agent-4-reboot-verification
+- id: final-secureboot-unsigned-nvidia-module
+  category: secure_boot
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 4070
+    secure_boot: enabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    confidence: medium
+    notes: Secure Boot enabled and module load failed with signing/MOK evidence.
+  simulated_events:
+  - type: command_success
+    detail: NVIDIA package install completed.
+    rc: 0
+    stdout: nvidia-driver installed
+    stderr: ''
+  - type: module_probe
+    detail: Kernel rejected the NVIDIA module under Secure Boot.
+    rc: 1
+    stdout: ''
+    stderr: Required key not available
+  expected:
+    driver_status: unsupported_safe
+    final_status_effect: unsupported_safe
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Secure Boot signing or MOK enrollment is user-mediated; final audit should avoid both fake
+    success and fatal blocked status.
+  source_agents:
+  - driver-agent-5-final-audit
+- id: final-nouveau-conflict-after-proprietary-install
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce GTX 1660
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - akmod-nvidia
+    - xorg-x11-drv-nvidia
+    confidence: medium
+    notes: Proprietary package installed, but nouveau remains bound.
+  simulated_events:
+  - type: command_success
+    detail: NVIDIA packages installed from RPM Fusion.
+    rc: 0
+    stdout: akmod-nvidia installed
+    stderr: ''
+  - type: facts_refresh
+    detail: Refreshed facts still show nouveau bound and no nvidia module.
+    rc: 0
+    stdout: nouveau bound; nvidia absent
+    stderr: ''
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Nouveau/proprietary conflict is repairable but unresolved, so support evidence should name
+    the conflict instead of reporting plain success.
+  source_agents:
+  - driver-agent-5-final-audit
+- id: final-legacy-nvidia-open-not-supported
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce GTX 780
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: unknown
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: manual_followup
+    packages: []
+    confidence: manual_followup_required
+    notes: Pre-Turing NVIDIA should not be routed to nvidia-open as verified.
+  simulated_events:
+  - type: facts_refresh
+    detail: GPU inventory identifies pre-Turing NVIDIA hardware.
+    rc: 0
+    stdout: GeForce GTX 780
+    stderr: ''
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Legacy NVIDIA support requires explicit manual path selection; final audit should keep the
+    driver unresolved but non-fatal.
+  source_agents:
+  - driver-agent-5-final-audit
+- id: final-unknown-nvidia-generation-unverified
+  category: nvidia
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA Corporation Unknown Device 28e1
+    secure_boot: unknown
+    is_vm: false
+    has_gui_session: unknown
+    kernel_module_loaded: unknown
+    nouveau_loaded: unknown
+    nvidia_driver_installed: unknown
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: unknown
+    packages:
+    - nvidia-open
+    - nvidia-utils
+    confidence: low
+    notes: Model suggested modern NVIDIA packages, but generation and runtime state are unknown.
+  simulated_events:
+  - type: provider_error
+    detail: Repair model timed out before confirming the correct NVIDIA generation.
+    rc: 0
+    stdout: ''
+    stderr: provider timeout
+  - type: facts_refresh
+    detail: Hardware inventory remains too vague to verify the driver path.
+    rc: 0
+    stdout: NVIDIA Corporation Unknown Device
+    stderr: ''
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Unknown NVIDIA generation should not be promoted to verified success merely because a plausible
+    package name exists.
+  source_agents:
+  - driver-agent-5-final-audit
+- id: final-vendor-curl-script-deferred
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 3080
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: true
+    source: vendor
+    packages: []
+    confidence: low
+    notes: External vendor payload was proposed but not safely inspectable.
+  simulated_events:
+  - type: command_failure
+    detail: Plan proposed an external vendor shell payload for GPU driver installation.
+    rc: 126
+    stdout: ''
+    stderr: external driver installer requires manual review
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Uninspectable vendor driver payloads should become explicit manual follow-up, with support
+    evidence preserving the risky command context.
+  source_agents:
+  - driver-agent-5-final-audit
+- id: final-intel-mesa-vulkan-warning
+  category: intel
+  facts_profile:
+    gpu_vendors:
+    - intel
+    gpu_models:
+    - Intel Iris Xe Graphics
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: dnf
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - mesa-dri-drivers
+    - mesa-vulkan-drivers
+    confidence: high
+    notes: Kernel driver is active; optional Vulkan probe failed.
+  simulated_events:
+  - type: facts_refresh
+    detail: i915 loaded but vulkaninfo failed.
+    rc: 0
+    stdout: i915 loaded
+    stderr: vulkaninfo failed
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: success_with_warnings
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Intel kernel graphics are usable, but optional acceleration verification should be reported
+    as a warning rather than full success.
+  source_agents:
+  - driver-agent-5-final-audit
+- id: final-vm-virtual-gpu-skipped
+  category: vm_gpu
+  facts_profile:
+    gpu_vendors:
+    - virtio
+    gpu_models:
+    - Virtio GPU
+    secure_boot: disabled
+    is_vm: true
+    has_gui_session: true
+    kernel_module_loaded: true
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: false
+    source: manual_followup
+    packages: []
+    confidence: manual_followup_required
+    notes: VM virtual adapter is not real vendor driver certification evidence.
+  simulated_events:
+  - type: facts_refresh
+    detail: Hardware facts identify a virtual GPU only.
+    rc: 0
+    stdout: Virtio GPU
+    stderr: ''
+  expected:
+    driver_status: skipped
+    final_status_effect: none
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Final audit should record that real GPU driver certification was skipped in a VM, not infer
+    NVIDIA or AMD success.
+  source_agents:
+  - driver-agent-5-final-audit
+- id: final-hybrid-nvidia-intel-nvidia-unverified
+  category: hybrid
+  facts_profile:
+    gpu_vendors:
+    - intel
+    - nvidia
+    gpu_models:
+    - Intel UHD Graphics
+    - NVIDIA GeForce RTX 4060 Laptop GPU
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    confidence: medium
+    notes: Integrated Intel graphics works, discrete NVIDIA remains unverified.
+  simulated_events:
+  - type: facts_refresh
+    detail: i915 loaded; nvidia module absent.
+    rc: 0
+    stdout: i915 loaded
+    stderr: nvidia module absent
+  expected:
+    driver_status: installed_unverified
+    final_status_effect: manual_followup_required
+    should_reboot_verify: true
+    should_continue_unrelated_setup: true
+  rationale: Hybrid systems should not claim full driver success because the integrated GPU works while
+    the requested NVIDIA path remains unresolved.
+  source_agents:
+  - driver-agent-5-final-audit
+- id: final-headless-server-driver-skipped-with-note
+  category: headless
+  facts_profile:
+    gpu_vendors: []
+    gpu_models: []
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: false
+    kernel_module_loaded: unknown
+    nouveau_loaded: false
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: false
+    source: manual_followup
+    packages: []
+    confidence: manual_followup_required
+    notes: No GPU-specific driver request and no active desktop session.
+  simulated_events:
+  - type: facts_refresh
+    detail: No GPU vendors detected and no GUI session available.
+    rc: 0
+    stdout: headless target
+    stderr: ''
+  expected:
+    driver_status: skipped
+    final_status_effect: none
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Headless systems without a driver request should not be failed for lack of desktop driver
+    verification.
+  source_agents:
+  - driver-agent-5-final-audit
+- id: final-reconnect-failure-after-driver-reboot
+  category: reboot_required
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 3060
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: unknown
+    kernel_module_loaded: unknown
+    nouveau_loaded: unknown
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: repo
+    packages:
+    - nvidia-driver
+    confidence: medium
+    notes: Driver install requested reboot but reconnect never succeeded.
+  simulated_events:
+  - type: reboot_required
+    detail: System rebooted for driver activation.
+    rc: 0
+    stdout: rebooting
+    stderr: ''
+  - type: command_failure
+    detail: Post-reboot reconnect failed, so system safety cannot be proven.
+    rc: 255
+    stdout: ''
+    stderr: ssh reconnect timeout
+  expected:
+    driver_status: blocked
+    final_status_effect: blocked
+    should_reboot_verify: true
+    should_continue_unrelated_setup: false
+  rationale: Failed reconnect after a boot-impacting driver reboot is a core safety issue, not a cosmetic
+    manual follow-up.
+  source_agents:
+  - driver-agent-5-final-audit
+- id: final-driver-provider-429-preserves-progress
+  category: driver_failure
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 2060
+    secure_boot: unknown
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: unknown
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: apt
+  driver_strategy:
+    requested: true
+    source: unknown
+    packages: []
+    confidence: low
+    notes: Repair provider failed while selecting a driver strategy.
+  simulated_events:
+  - type: provider_error
+    detail: Model provider returned a rate limit during driver repair planning.
+    rc: 0
+    stdout: ''
+    stderr: 429 rate limit
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Provider failure must not create endless retries or erase successful unrelated setup; support
+    evidence should show the provider error.
+  source_agents:
+  - driver-agent-5-final-audit
+- id: final-boot-impacting-driver-command-denied
+  category: final_audit
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce RTX 3080
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: false
+    nvidia_driver_installed: true
+    amd_firmware_present: unknown
+    package_manager: generic
+  driver_strategy:
+    requested: true
+    source: vendor
+    packages: []
+    confidence: low
+    notes: Driver repair attempted boot-impacting artifact updates without an approved capability.
+  simulated_events:
+  - type: command_failure
+    detail: Initramfs or kernel artifact mutation was denied by safety policy.
+    rc: 1
+    stdout: ''
+    stderr: 'blocked_without_capability: initramfs_rebuild'
+  expected:
+    driver_status: blocked
+    final_status_effect: blocked
+    should_reboot_verify: false
+    should_continue_unrelated_setup: false
+  rationale: Denied boot-impacting driver mutation is a harness safety block; final audit should expose
+    the capability failure and stop unsafe progression.
+  source_agents:
+  - driver-agent-5-final-audit
+- id: final-driver-manual-followup-keeps-app-success
+  category: final_audit
+  facts_profile:
+    gpu_vendors:
+    - nvidia
+    gpu_models:
+    - NVIDIA GeForce GTX 970
+    secure_boot: disabled
+    is_vm: false
+    has_gui_session: true
+    kernel_module_loaded: false
+    nouveau_loaded: true
+    nvidia_driver_installed: false
+    amd_firmware_present: unknown
+    package_manager: pacman
+  driver_strategy:
+    requested: true
+    source: manual_followup
+    packages: []
+    confidence: manual_followup_required
+    notes: Driver strategy unresolved after safe app and desktop work completed.
+  simulated_events:
+  - type: command_success
+    detail: Unrelated app and theme groups completed before driver audit.
+    rc: 0
+    stdout: apps completed; theme completed
+    stderr: ''
+  - type: facts_refresh
+    detail: Driver facts remain unresolved with nouveau loaded.
+    rc: 0
+    stdout: nouveau loaded
+    stderr: ''
+  expected:
+    driver_status: manual_followup_required
+    final_status_effect: manual_followup_required
+    should_reboot_verify: false
+    should_continue_unrelated_setup: true
+  rationale: Final audit should retain completed app/theme evidence while making the unresolved driver
+    item specific and actionable.
+  source_agents:
+  - driver-agent-5-final-audit
