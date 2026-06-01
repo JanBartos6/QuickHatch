@@ -1,0 +1,2004 @@
+# Curated reboot/reconnect orchestration scenario corpus.
+#
+# This fixture models reboot ownership, pre-reboot gates, checkpoint/resume
+# continuity, reconnect behavior, postboot fact refresh, configure-existing
+# reboot boundaries, and final-status honesty. Use fake runtimes/facts only;
+# do not execute commands from this file.
+merge_summary:
+  source: Merged from .quickhatch/corpus-candidates/reboot-agent-*.yaml
+  total_source_candidates: 60
+  total_scenarios: 55
+  scenarios_by_category:
+    checkpoint: 11
+    configure_existing: 8
+    driver_reboot: 5
+    final_audit: 4
+    live_iso: 2
+    postboot_facts: 5
+    pre_reboot_gate: 11
+    reconnect_failure: 5
+    reconnect_success: 4
+  scenarios_by_mode:
+    configure_existing: 12
+    fresh_install: 40
+    postboot_setup: 3
+  expected_outcomes:
+    should_reboot:
+      'false': 27
+      'true': 28
+    should_checkpoint_before_reboot:
+      'false': 27
+      'true': 28
+    should_resume:
+      'false': 27
+      'true': 28
+    final_status_effects:
+      blocked: 27
+      manual_followup_required: 7
+      none: 20
+      success_with_warnings: 1
+  rejected_ambiguous_cases:
+  - id: checkpoint-runlog-only-gap-manual-review
+    reason: 'Ambiguous current-policy boundary: runlog evidence may be insufficient for automatic resume, but the exact checkpoint
+      contract needs policy review before becoming a deterministic test case.'
+  omitted_near_duplicate_cases:
+  - id: postboot-target-mismatch-blocks-final
+    reason: Near duplicate of reconnect-wrong-target-blocks; retained the reconnect-lane target mismatch case as the canonical
+      safety boundary.
+  - id: postboot-desktop-deferred-while-live
+    reason: Near duplicate of postboot-apps-deferred-while-live; retained one live-facts postboot-stage deferral case plus
+      final-audit live coverage.
+  - id: postboot-final-audit-clean-success
+    reason: Near duplicate positive control of postboot-kernel-artifacts-verified-success; retained the artifact-verified
+      success case.
+  - id: reconnect-network-delayed-then-ready
+    reason: Near duplicate of reconnect-refused-then-success and reconnect-timeouts-then-success; retained separate refused
+      and timeout sequence coverage.
+  coverage_gaps:
+  - No real reboot, VM, Docker, SSH, or shell execution is represented; tests must use fake runtimes and facts.
+  - Durable checkpoint/resume storage is represented as expected policy, but exact implementation hooks may need a focused
+    test harness.
+  - Same-target verification is modeled as a boolean scenario fact; later tests should decide which local facts prove target
+    continuity.
+  - Configure-existing reboot severity has both warning and manual-followup variants; tests should bind each to explicit context.
+  notes: This fixture models reboot/reconnect orchestration policy. Commands are representative strings only and must not
+    be executed.
+scenarios:
+- id: preflight-all-clear-harness-reboot
+  category: pre_reboot_gate
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    - bootloader
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: disconnected
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: all pre-reboot guard checks passed and reboot is harness-controlled
+  rationale: A fresh install may cross the reboot boundary only after boot, fstab, kernel, initramfs, and SSH continuity checks
+    pass.
+- id: preflight-missing-fstab-blocks
+  category: pre_reboot_gate
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: false
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence: []
+  facts_after:
+    is_live: unknown
+    ssh_ready: unknown
+    same_target: unknown
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: target fstab is missing or invalid
+  rationale: A bootable root cannot be assumed when fstab is not proven before leaving the live environment.
+- id: preflight-missing-bootloader-blocks
+  category: pre_reboot_gate
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: false
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: model_raw_command
+    command: reboot
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: unknown
+    ssh_ready: unknown
+    same_target: unknown
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: bootloader verification failed and raw model reboot must be deferred
+  rationale: The harness must not let model-authored raw reboot commands bypass bootloader checks.
+- id: preflight-missing-kernel-blocks
+  category: pre_reboot_gate
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: false
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    - bootloader
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence: []
+  facts_after:
+    is_live: unknown
+    ssh_ready: unknown
+    same_target: unknown
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: installed target kernel artifact is missing
+  rationale: A fresh install should not reboot into a target without a verified kernel artifact.
+- id: preflight-missing-initramfs-blocks
+  category: pre_reboot_gate
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: false
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    - bootloader
+    manual_followups: []
+    repair_attempts:
+      initramfs_rebuild: 1
+    pending_questions: []
+  reboot_request:
+    source: final_audit_repair
+    command: reboot
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: unknown
+    ssh_ready: unknown
+    same_target: unknown
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: initramfs verification failed after attempted repair
+  rationale: A repair that still leaves missing initramfs state must block rather than cross the reboot boundary.
+- id: preflight-ssh-continuity-missing-key
+  category: pre_reboot_gate
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: false
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    - user
+    manual_followups: []
+    repair_attempts:
+      install_ssh_key: 1
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence: []
+  facts_after:
+    is_live: unknown
+    ssh_ready: unknown
+    same_target: unknown
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: SSH reconnect key continuity is not proven
+  rationale: The installed system must be expected to accept SSH after reboot before leaving the live environment.
+- id: preflight-package-db-unhealthy-blocks
+  category: pre_reboot_gate
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: false
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    manual_followups: []
+    repair_attempts:
+      package_db_repair: 2
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence: []
+  facts_after:
+    is_live: unknown
+    ssh_ready: unknown
+    same_target: unknown
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: target package database is unhealthy before first boot
+  rationale: A corrupt package DB can hide missing kernel, initramfs, network, or bootloader packages.
+- id: preflight-raw-reboot-deferred-then-guarded
+  category: pre_reboot_gate
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    - bootloader
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: model_raw_command
+    command: umount -R /mnt && reboot
+    controlled: false
+  reconnect_sequence:
+  - state: disconnected
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: raw reboot is deferred and replaced by harness guarded reboot
+  rationale: The model may mention reboot, but the harness should own the actual unmount/reboot/reconnect sequence.
+- id: preflight-pending-question-blocks-reboot
+  category: pre_reboot_gate
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions:
+    - confirm_target_disk_identity
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence: []
+  facts_after:
+    is_live: unknown
+    ssh_ready: unknown
+    same_target: unknown
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: blocking confirmation remains unanswered
+  rationale: A pending destructive/install-boundary question must be resolved before the machine is rebooted.
+- id: preflight-final-audit-repair-cannot-force-reboot
+  category: final_audit
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: false
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    manual_followups: []
+    repair_attempts:
+      final_audit: 1
+    pending_questions: []
+  reboot_request:
+    source: final_audit_repair
+    command: sudo reboot
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: true
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: bootability finding remains fatal and raw repair reboot is not enough
+  rationale: Final audit repairs must fix the bootability issue, not merely reboot around it.
+- id: preflight-transient-check-disconnect-retries
+  category: pre_reboot_gate
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    - bootloader
+    manual_followups: []
+    repair_attempts:
+      pre_reboot_check: 1
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: disconnected
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: transient pre-reboot SSH check recovered before reboot
+  rationale: Transport flakiness during the guard can be retried, but reboot proceeds only after a passing guard result.
+- id: preflight-guard-transient-exhausted-blocks
+  category: pre_reboot_gate
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: unknown
+    fstab_ok: unknown
+    bootloader_ok: unknown
+    kernel_ok: unknown
+    initramfs_ok: unknown
+    package_db_healthy: unknown
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    manual_followups: []
+    repair_attempts:
+      pre_reboot_check: 8
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence: []
+  facts_after:
+    is_live: unknown
+    ssh_ready: unknown
+    same_target: unknown
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: pre-reboot guard could not produce a passing result
+  rationale: If the harness cannot verify safety before reboot, it should stop even if the failure looks transport-related.
+- id: checkpoint-before-controlled-install-reboot
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    - user
+    - bootloader
+    manual_followups:
+    - optional wallpaper deferred
+    repair_attempts:
+      apps: 1
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: disconnected
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: state must be persisted before crossing reboot boundary
+  rationale: Completed work and manual follow-ups should survive an expected SSH disconnect.
+- id: checkpoint-preserves-manual-followups
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    manual_followups:
+    - NVIDIA Secure Boot MOK enrollment required
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: disconnected
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: manual_followup_required
+    reason: manual follow-up must persist across reboot and resume
+  rationale: A reboot must not erase unresolved driver or user action state.
+- id: checkpoint-preserves-repair-budget
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    manual_followups: []
+    repair_attempts:
+      bootloader_config: 2
+      package_db_repair: 1
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: disconnected
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: repair attempt counts must not reset after reboot
+  rationale: Resume from checkpoint should not create endless repair loops after reconnect.
+- id: checkpoint-preserves-capability-state
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    - fstab
+    manual_followups: []
+    repair_attempts:
+      capability_grants: 3
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: disconnected
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: run-scoped capability state should be persisted or safely invalidated
+  rationale: A resumed run should not accidentally reuse stale destructive grants or lose needed audit evidence.
+- id: checkpoint-interrupted-after-reboot-command
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    - bootloader
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: disconnected
+  - state: timeout
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: resume should poll reconnect rather than rerun install groups
+  rationale: If the harness is interrupted after issuing reboot, a resumed run should continue at reconnect/postboot, not
+    repeat destructive install commands.
+- id: checkpoint-interrupted-after-reconnect
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: ''
+    controlled: true
+  reconnect_sequence:
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: none
+    reason: already reconnected installed facts should resume at postboot stage
+  rationale: Resume continuity means completed install stage is not run from scratch.
+- id: checkpoint-resume-sees-stale-live-facts-blocks
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: ''
+    controlled: true
+  reconnect_sequence:
+  - state: connected
+  facts_after:
+    is_live: true
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: resume target still appears to be live media
+  rationale: A resumed run must refresh facts and block postboot work while still in the live environment.
+- id: checkpoint-resume-target-mismatch-blocks
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: ''
+    controlled: true
+  reconnect_sequence:
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: false
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: refreshed facts do not match the expected target identity
+  rationale: Resume should not continue mutations if SSH now points at a different host or disk identity.
+- id: checkpoint-pending-question-survives
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions:
+    - enter_luks_passphrase_after_reboot
+  reboot_request:
+    source: user_confirmed
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: disconnected
+  - state: timeout
+  facts_after:
+    is_live: unknown
+    ssh_ready: false
+    same_target: unknown
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: manual_followup_required
+    reason: pending user action must remain visible during resume
+  rationale: Encrypted installs may require human input at boot; the checkpoint should preserve that context.
+- id: checkpoint-stop-before-reboot-no-crossing
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - base
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions:
+    - stop_requested
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence: []
+  facts_after:
+    is_live: true
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: operator stop request before reboot must be honored
+  rationale: A checkpoint should not be used to cross a destructive boundary after the user stops the run.
+- id: checkpoint-repair-state-does-not-rerun-disk
+  category: checkpoint
+  mode: fresh_install
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - disk
+    - format
+    - base
+    - bootloader
+    - install_or_skip
+    manual_followups: []
+    repair_attempts:
+      disk_partition: 1
+      bootloader_install: 1
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: ''
+    controlled: true
+  reconnect_sequence:
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: none
+    reason: completed destructive install groups must not rerun after resume
+  rationale: The most important resume invariant is avoiding repeated disk/format work.
+- id: reconnect-immediate-success-new-user
+  category: reconnect_success
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: installed target accepts SSH as expected user
+  rationale: The happy path should resume postboot stages after facts refresh.
+- id: reconnect-refused-then-success
+  category: reconnect_success
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: refused
+  - state: refused
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: temporary SSH refusal during boot recovers
+  rationale: SSH may not be ready immediately after boot, so reconnect polling should tolerate early refusal.
+- id: reconnect-timeouts-then-success
+  category: reconnect_success
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: timeout
+  - state: timeout
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: boot takes longer than first reconnect polls
+  rationale: A bounded reconnect loop should distinguish normal boot latency from final failure.
+- id: reconnect-never-returns-blocks
+  category: reconnect_failure
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: disconnected
+  - state: timeout
+  - state: timeout
+  facts_after:
+    is_live: unknown
+    ssh_ready: false
+    same_target: unknown
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: false
+    final_status_effect: blocked
+    reason: SSH did not reconnect after install reboot
+  rationale: Postboot stages must not run when the target cannot be reached.
+- id: reconnect-live-media-fast-fail
+  category: live_iso
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: refused
+  - state: connected
+  facts_after:
+    is_live: true
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: false
+    final_status_effect: blocked
+    reason: target booted back into live media
+  rationale: If the fallback live user is reachable and facts are live, the harness should stop with boot-order guidance.
+- id: reconnect-fallback-installed-user-success
+  category: reconnect_success
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts:
+      install_ssh_key: 1
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: refused
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: fallback user reaches installed system and session user updates
+  rationale: Reconnection may succeed as a fallback installed account when the planned new user is not yet SSH-ready.
+- id: reconnect-wrong-target-blocks
+  category: reconnect_failure
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: false
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: false
+    final_status_effect: blocked
+    reason: SSH endpoint no longer matches the expected target
+  rationale: A changed IP/DNS or reused address must not allow QuickHatch to mutate an unrelated machine.
+- id: reconnect-connected-but-ssh-not-ready
+  category: reconnect_failure
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: false
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: false
+    final_status_effect: blocked
+    reason: post-reboot SSH/sudo continuity is not usable
+  rationale: A TCP connection is not enough if the harness cannot collect facts or continue safely.
+- id: reconnect-stop-request-blocks-with-evidence
+  category: reconnect_failure
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions:
+    - stop_requested
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: disconnected
+  - state: timeout
+  facts_after:
+    is_live: unknown
+    ssh_ready: false
+    same_target: unknown
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: false
+    final_status_effect: blocked
+    reason: operator stopped reconnect polling
+  rationale: Stop during reconnect should preserve logs and not continue to postboot stages.
+- id: reconnect-driver-reboot-success
+  category: driver_reboot
+  mode: postboot_setup
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - postboot_driver_install
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: driver_stage
+    command: sudo reboot
+    controlled: true
+  reconnect_sequence:
+  - state: disconnected
+  - state: refused
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: driver reboot reconnect succeeded and target identity is stable
+  rationale: Driver reboot is a separate postboot boundary that should still refresh facts before verification.
+- id: reconnect-driver-reboot-failure-manual-followup
+  category: driver_reboot
+  mode: postboot_setup
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - postboot_driver_install
+    manual_followups: []
+    repair_attempts:
+      driver_reboot: 1
+    pending_questions: []
+  reboot_request:
+    source: driver_stage
+    command: sudo reboot
+    controlled: true
+  reconnect_sequence:
+  - state: disconnected
+  - state: timeout
+  facts_after:
+    is_live: unknown
+    ssh_ready: false
+    same_target: unknown
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: false
+    final_status_effect: blocked
+    reason: driver reboot caused reconnect failure
+  rationale: A driver-triggered reboot can threaten remote continuity and must not be downgraded to cosmetic warning.
+- id: postboot-refresh-required-before-driver
+  category: postboot_facts
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: postboot facts refresh proves installed system before driver stage
+  rationale: Driver work must be based on installed-system facts, not stale live ISO facts.
+- id: postboot-still-live-blocks-all-later-stages
+  category: live_iso
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: connected
+  facts_after:
+    is_live: true
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: false
+    final_status_effect: blocked
+    reason: facts still indicate live environment after reconnect
+  rationale: Desktop, apps, and postboot driver stages must not run on live media.
+- id: postboot-fact-probe-failed-blocks-mutating-driver
+  category: postboot_facts
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: connected
+  facts_after:
+    is_live: unknown
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: false
+    final_status_effect: blocked
+    reason: fresh facts could not be collected after reboot
+  rationale: The harness should not mutate drivers or desktop when post-reboot facts are unknown.
+- id: postboot-package-db-unhealthy-manual-followup
+  category: postboot_facts
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: manual_followup_required
+    reason: package DB became unhealthy after first boot
+  rationale: Unrelated progress may continue only when safe, but final status must name package DB follow-up.
+- id: postboot-reboot-required-marker-warning
+  category: final_audit
+  mode: fresh_install
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    - postboot_driver
+    - desktop
+    - apps
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: final_audit_repair
+    command: verify reboot-required marker
+    controlled: false
+  reconnect_sequence:
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: manual_followup_required
+    reason: reboot-required marker remains at final audit
+  rationale: A target that still requires reboot should not be reported as plain success.
+- id: postboot-kernel-artifacts-verified-success
+  category: postboot_facts
+  mode: fresh_install
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: ''
+    controlled: true
+  reconnect_sequence:
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: none
+    reason: installed kernel and initramfs remain verified after boot
+  rationale: Postboot audit should preserve a clean install status when facts support it.
+- id: postboot-driver-installed-unverified
+  category: driver_reboot
+  mode: postboot_setup
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - postboot_driver_install
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: driver_stage
+    command: sudo reboot
+    controlled: true
+  reconnect_sequence:
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: manual_followup_required
+    reason: driver install reboot occurred but module verification is still absent
+  rationale: Driver package success plus reboot is insufficient without refreshed module facts.
+- id: postboot-apps-deferred-while-live
+  category: postboot_facts
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: model_raw_command
+    command: sudo pacman -S --noconfirm vlc
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: true
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: postboot app work attempted while still in live environment
+  rationale: Fresh install postboot work should be gated on installed-system facts.
+- id: postboot-final-audit-still-live-blocked
+  category: final_audit
+  mode: fresh_install
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - install_or_skip
+    - postboot_driver
+    - desktop
+    - apps
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: final_audit_repair
+    command: final audit
+    controlled: false
+  reconnect_sequence:
+  - state: connected
+  facts_after:
+    is_live: true
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: final audit sees live environment
+  rationale: Final status must stay blocked if installed boot/reconnect has not been proven.
+- id: configure-existing-raw-reboot-blocks
+  category: configure_existing
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: []
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: model_raw_command
+    command: sudo reboot
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: configure-existing raw reboot must not execute silently
+  rationale: Already-installed configuration should not reboot unless the user explicitly approves a controlled boundary.
+- id: configure-existing-user-confirmed-controlled-reboot
+  category: configure_existing
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - apps
+    - desktop
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: user_confirmed
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: disconnected
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: user explicitly approved controlled reboot for configure-existing
+  rationale: A controlled reboot can be valid in configure-existing, but it needs explicit consent and resume evidence.
+- id: configure-existing-kernel-update-reboot-deferred
+  category: configure_existing
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - apps
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: final_audit_repair
+    command: reboot-required marker present
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: manual_followup_required
+    reason: non-core configure-existing reboot is deferred to user
+  rationale: A pending reboot after package updates should be visible without forcing a remote reboot.
+- id: configure-existing-driver-reboot-controlled
+  category: driver_reboot
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - postboot_driver
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: driver_stage
+    command: sudo reboot
+    controlled: true
+  reconnect_sequence:
+  - state: disconnected
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: true
+    final_status_effect: none
+    reason: driver stage requires controlled reboot and reconnect verification
+  rationale: Driver module changes may need reboot even on an existing system, but success depends on reconnect and post-reboot
+    facts.
+- id: configure-existing-driver-reboot-no-consent-followup
+  category: driver_reboot
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - postboot_driver
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: driver_stage
+    command: sudo reboot
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: manual_followup_required
+    reason: driver reboot needed but no controlled consent exists
+  rationale: The harness should report reboot verification as follow-up rather than running a raw reboot.
+- id: configure-existing-package-name-mentions-reboot
+  category: configure_existing
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: []
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: model_raw_command
+    command: sudo apt install -y needrestart reboot-notifier
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: none
+    reason: package names contain reboot but command does not reboot
+  rationale: Reboot detection must be effect-based and avoid false positives on safe package installs.
+- id: configure-existing-systemctl-status-reboot-allowed
+  category: configure_existing
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups: []
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: model_raw_command
+    command: systemctl status reboot.target
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: none
+    reason: read-only status command is not a reboot request
+  rationale: Diagnostics should not be blocked or treated as power transitions.
+- id: configure-existing-shutdown-restart-blocks
+  category: configure_existing
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - apps
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: model_raw_command
+    command: sudo shutdown -r now
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: raw power transition requires controlled reboot consent
+  rationale: Alternate reboot spellings must not bypass the same configure-existing guardrail.
+- id: configure-existing-network-risk-before-reboot-blocks
+  category: configure_existing
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - apps
+    manual_followups: []
+    repair_attempts:
+      network_security_change: 1
+    pending_questions: []
+  reboot_request:
+    source: typed_operation
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence: []
+  facts_after:
+    is_live: false
+    ssh_ready: false
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: network/SSH continuity is already at risk
+  rationale: Reboot should not be used to paper over a remote-access hazard in configure-existing mode.
+- id: configure-existing-reconnect-failure-blocks
+  category: reconnect_failure
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - apps
+    - desktop
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: user_confirmed
+    command: controlled_reboot
+    controlled: true
+  reconnect_sequence:
+  - state: disconnected
+  - state: timeout
+  facts_after:
+    is_live: unknown
+    ssh_ready: false
+    same_target: unknown
+  expected:
+    should_reboot: true
+    should_checkpoint_before_reboot: true
+    should_resume: false
+    final_status_effect: blocked
+    reason: user-approved configure-existing reboot failed to reconnect
+  rationale: Even approved reboots are core safety boundaries once remote continuity is lost.
+- id: configure-existing-final-audit-reboot-required-warning
+  category: final_audit
+  mode: configure_existing
+  facts_before:
+    is_live: false
+    ssh_ready: true
+    fstab_ok: true
+    bootloader_ok: true
+    kernel_ok: true
+    initramfs_ok: true
+    package_db_healthy: true
+  stage_state_before:
+    completed_groups:
+    - apps
+    - desktop
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: final_audit_repair
+    command: needs-restarting -r
+    controlled: false
+  reconnect_sequence:
+  - state: connected
+  facts_after:
+    is_live: false
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: true
+    final_status_effect: success_with_warnings
+    reason: reboot is recommended but setup changes are otherwise complete
+  rationale: Configure-existing can finish with warnings when a non-critical reboot recommendation remains.
+- id: configure-existing-live-facts-blocks-reboot
+  category: configure_existing
+  mode: configure_existing
+  facts_before:
+    is_live: true
+    ssh_ready: true
+    fstab_ok: unknown
+    bootloader_ok: unknown
+    kernel_ok: unknown
+    initramfs_ok: unknown
+    package_db_healthy: unknown
+  stage_state_before:
+    completed_groups: []
+    manual_followups: []
+    repair_attempts: {}
+    pending_questions: []
+  reboot_request:
+    source: model_raw_command
+    command: sudo reboot
+    controlled: false
+  reconnect_sequence: []
+  facts_after:
+    is_live: true
+    ssh_ready: true
+    same_target: true
+  expected:
+    should_reboot: false
+    should_checkpoint_before_reboot: false
+    should_resume: false
+    final_status_effect: blocked
+    reason: configure-existing mode received live-environment facts
+  rationale: A mode/facts mismatch should stop before any reboot or install-spine behavior.
