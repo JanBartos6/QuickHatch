@@ -1,0 +1,982 @@
+- id: provider-planning-429-blocked
+  category: provider_error
+  status: blocked
+  representative_runlog_events:
+    - event_type: "run_started"
+      payload:
+        host: "192.0.2.10"
+        user: "quickhatch"
+    - event_type: "model_call_failed"
+      payload:
+        context: "planning"
+        attempt: 1
+        elapsed_seconds: 2.4
+        timeout_seconds: 180
+        error: "HTTP 429 rate_limit_exceeded for Bearer sk-provider-secret"
+    - event_type: "model_call_failed"
+      payload:
+        context: "planning"
+        attempt: 2
+        elapsed_seconds: 2.7
+        timeout_seconds: 180
+        error: "HTTP 429 rate_limit_exceeded for Bearer sk-provider-secret"
+    - event_type: "model_call_failed"
+      payload:
+        context: "planning"
+        attempt: 3
+        elapsed_seconds: 3.1
+        timeout_seconds: 180
+        error: "HTTP 429 rate_limit_exceeded for Bearer sk-provider-secret"
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+    - "replay-summary.json"
+    - "manifest.json"
+    - "README.txt"
+  required_evidence:
+    - "model_call_failed context=planning"
+    - "attempt count 3"
+    - "provider error category or rate-limit marker"
+    - "terminal status or blocker explaining planning could not continue"
+  redaction_expectations:
+    - "sk-provider-secret must be redacted"
+    - "Bearer token must be redacted"
+  current_likely_gap: "pre-final model failure may leave support-summary final_status unknown unless a terminal run_failed/setup_blocked event exists"
+  rationale: "A setup that cannot even produce a plan due to provider 429 needs enough evidence to distinguish quota/rate-limit from a harness safety block."
+  risk: high
+
+- id: provider-repair-429-app-manual-followup
+  category: provider_error
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "command_group_started"
+      payload:
+        stage: "apps"
+        group:
+          id: "apps-chat"
+          title: "Install chat apps"
+    - event_type: "command"
+      payload:
+        stage: "apps"
+        group_id: "apps-chat"
+        command: "apt install definitely-missing-chat-app"
+        visible_command: "apt install definitely-missing-chat-app"
+        rc: 100
+        stdout_tail: ""
+        stderr_tail: "E: Unable to locate package definitely-missing-chat-app"
+    - event_type: "repair_prompt"
+      payload:
+        stage: "apps"
+        group_id: "apps-chat"
+        repair_attempt: 1
+        prompt: "repair failed app install; api_key=sk-repair-secret"
+    - event_type: "model_call_failed"
+      payload:
+        context: "repair"
+        attempt: 1
+        elapsed_seconds: 1.9
+        timeout_seconds: 180
+        error: "HTTP 429 insufficient_quota sk-repair-secret"
+    - event_type: "model_call_failed"
+      payload:
+        context: "repair"
+        attempt: 2
+        elapsed_seconds: 2.2
+        timeout_seconds: 180
+        error: "HTTP 429 insufficient_quota sk-repair-secret"
+    - event_type: "model_call_failed"
+      payload:
+        context: "repair"
+        attempt: 3
+        elapsed_seconds: 2.5
+        timeout_seconds: 180
+        error: "HTTP 429 insufficient_quota sk-repair-secret"
+    - event_type: "repair_model_unavailable_manual_followup"
+      payload:
+        stage: "apps"
+        group_id: "apps-chat"
+        repair_attempt: 1
+        repair_turn: 1
+        error: "Repair LLM call failed after 3 attempts: HTTP 429 insufficient_quota sk-repair-secret"
+        reason: "Repair LLM unavailable for 'Install chat apps': provider 429. Leaving this non-install group as manual follow-up."
+    - event_type: "group_manual_followup"
+      payload:
+        stage: "apps"
+        group_id: "apps-chat"
+        reason: "Repair LLM unavailable for 'Install chat apps': provider 429. Leaving this non-install group as manual follow-up."
+    - event_type: "final_audit"
+      payload:
+        result:
+          final_status: "manual_followup_required"
+          findings:
+            - severity: "manual_followup"
+              category: "apps"
+              summary: "Chat app install needs manual follow-up after provider 429."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "manual-followups.json"
+    - "final-audit.json"
+    - "support-summary.json"
+  required_evidence:
+    - "failed app group id apps-chat"
+    - "repair model unavailable reason"
+    - "provider error category 429"
+    - "manual follow-up item and reason"
+  redaction_expectations:
+    - "sk-repair-secret must be redacted in prompt and errors"
+  current_likely_gap: "provider failures are preserved in runlog but not extracted into a dedicated provider-errors diagnostic artifact"
+  rationale: "Provider rate limiting during non-critical app repair should not erase progress, and the support bundle should make the manual follow-up cause obvious."
+  risk: medium
+
+- id: provider-repair-timeout-desktop-followup
+  category: provider_error
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "command_group_started"
+      payload:
+        stage: "desktop"
+        group:
+          id: "desktop-theme"
+          title: "Apply theme and wallpaper"
+    - event_type: "command"
+      payload:
+        stage: "desktop"
+        group_id: "desktop-theme"
+        command: "gsettings set org.gnome.desktop.interface gtk-theme MissingTheme"
+        visible_command: "gsettings set org.gnome.desktop.interface gtk-theme MissingTheme"
+        rc: 1
+        stderr_tail: "No such schema or unavailable session"
+    - event_type: "model_call_failed"
+      payload:
+        context: "repair"
+        attempt: 1
+        elapsed_seconds: 180.0
+        timeout_seconds: 180
+        error: "ReadTimeout after 180 seconds with request_id=req_timeout_123 token=secret-timeout"
+    - event_type: "model_call_failed"
+      payload:
+        context: "repair"
+        attempt: 2
+        elapsed_seconds: 180.0
+        timeout_seconds: 180
+        error: "ReadTimeout after 180 seconds with request_id=req_timeout_123 token=secret-timeout"
+    - event_type: "model_call_failed"
+      payload:
+        context: "repair"
+        attempt: 3
+        elapsed_seconds: 180.0
+        timeout_seconds: 180
+        error: "ReadTimeout after 180 seconds with request_id=req_timeout_123 token=secret-timeout"
+    - event_type: "repair_model_unavailable_manual_followup"
+      payload:
+        stage: "desktop"
+        group_id: "desktop-theme"
+        repair_attempt: 1
+        repair_turn: 1
+        error: "Repair LLM call failed after 3 attempts: ReadTimeout"
+        reason: "Repair LLM unavailable for 'Apply theme and wallpaper': timeout. Leaving desktop customization as manual follow-up."
+    - event_type: "final_audit"
+      payload:
+        result:
+          final_status: "manual_followup_required"
+          details:
+            desktop_manual_followups:
+              - reason: "Theme repair timed out; apply MissingTheme manually."
+          findings:
+            - severity: "manual_followup"
+              category: "desktop"
+              summary: "Theme repair timed out."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "manual-followups.json"
+    - "final-audit.json"
+  required_evidence:
+    - "timeout category"
+    - "repair attempt number"
+    - "desktop element or group reason"
+    - "final manual_followup_required status"
+  redaction_expectations:
+    - "secret-timeout must be redacted"
+  current_likely_gap: "none"
+  rationale: "Timeouts during cosmetic repair should produce specific follow-up evidence without blocking core setup."
+  risk: medium
+
+- id: model-invalid-planner-json-exhausted
+  category: model_error
+  status: blocked
+  representative_runlog_events:
+    - event_type: "planner_prompt"
+      payload:
+        stage: "research_and_plan"
+        prompt: "produce setup plan with profile api_key=sk-planner-secret"
+    - event_type: "planner_response"
+      payload:
+        stage: "research_and_plan"
+        text: "{\"action\": \"plan\", \"plan\": {"
+    - event_type: "planner_response_invalid"
+      payload:
+        stage: "research_and_plan"
+        error: "Planner returned invalid JSON: Expecting property name enclosed in double quotes"
+    - event_type: "planner_response_invalid"
+      payload:
+        stage: "research_and_plan"
+        error: "Research plan validation failed: command group has non-list commands"
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "planner invalid response count"
+    - "last parser or validation error"
+    - "terminal blocked status or explicit unknown pre-final status"
+  redaction_expectations:
+    - "sk-planner-secret must be redacted"
+  current_likely_gap: "planner invalid-response exhaustion is only visible in raw runlog; support-summary does not summarize model parser failures"
+  rationale: "Invalid model output can stop setup before final audit, so diagnostics should not require manually reading the full JSONL."
+  risk: medium
+
+- id: model-invalid-repair-json-app-exhaustion
+  category: repair_loop_exhaustion
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "repair_prompt"
+      payload:
+        stage: "apps"
+        group_id: "apps-browser"
+        repair_attempt: 1
+        prompt: "repair browser package"
+    - event_type: "repair_response"
+      payload:
+        stage: "apps"
+        group_id: "apps-browser"
+        repair_attempt: 1
+        repair_turn: 1
+        text: "Try installing chromium instead."
+    - event_type: "repair_response_invalid"
+      payload:
+        stage: "apps"
+        group_id: "apps-browser"
+        repair_attempt: 1
+        repair_turn: 1
+        error: "Repair action response must be JSON"
+    - event_type: "repair_response"
+      payload:
+        stage: "apps"
+        group_id: "apps-browser"
+        repair_attempt: 1
+        repair_turn: 2
+        text: "{\"action\":\"retry_group\""
+    - event_type: "repair_response_invalid"
+      payload:
+        stage: "apps"
+        group_id: "apps-browser"
+        repair_attempt: 1
+        repair_turn: 2
+        error: "Invalid JSON"
+    - event_type: "group_manual_followup"
+      payload:
+        stage: "apps"
+        group_id: "apps-browser"
+        reason: "Repair loop exhausted for 'Install browser' after invalid or non-actionable repair turns."
+    - event_type: "final_audit"
+      payload:
+        result:
+          final_status: "manual_followup_required"
+          findings:
+            - severity: "manual_followup"
+              category: "apps"
+              summary: "Browser install repair exhausted invalid model turns."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "manual-followups.json"
+    - "final-audit.json"
+  required_evidence:
+    - "repair_response_invalid events with repair_turn"
+    - "repair loop exhausted reason"
+    - "manual follow-up group id apps-browser"
+  redaction_expectations:
+    - "secret-like text in repair responses must be redacted if present"
+  current_likely_gap: "repair-loop exhaustion has no dedicated extracted artifact with invalid turn count and max turn budget"
+  rationale: "A non-install group can degrade to manual follow-up after invalid repair JSON; the bundle should show exhaustion rather than looking like an arbitrary skip."
+  risk: medium
+
+- id: model-invalid-repair-json-install-blocked
+  category: repair_loop_exhaustion
+  status: blocked
+  representative_runlog_events:
+    - event_type: "command_group_started"
+      payload:
+        stage: "install_or_skip"
+        group:
+          id: "install-base"
+          title: "Bootstrap target system"
+    - event_type: "command"
+      payload:
+        stage: "install_or_skip"
+        group_id: "install-base"
+        command: "pacstrap -K /mnt base linux"
+        visible_command: "pacstrap -K /mnt base linux"
+        rc: 1
+        stderr_tail: "failed to init transaction"
+    - event_type: "repair_response_invalid"
+      payload:
+        stage: "install_or_skip"
+        group_id: "install-base"
+        repair_attempt: 1
+        repair_turn: 1
+        error: "Repair response used prose instead of JSON"
+    - event_type: "repair_response_invalid"
+      payload:
+        stage: "install_or_skip"
+        group_id: "install-base"
+        repair_attempt: 1
+        repair_turn: 2
+        error: "Repair response missing action"
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "install_or_skip group id install-base"
+    - "failed install command"
+    - "repair invalid-response attempts"
+    - "blocked terminal status because install repair cannot be deferred"
+  redaction_expectations:
+    - "failed command output must still redact secrets"
+  current_likely_gap: "install repair exhaustion may surface as an exception without terminal runlog status/final audit"
+  rationale: "Core install repair loops are safety-critical and should block with a clear diagnostic trail."
+  risk: high
+
+- id: repair-budget-gate-user-stop-install
+  category: repair_loop_exhaustion
+  status: blocked
+  representative_runlog_events:
+    - event_type: "repair_attempt_signature"
+      payload:
+        stage: "install_or_skip"
+        group_id: "install-base"
+        command: "debootstrap stable /mnt"
+        loop_key:
+          - "install_or_skip"
+          - "install-base"
+          - "package_install"
+          - "debootstrap"
+        same_loop_count: 2
+        diagnostic: false
+        consumes_budget: true
+        loop_exhausted: false
+    - event_type: "repair_budget_gate_answer"
+      payload:
+        stage: "install_or_skip"
+        group_id: "install-base"
+        attempts_used: 2
+        current_budget: 2
+        answer: "stop setup"
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "repair budget exhausted context"
+    - "attempts_used and current_budget"
+    - "user selected stop setup"
+    - "blocked final disposition"
+  redaction_expectations:
+    - "any command tail secrets must be redacted"
+  current_likely_gap: "repair_budget_gate_answer is retained in JSONL but not promoted into support-summary or repair diagnostics"
+  rationale: "When the user stops after repair budget exhaustion, support needs to explain that no later stages were skipped silently."
+  risk: high
+
+- id: repair-budget-gate-manual-followup-apps
+  category: repair_loop_exhaustion
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "repair_attempt_signature"
+      payload:
+        stage: "apps"
+        group_id: "apps-media"
+        command: "flatpak install -y flathub bad.media.App"
+        same_loop_count: 2
+        diagnostic: false
+        consumes_budget: true
+        loop_exhausted: false
+    - event_type: "repair_budget_gate_answer"
+      payload:
+        stage: "apps"
+        group_id: "apps-media"
+        attempts_used: 2
+        current_budget: 2
+        answer: "manual follow-up"
+    - event_type: "group_manual_followup"
+      payload:
+        stage: "apps"
+        group_id: "apps-media"
+        reason: "User chose manual follow-up after 2 failed repair attempt(s): Flatpak app not found."
+    - event_type: "final_audit"
+      payload:
+        result:
+          final_status: "manual_followup_required"
+          findings:
+            - severity: "manual_followup"
+              category: "apps"
+              summary: "Media app unresolved after repair budget."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "manual-followups.json"
+    - "final-audit.json"
+  required_evidence:
+    - "repair budget gate answer manual follow-up"
+    - "attempt count and budget"
+    - "manual follow-up reason"
+  redaction_expectations:
+    - "none"
+  current_likely_gap: "group_manual_followup events are not currently extracted into manual-followups.json unless final audit repeats them"
+  rationale: "Optional app work can stop at manual follow-up, but the support bundle should retain the budget decision even if final audit is sparse."
+  risk: medium
+
+- id: identical-repair-loop-apps-followup
+  category: repair_loop_exhaustion
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "repair_attempt_signature"
+      payload:
+        stage: "apps"
+        group_id: "apps-video"
+        command: "apt install missing-video-tool"
+        signature:
+          failure_category: "package_unavailable"
+          operation: "install"
+          tool: "apt"
+          packages:
+            - "missing-video-tool"
+          strategy: "repo"
+        loop_key:
+          - "apps"
+          - "apps-video"
+          - "package_unavailable"
+          - "apt"
+          - "missing-video-tool"
+          - "repo"
+        same_loop_count: 3
+        diagnostic: false
+        consumes_budget: true
+        loop_exhausted: true
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+  required_evidence:
+    - "same_loop_count 3"
+    - "loop_exhausted true"
+    - "group id apps-video"
+    - "manual follow-up status or reason after loop exhaustion"
+  redaction_expectations:
+    - "none"
+  current_likely_gap: "identical-loop manual follow-up branch marks state but does not appear to emit group_manual_followup"
+  rationale: "Repeated identical package repair attempts should be diagnosable as loop control rather than a mysterious app omission."
+  risk: medium
+
+- id: identical-repair-loop-install-blocked
+  category: repair_loop_exhaustion
+  status: blocked
+  representative_runlog_events:
+    - event_type: "repair_attempt_signature"
+      payload:
+        stage: "install_or_skip"
+        group_id: "bootloader-install"
+        command: "grub-install /dev/sda"
+        signature:
+          failure_category: "bootloader"
+          operation: "install"
+          tool: "grub-install"
+          target: "/dev/sda"
+          strategy: "same"
+        loop_key:
+          - "install_or_skip"
+          - "bootloader-install"
+          - "bootloader"
+          - "grub-install"
+          - "/dev/sda"
+          - "same"
+        same_loop_count: 3
+        diagnostic: false
+        consumes_budget: true
+        loop_exhausted: true
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "loop_exhausted true"
+    - "bootloader target /dev/sda"
+    - "blocked status because install/boot repair cannot be deferred"
+  redaction_expectations:
+    - "none"
+  current_likely_gap: "blocked exception may not become a terminal runlog status or final audit"
+  rationale: "A repeated failed bootloader repair attempt is core safety evidence and should be easy to find."
+  risk: high
+
+- id: final-audit-repair-provider-error-core
+  category: final_audit_repair_failure
+  status: blocked
+  representative_runlog_events:
+    - event_type: "final_audit_repair_failed"
+      payload:
+        executed: false
+        error: "Repair LLM call failed after 3 attempts: HTTP 429 rate_limit_exceeded sk-final-secret"
+        findings:
+          - "Missing bootloader on target disk."
+    - event_type: "final_audit"
+      payload:
+        result:
+          final_status: "blocked"
+          findings:
+            - severity: "fatal"
+              category: "bootability"
+              summary: "Missing bootloader on target disk."
+          details:
+            final_audit_repair_failures:
+              - executed: false
+                error: "Repair LLM call failed after 3 attempts: HTTP 429 rate_limit_exceeded sk-final-secret"
+                findings:
+                  - "Missing bootloader on target disk."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "final-audit.json"
+    - "support-summary.json"
+  required_evidence:
+    - "final audit repair failure"
+    - "unresolved fatal bootability finding"
+    - "provider/model error category"
+    - "blocked final status"
+  redaction_expectations:
+    - "sk-final-secret must be redacted"
+  current_likely_gap: "final_audit_repair_failed is not extracted into manual-followups.json or a repair diagnostics artifact"
+  rationale: "Final audit core repair failures must be unmistakable in support diagnostics."
+  risk: high
+
+- id: final-audit-fstab-repair-preflight-block
+  category: final_audit_repair_failure
+  status: blocked
+  representative_runlog_events:
+    - event_type: "command_group_started"
+      payload:
+        stage: "install_or_skip"
+        group:
+          id: "final-audit-repair-1"
+          title: "Focused final audit repair"
+    - event_type: "command_preflight_blocked"
+      payload:
+        stage: "install_or_skip"
+        group_id: "final-audit-repair-1"
+        command: "printf 'UUID=bad / ext4 defaults 0 1' > /target-root/etc/fstab"
+        decision:
+          kind: "block"
+          category: "fstab"
+          reason: "Writing target fstab requires write_fstab capability for /target-root/etc/fstab."
+          capability_kind: "write_fstab"
+          target: "/target-root/etc/fstab"
+        reason: "Writing target fstab requires write_fstab capability for /target-root/etc/fstab."
+    - event_type: "final_audit_repair_executed"
+      payload:
+        executed: false
+        action: "retry_group"
+        stage: "install_or_skip"
+        findings:
+          - "Target fstab missing root filesystem entry."
+        group:
+          id: "final-audit-repair-1"
+          title: "Focused final audit repair"
+        error: "Writing target fstab requires write_fstab capability for /target-root/etc/fstab."
+    - event_type: "final_audit"
+      payload:
+        result:
+          final_status: "blocked"
+          findings:
+            - severity: "fatal"
+              category: "fstab"
+              summary: "Target fstab still invalid after repair was blocked."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "preflight-events.json"
+    - "final-audit.json"
+    - "support-summary.json"
+  required_evidence:
+    - "blocked command safely redacted"
+    - "preflight category fstab"
+    - "required capability kind write_fstab"
+    - "target /target-root/etc/fstab"
+    - "final audit repair failure error"
+  redaction_expectations:
+    - "fstab command must be redacted if it contains credentials or secrets"
+  current_likely_gap: "preflight event is extracted, but failed repair records are not summarized separately with capability requirement"
+  rationale: "Final audit repairs must obey the same fstab capability policy and leave evidence when blocked."
+  risk: high
+
+- id: final-audit-boot-repair-capability-mismatch
+  category: final_audit_repair_failure
+  status: blocked
+  representative_runlog_events:
+    - event_type: "dangerous_operation_preview"
+      payload:
+        stage: "install_or_skip"
+        group_id: "final-audit-repair-1"
+        preview:
+          preview_id: "preview-boot-001"
+          operation:
+            kind: "bootloader_install"
+            target: "/dev/sda"
+          rendered_commands:
+            - "grub-install /dev/sda"
+          confirmation_token: "BOOT-1234"
+    - event_type: "capability_granted"
+      payload:
+        stage: "install_or_skip"
+        group_id: "final-audit-repair-1"
+        capability:
+          id: "cap-boot-sdb"
+          kind: "bootloader_install"
+          target: "/dev/sdb"
+          preview_id: "preview-boot-000"
+          consumed: false
+    - event_type: "internal_capability_check"
+      payload:
+        stage: "install_or_skip"
+        group_id: "final-audit-repair-1"
+        capability_kind: "bootloader_install"
+        target: "/dev/sda"
+        allowed: false
+        reason: "final audit boot repair target mismatch"
+    - event_type: "safe_abort"
+      payload:
+        stage: "install_or_skip"
+        group_id: "final-audit-repair-1"
+        reason: "Internal final audit boot repair target mismatch needs confirmed QuickHatch capability bootloader_install target=/dev/sda."
+    - event_type: "final_audit"
+      payload:
+        result:
+          final_status: "blocked"
+          findings:
+            - severity: "fatal"
+              category: "bootability"
+              summary: "Bootloader repair did not have a matching capability for /dev/sda."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "capability-events.json"
+    - "dangerous-operation-previews.json"
+    - "final-audit.json"
+  required_evidence:
+    - "preview id"
+    - "granted capability kind and target"
+    - "requested target /dev/sda"
+    - "mismatched granted target /dev/sdb"
+    - "allowed false and safe_abort reason"
+  redaction_expectations:
+    - "confirmation token should not expose unrelated secrets"
+  current_likely_gap: "capability mismatch reason is only inferable from internal_capability_check/safe_abort, not a dedicated mismatch event"
+  rationale: "Wrong-target capability reuse is exactly the kind of support case that needs precise evidence."
+  risk: high
+
+- id: final-audit-package-db-repair-preflight-block
+  category: final_audit_repair_failure
+  status: blocked
+  representative_runlog_events:
+    - event_type: "command_preflight_blocked"
+      payload:
+        stage: "apps"
+        group_id: "final-audit-repair-1"
+        command: "rm -rf /var/lib/pacman/local"
+        decision:
+          kind: "block"
+          category: "package_db"
+          reason: "Package database surgery requires explicit package_db_repair capability."
+          capability_kind: "package_db_repair"
+          target: "/var/lib/pacman/local"
+        reason: "Package database surgery requires explicit package_db_repair capability."
+    - event_type: "final_audit_repair_executed"
+      payload:
+        executed: false
+        action: "retry_group"
+        stage: "apps"
+        findings:
+          - "Package database appears corrupted."
+        group:
+          id: "final-audit-repair-1"
+          title: "Focused final audit repair"
+        error: "Package database surgery requires explicit package_db_repair capability."
+    - event_type: "final_audit"
+      payload:
+        result:
+          final_status: "blocked"
+          findings:
+            - severity: "fatal"
+              category: "package_db"
+              summary: "Package database corruption remains unresolved."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "preflight-events.json"
+    - "final-audit.json"
+  required_evidence:
+    - "package_db finding"
+    - "blocked command rm -rf /var/lib/pacman/local"
+    - "required capability kind package_db_repair"
+    - "final blocked status"
+  redaction_expectations:
+    - "none"
+  current_likely_gap: "package DB repair failures are visible but not grouped as package-db diagnostics"
+  rationale: "Package DB corruption is a non-perfect outcome where the user needs to know that risky repair was not executed."
+  risk: high
+
+- id: final-audit-desktop-repair-manual-followup
+  category: final_audit_repair_manual_followup
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "final_audit_repair_manual_followup"
+      payload:
+        executed: false
+        action: "manual_followup"
+        findings:
+          - "Wallpaper could not be verified without an active GUI session."
+        reason: "Apply wallpaper manually after logging into the target desktop session."
+    - event_type: "final_audit"
+      payload:
+        result:
+          final_status: "manual_followup_required"
+          findings:
+            - severity: "manual_followup"
+              category: "desktop"
+              summary: "Wallpaper could not be verified without an active GUI session."
+          details:
+            final_audit_repairs:
+              - executed: false
+                action: "manual_followup"
+                findings:
+                  - "Wallpaper could not be verified without an active GUI session."
+                reason: "Apply wallpaper manually after logging into the target desktop session."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "manual-followups.json"
+    - "final-audit.json"
+  required_evidence:
+    - "source final_audit_repair_event"
+    - "desktop finding"
+    - "exact wallpaper follow-up reason"
+  redaction_expectations:
+    - "none"
+  current_likely_gap: "none"
+  rationale: "Final-audit repair can intentionally become manual follow-up; the bundle should preserve the exact desktop item and reason."
+  risk: medium
+
+- id: final-audit-driver-secureboot-manual-followup
+  category: final_audit_repair_manual_followup
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "final_audit_repair_manual_followup"
+      payload:
+        executed: false
+        action: "manual_followup"
+        findings:
+          - "NVIDIA module installed but Secure Boot MOK enrollment remains unverified."
+        reason: "Enroll the NVIDIA module signing key in MOK manager and reboot; QuickHatch cannot verify module load yet."
+    - event_type: "final_audit"
+      payload:
+        result:
+          final_status: "manual_followup_required"
+          findings:
+            - severity: "manual_followup"
+              category: "driver"
+              summary: "NVIDIA module installed but Secure Boot MOK enrollment remains unverified."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "manual-followups.json"
+    - "final-audit.json"
+  required_evidence:
+    - "driver category"
+    - "Secure Boot/MOK reason"
+    - "manual_followup_required final status"
+  redaction_expectations:
+    - "none"
+  current_likely_gap: "none"
+  rationale: "Driver follow-up must be specific enough for support to know whether this is Secure Boot, module load, or package install uncertainty."
+  risk: medium
+
+- id: final-audit-warning-only-repair-failed
+  category: final_audit_repair_failure
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "final_audit_repair_executed"
+      payload:
+        executed: false
+        action: "retry_group"
+        stage: "apps"
+        findings:
+          - "Optional non-critical font package is missing."
+        group:
+          id: "final-audit-repair-1"
+          title: "Focused final audit repair"
+        error: "Optional font package unavailable from configured repository."
+    - event_type: "final_audit"
+      payload:
+        result:
+          final_status: "success_with_warnings"
+          findings:
+            - severity: "warning"
+              category: "apps"
+              summary: "Optional non-critical font package is missing."
+          details:
+            final_audit_repairs:
+              - executed: false
+                action: "retry_group"
+                error: "Optional font package unavailable from configured repository."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "final-audit.json"
+    - "support-summary.json"
+  required_evidence:
+    - "success_with_warnings final status"
+    - "warning-only final audit finding"
+    - "failed optional repair error"
+  redaction_expectations:
+    - "none"
+  current_likely_gap: "failed repairs are in final-audit details but not highlighted in manual-followups or repair diagnostics"
+  rationale: "A warning-only failed repair should not look like clean success, and support should see what was attempted."
+  risk: medium
+
+- id: final-audit-repair-unsupported-action
+  category: final_audit_repair_failure
+  status: blocked
+  representative_runlog_events:
+    - event_type: "repair_response"
+      payload:
+        stage: "install_or_skip"
+        group_id: "final-audit-repair-1"
+        repair_attempt: 1
+        repair_turn: 1
+        text: "{\"action\":\"rerun_everything\",\"reason\":\"start over\"}"
+    - event_type: "repair_action"
+      payload:
+        stage: "install_or_skip"
+        group_id: "final-audit-repair-1"
+        repair_attempt: 1
+        repair_turn: 1
+        action: "rerun_everything"
+    - event_type: "final_audit_repair_failed"
+      payload:
+        executed: false
+        action: "rerun_everything"
+        findings:
+          - "Missing initramfs artifact."
+        error: "Unsupported final-audit repair action: rerun_everything"
+    - event_type: "final_audit"
+      payload:
+        result:
+          final_status: "blocked"
+          findings:
+            - severity: "fatal"
+              category: "bootability"
+              summary: "Missing initramfs artifact."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "final-audit.json"
+    - "support-summary.json"
+  required_evidence:
+    - "unsupported repair action"
+    - "fatal bootability finding remains"
+    - "final blocked status"
+  redaction_expectations:
+    - "none"
+  current_likely_gap: "unsupported final-audit repair action is logged but not extracted into a repair-failures artifact"
+  rationale: "Broad rerun-style final audit repair actions must be rejected and visible."
+  risk: high
+
+- id: repair-retry-rejected-missing-evidence-exhaustion
+  category: repair_loop_exhaustion
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "repair_response"
+      payload:
+        stage: "postboot_driver"
+        group_id: "driver-nvidia"
+        repair_attempt: 1
+        repair_turn: 1
+        text: "{\"action\":\"retry_group\",\"group\":{\"commands\":[\"apt install nvidia-open\"],\"evidence\":[]}}"
+    - event_type: "repair_action"
+      payload:
+        stage: "postboot_driver"
+        group_id: "driver-nvidia"
+        repair_attempt: 1
+        repair_turn: 1
+        action: "retry_group"
+    - event_type: "repair_retry_rejected_missing_evidence"
+      payload:
+        stage: "postboot_driver"
+        group_id: "driver-nvidia"
+        repair_attempt: 1
+        repair_turn: 1
+    - event_type: "repair_response_invalid"
+      payload:
+        stage: "postboot_driver"
+        group_id: "driver-nvidia"
+        repair_attempt: 1
+        repair_turn: 2
+        error: "Still missing source evidence for changed driver command."
+    - event_type: "group_manual_followup"
+      payload:
+        stage: "postboot_driver"
+        group_id: "driver-nvidia"
+        reason: "Repair loop exhausted for 'NVIDIA driver setup' after invalid or non-actionable repair turns."
+    - event_type: "final_audit"
+      payload:
+        result:
+          final_status: "manual_followup_required"
+          findings:
+            - severity: "manual_followup"
+              category: "driver"
+              summary: "NVIDIA driver setup needs manual follow-up after repair evidence was missing."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "manual-followups.json"
+    - "final-audit.json"
+  required_evidence:
+    - "repair_retry_rejected_missing_evidence"
+    - "driver group id"
+    - "manual follow-up reason"
+    - "repair turn count"
+  redaction_expectations:
+    - "none"
+  current_likely_gap: "missing-evidence repair rejection is raw runlog-only and not summarized"
+  rationale: "Driver repairs should not silently retry model-invented commands without evidence; support should see the policy rejection."
+  risk: medium
+
+- id: provider-error-redaction-raw-payload
+  category: provider_error
+  status: unknown
+  representative_runlog_events:
+    - event_type: "model_call_failed"
+      payload:
+        context: "repair"
+        attempt: 1
+        elapsed_seconds: 0.8
+        timeout_seconds: 180
+        error: "401 Unauthorized api_key=\"sk-live-secret\" Authorization: Bearer secret-bearer-token request={\"password\":\"hunter2\",\"messages\":[{\"content\":\"token=raw-secret\"}]}"
+    - event_type: "repair_response_invalid"
+      payload:
+        stage: "apps"
+        group_id: "apps-secrets"
+        repair_attempt: 1
+        repair_turn: 1
+        error: "Model echoed password=hunter2 in invalid JSON"
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+    - "manifest.json"
+  required_evidence:
+    - "provider auth failure category without raw secret-bearing payload"
+    - "redaction applied across JSONL and extracted artifacts"
+  redaction_expectations:
+    - "sk-live-secret must be redacted"
+    - "secret-bearer-token must be redacted"
+    - "hunter2 must be redacted"
+    - "raw-secret must be redacted"
+  current_likely_gap: "none"
+  rationale: "Support bundles are often shared externally; provider errors are high-risk for accidental credential leakage."
+  risk: high
