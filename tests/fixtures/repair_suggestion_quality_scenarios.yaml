@@ -1,0 +1,635 @@
+# Curated repair-suggestion-quality scenarios.
+#
+# These scenarios exercise the repair turn itself, before any command is
+# executed. They complement repair_loop_scenarios.yaml, which validates
+# execution-loop behavior after a proposed repair runs and fails. Commands here
+# are representative only and must never be executed by the test harness.
+metadata:
+  version: 1
+  lane: repair_suggestion_quality
+  source: Merged from .quickhatch/corpus-candidates/repair-suggestion-agent-*.yaml
+  policy: QuickHatch should ask the model for meaningfully different, scoped, safe repairs; repeated stale package/theme guesses should become search, explicit source fallback, or manual follow-up.
+  total_scenarios: 12
+  scenarios_by_category:
+    aur_helper_missing: 1
+    dangerous_repair_scope: 1
+    desktop_verification_failed: 1
+    mirror_404: 1
+    package_lock: 1
+    provider_429: 1
+    repeated_package_missing: 3
+    source_fallback: 2
+    theme_unavailable: 1
+  expected_behaviors:
+    diagnose_first_when_useful: 5
+    explicit_strategy_change: 5
+    first_identical_retry_rejected: 1
+    manual_followup_for_optional_unresolved: 3
+    scoped_repair: 5
+    dangerous_repair_uses_capability_path: 2
+  rejected_ambiguous_cases: []
+scenarios:
+  - id: repair-same-missing-package-rejected
+    category: repeated_package_missing
+    stage: apps
+    facts_profile:
+      family: ubuntu
+      package_manager: apt
+      flatpak_available: true
+      aur_helper: none
+    failed_group:
+      id: obsidian-repo
+      title: Install Obsidian from repo
+      commands:
+        - "sudo apt-get install -y obsidian"
+      packages: [obsidian]
+      source: repo
+      optional: false
+    failure:
+      type: command
+      command: "sudo apt-get install -y obsidian"
+      stdout: "Reading package lists... Done"
+      stderr: "E: Unable to locate package obsidian"
+      detail: "repo package name not found"
+    model_turns:
+      - response:
+          action: retry_group
+          group:
+            id: obsidian-repo-retry
+            stage: apps
+            title: Retry Obsidian from repo
+            commands:
+              - "apt-get install --yes obsidian"
+            packages: [obsidian]
+            source: repo
+            evidence:
+              - source_type: catalog_hint
+                summary: "Catalog still says obsidian."
+                confidence: low
+      - response:
+          action: repo_search
+          query: "ubuntu obsidian package apt"
+          reason: "Verify whether the package exists before trying another install."
+      - response:
+          action: retry_group
+          group:
+            id: obsidian-flatpak
+            stage: apps
+            title: Install Obsidian from Flatpak
+            commands:
+              - "flatpak install -y flathub md.obsidian.Obsidian"
+            verification:
+              - "flatpak list --app | grep -F md.obsidian.Obsidian"
+            packages: [md.obsidian.Obsidian]
+            source: flatpak
+            evidence:
+              - source_type: repo_search
+                query: "ubuntu obsidian package apt"
+                summary: "No apt package; Flatpak ref md.obsidian.Obsidian is available."
+                confidence: high
+    search_results:
+      repo_search:
+        "ubuntu obsidian package apt": "No apt package named obsidian. Flatpak ref md.obsidian.Obsidian is available on Flathub."
+    expected:
+      final_action: retry_group
+      final_group_command_contains: "flatpak install"
+      rejected_event: repair_retry_rejected_same_strategy
+      prompt_contains:
+        - "Do not repeat an identical package/theme/driver strategy"
+        - "Search-first repair policy"
+        - "Repair only the current failed group"
+      source_agents: [repair-suggestion-agent-1-repeated-package]
+    rationale: "A same-command retry with decorative evidence is not a meaningful repair for a missing package."
+
+  - id: repair-repo-search-flatpak-fallback
+    category: source_fallback
+    stage: apps
+    facts_profile:
+      family: fedora
+      package_manager: dnf
+      flatpak_available: true
+      aur_helper: none
+    failed_group:
+      id: spotify-repo
+      title: Install Spotify
+      commands:
+        - "sudo dnf install -y spotify"
+      packages: [spotify]
+      source: repo
+      optional: false
+    failure:
+      type: command
+      command: "sudo dnf install -y spotify"
+      stdout: "No match for argument: spotify"
+      stderr: "Error: Unable to find a match: spotify"
+      detail: "repo package unavailable"
+    model_turns:
+      - response:
+          action: repo_search
+          query: "fedora spotify package"
+          reason: "Confirm whether Fedora repositories contain Spotify."
+      - response:
+          action: retry_group
+          group:
+            id: spotify-flatpak
+            stage: apps
+            title: Install Spotify from Flatpak
+            commands:
+              - "flatpak install -y flathub com.spotify.Client"
+            verification:
+              - "flatpak list --app | grep -F com.spotify.Client"
+            packages: [com.spotify.Client]
+            source: flatpak
+            evidence:
+              - source_type: repo_search
+                query: "fedora spotify package"
+                summary: "Fedora repo lacks Spotify; Flathub provides com.spotify.Client."
+                confidence: high
+    search_results:
+      repo_search:
+        "fedora spotify package": "No Fedora repo package found. Flathub com.spotify.Client exists."
+    expected:
+      final_action: retry_group
+      final_group_command_contains: "flatpak install"
+      search_queries:
+        repo_search: ["fedora spotify package"]
+      prompt_contains:
+        - "strategy change"
+        - "Flatpak"
+      source_agents: [repair-suggestion-agent-2-source-fallback]
+    rationale: "repo -> search -> Flatpak is a safe explicit source change."
+
+  - id: repair-package-rename-search-first
+    category: repeated_package_missing
+    stage: apps
+    facts_profile:
+      family: arch
+      package_manager: pacman
+      flatpak_available: true
+      aur_helper: yay
+    failed_group:
+      id: lm-studio
+      title: Install LM Studio
+      commands:
+        - "sudo pacman -S --noconfirm lm-studio"
+      packages: [lm-studio]
+      source: repo
+      optional: false
+    failure:
+      type: command
+      command: "sudo pacman -S --noconfirm lm-studio"
+      stdout: ""
+      stderr: "error: target not found: lm-studio"
+      detail: "package hint may be stale"
+    model_turns:
+      - response:
+          action: repo_search
+          query: "arch lm studio package"
+          reason: "Check official repo before changing source."
+      - response:
+          action: community_search
+          query: "AUR lm studio"
+          reason: "Arch community/AUR is the next safe source to inspect."
+      - response:
+          action: manual_followup
+          reason: "No verified Arch package source for LM Studio was found; install it manually from the vendor if still wanted."
+          app_names: [LM Studio]
+    search_results:
+      repo_search:
+        "arch lm studio package": "No official repo package named lm-studio."
+      community_search:
+        "AUR lm studio": "No maintained AUR package confidently matches LM Studio."
+    expected:
+      final_action: manual_followup
+      manual_followup_apps: [LM Studio]
+      source_agents: [repair-suggestion-agent-1-repeated-package]
+    rationale: "A stale app hint should move through search paths, then item-specific manual follow-up."
+
+  - id: repair-multi-app-missing-only-failed-item
+    category: repeated_package_missing
+    stage: apps
+    facts_profile:
+      family: ubuntu
+      package_manager: apt
+      flatpak_available: false
+      aur_helper: none
+    failed_group:
+      id: apps-chat-and-vlc
+      title: Install chat client and VLC
+      commands:
+        - "sudo apt-get install -y missing-chat vlc"
+      packages: [missing-chat, vlc]
+      source: repo
+      optional: false
+    failure:
+      type: command
+      command: "sudo apt-get install -y missing-chat vlc"
+      stdout: "Reading package lists... Done"
+      stderr: "E: Unable to locate package missing-chat"
+      detail: "one package in a multi-app group is missing"
+    model_turns:
+      - response:
+          action: repo_search
+          query: "ubuntu missing-chat package"
+          reason: "Search only the missing package."
+      - response:
+          action: retry_group
+          group:
+            id: apps-vlc-only
+            stage: apps
+            title: Install VLC and defer Missing Chat
+            commands:
+              - "sudo apt-get install -y vlc"
+            verification:
+              - "dpkg-query -W -f='${Status}' vlc"
+            packages: [vlc]
+            source: repo
+            evidence:
+              - source_type: repo_search
+                query: "ubuntu missing-chat package"
+                summary: "missing-chat was not found; VLC remains a valid repo package."
+                confidence: high
+    search_results:
+      repo_search:
+        "ubuntu missing-chat package": "No package named missing-chat. VLC is available."
+    expected:
+      final_action: retry_group
+      final_group_command_contains: "vlc"
+      repair_stays_scoped: true
+      source_agents: [repair-suggestion-agent-1-repeated-package]
+    rationale: "Repair should isolate the missing app instead of dropping unrelated successful work."
+
+  - id: repair-aur-helper-missing-bootstrap-or-followup
+    category: aur_helper_missing
+    stage: apps
+    facts_profile:
+      family: arch
+      package_manager: pacman
+      flatpak_available: true
+      aur_helper: none
+    failed_group:
+      id: brave-aur
+      title: Install Brave from AUR
+      commands:
+        - "yay -S --noconfirm brave-bin"
+      packages: [brave-bin]
+      source: aur
+      optional: false
+    failure:
+      type: command
+      command: "yay -S --noconfirm brave-bin"
+      stdout: ""
+      stderr: "sh: yay: command not found"
+      detail: "AUR helper is missing"
+    model_turns:
+      - response:
+          action: community_search
+          query: "AUR brave-bin"
+          reason: "Verify the requested AUR package before bootstrapping a helper."
+      - response:
+          action: retry_group
+          group:
+            id: brave-aur-bootstrap
+            stage: apps
+            title: Install Brave after AUR helper check
+            commands:
+              - "git clone https://aur.archlinux.org/yay-bin.git /tmp/qh-yay-bin"
+              - "cd /tmp/qh-yay-bin && makepkg -si --noconfirm"
+              - "yay -S --noconfirm brave-bin"
+            verification:
+              - "command -v brave || pacman -Q brave-bin"
+            packages: [brave-bin]
+            source: aur
+            evidence:
+              - source_type: community_search
+                query: "AUR brave-bin"
+                summary: "AUR package exists; helper is missing."
+                confidence: medium
+    search_results:
+      community_search:
+        "AUR brave-bin": "brave-bin exists in AUR; no helper is installed."
+    expected:
+      final_action: retry_group
+      final_group_command_contains: "yay-bin"
+      search_queries:
+        community_search: ["AUR brave-bin"]
+      prompt_contains:
+        - "community_search/AUR"
+        - "Missing app package strategy"
+      source_agents: [repair-suggestion-agent-2-source-fallback]
+    rationale: "Missing AUR helper can be repaired, but the repair should be explicit and source-backed."
+
+  - id: repair-package-lock-diagnose-not-pkill
+    category: package_lock
+    stage: apps
+    facts_profile:
+      family: debian
+      package_manager: apt
+      flatpak_available: false
+      aur_helper: none
+    failed_group:
+      id: install-krita
+      title: Install Krita
+      commands:
+        - "sudo apt-get install -y krita"
+      packages: [krita]
+      source: repo
+      optional: false
+    failure:
+      type: command
+      command: "sudo apt-get install -y krita"
+      stdout: ""
+      stderr: "Could not get lock /var/lib/dpkg/lock-frontend. It is held by process 1234 (apt)"
+      detail: "package manager lock"
+    model_turns:
+      - response:
+          action: retry_group
+          group:
+            id: krita-lock-diagnose
+            stage: apps
+            title: Wait for package lock and install Krita
+            commands:
+              - "ps -p 1234 -o pid=,comm=,args="
+              - "sudo fuser /var/lib/dpkg/lock-frontend || true"
+              - "sleep 20"
+              - "sudo apt-get install -y krita"
+            verification:
+              - "dpkg-query -W -f='${Status}' krita"
+            packages: [krita]
+            source: repo
+            evidence:
+              - source_type: local_facts
+                summary: "Lock holder is an apt process; wait and retry without deleting dpkg state."
+                confidence: medium
+    expected:
+      final_action: retry_group
+      final_group_command_contains: "fuser"
+      prompt_contains:
+        - "lock"
+        - "Do not use broad `pkill -f`"
+      source_agents: [repair-suggestion-agent-3-transient-package-state]
+    rationale: "Package lock repair should diagnose/wait safely, not delete package DB locks or broad-kill package managers."
+
+  - id: repair-mirror-404-refresh-metadata
+    category: mirror_404
+    stage: install_or_skip
+    facts_profile:
+      family: arch
+      package_manager: pacman
+      flatpak_available: false
+      aur_helper: none
+    failed_group:
+      id: pacstrap-base
+      title: Bootstrap Arch base
+      commands:
+        - "pacstrap -K /mnt base linux linux-firmware"
+      packages: [base, linux, linux-firmware]
+      source: repo
+      optional: false
+    failure:
+      type: command
+      command: "pacstrap -K /mnt base linux linux-firmware"
+      stdout: "error: failed retrieving file 'core.db' from mirror"
+      stderr: "The requested URL returned error: 404"
+      detail: "mirror metadata stale"
+    model_turns:
+      - response:
+          action: retry_group
+          group:
+            id: pacstrap-mirror-refresh
+            stage: install_or_skip
+            title: Refresh Arch mirrors before bootstrap
+            commands:
+              - "pacman -Syy"
+              - "pacstrap -K /mnt base linux linux-firmware"
+            packages: [base, linux, linux-firmware]
+            source: repo
+            evidence:
+              - source_type: command_output
+                summary: "Mirror returned 404, so refresh sync DB before retrying the same bootstrap."
+                confidence: medium
+    expected:
+      final_action: retry_group
+      final_group_command_contains: "pacman -Syy"
+      source_agents: [repair-suggestion-agent-3-transient-package-state]
+    rationale: "Mirror 404 is a scoped metadata repair, not a reason to weaken install-stage safety."
+
+  - id: repair-theme-unavailable-search-then-followup
+    category: theme_unavailable
+    stage: desktop
+    facts_profile:
+      family: arch
+      package_manager: pacman
+      flatpak_available: true
+      aur_helper: yay
+    failed_group:
+      id: sweet-theme
+      title: Install Sweet Mars KDE theme
+      commands:
+        - "yay -S --noconfirm sweet-mars-kde-theme-git"
+      packages: [sweet-mars-kde-theme-git]
+      source: aur
+      optional: true
+    failure:
+      type: command
+      command: "yay -S --noconfirm sweet-mars-kde-theme-git"
+      stdout: ""
+      stderr: "error: target not found: sweet-mars-kde-theme-git"
+      detail: "theme package unavailable"
+    model_turns:
+      - response:
+          action: community_search
+          query: "AUR sweet mars kde theme"
+          reason: "Verify theme availability before retrying the same AUR package."
+      - response:
+          action: manual_followup
+          reason: "Sweet Mars KDE theme package was not found in AUR search; install a maintained equivalent manually or choose another theme."
+          app_names: []
+    search_results:
+      community_search:
+        "AUR sweet mars kde theme": "No maintained package exactly matching Sweet Mars KDE theme."
+    expected:
+      final_action: manual_followup
+      reason_contains: "Sweet Mars KDE theme"
+      search_queries:
+        community_search: ["AUR sweet mars kde theme"]
+      prompt_contains:
+        - "desktop/theme"
+        - "manual_followup"
+      source_agents: [repair-suggestion-agent-4-provider-theme-desktop]
+    rationale: "Unavailable cosmetic theme should not block setup or repeat stale package names."
+
+  - id: repair-desktop-verification-focused-retry
+    category: desktop_verification_failed
+    stage: desktop
+    facts_profile:
+      family: arch
+      package_manager: pacman
+      flatpak_available: true
+      aur_helper: yay
+    failed_group:
+      id: wallpaper-apply
+      title: Apply wallpaper
+      commands:
+        - "plasma-apply-wallpaperimage /home/quickhatch/Pictures/wallpaper.jpg"
+      packages: []
+      source: local
+      optional: true
+    failure:
+      type: desktop_design_feedback
+      command: "plasma-apply-wallpaperimage /home/quickhatch/Pictures/wallpaper.jpg"
+      stdout: ""
+      stderr: ""
+      detail: "command succeeded but refreshed facts did not show requested wallpaper"
+    model_turns:
+      - response:
+          action: retry_group
+          group:
+            id: wallpaper-persist-and-verify
+            stage: desktop
+            title: Persist and verify wallpaper
+            commands:
+              - "plasma-apply-wallpaperimage /home/quickhatch/Pictures/wallpaper.jpg"
+              - "kreadconfig6 --file plasma-org.kde.plasma.desktop-appletsrc --group Containments --key wallpaperplugin || true"
+            verification:
+              - "kreadconfig6 --file plasma-org.kde.plasma.desktop-appletsrc --group Containments --key wallpaperplugin || true"
+            packages: []
+            source: local
+    expected:
+      final_action: retry_group
+      final_group_command_contains: "wallpaper"
+      prompt_contains:
+        - "Repair only the current failed group"
+        - "desktop/theme"
+      source_agents: [repair-suggestion-agent-4-provider-theme-desktop]
+    rationale: "Design feedback repair should be focused to the failed visual element and verification."
+
+  - id: repair-provider-429-followup-noninstall
+    category: provider_429
+    stage: desktop
+    facts_profile:
+      family: arch
+      package_manager: pacman
+      flatpak_available: true
+      aur_helper: yay
+    failed_group:
+      id: desktop-theme
+      title: Apply optional desktop theme
+      commands:
+        - "lookandfeeltool -a org.example.Theme"
+      packages: []
+      source: local
+      optional: true
+    failure:
+      type: command
+      command: "lookandfeeltool -a org.example.Theme"
+      stdout: ""
+      stderr: "lookandfeeltool: package not found"
+      detail: "theme apply failed"
+    provider_error: "429 Too Many Requests"
+    expected:
+      final_action: manual_followup
+      reason_contains: "Repair LLM unavailable"
+      source_agents: [repair-suggestion-agent-4-provider-theme-desktop]
+    rationale: "Provider 429 during non-install repair becomes scoped manual follow-up, preserving progress."
+
+  - id: repair-search-results-empty-manual-followup
+    category: source_fallback
+    stage: apps
+    facts_profile:
+      family: ubuntu
+      package_manager: apt
+      flatpak_available: true
+      aur_helper: none
+    failed_group:
+      id: niche-app
+      title: Install Niche App
+      commands:
+        - "sudo apt-get install -y niche-app"
+      packages: [niche-app]
+      source: repo
+      optional: true
+    failure:
+      type: command
+      command: "sudo apt-get install -y niche-app"
+      stdout: ""
+      stderr: "E: Unable to locate package niche-app"
+      detail: "optional app package unavailable"
+    model_turns:
+      - response:
+          action: repo_search
+          query: "ubuntu niche-app package"
+          reason: "Search before deciding the optional item is unresolved."
+      - response:
+          action: web_search
+          query: "Niche App Linux install official"
+          max_results: 3
+          reason: "Check whether an official safe package source exists."
+      - response:
+          action: manual_followup
+          reason: "Niche App has no verified Ubuntu, Flatpak, or official package source; optional install left for manual follow-up."
+          app_names: [Niche App]
+    search_results:
+      repo_search:
+        "ubuntu niche-app package": "No package named niche-app."
+      web_search:
+        "Niche App Linux install official": "No official Linux package source found."
+    expected:
+      final_action: manual_followup
+      manual_followup_apps: [Niche App]
+      source_agents: [repair-suggestion-agent-2-source-fallback]
+    rationale: "Optional unresolved apps should become explicit manual follow-up after safe search paths are exhausted."
+
+  - id: repair-package-db-lock-dangerous-counterpart
+    category: dangerous_repair_scope
+    stage: apps
+    facts_profile:
+      family: ubuntu
+      package_manager: apt
+      flatpak_available: false
+      aur_helper: none
+    failed_group:
+      id: install-gimp
+      title: Install GIMP
+      commands:
+        - "sudo apt-get install -y gimp"
+      packages: [gimp]
+      source: repo
+      optional: false
+    failure:
+      type: command
+      command: "sudo apt-get install -y gimp"
+      stdout: ""
+      stderr: "Could not get lock /var/lib/dpkg/lock-frontend"
+      detail: "package manager lock"
+    dangerous_counterpart:
+      command: "sudo rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock"
+      expected_preflight: block_without_capability
+    model_turns:
+      - response:
+          action: retry_group
+          group:
+            id: gimp-safe-lock-wait
+            stage: apps
+            title: Wait safely for apt lock and install GIMP
+            commands:
+              - "sudo fuser /var/lib/dpkg/lock-frontend || true"
+              - "sleep 20"
+              - "sudo apt-get install -y gimp"
+            verification:
+              - "dpkg-query -W -f='${Status}' gimp"
+            packages: [gimp]
+            source: repo
+            evidence:
+              - source_type: local_facts
+                summary: "Lock exists; use inspection/wait path instead of package DB deletion."
+                confidence: medium
+    expected:
+      final_action: retry_group
+      final_group_command_contains: "fuser"
+      dangerous_counterpart_blocks: true
+      prompt_contains:
+        - "package DB surgery"
+        - "capability"
+      source_agents: [repair-suggestion-agent-5-dangerous-scope]
+    rationale: "Dangerous package DB lock deletion remains outside safe repair; execution/preflight must block it without capability."

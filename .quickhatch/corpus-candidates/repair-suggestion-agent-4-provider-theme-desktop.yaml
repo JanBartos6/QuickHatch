@@ -1,0 +1,78 @@
+- id: repair-provider-429-followup-noninstall
+  category: provider_429
+  stage: desktop
+  failed_group:
+    id: desktop-theme
+    title: Apply desktop theme
+    commands:
+      - "lookandfeeltool -a org.example.Theme"
+    packages: []
+    source: local
+    optional: true
+  failure:
+    type: command
+    command: "lookandfeeltool -a org.example.Theme"
+    stdout: ""
+    stderr: "lookandfeeltool: package not found"
+    detail: "theme apply failed"
+  suggested_turns:
+    - action: provider_error
+      rationale: "Repair provider returns 429/timeout."
+  expected:
+    final_action: manual_followup
+    repair_stays_scoped: true
+  rationale: "Provider failure should not erase progress or block a non-install cosmetic item."
+
+- id: repair-theme-unavailable-search-then-followup
+  category: theme_unavailable
+  stage: desktop
+  failed_group:
+    id: sweet-theme
+    title: Install Sweet Mars KDE theme
+    commands:
+      - "yay -S --noconfirm sweet-mars-kde-theme-git"
+    packages: [sweet-mars-kde-theme-git]
+    source: aur
+    optional: true
+  failure:
+    type: command
+    command: "yay -S --noconfirm sweet-mars-kde-theme-git"
+    stdout: ""
+    stderr: "error: target not found: sweet-mars-kde-theme-git"
+    detail: "theme package unavailable"
+  suggested_turns:
+    - action: community_search
+      rationale: "Search theme source."
+    - action: manual_followup
+      rationale: "Theme unavailable is manual follow-up, not core failure."
+  expected:
+    final_action: manual_followup
+    repair_stays_scoped: true
+  rationale: "Theme availability failures are cosmetic and should be specific follow-up."
+
+- id: repair-desktop-verification-focused-retry
+  category: desktop_verification_failed
+  stage: desktop
+  failed_group:
+    id: wallpaper-apply
+    title: Apply wallpaper
+    commands:
+      - "plasma-apply-wallpaperimage /home/quickhatch/Pictures/wallpaper.jpg"
+    packages: []
+    source: local
+    optional: true
+  failure:
+    type: desktop_design_feedback
+    command: "plasma-apply-wallpaperimage /home/quickhatch/Pictures/wallpaper.jpg"
+    stdout: ""
+    stderr: ""
+    detail: "command succeeded but refreshed facts did not show requested wallpaper"
+  suggested_turns:
+    - action: retry_group
+      strategy: focused_desktop_repair
+      rationale: "Retry only wallpaper persistence/verification, not the whole desktop stage."
+  expected:
+    final_action: retry_group
+    repair_stays_scoped: true
+  rationale: "Desktop verification repair should be focused to the failed design element."
+

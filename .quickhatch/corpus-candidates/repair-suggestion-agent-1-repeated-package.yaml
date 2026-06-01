@@ -1,0 +1,89 @@
+- id: repair-same-missing-package-rejected
+  category: repeated_package_missing
+  stage: apps
+  failed_group:
+    id: obsidian-repo
+    title: Install Obsidian from repo
+    commands:
+      - "sudo apt-get install -y obsidian"
+    packages: [obsidian]
+    source: repo
+    optional: false
+  failure:
+    type: command
+    command: "sudo apt-get install -y obsidian"
+    stdout: "Reading package lists... Done"
+    stderr: "E: Unable to locate package obsidian"
+    detail: "repo package name not found"
+  suggested_turns:
+    - action: retry_group
+      rationale: "Bad repair: repeats the same missing package command with decorative evidence."
+    - action: repo_search
+      rationale: "Good next step: inspect target repo naming before changing strategy."
+    - action: retry_group
+      strategy: flatpak
+      rationale: "Good final step: explicit fallback to a different source."
+  expected:
+    first_retry_rejected: true
+    final_action: retry_group
+    final_strategy: flatpak
+    manual_followup_if_unresolved: false
+  rationale: "Missing package output is stronger than a stale hint; repeating the same install is not a meaningful repair before diagnosis."
+
+- id: repair-package-rename-search-first
+  category: repeated_package_missing
+  stage: apps
+  failed_group:
+    id: lm-studio
+    title: Install LM Studio
+    commands:
+      - "sudo pacman -S --noconfirm lm-studio"
+    packages: [lm-studio]
+    source: repo
+    optional: false
+  failure:
+    type: command
+    command: "sudo pacman -S --noconfirm lm-studio"
+    stdout: ""
+    stderr: "error: target not found: lm-studio"
+    detail: "package hint may be stale"
+  suggested_turns:
+    - action: repo_search
+      rationale: "Search official repo first."
+    - action: community_search
+      rationale: "Arch can use AUR/community search when official repo misses."
+    - action: manual_followup
+      rationale: "If no safe package source exists, defer only LM Studio."
+  expected:
+    final_action: manual_followup
+    manual_followup_apps: [LM Studio]
+  rationale: "Changing source after search is valid; inventing another repo name is not."
+
+- id: repair-multi-app-missing-only-failed-item
+  category: repeated_package_missing
+  stage: apps
+  failed_group:
+    id: apps-chat-and-vlc
+    title: Install chat client and VLC
+    commands:
+      - "sudo apt-get install -y missing-chat vlc"
+    packages: [missing-chat, vlc]
+    source: repo
+    optional: false
+  failure:
+    type: command
+    command: "sudo apt-get install -y missing-chat vlc"
+    stdout: "Reading package lists... Done"
+    stderr: "E: Unable to locate package missing-chat"
+    detail: "one package in a multi-app group is missing"
+  suggested_turns:
+    - action: repo_search
+      rationale: "Search only the missing app."
+    - action: retry_group
+      strategy: scoped_repo
+      rationale: "Retry safe remaining package and defer missing app specifically."
+  expected:
+    final_action: retry_group
+    repair_stays_scoped: true
+  rationale: "A missing package should not poison unrelated app work."
+

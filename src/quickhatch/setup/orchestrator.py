@@ -9673,6 +9673,39 @@ fi
                     },
                 ]
                 continue
+            if action["action"] == "retry_group":
+                repeated_reason = self._repair_same_missing_target_retry_reason(
+                    stage,
+                    failed_group,
+                    failure,
+                    action["group"],
+                    search_performed=search_performed,
+                )
+                if repeated_reason:
+                    self.runlog.record(
+                        "repair_retry_rejected_same_strategy",
+                        stage=stage.value,
+                        group_id=failed_group.id,
+                        repair_attempt=repair_attempt,
+                        repair_turn=turn,
+                        reason=repeated_reason,
+                    )
+                    messages = [
+                        {"role": "user", "content": prompt},
+                        {"role": "assistant", "content": response_text},
+                        {
+                            "role": "user",
+                            "content": (
+                                "[quickhatch repair policy]\n"
+                                f"{repeated_reason}\n"
+                                "Return a meaningfully different safe repair: search first, "
+                                "switch source explicitly, add a real local-state diagnostic "
+                                "when the failure is transient, or mark only the unresolved "
+                                "item manual_followup."
+                            ),
+                        },
+                    ]
+                    continue
             return action
         if stage in {SetupStage.POSTBOOT_DRIVER, SetupStage.DESKTOP, SetupStage.APPS}:
             return {
@@ -9721,6 +9754,53 @@ fi
                 "yay",
                 "paru",
             )
+        )
+
+    @staticmethod
+    def _repair_same_missing_target_retry_reason(
+        stage: SetupStage,
+        failed_group: CommandGroup,
+        failure: GroupFailure,
+        replacement_group: CommandGroup,
+        *,
+        search_performed: bool,
+    ) -> str:
+        if search_performed or not SetupOrchestrator._repair_requires_research(
+            stage, failed_group, failure
+        ):
+            return ""
+        original = build_attempt_signature(
+            stage=stage.value,
+            group_id=failed_group.id,
+            group_title=failed_group.title,
+            command=failure.command,
+            stdout=failure.stdout,
+            stderr=failure.stderr,
+            detail=failure.detail,
+        )
+        if original.failure_category != "package_missing":
+            return ""
+        repeated_commands: list[str] = []
+        for command in replacement_group.commands:
+            if is_diagnostic_command(command):
+                continue
+            current = build_attempt_signature(
+                stage=stage.value,
+                group_id=replacement_group.id,
+                group_title=replacement_group.title,
+                command=command,
+                stdout=failure.stdout,
+                stderr=failure.stderr,
+                detail=failure.detail,
+            )
+            if current.loop_key == original.loop_key:
+                repeated_commands.append(command)
+        if not repeated_commands:
+            return ""
+        packages = ", ".join(original.packages) or failure.command
+        return (
+            "Repair retry repeats the same missing-target strategy for "
+            f"{packages} before any repair search or useful diagnosis."
         )
 
     def _mark_optional_apps_manual_followup(self, group: CommandGroup) -> None:

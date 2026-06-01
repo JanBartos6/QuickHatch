@@ -1,0 +1,87 @@
+- id: repair-repo-search-flatpak-fallback
+  category: source_fallback
+  stage: apps
+  failed_group:
+    id: spotify-repo
+    title: Install Spotify
+    commands:
+      - "sudo dnf install -y spotify"
+    packages: [spotify]
+    source: repo
+    optional: false
+  failure:
+    type: command
+    command: "sudo dnf install -y spotify"
+    stdout: "No match for argument: spotify"
+    stderr: "Error: Unable to find a match: spotify"
+    detail: "repo package unavailable"
+  suggested_turns:
+    - action: repo_search
+      rationale: "Confirm repo miss."
+    - action: retry_group
+      strategy: flatpak
+      rationale: "Flatpak is a different safe app source."
+  expected:
+    final_action: retry_group
+    final_strategy: flatpak
+    strategy_change_explicit: true
+  rationale: "repo -> search -> Flatpak is an explicit safe strategy change."
+
+- id: repair-aur-helper-missing-bootstrap-or-followup
+  category: aur_helper_missing
+  stage: apps
+  failed_group:
+    id: brave-aur
+    title: Install Brave from AUR
+    commands:
+      - "yay -S --noconfirm brave-bin"
+    packages: [brave-bin]
+    source: aur
+    optional: false
+  failure:
+    type: command
+    command: "yay -S --noconfirm brave-bin"
+    stdout: ""
+    stderr: "sh: yay: command not found"
+    detail: "AUR helper is missing"
+  suggested_turns:
+    - action: community_search
+      rationale: "Verify AUR package before helper bootstrap."
+    - action: retry_group
+      strategy: aur_bootstrap
+      rationale: "If using AUR, make helper bootstrap explicit and scoped."
+  expected:
+    final_action: retry_group
+    final_strategy: community
+    strategy_change_explicit: true
+  rationale: "Missing helper is repairable, but blindly repeating yay is not."
+
+- id: repair-search-results-empty-manual-followup
+  category: source_fallback
+  stage: apps
+  failed_group:
+    id: niche-app
+    title: Install Niche App
+    commands:
+      - "sudo apt-get install -y niche-app"
+    packages: [niche-app]
+    source: repo
+    optional: true
+  failure:
+    type: command
+    command: "sudo apt-get install -y niche-app"
+    stdout: ""
+    stderr: "E: Unable to locate package niche-app"
+    detail: "optional app package unavailable"
+  suggested_turns:
+    - action: repo_search
+      rationale: "Search before deciding."
+    - action: web_search
+      rationale: "If repo search is empty, check official source."
+    - action: manual_followup
+      rationale: "Optional unresolved app becomes manual follow-up."
+  expected:
+    final_action: manual_followup
+    manual_followup_apps: [Niche App]
+  rationale: "An unresolved optional app should be explicit follow-up, not a setup blocker."
+
