@@ -1,0 +1,42 @@
+- id: hosted-planning-disables-native-search
+  category: hosted_search_mode
+  provider:
+    provider: api_openai
+    native_search: true
+  setup_phase: research_plan
+  model_behavior: "Planner should use harness repo/community/web lookup actions for auditable current facts during the large setup prompt."
+  expected:
+    prompt_contains:
+      - "Provider-native search is NOT available here"
+      - "Use the harness planning actions"
+    native_search_sent_to_model: false
+    outcome: allow
+  rationale: "QuickHatch keeps the large safety-critical setup prompt off provider grounding and routes current facts through auditable harness lookups."
+
+- id: hosted-repair-keeps-native-search
+  category: hosted_search_mode
+  provider:
+    provider: api_openai
+    native_search: true
+  setup_phase: repair
+  model_behavior: "Repair prompt may use provider-native search for narrow app/theme/driver failures while still allowing harness lookups."
+  expected:
+    prompt_contains:
+      - "Provider-native search is ENABLED in repair mode"
+      - "Harness search actions are still allowed"
+    native_search_sent_to_model: true
+    outcome: manual_followup
+  rationale: "Narrow repair turns can use hosted model search without attaching grounding to the entire setup prompt."
+
+- id: hosted-provider-503-recovers
+  category: hosted_transient_error
+  provider:
+    provider: api_anthropic
+    native_search: true
+  setup_phase: research_plan
+  model_behavior: "First hosted call raises a transient 503, second call returns a valid plan."
+  expected:
+    model_retry_count: 2
+    runlog_event: model_call_failed
+    outcome: allow
+  rationale: "Strong hosted providers can be flaky; transient errors should retry before blocking."

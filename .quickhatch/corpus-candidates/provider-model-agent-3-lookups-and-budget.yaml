@@ -1,0 +1,37 @@
+- id: lookup-failure-manual-followup
+  category: lookup_failure
+  provider:
+    provider: local_lmstudio
+    native_search: false
+  setup_phase: research_plan
+  model_behavior: "Model requests repo_search, lookup fails, then model returns a plan that marks only the uncertain app manual follow-up."
+  expected:
+    lookup_failures: 1
+    runlog_event: planner_lookup_failed
+    outcome: manual_followup
+  rationale: "When harness lookup fails, the model gets explicit feedback and should degrade to specific follow-up, not fake success."
+
+- id: repeated-lookup-budget-forces-plan
+  category: lookup_budget
+  provider:
+    provider: api_custom
+    native_search: false
+  setup_phase: research_plan
+  model_behavior: "Model keeps asking for searches after the lookup budget is exhausted."
+  expected:
+    max_lookup_calls: 3
+    runlog_event: planner_lookup_budget_exhausted
+    outcome: allow
+  rationale: "A weaker or stuck model must not create an unbounded planning-search loop."
+
+- id: web-search-max-results-bounded
+  category: lookup_budget
+  provider:
+    provider: api_grok
+    native_search: true
+  setup_phase: research_plan
+  model_behavior: "Model requests web_search with an excessive max_results value."
+  expected:
+    bounded_max_results: 10
+    outcome: allow
+  rationale: "Provider/web lookup requests must stay bounded regardless of model output."

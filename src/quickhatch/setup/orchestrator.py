@@ -1072,7 +1072,11 @@ class SetupOrchestrator:
             action = str(payload.get("action", "")).strip()
             if not action:
                 try:
-                    self.ctx.plan = extract_research_plan(response_text, self.profile)
+                    self.ctx.plan = extract_research_plan(
+                        response_text,
+                        self.profile,
+                        provider_native_search_active=False,
+                    )
                 except ResearchPlanValidationError as exc:
                     last_planner_error = f"Research plan validation failed: {exc}"
                     self.runlog.record(
@@ -1096,7 +1100,9 @@ class SetupOrchestrator:
             if action == "plan":
                 try:
                     self.ctx.plan = extract_research_plan(
-                        json.dumps(payload.get("plan", {})), self.profile
+                        json.dumps(payload.get("plan", {})),
+                        self.profile,
+                        provider_native_search_active=False,
                     )
                 except ResearchPlanValidationError as exc:
                     last_planner_error = f"Research plan validation failed: {exc}"

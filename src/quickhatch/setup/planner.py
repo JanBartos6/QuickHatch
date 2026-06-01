@@ -382,7 +382,12 @@ def _extract_json_payload(text: str) -> dict[str, Any]:
             raise ResearchPlanValidationError(f"Planner did not return valid JSON: {exc}") from exc
 
 
-def _parse_strategy(raw: Any, field_name: str) -> StrategyDecision:
+def _parse_strategy(
+    raw: Any,
+    field_name: str,
+    *,
+    provider_native_search_active: bool = True,
+) -> StrategyDecision:
     if not isinstance(raw, dict):
         raise ResearchPlanValidationError(f"{field_name} must be an object.")
     strategy = str(raw.get("strategy", "")).strip()
@@ -395,11 +400,20 @@ def _parse_strategy(raw: Any, field_name: str) -> StrategyDecision:
         packages=list(raw.get("packages", []) or []),
         services=list(raw.get("services", []) or []),
         notes=str(raw.get("notes", "") or ""),
-        evidence=_parse_evidence(raw.get("evidence", []), field_name=f"{field_name}.evidence"),
+        evidence=_parse_evidence(
+            raw.get("evidence", []),
+            field_name=f"{field_name}.evidence",
+            provider_native_search_active=provider_native_search_active,
+        ),
     )
 
 
-def _parse_evidence(raw: Any, *, field_name: str) -> list[PlanEvidence]:
+def _parse_evidence(
+    raw: Any,
+    *,
+    field_name: str,
+    provider_native_search_active: bool = True,
+) -> list[PlanEvidence]:
     if raw is None:
         return []
     if isinstance(raw, str):
@@ -419,6 +433,13 @@ def _parse_evidence(raw: Any, *, field_name: str) -> list[PlanEvidence]:
         if not source_type or not summary:
             raise ResearchPlanValidationError(
                 f"{field_name}[{index}] needs source_type and summary."
+            )
+        if source_type.lower() == "provider_native_search" and not provider_native_search_active:
+            raise ResearchPlanValidationError(
+                f"{field_name}[{index}] cites provider_native_search, but provider-native "
+                "search was not active for this planning pass. Use harness "
+                "repo_search/community_search/web_search evidence, local_facts, "
+                "selected_app_catalog, user_profile, or manual_followup instead."
             )
         evidence.append(
             PlanEvidence(
@@ -526,7 +547,11 @@ def _clean_shell_commands(raw: Any, *, field_name: str) -> list[str]:
     return commands
 
 
-def _parse_command_group(item: Any) -> CommandGroup:
+def _parse_command_group(
+    item: Any,
+    *,
+    provider_native_search_active: bool = True,
+) -> CommandGroup:
     if not isinstance(item, dict):
         raise ResearchPlanValidationError("Each command group must be an object.")
     gid = str(item.get("id", "")).strip()
@@ -570,6 +595,7 @@ def _parse_command_group(item: Any) -> CommandGroup:
         evidence=_parse_evidence(
             item.get("evidence", []),
             field_name=f"command_groups[{gid or title or '?'}].evidence",
+            provider_native_search_active=provider_native_search_active,
         ),
     )
 
@@ -590,7 +616,11 @@ def _parse_operations(raw: Any, *, field_name: str) -> list[Any]:
     return operations
 
 
-def _parse_command_groups(raw: Any) -> list[CommandGroup]:
+def _parse_command_groups(
+    raw: Any,
+    *,
+    provider_native_search_active: bool = True,
+) -> list[CommandGroup]:
     if not isinstance(raw, list) or not raw:
         raise ResearchPlanValidationError("command_groups must be a non-empty list.")
     groups: list[CommandGroup] = []
@@ -609,7 +639,12 @@ def _parse_command_groups(raw: Any) -> list[CommandGroup]:
             )
             if not has_command and not has_operation:
                 continue
-        groups.append(_parse_command_group(item))
+        groups.append(
+            _parse_command_group(
+                item,
+                provider_native_search_active=provider_native_search_active,
+            )
+        )
     if not groups:
         raise ResearchPlanValidationError(
             "command_groups must include at least one executable group."
@@ -617,7 +652,12 @@ def _parse_command_groups(raw: Any) -> list[CommandGroup]:
     return groups
 
 
-def _normalize_app_items(raw: Any, requested: list[str]) -> list[AppPlanItem]:
+def _normalize_app_items(
+    raw: Any,
+    requested: list[str],
+    *,
+    provider_native_search_active: bool = True,
+) -> list[AppPlanItem]:
     items: list[AppPlanItem] = []
     if raw is None:
         raw = []
@@ -663,6 +703,7 @@ def _normalize_app_items(raw: Any, requested: list[str]) -> list[AppPlanItem]:
                 evidence=_parse_evidence(
                     item.get("evidence", []),
                     field_name=f"apps[{name}].evidence",
+                    provider_native_search_active=provider_native_search_active,
                 ),
             )
         )
@@ -683,7 +724,12 @@ def _normalize_app_items(raw: Any, requested: list[str]) -> list[AppPlanItem]:
     return items
 
 
-def extract_research_plan(text: str, profile: UserProfile) -> ResearchPlan:
+def extract_research_plan(
+    text: str,
+    profile: UserProfile,
+    *,
+    provider_native_search_active: bool = True,
+) -> ResearchPlan:
     payload = _extract_json_payload(text)
     target_summary = str(payload.get("target_summary", "")).strip()
     distro_family = str(payload.get("distro_family", "")).strip()
@@ -692,10 +738,25 @@ def extract_research_plan(text: str, profile: UserProfile) -> ResearchPlan:
         raise ResearchPlanValidationError(
             "Planner output must include target_summary, distro_family, and package_manager."
         )
-    driver = _parse_strategy(payload.get("driver_strategy"), "driver_strategy")
-    desktop = _parse_strategy(payload.get("desktop_strategy"), "desktop_strategy")
-    command_groups = _parse_command_groups(payload.get("command_groups"))
-    apps = _normalize_app_items(payload.get("apps"), list(profile.apps_to_install or []))
+    driver = _parse_strategy(
+        payload.get("driver_strategy"),
+        "driver_strategy",
+        provider_native_search_active=provider_native_search_active,
+    )
+    desktop = _parse_strategy(
+        payload.get("desktop_strategy"),
+        "desktop_strategy",
+        provider_native_search_active=provider_native_search_active,
+    )
+    command_groups = _parse_command_groups(
+        payload.get("command_groups"),
+        provider_native_search_active=provider_native_search_active,
+    )
+    apps = _normalize_app_items(
+        payload.get("apps"),
+        list(profile.apps_to_install or []),
+        provider_native_search_active=provider_native_search_active,
+    )
     questions = list(payload.get("unresolved_questions", []) or [])
     for question in questions:
         if not isinstance(question, dict) or not str(question.get("question", "")).strip():
@@ -907,6 +968,18 @@ def build_research_prompt(
         asdict(display)
         for display in getattr(getattr(profile, "hardware", None), "displays", []) or []
     ]
+    evidence_search_rule = (
+        "If you use provider-native search, cite it as provider_native_search with a query/summary. "
+        "If you use harness search results, cite repo_search/community_search/web_search. "
+        "If an item only comes from local facts/user preference/catalog, cite local_facts/user_profile/selected_app_catalog and keep confidence honest.\n"
+        if native_search_active
+        else "Provider-native search is not active for this planning pass. Do not cite provider_native_search evidence; use harness repo_search/community_search/web_search evidence, local_facts, user_profile, selected_app_catalog, or manual_followup instead.\n"
+    )
+    evidence_source_values = (
+        "repo_search, community_search, web_search, provider_native_search, official_docs, distro_primer, selected_app_catalog, local_facts, or user_profile"
+        if native_search_active
+        else "repo_search, community_search, web_search, official_docs, distro_primer, selected_app_catalog, local_facts, user_profile, or manual_followup"
+    )
     search_block = (
         "Provider-native search is ENABLED for this planning pass. Use it heavily for current package names, driver families, and distro-specific instructions.\n"
         "Harness planning actions are also available for auditable target-specific repo/community/web lookups when exact package facts need to be fed back into the next turn.\n"
@@ -931,7 +1004,7 @@ def build_research_prompt(
         "- command_groups (non-empty list; each item: id, stage, title, commands, operations, verification, rationale, source, packages, optional, optional_slow, evidence)\n"
         "- operations are typed setup intents for dangerous work: {kind, target, filesystem, mountpoint, options}. Supported kinds: partition_disk, format_partition, mount_partition, write_fstab, install_bootloader, create_user, enable_network_reconnect, install_ssh_key, controlled_reboot, network_security_change, package_db_repair.\n"
         "- apps (list; each item: name, package_name, source, status, required, optional_slow, reason, evidence)\n"
-        "- evidence entries are objects: {source_type, summary, query, url, title, confidence}. Use source_type values such as repo_search, community_search, web_search, provider_native_search, official_docs, distro_primer, selected_app_catalog, local_facts, or user_profile.\n"
+        f"- evidence entries are objects: {{source_type, summary, query, url, title, confidence}}. Use source_type values such as {evidence_source_values}.\n"
         "- unresolved_questions (list of objects with question, required, choices)\n"
         "- verification_commands (object keyed by stage)\n"
         "- required_items (list)\n"
@@ -963,8 +1036,9 @@ def build_research_prompt(
         "- On Fedora-family live targets, full live install is supported through a typed CLI `dnf --installroot` path. Do not run Anaconda, liveinst, or Kickstart as a normal SSH command. Partition/mount the target, install the base system with `dnf --installroot=/mnt --releasever=<VERSION_ID> --use-host-config --setopt=install_weak_deps=False --nodocs install -y ...`; `--use-host-config` is required on empty installroots so dnf can see the live ISO's repo definitions. For BIOS/legacy Fedora live installs, prefer one ext4 root partition mounted at `/mnt`; do not create a separate `/boot` partition unless UEFI/ESP or an explicit user requirement needs it, because installroot kernel transactions can leave a separately mounted `/boot` without vmlinuz/initramfs artifacts. Install `fedora-release`, `fedora-repos`, `systemd`, `systemd-pam`, `dbus-daemon`, `passwd`, `sudo`, `openssh-server`, `NetworkManager`, `kernel`, `kernel-core`, `kernel-modules`, `kernel-modules-extra`, `dracut`, `dnf`, `gawk`, and bootloader packages for the detected boot mode. Bind-mount dev/dev/pts/proc/sys/run before chroot commands, create the target user, enable NetworkManager and sshd with `systemctl --root=/mnt enable ...` or chrooted systemctl, write fstab using root-readable probes such as `ROOT_UUID=$(sudo blkid -s UUID -o value /dev/sda1)` and verify it is non-empty, remove stale shadow lock files such as `/mnt/etc/.pwd.lock` before `chpasswd` if user creation previously touched passwd/shadow, ensure `/mnt/boot/vmlinuz-*` and `/mnt/boot/initramfs-*.img` exist before reboot, regenerate initramfs with `chroot /mnt dracut --regenerate-all --force`, install/configure GRUB on the parent disk device (not the root partition) or the UEFI fallback files, `touch /mnt/.autorelabel` for SELinux, then let QuickHatch own guarded unmount/reboot/reconnect.\n"
         "- For Fedora desktop setup, prefer explicit package sets over broad graphical installer workflows. GNOME/GDM plans must include enough session plumbing for the greeter to launch, especially `systemd-pam` and `dbus-daemon` if they were not part of the base install. Verify with package queries, enabled/active services, and a local loginctl greeter/user session before claiming desktop success.\n"
         "- For fstab/root verification, avoid whitespace-sensitive checks like `grep -q ' / ' /mnt/etc/fstab`; fstab is tab/space delimited. Prefer `findmnt -R /mnt`, `mountpoint /mnt/boot`, or `awk '$2 == \"/\" {found=1} END{exit !found}' /mnt/etc/fstab`.\n"
-        "- Every driver_strategy, desktop_strategy, command group, and resolved app SHOULD include evidence. If you used provider-native search, cite it as provider_native_search with a query/summary. If you used harness search results, cite repo_search/community_search/web_search. If an item only comes from local facts/user preference/catalog, cite local_facts/user_profile/selected_app_catalog and keep confidence honest.\n"
-        "- Do not invent source URLs. If only native search was used and you do not have a URL, leave url empty and include query + summary.\n"
+        "- Every driver_strategy, desktop_strategy, command group, and resolved app SHOULD include evidence. "
+        + evidence_search_rule
+        + "- Do not invent source URLs. If only native search was used and you do not have a URL, leave url empty and include query + summary.\n"
         "- Use official repos by default; only use community sources when needed and explicit.\n"
         "- On Arch, do not ask the user solely because `yay`/`paru` is absent. Prefer `yay` for AUR packages when no helper is detected; the harness can bootstrap it before execution. Avoid `paru` unless facts show it is installed.\n"
         "- Classify slow desktop wrappers (ChatGPT/Claude/Codex desktop wrappers, Electron bundle wrappers, etc.) as optional_slow only when the command group is optional. Never mark required base install, bootloader, driver, or core desktop groups as optional_slow.\n"

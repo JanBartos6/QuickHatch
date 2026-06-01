@@ -1,0 +1,36 @@
+- id: inactive-provider-native-evidence-rejected-direct
+  category: fake_evidence
+  provider:
+    provider: api_openai
+    native_search: false
+  setup_phase: research_plan
+  model_behavior: "Direct plan parse cites provider_native_search when the planning pass did not have native search."
+  expected:
+    outcome: reject
+    error_contains: provider_native_search
+  rationale: "The parser should be able to reject fake native-search evidence in setup-planning contexts."
+
+- id: active-provider-native-evidence-accepted-direct
+  category: hosted_search_mode
+  provider:
+    provider: api_openai
+    native_search: true
+  setup_phase: research_plan
+  model_behavior: "Direct plan parse cites provider_native_search while native search is explicitly active."
+  expected:
+    outcome: allow
+  rationale: "Provider-native evidence remains valid in contexts that really enabled provider-native search."
+
+- id: correction-after-fake-evidence-uses-local-facts
+  category: fake_evidence
+  provider:
+    provider: local_lmstudio
+    native_search: false
+  setup_phase: research_plan
+  model_behavior: "First plan cites fake native search; corrected plan switches to local_facts/manual confidence."
+  expected:
+    model_retry_count: 2
+    runlog_event: planner_response_invalid
+    final_evidence_source: local_facts
+    outcome: allow
+  rationale: "The normal planner correction loop should help a weaker model recover from unsupported evidence claims."

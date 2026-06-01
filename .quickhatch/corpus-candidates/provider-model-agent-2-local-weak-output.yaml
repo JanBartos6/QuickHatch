@@ -1,0 +1,40 @@
+- id: local-prompt-no-native-search
+  category: local_model
+  provider:
+    provider: local_ollama
+    native_search: true
+  setup_phase: research_plan
+  model_behavior: "Local provider has no provider-native search even if the UI toggle is true."
+  expected:
+    prompt_contains:
+      - "Provider-native search is NOT available here"
+      - "Do not cite provider_native_search evidence"
+    native_search_sent_to_model: false
+    outcome: allow
+  rationale: "Local models must be nudged toward harness lookups and honest uncertainty."
+
+- id: local-malformed-plan-corrects
+  category: weak_output_correction
+  provider:
+    provider: local_lmstudio
+    native_search: false
+  setup_phase: research_plan
+  model_behavior: "First response is prose/truncated JSON, second response is a valid plan."
+  expected:
+    model_retry_count: 2
+    runlog_event: planner_response_invalid
+    outcome: allow
+  rationale: "Weaker/local models often emit malformed text; the harness should reject and retry without running commands."
+
+- id: local-fake-native-evidence-rejected
+  category: fake_evidence
+  provider:
+    provider: local_lmstudio
+    native_search: false
+  setup_phase: research_plan
+  model_behavior: "Plan cites provider_native_search even though native search was unavailable."
+  expected:
+    outcome: reject_then_correct
+    error_contains: provider_native_search
+    runlog_event: planner_response_invalid
+  rationale: "Weak/local models must not turn hallucinated search evidence into resolved confidence."

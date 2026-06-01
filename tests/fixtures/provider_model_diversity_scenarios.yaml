@@ -1,0 +1,211 @@
+# Curated provider/model diversity scenarios.
+#
+# These scenarios exercise provider behavior without real model calls,
+# network access, SSH, package managers, VMs, or shell execution.
+metadata:
+  version: 1
+  lane: provider_model_diversity
+  source: Merged from .quickhatch/corpus-candidates/provider-model-agent-*.yaml
+  policy: QuickHatch should use strong hosted model features where safe, but degrade honestly with local/weaker models, malformed output, provider outages, lookup failures, and unsupported native-search evidence.
+  total_scenarios: 15
+  scenarios_by_category:
+    fake_evidence: 3
+    hosted_search_mode: 3
+    hosted_transient_error: 1
+    local_model: 1
+    lookup_budget: 2
+    lookup_failure: 1
+    repair_provider_outage: 2
+    weak_output_correction: 2
+  expected_behaviors:
+    planner_disables_native_search_for_large_prompt: 2
+    repair_preserves_native_search_when_available: 1
+    weak_output_corrects_without_execution: 2
+    fake_native_search_evidence_rejected: 3
+    lookup_failures_become_specific_followup: 1
+    lookup_budget_bounded: 2
+    provider_outage_noninstall_manual_followup: 1
+    provider_outage_install_blocks: 1
+  rejected_ambiguous_cases: []
+scenarios:
+  - id: hosted-planning-disables-native-search
+    category: hosted_search_mode
+    provider:
+      provider: api_openai
+      native_search: true
+    setup_phase: research_plan
+    expected:
+      prompt_contains:
+        - "Provider-native search is NOT available here"
+        - "Use the harness planning actions"
+      native_search_sent_to_model: false
+      outcome: allow
+    rationale: "The large setup-planning prompt should keep hosted native search disabled and use auditable harness lookups."
+
+  - id: hosted-repair-keeps-native-search
+    category: hosted_search_mode
+    provider:
+      provider: api_openai
+      native_search: true
+    setup_phase: repair
+    expected:
+      prompt_contains:
+        - "Provider-native search is ENABLED in repair mode"
+        - "Harness search actions are still allowed"
+      native_search_sent_to_model: true
+      outcome: manual_followup
+    rationale: "Narrow repair turns can use hosted native search."
+
+  - id: hosted-provider-503-recovers
+    category: hosted_transient_error
+    provider:
+      provider: api_anthropic
+      native_search: true
+    setup_phase: research_plan
+    expected:
+      model_retry_count: 2
+      runlog_event: model_call_failed
+      outcome: allow
+    rationale: "Transient hosted provider errors should retry and continue when the retry succeeds."
+
+  - id: local-prompt-no-native-search
+    category: local_model
+    provider:
+      provider: local_ollama
+      native_search: true
+    setup_phase: research_plan
+    expected:
+      prompt_contains:
+        - "Provider-native search is NOT available here"
+        - "Do not cite provider_native_search evidence"
+      native_search_sent_to_model: false
+      outcome: allow
+    rationale: "Local models should be steered toward harness lookups and honest uncertainty."
+
+  - id: local-malformed-plan-corrects
+    category: weak_output_correction
+    provider:
+      provider: local_lmstudio
+      native_search: false
+    setup_phase: research_plan
+    expected:
+      model_retry_count: 2
+      runlog_event: planner_response_invalid
+      outcome: allow
+    rationale: "Malformed weak-model planner output should be rejected and corrected before any command groups run."
+
+  - id: local-fake-native-evidence-rejected
+    category: fake_evidence
+    provider:
+      provider: local_lmstudio
+      native_search: false
+    setup_phase: research_plan
+    expected:
+      outcome: reject_then_correct
+      error_contains: provider_native_search
+      runlog_event: planner_response_invalid
+    rationale: "Unavailable native-search evidence should not become resolved confidence."
+
+  - id: lookup-failure-manual-followup
+    category: lookup_failure
+    provider:
+      provider: local_lmstudio
+      native_search: false
+    setup_phase: research_plan
+    expected:
+      lookup_failures: 1
+      runlog_event: planner_lookup_failed
+      outcome: manual_followup
+    rationale: "Failed harness lookup should feed the model and produce specific manual follow-up for unresolved items."
+
+  - id: repeated-lookup-budget-forces-plan
+    category: lookup_budget
+    provider:
+      provider: api_custom
+      native_search: false
+    setup_phase: research_plan
+    expected:
+      max_lookup_calls: 3
+      runlog_event: planner_lookup_budget_exhausted
+      outcome: allow
+    rationale: "Repeated lookup requests must be bounded."
+
+  - id: web-search-max-results-bounded
+    category: lookup_budget
+    provider:
+      provider: api_grok
+      native_search: true
+    setup_phase: research_plan
+    expected:
+      bounded_max_results: 10
+      outcome: allow
+    rationale: "Model-provided web-search result counts must be clamped."
+
+  - id: app-repair-provider-outage-manual-followup
+    category: repair_provider_outage
+    provider:
+      provider: api_openai
+      native_search: true
+    setup_phase: repair
+    expected:
+      outcome: manual_followup
+      runlog_event: repair_model_unavailable_manual_followup
+      final_status_effect: manual_followup_required
+    rationale: "Provider outage during app repair should not block unrelated setup."
+
+  - id: install-repair-provider-outage-blocks
+    category: repair_provider_outage
+    provider:
+      provider: api_openai
+      native_search: true
+    setup_phase: repair
+    expected:
+      outcome: blocked
+      runlog_event: model_call_failed
+      final_status_effect: blocked
+    rationale: "Provider outage during core install repair remains blocking."
+
+  - id: local-invalid-repair-exhaustion-manual-followup
+    category: weak_output_correction
+    provider:
+      provider: local_ollama
+      native_search: false
+    setup_phase: repair
+    expected:
+      outcome: manual_followup
+      reason_contains: Repair loop exhausted
+    rationale: "Invalid local repair output should become a bounded manual follow-up for non-install repair."
+
+  - id: inactive-provider-native-evidence-rejected-direct
+    category: fake_evidence
+    provider:
+      provider: api_openai
+      native_search: false
+    setup_phase: research_plan
+    expected:
+      outcome: reject
+      error_contains: provider_native_search
+    rationale: "Direct parser use should reject unsupported provider-native evidence when the pass did not enable it."
+
+  - id: active-provider-native-evidence-accepted-direct
+    category: hosted_search_mode
+    provider:
+      provider: api_openai
+      native_search: true
+    setup_phase: research_plan
+    expected:
+      outcome: allow
+    rationale: "Provider-native evidence stays valid when the caller explicitly enables that context."
+
+  - id: correction-after-fake-evidence-uses-local-facts
+    category: fake_evidence
+    provider:
+      provider: local_lmstudio
+      native_search: false
+    setup_phase: research_plan
+    expected:
+      model_retry_count: 2
+      runlog_event: planner_response_invalid
+      final_evidence_source: local_facts
+      outcome: allow
+    rationale: "Planner correction should recover by switching to local facts or manual-follow-up evidence."

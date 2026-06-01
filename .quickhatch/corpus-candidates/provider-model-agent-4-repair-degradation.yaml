@@ -1,0 +1,37 @@
+- id: app-repair-provider-outage-manual-followup
+  category: repair_provider_outage
+  provider:
+    provider: api_openai
+    native_search: true
+  setup_phase: repair
+  model_behavior: "All app repair model attempts fail with 429."
+  expected:
+    outcome: manual_followup
+    runlog_event: repair_model_unavailable_manual_followup
+    final_status_effect: manual_followup_required
+  rationale: "A provider outage during non-install app repair should not block unrelated setup progress."
+
+- id: install-repair-provider-outage-blocks
+  category: repair_provider_outage
+  provider:
+    provider: api_openai
+    native_search: true
+  setup_phase: repair
+  model_behavior: "All install-spine repair model attempts fail with 429."
+  expected:
+    outcome: blocked
+    runlog_event: model_call_failed
+    final_status_effect: blocked
+  rationale: "Core install repair cannot be silently downgraded to optional manual follow-up."
+
+- id: local-invalid-repair-exhaustion-manual-followup
+  category: weak_output_correction
+  provider:
+    provider: local_ollama
+    native_search: false
+  setup_phase: repair
+  model_behavior: "Local repair model keeps returning invalid JSON for an app failure."
+  expected:
+    outcome: manual_followup
+    reason_contains: Repair loop exhausted
+  rationale: "Invalid local repair output should become a specific non-install follow-up, not an endless loop."
