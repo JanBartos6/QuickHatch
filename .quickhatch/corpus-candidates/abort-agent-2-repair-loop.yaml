@@ -1,0 +1,486 @@
+- id: repair-stop-model-after-app-failure
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+      - install-vlc
+    active_group: install-obsidian
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped setup while model repair was being requested after an app install failure."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "stopped"
+      - "install-obsidian"
+      - "repair"
+    summary_must_not_claim:
+      - "success"
+      - "all apps installed"
+  rationale: "A user stop during repair planning must prevent repair execution and preserve partial success evidence."
+
+- id: repair-stop-before-model-call
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+      - install-firefox
+    active_group: install-spotify
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped setup after command failure but before the model repair provider was called."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "stopped before repair"
+      - "install-spotify"
+    summary_must_not_claim:
+      - "repair completed"
+      - "success"
+  rationale: "The repair provider must not be called once a stop has been requested."
+
+- id: repair-stop-during-provider-429-backoff
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+      - install-keepassxc
+    active_group: install-slack
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped while repair provider retry/backoff was pending after a 429."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "provider"
+      - "429"
+      - "stopped"
+    summary_must_not_claim:
+      - "repair succeeded"
+      - "success"
+  rationale: "Provider retry/backoff must be interruptible and must not continue repair calls after stop."
+
+- id: repair-stop-after-provider-timeout
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+      - install-gimp
+    active_group: install-discord
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped after provider timeout while repair loop was deciding whether to retry."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "provider timeout"
+      - "stopped"
+      - "install-discord"
+    summary_must_not_claim:
+      - "manual follow-up resolved"
+      - "success"
+  rationale: "Provider failure should not mask the user's stop or erase already completed groups."
+
+- id: repair-stop-identical-package-loop
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+      - install-vscode
+    active_group: install-fake-package
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped after repeated identical package repair attempts failed."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "repeated repair"
+      - "stopped"
+      - "install-fake-package"
+    summary_must_not_claim:
+      - "package repaired"
+      - "success"
+  rationale: "A stopped repeated-failure loop should exit cleanly without poisoning unrelated completed apps."
+
+- id: repair-stop-after-strategy-change-failure
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+      - install-libreoffice
+    active_group: install-spotify
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped after repo install failed and repair proposed a Flatpak fallback."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "fallback"
+      - "Flatpak"
+      - "stopped"
+    summary_must_not_claim:
+      - "fallback installed"
+      - "success"
+  rationale: "Meaningful repair strategy changes may be valid, but stop must prevent the fallback from starting."
+
+- id: repair-stop-optional-theme-failure
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+      - install-apps
+    active_group: apply-theme
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+      - "wallpaper not verified"
+  event:
+    type: user_stop
+    reason: "User stopped while repair loop was handling an optional theme failure."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "theme"
+      - "optional"
+      - "stopped"
+    summary_must_not_claim:
+      - "theme verified"
+      - "success"
+  rationale: "Optional cosmetic repair must not become fatal, but a user stop still prevents further repair work."
+
+- id: repair-stop-required-app-before-manual-followup
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+      - install-browser
+    active_group: install-required-editor
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped while repair loop was about to convert a required app failure into manual follow-up."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "required-editor"
+      - "unresolved"
+      - "stopped"
+    summary_must_not_claim:
+      - "required app installed"
+      - "success"
+  rationale: "Required unresolved app work must stay visible when stop interrupts repair classification."
+
+- id: repair-budget-prompt-stop
+  category: pending_question_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+      - install-core-apps
+    active_group: install-obsidian
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped while repair loop was asking whether to spend another repair attempt."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "repair question"
+      - "stopped"
+      - "install-obsidian"
+    summary_must_not_claim:
+      - "user approved repair"
+      - "success"
+  rationale: "Stop during a repair-budget prompt must not imply consent or continue with a default answer."
+
+- id: repair-extension-question-stop
+  category: pending_question_stop
+  mode: fresh_install
+  stage: repair
+  state_before:
+    completed_groups:
+      - bootstrap-system
+      - install-base-apps
+    active_group: install-extra-apps
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped while setup was asking whether to extend app repair attempts."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "repair attempts"
+      - "stopped"
+      - "install-extra-apps"
+    summary_must_not_claim:
+      - "continued repair"
+      - "success"
+  rationale: "A pending repair-extension question must be explicitly abandoned or marked stopped."
+
+- id: repair-stop-before-destructive-suggestion
+  category: repair_loop_stop
+  mode: fresh_install
+  stage: repair
+  state_before:
+    completed_groups:
+      - bootstrap-system
+    active_group: repair-package-db
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped after repair model suggested a risky package database operation."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "package database"
+      - "capability"
+      - "stopped"
+    summary_must_not_claim:
+      - "repair executed"
+      - "success"
+  rationale: "Stop plus pending destructive capability must prevent any risky repair fallback from starting."
+
+- id: repair-stop-after-preflight-repair-block
+  category: preflight_block
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+      - install-safe-apps
+    active_group: repair-network-service
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped after a repair command was preflight-blocked for network disruption risk."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "preflight"
+      - "network"
+      - "stopped"
+    summary_must_not_claim:
+      - "network repair applied"
+      - "success"
+  rationale: "A blocked repair command must not be retried through another path after the user stops."
+
+- id: repair-stop-provider-error-preserves-progress
+  category: repair_loop_stop
+  mode: postboot_setup
+  stage: repair
+  state_before:
+    completed_groups:
+      - verify-boot
+      - install-browser
+      - apply-wallpaper
+    active_group: repair-driver-warning
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+      - "nvidia module not verified"
+  event:
+    type: user_stop
+    reason: "User stopped while provider error handling was preparing driver follow-up."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "driver"
+      - "manual follow-up"
+      - "stopped"
+    summary_must_not_claim:
+      - "driver verified"
+      - "success"
+  rationale: "Provider error handling must preserve previous completed work and unresolved driver evidence."
+
+- id: repair-stop-group-scope-only-active-group
+  category: repair_loop_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+      - install-firefox
+      - install-vlc
+    active_group: install-unknown-chat-client
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped while active app group repair was in progress."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "install-unknown-chat-client"
+      - "stopped"
+    summary_must_not_claim:
+      - "install-firefox failed"
+      - "install-vlc failed"
+      - "success"
+  rationale: "Repair-loop stop should be scoped to the active group and must not regress unrelated successful groups."
+
+- id: repair-stop-before-final-audit-repair-call
+  category: repair_loop_stop
+  mode: postboot_setup
+  stage: final_audit
+  state_before:
+    completed_groups:
+      - install-apps
+      - desktop-config
+    active_group: final-audit-repair-wallpaper
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+      - "wallpaper not verified"
+  event:
+    type: user_stop
+    reason: "User stopped before final-audit repair provider could generate a wallpaper fix."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "final audit"
+      - "wallpaper"
+      - "stopped"
+    summary_must_not_claim:
+      - "final audit repaired"
+      - "success"
+  rationale: "Final-audit repair is still repair-loop work and must honor user stop before provider calls."

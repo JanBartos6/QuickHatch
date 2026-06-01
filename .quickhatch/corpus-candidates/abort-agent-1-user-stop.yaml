@@ -1,0 +1,582 @@
+- id: user-stop-app-install-first-command
+  category: user_stop
+  mode: configure_existing
+  stage: apps
+  state_before:
+    completed_groups: []
+    active_group: "Install requested apps"
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User clicked stop while the first app install command was active"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "Install requested apps"
+    summary_must_not_claim:
+      - "setup completed successfully"
+      - "all requested apps installed"
+  rationale: "A user stop during an app command may let the active command settle, but no later app or desktop groups should begin and the final summary must not be success."
+
+- id: user-stop-app-install-after-partial-success
+  category: user_stop
+  mode: configure_existing
+  stage: apps
+  state_before:
+    completed_groups:
+      - "Install browser"
+    active_group: "Install media apps"
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped after one app group completed and the next app group started"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "Install browser"
+      - "Install media apps"
+    summary_must_not_claim:
+      - "all requested apps installed"
+      - "success"
+  rationale: "Completed app progress should be preserved, but unrelated later groups must not start after the stop."
+
+- id: user-stop-app-install-before-next-package-group
+  category: user_stop
+  mode: fresh_install
+  stage: apps
+  state_before:
+    completed_groups:
+      - "Bootstrap base system"
+      - "Install shell tools"
+    active_group: ""
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped between app package groups"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "between groups"
+    summary_must_not_claim:
+      - "postboot setup complete"
+      - "success"
+  rationale: "A stop observed between groups should prevent the next group from starting even when prior groups completed cleanly."
+
+- id: user-stop-app-install-required-app-unresolved
+  category: user_stop
+  mode: postboot_setup
+  stage: apps
+  state_before:
+    completed_groups:
+      - "Install base apps"
+    active_group: "Install required creative apps"
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped after a required app failed but before repair began"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "required creative apps"
+    summary_must_not_claim:
+      - "required apps completed"
+      - "success"
+  rationale: "The stop should prevent entering repair for the failed required app and must keep the unresolved app visible."
+
+- id: user-stop-desktop-live-apply
+  category: user_stop
+  mode: configure_existing
+  stage: desktop
+  state_before:
+    completed_groups:
+      - "Install theme packages"
+    active_group: "Apply desktop theme"
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped while live desktop theme apply was active"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "Apply desktop theme"
+    summary_must_not_claim:
+      - "theme verified"
+      - "desktop customization complete"
+  rationale: "Desktop live-apply work is cosmetic and should stop cleanly without claiming the visual result was verified."
+
+- id: user-stop-desktop-wallpaper-after-theme-success
+  category: user_stop
+  mode: configure_existing
+  stage: desktop
+  state_before:
+    completed_groups:
+      - "Apply theme"
+      - "Apply icons"
+    active_group: "Apply wallpaper"
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped after theme and icons succeeded but wallpaper was still active"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "Apply theme"
+      - "Apply wallpaper"
+    summary_must_not_claim:
+      - "wallpaper verified"
+      - "all design changes applied"
+  rationale: "Per-element desktop progress should remain visible while the stopped wallpaper element must not be reported as applied."
+
+- id: user-stop-desktop-between-cosmetic-groups
+  category: user_stop
+  mode: postboot_setup
+  stage: desktop
+  state_before:
+    completed_groups:
+      - "Persist desktop settings"
+    active_group: ""
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+      - "Wallpaper requires active GUI session"
+  event:
+    type: user_stop
+    reason: "User stopped between cosmetic desktop groups"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "Wallpaper requires active GUI session"
+    summary_must_not_claim:
+      - "desktop setup successful"
+      - "manual follow-up resolved"
+  rationale: "Existing manual follow-up should survive a stop between groups and later desktop groups must not begin."
+
+- id: user-stop-final-audit-start
+  category: user_stop
+  mode: fresh_install
+  stage: final_audit
+  state_before:
+    completed_groups:
+      - "Install base system"
+      - "Configure bootloader"
+      - "Reconnect after reboot"
+      - "Install requested apps"
+    active_group: "Final audit"
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped as final audit began"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "Final audit"
+    summary_must_not_claim:
+      - "final audit passed"
+      - "success"
+  rationale: "Stopping final audit should preserve completed setup evidence but must not fabricate a passed audit."
+
+- id: user-stop-final-audit-after-warning-finding
+  category: user_stop
+  mode: postboot_setup
+  stage: final_audit
+  state_before:
+    completed_groups:
+      - "Install apps"
+      - "Apply desktop settings"
+    active_group: "Final audit"
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+      - "Optional wallpaper could not be verified"
+  event:
+    type: user_stop
+    reason: "User stopped after final audit recorded a warning"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "Optional wallpaper could not be verified"
+    summary_must_not_claim:
+      - "warnings resolved"
+      - "success"
+  rationale: "Warnings already found by audit should remain visible and should not be collapsed into success after stop."
+
+- id: user-stop-final-audit-before-repair
+  category: user_stop
+  mode: fresh_install
+  stage: final_audit
+  state_before:
+    completed_groups:
+      - "Install base system"
+      - "Pre-reboot checks"
+      - "Reconnect after reboot"
+    active_group: "Final audit"
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped after a repairable final-audit finding was detected but before repair planning"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "final-audit finding"
+    summary_must_not_claim:
+      - "repair completed"
+      - "success"
+  rationale: "A stop before final-audit repair should prevent repair planning and leave the finding traceable."
+
+- id: user-stop-between-install-and-postboot
+  category: user_stop
+  mode: fresh_install
+  stage: apps
+  state_before:
+    completed_groups:
+      - "Install base system"
+      - "Configure bootloader"
+      - "Reconnect after reboot"
+    active_group: ""
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped between postboot stage groups"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "Reconnect after reboot"
+    summary_must_not_claim:
+      - "postboot setup complete"
+      - "success"
+  rationale: "A stop after reconnect but before postboot app work should not rerun install work or begin new postboot groups."
+
+- id: user-stop-after-driver-warning-before-apps
+  category: user_stop
+  mode: postboot_setup
+  stage: apps
+  state_before:
+    completed_groups:
+      - "Driver verification"
+    active_group: ""
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+      - "NVIDIA module installed but not verified after reboot"
+  event:
+    type: user_stop
+    reason: "User stopped after driver warning before app setup began"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "NVIDIA module installed but not verified after reboot"
+    summary_must_not_claim:
+      - "driver verified"
+      - "apps installed"
+  rationale: "Existing driver uncertainty should be preserved and app setup should not start after stop."
+
+- id: user-stop-after-optional-app-failure
+  category: user_stop
+  mode: configure_existing
+  stage: apps
+  state_before:
+    completed_groups:
+      - "Install required apps"
+    active_group: "Install optional apps"
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+      - "Optional app StreamDeck unavailable"
+  event:
+    type: user_stop
+    reason: "User stopped after optional app failure was recorded"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "Optional app StreamDeck unavailable"
+    summary_must_not_claim:
+      - "optional app installed"
+      - "success"
+  rationale: "Optional failure should remain a specific follow-up or warning, and stop should prevent unrelated later work."
+
+- id: user-stop-after-safe-diagnostics-before-desktop
+  category: user_stop
+  mode: configure_existing
+  stage: desktop
+  state_before:
+    completed_groups:
+      - "Collect diagnostics"
+      - "Install app packages"
+    active_group: ""
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped after diagnostics and app packages before desktop changes"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "Collect diagnostics"
+      - "Install app packages"
+    summary_must_not_claim:
+      - "desktop changes applied"
+      - "success"
+  rationale: "Stop between stages should preserve diagnostics/app evidence while preventing the desktop stage from starting."
+
+- id: user-stop-final-audit-after-partial-success-and-followup
+  category: user_stop
+  mode: configure_existing
+  stage: final_audit
+  state_before:
+    completed_groups:
+      - "Install browser"
+      - "Apply icon theme"
+      - "Collect service diagnostics"
+    active_group: "Final audit"
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+      - "Cursor theme not available"
+  event:
+    type: user_stop
+    reason: "User stopped during final audit after partial success and manual follow-up"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "Cursor theme not available"
+      - "Install browser"
+    summary_must_not_claim:
+      - "all requested design changes applied"
+      - "success"
+  rationale: "The run should show both preserved partial progress and unresolved manual follow-up, not a successful final state."
+
+- id: user-stop-desktop-before-live-only-command
+  category: user_stop
+  mode: postboot_setup
+  stage: desktop
+  state_before:
+    completed_groups:
+      - "Persist wallpaper setting"
+    active_group: ""
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped before a live-only desktop command would be dispatched"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "Persist wallpaper setting"
+    summary_must_not_claim:
+      - "live desktop apply completed"
+      - "wallpaper verified"
+  rationale: "Stop should prevent the live-only apply command from beginning while preserving prior persistent config evidence."
+
+- id: user-stop-app-stage-with-destructive-capability-pending
+  category: user_stop
+  mode: fresh_install
+  stage: apps
+  state_before:
+    completed_groups:
+      - "Reconnect after reboot"
+    active_group: "Install apps"
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped while a stale destructive capability preview was still pending"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "destructive capability"
+    summary_must_not_claim:
+      - "capability approved"
+      - "success"
+  rationale: "A pending destructive capability must not be consumed or broadened after the user stops."
+
+- id: user-stop-final-audit-before-support-export
+  category: support_bundle
+  mode: fresh_install
+  stage: final_audit
+  state_before:
+    completed_groups:
+      - "Install base system"
+      - "Reconnect after reboot"
+      - "Install apps"
+    active_group: "Final audit"
+    pending_question: false
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+      - "Optional app unavailable"
+  event:
+    type: user_stop
+    reason: "User stopped during final audit and then exported support bundle"
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: false
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stop"
+      - "Optional app unavailable"
+      - "support bundle"
+    summary_must_not_claim:
+      - "final audit passed"
+      - "success"
+  rationale: "Support artifacts for a stopped run should explain the stop and preserve manual follow-up evidence without exposing a false success."

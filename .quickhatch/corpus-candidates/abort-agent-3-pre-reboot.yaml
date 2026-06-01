@@ -1,0 +1,427 @@
+- id: pre-reboot-stop-after-checks-pass
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: pre_reboot
+  state_before:
+    completed_groups:
+      - partition
+      - format
+      - bootstrap
+      - fstab
+      - bootloader
+      - ssh_continuity_check
+    active_group: "pre-reboot gate"
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User clicked stop after pre-reboot checks passed but before controlled reboot was issued."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stopped setup"
+      - "before reboot"
+      - "pre-reboot checks passed"
+    summary_must_not_claim:
+      - "reboot completed"
+      - "post-reboot verification passed"
+      - "success"
+  rationale: "A user stop after a safe pre-reboot gate must prevent the harness-owned reboot and preserve checkpoint evidence."
+
+- id: pre-reboot-stop-before-checkpoint-write
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: pre_reboot
+  state_before:
+    completed_groups:
+      - bootstrap
+      - fstab
+      - bootloader
+    active_group: "checkpoint before reboot"
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped setup while checkpoint preparation was starting."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stopped setup"
+      - "checkpoint"
+      - "reboot was not started"
+    summary_must_not_claim:
+      - "checkpoint resumed successfully"
+      - "reboot completed"
+      - "success"
+  rationale: "Stopping before checkpoint completion should leave logs intact and prevent reboot dispatch."
+
+- id: pre-reboot-stop-after-checkpoint-before-reboot-command
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: reboot
+  state_before:
+    completed_groups:
+      - bootstrap
+      - fstab
+      - bootloader
+      - pre_reboot_audit
+    active_group: "controlled reboot"
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups:
+      - "optional wallpaper not verified"
+  event:
+    type: user_stop
+    reason: "User stopped setup after checkpoint was saved but before reboot command dispatch."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stopped setup"
+      - "checkpoint saved"
+      - "reboot was not started"
+      - "optional wallpaper not verified"
+    summary_must_not_claim:
+      - "postboot setup started"
+      - "reconnect succeeded"
+      - "success"
+  rationale: "A saved checkpoint does not authorize continuing after stop; prior manual follow-up context must survive."
+
+- id: reboot-queued-stop-before-dispatch
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: reboot
+  state_before:
+    completed_groups:
+      - install
+      - pre_reboot_audit
+    active_group: "queued controlled reboot"
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "Stop requested while controlled reboot operation was queued but not yet dispatched."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stopped setup"
+      - "queued reboot cancelled"
+    summary_must_not_claim:
+      - "reboot started"
+      - "target reconnected"
+      - "success"
+  rationale: "Queued reboot work is still future work and must be cancelled by a stop request."
+
+- id: pre-reboot-stop-after-capability-preview-before-controlled-reboot
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: reboot
+  state_before:
+    completed_groups:
+      - install
+      - pre_reboot_audit
+    active_group: "controlled reboot capability"
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped after reboot capability preview was created but before approval/consumption."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stopped setup"
+      - "controlled reboot not approved"
+      - "capability"
+    summary_must_not_claim:
+      - "capability consumed"
+      - "reboot completed"
+      - "success"
+  rationale: "A pending capability preview must not be consumed after the user stops."
+
+- id: pre-reboot-stop-with-manual-followup-existing
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: pre_reboot
+  state_before:
+    completed_groups:
+      - install
+      - apps
+      - desktop
+      - pre_reboot_audit
+    active_group: "pre-reboot summary"
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups:
+      - "NVIDIA Secure Boot enrollment required"
+      - "GNOME wallpaper not live-verified"
+  event:
+    type: user_stop
+    reason: "User stopped before reboot with existing manual follow-up items."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stopped setup"
+      - "NVIDIA Secure Boot enrollment required"
+      - "GNOME wallpaper not live-verified"
+      - "reboot was not started"
+    summary_must_not_claim:
+      - "manual follow-up resolved"
+      - "post-reboot driver verified"
+      - "success"
+  rationale: "Abort reporting must not erase already known manual-follow-up items."
+
+- id: configure-existing-driver-reboot-stop-before-approval
+  category: pre_reboot_stop
+  mode: configure_existing
+  stage: pre_reboot
+  state_before:
+    completed_groups:
+      - apps
+      - desktop
+      - driver_install
+    active_group: "driver reboot approval"
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups:
+      - "driver installed but module not verified until reboot"
+  event:
+    type: user_stop
+    reason: "User stopped configure-existing run before approving optional driver reboot."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stopped setup"
+      - "driver installed but module not verified until reboot"
+      - "reboot was not started"
+    summary_must_not_claim:
+      - "driver verified"
+      - "reboot completed"
+      - "success"
+  rationale: "Configure-existing reboot must remain explicit and stoppable, especially when verification depends on reboot."
+
+- id: postboot-setup-stop-before-second-reboot
+  category: pre_reboot_stop
+  mode: postboot_setup
+  stage: pre_reboot
+  state_before:
+    completed_groups:
+      - postboot_apps
+      - postboot_driver
+    active_group: "postboot reboot recommendation"
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups:
+      - "kernel module verification pending reboot"
+  event:
+    type: user_stop
+    reason: "User stopped postboot setup before a recommended verification reboot."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stopped setup"
+      - "verification reboot not started"
+      - "kernel module verification pending reboot"
+    summary_must_not_claim:
+      - "kernel module verified"
+      - "reboot completed"
+      - "success"
+  rationale: "A non-core postboot reboot recommendation must not proceed after stop or become plain success."
+
+- id: pre-reboot-stop-during-final-audit-repair-before-reboot
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: final_audit
+  state_before:
+    completed_groups:
+      - install
+      - pre_reboot_audit
+    active_group: "final audit repair before reboot"
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped while final-audit repair had made the system reboot-ready but before reboot."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stopped setup"
+      - "final audit repair"
+      - "reboot was not started"
+    summary_must_not_claim:
+      - "final audit passed after reboot"
+      - "postboot setup completed"
+      - "success"
+  rationale: "Repair success before reboot is not full setup success, and stop must still cancel the pending reboot."
+
+- id: pre-reboot-stop-before-reconnect-loop-starts
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: reboot
+  state_before:
+    completed_groups:
+      - install
+      - checkpoint
+    active_group: "reconnect loop pending reboot"
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "Stop requested before reboot dispatch, while reconnect loop state was being prepared."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stopped setup"
+      - "reconnect loop not started"
+      - "reboot was not started"
+    summary_must_not_claim:
+      - "SSH reconnect succeeded"
+      - "post-reboot facts refreshed"
+      - "success"
+  rationale: "Reconnect polling is only valid after a controlled reboot actually starts."
+
+- id: pre-reboot-stop-after-live-install-success-before-postboot
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: pre_reboot
+  state_before:
+    completed_groups:
+      - live_install
+      - package_install
+      - bootloader_install
+      - user_setup
+      - ssh_enablement
+    active_group: "transition to installed system"
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped at the live-to-installed-system transition."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stopped setup"
+      - "installed system transition"
+      - "reboot was not started"
+    summary_must_not_claim:
+      - "installed system booted"
+      - "postboot facts verified"
+      - "success"
+  rationale: "Completing live install work is not enough to claim success when the reboot transition is stopped."
+
+- id: pre-reboot-stop-after-stale-facts-refresh-before-reboot
+  category: pre_reboot_stop
+  mode: fresh_install
+  stage: pre_reboot
+  state_before:
+    completed_groups:
+      - install
+      - facts_refresh
+      - pre_reboot_audit
+    active_group: "pre-reboot facts confirmation"
+    pending_question: false
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped after refreshed facts confirmed reboot readiness."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "user stopped setup"
+      - "refreshed facts preserved"
+      - "reboot was not started"
+    summary_must_not_claim:
+      - "stale facts used after reboot"
+      - "post-reboot verification passed"
+      - "success"
+  rationale: "Fresh facts may be evidence, but stop must still prevent state transition into reboot."

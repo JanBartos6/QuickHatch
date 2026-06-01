@@ -1,0 +1,442 @@
+- id: pq-disk-confirm-stop-01
+  category: pending_question_stop
+  mode: fresh_install
+  stage: pending_question
+  state_before:
+    completed_groups: []
+    active_group: "confirm target disk"
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped while target disk confirmation was pending."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "stopped"
+      - "target disk confirmation"
+    summary_must_not_claim:
+      - "disk confirmed"
+      - "install completed"
+      - "success"
+  rationale: "A missing destructive disk confirmation must never be treated as implicit consent after stop."
+
+- id: pq-disk-confirm-after-probe-stop-02
+  category: pending_question_stop
+  mode: fresh_install
+  stage: pending_question
+  state_before:
+    completed_groups:
+      - "hardware probe"
+      - "disk inventory"
+    active_group: "select install target"
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped after disk inventory while waiting to confirm the selected disk."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "stopped"
+      - "selected disk was not confirmed"
+    summary_must_not_claim:
+      - "partitioning started"
+      - "formatting started"
+      - "success"
+  rationale: "Read-only discovery may be preserved, but partitioning or formatting must not start without the unanswered disk confirmation."
+
+- id: pq-disk-confirm-capability-stop-03
+  category: pending_question_stop
+  mode: fresh_install
+  stage: capability_check
+  state_before:
+    completed_groups:
+      - "disk inventory"
+    active_group: "request disk_partition capability"
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: true
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped while a destructive disk capability prompt was open."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "stopped"
+      - "capability prompt"
+      - "disk_partition"
+    summary_must_not_claim:
+      - "capability granted"
+      - "partitioning authorized"
+      - "success"
+  rationale: "Stopping during a capability prompt must not leave a latent destructive grant or continue with a default answer."
+
+- id: pq-repair-extension-stop-01
+  category: pending_question_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+      - "install browser"
+    active_group: "repair missing optional app"
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+      - "Optional app spotify failed from repo source."
+  event:
+    type: user_stop
+    reason: "User stopped while asked whether to allow another repair attempt."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "stopped"
+      - "repair attempt"
+      - "spotify"
+    summary_must_not_claim:
+      - "spotify installed"
+      - "all apps completed"
+      - "success"
+  rationale: "A repair-budget extension question must not be answered implicitly, and earlier app progress should remain visible."
+
+- id: pq-repair-required-app-stop-02
+  category: pending_question_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+      - "install required editor"
+    active_group: "repair required app failure"
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+      - "Required app code failed verification."
+  event:
+    type: user_stop
+    reason: "User stopped while repair decision for a required app was pending."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "stopped"
+      - "required app"
+      - "code"
+    summary_must_not_claim:
+      - "required apps verified"
+      - "setup completed"
+      - "success"
+  rationale: "Required app failure cannot be flattened into success when the user stops before choosing repair or follow-up."
+
+- id: pq-repair-desktop-stop-03
+  category: pending_question_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+      - "package setup"
+    active_group: "repair desktop customization"
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+      - "Wallpaper could not be verified in the active GUI session."
+  event:
+    type: user_stop
+    reason: "User stopped while desktop repair question was pending."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "stopped"
+      - "desktop customization"
+      - "wallpaper"
+    summary_must_not_claim:
+      - "wallpaper verified"
+      - "desktop setup completed"
+      - "success"
+  rationale: "Desktop repair should stop cleanly and preserve element-specific follow-up instead of continuing with a guessed repair."
+
+- id: pq-provider-api-key-stop-01
+  category: pending_question_stop
+  mode: configure_existing
+  stage: pending_question
+  state_before:
+    completed_groups:
+      - "facts probe"
+    active_group: "request provider configuration"
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups: []
+  event:
+    type: user_stop
+    reason: "User stopped while provider/API configuration question was pending."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "stopped"
+      - "provider"
+      - "configuration"
+    summary_must_not_claim:
+      - "provider configured"
+      - "model repair completed"
+      - "success"
+  rationale: "Provider/API prompts may contain sensitive context and must be abandoned explicitly without leaking secrets or continuing."
+
+- id: pq-provider-429-stop-02
+  category: pending_question_stop
+  mode: configure_existing
+  stage: repair
+  state_before:
+    completed_groups:
+      - "install terminal"
+    active_group: "provider retry decision"
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+      - "Model provider returned rate_limit during repair."
+  event:
+    type: user_stop
+    reason: "User stopped while asked whether to retry after provider rate limit."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "stopped"
+      - "rate limit"
+      - "provider"
+    summary_must_not_claim:
+      - "repair succeeded"
+      - "all failures repaired"
+      - "success"
+  rationale: "A provider retry prompt must not trigger additional model calls after stop."
+
+- id: pq-provider-timeout-stop-03
+  category: pending_question_stop
+  mode: postboot_setup
+  stage: repair
+  state_before:
+    completed_groups:
+      - "postboot facts refresh"
+      - "verify apps"
+    active_group: "provider timeout recovery"
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+      - "Repair provider timed out while generating driver follow-up."
+  event:
+    type: user_stop
+    reason: "User stopped while timeout recovery question was pending."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "stopped"
+      - "provider timeout"
+      - "driver"
+    summary_must_not_claim:
+      - "driver verified"
+      - "repair completed"
+      - "success"
+  rationale: "Stopping during provider timeout recovery must preserve unresolved driver context and avoid another repair call."
+
+- id: pq-manual-followup-decision-stop-01
+  category: pending_question_stop
+  mode: configure_existing
+  stage: final_audit
+  state_before:
+    completed_groups:
+      - "apps"
+      - "desktop"
+    active_group: "manual follow-up decision"
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+      - "Theme asset unavailable: Sweet-Dark"
+      - "Wallpaper could not be live-verified."
+  event:
+    type: user_stop
+    reason: "User stopped while deciding whether to accept manual follow-up items."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "stopped"
+      - "manual follow-up"
+      - "Theme asset unavailable"
+      - "Wallpaper could not be live-verified"
+    summary_must_not_claim:
+      - "manual follow-up accepted"
+      - "all design changes verified"
+      - "success"
+  rationale: "Manual follow-up decisions are user-visible outcome choices and must not be accepted by default after stop."
+
+- id: pq-manual-followup-driver-stop-02
+  category: pending_question_stop
+  mode: postboot_setup
+  stage: final_audit
+  state_before:
+    completed_groups:
+      - "apps"
+      - "desktop"
+      - "driver install"
+    active_group: "driver manual follow-up decision"
+    pending_question: true
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups:
+      - "NVIDIA driver installed but module load was not verified after reboot."
+  event:
+    type: user_stop
+    reason: "User stopped while deciding how to handle driver reboot verification follow-up."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "stopped"
+      - "driver"
+      - "module load was not verified"
+    summary_must_not_claim:
+      - "driver verified"
+      - "reboot completed"
+      - "success"
+  rationale: "A pending driver follow-up with reboot implications must not start reboot or claim verification after stop."
+
+- id: pq-manual-followup-unsupported-stop-03
+  category: pending_question_stop
+  mode: configure_existing
+  stage: final_audit
+  state_before:
+    completed_groups:
+      - "facts probe"
+      - "safe app setup"
+    active_group: "unsupported-safe decision"
+    pending_question: true
+    reboot_planned: false
+    destructive_capability_pending: false
+    manual_followups:
+      - "Secure Boot with unsigned DKMS module requires manual enrollment."
+  event:
+    type: user_stop
+    reason: "User stopped while unsupported-safe/manual enrollment decision was pending."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "stopped"
+      - "Secure Boot"
+      - "manual enrollment"
+    summary_must_not_claim:
+      - "unsupported-safe accepted"
+      - "module verified"
+      - "success"
+  rationale: "Unsupported-safe or manual enrollment decisions must remain explicit and visible when the user stops."
+
+- id: pq-reboot-deferral-decision-stop-01
+  category: pending_question_stop
+  mode: configure_existing
+  stage: pending_question
+  state_before:
+    completed_groups:
+      - "driver packages"
+    active_group: "defer reboot decision"
+    pending_question: true
+    reboot_planned: true
+    destructive_capability_pending: false
+    manual_followups:
+      - "Reboot required to verify driver module."
+  event:
+    type: user_stop
+    reason: "User stopped while deciding whether to reboot now or defer."
+  expected:
+    no_new_groups_started: true
+    no_new_destructive_work: true
+    no_reboot_started: true
+    pending_question_cleared_or_marked: true
+    logs_preserved: true
+    support_bundle_explains_abort: true
+    final_status: aborted
+    summary_must_include:
+      - "stopped"
+      - "reboot decision"
+      - "driver module"
+    summary_must_not_claim:
+      - "reboot started"
+      - "driver verified"
+      - "success"
+  rationale: "Configure-existing reboot decisions must not become automatic after a stop request."
