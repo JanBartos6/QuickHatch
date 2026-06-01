@@ -1,0 +1,59 @@
+- id: kde-theme-request-on-gnome
+  category: wrong_desktop_environment
+  facts_profile:
+    desktop: gnome
+    has_gui_session: true
+    display: ":0"
+    package_manager: dnf
+  user_request:
+    desktop_look: custom
+    icon_style: flat
+    wallpaper_style: dark
+    additional_notes: "Install a KDE Sweet theme on this GNOME desktop."
+  expected:
+    should_not_execute_markers:
+      - plasma-apply
+      - kwriteconfig
+    desktop_strategy_contains:
+      - GNOME
+      - equivalent
+    final_status_if_unverified: manual_followup_required
+  rationale: KDE-specific theme commands should not be blindly applied to GNOME; choose equivalent or follow up.
+
+- id: gnome-command-on-kde-degrades
+  category: wrong_desktop_environment
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    package_manager: pacman
+  user_request:
+    desktop_look: custom
+    icon_style: rounded
+    wallpaper_style: minimal
+    additional_notes: "Use Adwaita-dark GNOME theme on KDE."
+  expected:
+    should_not_execute_markers:
+      - gsettings set org.gnome.desktop.interface
+    desktop_strategy_contains:
+      - KDE
+      - equivalent
+    final_status_if_unverified: manual_followup_required
+  rationale: GNOME settings are not verified KDE customization.
+
+- id: unknown-desktop-manual-followup
+  category: unknown_desktop
+  facts_profile:
+    desktop: unknown
+    has_gui_session: unknown
+    display: unknown
+    package_manager: generic
+  user_request:
+    desktop_look: macos_like
+    icon_style: rounded
+    wallpaper_style: abstract
+    additional_notes: "make it look like macOS"
+  expected:
+    should_execute_live_apply: false
+    final_status_if_unverified: manual_followup_required
+  rationale: Unknown desktop/session cannot receive verified live design success.

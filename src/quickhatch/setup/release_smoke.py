@@ -29,6 +29,7 @@ TARGETED_PYTEST_FILES = (
     "tests/test_setup_model_contract.py",
     "tests/test_setup_research_grounding.py",
     "tests/test_setup_app_mapping.py",
+    "tests/test_setup_theme_design_mapping.py",
     "tests/test_setup_final_audit.py",
     "tests/test_setup_final_audit_repair_loop.py",
     "tests/test_setup_orchestrator.py",

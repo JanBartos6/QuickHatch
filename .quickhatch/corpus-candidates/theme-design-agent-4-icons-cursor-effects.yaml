@@ -1,0 +1,64 @@
+- id: kde-icons-cursor-effects
+  category: icons_cursor_effects
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    package_manager: pacman
+  user_request:
+    desktop_look: custom
+    icon_style: colorful
+    wallpaper_style: ""
+    additional_notes: "Use Papirus icons, Bibata cursor, wobbly windows, and magic lamp."
+  expected:
+    required_elements: [icons, cursor, effects]
+    persistent_markers:
+      - kdeglobals
+      - kcminputrc
+      - kwinrc
+    verification_markers:
+      - kreadconfig
+    final_status_if_unverified: manual_followup_required
+  rationale: KDE icons, cursor, and effects need separate persisted settings and verification.
+
+- id: gnome-icons-cursor-animations
+  category: icons_cursor_effects
+  facts_profile:
+    desktop: gnome
+    has_gui_session: true
+    display: ":0"
+    package_manager: dnf
+  user_request:
+    desktop_look: dark_minimal
+    icon_style: flat
+    wallpaper_style: dark
+    additional_notes: "Use Papirus icons, Bibata cursor, and keep animations subtle."
+  expected:
+    required_elements: [icons, cursor, effects]
+    persistent_markers:
+      - org.gnome.desktop.interface
+    verification_markers:
+      - gsettings get org.gnome.desktop.interface
+    final_status_if_unverified: manual_followup_required
+  rationale: GNOME design mapping should use gsettings and verify icon/cursor/animation state.
+
+- id: xfce-icons-cursor-compositing
+  category: icons_cursor_effects
+  facts_profile:
+    desktop: xfce
+    has_gui_session: true
+    display: ":0"
+    package_manager: apt
+  user_request:
+    desktop_look: minimal
+    icon_style: flat
+    wallpaper_style: minimal
+    additional_notes: "Set Papirus icons, Bibata cursor, and enable light compositing."
+  expected:
+    required_elements: [icons, cursor, effects]
+    persistent_markers:
+      - xfconf-query
+    verification_markers:
+      - xfconf-query
+    final_status_if_unverified: manual_followup_required
+  rationale: XFCE mapping should not use GNOME/KDE commands and should verify xfconf state.

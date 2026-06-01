@@ -1,0 +1,449 @@
+metadata:
+  purpose: >
+    Theme/design mapping policy coverage. Vague appearance requests should be
+    converted into desktop-aware, verifiable desktop actions. Cosmetic work can
+    degrade to manual follow-up, but command success must not be reported as
+    visual/design success without refreshed facts.
+  source_candidates:
+    - .quickhatch/corpus-candidates/theme-design-agent-1-vague-look.yaml
+    - .quickhatch/corpus-candidates/theme-design-agent-2-desktop-mismatch.yaml
+    - .quickhatch/corpus-candidates/theme-design-agent-3-wallpaper-media.yaml
+    - .quickhatch/corpus-candidates/theme-design-agent-4-icons-cursor-effects.yaml
+    - .quickhatch/corpus-candidates/theme-design-agent-5-unavailable-no-gui.yaml
+  merge_report:
+    total_scenarios: 12
+    by_category:
+      vague_macos: 2
+      dark_minimal: 2
+      explicit_theme: 1
+      wrong_desktop_environment: 2
+      wallpaper: 2
+      icons_cursor_effects: 1
+      no_active_gui_session: 1
+      theme_unavailable: 1
+    rejected_ambiguous: []
+    coverage_gaps:
+      - Real desktop visual verification is intentionally mocked; screenshots and live sessions are covered by VM/manual certification lanes, not these tests.
+
+scenarios:
+  - id: prompt-design-contract-guardrails
+    mode: prompt_contract
+    category: vague_macos
+    facts_profile:
+      desktop: kde
+      has_gui_session: true
+      display: ":0"
+      package_manager: pacman
+    user_request:
+      desktop_look: macos_like
+      icon_style: rounded
+      wallpaper_style: abstract
+      additional_notes: "make it look like macOS"
+    expected:
+      prompt_contains:
+        - make it look like macOS
+        - desktop_design
+        - Treat desktop design as a contract, not a vibe
+        - Installing a theme/icon package is not the same as applying it
+        - persistent user config writes
+        - live display/theme/wallpaper apply
+        - verify active outputs
+
+  - id: plan-macos-like-kde
+    mode: plan_contract
+    category: vague_macos
+    facts_profile:
+      desktop: kde
+      has_gui_session: true
+      display: ":0"
+      package_manager: pacman
+    user_request:
+      desktop_look: macos_like
+      icon_style: rounded
+      wallpaper_style: abstract
+      additional_notes: "make it look like macOS"
+    plan:
+      target_summary: "KDE macOS-like desktop design: theme, icons, cursor, wallpaper, dock/global-menu layout."
+      desktop_strategy:
+        strategy: kde_macos_like
+        notes: "Use KDE-friendly macOS-like palette, rounded icons, cursor, wallpaper, dock/global menu; verify theme/icons/cursor/wallpaper after apply."
+      command_groups:
+        - id: kde-macos-persist
+          title: "Persist KDE macOS-like design"
+          commands:
+            - "kwriteconfig6 --file kdeglobals --group General --key ColorScheme BreezeDark"
+            - "kwriteconfig6 --file kdeglobals --group Icons --key Theme Papirus"
+            - "kwriteconfig6 --file kcminputrc --group Mouse --key cursorTheme Bibata-Modern-Ice"
+          verification:
+            - "kreadconfig6 --file kdeglobals --group General --key ColorScheme"
+            - "kreadconfig6 --file kdeglobals --group Icons --key Theme"
+            - "kreadconfig6 --file kcminputrc --group Mouse --key cursorTheme"
+        - id: kde-macos-live
+          title: "Apply KDE wallpaper and live look"
+          commands:
+            - "plasma-apply-wallpaperimage /home/quickhatch/Pictures/macos-abstract.jpg"
+          verification:
+            - "kreadconfig6 --file plasma-org.kde.plasma.desktop-appletsrc --group Containments --key wallpaperplugin || true"
+    expected:
+      desktop_strategy_contains: [KDE, macOS-like, theme, icons, cursor, wallpaper]
+      required_elements: [theme, icons, cursor, wallpaper]
+      persistent_markers: [kwriteconfig6, kdeglobals, kcminputrc]
+      live_apply_markers: [plasma-apply-wallpaperimage]
+      verification_markers: [kreadconfig6]
+      final_status_if_unverified: manual_followup_required
+
+  - id: plan-dark-minimal-gnome
+    mode: plan_contract
+    category: dark_minimal
+    facts_profile:
+      desktop: gnome
+      has_gui_session: true
+      display: ":0"
+      package_manager: apt
+    user_request:
+      desktop_look: minimal
+      icon_style: flat
+      wallpaper_style: dark
+      additional_notes: "dark minimal setup"
+    plan:
+      target_summary: "GNOME dark minimal desktop design: theme, icons, wallpaper, subtle animation effects."
+      desktop_strategy:
+        strategy: gnome_dark_minimal
+        notes: "Set GNOME dark color scheme, flat icons, dark wallpaper, subtle animation effects, and verify gsettings state."
+      command_groups:
+        - id: gnome-dark-minimal
+          title: "Persist GNOME dark minimal design"
+          commands:
+            - "gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'"
+            - "gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'"
+            - "gsettings set org.gnome.desktop.background picture-uri 'file:///home/quickhatch/Pictures/dark-minimal.jpg'"
+            - "gsettings set org.gnome.desktop.interface enable-animations true"
+          verification:
+            - "gsettings get org.gnome.desktop.interface color-scheme"
+            - "gsettings get org.gnome.desktop.interface icon-theme"
+            - "gsettings get org.gnome.desktop.background picture-uri"
+    expected:
+      desktop_strategy_contains: [GNOME, dark, minimal, wallpaper]
+      required_elements: [theme, icons, wallpaper, effects]
+      persistent_markers: [gsettings, org.gnome.desktop.interface, org.gnome.desktop.background]
+      verification_markers: [gsettings get]
+      final_status_if_unverified: manual_followup_required
+
+  - id: plan-explicit-named-design-elements
+    mode: plan_contract
+    category: explicit_theme
+    facts_profile:
+      desktop: kde
+      has_gui_session: true
+      display: ":0"
+      package_manager: pacman
+    user_request:
+      desktop_look: custom
+      icon_style: colorful
+      wallpaper_style: custom
+      additional_notes: "Use Catppuccin Mocha, Papirus icons, Bibata cursor, and a mountain wallpaper."
+    plan:
+      target_summary: "KDE custom design: Catppuccin Mocha theme, Papirus icons, Bibata cursor, mountain wallpaper."
+      desktop_strategy:
+        strategy: kde_named_design
+        notes: "Apply Catppuccin Mocha theme, Papirus icons, Bibata cursor, mountain wallpaper; verify each element separately."
+      command_groups:
+        - id: kde-named-design
+          title: "Persist named KDE design elements"
+          commands:
+            - "kwriteconfig6 --file kdeglobals --group General --key ColorScheme CatppuccinMocha"
+            - "kwriteconfig6 --file kdeglobals --group Icons --key Theme Papirus-Dark"
+            - "kwriteconfig6 --file kcminputrc --group Mouse --key cursorTheme Bibata-Modern-Ice"
+            - "plasma-apply-wallpaperimage /home/quickhatch/Pictures/mountain.jpg"
+          verification:
+            - "kreadconfig6 --file kdeglobals --group General --key ColorScheme"
+            - "kreadconfig6 --file kdeglobals --group Icons --key Theme"
+            - "kreadconfig6 --file kcminputrc --group Mouse --key cursorTheme"
+    expected:
+      desktop_strategy_contains: [Catppuccin, Papirus, Bibata, wallpaper]
+      required_elements: [theme, icons, cursor, wallpaper]
+      persistent_markers: [kwriteconfig6, kdeglobals, kcminputrc]
+      live_apply_markers: [plasma-apply-wallpaperimage]
+      verification_markers: [kreadconfig6]
+      final_status_if_unverified: manual_followup_required
+
+  - id: plan-kde-request-on-gnome-equivalent
+    mode: plan_contract
+    category: wrong_desktop_environment
+    facts_profile:
+      desktop: gnome
+      has_gui_session: true
+      display: ":0"
+      package_manager: dnf
+    user_request:
+      desktop_look: custom
+      icon_style: flat
+      wallpaper_style: dark
+      additional_notes: "Install a KDE Sweet theme on this GNOME desktop."
+    plan:
+      target_summary: "GNOME equivalent for requested KDE Sweet-like dark theme, icons, cursor, and wallpaper."
+      desktop_strategy:
+        strategy: gnome_equivalent_for_kde_theme
+        notes: "Target is GNOME, so use GNOME-compatible dark theme/icons/cursor equivalent; do not run KDE Plasma apply commands."
+      command_groups:
+        - id: gnome-equivalent-theme
+          title: "Persist GNOME equivalent theme"
+          commands:
+            - "gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'"
+            - "gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'"
+            - "gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Ice'"
+          verification:
+            - "gsettings get org.gnome.desktop.interface gtk-theme"
+            - "gsettings get org.gnome.desktop.interface icon-theme"
+            - "gsettings get org.gnome.desktop.interface cursor-theme"
+    expected:
+      desktop_strategy_contains: [GNOME, equivalent, KDE]
+      required_elements: [theme, icons, cursor]
+      persistent_markers: [gsettings, org.gnome.desktop.interface]
+      verification_markers: [gsettings get]
+      disallowed_markers: [plasma-apply, kwriteconfig]
+      final_status_if_unverified: manual_followup_required
+
+  - id: plan-gnome-request-on-kde-equivalent
+    mode: plan_contract
+    category: wrong_desktop_environment
+    facts_profile:
+      desktop: kde
+      has_gui_session: true
+      display: ":0"
+      package_manager: pacman
+    user_request:
+      desktop_look: custom
+      icon_style: rounded
+      wallpaper_style: minimal
+      additional_notes: "Use Adwaita-dark GNOME theme on KDE."
+    plan:
+      target_summary: "KDE equivalent for requested GNOME Adwaita-dark look: theme, icons, cursor, wallpaper."
+      desktop_strategy:
+        strategy: kde_equivalent_for_gnome_theme
+        notes: "Target is KDE, so use KDE color scheme/icon/cursor settings equivalent to Adwaita-dark; do not run GNOME gsettings interface commands."
+      command_groups:
+        - id: kde-equivalent-theme
+          title: "Persist KDE equivalent theme"
+          commands:
+            - "kwriteconfig6 --file kdeglobals --group General --key ColorScheme BreezeDark"
+            - "kwriteconfig6 --file kdeglobals --group Icons --key Theme Papirus"
+            - "kwriteconfig6 --file kcminputrc --group Mouse --key cursorTheme Bibata-Modern-Ice"
+          verification:
+            - "kreadconfig6 --file kdeglobals --group General --key ColorScheme"
+            - "kreadconfig6 --file kdeglobals --group Icons --key Theme"
+            - "kreadconfig6 --file kcminputrc --group Mouse --key cursorTheme"
+    expected:
+      desktop_strategy_contains: [KDE, equivalent, GNOME]
+      required_elements: [theme, icons, cursor, wallpaper]
+      persistent_markers: [kwriteconfig6, kdeglobals, kcminputrc]
+      verification_markers: [kreadconfig6]
+      disallowed_markers: [gsettings set org.gnome.desktop.interface]
+      final_status_if_unverified: manual_followup_required
+
+  - id: plan-kde-wallpaper-persistent-live
+    mode: plan_contract
+    category: wallpaper
+    facts_profile:
+      desktop: kde
+      has_gui_session: true
+      display: ":0"
+      package_manager: pacman
+    user_request:
+      desktop_look: custom
+      icon_style: ""
+      wallpaper_style: custom
+      additional_notes: "Use /home/quickhatch/Pictures/mountain.jpg as the wallpaper."
+    plan:
+      target_summary: "KDE wallpaper design: mountain wallpaper."
+      desktop_strategy:
+        strategy: kde_wallpaper
+        notes: "Persist and live-apply KDE wallpaper, then verify wallpaper state."
+      command_groups:
+        - id: kde-wallpaper
+          title: "Apply KDE wallpaper"
+          commands:
+            - "plasma-apply-wallpaperimage /home/quickhatch/Pictures/mountain.jpg"
+          verification:
+            - "kreadconfig6 --file plasma-org.kde.plasma.desktop-appletsrc --group Containments --key wallpaperplugin || true"
+    expected:
+      desktop_strategy_contains: [KDE, wallpaper]
+      required_elements: [wallpaper]
+      live_apply_markers: [plasma-apply-wallpaperimage]
+      verification_markers: [wallpaper]
+      final_status_if_unverified: manual_followup_required
+
+  - id: plan-gnome-wallpaper-dark
+    mode: plan_contract
+    category: wallpaper
+    facts_profile:
+      desktop: gnome
+      has_gui_session: true
+      display: ":0"
+      package_manager: apt
+    user_request:
+      desktop_look: minimal
+      icon_style: ""
+      wallpaper_style: dark
+      additional_notes: "Use a dark abstract wallpaper."
+    plan:
+      target_summary: "GNOME dark wallpaper design."
+      desktop_strategy:
+        strategy: gnome_dark_wallpaper
+        notes: "Set GNOME light and dark wallpaper keys and verify wallpaper state."
+      command_groups:
+        - id: gnome-wallpaper
+          title: "Persist GNOME wallpaper"
+          commands:
+            - "gsettings set org.gnome.desktop.background picture-uri 'file:///home/quickhatch/Pictures/dark-abstract.jpg'"
+            - "gsettings set org.gnome.desktop.background picture-uri-dark 'file:///home/quickhatch/Pictures/dark-abstract.jpg'"
+          verification:
+            - "gsettings get org.gnome.desktop.background picture-uri"
+            - "gsettings get org.gnome.desktop.background picture-uri-dark"
+    expected:
+      desktop_strategy_contains: [GNOME, wallpaper]
+      required_elements: [wallpaper]
+      persistent_markers: [picture-uri, picture-uri-dark]
+      verification_markers: [gsettings get org.gnome.desktop.background]
+      final_status_if_unverified: manual_followup_required
+
+  - id: plan-kde-icons-cursor-effects
+    mode: plan_contract
+    category: icons_cursor_effects
+    facts_profile:
+      desktop: kde
+      has_gui_session: true
+      display: ":0"
+      package_manager: pacman
+    user_request:
+      desktop_look: custom
+      icon_style: colorful
+      wallpaper_style: ""
+      additional_notes: "Use Papirus icons, Bibata cursor, wobbly windows, and magic lamp."
+    plan:
+      target_summary: "KDE design: Papirus icons, Bibata cursor, wobbly windows, magic lamp effects."
+      desktop_strategy:
+        strategy: kde_icons_cursor_effects
+        notes: "Persist Papirus icons, Bibata cursor, and effects separately; verify kdeglobals, kcminputrc, and kwinrc."
+      command_groups:
+        - id: kde-icons-cursor-effects
+          title: "Persist KDE icons cursor effects"
+          commands:
+            - "kwriteconfig6 --file kdeglobals --group Icons --key Theme Papirus-Dark"
+            - "kwriteconfig6 --file kcminputrc --group Mouse --key cursorTheme Bibata-Modern-Ice"
+            - "kwriteconfig6 --file kwinrc --group Plugins --key wobblywindowsEnabled true"
+            - "kwriteconfig6 --file kwinrc --group Plugins --key magiclampEnabled true"
+          verification:
+            - "kreadconfig6 --file kdeglobals --group Icons --key Theme"
+            - "kreadconfig6 --file kcminputrc --group Mouse --key cursorTheme"
+            - "kreadconfig6 --file kwinrc --group Plugins --key wobblywindowsEnabled"
+            - "kreadconfig6 --file kwinrc --group Plugins --key magiclampEnabled"
+    expected:
+      desktop_strategy_contains: [Papirus, Bibata, effects]
+      required_elements: [icons, cursor, effects]
+      persistent_markers: [kdeglobals, kcminputrc, kwinrc]
+      verification_markers: [kreadconfig6]
+      final_status_if_unverified: manual_followup_required
+
+  - id: plan-no-gui-persistent-only
+    mode: plan_contract
+    category: no_active_gui_session
+    facts_profile:
+      desktop: kde
+      has_gui_session: false
+      display: ""
+      package_manager: pacman
+    user_request:
+      desktop_look: macos_like
+      icon_style: rounded
+      wallpaper_style: abstract
+      additional_notes: "make it look like macOS"
+    plan:
+      target_summary: "KDE macOS-like desktop design persisted for next login: theme, icons, cursor, wallpaper."
+      desktop_strategy:
+        strategy: kde_macos_like_persistent_pending_relogin
+        notes: "No active GUI session; write persistent KDE config only and mark live wallpaper/theme verification pending login."
+      command_groups:
+        - id: kde-persistent-no-gui
+          title: "Persist KDE design for next login"
+          commands:
+            - "kwriteconfig6 --file kdeglobals --group General --key ColorScheme BreezeDark"
+            - "kwriteconfig6 --file kdeglobals --group Icons --key Theme Papirus"
+            - "kwriteconfig6 --file kcminputrc --group Mouse --key cursorTheme Bibata-Modern-Ice"
+          verification:
+            - "kreadconfig6 --file kdeglobals --group General --key ColorScheme"
+            - "kreadconfig6 --file kdeglobals --group Icons --key Theme"
+            - "kreadconfig6 --file kcminputrc --group Mouse --key cursorTheme"
+    expected:
+      desktop_strategy_contains: [persistent, pending, login]
+      required_elements: [theme, icons, cursor, wallpaper]
+      persistent_markers: [kwriteconfig6, kdeglobals, kcminputrc]
+      disallowed_markers: [plasma-apply, qdbus, kscreen-doctor]
+      should_execute_live_apply: false
+      final_status_if_unverified: manual_followup_required
+
+  - id: audit-unavailable-theme-followup
+    mode: audit_outcome
+    category: theme_unavailable
+    facts_profile:
+      desktop: kde
+      has_gui_session: true
+      display: ":0"
+      package_manager: pacman
+    user_request:
+      desktop_look: custom
+      icon_style: colorful
+      wallpaper_style: ""
+      additional_notes: "Use Sweet Mars KDE theme and Candy icons."
+    plan:
+      target_summary: "KDE Sweet Mars theme and Candy icons design."
+      desktop_strategy:
+        strategy: kde_sweet_mars_theme
+        notes: "Apply Sweet Mars KDE theme and Candy icons; verify theme and icons. Theme unavailable should become manual follow-up."
+      command_groups:
+        - id: kde-sweet-theme
+          title: "Install and apply Sweet Mars theme"
+          commands:
+            - "yay -S --noconfirm sweet-mars-kde-theme-git candy-icons-git"
+            - "kwriteconfig6 --file kdeglobals --group Icons --key Theme candy-icons"
+          verification:
+            - "kreadconfig6 --file kdeglobals --group Icons --key Theme"
+          status: manual_followup
+    expected:
+      required_elements: [theme, icons]
+      final_status_if_unverified: manual_followup_required
+      summary_contains: sweet-mars-kde-theme-git
+
+  - id: audit-command-success-but-unverified
+    mode: audit_outcome
+    category: dark_minimal
+    facts_profile:
+      desktop: gnome
+      has_gui_session: true
+      display: ":0"
+      package_manager: apt
+    user_request:
+      desktop_look: minimal
+      icon_style: flat
+      wallpaper_style: dark
+      additional_notes: "dark minimal setup"
+    plan:
+      target_summary: "GNOME dark minimal desktop design: theme, icons, wallpaper."
+      desktop_strategy:
+        strategy: gnome_dark_minimal
+        notes: "Commands returned success, but verify theme/icons/wallpaper from refreshed facts before claiming visual success."
+      command_groups:
+        - id: gnome-dark-minimal-successful-command
+          title: "Persist GNOME dark minimal design"
+          commands:
+            - "gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'"
+            - "gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'"
+            - "gsettings set org.gnome.desktop.background picture-uri 'file:///home/quickhatch/Pictures/dark-minimal.jpg'"
+          verification:
+            - "gsettings get org.gnome.desktop.interface color-scheme"
+            - "gsettings get org.gnome.desktop.interface icon-theme"
+            - "gsettings get org.gnome.desktop.background picture-uri"
+    expected:
+      required_elements: [theme, icons, wallpaper]
+      final_status_if_unverified: manual_followup_required
+      no_fake_visual_success: true

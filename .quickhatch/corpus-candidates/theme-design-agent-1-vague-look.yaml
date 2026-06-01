@@ -1,0 +1,66 @@
+- id: macos-like-kde-mapping
+  category: vague_macos
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    package_manager: pacman
+  user_request:
+    desktop_look: macos_like
+    icon_style: rounded
+    wallpaper_style: abstract
+    additional_notes: "make it look like macOS"
+  expected:
+    desktop_strategy_contains:
+      - macOS-like
+      - dock
+      - global menu
+    command_group_count_min: 2
+    required_elements: [theme, icons, cursor, wallpaper]
+    requires_verification: true
+    final_status_if_unverified: manual_followup_required
+  rationale: Vague macOS-like requests need concrete, desktop-aware elements and verification.
+
+- id: dark-minimal-gnome-mapping
+  category: dark_minimal
+  facts_profile:
+    desktop: gnome
+    has_gui_session: true
+    display: ":0"
+    package_manager: apt
+  user_request:
+    desktop_look: minimal
+    icon_style: flat
+    wallpaper_style: dark
+    additional_notes: "dark minimal setup"
+  expected:
+    desktop_strategy_contains:
+      - dark
+      - minimal
+      - GNOME
+    required_elements: [theme, icons, wallpaper]
+    requires_verification: true
+    final_status_if_unverified: manual_followup_required
+  rationale: Minimal/dark style should become exact GNOME settings plus verification, not a prose-only vibe.
+
+- id: custom-theme-request-names-elements
+  category: explicit_theme
+  facts_profile:
+    desktop: kde
+    has_gui_session: true
+    display: ":0"
+    package_manager: pacman
+  user_request:
+    desktop_look: custom
+    icon_style: colorful
+    wallpaper_style: custom
+    additional_notes: "Use Catppuccin Mocha, Papirus icons, Bibata cursor, and a mountain wallpaper."
+  expected:
+    required_elements: [theme, icons, cursor, wallpaper]
+    desktop_strategy_contains:
+      - Catppuccin
+      - Papirus
+      - Bibata
+      - wallpaper
+    requires_verification: true
+  rationale: Explicit named design elements should be preserved separately in the plan.
