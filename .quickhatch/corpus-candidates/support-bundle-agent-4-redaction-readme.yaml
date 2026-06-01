@@ -1,0 +1,441 @@
+- id: redact-api-key-command-env
+  category: redaction
+  status: blocked
+  representative_runlog_events:
+    - event_type: "command"
+      payload:
+        stage: "apps"
+        group_id: "apps-browser"
+        command: "OPENAI_API_KEY=sk-fake-command-secret-1234567890 curl --token fake-cli-token https://provider.example/v1"
+        rc: 1
+        stderr_tail: "Authorization: Bearer fake-provider-bearer-token-abcdef"
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "executed-commands.sh"
+    - "support-summary.json"
+  required_evidence:
+    - "failed command is present in redacted runlog with stage and group_id"
+    - "executed command script comments failed command instead of replaying it"
+    - "support summary preserves blocked/unknown status without leaking provider credentials"
+  redaction_expectations:
+    - "sk-fake-command-secret-1234567890"
+    - "fake-cli-token"
+    - "fake-provider-bearer-token-abcdef"
+  current_likely_gap: "none"
+  rationale: "Command payloads are the highest-risk support evidence because they are useful for debugging and likely to contain provider or CLI credentials."
+  risk: high
+
+- id: redact-provider-payload-error
+  category: redaction
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "repair_model_unavailable_manual_followup"
+      payload:
+        stage: "apps"
+        group_id: "apps-chat"
+        app: "Chat Client"
+        provider_error: "429 rate limit"
+        request_payload:
+          model: "gpt-fake"
+          api_key: "sk-provider-payload-secret-1234567890"
+          messages:
+            - role: "user"
+              content: "Install Chat Client; bearer_token=payload-bearer-secret"
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "manual-followups.json"
+    - "support-summary.json"
+  required_evidence:
+    - "provider error category is visible"
+    - "manual follow-up item names the affected app/group"
+    - "raw provider request body is redacted if included"
+  redaction_expectations:
+    - "sk-provider-payload-secret-1234567890"
+    - "payload-bearer-secret"
+  current_likely_gap: "provider/model errors are not extracted into a dedicated artifact"
+  rationale: "Support needs to know the provider failed without receiving raw prompt payloads or API keys."
+  risk: high
+
+- id: redact-private-key-block
+  category: redaction
+  status: blocked
+  representative_runlog_events:
+    - event_type: "planner_prompt"
+      payload:
+        prompt: "Use this SSH key:\n-----BEGIN OPENSSH PRIVATE KEY-----\nfake-private-key-material\n-----END OPENSSH PRIVATE KEY-----"
+        profile:
+          default_setup_password: "fake-default-password"
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "profile-summary.json"
+  required_evidence:
+    - "planner prompt exists only in redacted runlog"
+    - "profile summary excludes raw password-bearing fields"
+  redaction_expectations:
+    - "BEGIN OPENSSH PRIVATE KEY"
+    - "fake-private-key-material"
+    - "fake-default-password"
+  current_likely_gap: "none"
+  rationale: "A support bundle must never expose private key blocks or default setup passwords copied through model context."
+  risk: high
+
+- id: redact-ssh-public-key-comment
+  category: redaction
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "facts_refresh"
+      payload:
+        facts:
+          current_user: "jan"
+          authorized_keys_preview:
+            - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeKeyData user@private-laptop"
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "setup-facts-summary.json"
+  required_evidence:
+    - "runlog remains useful without exposing SSH key material or identifying comments"
+    - "facts summary excludes authorized_keys-style raw data"
+  redaction_expectations:
+    - "AAAAC3NzaC1lZDI1NTE5AAAAIFakeKeyData"
+    - "user@private-laptop"
+  current_likely_gap: "none"
+  rationale: "SSH public key comments can identify the owner or device even when the public key itself is not secret."
+  risk: medium
+
+- id: redact-chpasswd-command
+  category: executed_commands_redaction
+  status: blocked
+  representative_runlog_events:
+    - event_type: "command"
+      payload:
+        stage: "users"
+        group_id: "create-user"
+        command: "echo 'quickhatch:fake-user-password' | sudo chroot /mnt chpasswd"
+        rc: 0
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "executed-commands.sh"
+  required_evidence:
+    - "successful password command is omitted or commented with redaction in replay script"
+    - "redacted runlog preserves stage/group_id without secret"
+  redaction_expectations:
+    - "fake-user-password"
+    - "quickhatch:fake-user-password"
+  current_likely_gap: "none"
+  rationale: "Executed command replay must not turn a support artifact into a password disclosure or a blindly runnable password reset script."
+  risk: high
+
+- id: redact-password-variable-command
+  category: executed_commands_redaction
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "command"
+      payload:
+        stage: "users"
+        group_id: "set-password"
+        command: "root_pw=fake-root-password user_pw=fake-user-password ./configure-user.sh"
+        rc: 0
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "executed-commands.sh"
+  required_evidence:
+    - "replay script keeps redacted command as edit-required comment"
+    - "runlog redacts root_pw and user_pw values"
+  redaction_expectations:
+    - "fake-root-password"
+    - "fake-user-password"
+  current_likely_gap: "none"
+  rationale: "Password variables are common in setup scripts and must be redacted in both JSONL and generated shell replay."
+  risk: high
+
+- id: support-readme-nonperfect-map
+  category: support_readme
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        status: "manual_followup_required"
+        result:
+          final_status: "manual_followup_required"
+          findings:
+            - severity: "manual_followup"
+              category: "desktop"
+              summary: "Wallpaper could not be verified without an active GUI session."
+  expected_bundle_artifacts:
+    - "README.txt"
+    - "support-summary.json"
+    - "final-audit.json"
+    - "manual-followups.json"
+  required_evidence:
+    - "README explains where to find final status"
+    - "README explains where to find manual follow-up items"
+    - "README explains that artifacts are redacted and some optional artifacts may be skipped"
+  redaction_expectations: []
+  current_likely_gap: "README is currently sparse and does not enumerate artifact meanings"
+  rationale: "A support bundle should be self-orienting when the outcome is not perfect and the user uploads only the ZIP."
+  risk: medium
+
+- id: support-readme-artifact-index
+  category: support_readme
+  status: unsupported_safe
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        status: "unsupported_safe"
+        result:
+          final_status: "unsupported_safe"
+          findings:
+            - severity: "unsupported_safe"
+              category: "driver"
+              summary: "Secure Boot prevents automatic NVIDIA module verification."
+  expected_bundle_artifacts:
+    - "README.txt"
+    - "manifest.json"
+    - "support-summary.json"
+    - "final-audit.json"
+  required_evidence:
+    - "README lists core artifact names and purpose"
+    - "README points unsupported_safe cases to final-audit.json and manual-followups.json when present"
+    - "README warns that secrets should already be redacted but bundle should still be shared intentionally"
+  redaction_expectations: []
+  current_likely_gap: "README is currently sparse and does not list core artifacts"
+  rationale: "Unsupported-safe outcomes need explanation so they are not confused with either success or a crash."
+  risk: medium
+
+- id: manifest-skipped-optional-artifacts
+  category: artifact_manifest
+  status: unknown
+  representative_runlog_events:
+    - event_type: "setup_started"
+      payload:
+        run_id: "run-no-final-audit"
+  expected_bundle_artifacts:
+    - "manifest.json"
+    - "support-summary.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "manifest included list contains present artifacts"
+    - "manifest skipped map explains missing final audit/manual follow-up/app verification artifacts"
+    - "support summary final_status is unknown when no terminal status is available"
+  redaction_expectations: []
+  current_likely_gap: "none"
+  rationale: "Incomplete or interrupted runs still need a bundle that explains absence of optional diagnostics rather than looking corrupt."
+  risk: medium
+
+- id: manifest-selected-runlog-privacy
+  category: artifact_manifest
+  status: blocked
+  representative_runlog_events:
+    - event_type: "setup_started"
+      payload:
+        run_id: "run-private-path"
+        source_path: "/Users/jan/Documents/Clients/PrivateCustomer/.quickhatch/setup-runs/run-private-path.jsonl"
+  expected_bundle_artifacts:
+    - "manifest.json"
+    - "support-metadata.json"
+  required_evidence:
+    - "manifest identifies selected runlog enough for support correlation"
+    - "manifest does not needlessly expose private customer/project directory names"
+  redaction_expectations:
+    - "PrivateCustomer"
+  current_likely_gap: "manifest currently records selected_runlog as a full path"
+  rationale: "A bundle can leak sensitive project or customer names through local filesystem paths even when JSON payload redaction works."
+  risk: medium
+
+- id: executed-script-failed-command-comment
+  category: executed_commands_redaction
+  status: blocked
+  representative_runlog_events:
+    - event_type: "command"
+      payload:
+        stage: "install"
+        group_id: "bootstrap"
+        command: "sudo pacstrap -K /mnt base linux"
+        rc: 1
+        stderr_tail: "failed to initialize package manager"
+  expected_bundle_artifacts:
+    - "executed-commands.sh"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "failed command appears only as a comment in executed-commands.sh"
+    - "runlog keeps rc and stderr tail for debugging"
+    - "script header warns review is required before reuse"
+  redaction_expectations: []
+  current_likely_gap: "none"
+  rationale: "Support needs to see what failed, but generated replay must not automatically repeat failed install-spine commands."
+  risk: high
+
+- id: executed-script-redacted-success-not-runnable
+  category: executed_commands_redaction
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "command"
+      payload:
+        stage: "apps"
+        group_id: "vendor-login"
+        command: "curl -H 'Authorization: Bearer fake-success-bearer-token' https://repo.example/install.sh | bash"
+        rc: 0
+  expected_bundle_artifacts:
+    - "executed-commands.sh"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "successful command with redacted credential is not emitted as runnable shell"
+    - "script contains edit-required comment with redacted placeholder"
+  redaction_expectations:
+    - "fake-success-bearer-token"
+  current_likely_gap: "none"
+  rationale: "A successful command can still contain credentials; replay generation should prefer safety over completeness."
+  risk: high
+
+- id: profile-summary-minimizes-ai-config
+  category: profile_facts_minimization
+  status: manual_followup_required
+  representative_runlog_events:
+    - event_type: "planner_prompt"
+      payload:
+        profile:
+          install_profile: "configure_existing"
+          remote_setup_mode: "safe"
+          apps_to_install:
+            - "Firefox"
+            - "Signal"
+          ai_config:
+            api_key: "sk-profile-ai-secret-1234567890"
+            provider: "private-provider"
+          preferences:
+            distro_preference: "fedora"
+            hardware_search_opt_in: true
+            personal_note: "I work for Private Employer"
+  expected_bundle_artifacts:
+    - "profile-summary.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "profile summary includes install profile and app count"
+    - "profile summary excludes ai_config and non-allowlisted preference fields"
+    - "raw redacted runlog does not expose API key"
+  redaction_expectations:
+    - "sk-profile-ai-secret-1234567890"
+    - "Private Employer"
+  current_likely_gap: "none"
+  rationale: "Support usually needs the selected mode and counts, not raw AI provider credentials or personal notes."
+  risk: medium
+
+- id: facts-summary-minimizes-host-identity
+  category: profile_facts_minimization
+  status: success_with_warnings
+  representative_runlog_events:
+    - event_type: "facts_refresh"
+      payload:
+        facts:
+          distro_family: "ubuntu"
+          package_manager: "apt"
+          current_user: "jan"
+          hostname: "jan-private-host"
+          fqdn: "jan-private-host.private.lan"
+          ip_addresses:
+            - "192.168.55.42"
+          mac_addresses:
+            - "de:ad:be:ef:00:01"
+          gpu_vendors:
+            - "intel"
+  expected_bundle_artifacts:
+    - "setup-facts-summary.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "facts summary keeps distro/package/GPU facts useful for debugging"
+    - "facts summary excludes hostnames, IP addresses, FQDN, and MAC addresses"
+  redaction_expectations:
+    - "jan-private-host"
+    - "192.168.55.42"
+    - "de:ad:be:ef:00:01"
+  current_likely_gap: "redacted raw runlog may still include non-secret host/IP/MAC facts"
+  rationale: "Hardware and distro facts are useful, but private network identity is rarely needed in summarized support evidence."
+  risk: medium
+
+- id: dangerous-preview-redacts-secret-rendered-command
+  category: redaction
+  status: blocked
+  representative_runlog_events:
+    - event_type: "dangerous_operation_preview"
+      payload:
+        preview:
+          operation:
+            kind: "write_fstab"
+            target: "/mnt/etc/fstab"
+          rendered_commands:
+            - "printf 'credentials=ssh-private-token-secret' >> /mnt/etc/fstab"
+  expected_bundle_artifacts:
+    - "dangerous-operation-previews.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "dangerous operation kind and target are preserved"
+    - "rendered command is redacted before inclusion"
+  redaction_expectations:
+    - "ssh-private-token-secret"
+  current_likely_gap: "none"
+  rationale: "Dangerous previews are important for consent debugging, but rendered command text can contain credentials or private mount options."
+  risk: high
+
+- id: capability-event-target-with-private-path
+  category: artifact_manifest
+  status: blocked
+  representative_runlog_events:
+    - event_type: "capability_granted"
+      payload:
+        capability:
+          kind: "write_fstab"
+          target: "/Users/jan/Clients/PrivateCustomer/target-root/etc/fstab"
+          preview_id: "preview-private-path"
+          consumed: false
+  expected_bundle_artifacts:
+    - "capability-events.json"
+    - "support-summary.json"
+  required_evidence:
+    - "capability kind, target, preview id, and consumed state are visible"
+    - "private host-side path components are minimized or redacted where possible"
+  redaction_expectations:
+    - "PrivateCustomer"
+  current_likely_gap: "capability event extraction preserves full targets"
+  rationale: "Capability evidence is essential for safety debugging, but host-side paths can disclose customer or project names."
+  risk: medium
+
+- id: support-summary-status-without-final-audit
+  category: artifact_manifest
+  status: blocked
+  representative_runlog_events:
+    - event_type: "setup_blocked"
+      payload:
+        final_status: "blocked"
+        reason: "SSH reconnect failed after controlled reboot."
+        stage: "reconnect"
+  expected_bundle_artifacts:
+    - "support-summary.json"
+    - "replay-summary.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "support summary final_status is blocked even without final_audit event"
+    - "replay summary exposes terminal blocked reason"
+    - "runlog shows reconnect failure context"
+  redaction_expectations: []
+  current_likely_gap: "orchestrator may not emit a terminal setup_blocked event for all pre-final failures"
+  rationale: "Interrupted blocked runs often cannot reach final audit, so support evidence needs a terminal status outside final_audit."
+  risk: high
+
+- id: readme-redaction-boundary-warning
+  category: support_readme
+  status: unknown
+  representative_runlog_events:
+    - event_type: "setup_started"
+      payload:
+        run_id: "run-readme-redaction-warning"
+  expected_bundle_artifacts:
+    - "README.txt"
+    - "manifest.json"
+  required_evidence:
+    - "README states the bundle is redacted but may still contain system identity and command context"
+    - "README advises reviewing before sharing outside trusted support channels"
+    - "README explains skipped artifacts and manifest privacy note"
+  redaction_expectations: []
+  current_likely_gap: "README currently gives only a short redaction statement"
+  rationale: "Redaction reduces risk but does not remove every potentially identifying diagnostic detail, so the user needs clear sharing guidance."
+  risk: medium
