@@ -25,6 +25,7 @@ TARGETED_PYTEST_FILES = (
     "tests/test_setup_design_feedback_loop.py",
     "tests/test_setup_driver_uncertainty.py",
     "tests/test_setup_reboot_reconnect.py",
+    "tests/test_setup_stop_abort.py",
     "tests/test_setup_final_audit.py",
     "tests/test_setup_final_audit_repair_loop.py",
     "tests/test_setup_orchestrator.py",
