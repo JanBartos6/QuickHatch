@@ -1,0 +1,701 @@
+- id: blocked-before-final-audit-safe-abort
+  category: blocked_run
+  status: unknown
+  representative_runlog_events:
+    - event_type: "setup_started"
+      payload:
+        profile:
+          install_profile: "full_disk_wipe"
+          remote_setup_mode: "ssh"
+    - event_type: "dangerous_operation_preview"
+      payload:
+        stage: "install_or_skip"
+        group_id: "disk-format"
+        preview:
+          preview_id: "prev-format-sda1"
+          operation:
+            kind: "format_partition"
+            target: "/dev/sda1"
+          confirmation_token: "FORMAT-/dev/sda1"
+    - event_type: "blocking_question_timeout"
+      payload:
+        stage: "install_or_skip"
+        question_id: "confirm-format-sda1"
+    - event_type: "safe_abort"
+      payload:
+        stage: "install_or_skip"
+        group_id: "disk-format"
+        reason: "Dangerous operation was not confirmed with the required token."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+    - "replay-summary.json"
+    - "dangerous-operation-previews.json"
+  required_evidence:
+    - "final status is unknown or blocked because no final_audit was reached"
+    - "safe_abort reason"
+    - "blocking question timeout id"
+    - "dangerous preview id, operation kind, target, and confirmation token redacted if needed"
+  redaction_expectations:
+    - "confirmation token should not be exposed as a reusable secret if future tokens become secret-bearing"
+    - "sk-blocked-core-secret"
+  current_likely_gap: "early safe_abort has no terminal setup_run_finished event, so support-summary final_status may remain unknown"
+  rationale: "A user needs enough evidence to distinguish an intentional safety stop from a crash when a destructive confirmation is not completed."
+  risk: high
+
+- id: blocked-final-audit-missing-bootloader
+  category: blocked_run
+  status: blocked
+  representative_runlog_events:
+    - event_type: "final_audit"
+      payload:
+        result:
+          passed: false
+          final_status: "blocked"
+          blockers:
+            - "Installed system bootloader was not verified."
+          findings:
+            - id: "bootloader:missing"
+              severity: "fatal"
+              category: "bootability"
+              summary: "Bootloader is missing or unverified."
+              required_capability_kinds:
+                - "bootloader_install"
+          details:
+            pre_reboot_checks_passed: false
+  expected_bundle_artifacts:
+    - "final-audit.json"
+    - "support-summary.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "final status blocked"
+    - "fatal audit finding category bootability"
+    - "blocker text"
+    - "required capability kind bootloader_install"
+  redaction_expectations:
+    - "root_pw=blocked-final-audit-secret"
+  current_likely_gap: "none"
+  rationale: "A missing bootloader is a core fatal condition and the bundle should make the blocker obvious without requiring runlog archaeology."
+  risk: high
+
+- id: preflight-block-fstab-write-without-capability
+  category: preflight_block
+  status: unknown
+  representative_runlog_events:
+    - event_type: "command_group_started"
+      payload:
+        stage: "install_or_skip"
+        group:
+          id: "write-fstab"
+          title: "Write target fstab"
+    - event_type: "command_preflight_blocked"
+      payload:
+        stage: "install_or_skip"
+        group_id: "write-fstab"
+        command: "sudo sh -c 'echo UUID=abc / ext4 defaults 0 1 > /mnt/etc/fstab'"
+        decision:
+          kind: "block"
+          category: "fstab"
+          reason: "Writing target fstab requires confirmed write_fstab capability."
+          capability_kind: "write_fstab"
+          target: "/mnt/etc/fstab"
+        reason: "Writing target fstab requires confirmed write_fstab capability."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "preflight-events.json"
+    - "support-summary.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "blocked command safely redacted"
+    - "preflight decision kind block"
+    - "preflight category fstab"
+    - "required capability kind write_fstab and target /mnt/etc/fstab"
+    - "group id and human-readable group title"
+  redaction_expectations:
+    - "UUID should remain if not sensitive, but passwords in adjacent shell should redact"
+    - "password=topsecret-fstab"
+  current_likely_gap: "preflight event has group_id but not the group title; the title is only recoverable from command_group_started"
+  rationale: "Fstab writes are dangerous but repairable with explicit authority; the bundle should identify both the command and the user-facing plan group."
+  risk: high
+
+- id: preflight-block-raw-reboot-command
+  category: preflight_block
+  status: unknown
+  representative_runlog_events:
+    - event_type: "command_group_started"
+      payload:
+        stage: "install_or_skip"
+        group:
+          id: "model-reboot"
+          title: "Model requested reboot"
+    - event_type: "command_preflight_blocked"
+      payload:
+        stage: "install_or_skip"
+        group_id: "model-reboot"
+        command: "sudo reboot now"
+        decision:
+          kind: "block"
+          category: "power_transition"
+          reason: "Raw reboot commands are harness-owned and require controlled reboot handling."
+        reason: "Raw reboot commands are harness-owned and require controlled reboot handling."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "preflight-events.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "blocked raw reboot command"
+    - "reason states reboot is harness-owned"
+    - "stage and group id/title"
+    - "final status unknown if final_audit was not reached"
+  redaction_expectations:
+    - "ssh private key text in surrounding output must be redacted"
+  current_likely_gap: "no terminal blocked status event if the run exits before final_audit"
+  rationale: "Support needs to prove QuickHatch blocked a model raw reboot rather than silently rebooting the target."
+  risk: high
+
+- id: preflight-block-target-root-delete
+  category: preflight_block
+  status: unknown
+  representative_runlog_events:
+    - event_type: "command_group_started"
+      payload:
+        stage: "install_or_skip"
+        group:
+          id: "cleanup-target-root"
+          title: "Clean target root"
+    - event_type: "command_preflight_blocked"
+      payload:
+        stage: "install_or_skip"
+        group_id: "cleanup-target-root"
+        command: "sudo rm -rf /mnt"
+        decision:
+          kind: "block"
+          category: "target_root"
+          reason: "Uncontrolled target-root deletion is not allowed."
+          target: "/mnt"
+        reason: "Uncontrolled target-root deletion is not allowed."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "preflight-events.json"
+    - "support-summary.json"
+  required_evidence:
+    - "blocked command"
+    - "target-root category"
+    - "target path"
+    - "blocked group id/title"
+  redaction_expectations:
+    - "Bearer qh-target-root-token"
+  current_likely_gap: "group title is not included directly in command_preflight_blocked extraction"
+  rationale: "Target-root deletion can destroy the install tree; diagnostics must show that the effect was blocked intentionally."
+  risk: high
+
+- id: capability-mismatch-format-wrong-partition
+  category: capability_mismatch
+  status: unknown
+  representative_runlog_events:
+    - event_type: "capability_granted"
+      payload:
+        stage: "install_or_skip"
+        group_id: "format-root"
+        capability:
+          id: "cap-format-sda1"
+          kind: "format_filesystem"
+          target: "/dev/sda1"
+          preview_id: "prev-format-sda1"
+          consumed: false
+    - event_type: "command_preflight_blocked"
+      payload:
+        stage: "install_or_skip"
+        group_id: "format-root"
+        command: "sudo mkfs.ext4 -F /dev/sda2"
+        decision:
+          kind: "block"
+          category: "capability_required"
+          reason: "Formatting /dev/sda2 requires a matching format_filesystem capability."
+          capability_kind: "format_filesystem"
+          target: "/dev/sda2"
+        reason: "Formatting /dev/sda2 requires a matching format_filesystem capability."
+  expected_bundle_artifacts:
+    - "capability-events.json"
+    - "preflight-events.json"
+    - "dangerous-operation-previews.json"
+    - "support-summary.json"
+  required_evidence:
+    - "granted capability kind and target /dev/sda1"
+    - "blocked command target /dev/sda2"
+    - "mismatch reason"
+    - "preview id for the existing grant"
+  redaction_expectations:
+    - "sk-capability-mismatch-secret"
+  current_likely_gap: "no dedicated capability_mismatch event; mismatch must be inferred by joining capability_granted and preflight block"
+  rationale: "Near-target misses are dangerous and support needs to see that the correct disk was not authorized."
+  risk: high
+
+- id: capability-mismatch-consumed-one-time-grant
+  category: capability_mismatch
+  status: unknown
+  representative_runlog_events:
+    - event_type: "capability_granted"
+      payload:
+        stage: "install_or_skip"
+        group_id: "format-root"
+        capability:
+          id: "cap-format-sda1"
+          kind: "format_filesystem"
+          target: "/dev/sda1"
+          preview_id: "prev-format-sda1"
+          consumed: false
+          one_time_use: true
+    - event_type: "capability_consumed"
+      payload:
+        stage: "install_or_skip"
+        group_id: "format-root"
+        command: "sudo mkfs.ext4 -F /dev/sda1"
+        capability_id: "cap-format-sda1"
+        kind: "format_filesystem"
+        target: "/dev/sda1"
+        consumed: true
+    - event_type: "command_preflight_blocked"
+      payload:
+        stage: "install_or_skip"
+        group_id: "format-root-repeat"
+        command: "sudo mkfs.ext4 -F /dev/sda1"
+        decision:
+          kind: "block"
+          category: "capability_required"
+          reason: "Formatting /dev/sda1 requires an unconsumed format_filesystem capability."
+          capability_kind: "format_filesystem"
+          target: "/dev/sda1"
+        reason: "Formatting /dev/sda1 requires an unconsumed format_filesystem capability."
+  expected_bundle_artifacts:
+    - "capability-events.json"
+    - "preflight-events.json"
+    - "setup-runlog-redacted.jsonl"
+  required_evidence:
+    - "capability consumed state"
+    - "repeat command blocked"
+    - "reason identifies consumed or unavailable one-time grant"
+    - "original preview id"
+  redaction_expectations:
+    - "qh_pw=ConsumedGrantSecret123"
+  current_likely_gap: "consumed grant appears as an event, but support-summary does not summarize consumed-capability mismatch"
+  rationale: "One-time destructive consent must not be reusable, and the bundle should make that visible."
+  risk: high
+
+- id: capability-mismatch-internal-network-reconnect
+  category: capability_mismatch
+  status: unknown
+  representative_runlog_events:
+    - event_type: "internal_capability_check"
+      payload:
+        stage: "install_or_skip"
+        group_id: "network-reconnect"
+        capability_kind: "enable_network_reconnect"
+        target: "/mnt/etc/NetworkManager/system-connections/quickhatch-reconnect.nmconnection"
+        allowed: false
+        reason: "write installed network reconnect config"
+    - event_type: "safe_abort"
+      payload:
+        stage: "install_or_skip"
+        group_id: "network-reconnect"
+        reason: "Internal write installed network reconnect config needs confirmed QuickHatch capability enable_network_reconnect target=/mnt/etc/NetworkManager/system-connections/quickhatch-reconnect.nmconnection."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "internal capability kind"
+    - "target path"
+    - "allowed false"
+    - "safe_abort reason"
+  redaction_expectations:
+    - "wifi password=NetworkSecret123"
+  current_likely_gap: "internal_capability_check does not start with capability_, so it is not extracted into capability-events.json"
+  rationale: "Internal harness-owned writes can be just as important as model commands; support should not miss a capability denial because of event naming."
+  risk: high
+
+- id: reconnect-failure-after-install-reboot
+  category: reconnect_failure
+  status: unknown
+  representative_runlog_events:
+    - event_type: "setup_checkpoint_saved"
+      payload:
+        stage: "install_or_skip"
+        reason: "controlled install reboot after pre-reboot checks"
+        checkpoint:
+          run_id: "run-reconnect-fail"
+          stage: "install_or_skip"
+          completed_groups:
+            - "bootstrap-base"
+          manual_followups: []
+    - event_type: "install_reboot"
+      payload:
+        stage: "install_or_skip"
+        command: "sudo umount -R /mnt 2>/dev/null || true; sudo sh -c 'nohup sh -c reboot >/tmp/quickhatch-reboot.log 2>&1 </dev/null &'"
+    - event_type: "install_reboot_result"
+      payload:
+        stage: "install_or_skip"
+        rc: 255
+        stdout_tail: ""
+        stderr_tail: "Connection to 192.0.2.10 closed by remote host."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "replay-summary.json"
+    - "support-summary.json"
+  required_evidence:
+    - "checkpoint was saved before reboot"
+    - "install reboot command was attempted through harness"
+    - "reconnect outcome or absence of reconnect should be explicit"
+    - "completed groups survived in checkpoint"
+  redaction_expectations:
+    - "192.0.2.10 may remain, but ssh password and private keys must redact"
+    - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeKey user@example.com"
+  current_likely_gap: "there may be no runlog event for wait_for_reconnect failure before RuntimeError, leaving final status unknown"
+  rationale: "A failed reconnect is a core blocked outcome; diagnostics should prove the reboot path was controlled and stopped safely."
+  risk: high
+
+- id: reconnect-failure-live-iso-after-reboot
+  category: reconnect_failure
+  status: unknown
+  representative_runlog_events:
+    - event_type: "install_reboot_result"
+      payload:
+        stage: "install_or_skip"
+        rc: 0
+        stdout_tail: ""
+        stderr_tail: ""
+    - event_type: "facts_refresh"
+      payload:
+        stage: "install_or_skip"
+        facts:
+          is_live: true
+          distro_id: "ubuntu"
+          package_manager: "apt"
+    - event_type: "stage_audit"
+      payload:
+        stage: "install_or_skip"
+        result:
+          passed: false
+          blockers:
+            - "Target reconnected, but it is still reporting a live environment after install reboot."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "setup-facts-summary.json"
+    - "replay-summary.json"
+  required_evidence:
+    - "post-reboot facts refresh"
+    - "is_live true after expected reboot"
+    - "blocked reason"
+    - "install_or_skip stage"
+  redaction_expectations:
+    - "Bearer live-iso-reconnect-token"
+  current_likely_gap: "support-summary may not normalize this to blocked unless a final_audit or terminal run_failed event exists"
+  rationale: "Booting back into the live ISO after install should be diagnosed as a core boot/reconnect failure."
+  risk: high
+
+- id: reconnect-failure-nvidia-postboot-driver
+  category: reconnect_failure
+  status: blocked
+  representative_runlog_events:
+    - event_type: "nvidia_driver_reconnect"
+      payload:
+        stage: "postboot_driver"
+        group_id: "nvidia-reboot-verify"
+        reconnected: false
+        fresh_info: "SSH timed out after driver reboot."
+        new_user: ""
+    - event_type: "final_audit"
+      payload:
+        result:
+          passed: false
+          final_status: "blocked"
+          blockers:
+            - "NVIDIA driver reboot/reconnect failed."
+          findings:
+            - id: "driver:nvidia-reconnect"
+              severity: "fatal"
+              category: "driver"
+              summary: "Postboot NVIDIA reboot did not reconnect."
+          details:
+            driver_reconnect:
+              reconnected: false
+              reason: "SSH timed out after driver reboot."
+  expected_bundle_artifacts:
+    - "final-audit.json"
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+  required_evidence:
+    - "postboot_driver stage"
+    - "nvidia reconnect false"
+    - "driver audit finding"
+    - "final status blocked"
+  redaction_expectations:
+    - "NVIDIA-LICENSE-TOKEN=secret-driver-token"
+  current_likely_gap: "none if final_audit is reached; early exception before final_audit would have the same terminal-status gap as install reconnect"
+  rationale: "Driver-induced reconnect failures must be distinguishable from app/theme failures because they can threaten boot continuity."
+  risk: high
+
+- id: package-db-corruption-preflight-broad-kill
+  category: package_db_corruption
+  status: unknown
+  representative_runlog_events:
+    - event_type: "command_group_started"
+      payload:
+        stage: "apps"
+        group:
+          id: "clear-package-locks"
+          title: "Clear package locks"
+    - event_type: "command_preflight_blocked"
+      payload:
+        stage: "apps"
+        group_id: "clear-package-locks"
+        command: "sudo pkill -9 -f 'apt|dpkg|snapd|packagekit|debconf' || true"
+        decision:
+          kind: "block"
+          category: "package_database_integrity"
+          reason: "Broad package process kill can leave dpkg half-written."
+        reason: "Broad package process kill can leave dpkg half-written."
+  expected_bundle_artifacts:
+    - "preflight-events.json"
+    - "replay-summary.json"
+    - "support-summary.json"
+  required_evidence:
+    - "package_database_integrity preflight category"
+    - "blocked command"
+    - "group title Clear package locks"
+    - "reason mentions dpkg half-written or package database risk"
+  redaction_expectations:
+    - "APT_AUTH_CONF=/tmp/apt-secret.conf"
+  current_likely_gap: "group title is not directly attached to command_preflight_blocked"
+  rationale: "Package DB corruption prevention should be visible as a safety block, not confused with a package install failure."
+  risk: high
+
+- id: package-db-corruption-final-audit-dpkg-interrupted
+  category: package_db_corruption
+  status: blocked
+  representative_runlog_events:
+    - event_type: "verification"
+      payload:
+        stage: "final_audit"
+        command: "dpkg-query -W -f='${db:Status-Abbrev} ${Package}\\n'"
+        rc: 1
+        stdout_tail: ""
+        stderr_tail: "dpkg was interrupted, you must manually run 'sudo dpkg --configure -a'"
+    - event_type: "final_audit"
+      payload:
+        result:
+          passed: false
+          final_status: "blocked"
+          blockers:
+            - "Package database is interrupted and no safe automated repair path was confirmed."
+          findings:
+            - id: "package-db:dpkg-interrupted"
+              severity: "fatal"
+              category: "package_db"
+              summary: "dpkg is interrupted."
+              required_capability_kinds:
+                - "package_db_repair"
+  expected_bundle_artifacts:
+    - "final-audit.json"
+    - "setup-runlog-redacted.jsonl"
+    - "replay-summary.json"
+    - "support-summary.json"
+  required_evidence:
+    - "verification command and stderr tail"
+    - "fatal package_db finding"
+    - "required capability kind package_db_repair"
+    - "final status blocked"
+  redaction_expectations:
+    - "Acquire::http::Proxy::Password=secret-proxy-password"
+  current_likely_gap: "none if final_audit finding is present; package DB details outside final_audit are not separately extracted"
+  rationale: "Interrupted dpkg can derail all app installs and must not be flattened into a generic command failure."
+  risk: high
+
+- id: package-db-corruption-repair-capability-denied
+  category: package_db_corruption
+  status: unknown
+  representative_runlog_events:
+    - event_type: "command_group_started"
+      payload:
+        stage: "apps"
+        group:
+          id: "repair-dpkg"
+          title: "Repair interrupted dpkg"
+    - event_type: "dangerous_operation_preview"
+      payload:
+        stage: "apps"
+        group_id: "repair-dpkg"
+        preview:
+          preview_id: "prev-package-db-repair"
+          operation:
+            kind: "package_db_repair"
+            target: "/var/lib/dpkg"
+          confirmation_token: "REPAIR-DPKG"
+    - event_type: "safe_abort"
+      payload:
+        stage: "apps"
+        group_id: "repair-dpkg"
+        reason: "Package database repair was not confirmed."
+  expected_bundle_artifacts:
+    - "dangerous-operation-previews.json"
+    - "setup-runlog-redacted.jsonl"
+    - "support-summary.json"
+  required_evidence:
+    - "package_db_repair operation kind"
+    - "target /var/lib/dpkg"
+    - "confirmation was declined or missing"
+    - "safe_abort reason"
+  redaction_expectations:
+    - "DPKG_FRONTEND_PASSWORD=dpkg-secret"
+  current_likely_gap: "dangerous preview is extracted, but denied capability is only visible as safe_abort rather than a capability denial artifact"
+  rationale: "A declined package DB repair is a safe blocked state and the support bundle should explain why the repair did not run."
+  risk: high
+
+- id: capability-mismatch-wrong-run-profile
+  category: capability_mismatch
+  status: unknown
+  representative_runlog_events:
+    - event_type: "capability_granted"
+      payload:
+        stage: "install_or_skip"
+        group_id: "partition-disk"
+        capability:
+          id: "cap-old-run-partition-sda"
+          kind: "disk_partition"
+          target: "/dev/sda"
+          run_id: "run-old"
+          install_profile: "full_disk_wipe"
+          preview_id: "prev-old-run"
+          consumed: false
+    - event_type: "command_preflight_blocked"
+      payload:
+        stage: "install_or_skip"
+        group_id: "partition-disk"
+        command: "sudo parted -s /dev/sda mklabel gpt"
+        decision:
+          kind: "block"
+          category: "capability_required"
+          reason: "Disk partitioning requires a capability for the current run and install profile."
+          capability_kind: "disk_partition"
+          target: "/dev/sda"
+        reason: "Disk partitioning requires a capability for the current run and install profile."
+  expected_bundle_artifacts:
+    - "capability-events.json"
+    - "preflight-events.json"
+    - "support-summary.json"
+  required_evidence:
+    - "old run id and current mismatch reason"
+    - "install profile associated with stale grant"
+    - "blocked partition command"
+    - "capability kind disk_partition"
+  redaction_expectations:
+    - "api_key=sk-old-run-secret"
+  current_likely_gap: "wrong-run/profile mismatch is not represented as a first-class capability denial event"
+  rationale: "Restored or stale local state must not silently authorize current destructive operations."
+  risk: high
+
+- id: blocked-run-provider-error-before-plan
+  category: blocked_run
+  status: unknown
+  representative_runlog_events:
+    - event_type: "model_call_failed"
+      payload:
+        stage: "research_and_plan"
+        provider: "openai"
+        error_category: "rate_limited"
+        status_code: 429
+        message: "rate limit exceeded for request req_blocked_core_secret"
+    - event_type: "blocking_question_timeout"
+      payload:
+        stage: "research_and_plan"
+        question_id: "repair-budget"
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "replay-summary.json"
+    - "support-summary.json"
+  required_evidence:
+    - "provider/model error category"
+    - "status code 429"
+    - "no raw secret-bearing provider payload"
+    - "blocking timeout if user input was requested"
+  redaction_expectations:
+    - "req_blocked_core_secret"
+    - "Authorization: Bearer provider-secret-token"
+  current_likely_gap: "provider errors are only present in raw redacted runlog, with no dedicated provider-errors.json extraction"
+  rationale: "A run may block before a plan exists; support still needs to tell provider failure apart from target safety failure."
+  risk: medium
+
+- id: blocked-run-pre-reboot-check-failure
+  category: blocked_run
+  status: unknown
+  representative_runlog_events:
+    - event_type: "pre_reboot_check_attempt"
+      payload:
+        attempt: 1
+        passed: false
+        failures:
+          - "Missing /mnt/boot/vmlinuz-*"
+          - "SSH authorized_keys missing for target user"
+        summary: "Pre-reboot checks failed."
+    - event_type: "pre_reboot_checks"
+      payload:
+        passed: false
+        failures:
+          - "Missing /mnt/boot/vmlinuz-*"
+          - "SSH authorized_keys missing for target user"
+        summary: "The target would not be boot/reconnect safe."
+  expected_bundle_artifacts:
+    - "setup-runlog-redacted.jsonl"
+    - "replay-summary.json"
+    - "support-summary.json"
+  required_evidence:
+    - "pre-reboot check attempt count"
+    - "failed boot artifact check"
+    - "failed SSH continuity check"
+    - "reason that reboot was not issued"
+  redaction_expectations:
+    - "target_user_password=PreRebootSecret"
+  current_likely_gap: "pre_reboot_checks is not a preflight/final_audit artifact, so key boot/reconnect blockers may only be visible in raw runlog"
+  rationale: "Blocking before reboot is the safest outcome, but support needs the exact failed guard checks."
+  risk: high
+
+- id: capability-mismatch-bootloader-install-target
+  category: capability_mismatch
+  status: unknown
+  representative_runlog_events:
+    - event_type: "capability_granted"
+      payload:
+        stage: "install_or_skip"
+        group_id: "bootloader"
+        capability:
+          id: "cap-boot-sda"
+          kind: "bootloader_install"
+          target: "/dev/sda"
+          preview_id: "prev-boot-sda"
+          consumed: false
+    - event_type: "command_preflight_blocked"
+      payload:
+        stage: "install_or_skip"
+        group_id: "bootloader"
+        command: "sudo grub-install /dev/sdb"
+        decision:
+          kind: "block"
+          category: "capability_required"
+          reason: "Bootloader install on /dev/sdb requires matching bootloader_install capability."
+          capability_kind: "bootloader_install"
+          target: "/dev/sdb"
+        reason: "Bootloader install on /dev/sdb requires matching bootloader_install capability."
+  expected_bundle_artifacts:
+    - "capability-events.json"
+    - "preflight-events.json"
+    - "support-summary.json"
+  required_evidence:
+    - "authorized bootloader target /dev/sda"
+    - "blocked bootloader command target /dev/sdb"
+    - "mismatch reason"
+    - "preview id"
+  redaction_expectations:
+    - "root_password=BootSecret123"
+  current_likely_gap: "no explicit mismatch artifact; diagnostics require manual join between capability and preflight events"
+  rationale: "Bootloader target mismatches can make the wrong disk unbootable and must be easy to audit."
+  risk: high
