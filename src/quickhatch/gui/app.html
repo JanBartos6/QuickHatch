@@ -1363,7 +1363,8 @@ async function api(path,method='GET',body=null){
   const r=await fetch(path,opts);return r.json();
 }
 
-function applyServerProfile(profile, seq, opts={}){
+function applyServerProfile(profile, seq){
+  const opts=arguments[2]||{};
   if(!profile)return false;
   if((seq||0) < (state._profileAppliedSeq||0))return false;
   state._profileAppliedSeq=seq||0;
