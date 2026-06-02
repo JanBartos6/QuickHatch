@@ -95,7 +95,7 @@ scenarios:
       final_group_command_contains: "flatpak install"
       rejected_event: repair_retry_rejected_same_strategy
       prompt_contains:
-        - "Do not repeat an identical package/theme/driver strategy"
+        - "Do not repeat an identical package/theme/driver/install strategy"
         - "Search-first repair policy"
         - "Repair only the current failed group"
       source_agents: [repair-suggestion-agent-1-repeated-package]

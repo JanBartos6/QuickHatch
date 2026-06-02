@@ -157,6 +157,46 @@ def test_evaluate_repair_identical_retry_is_not_unique() -> None:
     assert result["repair_unique"] is False
 
 
+def test_evaluate_repair_removed_invalid_flag_is_unique() -> None:
+    case = _case("repair-pacstrap-noconfirm")
+    response = json.dumps(
+        {
+            "action": "retry_group",
+            "group": {
+                "id": "arch-bootstrap-retry",
+                "stage": "install_or_skip",
+                "title": "Retry bootstrap after removing invalid flag",
+                "commands": ["sudo pacstrap -K /mnt base linux linux-firmware"],
+                "source": "repo",
+                "packages": ["base", "linux", "linux-firmware"],
+            },
+        }
+    )
+
+    result = live_model_gauntlet.evaluate_response(case, response)
+
+    assert result["valid_structured_output"] is True
+    assert result["repair_unique"] is True
+
+
+def test_repair_search_first_does_not_score_manual_followup_quality_yet() -> None:
+    case = _case("repair-manual-followup-specific-app")
+    response = json.dumps(
+        {
+            "action": "web_search",
+            "query": "Adobe Acrobat Reader Debian Linux availability",
+            "max_results": 3,
+            "reason": "Verify whether the requested app still has an official Linux build.",
+        }
+    )
+
+    result = live_model_gauntlet.evaluate_response(case, response)
+
+    assert result["valid_structured_output"] is True
+    assert result["search_used_when_needed"] is True
+    assert result["manual_followup_quality"] is None
+
+
 def test_gemini_native_helpers_extract_text_and_strip_openai_endpoint() -> None:
     url = live_model_gauntlet._gemini_native_url(
         "https://generativelanguage.googleapis.com/v1beta/openai",
@@ -232,3 +272,30 @@ def test_call_model_openai_mode_does_not_fallback(monkeypatch: pytest.MonkeyPatc
             timeout=1,
             api_mode="openai_compat",
         )
+
+
+def test_load_existing_case_results_keeps_latest_case_result(tmp_path: Path) -> None:
+    output_dir = tmp_path / "gauntlet"
+    output_dir.mkdir()
+    (output_dir / "cases.jsonl").write_text(
+        "\n".join(
+            [
+                json.dumps({"id": "case-a", "valid_structured_output": False}),
+                json.dumps({"id": "case-b", "valid_structured_output": True}),
+                json.dumps({"id": "case-a", "valid_structured_output": True}),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    results = live_model_gauntlet.load_existing_case_results(output_dir)
+
+    assert set(results) == {"case-a", "case-b"}
+    assert results["case-a"]["valid_structured_output"] is True
+
+
+def test_retryable_provider_error_detects_rate_limits() -> None:
+    assert live_model_gauntlet.retryable_provider_error("HTTP 429 Too Many Requests")
+    assert live_model_gauntlet.retryable_provider_error("RESOURCE_EXHAUSTED quota exceeded")
+    assert not live_model_gauntlet.retryable_provider_error("Planner returned invalid JSON")

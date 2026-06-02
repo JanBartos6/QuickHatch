@@ -13,6 +13,7 @@ import argparse
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -69,6 +70,14 @@ DEFAULT_ENV_NAMES = (
 SEARCH_ACTIONS = {"repo_search", "community_search", "web_search"}
 SEARCH_EVIDENCE = {"repo_search", "community_search", "web_search"}
 API_MODES = ("auto", "openai_compat", "gemini_native")
+RETRYABLE_PROVIDER_MARKERS = (
+    "HTTP 429",
+    "Too Many Requests",
+    "RESOURCE_EXHAUSTED",
+    "quota",
+    "rate-limit",
+    "rate limit",
+)
 
 
 def load_cases(path: Path) -> list[dict[str, Any]]:
@@ -267,6 +276,8 @@ def _plan_manual_followup_quality(plan: Any) -> bool:
 
 
 def _repair_manual_followup_quality(action: dict[str, Any], *, failed_group: CommandGroup) -> bool:
+    if action.get("action") in SEARCH_ACTIONS:
+        raise ValueError("Search actions do not contain manual follow-up text yet.")
     if action.get("action") == "question":
         return _specific_text(str(action.get("question", "") or ""))
     if action.get("action") != "manual_followup":
@@ -306,7 +317,28 @@ def _repair_unique(
         command=group.commands[0],
         strategy=group.source,
     )
-    return changed_strategy_allowed(original, current)
+    if changed_strategy_allowed(original, current):
+        return True
+    failed_text = " ".join(
+        [
+            failed_command,
+            str(failure.get("stdout_tail", "") or ""),
+            str(failure.get("stderr_tail", "") or ""),
+        ]
+    ).lower()
+    current_command = group.commands[0]
+    if current_command.strip() != failed_command.strip() and any(
+        marker in failed_text
+        for marker in (
+            "unrecognized option",
+            "invalid option",
+            "unsupported option",
+            "does not support",
+            "unknown option",
+        )
+    ):
+        return True
+    return False
 
 
 def evaluate_response(case: dict[str, Any], response_text: str) -> dict[str, Any]:
@@ -346,9 +378,10 @@ def evaluate_response(case: dict[str, Any], response_text: str) -> dict[str, Any
                 action, failed_group=failed_group, failure=failure
             )
             if bool(case.get("expects_manual_followup", False)):
-                result["manual_followup_quality"] = _repair_manual_followup_quality(
-                    action, failed_group=failed_group
-                )
+                if action.get("action") not in SEARCH_ACTIONS:
+                    result["manual_followup_quality"] = _repair_manual_followup_quality(
+                        action, failed_group=failed_group
+                    )
         except RepairActionValidationError as exc:
             result["error"] = str(exc)
         return result
@@ -623,6 +656,29 @@ def write_artifacts(
     (output_dir / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def load_existing_case_results(output_dir: Path) -> dict[str, dict[str, Any]]:
+    path = output_dir / "cases.jsonl"
+    if not path.exists():
+        return {}
+    results: dict[str, dict[str, Any]] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        case_id = str(payload.get("id", "") or "")
+        if case_id:
+            results[case_id] = payload
+    return results
+
+
+def retryable_provider_error(error: object) -> bool:
+    text = str(error)
+    return any(marker.lower() in text.lower() for marker in RETRYABLE_PROVIDER_MARKERS)
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixture", type=Path, default=DEFAULT_FIXTURE)
@@ -633,8 +689,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--api-key-env", default=None)
     parser.add_argument("--limit", type=int, default=0, help="Limit cases; 0 means all.")
     parser.add_argument("--timeout", type=int, default=90)
+    parser.add_argument("--provider-retries", type=int, default=2)
+    parser.add_argument("--provider-retry-sleep", type=float, default=30.0)
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Reuse existing per-case results in output-dir and run only missing cases.",
+    )
     return parser.parse_args(argv)
 
 
@@ -680,27 +743,48 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
-    results: list[dict[str, Any]] = []
+    results_by_id = load_existing_case_results(output_dir) if args.resume else {}
+    if results_by_id:
+        print(f"Resuming with {len(results_by_id)} existing case result(s).", flush=True)
     for index, case in enumerate(cases, start=1):
+        if case["id"] in results_by_id:
+            print(f"[{index}/{len(cases)}] {case['id']} (resume-skip)", flush=True)
+            continue
         messages = build_messages_for_case(case)
         print(f"[{index}/{len(cases)}] {case['id']}", flush=True)
-        response_text = call_model(
-            provider=args.provider,
-            endpoint=args.endpoint,
-            model=args.model,
-            api_key=api_key,
-            messages=messages,
-            timeout=args.timeout,
-            api_mode=args.api_mode,
-        )
+        response_text = ""
+        for attempt in range(args.provider_retries + 1):
+            try:
+                response_text = call_model(
+                    provider=args.provider,
+                    endpoint=args.endpoint,
+                    model=args.model,
+                    api_key=api_key,
+                    messages=messages,
+                    timeout=args.timeout,
+                    api_mode=args.api_mode,
+                )
+                break
+            except Exception as exc:
+                if attempt >= args.provider_retries or not retryable_provider_error(exc):
+                    raise
+                sleep_seconds = max(0.0, float(args.provider_retry_sleep))
+                print(
+                    f"Provider retryable error for {case['id']}; "
+                    f"sleeping {sleep_seconds:g}s before retry {attempt + 1}/"
+                    f"{args.provider_retries}.",
+                    flush=True,
+                )
+                time.sleep(sleep_seconds)
         result = evaluate_response(case, response_text)
         result["response_preview"] = redact_sensitive_text(response_text[:1200])
         result["prompt_chars"] = len(messages[0]["content"])
-        results.append(result)
+        results_by_id[case["id"]] = result
         output_dir.mkdir(parents=True, exist_ok=True)
         with (output_dir / "cases.jsonl").open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(result, sort_keys=True) + "\n")
 
+    results = [results_by_id[case["id"]] for case in cases if case["id"] in results_by_id]
     summary = summarize_results(results, dry_run=False)
     write_artifacts(
         output_dir=output_dir,

@@ -841,10 +841,10 @@ def test_build_research_prompt_allows_fedora_live_installroot_not_anaconda():
     assert "`gawk`" in prompt
     assert "systemd-pam" in prompt
     assert "dbus-daemon" in prompt
-    assert "ROOT_UUID=$(sudo blkid" in prompt
-    assert "/mnt/etc/.pwd.lock" in prompt
-    assert "ensure `/mnt/boot/vmlinuz-*` and `/mnt/boot/initramfs-*.img` exist" in prompt
-    assert "parent disk device (not the root partition)" in prompt
+    assert "Use typed operations for partition/mount/fstab/bootloader intent" in prompt
+    assert "verify `/mnt/etc/fstab` and boot artifacts with read-only `test`/`find`" in prompt
+    assert "guarded boot-artifact repair" in prompt
+    assert "install/configure GRUB through typed bootloader intent" in prompt
     assert "Do not run Anaconda" in prompt
     assert "touch /mnt/.autorelabel" in prompt
     assert "experimental `dnf --installroot`" not in prompt

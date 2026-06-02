@@ -26,6 +26,8 @@ Additional endpoint smoke:
 
 ## Metrics
 
+### Baseline Live Pass
+
 | Metric | Result |
 | --- | ---: |
 | evaluated cases | 30 |
@@ -36,7 +38,33 @@ Additional endpoint smoke:
 | manual-follow-up quality rate | 0.36363636363636365 |
 | repair uniqueness rate | 0.9 |
 
+### Calibrated Live Pass
+
+Artifact path:
+- `.quickhatch/live-model-gauntlet/gemini-3.1-flash-lite-calibrated-4/summary.json`
+- `.quickhatch/live-model-gauntlet/gemini-3.1-flash-lite-calibrated-4/cases.jsonl`
+- `.quickhatch/live-model-gauntlet/gemini-3.1-flash-lite-calibrated-4/summary.md`
+
+| Metric | Result |
+| --- | ---: |
+| evaluated cases | 30 |
+| valid structured output rate | 1.0 |
+| wrong-mode command rate | 0.0 |
+| dangerous raw command rate | 0.0 |
+| search usage when needed rate | 0.75 |
+| manual-follow-up quality rate | 1.0 |
+| repair uniqueness rate | 1.0 |
+
+Calibration changes:
+- Added concrete typed-operation examples with object-shaped `options`.
+- Added hard prompt rules for fstab and boot-artifact work so fresh-install plans do not emit raw fstab writes or initramfs rebuild commands.
+- Strengthened search-first language for package names, drivers, Secure Boot, VM integration, commercial/discontinued apps, and distro-specific uncertainty.
+- Strengthened repair-loop wording for invalid command flags such as `pacstrap --noconfirm`.
+- Added gauntlet runner resume support and retry handling for provider 429/rate-limit interruptions.
+
 ## Validation Failures
+
+Baseline failures:
 
 Invalid structured outputs:
 - `plan-fresh-arch-full-disk`: emitted dangerous raw disk partitioning shell instead of typed operation.
@@ -74,6 +102,10 @@ Manual-follow-up expected but weak or absent:
 Non-unique repair attempt:
 - `repair-pacstrap-noconfirm`
 
+Calibrated pass failures:
+- None for structured output, wrong-mode commands, dangerous raw commands, manual-follow-up quality, or repair uniqueness.
+- Search usage still missed some fixture-labeled cases, but improved from `0.4375` to `0.75`.
+
 ## Interpretation
 
 Gemini 3.1 Flash-Lite produced mode-appropriate configure-existing and postboot plans in this run. The wrong-mode command rate was zero, which is good evidence that the mode contract is visible to the model.
@@ -86,7 +118,5 @@ Repair behavior was mostly bounded and unique. The one repeated-strategy failure
 
 ## Follow-Up Ideas
 
-- Add an even stronger prompt sentence near the response schema: fresh-install disk, fstab, bootloader, reboot, and package DB mutations must be typed `operations`, never raw shell.
-- Add examples of valid typed operations for full-disk, Fedora installroot, Ubuntu debootstrap, and manual partition mapping.
-- Make search-first expectations more explicit for driver, VM integration, stale app names, and ambiguous user requests.
-- Require manual follow-up entries to name the exact app/driver/design item and why the harness cannot safely finish it.
+- Consider whether every fixture case marked `needs_search` truly requires a search action, or whether a specific question/manual-follow-up should count as a valid uncertainty response for no-GUI and capability-proven blockers.
+- Keep an eye on Gemini free-tier 429s; the runner now supports retries and resume, but paid/batched runs should still record quota interruptions clearly.

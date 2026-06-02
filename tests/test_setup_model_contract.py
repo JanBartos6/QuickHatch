@@ -389,6 +389,19 @@ def test_prompt_contracts_remain_aligned_with_fixture_policy() -> None:
     assert "typed operations" in policy
     assert "Return JSON only" in research_prompt
     assert "repairing ONE failed remote-setup command group" in repair_prompt
+    assert "FRESH-INSTALL OPERATION HARD RULE" in research_prompt
+    assert "FSTAB/BOOT ARTIFACT HARD RULE" in research_prompt
+    assert "object-shaped options" in research_prompt
+    assert "Manual follow-up quality rule" in research_prompt
+    assert "A search action is better than guessing a package" in research_prompt
+    assert (
+        "A single repo_search/community_search/web_search action is a successful planning turn"
+        in research_prompt
+    )
+    assert "prefer one search action as the entire response" in research_prompt
+    assert "pacstrap --noconfirm" in repair_prompt
+    assert "the retry must visibly change that exact failing flag" in repair_prompt
+    assert "Search is especially important for renamed apps" in repair_prompt
     assert "manual_followup" in research_prompt
     assert "Manual follow-up is the last resort" in repair_prompt
     assert PlanItemStatus.MANUAL_FOLLOWUP.value == "manual_followup"
