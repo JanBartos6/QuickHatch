@@ -297,9 +297,28 @@ def _repair_unique(
     if action.get("action") in {*SEARCH_ACTIONS, "question", "manual_followup"}:
         return True
     group = action.get("group")
-    if not isinstance(group, CommandGroup) or not group.commands:
+    if not isinstance(group, CommandGroup) or (not group.commands and not group.operations):
         return False
     failed_command = str(failure.get("failed_command", "") or "")
+    if group.operations:
+        required_kinds = {
+            str(requirement.get("kind", "") or "")
+            for requirement in dangerous_command_requirements(failed_command)
+        }
+        operation_kinds = {
+            value
+            for operation in group.operations
+            for value in (operation.kind, operation.capability_kind)
+            if value
+        }
+        if required_kinds & operation_kinds:
+            return True
+        if {operation.kind for operation in group.operations} != {
+            operation.kind for operation in failed_group.operations
+        }:
+            return True
+    if not group.commands:
+        return False
     original = build_attempt_signature(
         stage=failed_group.stage.value,
         group_id=failed_group.id,
@@ -331,6 +350,8 @@ def _repair_unique(
         marker in failed_text
         for marker in (
             "unrecognized option",
+            "unrecognized argument",
+            "unrecognized arguments",
             "invalid option",
             "unsupported option",
             "does not support",

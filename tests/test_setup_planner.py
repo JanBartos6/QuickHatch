@@ -749,6 +749,11 @@ def test_build_repair_prompt_warns_about_vm_gpu_label_mismatch():
     assert "do not run unsafe vendor install scripts blindly" in prompt
     assert "do not install Okular and mark Adobe Acrobat Reader installed" in prompt
     assert "Do not enable/start VPN or firewall services as part of app repair" in prompt
+    assert (
+        "Typed operation objects must use {kind, target, filesystem, mountpoint, options}" in prompt
+    )
+    assert "use the field name `kind`, never `type`" in prompt
+    assert '{"kind":"write_fstab"' in prompt
 
 
 def test_build_research_prompt_uses_target_distro_over_live_facts(monkeypatch):

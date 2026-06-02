@@ -9,16 +9,16 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER_PATH = ROOT / "scripts" / "live_model_gauntlet.py"
+MAIN_FIXTURE = ROOT / "tests" / "fixtures" / "live_model_gauntlet_requests.yaml"
+HOLDOUT_FIXTURE = ROOT / "tests" / "fixtures" / "live_model_gauntlet_holdout_requests.yaml"
 spec = importlib.util.spec_from_file_location("live_model_gauntlet", RUNNER_PATH)
 assert spec is not None and spec.loader is not None
 live_model_gauntlet = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(live_model_gauntlet)
 
 
-def _cases() -> list[dict[str, Any]]:
-    return live_model_gauntlet.load_cases(
-        ROOT / "tests" / "fixtures" / "live_model_gauntlet_requests.yaml"
-    )
+def _cases(path: Path = MAIN_FIXTURE) -> list[dict[str, Any]]:
+    return live_model_gauntlet.load_cases(path)
 
 
 def _case(case_id: str) -> dict[str, Any]:
@@ -39,6 +39,23 @@ def test_live_gauntlet_fixture_has_30_plan_only_cases() -> None:
 def test_live_gauntlet_builds_all_prompts_without_provider_calls() -> None:
     prompts = [live_model_gauntlet.build_messages_for_case(case)[0]["content"] for case in _cases()]
 
+    assert all("JSON" in prompt for prompt in prompts)
+    assert all(
+        "Do not mark the run as complete" in prompt or "repairing ONE" in prompt
+        for prompt in prompts
+    )
+
+
+def test_live_gauntlet_holdout_fixture_builds_without_provider_calls() -> None:
+    cases = _cases(HOLDOUT_FIXTURE)
+    prompts = [live_model_gauntlet.build_messages_for_case(case)[0]["content"] for case in cases]
+
+    assert len(cases) == 15
+    assert {case["kind"] for case in cases} == {"plan", "repair"}
+    assert any(case["mode"] == "fresh_install" for case in cases)
+    assert any(case["mode"] == "configure_existing" for case in cases)
+    assert any(case.get("needs_search") for case in cases)
+    assert any(case.get("expects_manual_followup") for case in cases)
     assert all("JSON" in prompt for prompt in prompts)
     assert all(
         "Do not mark the run as complete" in prompt or "repairing ONE" in prompt
@@ -176,6 +193,66 @@ def test_evaluate_repair_removed_invalid_flag_is_unique() -> None:
     result = live_model_gauntlet.evaluate_response(case, response)
 
     assert result["valid_structured_output"] is True
+    assert result["repair_unique"] is True
+
+
+def test_evaluate_repair_removed_unrecognized_argument_is_unique() -> None:
+    case = next(
+        item
+        for item in _cases(HOLDOUT_FIXTURE)
+        if item["id"] == "holdout-repair-fedora-dnf-invalid-flag"
+    )
+    response = json.dumps(
+        {
+            "action": "retry_group",
+            "group": {
+                "id": "fedora-installroot-base",
+                "stage": "install_or_skip",
+                "title": "Retry Fedora installroot with valid dnf flag",
+                "commands": [
+                    "sudo dnf --installroot=/mnt -y install fedora-release kernel NetworkManager"
+                ],
+                "source": "repo",
+                "packages": ["fedora-release", "kernel", "NetworkManager"],
+            },
+        }
+    )
+
+    result = live_model_gauntlet.evaluate_response(case, response)
+
+    assert result["valid_structured_output"] is True
+    assert result["repair_unique"] is True
+
+
+def test_evaluate_repair_typed_operation_replacement_is_unique() -> None:
+    case = next(
+        item for item in _cases(HOLDOUT_FIXTURE) if item["id"] == "holdout-repair-fstab-raw-blocked"
+    )
+    response = json.dumps(
+        {
+            "action": "retry_group",
+            "group": {
+                "id": "fstab-write",
+                "stage": "install_or_skip",
+                "title": "Write fstab with typed operation",
+                "commands": [],
+                "operations": [
+                    {
+                        "kind": "write_fstab",
+                        "target": "/mnt/etc/fstab",
+                        "options": {"root": "UUID=abc"},
+                    }
+                ],
+                "source": "repo",
+                "packages": [],
+            },
+        }
+    )
+
+    result = live_model_gauntlet.evaluate_response(case, response)
+
+    assert result["valid_structured_output"] is True
+    assert result["dangerous_raw_command_count"] == 0
     assert result["repair_unique"] is True
 
 

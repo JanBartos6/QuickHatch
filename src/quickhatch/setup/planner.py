@@ -1231,6 +1231,7 @@ def build_repair_prompt(
         "- If you emit retry_group, include evidence on the replacement group unless the failure was purely local state/permissions. Evidence entries use {source_type, summary, query, url, title, confidence}.\n"
         "- If a desktop wrapper or other slow optional app is the problem, prefer manual_followup unless truly necessary.\n"
         "- If repair needs disk, bootloader, fstab, controlled reboot, package DB surgery, or VPN/firewall activation, emit typed operations in the replacement group. Raw destructive shell without a matching QuickHatch capability will be blocked.\n"
+        '- Typed operation objects must use {kind, target, filesystem, mountpoint, options}; use the field name `kind`, never `type`. Examples: {"kind":"write_fstab","target":"/mnt/etc/fstab","options":{"root":"/dev/vda2"}}, {"kind":"install_bootloader","target":"/dev/vda","options":{"boot_mode":"uefi"}}.\n'
         "- For Ubuntu/Debian desktop repairs after debootstrap, do NOT use `ubuntu-desktop` or `ubuntu-desktop-minimal`. Use explicit GNOME/display-manager packages instead. Do not add Firefox/Mozilla repos or Snap just to repair a basic desktop unless the user explicitly requested that stack.\n"
         "- If you emit retry_group, keep it scoped to this stage and include at least one command or typed operation.\n"
         "- Each retry command item runs as its own SSH execution. Do NOT emit heredoc syntax such as `<<EOF`/`EOF_CHROOT`; use explicit `arch-chroot /mnt sh -c '...'` commands or direct `/mnt` edits.\n"
