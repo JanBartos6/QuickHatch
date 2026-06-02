@@ -14,10 +14,13 @@ class UbuntuInstaller(DebianInstaller):
     mirror = "http://archive.ubuntu.com/ubuntu"
 
     def install_base_system(self, facts: SetupFacts, profile: UserProfile) -> list[str]:
-        del facts, profile
+        del profile
+        deb_arch = self.debian_arch(facts)
+        grub_pkg = "grub-efi-arm64" if deb_arch == "arm64" else "grub-efi-amd64"
+        mirror = "http://ports.ubuntu.com/ubuntu-ports" if deb_arch == "arm64" else self.mirror
         return [
             f"sudo {self.apt_get} update",
-            f"sudo {self.apt_get} install -y debootstrap arch-install-scripts grub-efi-amd64",
+            f"sudo {self.apt_get} install -y debootstrap arch-install-scripts {grub_pkg}",
             "QH_UBUNTU_SUITE=${QUICKHATCH_UBUNTU_SUITE:-}; "
             'if [ -z "$QH_UBUNTU_SUITE" ] && [ -r /etc/os-release ]; then '
             ". /etc/os-release; "
@@ -26,7 +29,7 @@ class UbuntuInstaller(DebianInstaller):
             "fi; "
             "fi; "
             f'QH_UBUNTU_SUITE="${{QH_UBUNTU_SUITE:-{self.suite}}}"; '
-            f'sudo debootstrap --arch=amd64 "$QH_UBUNTU_SUITE" /mnt {self.mirror}',
+            f'sudo debootstrap --arch={deb_arch} "$QH_UBUNTU_SUITE" /mnt {mirror}',
             "sudo genfstab -U /mnt | sudo tee -a /mnt/etc/fstab >/dev/null",
             "for qh_bind in dev dev/pts proc sys run; do "
             "sudo mkdir -p /mnt/$qh_bind; "
@@ -36,7 +39,7 @@ class UbuntuInstaller(DebianInstaller):
             "sudo chroot /mnt sh -c '"
             f"{self.apt_get} update && "
             f"DEBIAN_FRONTEND=noninteractive {self.apt_get} install -y "
-            "linux-generic sudo network-manager openssh-server grub-efi-amd64'",
+            f"linux-generic sudo network-manager openssh-server {grub_pkg}'",
             "sudo chroot /mnt systemctl enable NetworkManager ssh",
             "echo quickhatch | sudo tee /mnt/etc/hostname >/dev/null",
         ]

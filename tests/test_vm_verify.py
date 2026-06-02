@@ -882,6 +882,51 @@ class TestVerifyInstallScript:
         assert result.exit_code == 100
         assert "dpkg/lock-frontend" in result.error
 
+    def test_script_failure_prefers_stdout_over_known_hosts_noise(self, monkeypatch, tmp_path):
+        script = tmp_path / "install.sh"
+        script.write_text("echo ok")
+        iso = tmp_path / "live.iso"
+        iso.write_text("x")
+        monkeypatch.setattr(vm_verify, "bash_syntax_check", lambda _p: (True, "ok"))
+        monkeypatch.setattr(vm_verify, "pick_backend", lambda prefer=None: "virtualbox")
+        monkeypatch.setattr(
+            vm_verify,
+            "detect_backends",
+            lambda: {"virtualbox": "VBoxManage", "qemu": None},
+        )
+        monkeypatch.setattr(vm_verify, "_wait_for_vm_ssh", lambda *a, **k: True)
+        monkeypatch.setattr(
+            vm_verify,
+            "run_script_in_vm",
+            lambda *a, **k: (
+                100,
+                "E: Package 'grub-efi-amd64' has no installation candidate",
+                "Warning: Permanently added '[127.0.0.1]:58305' (ED25519) "
+                "to the list of known hosts.\n",
+            ),
+        )
+
+        class _FakeVM:
+            vm_name = "fake"
+
+            def __init__(self, *a, **k):
+                pass
+
+            def create(self, *a, **k):
+                pass
+
+            def start(self):
+                pass
+
+            def teardown(self):
+                pass
+
+        monkeypatch.setattr(vm_verify, "VirtualBoxBackend", _FakeVM)
+        result = vm_verify.verify_install_script(script, iso_path=iso)
+        assert not result.success
+        assert "grub-efi-amd64" in result.error
+        assert "known hosts" not in result.error
+
     def test_vanilla_iso_auth_failure_gives_actionable_error(self, monkeypatch, tmp_path):
         """SSH answered but scp failed on auth — user needs ISO-prep guidance."""
         script = tmp_path / "install.sh"

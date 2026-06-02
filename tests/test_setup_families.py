@@ -201,6 +201,27 @@ def test_ubuntu_adapter_uses_live_iso_codename_when_available():
     assert ":-noble" in joined
 
 
+def test_ubuntu_certification_spine_uses_arm64_packages_when_target_arch_is_arm64():
+    installer = get_family_installer("ubuntu")
+    facts = SetupFacts(distro_family="ubuntu", is_live=True, raw={"target_arch": "arm64"})
+
+    joined = "\n".join(
+        [
+            *installer.install_base_system(facts, UserProfile()),
+            *installer.install_bootloader(facts, UserProfile()),
+            *installer.pre_reboot_checks(facts),
+        ]
+    )
+
+    assert "debootstrap --arch=arm64" in joined
+    assert "http://ports.ubuntu.com/ubuntu-ports" in joined
+    assert "grub-efi-arm64" in joined
+    assert "grub-efi-amd64" not in joined
+    assert "--target=arm64-efi" in joined
+    assert "BOOTAA64.EFI" in joined
+    assert "BOOTX64.EFI" not in joined
+
+
 @pytest.mark.parametrize("family", ["ubuntu", "debian"])
 def test_debian_family_apt_commands_wait_for_package_manager_locks(family):
     installer = get_family_installer(family)

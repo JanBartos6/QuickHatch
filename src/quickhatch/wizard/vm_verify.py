@@ -79,6 +79,27 @@ def _is_vm_soft_pass(rc: int | None, stdout: str, stderr: str) -> bool:
     return 100 <= (rc or 0) < 110 and VM_SOFT_PASS_MARKER in f"{stdout}\n{stderr}"
 
 
+def _strip_ssh_noise(text: str) -> str:
+    lines = []
+    for line in (text or "").splitlines():
+        if line.startswith("Warning: Permanently added ") and "known hosts" in line:
+            continue
+        lines.append(line)
+    return "\n".join(lines).strip()
+
+
+def _vm_failure_detail(stdout: str, stderr: str) -> str:
+    """Prefer real command output over harmless SSH connection warnings."""
+
+    clean_stderr = _strip_ssh_noise(stderr)
+    if clean_stderr:
+        return clean_stderr
+    clean_stdout = _strip_ssh_noise(stdout)
+    if clean_stdout:
+        return clean_stdout
+    return (stderr or stdout or "").strip()
+
+
 def _run(
     cmd: list[str],
     *,
@@ -1141,7 +1162,7 @@ def verify_install_script(
         # such as apt also use 100 for real failures.
         result.success = rc == 0 or _is_vm_soft_pass(rc, result.stdout_tail, result.stderr_tail)
         if not result.success and not result.error:
-            raw = (result.stderr_tail or result.stdout_tail or "").strip()
+            raw = _vm_failure_detail(result.stdout_tail, result.stderr_tail)
             # Recognise the common "vanilla live ISO" failure — SSH
             # answered but authentication failed because the live user
             # wasn't pre-seeded with our key. Give an actionable hint
