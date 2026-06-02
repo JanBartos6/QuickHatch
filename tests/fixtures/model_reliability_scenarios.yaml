@@ -1,0 +1,1057 @@
+# Main model regression scenario corpus.
+#
+# This fixture is an index for future model-reliability testing. It keeps
+# high-risk planner/repair/provider behavior in one place and points to
+# existing focused fixtures/tests when coverage already exists.
+metadata:
+  version: 1
+  lane: model_reliability
+  source: Curated from existing model-contract, provider-diversity, research-grounding, mode-awareness, repair-quality, and final-status lanes.
+  policy: Model output is advisory until parsed, validated, grounded, capability-checked, executed, and audited by QuickHatch. Strong hosted models may use richer search features where safe; weaker/local models must degrade through retries, harness lookups, explicit uncertainty, manual follow-up, or blocking for core safety.
+  total_scenarios: 50
+  scenarios_by_category:
+    final_status_honesty: 4
+    json_contract: 5
+    output_noise: 4
+    planning_mode: 5
+    provider_diversity: 6
+    repair_quality: 6
+    research_grounding: 6
+    retry_loop_budget: 4
+    safety_contract: 5
+    uncertainty_followup: 5
+  coverage_statuses:
+    covered: 47
+    partial: 3
+  expected_behaviors:
+    reject_malformed_or_unsafe_model_output: 13
+    retry_or_correct_before_execution: 15
+    use_harness_lookup_for_current_facts: 8
+    preserve_dangerous_operation_gates: 5
+    degrade_non_core_failures_to_manual_followup: 8
+    keep_final_status_honest: 8
+  schema:
+    required_fields:
+      - id
+      - category
+      - phase
+      - provider_profile
+      - setup_context
+      - model_behavior
+      - expected_harness_response
+      - coverage
+      - rationale
+      - risk
+    coverage_status_values:
+      - covered
+      - partial
+      - candidate
+    outcome_values:
+      - accept_plan
+      - retry_model
+      - reject_response
+      - lookup_then_plan
+      - manual_followup
+      - block
+      - warning
+      - unsupported_safe
+scenarios:
+  - id: json-root-array-rejected
+    category: json_contract
+    phase: research_plan
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: configure_existing, family: arch, package_manager: pacman, stage: research_and_plan}
+    model_behavior:
+      pattern: "Returns a JSON array of candidate plans instead of one object."
+      representative_response: '[{"action":"plan","plan":{}}]'
+    expected_harness_response:
+      outcome: reject_response
+      final_status_effect: blocked
+      runlog_events: [planner_response_invalid]
+      must_not_execute: ["any command group from the array"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_model_contract.py]
+      existing_fixtures: [tests/fixtures/model_contract_scenarios.yaml]
+    rationale: "The contract is exactly one JSON object so the harness cannot accidentally pick one of several model guesses."
+    risk: medium
+
+  - id: json-thought-block-stripped
+    category: json_contract
+    phase: research_plan
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: any, family: generic, package_manager: generic, stage: research_and_plan}
+    model_behavior:
+      pattern: "Provider emits hidden reasoning tags before a valid JSON object."
+      representative_response: '<thought>draft</thought>{"action":"question","question":"Which disk?","required":true}'
+    expected_harness_response:
+      outcome: accept_plan
+      final_status_effect: none
+      runlog_events: []
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_model_contract.py]
+      existing_fixtures: [tests/fixtures/model_contract_scenarios.yaml]
+    rationale: "Reasoning wrappers are common provider noise and should not poison otherwise valid structured output."
+    risk: low
+
+  - id: fenced-json-normalized
+    category: json_contract
+    phase: repair
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: configure_existing, family: ubuntu, package_manager: apt, stage: apps}
+    model_behavior:
+      pattern: "Returns fenced JSON around a repair action."
+      representative_response: "```json\n{\"action\":\"repo_search\",\"query\":\"ubuntu vlc package\",\"reason\":\"verify\"}\n```"
+    expected_harness_response:
+      outcome: lookup_then_plan
+      final_status_effect: none
+      runlog_events: [repair_action]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_model_contract.py]
+      existing_fixtures: [tests/fixtures/model_contract_scenarios.yaml]
+    rationale: "Common formatting wrappers should normalize while preserving the one-action repair contract."
+    risk: low
+
+  - id: prose-only-repair-rejected
+    category: json_contract
+    phase: repair
+    provider_profile: {provider: local_ollama, native_search: false}
+    setup_context: {mode: configure_existing, family: fedora, package_manager: dnf, stage: apps}
+    model_behavior:
+      pattern: "Returns free-form advice instead of JSON."
+      representative_response: "Try updating repos and installing the package again."
+    expected_harness_response:
+      outcome: retry_model
+      final_status_effect: manual_followup_required
+      runlog_events: [repair_response_invalid]
+      must_not_execute: ["free-form advice"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_model_contract.py, tests/test_setup_provider_model_diversity.py]
+      existing_fixtures: [tests/fixtures/model_contract_scenarios.yaml, tests/fixtures/provider_model_diversity_scenarios.yaml]
+    rationale: "Text advice is not an executable repair contract and must not be translated implicitly."
+    risk: medium
+
+  - id: plan-missing-required-top-level-fields
+    category: json_contract
+    phase: research_plan
+    provider_profile: {provider: api_custom, native_search: false}
+    setup_context: {mode: configure_existing, family: debian, package_manager: apt, stage: research_and_plan}
+    model_behavior:
+      pattern: "Returns command_groups but omits target_summary or package_manager."
+      representative_response: '{"distro_family":"debian","command_groups":[]}'
+    expected_harness_response:
+      outcome: retry_model
+      final_status_effect: blocked
+      runlog_events: [planner_response_invalid]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_model_contract.py]
+      existing_fixtures: [tests/fixtures/model_contract_scenarios.yaml]
+    rationale: "Plan identity fields are needed for audit, repair, and support evidence."
+    risk: medium
+
+  - id: invalid-json-first-turn-corrects
+    category: output_noise
+    phase: research_plan
+    provider_profile: {provider: local_lmstudio, native_search: false}
+    setup_context: {mode: configure_existing, family: arch, package_manager: pacman, stage: research_and_plan}
+    model_behavior:
+      pattern: "First turn is truncated JSON; second turn returns a valid plan after parser feedback."
+      representative_response: "I think the plan is {"
+    expected_harness_response:
+      outcome: retry_model
+      final_status_effect: none
+      runlog_events: [planner_response_invalid]
+      must_not_execute: ["commands from invalid response"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_provider_model_diversity.py, tests/test_setup_orchestrator.py]
+      existing_fixtures: [tests/fixtures/provider_model_diversity_scenarios.yaml]
+    rationale: "Weak/local model syntax errors should be corrected before any setup stage can run."
+    risk: medium
+
+  - id: markdown-prose-around-plan-tolerated
+    category: output_noise
+    phase: research_plan
+    provider_profile: {provider: api_openai, native_search: false}
+    setup_context: {mode: configure_existing, family: arch, package_manager: pacman, stage: research_and_plan}
+    model_behavior:
+      pattern: "Adds a short sentence before and after a complete JSON object."
+      representative_response: "Here is the structured output: {...} Done."
+    expected_harness_response:
+      outcome: accept_plan
+      final_status_effect: none
+      runlog_events: []
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_model_contract.py]
+      existing_fixtures: [tests/fixtures/model_contract_scenarios.yaml]
+    rationale: "Recoverable prose wrappers should not cause needless provider retries."
+    risk: low
+
+  - id: command-field-is-prose-rejected
+    category: output_noise
+    phase: research_plan
+    provider_profile: {provider: local_ollama, native_search: false}
+    setup_context: {mode: configure_existing, family: ubuntu, package_manager: apt, stage: apps}
+    model_behavior:
+      pattern: "Command list contains prose such as 'verify that KDE is configured'."
+      representative_response: '{"commands":["verify that KDE is configured"]}'
+    expected_harness_response:
+      outcome: retry_model
+      final_status_effect: blocked
+      runlog_events: [planner_response_invalid]
+      must_not_execute: ["verify that KDE is configured"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_orchestrator.py, tests/test_setup_model_contract.py]
+      existing_fixtures: [tests/fixtures/model_contract_scenarios.yaml]
+    rationale: "Commands and verification entries must be executable shell snippets, not narrative expectations."
+    risk: medium
+
+  - id: standalone-variable-assignment-rejected
+    category: output_noise
+    phase: research_plan
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: fresh_install, family: arch, package_manager: pacman, stage: install_or_skip}
+    model_behavior:
+      pattern: "Splits shell variable assignment into its own SSH command item."
+      representative_response: '{"commands":["UCODE=$(pacman -Qq | grep ucode)","pacstrap -K /mnt base linux $UCODE"]}'
+    expected_harness_response:
+      outcome: retry_model
+      final_status_effect: blocked
+      runlog_events: [planner_response_invalid]
+      must_not_execute: ["standalone assignment"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_model_contract.py, tests/test_setup_planner.py]
+      existing_fixtures: [tests/fixtures/model_contract_scenarios.yaml]
+    rationale: "Each command runs in a separate SSH session; standalone assignments silently lose state."
+    risk: medium
+
+  - id: configure-existing-pacstrap-rejected
+    category: planning_mode
+    phase: research_plan
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: configure_existing, family: arch, package_manager: pacman, stage: research_and_plan}
+    model_behavior:
+      pattern: "Configure-existing plan includes pacstrap and /mnt target-root work."
+      representative_response: '{"stage":"install_or_skip","commands":["pacstrap -K /mnt base linux"]}'
+    expected_harness_response:
+      outcome: retry_model
+      final_status_effect: blocked
+      runlog_events: [planner_response_invalid]
+      must_not_execute: ["pacstrap -K /mnt base linux"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_mode_awareness.py]
+      existing_fixtures: [tests/fixtures/mode_awareness_scenarios.yaml]
+    rationale: "Configure-existing must never turn into a fresh installer because a model remembered install instructions."
+    risk: high
+
+  - id: fresh-install-missing-bootloader-rejected
+    category: planning_mode
+    phase: research_plan
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: fresh_install, family: arch, package_manager: pacman, stage: research_and_plan}
+    model_behavior:
+      pattern: "Fresh full-disk plan only installs apps and skips fstab/bootloader."
+      representative_response: '{"command_groups":[{"stage":"apps","commands":["sudo pacman -S vlc"]}]}'
+    expected_harness_response:
+      outcome: retry_model
+      final_status_effect: blocked
+      runlog_events: [planner_response_invalid]
+      must_not_execute: ["postboot app work before install spine"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_mode_awareness.py]
+      existing_fixtures: [tests/fixtures/mode_awareness_scenarios.yaml]
+    rationale: "Fresh installs must include target mount, bootstrap, fstab, bootloader, and guarded reconnect work."
+    risk: high
+
+  - id: postboot-setup-mounts-mnt-rejected
+    category: planning_mode
+    phase: research_plan
+    provider_profile: {provider: local_lmstudio, native_search: false}
+    setup_context: {mode: postboot_setup, family: fedora, package_manager: dnf, stage: apps}
+    model_behavior:
+      pattern: "Post-reboot app setup tries to mount /mnt and use installroot."
+      representative_response: '{"commands":["sudo mount /dev/sda2 /mnt","sudo dnf --installroot=/mnt install -y vlc"]}'
+    expected_harness_response:
+      outcome: retry_model
+      final_status_effect: blocked
+      runlog_events: [planner_response_invalid]
+      must_not_execute: ["mount /mnt", "dnf --installroot=/mnt"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_mode_awareness.py, tests/test_setup_stage_routing.py]
+      existing_fixtures: [tests/fixtures/mode_awareness_scenarios.yaml]
+    rationale: "Postboot work operates on the active installed root, not a live-ISO target root."
+    risk: high
+
+  - id: manual-partition-mapping-repartition-rejected
+    category: planning_mode
+    phase: research_plan
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: manual_partition_mapping, family: arch, package_manager: pacman, stage: install_or_skip}
+    model_behavior:
+      pattern: "Manual mapping plan invents parted/fdisk commands instead of using mapped partitions."
+      representative_response: '{"commands":["parted -s /dev/nvme0n1 mkpart primary ext4 100GiB 200GiB"]}'
+    expected_harness_response:
+      outcome: retry_model
+      final_status_effect: blocked
+      runlog_events: [planner_response_invalid]
+      must_not_execute: ["parted"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_mode_awareness.py]
+      existing_fixtures: [tests/fixtures/mode_awareness_scenarios.yaml]
+    rationale: "Manual partition mapping is exact-user-mapping mode, not a license to repartition or shrink Windows."
+    risk: high
+
+  - id: desktop-only-request-stays-desktop
+    category: planning_mode
+    phase: research_plan
+    provider_profile: {provider: api_openai, native_search: false}
+    setup_context: {mode: configure_existing, family: arch, package_manager: pacman, stage: desktop}
+    model_behavior:
+      pattern: "Desktop-only request emits only desktop/apps groups, no install spine."
+      representative_response: '{"command_groups":[{"stage":"desktop","commands":["kwriteconfig6 --file kdeglobals --group General --key ColorScheme BreezeDark"]}]}'
+    expected_harness_response:
+      outcome: accept_plan
+      final_status_effect: none
+      runlog_events: []
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_mode_awareness.py, tests/test_setup_desktop_session.py]
+      existing_fixtures: [tests/fixtures/mode_awareness_scenarios.yaml, tests/fixtures/desktop_session_scenarios.yaml]
+    rationale: "A model should be able to produce mode-appropriate small plans without being forced into installer work."
+    risk: medium
+
+  - id: planning-native-search-disabled-for-large-prompt
+    category: provider_diversity
+    phase: research_plan
+    provider_profile: {provider: api_openai, native_search: true}
+    setup_context: {mode: configure_existing, family: arch, package_manager: pacman, stage: research_and_plan}
+    model_behavior:
+      pattern: "Hosted model supports search, but the large setup prompt should still receive native_search=false."
+      representative_response: '{"action":"repo_search","query":"arch nvidia open package","reason":"resolve current package"}'
+    expected_harness_response:
+      outcome: lookup_then_plan
+      final_status_effect: none
+      runlog_events: [planner_prompt]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_provider_model_diversity.py, tests/test_setup_orchestrator.py]
+      existing_fixtures: [tests/fixtures/provider_model_diversity_scenarios.yaml]
+    rationale: "QuickHatch keeps the large safety prompt auditable through harness lookups instead of provider grounding."
+    risk: medium
+
+  - id: repair-native-search-enabled-for-narrow-turn
+    category: provider_diversity
+    phase: repair
+    provider_profile: {provider: api_openai, native_search: true}
+    setup_context: {mode: configure_existing, family: arch, package_manager: pacman, stage: apps}
+    model_behavior:
+      pattern: "Narrow repair turn uses provider-native search and returns manual follow-up."
+      representative_response: '{"action":"manual_followup","reason":"Provider search says manual install required","app_names":["Example"]}'
+    expected_harness_response:
+      outcome: manual_followup
+      final_status_effect: manual_followup_required
+      runlog_events: [repair_response]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_provider_model_diversity.py, tests/test_setup_orchestrator.py]
+      existing_fixtures: [tests/fixtures/provider_model_diversity_scenarios.yaml]
+    rationale: "Hosted search is useful for narrow repairs while keeping fallback paths explicit."
+    risk: low
+
+  - id: local-provider-fake-native-evidence-rejected
+    category: provider_diversity
+    phase: research_plan
+    provider_profile: {provider: local_lmstudio, native_search: false}
+    setup_context: {mode: configure_existing, family: arch, package_manager: pacman, stage: research_and_plan}
+    model_behavior:
+      pattern: "Local model claims provider_native_search evidence despite no native search."
+      representative_response: '{"evidence":[{"source_type":"provider_native_search","summary":"I searched it"}]}'
+    expected_harness_response:
+      outcome: retry_model
+      final_status_effect: none
+      runlog_events: [planner_response_invalid]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_provider_model_diversity.py]
+      existing_fixtures: [tests/fixtures/provider_model_diversity_scenarios.yaml]
+    rationale: "Unsupported evidence claims should not raise confidence or bypass harness lookup."
+    risk: medium
+
+  - id: hosted-503-retries-before-blocking
+    category: provider_diversity
+    phase: research_plan
+    provider_profile: {provider: api_anthropic, native_search: true}
+    setup_context: {mode: configure_existing, family: ubuntu, package_manager: apt, stage: research_and_plan}
+    model_behavior:
+      pattern: "First model call raises 503, retry returns valid plan."
+      representative_response: "RuntimeError: 503 Service Unavailable"
+    expected_harness_response:
+      outcome: retry_model
+      final_status_effect: none
+      runlog_events: [model_call_failed]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_provider_model_diversity.py, tests/test_setup_orchestrator.py]
+      existing_fixtures: [tests/fixtures/provider_model_diversity_scenarios.yaml]
+    rationale: "Hosted providers can fail transiently; retries should absorb one-off outages."
+    risk: medium
+
+  - id: provider-429-app-repair-manual-followup
+    category: provider_diversity
+    phase: repair
+    provider_profile: {provider: api_openai, native_search: true}
+    setup_context: {mode: configure_existing, family: arch, package_manager: pacman, stage: apps}
+    model_behavior:
+      pattern: "All app repair model calls fail with 429."
+      representative_response: "RuntimeError: 429 Too Many Requests"
+    expected_harness_response:
+      outcome: manual_followup
+      final_status_effect: manual_followup_required
+      runlog_events: [model_call_failed, repair_model_unavailable_manual_followup]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_provider_model_diversity.py, tests/test_setup_repair_suggestion_quality.py]
+      existing_fixtures: [tests/fixtures/provider_model_diversity_scenarios.yaml, tests/fixtures/repair_suggestion_quality_scenarios.yaml]
+    rationale: "Non-core repair should degrade to visible manual follow-up rather than block unrelated progress."
+    risk: medium
+
+  - id: provider-429-install-repair-blocks
+    category: provider_diversity
+    phase: repair
+    provider_profile: {provider: api_openai, native_search: true}
+    setup_context: {mode: fresh_install, family: arch, package_manager: pacman, stage: install_or_skip}
+    model_behavior:
+      pattern: "All install-spine repair model calls fail with 429."
+      representative_response: "RuntimeError: 429 Too Many Requests"
+    expected_harness_response:
+      outcome: block
+      final_status_effect: blocked
+      runlog_events: [model_call_failed]
+      must_not_execute: ["guessed install repair"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_provider_model_diversity.py]
+      existing_fixtures: [tests/fixtures/provider_model_diversity_scenarios.yaml]
+    rationale: "Core install safety cannot be downgraded to casual manual follow-up just because the provider is down."
+    risk: high
+
+  - id: catalog-hint-requires-current-target-evidence
+    category: research_grounding
+    phase: research_plan
+    provider_profile: {provider: api_openai, native_search: false}
+    setup_context: {mode: configure_existing, family: ubuntu, package_manager: apt, stage: research_and_plan}
+    model_behavior:
+      pattern: "Model uses stale catalog hint as if it were proof."
+      representative_response: '{"apps":[{"name":"Hinted App","package_name":"arch-pkg","source":"repo","status":"pending"}]}'
+    expected_harness_response:
+      outcome: lookup_then_plan
+      final_status_effect: none
+      runlog_events: [planner_prompt]
+      must_not_execute: ["wrong-family catalog package"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_research_grounding.py, tests/test_app_catalog_contract.py]
+      existing_fixtures: [tests/fixtures/research_grounding_scenarios.yaml]
+    rationale: "Catalog data is advisory; target package-manager evidence is stronger."
+    risk: medium
+
+  - id: stale-github-desktop-search-first
+    category: research_grounding
+    phase: research_plan
+    provider_profile: {provider: local_lmstudio, native_search: false}
+    setup_context: {mode: configure_existing, family: arch, package_manager: pacman, stage: research_and_plan}
+    model_behavior:
+      pattern: "Model remembers stale GitHub Desktop package and requests repo/community search before final plan."
+      representative_response: '{"action":"repo_search","query":"arch github desktop package","reason":"verify current package"}'
+    expected_harness_response:
+      outcome: lookup_then_plan
+      final_status_effect: none
+      runlog_events: [planner_response]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_research_grounding.py]
+      existing_fixtures: [tests/fixtures/research_grounding_scenarios.yaml]
+    rationale: "Fast-moving desktop apps need current repo/community evidence before install commands."
+    risk: medium
+
+  - id: aur-source-ambiguity-community-search
+    category: research_grounding
+    phase: research_plan
+    provider_profile: {provider: generic, native_search: false}
+    setup_context: {mode: configure_existing, family: arch, package_manager: pacman, stage: apps}
+    model_behavior:
+      pattern: "Model sees Arch and asks community_search before using an AUR source."
+      representative_response: '{"action":"community_search","query":"cursor editor AUR","reason":"verify AUR package"}'
+    expected_harness_response:
+      outcome: lookup_then_plan
+      final_status_effect: none
+      runlog_events: [planner_response]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_research_grounding.py]
+      existing_fixtures: [tests/fixtures/research_grounding_scenarios.yaml]
+    rationale: "AUR choices are plausible but still need explicit current community evidence."
+    risk: medium
+
+  - id: web-search-result-count-bounded
+    category: research_grounding
+    phase: research_plan
+    provider_profile: {provider: api_grok, native_search: true}
+    setup_context: {mode: configure_existing, family: fedora, package_manager: dnf, stage: apps}
+    model_behavior:
+      pattern: "Model requests web_search with max_results 100."
+      representative_response: '{"action":"web_search","query":"LM Studio Linux install Fedora","max_results":100}'
+    expected_harness_response:
+      outcome: lookup_then_plan
+      final_status_effect: none
+      runlog_events: [planner_response]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_provider_model_diversity.py, tests/test_setup_research_grounding.py]
+      existing_fixtures: [tests/fixtures/provider_model_diversity_scenarios.yaml, tests/fixtures/research_grounding_scenarios.yaml]
+    rationale: "External search must be bounded even when the model asks for too much."
+    risk: low
+
+  - id: search-failure-becomes-followup-not-success
+    category: research_grounding
+    phase: research_plan
+    provider_profile: {provider: local_lmstudio, native_search: false}
+    setup_context: {mode: configure_existing, family: fedora, package_manager: dnf, stage: apps}
+    model_behavior:
+      pattern: "Harness lookup fails and model returns manual follow-up for the uncertain app."
+      representative_response: '{"action":"plan","plan":{"apps":[{"status":"manual_followup"}]}}'
+    expected_harness_response:
+      outcome: manual_followup
+      final_status_effect: manual_followup_required
+      runlog_events: [planner_lookup_failed]
+      must_not_execute: ["unverified guessed package"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_provider_model_diversity.py, tests/test_setup_research_grounding.py]
+      existing_fixtures: [tests/fixtures/provider_model_diversity_scenarios.yaml, tests/fixtures/research_grounding_scenarios.yaml]
+    rationale: "Search failure should surface uncertainty instead of laundering it into success."
+    risk: medium
+
+  - id: provider-native-evidence-active-context
+    category: research_grounding
+    phase: research_plan
+    provider_profile: {provider: api_openai, native_search: true}
+    setup_context: {mode: advisory_analysis, family: generic, package_manager: generic, stage: research_and_plan}
+    model_behavior:
+      pattern: "Model cites provider_native_search in a context that actually enabled native search."
+      representative_response: '{"evidence":[{"source_type":"provider_native_search","summary":"search result"}]}'
+    expected_harness_response:
+      outcome: accept_plan
+      final_status_effect: none
+      runlog_events: []
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_provider_model_diversity.py, tests/test_setup_research_grounding.py]
+      existing_fixtures: [tests/fixtures/provider_model_diversity_scenarios.yaml, tests/fixtures/research_grounding_scenarios.yaml]
+    rationale: "Provider-native evidence should remain valid in explicitly native-search contexts."
+    risk: low
+
+  - id: identical-missing-package-retry-rejected
+    category: repair_quality
+    phase: repair
+    provider_profile: {provider: generic, native_search: false}
+    setup_context: {mode: configure_existing, family: ubuntu, package_manager: apt, stage: apps}
+    model_behavior:
+      pattern: "Repair retries the same unavailable package with cosmetic syntax changes."
+      representative_response: '{"action":"retry_group","group":{"commands":["apt-get install --yes obsidian"]}}'
+    expected_harness_response:
+      outcome: retry_model
+      final_status_effect: none
+      runlog_events: [repair_retry_rejected_same_strategy]
+      must_not_execute: ["apt-get install --yes obsidian"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_repair_suggestion_quality.py, tests/test_setup_repair_loop_control.py]
+      existing_fixtures: [tests/fixtures/repair_suggestion_quality_scenarios.yaml, tests/fixtures/repair_loop_scenarios.yaml]
+    rationale: "Repair should diagnose or change source, not repeat an identical missing-package strategy."
+    risk: medium
+
+  - id: repo-to-flatpak-repair-allowed
+    category: repair_quality
+    phase: repair
+    provider_profile: {provider: generic, native_search: false}
+    setup_context: {mode: configure_existing, family: fedora, package_manager: dnf, stage: apps}
+    model_behavior:
+      pattern: "Repair uses repo_search evidence then switches to Flatpak."
+      representative_response: '{"action":"retry_group","group":{"source":"flatpak","commands":["flatpak install -y flathub com.spotify.Client"]}}'
+    expected_harness_response:
+      outcome: accept_plan
+      final_status_effect: none
+      runlog_events: [repair_action]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_repair_suggestion_quality.py]
+      existing_fixtures: [tests/fixtures/repair_suggestion_quality_scenarios.yaml]
+    rationale: "Source fallback is a meaningful strategy change when scoped and evidenced."
+    risk: low
+
+  - id: multi-app-repair-isolates-failed-item
+    category: repair_quality
+    phase: repair
+    provider_profile: {provider: generic, native_search: false}
+    setup_context: {mode: configure_existing, family: ubuntu, package_manager: apt, stage: apps}
+    model_behavior:
+      pattern: "One missing app in a multi-app install is deferred while unrelated app continues."
+      representative_response: '{"commands":["sudo apt-get install -y vlc"],"manual_followup":["missing-chat"]}'
+    expected_harness_response:
+      outcome: manual_followup
+      final_status_effect: manual_followup_required
+      runlog_events: [repair_action]
+      must_not_execute: ["drop unrelated app progress"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_repair_suggestion_quality.py, tests/test_setup_app_partial_success.py]
+      existing_fixtures: [tests/fixtures/repair_suggestion_quality_scenarios.yaml, tests/fixtures/app_partial_success_scenarios.yaml]
+    rationale: "Model repair must not poison unrelated apps when only one package is unavailable."
+    risk: medium
+
+  - id: optional-theme-repair-manual-followup
+    category: repair_quality
+    phase: repair
+    provider_profile: {provider: generic, native_search: false}
+    setup_context: {mode: configure_existing, family: arch, package_manager: pacman, stage: desktop}
+    model_behavior:
+      pattern: "Theme package unavailable; repair marks exact theme manual follow-up."
+      representative_response: '{"action":"manual_followup","reason":"Theme package unavailable"}'
+    expected_harness_response:
+      outcome: manual_followup
+      final_status_effect: manual_followup_required
+      runlog_events: [repair_action]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_repair_suggestion_quality.py, tests/test_setup_desktop_session.py]
+      existing_fixtures: [tests/fixtures/repair_suggestion_quality_scenarios.yaml, tests/fixtures/desktop_session_scenarios.yaml]
+    rationale: "Cosmetic failures should stay visible without blocking core setup."
+    risk: medium
+
+  - id: dangerous-repair-uses-typed-operation
+    category: repair_quality
+    phase: repair
+    provider_profile: {provider: generic, native_search: false}
+    setup_context: {mode: fresh_install, family: arch, package_manager: pacman, stage: install_or_skip}
+    model_behavior:
+      pattern: "Repair wants to rewrite fstab and install bootloader."
+      representative_response: '{"action":"retry_group","group":{"operations":[{"kind":"write_fstab"},{"kind":"install_bootloader"}]}}'
+    expected_harness_response:
+      outcome: block
+      final_status_effect: blocked
+      runlog_events: [repair_action]
+      must_not_execute: ["raw fstab or bootloader mutation without capability"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_repair_suggestion_quality.py, tests/test_setup_final_audit_repair_loop.py, tests/test_preflight_capability_policy.py]
+      existing_fixtures: [tests/fixtures/repair_suggestion_quality_scenarios.yaml, tests/fixtures/final_audit_repair_scenarios.yaml]
+    rationale: "Dangerous repairs must remain capability/preflight gated even when proposed by the model."
+    risk: high
+
+  - id: repair-question-timeout-noninstall-followup
+    category: repair_quality
+    phase: repair
+    provider_profile: {provider: generic, native_search: false}
+    setup_context: {mode: configure_existing, family: fedora, package_manager: dnf, stage: apps}
+    model_behavior:
+      pattern: "Repair asks a question for a non-install app and no answer arrives before timeout."
+      representative_response: '{"action":"question","question":"Use Flatpak?","required":false,"timeout_seconds":0.01}'
+    expected_harness_response:
+      outcome: manual_followup
+      final_status_effect: manual_followup_required
+      runlog_events: [blocking_question_timeout]
+      must_not_execute: ["implicit default answer"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_orchestrator.py]
+      existing_fixtures: [tests/fixtures/repair_loop_scenarios.yaml]
+    rationale: "The model cannot invent user consent after a timeout."
+    risk: medium
+
+  - id: lookup-budget-exhausted-forces-plan
+    category: retry_loop_budget
+    phase: research_plan
+    provider_profile: {provider: api_custom, native_search: false}
+    setup_context: {mode: configure_existing, family: fedora, package_manager: dnf, stage: research_and_plan}
+    model_behavior:
+      pattern: "Model keeps requesting repo_search after three lookups."
+      representative_response: '{"action":"repo_search","query":"attempt 4"}'
+    expected_harness_response:
+      outcome: retry_model
+      final_status_effect: none
+      runlog_events: [planner_lookup_budget_exhausted]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_provider_model_diversity.py, tests/test_setup_orchestrator.py]
+      existing_fixtures: [tests/fixtures/provider_model_diversity_scenarios.yaml]
+    rationale: "Planning must not spin forever on model-requested lookups."
+    risk: medium
+
+  - id: repair-invalid-json-exhaustion-followup
+    category: retry_loop_budget
+    phase: repair
+    provider_profile: {provider: local_ollama, native_search: false}
+    setup_context: {mode: configure_existing, family: arch, package_manager: pacman, stage: apps}
+    model_behavior:
+      pattern: "Repair model repeatedly returns invalid JSON for app repair."
+      representative_response: "{"
+    expected_harness_response:
+      outcome: manual_followup
+      final_status_effect: manual_followup_required
+      runlog_events: [repair_response_invalid]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_provider_model_diversity.py, tests/test_setup_orchestrator.py]
+      existing_fixtures: [tests/fixtures/provider_model_diversity_scenarios.yaml]
+    rationale: "Invalid weak-model repair output should end boundedly with specific follow-up."
+    risk: medium
+
+  - id: provider-error-retry-limit
+    category: retry_loop_budget
+    phase: model_call
+    provider_profile: {provider: api_openai, native_search: true}
+    setup_context: {mode: configure_existing, family: generic, package_manager: generic, stage: research_and_plan}
+    model_behavior:
+      pattern: "Provider call fails repeatedly."
+      representative_response: "RuntimeError: timeout"
+    expected_harness_response:
+      outcome: block
+      final_status_effect: blocked
+      runlog_events: [model_call_failed]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_orchestrator.py, tests/test_setup_provider_model_diversity.py]
+      existing_fixtures: [tests/fixtures/provider_model_diversity_scenarios.yaml]
+    rationale: "Provider retry limits should be explicit and bounded."
+    risk: medium
+
+  - id: identical-repair-loop-stops
+    category: retry_loop_budget
+    phase: repair
+    provider_profile: {provider: generic, native_search: false}
+    setup_context: {mode: configure_existing, family: ubuntu, package_manager: apt, stage: apps}
+    model_behavior:
+      pattern: "Model alternates syntax while semantically retrying the same package."
+      representative_response: "apt install missing; apt-get install --yes missing"
+    expected_harness_response:
+      outcome: manual_followup
+      final_status_effect: manual_followup_required
+      runlog_events: [repair_retry_rejected_same_strategy]
+      must_not_execute: ["unbounded repeat"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_repair_loop_control.py, tests/test_setup_repair_suggestion_quality.py]
+      existing_fixtures: [tests/fixtures/repair_loop_scenarios.yaml, tests/fixtures/repair_suggestion_quality_scenarios.yaml]
+    rationale: "Semantic strategy loops must stop even when command strings differ."
+    risk: medium
+
+  - id: raw-mkfs-from-model-rejected
+    category: safety_contract
+    phase: research_plan
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: fresh_install, family: arch, package_manager: pacman, stage: install_or_skip}
+    model_behavior:
+      pattern: "Model emits raw mkfs shell command instead of typed operation/capability path."
+      representative_response: '{"commands":["mkfs.ext4 /dev/sda1"]}'
+    expected_harness_response:
+      outcome: reject_response
+      final_status_effect: blocked
+      runlog_events: [planner_response_invalid]
+      must_not_execute: ["mkfs.ext4 /dev/sda1"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_model_contract.py, tests/test_preflight_capability_policy.py]
+      existing_fixtures: [tests/fixtures/model_contract_scenarios.yaml, tests/fixtures/preflight_command_corpus.yaml]
+    rationale: "High-blast-radius disk effects must remain typed/capability gated."
+    risk: high
+
+  - id: raw-efibootmgr-mutation-rejected
+    category: safety_contract
+    phase: research_plan
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: fresh_install, family: ubuntu, package_manager: apt, stage: install_or_skip}
+    model_behavior:
+      pattern: "Model emits efibootmgr mutation as raw command."
+      representative_response: '{"commands":["efibootmgr -o 0002,0001"]}'
+    expected_harness_response:
+      outcome: reject_response
+      final_status_effect: blocked
+      runlog_events: [planner_response_invalid]
+      must_not_execute: ["efibootmgr -o"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_preflight_capability_policy.py, tests/test_preflight_command_corpus.py]
+      existing_fixtures: [tests/fixtures/preflight_command_corpus.yaml]
+    rationale: "Boot-order mutations are dangerous effects, unlike read-only efibootmgr -v diagnostics."
+    risk: high
+
+  - id: vpn-firewall-activation-from-app-repair-blocked
+    category: safety_contract
+    phase: repair
+    provider_profile: {provider: generic, native_search: false}
+    setup_context: {mode: configure_existing, family: ubuntu, package_manager: apt, stage: apps}
+    model_behavior:
+      pattern: "Model repairs VPN app by enabling service immediately."
+      representative_response: '{"commands":["sudo systemctl enable --now mullvad-daemon"]}'
+    expected_harness_response:
+      outcome: block
+      final_status_effect: blocked
+      runlog_events: [preflight_block]
+      must_not_execute: ["systemctl enable --now mullvad-daemon"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_preflight_capability_policy.py, tests/test_setup_repair_suggestion_quality.py]
+      existing_fixtures: [tests/fixtures/preflight_command_corpus.yaml, tests/fixtures/repair_suggestion_quality_scenarios.yaml]
+    rationale: "Network-security activation can cut off SSH and requires explicit consent."
+    risk: high
+
+  - id: shell-wrapper-hiding-danger-blocked
+    category: safety_contract
+    phase: research_plan
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: fresh_install, family: debian, package_manager: apt, stage: install_or_skip}
+    model_behavior:
+      pattern: "Dangerous disk command is hidden under sudo sh -c or a variable."
+      representative_response: '{"commands":["TARGET=/dev/sda1; sudo sh -c \"mkfs.ext4 $TARGET\""]}'
+    expected_harness_response:
+      outcome: reject_response
+      final_status_effect: blocked
+      runlog_events: [planner_response_invalid]
+      must_not_execute: ["mkfs via wrapper"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_preflight_capability_policy.py, tests/test_preflight_command_corpus.py]
+      existing_fixtures: [tests/fixtures/preflight_command_corpus.yaml]
+    rationale: "Wrapper syntax must not hide dangerous state transitions from preflight/capability policy."
+    risk: high
+
+  - id: destructive-typed-operation-requires-capability
+    category: safety_contract
+    phase: execution_preflight
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: fresh_install, family: arch, package_manager: pacman, stage: install_or_skip}
+    model_behavior:
+      pattern: "Model emits typed format_partition operation for an exact target."
+      representative_response: '{"operations":[{"kind":"format_partition","target":"/dev/sda1","filesystem":"ext4"}]}'
+    expected_harness_response:
+      outcome: block
+      final_status_effect: blocked
+      runlog_events: [capability_required]
+      must_not_execute: ["format without matching capability"]
+    coverage:
+      status: partial
+      existing_tests: [tests/test_preflight_capability_policy.py, tests/test_setup_capabilities.py]
+      existing_fixtures: [tests/fixtures/preflight_command_corpus.yaml]
+    rationale: "Typed dangerous operations are allowed as model intent, but execution still requires exact capability/consent."
+    risk: high
+
+  - id: unknown-nvidia-generation-followup
+    category: uncertainty_followup
+    phase: research_plan
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: postboot_setup, family: arch, package_manager: pacman, stage: postboot_driver}
+    model_behavior:
+      pattern: "NVIDIA strategy confidence is low because GPU generation/Secure Boot state is unknown."
+      representative_response: '{"driver_strategy":{"strategy":"manual_followup_required","confidence":"low"}}'
+    expected_harness_response:
+      outcome: manual_followup
+      final_status_effect: manual_followup_required
+      runlog_events: []
+      must_not_execute: ["blind nvidia-open install"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_driver_uncertainty.py, tests/test_setup_final_audit.py]
+      existing_fixtures: [tests/fixtures/driver_uncertainty_scenarios.yaml]
+    rationale: "Uncertain NVIDIA hardware should not be reported as verified driver success."
+    risk: high
+
+  - id: secureboot-dkms-manual-followup
+    category: uncertainty_followup
+    phase: final_audit
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: postboot_setup, family: ubuntu, package_manager: apt, stage: postboot_driver}
+    model_behavior:
+      pattern: "Driver installed but module cannot be verified under Secure Boot."
+      representative_response: '{"driver_status":"installed_unverified"}'
+    expected_harness_response:
+      outcome: manual_followup
+      final_status_effect: manual_followup_required
+      runlog_events: [final_audit]
+      must_not_execute: ["claim driver verified"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_driver_uncertainty.py, tests/test_setup_final_audit.py]
+      existing_fixtures: [tests/fixtures/driver_uncertainty_scenarios.yaml]
+    rationale: "Secure Boot signing/MOK work needs honest follow-up unless module load is verified."
+    risk: high
+
+  - id: no-gui-desktop-live-apply-followup
+    category: uncertainty_followup
+    phase: desktop
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: configure_existing, family: fedora, package_manager: dnf, stage: desktop}
+    model_behavior:
+      pattern: "Desktop live-apply command succeeds syntactically but no active GUI session exists."
+      representative_response: '{"commands":["gsettings set org.gnome.desktop.interface gtk-theme Adwaita-dark"]}'
+    expected_harness_response:
+      outcome: manual_followup
+      final_status_effect: manual_followup_required
+      runlog_events: []
+      must_not_execute: ["claim live theme verified"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_desktop_session.py, tests/test_setup_design_feedback_loop.py]
+      existing_fixtures: [tests/fixtures/desktop_session_scenarios.yaml, tests/fixtures/design_feedback_scenarios.yaml]
+    rationale: "Command success is not visual success; no session means persisted/unverified or follow-up."
+    risk: medium
+
+  - id: optional-vm-guest-integration-unsupported-safe
+    category: uncertainty_followup
+    phase: postboot_driver
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: postboot_setup, family: fedora, package_manager: dnf, stage: postboot_driver}
+    model_behavior:
+      pattern: "VM guest integration packages unavailable for current kernel."
+      representative_response: '{"driver_status":"unsupported_safe"}'
+    expected_harness_response:
+      outcome: unsupported_safe
+      final_status_effect: unsupported_safe
+      runlog_events: [final_audit]
+      must_not_execute: ["VBoxLinuxAdditions.run"]
+    coverage:
+      status: partial
+      existing_tests: [tests/test_setup_driver_uncertainty.py, tests/test_setup_final_audit.py]
+      existing_fixtures: [tests/fixtures/driver_uncertainty_scenarios.yaml]
+    rationale: "Optional VM integration should not compile brittle vendor ISO payloads or block the whole setup."
+    risk: medium
+
+  - id: missing-optional-app-followup-specific
+    category: uncertainty_followup
+    phase: apps
+    provider_profile: {provider: generic, native_search: false}
+    setup_context: {mode: configure_existing, family: ubuntu, package_manager: apt, stage: apps}
+    model_behavior:
+      pattern: "Optional app remains unavailable after safe repair paths."
+      representative_response: '{"action":"manual_followup","app_names":["Slow Wrapper"],"reason":"No verified package source"}'
+    expected_harness_response:
+      outcome: manual_followup
+      final_status_effect: manual_followup_required
+      runlog_events: [repair_action]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_app_partial_success.py, tests/test_setup_repair_suggestion_quality.py]
+      existing_fixtures: [tests/fixtures/app_partial_success_scenarios.yaml, tests/fixtures/repair_suggestion_quality_scenarios.yaml]
+    rationale: "Manual follow-up must name the exact app and reason."
+    risk: medium
+
+  - id: success-illegal-with-manual-followup
+    category: final_status_honesty
+    phase: final_audit
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: configure_existing, family: generic, package_manager: generic, stage: final_audit}
+    model_behavior:
+      pattern: "Model or summary text says success while manual follow-up remains."
+      representative_response: "All done successfully; install Cursor manually later."
+    expected_harness_response:
+      outcome: manual_followup
+      final_status_effect: manual_followup_required
+      runlog_events: [final_audit]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_final_audit.py, tests/test_setup_final_audit_repair_loop.py]
+      existing_fixtures: [tests/fixtures/final_audit_repair_scenarios.yaml]
+    rationale: "Final summary and final status must agree; unresolved follow-up forbids plain success."
+    risk: high
+
+  - id: fatal-fstab-finding-blocks
+    category: final_status_honesty
+    phase: final_audit
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: fresh_install, family: debian, package_manager: apt, stage: final_audit}
+    model_behavior:
+      pattern: "Final audit has fatal fstab finding and no successful repair."
+      representative_response: '{"finding":{"severity":"fatal","category":"fstab"}}'
+    expected_harness_response:
+      outcome: block
+      final_status_effect: blocked
+      runlog_events: [final_audit]
+      must_not_execute: ["postboot success continuation"]
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_final_audit_repair_loop.py]
+      existing_fixtures: [tests/fixtures/final_audit_repair_scenarios.yaml]
+    rationale: "Boot-critical audit findings must block unless actually repaired."
+    risk: high
+
+  - id: warning-only-status-success-with-warnings
+    category: final_status_honesty
+    phase: final_audit
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: configure_existing, family: generic, package_manager: generic, stage: final_audit}
+    model_behavior:
+      pattern: "Only warnings remain after final audit."
+      representative_response: '{"findings":[{"severity":"warning","category":"apps"}]}'
+    expected_harness_response:
+      outcome: warning
+      final_status_effect: success_with_warnings
+      runlog_events: [final_audit]
+      must_not_execute: []
+    coverage:
+      status: covered
+      existing_tests: [tests/test_setup_final_audit_repair_loop.py, tests/test_setup_final_audit.py]
+      existing_fixtures: [tests/fixtures/final_audit_repair_scenarios.yaml]
+    rationale: "Warnings should be visually/status-distinct from plain success."
+    risk: medium
+
+  - id: unsupported-safe-status-not-green-success
+    category: final_status_honesty
+    phase: final_audit
+    provider_profile: {provider: generic, native_search: unknown}
+    setup_context: {mode: postboot_setup, family: generic, package_manager: generic, stage: final_audit}
+    model_behavior:
+      pattern: "Unsupported-safe finding remains for optional hardware/app path."
+      representative_response: '{"findings":[{"severity":"unsupported_safe","category":"driver"}]}'
+    expected_harness_response:
+      outcome: unsupported_safe
+      final_status_effect: unsupported_safe
+      runlog_events: [final_audit]
+      must_not_execute: []
+    coverage:
+      status: partial
+      existing_tests: [tests/test_setup_final_audit_repair_loop.py, tests/test_setup_driver_uncertainty.py]
+      existing_fixtures: [tests/fixtures/final_audit_repair_scenarios.yaml, tests/fixtures/driver_uncertainty_scenarios.yaml]
+    rationale: "Unsupported-safe is a non-perfect outcome and must not look like plain success."
+    risk: medium
