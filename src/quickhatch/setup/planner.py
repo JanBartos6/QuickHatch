@@ -350,12 +350,55 @@ def _strip_model_reasoning_blocks(raw: str) -> str:
     return re.sub(r"(?is)<(?:thought|think)>.*?</(?:thought|think)>", "", raw or "").strip()
 
 
+def _json_trailing_comma_position(raw: str) -> int | None:
+    in_string = False
+    escaped = False
+    for index, char in enumerate(raw):
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+            continue
+        if char != ",":
+            continue
+        next_index = index + 1
+        while next_index < len(raw) and raw[next_index].isspace():
+            next_index += 1
+        if next_index < len(raw) and raw[next_index] in "}]":
+            return index
+    return None
+
+
 def model_json_loads(raw: str) -> dict[str, Any]:
     raw = _strip_model_reasoning_blocks(raw)
     try:
         data = json.loads(raw)
-    except json.JSONDecodeError:
-        data = json.loads(_repair_model_json_string_literals(raw))
+    except json.JSONDecodeError as exc:
+        trailing_comma = _json_trailing_comma_position(raw)
+        if trailing_comma is not None:
+            raise json.JSONDecodeError(
+                "Trailing comma is not valid JSON.",
+                raw,
+                trailing_comma,
+            ) from exc
+        repaired = _repair_model_json_string_literals(raw)
+        try:
+            data = json.loads(repaired)
+        except json.JSONDecodeError as repaired_exc:
+            trailing_comma = _json_trailing_comma_position(repaired)
+            if trailing_comma is not None:
+                raise json.JSONDecodeError(
+                    "Trailing comma is not valid JSON.",
+                    repaired,
+                    trailing_comma,
+                ) from repaired_exc
+            raise
     if not isinstance(data, dict):
         raise ResearchPlanValidationError("Planner output must be a single JSON object.")
     return data
