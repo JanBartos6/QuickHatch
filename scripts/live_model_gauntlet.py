@@ -13,6 +13,9 @@ import argparse
 import json
 import os
 import sys
+import urllib.error
+import urllib.parse
+import urllib.request
 from dataclasses import fields
 from datetime import datetime, timezone
 from pathlib import Path
@@ -65,6 +68,7 @@ DEFAULT_ENV_NAMES = (
 )
 SEARCH_ACTIONS = {"repo_search", "community_search", "web_search"}
 SEARCH_EVIDENCE = {"repo_search", "community_search", "web_search"}
+API_MODES = ("auto", "openai_compat", "gemini_native")
 
 
 def load_cases(path: Path) -> list[dict[str, Any]]:
@@ -426,6 +430,50 @@ def call_model(
     api_key: str,
     messages: list[dict[str, str]],
     timeout: int,
+    api_mode: str = "auto",
+) -> str:
+    if api_mode not in API_MODES:
+        raise ValueError(f"Unsupported API mode: {api_mode}")
+    openai_error = ""
+    if api_mode in {"auto", "openai_compat"}:
+        try:
+            return _call_openai_compat_model(
+                provider=provider,
+                endpoint=endpoint,
+                model=model,
+                api_key=api_key,
+                messages=messages,
+                timeout=timeout,
+            )
+        except Exception as exc:
+            if api_mode == "openai_compat" or provider != "api_gemini":
+                raise
+            openai_error = str(exc)
+    try:
+        return _call_gemini_native_model(
+            endpoint=endpoint,
+            model=model,
+            api_key=api_key,
+            messages=messages,
+            timeout=timeout,
+        )
+    except Exception as exc:
+        if openai_error:
+            raise RuntimeError(
+                "Both Gemini API modes failed. "
+                f"openai_compat={openai_error[:240]}; gemini_native={str(exc)[:240]}"
+            ) from exc
+        raise
+
+
+def _call_openai_compat_model(
+    *,
+    provider: str,
+    endpoint: str,
+    model: str,
+    api_key: str,
+    messages: list[dict[str, str]],
+    timeout: int,
 ) -> str:
     from quickhatch.gui.server import _call_setup_model_text
 
@@ -446,6 +494,91 @@ def call_model(
     )
 
 
+def _native_gemini_base(endpoint: str) -> str:
+    base = (endpoint or "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
+    if base.endswith("/openai"):
+        base = base[: -len("/openai")]
+    return base
+
+
+def _gemini_native_url(endpoint: str, model: str, api_key: str) -> str:
+    model_path = str(model or DEFAULT_MODEL).strip()
+    if not model_path.startswith("models/"):
+        model_path = f"models/{model_path}"
+    quoted_model = urllib.parse.quote(model_path, safe="/")
+    return (
+        f"{_native_gemini_base(endpoint)}/{quoted_model}:generateContent?"
+        + urllib.parse.urlencode({"key": api_key})
+    )
+
+
+def _messages_to_native_prompt(messages: list[dict[str, str]]) -> str:
+    parts: list[str] = []
+    for message in messages:
+        content = str(message.get("content", "") or "").strip()
+        if not content:
+            continue
+        role = str(message.get("role", "user") or "user")
+        if len(messages) == 1:
+            parts.append(content)
+        else:
+            parts.append(f"{role}: {content}")
+    return "\n\n".join(parts) or "Return one JSON object only."
+
+
+def _extract_gemini_native_text(payload: dict[str, Any]) -> str:
+    texts: list[str] = []
+    for candidate in payload.get("candidates", []) or []:
+        if not isinstance(candidate, dict):
+            continue
+        content = candidate.get("content") or {}
+        if not isinstance(content, dict):
+            continue
+        for part in content.get("parts", []) or []:
+            if isinstance(part, dict) and isinstance(part.get("text"), str):
+                texts.append(part["text"])
+    if texts:
+        return "".join(texts)
+    raise RuntimeError("Gemini native response did not contain text output.")
+
+
+def _call_gemini_native_model(
+    *,
+    endpoint: str,
+    model: str,
+    api_key: str,
+    messages: list[dict[str, str]],
+    timeout: int,
+) -> str:
+    body = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": _messages_to_native_prompt(messages)}],
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.3,
+            "maxOutputTokens": 4096,
+        },
+    }
+    request = urllib.request.Request(
+        _gemini_native_url(endpoint, model, api_key),
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        error_text = exc.read().decode("utf-8", errors="replace")[:800]
+        raise RuntimeError(
+            f"HTTP {exc.code} from Gemini native generateContent: {error_text}"
+        ) from exc
+    return _extract_gemini_native_text(payload)
+
+
 def _output_dir(base: Path | None) -> Path:
     if base is not None:
         return base
@@ -461,6 +594,7 @@ def write_artifacts(
     model: str,
     provider: str,
     endpoint: str,
+    api_mode: str,
 ) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "summary.json").write_text(
@@ -475,6 +609,7 @@ def write_artifacts(
         f"- provider: {provider}",
         f"- model: {model}",
         f"- endpoint: {endpoint}",
+        f"- api_mode: {api_mode}",
         f"- dry_run: {summary['dry_run']}",
         f"- cases: {summary['case_count']}",
         f"- evaluated: {summary['evaluated_count']}",
@@ -494,6 +629,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--provider", default=DEFAULT_PROVIDER)
     parser.add_argument("--endpoint", default=DEFAULT_ENDPOINT)
     parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument("--api-mode", choices=API_MODES, default="auto")
     parser.add_argument("--api-key-env", default=None)
     parser.add_argument("--limit", type=int, default=0, help="Limit cases; 0 means all.")
     parser.add_argument("--timeout", type=int, default=90)
@@ -527,6 +663,7 @@ def main(argv: list[str] | None = None) -> int:
             model=args.model,
             provider=args.provider,
             endpoint=args.endpoint,
+            api_mode=args.api_mode,
         )
         print(json.dumps(summary, indent=2, sort_keys=True))
         print(f"artifacts: {output_dir}")
@@ -554,6 +691,7 @@ def main(argv: list[str] | None = None) -> int:
             api_key=api_key,
             messages=messages,
             timeout=args.timeout,
+            api_mode=args.api_mode,
         )
         result = evaluate_response(case, response_text)
         result["response_preview"] = redact_sensitive_text(response_text[:1200])
@@ -571,6 +709,7 @@ def main(argv: list[str] | None = None) -> int:
         model=args.model,
         provider=args.provider,
         endpoint=args.endpoint,
+        api_mode=args.api_mode,
     )
     print(json.dumps(summary, indent=2, sort_keys=True))
     print(f"artifacts: {output_dir}")

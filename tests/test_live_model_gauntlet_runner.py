@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER_PATH = ROOT / "scripts" / "live_model_gauntlet.py"
 spec = importlib.util.spec_from_file_location("live_model_gauntlet", RUNNER_PATH)
@@ -153,3 +155,80 @@ def test_evaluate_repair_identical_retry_is_not_unique() -> None:
 
     assert result["valid_structured_output"] is True
     assert result["repair_unique"] is False
+
+
+def test_gemini_native_helpers_extract_text_and_strip_openai_endpoint() -> None:
+    url = live_model_gauntlet._gemini_native_url(
+        "https://generativelanguage.googleapis.com/v1beta/openai",
+        "gemini-3.1-flash-lite",
+        "secret-key",
+    )
+    payload = {
+        "candidates": [
+            {
+                "content": {
+                    "parts": [
+                        {"text": '{"ok":'},
+                        {"text": "true}"},
+                    ]
+                }
+            }
+        ]
+    }
+
+    assert url.startswith(
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        "gemini-3.1-flash-lite:generateContent?"
+    )
+    assert "/openai/" not in url
+    assert live_model_gauntlet._extract_gemini_native_text(payload) == '{"ok":true}'
+
+
+def test_call_model_auto_falls_back_to_native_gemini(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+
+    def openai_fail(**_kwargs: Any) -> str:
+        calls.append("openai")
+        raise RuntimeError("compat unavailable")
+
+    def native_ok(**_kwargs: Any) -> str:
+        calls.append("native")
+        return '{"ok":true}'
+
+    monkeypatch.setattr(live_model_gauntlet, "_call_openai_compat_model", openai_fail)
+    monkeypatch.setattr(live_model_gauntlet, "_call_gemini_native_model", native_ok)
+
+    result = live_model_gauntlet.call_model(
+        provider="api_gemini",
+        endpoint="https://generativelanguage.googleapis.com/v1beta/openai",
+        model="gemini-3.1-flash-lite",
+        api_key="secret-key",
+        messages=[{"role": "user", "content": "Return JSON."}],
+        timeout=1,
+        api_mode="auto",
+    )
+
+    assert result == '{"ok":true}'
+    assert calls == ["openai", "native"]
+
+
+def test_call_model_openai_mode_does_not_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    def openai_fail(**_kwargs: Any) -> str:
+        raise RuntimeError("compat unavailable")
+
+    def native_unexpected(**_kwargs: Any) -> str:
+        raise AssertionError("native fallback should not run in explicit openai mode")
+
+    monkeypatch.setattr(live_model_gauntlet, "_call_openai_compat_model", openai_fail)
+    monkeypatch.setattr(live_model_gauntlet, "_call_gemini_native_model", native_unexpected)
+
+    with pytest.raises(RuntimeError, match="compat unavailable"):
+        live_model_gauntlet.call_model(
+            provider="api_gemini",
+            endpoint="https://generativelanguage.googleapis.com/v1beta/openai",
+            model="gemini-3.1-flash-lite",
+            api_key="secret-key",
+            messages=[{"role": "user", "content": "Return JSON."}],
+            timeout=1,
+            api_mode="openai_compat",
+        )
