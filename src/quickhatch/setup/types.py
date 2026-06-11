@@ -16,6 +16,7 @@ class SetupStage(str, Enum):
     POSTBOOT_DRIVER = "postboot_driver"
     DESKTOP = "desktop"
     APPS = "apps"
+    DATA_TRANSFER = "data_transfer"
     FINAL_AUDIT = "final_audit"
 
 

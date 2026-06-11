@@ -80,8 +80,9 @@ class TestBuildSectionPrompt:
         profile.data_description = "Move one dummy file from Windows to Linux."
         prompt = _build_section_prompt(profile, "plan", "")
         lower = prompt.lower()
-        assert "host-initiated" in lower
-        assert "do not assume the linux target can read windows-local paths" in lower
+        assert "harness-owned host-to-target scp" in lower
+        assert "selected `data_transfer_paths`" in lower
+        assert "windows-local paths" in lower
 
     def test_summary_section_is_short(self, profile):
         prompt = _build_section_prompt(profile, "summary", "")

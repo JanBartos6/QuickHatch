@@ -1095,6 +1095,137 @@ def test_connect_probe_skips_transfer_smoke_for_external_drive():
     )
 
 
+def test_data_transfer_stage_copies_selected_paths(tmp_path):
+    source = tmp_path / "Documents"
+    source.mkdir()
+    (source / "note.txt").write_text("hello", encoding="utf-8")
+    profile = UserProfile(data_transfer_method="keep_windows")
+    profile.data_transfer_paths = [str(source)]
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+    )
+    commands: list[str] = []
+    copies: list[tuple[Path, str, int]] = []
+
+    def ssh_exec(command, _timeout):
+        commands.append(command)
+        return (0, "", "")
+
+    runtime = _dummy_setup_runtime(profile, bridge, facts, ssh_exec=ssh_exec)
+    runtime.copy_local_file_to_target = lambda local, remote, timeout: (
+        copies.append((local, remote, timeout)) or (0, "", "")
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+
+    orchestrator._run_data_transfer()
+
+    state = orchestrator.ctx.stage_state[SetupStage.DATA_TRANSFER.value]
+    assert state["status"] == "passed"
+    assert state["copied_count"] == 1
+    assert state["destination"] == "/home/jan/QuickHatch-Imported-Windows"
+    assert copies == [(source, f"/tmp/quickhatch-data-transfer-{orchestrator.ctx.run_id}/", 21600)]
+    assert any("QuickHatch-Imported-Windows" in command for command in commands)
+
+
+def test_data_transfer_stage_records_failure_without_raising(tmp_path):
+    missing = tmp_path / "Missing"
+    profile = UserProfile(data_transfer_method="keep_windows")
+    profile.data_transfer_paths = [str(missing)]
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+    )
+    runtime = _dummy_setup_runtime(
+        profile, bridge, facts, ssh_exec=lambda _command, _timeout: (0, "", "")
+    )
+    runtime.copy_local_file_to_target = lambda _local, _remote, _timeout: (0, "", "")
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+
+    orchestrator._run_data_transfer()
+
+    state = orchestrator.ctx.stage_state[SetupStage.DATA_TRANSFER.value]
+    assert state["status"] == "failed"
+    assert "local path no longer exists" in state["reason"]
+    assert orchestrator.ctx.stage_results[-1].stage == SetupStage.DATA_TRANSFER
+    assert orchestrator.ctx.stage_results[-1].passed is False
+
+
+def test_first_login_password_finalizer_expires_user_and_removes_nopasswd():
+    profile = UserProfile(install_profile="full_disk_wipe", install_username="jan")
+    profile.default_account_password = "password"
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+    )
+    commands: list[str] = []
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        facts,
+        ssh_exec=lambda command, _timeout: commands.append(command) or (0, "", ""),
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.stage_state[SetupStage.INSTALL_OR_SKIP.value] = {
+        "reconnected_after_install": True
+    }
+
+    orchestrator._finalize_first_login_password()
+
+    state = orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value]
+    assert state["first_login_password"]["status"] == "passed"
+    assert commands
+    assert "chage -d 0" in commands[0]
+    assert "rm -f /etc/sudoers.d/99-quickhatch-nopasswd" in commands[0]
+
+
+def test_first_login_password_finalizer_failure_sets_manual_followup_status():
+    profile = UserProfile(install_profile="full_disk_wipe", install_username="jan")
+    profile.default_account_password = "qh-old-random-password"
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        login_user="jan",
+    )
+    commands: list[str] = []
+    runtime = _dummy_setup_runtime(
+        profile,
+        bridge,
+        facts,
+        ssh_exec=lambda command, _timeout: commands.append(command) or (1, "", "chage failed"),
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    orchestrator.ctx.facts = facts
+    orchestrator.ctx.stage_state[SetupStage.INSTALL_OR_SKIP.value] = {
+        "reconnected_after_install": True
+    }
+
+    orchestrator._finalize_first_login_password()
+
+    state = orchestrator.ctx.stage_state[SetupStage.FINAL_AUDIT.value]
+    snapshot = bridge.snapshot_setup_run()
+    assert "qh-old-random-password" not in commands[0]
+    assert "qh_pw=password" in commands[0]
+    assert state["first_login_password"]["status"] == "failed"
+    assert state["manual_followups"]
+    assert snapshot["status"] == "manual_followup_required"
+    assert snapshot["final_status"] == "manual_followup_required"
+
+
 def test_installed_nonroot_privileged_commands_are_sudo_normalized():
     profile = UserProfile()
     bridge = BridgeState(profile, persist_path=None)
@@ -9971,6 +10102,66 @@ def test_stage_specific_repair_budgets_match_risk():
     assert orchestrator._group_repair_budget(SetupStage.POSTBOOT_DRIVER) == 6
     assert orchestrator._group_repair_budget(SetupStage.DESKTOP) == 10
     assert orchestrator._group_repair_budget(SetupStage.APPS) == 10
+
+
+def test_dangerous_mode_auto_answers_blocking_question_first_choice():
+    profile = UserProfile()
+    profile.dangerous_mode = True
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+
+    answer = orchestrator._ask_blocking_question(
+        "Confirm dangerous operation",
+        choices=["ERASE /dev/sda", "stop setup"],
+        stage=SetupStage.INSTALL_OR_SKIP,
+        context={"preview_id": "preview-test"},
+        timeout=0,
+    )
+
+    assert answer == "ERASE /dev/sda"
+    assert bridge.get_pending_questions() == []
+    assert any(
+        "Dangerous mode auto-answered" in str(message.get("content", ""))
+        for message in bridge.messages
+    )
+
+
+def test_dangerous_mode_supplies_known_install_username_without_prompt():
+    profile = UserProfile(install_username="tom")
+    profile.dangerous_mode = True
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="root")
+    orchestrator = SetupOrchestrator(_dummy_setup_runtime(profile, bridge, facts))
+
+    answer = orchestrator._ask_blocking_question(
+        "Which Linux username should QuickHatch create?",
+        choices=None,
+        stage=SetupStage.INSTALL_OR_SKIP,
+        context={"target_username_required": True},
+        timeout=0,
+    )
+
+    assert answer == "tom"
+    assert bridge.get_pending_questions() == []
+
+
+def test_desktop_contract_state_comes_from_migration_plan_text():
+    profile = UserProfile()
+    bridge = BridgeState(profile, persist_path=None)
+    facts = SetupFacts(distro_family="arch", package_manager="pacman", current_user="jan")
+    runtime = _dummy_setup_runtime(profile, bridge, facts)
+    runtime.migration_plan_md = (
+        "Theme: Catppuccin Mocha Lavender. Icon Pack: Papirus. "
+        "Wallpaper: dark purple abstract image."
+    )
+    orchestrator = SetupOrchestrator(runtime)
+    state: dict[str, object] = {}
+
+    orchestrator._prepare_desktop_contract_state(state)
+
+    assert state["strict_desktop_design_contract"] is True
+    assert state["required_desktop_design_elements"] == ["icons", "theme", "wallpaper"]
 
 
 def test_repair_budget_gate_can_extend_and_continue(monkeypatch):

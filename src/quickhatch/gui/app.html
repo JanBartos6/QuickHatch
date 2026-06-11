@@ -1241,6 +1241,7 @@ function buildProfileFromDraft(baseProfile){
   if(draft.target_hardware_override!==undefined)profile.target_hardware_override=draft.target_hardware_override||'';
   if(Array.isArray(draft.apps_to_install))profile.apps_to_install=[...draft.apps_to_install];
   if(draft.data_transfer_method!==undefined)profile.data_transfer_method=draft.data_transfer_method||'';
+  if(Array.isArray(draft.data_transfer_paths))profile.data_transfer_paths=[...draft.data_transfer_paths];
   if(draft.data_description!==undefined)profile.data_description=draft.data_description||'';
   if(draft.additional_info!==undefined)profile.additional_info=draft.additional_info||'';
   if(draft.linux_ip!==undefined)profile.linux_ip=draft.linux_ip||'';
@@ -1252,6 +1253,7 @@ function buildProfileFromDraft(baseProfile){
   if(draft.install_partition_notes!==undefined)profile.install_partition_notes=draft.install_partition_notes||'';
   if(profile.install_profile==='configure_existing')profile.remote_setup_mode='configure_only';
   if(draft.export_executed_setup_script!==undefined)profile.export_executed_setup_script=!!draft.export_executed_setup_script;
+  if(draft.dangerous_mode!==undefined)profile.dangerous_mode=!!draft.dangerous_mode;
   if(draft.ssh_public_key_path!==undefined)profile.ssh_public_key_path=draft.ssh_public_key_path||null;
   if(draft.ai_config&&typeof draft.ai_config==='object'){
     const ai=draft.ai_config;
@@ -1313,6 +1315,7 @@ function captureInFlightDraftForCurrentStep(){
     setDraftValue('linux_ip', ip);
     setDraftValue('linux_user', user);
     setDraftValue('export_executed_setup_script', !!((el('exportExecutedSetupScript')||{}).checked));
+    setDraftValue('dangerous_mode', !!((el('dangerousMode')||{}).checked));
   }
   persistWizardProgressDraft();
 }
@@ -2225,6 +2228,11 @@ const stepRenderers={
     state._appsSelected=new Set(prev);
     const dataTransferValue=draftOr('data_transfer_method', state.profile.data_transfer_method||'');
     const dataDescriptionValue=draftOr('data_description', state.profile.data_description||'');
+    const dataPathCandidates=dataTransferCandidates();
+    const savedDataPaths=draftOr('data_transfer_paths', state.profile.data_transfer_paths||[]);
+    const selectedDataPaths=new Set(Array.isArray(savedDataPaths)&&savedDataPaths.length
+      ? savedDataPaths
+      : dataPathCandidates.filter(item=>item.defaultSelected).map(item=>item.path));
 
     const empty=!apps.length;
     content().innerHTML=`
@@ -2269,12 +2277,12 @@ const stepRenderers={
         ${(!isCustomizeMode()&&state.profile.preferences?.another_machine==='yes')?`
         <div class="field">
           <label>How will you move your files to Linux?</label>
-          <p class="muted" style="font-size:var(--t-xs);margin-bottom:var(--s2)">QuickHatch doesn't copy Windows files directly. Pick how you'll do it so the plan can include the right steps.</p>
+          <p class="muted" style="font-size:var(--t-xs);margin-bottom:var(--s2)">Pick the transfer path. When Windows stays reachable, QuickHatch can copy the selected local folders after Linux is installed.</p>
           <div class="choices" id="dataTransfer">
             ${[
               ['external_drive', 'External drive', 'I\'ll copy files to a USB or external drive first'],
               ['cloud', 'Cloud sync', 'Already in Dropbox, OneDrive, iCloud, Git, etc.'],
-              ['keep_windows', 'Keep Windows around', 'Dual-boot or network share — Windows stays reachable'],
+              ['keep_windows', 'Keep this PC on', 'QuickHatch copies selected folders over SSH after install'],
               ['nothing', 'Nothing to move', 'Fresh start, no data to carry over'],
             ].map(([v,t,d])=>`
               <div class="choice${dataTransferValue===v?' selected':''}" data-value="${v}" onclick="selectChoice('dataTransfer',this)">
@@ -2283,6 +2291,31 @@ const stepRenderers={
               </div>`).join('')}
           </div>
         </div>
+
+        ${dataPathCandidates.length?`
+        <div class="field">
+          <label>Data to copy automatically</label>
+          <p class="muted" style="font-size:var(--t-xs);margin-bottom:var(--s2)">These paths come from the file scan. Automatic copy only runs with <strong>Keep this PC on</strong>; external-drive and cloud choices stay manual.</p>
+          <div class="stack-h" style="gap:var(--s2);margin-bottom:var(--s2)">
+            <button class="btn btn-ghost btn-sm" type="button" onclick="setAllDataTransferPaths(true)">Select all</button>
+            <button class="btn btn-ghost btn-sm" type="button" onclick="setAllDataTransferPaths(false)">Clear</button>
+          </div>
+          <div class="data-transfer-list" style="display:grid;gap:var(--s2)">
+            ${dataPathCandidates.map(item=>`
+              <label class="check-row" style="display:grid;grid-template-columns:auto 1fr;gap:var(--s2);align-items:start;padding:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-alt)">
+                <input class="data-transfer-path" type="checkbox" value="${escHtml(item.path)}"${selectedDataPaths.has(item.path)?' checked':''} onchange="persistAppsDataDraft()">
+                <span>
+                  <strong style="display:block;font-size:var(--t-sm);color:var(--text)">${escHtml(item.label)}</strong>
+                  <span class="muted" style="display:block;font-size:var(--t-xs);word-break:break-all">${escHtml(item.path)}</span>
+                </span>
+              </label>
+            `).join('')}
+          </div>
+        </div>`:`
+        <div class="info-box">
+          <strong>No scanned folders yet</strong>
+          <p class="muted" style="font-size:var(--t-xs);margin:var(--s1) 0 0">Run the system scan first if you want QuickHatch to offer automatic folder copy options.</p>
+        </div>`}
 
         <div class="field">
           <label>What's important?</label>
@@ -2607,6 +2640,7 @@ const stepRenderers={
       manual_partition_mapping:'Manual partition mapping (dangerous / expert)',
     };
     const exportExecutedScript=!!state.profile.export_executed_setup_script;
+    const dangerousMode=!!state.profile.dangerous_mode;
     const port=location.port;
     const hasConn=ip&&user;
     const canLaunch=!!(hasConn&&state._sshTestOk);
@@ -2617,8 +2651,8 @@ const stepRenderers={
       :hasConn
         ?'Test the connection to unlock Remote Setup.'
         :'Enter both fields to test the connection.';
-    const launchBtnClass=destructiveIntent?'btn-danger':'btn-success';
-    const launchBtnText=destructiveIntent?'Start destructive remote setup':'Start remote setup';
+    const launchBtnClass=(destructiveIntent||dangerousMode)?'btn-danger':'btn-success';
+    const launchBtnText=dangerousMode?'Start dangerous remote setup':(destructiveIntent?'Start destructive remote setup':'Start remote setup');
     content().innerHTML=`
       <div class="card">
         <h2>Remote setup</h2>
@@ -2673,6 +2707,14 @@ const stepRenderers={
           </div>
 
           ${destructiveIntent?destructiveInstallWarningHtml():''}
+
+          <label class="checkbox-row" style="align-items:flex-start;margin:var(--s3) 0 0 0">
+            <input type="checkbox" id="dangerousMode" ${dangerousMode?'checked':''} onchange="setDangerousMode(this.checked)">
+            <span>
+              <strong>Dangerous mode: skip setup questions</strong>
+              <span class="muted" style="display:block;font-size:var(--t-xs);margin-top:var(--s1)">Auto-selects the first harness option for blocking setup prompts, including optional slow installs, repair-budget extensions, and exact dangerous-operation tokens. Use only on disposable targets.</span>
+            </span>
+          </label>
 
           <label class="checkbox-row" style="align-items:flex-start;margin:var(--s3) 0 0 0">
             <input type="checkbox" id="exportExecutedSetupScript" ${exportExecutedScript?'checked':''} onchange="setExportExecutedSetupScript(this.checked)">
@@ -2779,6 +2821,36 @@ function renderDone(){
 
 // ── Helpers ──
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function dataPathBasename(path){
+  const parts=String(path||'').split(/[\\/]+/).filter(Boolean);
+  return parts.length?parts[parts.length-1]:String(path||'');
+}
+function dataTransferCandidates(){
+  const files=state.profile?.files_summary||{};
+  const rows=[];
+  const seen=new Set();
+  function add(path,label,type,defaultSelected){
+    const text=String(path||'').trim();
+    if(!text)return;
+    const key=text.toLowerCase();
+    if(seen.has(key))return;
+    seen.add(key);
+    rows.push({path:text,label:label||dataPathBasename(text),type:type||'folder',defaultSelected:!!defaultSelected});
+  }
+  (files.scanned_dirs||[]).forEach(path=>add(path,dataPathBasename(path),'folder',true));
+  const browsers=files.browser_profiles||{};
+  Object.keys(browsers).sort().forEach(name=>{
+    add(browsers[name],`${name} browser profile`,'browser',false);
+  });
+  return rows;
+}
+function selectedDataTransferPaths(){
+  return [...document.querySelectorAll('.data-transfer-path:checked')].map(input=>input.value).filter(Boolean);
+}
+function setAllDataTransferPaths(checked){
+  document.querySelectorAll('.data-transfer-path').forEach(input=>{ input.checked=!!checked; });
+  persistAppsDataDraft();
+}
 // URL-sanitizer for attributes rendered from LLM / user input. Rejects
 // anything not starting with a safe scheme so `javascript:`, `data:`,
 // `vbscript:` etc. can't ride in via a markdown link rendered in a
@@ -3389,12 +3461,15 @@ function persistAppsDataDraft(){
   const checked=state._appsSelected?[...state._appsSelected]:[...document.querySelectorAll('.app-check:checked')].map(c=>c.value);
   const transfer=el('dataTransfer')?getSelected('dataTransfer'):'';
   const desc=((el('dataDesc')||{}).value||'');
+  const dataPaths=selectedDataTransferPaths();
   setDraftValue('apps_to_install', checked);
   setDraftValue('data_transfer_method', transfer||'');
+  setDraftValue('data_transfer_paths', dataPaths);
   setDraftValue('data_description', desc);
   queueAutosave('apps_data', ()=>saveProfile({
     apps_to_install:checked,
     ...(el('dataTransfer')?{data_transfer_method:transfer||''}:{}),
+    ...(document.querySelector('.data-transfer-path')?{data_transfer_paths:dataPaths}:{}),
     ...(el('dataDesc')?{data_description:desc}:{})
   }, {silentError:true}));
 }
@@ -3509,6 +3584,7 @@ async function submitPrefs(){
   const extra={};
   if(anotherMachine==='no'&&state.profile.data_transfer_method){
     extra.data_transfer_method='';
+    extra.data_transfer_paths=[];
   }
   if(installProfile==='configure_existing')extra.remote_setup_mode='configure_only';
   await saveProfile({
@@ -3530,6 +3606,8 @@ async function submitPrefs(){
   clearDraftValue('install_filesystem');
   clearDraftValue('install_partition_notes');
   clearDraftValue('remote_setup_mode');
+  clearDraftValue('data_transfer_method');
+  clearDraftValue('data_transfer_paths');
   clearDraftValue('preferences.gallery_picks');
   // Step list depends on another_machine: refresh now so the next
   // render shows the correct subsequent steps.
@@ -3822,6 +3900,7 @@ async function submitAppsData(){
       return;
     }
     payload.data_transfer_method=transfer;
+    payload.data_transfer_paths=selectedDataTransferPaths();
   }
   const descEl=el('dataDesc');
   if(descEl){
@@ -3830,6 +3909,7 @@ async function submitAppsData(){
   await saveProfile(payload);
   clearDraftValue('apps_to_install');
   clearDraftValue('data_transfer_method');
+  clearDraftValue('data_transfer_paths');
   clearDraftValue('data_description');
   await completeStep('apps_data');
 }
@@ -4501,6 +4581,10 @@ function exportExecutedSetupScriptEnabled(){
   return !!((el('exportExecutedSetupScript')||{}).checked);
 }
 
+function dangerousModeEnabled(){
+  return !!((el('dangerousMode')||{}).checked);
+}
+
 function setupInstallProfilePayload(){
   const profile=state.profile||{};
   return {
@@ -4520,6 +4604,26 @@ async function setExportExecutedSetupScript(enabled){
   }catch(_){}
 }
 
+async function setDangerousMode(enabled){
+  const next=!!enabled;
+  if(next){
+    const ok=window.confirm(
+      'Dangerous mode skips manual setup questions and auto-confirms the first harness option, including dangerous-operation tokens. Use only on disposable targets. Continue?'
+    );
+    if(!ok){
+      const checkbox=el('dangerousMode');
+      if(checkbox)checkbox.checked=false;
+      return;
+    }
+  }
+  if(state.profile)state.profile.dangerous_mode=next;
+  setDraftValue('dangerous_mode', next);
+  try{
+    await saveProfile({dangerous_mode:next},{silentError:true,toast:false});
+  }catch(_){}
+  stepRenderers.setup();
+}
+
 async function saveLinuxConn(){
   const ip=el('linuxIp').value.trim();
   const user=el('linuxUser').value.trim();
@@ -4533,6 +4637,7 @@ async function saveLinuxConn(){
     remote_setup_mode:remoteSetupMode,
     ...setupInstallProfilePayload(),
     export_executed_setup_script:exportExecutedSetupScriptEnabled(),
+    dangerous_mode:dangerousModeEnabled(),
   });
   state._sshTestOk=false;
   state._setupStarted=false;
@@ -4557,6 +4662,7 @@ async function launchSetupAgent(){
       remote_setup_mode:state.profile.remote_setup_mode||'auto',
       ...setupInstallProfilePayload(),
       export_executed_setup_script:exportExecutedSetupScriptEnabled(),
+      dangerous_mode:dangerousModeEnabled(),
     },{silentError:true,toast:false});
     const data=await api('/wizard/launch-agent','POST',{phase:'setup'});
     if(data.status==='ok'){
@@ -4581,13 +4687,15 @@ async function launchSetupAgent(){
       state._setupStarted=false;
       msg.innerHTML=`<span class="muted" style="color:var(--danger);font-size:var(--t-sm)">${escHtml(data.message||'Failed')}</span>`;
       const destructive=(state.profile.remote_setup_mode==='wipe_and_reinstall'||state.profile.install_profile==='full_disk_wipe');
-      btn.textContent=destructive?'Start destructive remote setup':'Start remote setup';btn.disabled=false;
+      const dangerous=!!state.profile.dangerous_mode;
+      btn.textContent=dangerous?'Start dangerous remote setup':(destructive?'Start destructive remote setup':'Start remote setup');btn.disabled=false;
     }
   }catch(e){
     state._setupStarted=false;
     msg.innerHTML=`<span class="muted" style="color:var(--danger);font-size:var(--t-sm)">${escHtml(e.message)}</span>`;
     const destructive=(state.profile.remote_setup_mode==='wipe_and_reinstall'||state.profile.install_profile==='full_disk_wipe');
-    btn.textContent=destructive?'Start destructive remote setup':'Start remote setup';btn.disabled=false;
+    const dangerous=!!state.profile.dangerous_mode;
+    btn.textContent=dangerous?'Start dangerous remote setup':(destructive?'Start destructive remote setup':'Start remote setup');btn.disabled=false;
   }
 }
 
@@ -4604,6 +4712,7 @@ async function testLinuxConn(){
     remote_setup_mode:remoteSetupMode,
     ...setupInstallProfilePayload(),
     export_executed_setup_script:exportExecutedSetupScriptEnabled(),
+    dangerous_mode:dangerousModeEnabled(),
   });
   try{
     const r=await api('/wizard/test-ssh','POST',{ip,user});
@@ -4662,7 +4771,7 @@ async function clearSetupLog(){
 
 async function resetRemoteSetup(){
   const ok=window.confirm(
-    'Reset Remote Setup? This clears the saved IP, SSH username, destructive remote setup intent, setup transcript, and current setup-state for this step, but keeps the rest of your wizard profile.'
+    'Reset Remote Setup? This clears the saved IP, SSH username, dangerous/destructive remote setup intent, setup transcript, and current setup-state for this step, but keeps the rest of your wizard profile.'
   );
   if(!ok)return;
   try{
@@ -4675,6 +4784,7 @@ async function resetRemoteSetup(){
     clearDraftValue('linux_user');
     clearDraftValue('install_profile');
     clearDraftValue('install_partition_notes');
+    clearDraftValue('dangerous_mode');
     if(r.profile)applyServerProfile(r.profile, ++state._profileRequestSeq, {skipClientMerge:true});
     state._sshTestOk=false;
     state._setupStarted=false;
@@ -4823,10 +4933,11 @@ function updateSetupTerminalUi({success=false, failed=false, label='', finalStat
   if(launchBtn){
     const hasConn=!!(state.profile.linux_ip&&state.profile.linux_user);
     const destructive=(state.profile.remote_setup_mode==='wipe_and_reinstall'||state.profile.install_profile==='full_disk_wipe');
+    const dangerous=!!state.profile.dangerous_mode;
     launchBtn.disabled=!(hasConn&&state._sshTestOk);
-    launchBtn.classList.toggle('btn-danger', destructive);
-    launchBtn.classList.toggle('btn-success', !destructive);
-    launchBtn.textContent=destructive?'Start destructive remote setup':'Start remote setup';
+    launchBtn.classList.toggle('btn-danger', destructive||dangerous);
+    launchBtn.classList.toggle('btn-success', !(destructive||dangerous));
+    launchBtn.textContent=dangerous?'Start dangerous remote setup':(destructive?'Start destructive remote setup':'Start remote setup');
   }
   const doneBtn=el('setupDone');
   if(doneBtn){

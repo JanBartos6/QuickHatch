@@ -446,6 +446,99 @@ def test_research_prompt_requires_split_desktop_live_apply_groups():
     assert "harness may skip live-apply groups" in prompt
 
 
+def test_research_prompt_surfaces_analysis_desktop_contract():
+    profile = UserProfile()
+    facts = SetupFacts(package_manager="pacman", distro_family="arch")
+    migration_plan = (
+        "Recommended Setup:\n"
+        "- Theme: Catppuccin Mocha Lavender\n"
+        "- Icon Pack: Papirus\n"
+        "- Wallpaper: Dark Purple Abstract\n"
+    )
+
+    prompt = build_research_prompt(
+        profile,
+        facts,
+        system_info="",
+        migration_plan_md=migration_plan,
+        distro_primer_md="",
+        native_search_active=False,
+    )
+
+    assert "DESKTOP DESIGN CONTRACT FROM ANALYSIS" in prompt
+    assert "theme" in prompt
+    assert "icons" in prompt
+    assert "wallpaper" in prompt
+    assert "Installing theme/icon/wallpaper packages alone does not satisfy" in prompt
+
+
+def test_extract_research_plan_rejects_install_only_desktop_for_analysis_contract():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["desktop_strategy"]["notes"] = "KDE Plasma with Catppuccin, Papirus, and wallpaper."
+    payload["command_groups"] = [
+        {
+            "id": "desktop-install",
+            "stage": "desktop",
+            "title": "Install KDE desktop packages",
+            "commands": ["sudo pacman -S --noconfirm plasma-meta sddm papirus-icon-theme kvantum"],
+            "verification": ["pacman -Q plasma-meta papirus-icon-theme kvantum"],
+            "rationale": "Install desktop packages.",
+            "source": "repo",
+            "packages": ["plasma-meta", "sddm", "papirus-icon-theme", "kvantum"],
+        }
+    ]
+
+    with pytest.raises(ResearchPlanValidationError, match="Desktop design contract"):
+        extract_research_plan(
+            json.dumps(payload),
+            profile,
+            desktop_contract_text=(
+                "Theme: Catppuccin Mocha Lavender\n"
+                "Icon Pack: Papirus\n"
+                "Wallpaper: Dark Purple Abstract\n"
+            ),
+        )
+
+
+def test_extract_research_plan_accepts_desktop_apply_commands_for_analysis_contract():
+    profile = UserProfile()
+    payload = _base_plan_payload()
+    payload["desktop_strategy"]["notes"] = "KDE Plasma with Breeze Dark, Papirus, and wallpaper."
+    payload["command_groups"] = [
+        {
+            "id": "desktop-apply",
+            "stage": "desktop",
+            "title": "Apply KDE desktop appearance",
+            "commands": [
+                "plasma-apply-colorscheme BreezeDark",
+                "kwriteconfig6 --file kdeglobals --group Icons --key Theme Papirus",
+                "plasma-apply-wallpaperimage /home/tom/Pictures/dark_purple_abstract.jpg",
+            ],
+            "verification": [
+                "kreadconfig6 --file kdeglobals --group General --key ColorScheme",
+                "kreadconfig6 --file kdeglobals --group Icons --key Theme",
+                "grep -n Image= /home/tom/.config/plasma-org.kde.plasma.desktop-appletsrc",
+            ],
+            "rationale": "Apply the promised theme, icon pack, and wallpaper.",
+            "source": "repo",
+            "packages": [],
+        }
+    ]
+
+    plan = extract_research_plan(
+        json.dumps(payload),
+        profile,
+        desktop_contract_text=(
+            "Theme: Catppuccin Mocha Lavender\n"
+            "Icon Pack: Papirus\n"
+            "Wallpaper: Dark Purple Abstract\n"
+        ),
+    )
+
+    assert [group.id for group in plan.command_groups] == ["desktop-apply"]
+
+
 def test_extract_research_plan_normalizes_lsblk_mountpoint_verification():
     profile = UserProfile()
     payload = _base_plan_payload()
@@ -706,7 +799,8 @@ def test_build_research_prompt_includes_selected_app_catalog():
     assert "Treat desktop design as a contract" in prompt
     assert "Installing a theme/icon package is not the same as applying it" in prompt
     assert "cannot read arbitrary Windows-local paths" in prompt
-    assert "transfer smoke test" in prompt
+    assert "harness owns host-to-target SCP transfer" in prompt
+    assert "selected local data_transfer_paths" in prompt
 
 
 def test_build_repair_prompt_warns_about_vm_gpu_label_mismatch():

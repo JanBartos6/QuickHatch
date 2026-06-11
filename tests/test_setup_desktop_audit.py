@@ -37,6 +37,30 @@ def test_desktop_audit_records_design_attempt_without_observed_design_state_as_f
     )
 
 
+def test_strict_desktop_audit_blocks_recorded_manual_design_followup():
+    facts = SetupFacts(
+        distro_family="arch",
+        package_manager="pacman",
+        current_user="jan",
+        desktop_runtime_state=DesktopRuntimeState.LIVE_APPLY_SUCCEEDED,
+    )
+
+    result = audit_stage(
+        SetupStage.DESKTOP,
+        facts,
+        stage_state={
+            "persisted_config_written": True,
+            "strict_desktop_design_contract": True,
+            "manual_followups": [
+                {"reason": "Wallpaper file was unavailable and needs manual selection."}
+            ],
+        },
+    )
+
+    assert not result.passed
+    assert any("Wallpaper file was unavailable" in item for item in result.blockers)
+
+
 def test_desktop_audit_accepts_stock_desktop_with_enabled_display_manager():
     facts = SetupFacts(
         distro_family="arch",

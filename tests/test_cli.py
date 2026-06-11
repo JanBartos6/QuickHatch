@@ -34,7 +34,12 @@ def test_cli_help_exposes_setup_debug_certification_and_support(capsys):
         cli.main(["setup", "run", "--help"])
     assert exc.value.code == 0
     setup_help = capsys.readouterr().out
-    for token in ("--install-profile", "--remote-setup-mode", "--install-encryption"):
+    for token in (
+        "--install-profile",
+        "--remote-setup-mode",
+        "--install-encryption",
+        "--dangerous-mode",
+    ):
         assert token in setup_help
 
 
@@ -71,6 +76,11 @@ def test_cli_profile_write_preserves_install_fields_and_redacts_api_key(tmp_path
             "192.0.2.10:2222",
             "--linux-user",
             "quickhatch",
+            "--data-transfer-method",
+            "keep_windows",
+            "--data-transfer-path",
+            "C:\\Users\\User\\Documents,C:\\Users\\User\\Desktop",
+            "--dangerous-mode",
         ]
     )
 
@@ -82,6 +92,12 @@ def test_cli_profile_write_preserves_install_fields_and_redacts_api_key(tmp_path
     assert saved["install_profile"] == "configure_existing"
     assert saved["install_encryption"] == "luks"
     assert saved["install_filesystem"] == "btrfs"
+    assert saved["data_transfer_method"] == "keep_windows"
+    assert saved["data_transfer_paths"] == [
+        "C:\\Users\\User\\Documents",
+        "C:\\Users\\User\\Desktop",
+    ]
+    assert saved["dangerous_mode"] is True
     assert "sk-test-secret-value" not in json.dumps(captured)
 
 
@@ -158,6 +174,50 @@ def test_cli_destructive_setup_requires_explicit_confirmation(tmp_path, monkeypa
         )
 
     assert "requires explicit CLI confirmation" in str(exc.value)
+
+
+def test_cli_dangerous_mode_bypasses_destructive_setup_confirmation(tmp_path, monkeypatch):
+    source = _write_profile(tmp_path / "profile.json")
+    captured_profile = {}
+    captured_payload = []
+
+    def fake_run(profile):
+        captured_profile["remote_setup_mode"] = profile.remote_setup_mode
+        captured_profile["install_profile"] = profile.install_profile
+        captured_profile["dangerous_mode"] = profile.dangerous_mode
+        return cli._setup_payload(
+            profile=profile,
+            bridge_setup_run={"status": "success", "final_status": "success"},
+            summary="Setup completed.",
+        )
+
+    monkeypatch.setattr(cli, "_run_setup_agent_cli", fake_run)
+    monkeypatch.setattr(cli, "_print_json", captured_payload.append)
+
+    cli.main(
+        [
+            "setup",
+            "run",
+            "--from-profile",
+            str(source),
+            "--linux-host",
+            "192.0.2.10",
+            "--linux-user",
+            "quickhatch",
+            "--remote-setup-mode",
+            "wipe_and_reinstall",
+            "--install-profile",
+            "full_disk_wipe",
+            "--dangerous-mode",
+        ]
+    )
+
+    assert captured_profile == {
+        "remote_setup_mode": "wipe_and_reinstall",
+        "install_profile": "full_disk_wipe",
+        "dangerous_mode": True,
+    }
+    assert captured_payload[-1]["dangerous_mode"] is True
 
 
 def test_cli_setup_payload_distinguishes_blocked_final_status():

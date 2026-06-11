@@ -220,6 +220,9 @@ def audit_stage(
         details["desktop_runtime_state"] = facts.desktop_runtime_state.value
         details["desktop_design"] = asdict(facts.desktop_design)
         details["display_manager_active"] = facts.display_manager_active
+        details["required_desktop_design_elements"] = sorted(
+            _required_desktop_design_elements(state)
+        )
         details["display_manual_followup"] = bool(state.get("display_manual_followup"))
         if state.get("display_manual_followup_reason"):
             details["display_manual_followup_reason"] = state.get("display_manual_followup_reason")
@@ -288,6 +291,10 @@ def audit_stage(
         details["desktop_design_manual_followups"] = desktop_followups
         details["display_preference_manual_followups"] = display_followups
         if state.get("strict_desktop_design_contract"):
+            for item in details["desktop_manual_followups"]:
+                reason = str(item.get("reason") if isinstance(item, dict) else item).strip()
+                if reason:
+                    blockers.append(reason)
             blockers.extend(desktop_followups)
         if facts.desktop_runtime_state == DesktopRuntimeState.BLOCKED_DRIVER_OR_DISPLAY_STACK:
             blockers.append("Desktop apply is blocked by the current driver or display stack.")
@@ -339,6 +346,16 @@ def audit_stage(
                 + ", ".join(sorted(required_manual_without_reason))
             )
         details["apps"] = {app.name: app.status.value for app in (plan.apps if plan else [])}
+
+    elif stage == SetupStage.DATA_TRANSFER:
+        status = str(state.get("status") or "skipped")
+        details["status"] = status
+        details["method"] = str(state.get("method") or "")
+        details["selected_count"] = int(state.get("selected_count") or 0)
+        details["copied_count"] = int(state.get("copied_count") or 0)
+        details["destination"] = str(state.get("destination") or "")
+        if status == "failed":
+            blockers.append(str(state.get("reason") or "Data transfer failed."))
 
     elif stage == SetupStage.FINAL_AUDIT:
         prior_results = list(state.get("stage_results", []) or [])
@@ -550,6 +567,8 @@ def _finding_category(text: str) -> str:
         return "bootability"
     if "ssh" in lower or "reconnect" in lower:
         return "ssh_reconnect"
+    if "data transfer" in lower or "file transfer" in lower or "copy selected data" in lower:
+        return "data_transfer"
     if (
         "wallpaper" in lower
         or "theme" in lower
@@ -595,7 +614,7 @@ def _finding_severity(stage: SetupStage, category: str, text: str) -> AuditFindi
         return AuditFindingSeverity.MANUAL_FOLLOWUP
     if category == "driver" and "secure boot" in lower:
         return AuditFindingSeverity.UNSUPPORTED_SAFE
-    if category in {"desktop", "apps", "driver"}:
+    if category in {"desktop", "apps", "driver", "data_transfer"}:
         return AuditFindingSeverity.MANUAL_FOLLOWUP
     if stage == SetupStage.FINAL_AUDIT:
         return AuditFindingSeverity.REPAIRABLE
@@ -610,6 +629,7 @@ def _repair_scope_for_category(category: str) -> str:
         "driver": "repair or mark driver manual follow-up",
         "desktop": "repair persisted desktop config or mark cosmetic manual follow-up",
         "apps": "repair package identifiers or mark app manual follow-up",
+        "data_transfer": "rerun host-to-target data transfer or copy files manually",
     }.get(category, "repair this finding only")
 
 
@@ -827,6 +847,100 @@ def _has_expected_desktop_design_state(state: dict[str, Any]) -> bool:
     return any(str(key).startswith("expected_") for key in state)
 
 
+_DESKTOP_DESIGN_EXPECTATION_KEYS: dict[str, tuple[str, ...]] = {
+    "theme": (
+        "expected_kde_color_scheme",
+        "expected_gnome_gtk_theme",
+        "expected_xfce_gtk_theme",
+        "expected_xfce_window_theme",
+    ),
+    "icons": (
+        "expected_kde_icon_theme",
+        "expected_gnome_icon_theme",
+        "expected_xfce_icon_theme",
+    ),
+    "cursor": (
+        "expected_kde_cursor_theme",
+        "expected_gnome_cursor_theme",
+        "expected_xfce_cursor_theme",
+    ),
+    "wallpaper": (
+        "expected_kde_wallpaper",
+        "expected_gnome_wallpaper",
+        "expected_xfce_wallpaper",
+    ),
+    "effects": (
+        "expected_kde_wobbly_windows",
+        "expected_kde_magic_lamp",
+        "expected_xfce_compositing",
+    ),
+}
+
+
+def _required_desktop_design_elements(state: dict[str, Any]) -> set[str]:
+    raw = state.get("required_desktop_design_elements") or []
+    if isinstance(raw, str):
+        values = re.split(r"[,;\s]+", raw)
+    else:
+        values = [str(value) for value in raw]
+    return {
+        value.strip().lower()
+        for value in values
+        if value.strip().lower() in _DESKTOP_DESIGN_EXPECTATION_KEYS
+    }
+
+
+def _design_element_manual_followup_recorded(state: dict[str, Any], element: str) -> bool:
+    needle = {
+        "theme": r"\btheme\b|look[-\s]?and[-\s]?feel|color[-\s]?scheme",
+        "icons": r"\bicons?\b|icon[-\s]?(?:pack|theme)\b",
+        "cursor": r"\bcursor\b|cursor[-\s]?theme",
+        "wallpaper": r"\bwall[-\s]?paper\b|background image",
+        "effects": r"\beffects?\b|animation|blur|composit|wobbly|magic[-\s]?lamp",
+    }.get(element, re.escape(element))
+    for item in state.get("manual_followups", []) or []:
+        reason = str(item.get("reason") if isinstance(item, dict) else item)
+        if re.search(needle, reason, re.IGNORECASE):
+            return True
+    return False
+
+
+def _expected_values_for_design_element(state: dict[str, Any], element: str) -> list[str]:
+    return [
+        str(state.get(key) or "").strip()
+        for key in _DESKTOP_DESIGN_EXPECTATION_KEYS.get(element, ())
+        if str(state.get(key) or "").strip()
+    ]
+
+
+def _strict_desktop_design_contract_blockers(
+    facts: SetupFacts,
+    state: dict[str, Any],
+) -> list[str]:
+    blockers: list[str] = []
+    for element in sorted(_required_desktop_design_elements(state)):
+        expected_values = _expected_values_for_design_element(state, element)
+        if not expected_values:
+            if _design_element_manual_followup_recorded(state, element):
+                continue
+            blockers.append(
+                "Desktop design contract promised "
+                f"{element}, but no concrete expected target value was recorded. "
+                "Add a DE-specific apply/persist command that the harness can verify, "
+                "or record an explicit manual follow-up for that element."
+            )
+            continue
+        if all(_is_dynamic_shell_expectation(value) for value in expected_values) and not (
+            _has_design_element_signal(facts, element)
+        ):
+            blockers.append(
+                "Desktop design contract promised "
+                f"{element}, but only shell-dynamic expected value(s) were recorded and "
+                "the refreshed target facts did not report a concrete active value."
+            )
+    return blockers
+
+
 def _desktop_design_contract_blockers(facts: SetupFacts, state: dict[str, Any]) -> list[str]:
     """Check intended persisted design values against refreshed target facts."""
 
@@ -923,7 +1037,7 @@ def _desktop_design_contract_blockers(facts: SetupFacts, state: dict[str, Any]) 
             _matches_boolish,
         ),
     )
-    blockers: list[str] = []
+    blockers: list[str] = _strict_desktop_design_contract_blockers(facts, state)
     for label, expected, observed, matcher in checks:
         expected_text = str(expected or "").strip()
         if not expected_text:
@@ -962,7 +1076,11 @@ def _matches_exactish(expected: str, observed: str) -> bool:
         return False
     expected_norm = _normalize_design_value(expected)
     observed_norm = _normalize_design_value(observed)
-    return expected_norm == observed_norm or expected_norm in observed_norm
+    return (
+        expected_norm == observed_norm
+        or expected_norm in observed_norm
+        or expected_norm.replace("-", "") == observed_norm.replace("-", "")
+    )
 
 
 def _matches_kde_color_scheme(expected: str, observed: str) -> bool:

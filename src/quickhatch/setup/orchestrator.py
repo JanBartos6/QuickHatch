@@ -41,6 +41,7 @@ from .families import get_family_installer
 from .planner import (
     RepairActionValidationError,
     ResearchPlanValidationError,
+    _desktop_contract_requested_elements,
     build_repair_prompt,
     build_research_prompt,
     extract_repair_action,
@@ -706,12 +707,14 @@ class SetupOrchestrator:
                 self._run_postboot_driver()
                 self._run_desktop()
                 self._run_apps()
+                self._run_data_transfer()
                 final = self._run_final_audit()
                 if not final.passed:
                     replay_status = "blocked"
                     summary = "Setup stopped during final audit: " + "; ".join(final.blockers)
                     self.bridge.add_message("agent", f"⚠️ {summary}")
                     return summary
+                self._finalize_first_login_password()
                 replay_status = "complete"
                 summary = self._build_summary()
                 self.bridge.add_message("agent", f"Finished: {summary}")
@@ -1076,6 +1079,7 @@ class SetupOrchestrator:
                         response_text,
                         self.profile,
                         provider_native_search_active=False,
+                        desktop_contract_text=self.runtime.migration_plan_md,
                     )
                 except ResearchPlanValidationError as exc:
                     last_planner_error = f"Research plan validation failed: {exc}"
@@ -1103,6 +1107,7 @@ class SetupOrchestrator:
                         json.dumps(payload.get("plan", {})),
                         self.profile,
                         provider_native_search_active=False,
+                        desktop_contract_text=self.runtime.migration_plan_md,
                     )
                 except ResearchPlanValidationError as exc:
                     last_planner_error = f"Research plan validation failed: {exc}"
@@ -1296,6 +1301,42 @@ class SetupOrchestrator:
             return []
         return [group for group in self.ctx.plan.command_groups if group.stage == stage]
 
+    def _dangerous_mode_enabled(self) -> bool:
+        return bool(getattr(self.profile, "dangerous_mode", False))
+
+    def _dangerous_mode_prompt_answer(
+        self,
+        *,
+        choices: list[str] | None,
+        context: dict[str, Any],
+    ) -> str:
+        choice_list = [str(choice) for choice in (choices or []) if str(choice).strip()]
+        if choice_list:
+            return choice_list[0]
+        if context.get("target_username_required"):
+            candidates = [
+                self._profile_target_username(),
+                getattr(self.profile, "install_username", ""),
+                self.ctx.created_user or "",
+                getattr(self.profile, "linux_user", ""),
+                self.runtime.user,
+            ]
+            for candidate in candidates:
+                user = str(candidate or "").strip().lower()
+                if self._valid_target_username(user) and user not in _LIVE_SESSION_USER_NAMES:
+                    return user
+        return ""
+
+    def _prepare_desktop_contract_state(self, stage_state: dict[str, Any]) -> None:
+        requested = _desktop_contract_requested_elements(self.runtime.migration_plan_md)
+        if not requested:
+            return
+        stage_state["strict_desktop_design_contract"] = True
+        existing = {
+            str(item) for item in (stage_state.get("required_desktop_design_elements") or [])
+        }
+        stage_state["required_desktop_design_elements"] = sorted(existing | requested)
+
     def _group_repair_budget(self, stage: SetupStage) -> int:
         return int(self.GROUP_REPAIR_BUDGETS.get(stage, self.DEFAULT_GROUP_REPAIRS))
 
@@ -1351,6 +1392,8 @@ class SetupOrchestrator:
             raise RuntimeError("Setup orchestration missing facts or plan.")
         self.bridge.update_setup_run(stage=stage.value, status="running")
         stage_state = self.ctx.stage_state.setdefault(stage.value, {})
+        if stage == SetupStage.DESKTOP:
+            self._prepare_desktop_contract_state(stage_state)
         if stage in _INSTALLED_NONROOT_PRIVILEGED_STAGES and self.ctx.facts.is_live:
             reason = (
                 f"Stage '{stage.value}' cannot run while the target still reports a live "
@@ -2798,6 +2841,7 @@ class SetupOrchestrator:
         self._refresh_facts(stage=stage)
         stage_state = self.ctx.stage_state.setdefault(stage.value, {})
         if stage == SetupStage.DESKTOP:
+            self._prepare_desktop_contract_state(stage_state)
             self._update_desktop_display_audit_state(stage_state)
         result = audit_stage(
             stage,
@@ -3015,7 +3059,7 @@ class SetupOrchestrator:
                 confirmation_text=answer,
                 confirmation_id=preview_id,
                 reason=reason or "deterministic family install spine",
-                source="user_confirmed",
+                source="dangerous_mode" if self._dangerous_mode_enabled() else "user_confirmed",
                 one_time_use=False,
                 ttl_seconds=1800,
                 disk_inventory=disk_inventory,
@@ -3453,6 +3497,232 @@ class SetupOrchestrator:
             return
         self._run_stage_groups(SetupStage.APPS)
 
+    def _run_data_transfer(self) -> None:
+        self.bridge.update_setup_run(stage=SetupStage.DATA_TRANSFER.value, status="running")
+        state = self.ctx.stage_state.setdefault(SetupStage.DATA_TRANSFER.value, {})
+        method = (getattr(self.profile, "data_transfer_method", "") or "").strip().lower()
+        sources = self._selected_data_transfer_sources()
+        state["method"] = method
+        state["selected_count"] = len(sources)
+
+        if method != "keep_windows":
+            state["status"] = "skipped"
+            state["reason"] = "Automatic copy only runs when the transfer method is keep_windows."
+            self._record_data_transfer_result()
+            return
+        if not sources:
+            state["status"] = "skipped"
+            state["reason"] = "No local data paths were selected for automatic transfer."
+            self.bridge.add_message(
+                "agent",
+                "[harness] No selected data paths; skipping automatic data transfer.",
+            )
+            self._record_data_transfer_result()
+            return
+        if self.runtime.copy_local_file_to_target is None:
+            state["status"] = "failed"
+            state["reason"] = "Data transfer failed: host-side copy helper is unavailable."
+            self.bridge.add_message("agent", f"⚠️ {state['reason']}")
+            self._record_data_transfer_result()
+            return
+
+        target_user = self._data_transfer_target_user()
+        if not target_user:
+            state["status"] = "failed"
+            state["reason"] = "Data transfer failed: could not determine the installed target user."
+            self.bridge.add_message("agent", f"⚠️ {state['reason']}")
+            self._record_data_transfer_result()
+            return
+
+        remote_tmp = f"/tmp/quickhatch-data-transfer-{self.ctx.run_id}"
+        destination = self._data_transfer_destination(target_user)
+        state["destination"] = destination
+        prepare_cmd = (
+            f"rm -rf {shlex.quote(remote_tmp)} && "
+            f"mkdir -p {shlex.quote(remote_tmp)} && chmod 700 {shlex.quote(remote_tmp)}"
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(prepare_cmd, 60)
+        self.runlog.record(
+            "data_transfer_prepare",
+            stage=SetupStage.DATA_TRANSFER.value,
+            rc=rc,
+            stdout_tail=(stdout or "")[-500:],
+            stderr_tail=(stderr or "")[-500:],
+        )
+        if rc != 0:
+            detail = (stderr or stdout or "remote preparation failed").strip()[:240]
+            state["status"] = "failed"
+            state["reason"] = f"Data transfer failed: {detail}"
+            self.bridge.add_message("agent", f"⚠️ {state['reason']}")
+            self._record_data_transfer_result()
+            return
+
+        copied = 0
+        failures: list[str] = []
+        self.bridge.add_message(
+            "agent",
+            f"[harness] Copying {len(sources)} selected data path(s) to the target…",
+        )
+        for source in sources:
+            self._raise_if_stop_requested(
+                stage=SetupStage.DATA_TRANSFER,
+                reason="Agent stopped by user during data transfer.",
+            )
+            label = self._data_transfer_source_label(source)
+            if not source.exists():
+                failures.append(f"{label}: local path no longer exists")
+                self.runlog.record(
+                    "data_transfer_source_missing",
+                    stage=SetupStage.DATA_TRANSFER.value,
+                    source_label=label,
+                )
+                continue
+            rc, stdout, stderr = self.runtime.copy_local_file_to_target(
+                source,
+                remote_tmp.rstrip("/") + "/",
+                21600,
+            )
+            self.runlog.record(
+                "data_transfer_copy",
+                stage=SetupStage.DATA_TRANSFER.value,
+                source_label=label,
+                source_kind="directory" if source.is_dir() else "file",
+                rc=rc,
+                stdout_tail=(stdout or "")[-500:],
+                stderr_tail=(stderr or "")[-500:],
+            )
+            if rc == 0:
+                copied += 1
+                continue
+            detail = (stderr or stdout or "copy failed").strip()[:180]
+            failures.append(f"{label}: {detail}")
+
+        state["copied_count"] = copied
+        if failures:
+            state["status"] = "failed"
+            state["reason"] = "Data transfer failed: " + " | ".join(failures[:4])
+            self.bridge.add_message("agent", f"⚠️ {state['reason']}")
+            self._record_data_transfer_result()
+            return
+
+        finalize_cmd = self._data_transfer_finalize_command(
+            remote_tmp,
+            destination,
+            target_user,
+            [self._data_transfer_source_label(source) for source in sources],
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(finalize_cmd, 21600)
+        self.runlog.record(
+            "data_transfer_finalize",
+            stage=SetupStage.DATA_TRANSFER.value,
+            rc=rc,
+            stdout_tail=(stdout or "")[-500:],
+            stderr_tail=(stderr or "")[-500:],
+            copied_count=copied,
+            destination=destination,
+        )
+        if rc != 0:
+            detail = (stderr or stdout or "remote finalize failed").strip()[:240]
+            state["status"] = "failed"
+            state["reason"] = f"Data transfer failed: {detail}"
+            self.bridge.add_message("agent", f"⚠️ {state['reason']}")
+            self._record_data_transfer_result()
+            return
+
+        state["status"] = "passed"
+        state["copied_count"] = copied
+        state["destination"] = destination
+        self.bridge.add_message(
+            "agent",
+            f"✓ Copied {copied} selected data path(s) to `{destination}`.",
+        )
+        self._record_data_transfer_result()
+
+    def _record_data_transfer_result(self) -> None:
+        state = self.ctx.stage_state.setdefault(SetupStage.DATA_TRANSFER.value, {})
+        result = audit_stage(
+            SetupStage.DATA_TRANSFER,
+            self.ctx.facts or SetupFacts(),
+            plan=self.ctx.plan,
+            stage_state=state,
+        )
+        self.ctx.stage_results.append(result)
+        self.bridge.update_setup_run(
+            blockers=list(result.blockers),
+            stage=SetupStage.DATA_TRANSFER.value,
+            status="running",
+        )
+        self.runlog.record(
+            "stage_audit", stage=SetupStage.DATA_TRANSFER.value, result=asdict(result)
+        )
+
+    def _selected_data_transfer_sources(self) -> list[Path]:
+        seen: set[str] = set()
+        sources: list[Path] = []
+        for raw in getattr(self.profile, "data_transfer_paths", []) or []:
+            text = os.path.expandvars(str(raw or "").strip())
+            if not text:
+                continue
+            path = Path(text).expanduser()
+            key = str(path).lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            sources.append(path)
+        return sources
+
+    @staticmethod
+    def _data_transfer_source_label(path: Path) -> str:
+        text = str(path)
+        parts = [part for part in re.split(r"[\\/]+", text) if part]
+        return parts[-1] if parts else text
+
+    def _data_transfer_target_user(self) -> str:
+        candidates = [
+            self.ctx.created_user,
+            getattr(self.profile, "install_username", ""),
+            getattr(self.profile, "linux_user", ""),
+        ]
+        if self.ctx.facts is not None:
+            candidates.extend([self.ctx.facts.login_user, self.ctx.facts.current_user])
+        candidates.append(self.runtime.user)
+        for candidate in candidates:
+            user = str(candidate or "").strip()
+            if not user:
+                continue
+            if user == "root" or self._valid_target_username(user):
+                return user
+        return ""
+
+    @staticmethod
+    def _data_transfer_destination(target_user: str) -> str:
+        home = "/root" if target_user == "root" else f"/home/{target_user}"
+        return f"{home}/QuickHatch-Imported-Windows"
+
+    @staticmethod
+    def _data_transfer_finalize_command(
+        remote_tmp: str,
+        destination: str,
+        target_user: str,
+        labels: list[str],
+    ) -> str:
+        label_args = " ".join(shlex.quote(label) for label in labels if label)
+        return (
+            "set -e; "
+            f"qh_tmp={shlex.quote(remote_tmp)}; "
+            f"qh_dest={shlex.quote(destination)}; "
+            f"qh_user={shlex.quote(target_user)}; "
+            'qh_sudo=; [ "$(id -u)" -eq 0 ] || qh_sudo=sudo; '
+            'test -d "$qh_tmp"; '
+            '$qh_sudo install -d -m 755 "$qh_dest"; '
+            '$qh_sudo cp -a "$qh_tmp"/. "$qh_dest"/; '
+            '$qh_sudo chown -R "$qh_user" "$qh_dest" 2>/dev/null || true; '
+            f"for qh_name in {label_args}; do "
+            'test -e "$qh_dest/$qh_name"; '
+            "done; "
+            'rm -rf "$qh_tmp"'
+        )
+
     def _run_final_audit(self) -> AuditResult:
         self.bridge.update_setup_run(stage=SetupStage.FINAL_AUDIT.value, status="running")
         final_state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
@@ -3531,6 +3801,102 @@ class SetupOrchestrator:
             final_status=result.final_status.value if result.final_status else "",
         )
         return result
+
+    def _finalize_first_login_password(self) -> None:
+        state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
+        if not self._first_login_password_finalization_needed():
+            state["first_login_password"] = {"status": "skipped"}
+            return
+
+        target_user = self._data_transfer_target_user()
+        if not target_user:
+            self._record_first_login_password_followup(
+                "Could not determine the installed target user to expire the temporary password."
+            )
+            return
+
+        password = generate_setup_password()
+        command = self._first_login_password_finalize_command(target_user, password)
+        self.bridge.add_message(
+            "agent",
+            "[harness] Setting the temporary first-login password and requiring "
+            "a password change on first login.",
+        )
+        rc, stdout, stderr = self.runtime.ssh_exec(command, 60)
+        self.ctx.results_log.append(
+            redact_sensitive_text(f"$ {command}\n[rc={rc}]\n{stdout}\n{stderr}".strip())
+        )
+        self.ctx.results_log[:] = self.ctx.results_log[-self.runtime.results_log_limit :]
+        self.runlog.record(
+            "first_login_password_finalize",
+            stage=SetupStage.FINAL_AUDIT.value,
+            user=target_user,
+            rc=rc,
+            stdout_tail=(stdout or "")[-500:],
+            stderr_tail=(stderr or "")[-500:],
+        )
+        if rc != 0:
+            detail = (stderr or stdout or "password finalization failed").strip()[:240]
+            self._record_first_login_password_followup(detail)
+            return
+
+        state["first_login_password"] = {
+            "status": "passed",
+            "user": target_user,
+            "change_required": True,
+            "nopasswd_sudo_removed": True,
+        }
+        self.bridge.add_message(
+            "agent",
+            "✓ First-login password is set to `password`; Linux should require "
+            "changing it on first login.",
+        )
+
+    def _first_login_password_finalization_needed(self) -> bool:
+        install_state = self.ctx.stage_state.get(SetupStage.INSTALL_OR_SKIP.value, {})
+        if install_state.get("skipped"):
+            return False
+        if install_state.get("reconnected_after_install"):
+            return True
+        install_profile = str(getattr(self.profile, "install_profile", "") or "")
+        return install_profile not in {"", "auto", "configure_existing"} and not (
+            self.ctx.facts and self.ctx.facts.is_live
+        )
+
+    def _record_first_login_password_followup(self, reason: str) -> None:
+        state = self.ctx.stage_state.setdefault(SetupStage.FINAL_AUDIT.value, {})
+        message = "Temporary first-login password could not be finalized automatically: " + str(
+            reason or "unknown error"
+        )
+        state["first_login_password"] = {"status": "failed", "reason": message}
+        state.setdefault("manual_followups", []).append({"reason": message})
+        self.runlog.record(
+            "first_login_password_finalize_failed",
+            stage=SetupStage.FINAL_AUDIT.value,
+            reason=message,
+        )
+        self.bridge.update_setup_run(
+            status=FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED.value,
+            final_status=FinalSetupStatus.MANUAL_FOLLOWUP_REQUIRED.value,
+            stage=SetupStage.FINAL_AUDIT.value,
+        )
+        self.bridge.add_message("agent", f"⚠️ {message}")
+
+    @staticmethod
+    def _first_login_password_finalize_command(target_user: str, password: str) -> str:
+        return (
+            "set -e; "
+            f"qh_user={shlex.quote(target_user)}; "
+            f"qh_pw={shlex.quote(password)}; "
+            'qh_sudo=; [ "$(id -u)" -eq 0 ] || qh_sudo=sudo; '
+            'if getent passwd "$qh_user" >/dev/null 2>&1; then '
+            'printf "%s:%s\\n" "$qh_user" "$qh_pw" | $qh_sudo chpasswd; '
+            '$qh_sudo chage -d 0 "$qh_user" 2>/dev/null '
+            '|| $qh_sudo passwd -e "$qh_user" >/dev/null 2>&1 || true; '
+            "fi; "
+            'printf "root:%s\\n" "$qh_pw" | $qh_sudo chpasswd 2>/dev/null || true; '
+            "$qh_sudo rm -f /etc/sudoers.d/99-quickhatch-nopasswd || true"
+        )
 
     def _compute_final_audit_result(self) -> AuditResult:
         if self.ctx.facts is not None:
@@ -4689,6 +5055,22 @@ fi
         timeout: float,
         return_qid: bool = False,
     ) -> str | None:
+        if self._dangerous_mode_enabled():
+            answer = self._dangerous_mode_prompt_answer(choices=choices, context=context)
+            self.bridge.add_message(
+                "agent",
+                f"[harness] Dangerous mode auto-answered a setup prompt in stage `{stage.value}`.",
+            )
+            self.runlog.record(
+                "dangerous_mode_auto_answer",
+                stage=stage.value,
+                question=question,
+                choices=choices,
+                answer=answer,
+                context=context,
+            )
+            return "dangerous-mode-auto-answer" if return_qid else answer
+
         pending = self.bridge.add_question(
             question,
             choices,
@@ -5350,7 +5732,12 @@ fi
             target=canonical_target,
             confirmation_text=answer,
             confirmation_id=preview.preview_id,
-            reason=f"User confirmed {operation.kind} for {canonical_target}",
+            reason=(
+                f"Dangerous mode confirmed {operation.kind} for {canonical_target}"
+                if self._dangerous_mode_enabled()
+                else f"User confirmed {operation.kind} for {canonical_target}"
+            ),
+            source="dangerous_mode" if self._dangerous_mode_enabled() else "user_confirmed",
             disk_inventory=disk_inventory,
             preview_id=preview.preview_id,
         )
@@ -10624,6 +11011,27 @@ fi
                         for item in alternative_entries
                     )
                 )
+            )
+        data_transfer_state = self.ctx.stage_state.get(SetupStage.DATA_TRANSFER.value, {})
+        if data_transfer_state.get("status") == "passed":
+            parts.append(
+                "Data copied: "
+                f"{data_transfer_state.get('copied_count', 0)} selected path(s) to "
+                f"{data_transfer_state.get('destination', 'the target')}"
+            )
+        elif data_transfer_state.get("status") == "failed":
+            parts.append(
+                "Manual follow-up: "
+                + str(data_transfer_state.get("reason") or "data transfer failed")
+            )
+        first_login_password = final_state.get("first_login_password") or {}
+        if (
+            isinstance(first_login_password, dict)
+            and first_login_password.get("status") == "passed"
+        ):
+            parts.append(
+                "Initial login password is `password`; the account is marked to require a "
+                "password change on first login."
             )
         if manual_followup:
             parts.append("Manual follow-up: " + ", ".join(sorted(manual_followup)))

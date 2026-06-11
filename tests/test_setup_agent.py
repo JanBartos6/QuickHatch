@@ -12,6 +12,7 @@ from quickhatch.config import AIConfig, UserProfile
 from quickhatch.gui.server import (
     GUIState,
     _build_setup_repo_search_command,
+    _build_setup_runtime,
     _call_setup_model_text,
     _launch_agent,
     _maybe_bootstrap_nopasswd_sudo,
@@ -252,6 +253,14 @@ class TestSetupAgentWrapper:
         msgs = [m["content"] for m in ready_state.bridge.messages]
         assert any("planner failed" in m for m in msgs)
         assert "planner failed" in post_mock.call_args.kwargs["json"]["summary"]
+
+    def test_modern_runtime_includes_gallery_recipe_apply_block(self, ready_state):
+        ready_state.profile.preferences.gallery_picks = ["unixporn-1kcebee"]
+
+        runtime = _build_setup_runtime(ready_state, 0)
+
+        assert "APPLY THIS GALLERY RECIPE" in runtime.migration_plan_md
+        assert "MUST apply" in runtime.migration_plan_md
 
 
 class TestAgentLifecycle:

@@ -695,6 +695,170 @@ def _parse_command_groups(
     return groups
 
 
+def _desktop_contract_requested_elements(text: str) -> set[str]:
+    lowered = str(text or "").lower()
+    if not lowered:
+        return set()
+    elements: set[str] = set()
+    if re.search(r"\btheme\b|look[-\s]?and[-\s]?feel|color[-\s]?scheme", lowered):
+        elements.add("theme")
+    if re.search(r"\bicons?\b|icon[-\s]?(?:pack|theme)\b", lowered):
+        elements.add("icons")
+    if re.search(r"\bcursor\b|cursor[-\s]?theme", lowered):
+        elements.add("cursor")
+    if re.search(r"\bwall[-\s]?paper\b|background image", lowered):
+        elements.add("wallpaper")
+    if re.search(r"\beffects?\b|animation|blur|composit|wobbly|magic[-\s]?lamp", lowered):
+        elements.add("effects")
+    return elements
+
+
+def _desktop_contract_prompt_block(contract_text: str) -> str:
+    elements = _desktop_contract_requested_elements(contract_text)
+    if not elements:
+        return ""
+    listed = ", ".join(sorted(elements))
+    return (
+        "\n\n== DESKTOP DESIGN CONTRACT FROM ANALYSIS ==\n"
+        f"The analysis/migration plan promised these desktop design elements: {listed}.\n"
+        "Your final plan must include desktop command groups that apply or persist each "
+        "promised element and verification commands that read the resulting state. "
+        "Installing theme/icon/wallpaper packages alone does not satisfy this contract. "
+        "If an exact theme, icon pack, cursor, wallpaper, or effect is unavailable, use an "
+        "evidence-backed fallback or mark that exact element as manual_followup with a "
+        "specific reason.\n"
+    )
+
+
+def _desktop_contract_command_addresses_element(command: str, element: str) -> bool:
+    lowered = str(command or "").lower()
+    if element == "theme":
+        return any(
+            marker in lowered
+            for marker in (
+                "plasma-apply-lookandfeel",
+                "plasma-apply-colorscheme",
+                "plasma-apply-desktoptheme",
+                "lookandfeeltool",
+                "color-scheme",
+                "gtk-theme",
+                "gtk-theme-name",
+                "xfwm4",
+                "/net/themename",
+                "kvantummanager --set",
+            )
+        ) or ("kwriteconfig" in lowered and "colorscheme" in lowered)
+    if element == "icons":
+        return any(
+            marker in lowered
+            for marker in (
+                "icon-theme",
+                "gtk-icon-theme-name",
+                "/net/iconthemename",
+                "icons --key theme",
+            )
+        ) or ("kwriteconfig" in lowered and "icons" in lowered and "theme" in lowered)
+    if element == "cursor":
+        return any(
+            marker in lowered
+            for marker in (
+                "cursor-theme",
+                "gtk-cursor-theme-name",
+                "cursortheme",
+                "kcminputrc",
+                "/gtk/cursorthemename",
+            )
+        )
+    if element == "wallpaper":
+        return any(
+            marker in lowered
+            for marker in (
+                "plasma-apply-wallpaperimage",
+                "picture-uri",
+                "org.gnome.desktop.background",
+                "last-image",
+                "feh --bg",
+                "nitrogen --set",
+                "swww img",
+                "hyprpaper",
+            )
+        ) or (
+            "plasma-org.kde.plasma.desktop-appletsrc" in lowered
+            and ("--key image" in lowered or "image=file://" in lowered)
+        )
+    if element == "effects":
+        return any(
+            marker in lowered
+            for marker in (
+                "kwinrc",
+                "wobblywindows",
+                "magiclamp",
+                "blurenabled",
+                "composit",
+            )
+        )
+    return False
+
+
+def _desktop_contract_manual_followup(plan: ResearchPlan, element: str) -> bool:
+    element_pattern = {
+        "theme": r"\btheme\b|look[-\s]?and[-\s]?feel|color[-\s]?scheme",
+        "icons": r"\bicons?\b|icon[-\s]?(?:pack|theme)\b",
+        "cursor": r"\bcursor\b|cursor[-\s]?theme",
+        "wallpaper": r"\bwall[-\s]?paper\b|background image",
+        "effects": r"\beffects?\b|animation|blur|composit|wobbly|magic[-\s]?lamp",
+    }.get(element, re.escape(element))
+    text = " ".join(
+        [
+            plan.desktop_strategy.source,
+            plan.desktop_strategy.confidence,
+            plan.desktop_strategy.notes,
+            json.dumps(plan.unresolved_questions, default=str),
+        ]
+    ).lower()
+    if not re.search(element_pattern, text):
+        return False
+    return bool(
+        re.search(
+            r"manual[-_\s]?follow|unavailable|not available|blocked|cannot|can't|impossible",
+            text,
+        )
+    )
+
+
+def _validate_desktop_design_contract(plan: ResearchPlan, contract_text: str) -> None:
+    requested = _desktop_contract_requested_elements(contract_text)
+    if not requested:
+        return
+    desktop_groups = [group for group in plan.command_groups if group.stage == SetupStage.DESKTOP]
+    if not desktop_groups:
+        raise ResearchPlanValidationError(
+            "Desktop design contract from analysis promised "
+            + ", ".join(sorted(requested))
+            + ", but the plan has no desktop command group. Add desktop groups that apply "
+            "or persist the promised design, or mark the exact elements manual_followup."
+        )
+    commands = [command for group in desktop_groups for command in group.commands]
+    missing = [
+        element
+        for element in sorted(requested)
+        if not any(
+            _desktop_contract_command_addresses_element(command, element) for command in commands
+        )
+        and not _desktop_contract_manual_followup(plan, element)
+    ]
+    if not missing:
+        return
+    raise ResearchPlanValidationError(
+        "Desktop design contract from analysis promised "
+        + ", ".join(missing)
+        + ", but desktop command groups do not apply or persist those element(s). "
+        "Installing packages alone is not enough; add DE-specific config/apply commands "
+        "such as kwriteconfig/plasma-apply/gsettings/xfconf-query with verification, or "
+        "mark the exact element manual_followup with a specific blocker."
+    )
+
+
 def _normalize_app_items(
     raw: Any,
     requested: list[str],
@@ -772,6 +936,7 @@ def extract_research_plan(
     profile: UserProfile,
     *,
     provider_native_search_active: bool = True,
+    desktop_contract_text: str = "",
 ) -> ResearchPlan:
     payload = _extract_json_payload(text)
     target_summary = str(payload.get("target_summary", "")).strip()
@@ -837,6 +1002,7 @@ def extract_research_plan(
         planner_revision=int(payload.get("planner_revision", 1) or 1),
     )
     _validate_plan_matches_setup_mode(plan, profile)
+    _validate_desktop_design_contract(plan, desktop_contract_text)
     return plan
 
 
@@ -1102,7 +1268,7 @@ def build_research_prompt(
         "- Do not install a merely similar alternative and claim the requested app was installed. For example, do not install Okular and mark Adobe Acrobat Reader installed unless the user explicitly accepted that alternative.\n"
         "- Do not enable/start VPN or firewall apps during app install. VPN/firewall activation requires explicit consent because it can break SSH routing.\n"
         "- If an app is unresolved after safe search/repair paths, mark that app manual_followup or ask a blocking question; do not hallucinate a package.\n"
-        "- QuickHatch remote setup commands run on the Linux target, not on the Windows host. They cannot read arbitrary Windows-local paths. For data_transfer_method='keep_windows', QuickHatch performs a tiny host-to-target transfer smoke test during connect; use that only as evidence that SSH/scp transport works, not as evidence that user files were copied. For external_drive/cloud transfer methods, prepare Linux-side destinations/tools and write clear user instructions; do not claim Windows files were copied unless a command actually proves it on the target.\n"
+        "- QuickHatch remote setup commands run on the Linux target, not on the Windows host. They cannot read arbitrary Windows-local paths. For data_transfer_method='keep_windows', the harness owns host-to-target SCP transfer of the selected local data_transfer_paths after install/app setup; do not emit Linux-side commands that assume those Windows paths are readable on the target. For external_drive/cloud transfer methods, prepare Linux-side destinations/tools and write clear user instructions; do not claim Windows files were copied unless the harness data_transfer stage or a command actually proves it.\n"
         "- Use the scanned display info only as preference input; remote runtime facts are truth.\n"
         "- Split desktop work into separate groups: core desktop/display-manager package install, "
         "persistent user config writes, and live display/theme/wallpaper apply. Do not combine "
@@ -1123,6 +1289,7 @@ def build_research_prompt(
         "or refresh success.\n"
         "- Do not mark the run as complete. This is planning only.\n\n"
         + search_block
+        + _desktop_contract_prompt_block(migration_plan_md)
         + "\n== NORMALIZED SETUP FACTS ==\n"
         + json.dumps(asdict(facts), indent=2, default=str)
         + "\n\n== REMOTE SYSTEM INFO ==\n"

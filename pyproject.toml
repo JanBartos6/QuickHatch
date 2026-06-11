@@ -16,7 +16,7 @@ classifiers = [
     "Environment :: Web Environment",
     "Intended Audience :: End Users/Desktop",
     "Intended Audience :: System Administrators",
-    "License :: OSI Approved :: MIT License",
+    "License :: Other/Proprietary License",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS",
@@ -61,6 +61,8 @@ Documentation = "https://github.com/JanBartos6/QuickHatch/tree/main/docs"
 Issues = "https://github.com/JanBartos6/QuickHatch/issues"
 Changelog = "https://github.com/JanBartos6/QuickHatch/blob/main/CHANGELOG.md"
 Source = "https://github.com/JanBartos6/QuickHatch"
+Funding = "https://ko-fi.com/janbartos6"
+Commercial-Licensing = "mailto:appdeveloper.honza@gmail.com"
 
 [build-system]
 requires = ["hatchling"]
@@ -68,6 +70,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build]
 exclude = [
+    ".pytest_cache/",
+    ".ruff_cache/",
+    ".tmp/",
     "src/quickhatch/data/app_catalog.agent_suggestions*.json",
     "src/quickhatch/data/app_catalog.research_batch*.json",
 ]

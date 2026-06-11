@@ -335,7 +335,7 @@ class GUIState:
     # values get coerced to [] instead of crashing every downstream
     # .sort() / len() / iteration.
     _LIST_PREF_FIELDS = frozenset({"gallery_picks", "use_cases"})
-    _LIST_TOP_FIELDS = frozenset({"apps_to_install"})
+    _LIST_TOP_FIELDS = frozenset({"apps_to_install", "data_transfer_paths"})
     # Fields whose declared type is str.
     _STR_AI_FIELDS = frozenset({"provider", "model_name", "api_key", "endpoint"})
     _BOOL_AI_FIELDS = frozenset({"native_search"})
@@ -368,7 +368,7 @@ class GUIState:
             "ssh_public_key_path",
         }
     )
-    _BOOL_TOP_FIELDS = frozenset({"export_executed_setup_script"})
+    _BOOL_TOP_FIELDS = frozenset({"dangerous_mode", "export_executed_setup_script"})
 
     @staticmethod
     def _coerce_str(val: Any) -> str | None:
@@ -473,6 +473,12 @@ class GUIState:
                     "data_transfer_method",
                     self._coerce_str(updates["data_transfer_method"]) or "",
                 )
+            if "data_transfer_paths" in updates:
+                changed |= self._set_if_changed(
+                    self.profile,
+                    "data_transfer_paths",
+                    self._coerce_str_list(updates["data_transfer_paths"]),
+                )
             if "linux_ip" in updates:
                 # Strip CIDR suffix (`/24`) and surrounding whitespace —
                 # users naturally paste from `ip addr show` output which
@@ -575,6 +581,12 @@ class GUIState:
                     self.profile,
                     "export_executed_setup_script",
                     bool(updates["export_executed_setup_script"]),
+                )
+            if "dangerous_mode" in updates:
+                changed |= self._set_if_changed(
+                    self.profile,
+                    "dangerous_mode",
+                    bool(updates["dangerous_mode"]),
                 )
 
             known_top = {
@@ -2001,6 +2013,7 @@ def make_gui_server(
                     gui_state.profile.linux_user = ""
                     gui_state.profile.remote_setup_mode = "configure_only"
                     gui_state.profile.install_profile = "configure_existing"
+                    gui_state.profile.dangerous_mode = False
                     gui_state.profile.save_checkpoint()
                 bridge_state.clear_phase_log("setup")
                 self._send_json(
@@ -2781,6 +2794,7 @@ def _analysis_context_profile(
         },
         "apps_to_install": profile.apps_to_install,
         "data_transfer_method": profile.data_transfer_method,
+        "data_transfer_paths": list(getattr(profile, "data_transfer_paths", []) or []),
         "data_description": profile.data_description,
         "additional_info": profile.additional_info,
         "target_hardware_override": profile.target_hardware_override,
@@ -3107,9 +3121,10 @@ def _build_section_prompt(
             "1. Data backup strategy — MATCH the user's chosen `data_transfer_method`:\n"
             "   - 'external_drive': Windows → USB → Linux. List the specific dirs to copy.\n"
             "   - 'cloud': install the Linux sync client / CLI, authenticate, sync.\n"
-            "   - 'keep_windows': prefer host-initiated SSH/SCP/rsync from Windows to Linux, "
-            "or NTFS mount/network-share steps. Do not assume the Linux target can read "
-            "Windows-local paths unless Windows exposes them over SSH/SMB or the disk is mounted.\n"
+            "   - 'keep_windows': QuickHatch can run a harness-owned host-to-target SCP "
+            "copy for selected `data_transfer_paths` after install/app setup. The plan may "
+            "describe the destination, but do not emit Linux-side commands that assume the "
+            "target can read Windows-local paths.\n"
             "   - 'nothing': skip this section entirely.\n"
             "2. Disk partitioning and encryption (specific partition sizes, filesystem choices)\n"
             "3. Installation steps (with EXACT commands where possible)\n"
@@ -4330,7 +4345,7 @@ def _scp_copy_to_target(
     timeout: int = 120,
     port: int = 22,
 ) -> tuple[int, str, str]:
-    """Copy one local file to the remote target via host-side scp."""
+    """Copy one local file or directory to a QuickHatch-managed remote path."""
     import socket as _socket
     import subprocess
 
@@ -4340,9 +4355,12 @@ def _scp_copy_to_target(
     except OSError as exc:
         return -1, "", f"cannot reach {host}:{port} ({exc.__class__.__name__})"
 
-    if not local_path.exists() or not local_path.is_file():
-        return -1, "", f"local file not found: {local_path}"
-    if not remote_path.startswith("/tmp/quickhatch-transfer-smoke-"):
+    if not local_path.exists() or not (local_path.is_file() or local_path.is_dir()):
+        return -1, "", f"local path not found: {local_path}"
+    allowed_remote = remote_path.startswith(
+        "/tmp/quickhatch-transfer-smoke-"
+    ) or remote_path.startswith("/tmp/quickhatch-data-transfer-")
+    if not allowed_remote:
         return -1, "", "refusing to copy to an unmanaged remote path"
 
     scp_args = [
@@ -4360,6 +4378,8 @@ def _scp_copy_to_target(
     ]
     if key_path:
         scp_args += ["-i", key_path]
+    if local_path.is_dir():
+        scp_args.append("-r")
     scp_args += [str(local_path), f"{user}@{host}:{remote_path}"]
 
     try:
@@ -4766,7 +4786,7 @@ def _maybe_bootstrap_nopasswd_sudo(
         return facts
     bridge.add_message(
         "agent",
-        "⚠️ Could not grant NOPASSWD sudo at startup. If the current account still requires a password, any plain `sudo` command may time out unless the model uses the per-run temporary account password explicitly.",
+        "⚠️ Could not grant NOPASSWD sudo at startup. If the current account still requires a password, any plain `sudo` command may time out unless the model uses the temporary first-login password explicitly.",
     )
     if err.strip():
         bridge.add_message("agent", f"Startup sudo bootstrap stderr: {err.strip()[:240]}")
@@ -6548,6 +6568,11 @@ def _build_setup_runtime(gui_state: GUIState, port: int, user_feedback: str = ""
         for suggestion in setup_context:
             plan_parts.append(f"\n### {suggestion.title}\n{suggestion.content}")
         migration_plan_md = "\n".join(plan_parts)
+    recipe_apply_md = _recipe_apply_for_setup(profile).strip()
+    if recipe_apply_md:
+        migration_plan_md = (
+            f"{migration_plan_md}\n\n{recipe_apply_md}" if migration_plan_md else recipe_apply_md
+        )
 
     from quickhatch.ai.install_primer import primer_prompt_block, resolve_primer
 
@@ -7046,18 +7071,17 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
             "- Keep optional desktop clients and heavyweight wrappers in separate commands from core tools.\n"
             "- If the user asks to skip one package from a batch, immediately reissue a reduced command;\n"
             "  do not keep the skipped package in the transaction.\n\n"
-            "TEMPORARY ACCOUNT PASSWORD:\n"
-            f"Set BOTH the root account AND the primary user account's password to the generated\n"
-            f"per-run string `{profile.default_account_password}` during install. This lets the harness\n"
+            "TEMPORARY FIRST-LOGIN PASSWORD:\n"
+            f"Set BOTH the root account AND the primary user account's password to `{profile.default_account_password}`\n"
+            "during install. This lets the harness\n"
             "pipe it to `sudo -S` during first post-reboot connect to grant\n"
             "NOPASSWD sudo, so subsequent commands don't hang on an invisible sudo prompt (SSH\n"
             "has no pty). Use one of these patterns inside chroot:\n"
             f"  echo 'root:{profile.default_account_password}' | chpasswd\n"
             f"  echo '<username>:{profile.default_account_password}' | chpasswd\n"
-            "After the first successful post-reboot connect, the harness auto-grants NOPASSWD\n"
-            "sudo via a sudoers.d drop-in. Your migration summary at the END must include a\n"
-            "VERY PROMINENT 'CHANGE YOUR PASSWORD IMMEDIATELY' block telling the user to run\n"
-            "`passwd` and `sudo passwd` on first login — the default MUST NOT persist.\n\n"
+            "After final audit, the harness removes its temporary NOPASSWD sudo drop-in and\n"
+            "expires the primary user's password so graphical first login should force a real\n"
+            "password change. Do not leave extra NOPASSWD sudo files behind.\n\n"
             "WARNINGS vs ERRORS:\n"
             "Non-fatal warnings are NOT your problem unless they block a later command.\n"
             "Pacman 'directive X not recognized', GTK accessibility warnings, deprecation\n"
@@ -7977,7 +8001,7 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
                         # prompt/logic treats the session as installed.
                         is_live = False
                         # Auto-grant NOPASSWD sudo to the reconnect user
-                        # using the per-run temporary account password.
+                        # using the temporary first-login account password.
                         # Without this, every subsequent `sudo` command
                         # hangs on an invisible password prompt (SSH has
                         # no pty). The agent is instructed in the system
@@ -7998,7 +8022,7 @@ def _run_setup_agent_legacy(gui_state: GUIState, port: int, user_feedback: str =
                                 "agent",
                                 "✓ Granted NOPASSWD sudo to "
                                 f"'{user}' via /etc/sudoers.d/99-quickhatch-nopasswd "
-                                "using the per-run temporary account password. Subsequent sudo "
+                                "using the temporary first-login password. Subsequent sudo "
                                 "commands will not prompt.",
                             )
                         else:

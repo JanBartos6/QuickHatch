@@ -19,3 +19,4 @@
 - [ ] `ruff format --check src/ tests/` is clean
 - [ ] `CHANGELOG.md` updated under `## [Unreleased]` if this is user-visible
 - [ ] No secrets, API keys, or paths from your real machine in the diff
+- [ ] I have the right to submit this work and agree to the contribution ownership/license terms in `CONTRIBUTING.md`

@@ -1,6 +1,27 @@
 # Contributing to QuickHatch
 
-Thanks for your interest. QuickHatch is experimental and there's plenty of rough edges — contributions are welcome.
+Thanks for your interest. QuickHatch is experimental and there are plenty of rough edges — contributions are welcome.
+
+## Contribution ownership and license
+
+By submitting a pull request, patch, issue attachment, or other contribution for
+inclusion in the official QuickHatch project, you agree that the contribution is
+assigned to Jan Bartos to the maximum extent permitted by law. To the extent
+assignment is not effective or not permitted, you grant Jan Bartos an
+irrevocable, perpetual, worldwide, royalty-free, transferable, sublicensable
+license to use, reproduce, modify, distribute, commercialize, and relicense the
+contribution as part of QuickHatch and related commercial offerings.
+
+Only submit work you have the right to license this way. Do not include
+third-party code, assets, prompts, images, or generated output unless the
+license is compatible with QuickHatch's license and the attribution requirements
+are clear in the PR.
+
+Forks and modified versions must keep the QuickHatch license notice and remain
+subject to the same non-commercial terms unless Jan Bartos grants a separate
+written license. Commercial use is not granted by the public license; for
+commercial use, contact Jan Bartos at appdeveloper.honza@gmail.com so you can
+figure out appropriate terms.
 
 ## Dev setup
 
@@ -95,6 +116,8 @@ Check the [issues tab](https://github.com/JanBartos6/QuickHatch/issues) for anyt
 - Include a test if you're adding non-trivial logic.
 - Update `CHANGELOG.md` under the `## [Unreleased]` heading.
 - Don't update version numbers — maintainers handle releases.
+- Jan Bartos is the sole maintainer for now and the only person trusted to merge
+  into `main`. External contributors should work through pull requests.
 
 ## Commit messages
 
@@ -109,4 +132,6 @@ box-drawing characters. Decoding with errors="replace" fixes it.
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+By contributing, you agree to the contribution ownership and licensing terms
+above and to the QuickHatch Source-Available Personal Use License in
+[LICENSE](LICENSE).

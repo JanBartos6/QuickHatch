@@ -61,6 +61,7 @@ def _compact_profile_json(profile: UserProfile) -> str:
             "browser_profiles": files_summary.get("browser_profiles", {}),
         },
         "data_transfer_method": data.get("data_transfer_method", ""),
+        "data_transfer_paths": data.get("data_transfer_paths", []),
         "data_description": data.get("data_description", ""),
         "linux_ip": data.get("linux_ip", ""),
         "linux_user": data.get("linux_user", ""),
@@ -94,7 +95,7 @@ def _operating_rules(profile: UserProfile) -> str:
         "2. Latest user feedback wins over earlier assumptions.",
         "3. Describe and verify the full end-state, not just package installation.",
         "4. If `gallery_picks` is non-empty, those recipes are authoritative design references. Personalize within them instead of inventing a different desktop direction.",
-        "5. QuickHatch does not automatically copy Windows files. Only claim Linux-side preparation and instructions for the user's chosen transfer method.",
+        "5. When `data_transfer_method` is `keep_windows`, QuickHatch can copy selected `data_transfer_paths` from the host to the installed target after setup. For external-drive/cloud methods, only claim Linux-side preparation and instructions.",
         "6. If `target_hardware_override` is non-empty, treat it as authoritative over scanned hardware for driver and install decisions.",
         "7. Remote setup commands run on the Linux target. They cannot read Windows-local paths unless Windows exposes them over SSH/SMB, the disk is mounted, or the user moved the files first.",
     ]

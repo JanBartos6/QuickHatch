@@ -1,0 +1,4 @@
+# Jan Bartos is the sole code owner for the official QuickHatch repository.
+# To enforce this on GitHub, enable branch protection for `main` and require
+# review from Code Owners before merging pull requests.
+* @JanBartos6

@@ -27,9 +27,8 @@ QuickHatch is pre-1.0 and there's no security backport policy yet. The `main` br
 
 Use GitHub's **Report a vulnerability** / private security advisory flow if it is
 enabled for the repository. If private vulnerability reporting is unavailable,
-contact the maintainers through a private channel listed on the repository
-profile; do not include exploit details, secrets, SSH keys, or API keys in a
-public issue.
+contact appdeveloper.honza@gmail.com; do not include exploit details, secrets,
+SSH keys, or API keys in a public issue.
 
 Include:
 

@@ -199,6 +199,10 @@ class TestProfileEndpoint:
                 "install_filesystem": "btrfs",
                 "install_partition_notes": "Use mapped partitions only.",
                 "export_executed_setup_script": True,
+                "data_transfer_paths": [
+                    "C:\\Users\\User\\Documents",
+                    "C:\\Users\\User\\Desktop",
+                ],
             },
         )
         status, body = _get(server["port"], "/wizard/profile")
@@ -212,6 +216,10 @@ class TestProfileEndpoint:
         assert data["profile"]["install_filesystem"] == "btrfs"
         assert data["profile"]["install_partition_notes"] == "Use mapped partitions only."
         assert data["profile"]["export_executed_setup_script"] is True
+        assert data["profile"]["data_transfer_paths"] == [
+            "C:\\Users\\User\\Documents",
+            "C:\\Users\\User\\Desktop",
+        ]
 
     def test_update_reports_changed_false_for_noop(self, server, monkeypatch):
         calls = []
@@ -372,6 +380,7 @@ class TestProfileEndpoint:
                     "apps_to_install": ["Brave"],
                     "data_description": "copied over",
                     "data_transfer_method": "external_drive",
+                    "data_transfer_paths": ["C:\\\\Users\\\\honzi\\\\Documents"],
                     "linux_ip": "192.168.50.162",
                     "linux_user": "jan",
                     "install_username": "tom",
@@ -387,6 +396,7 @@ class TestProfileEndpoint:
         assert data["profile"]["linux_ip"] == "192.168.50.162"
         assert data["profile"]["linux_user"] == "jan"
         assert data["profile"]["install_username"] == "tom"
+        assert data["profile"]["data_transfer_paths"] == ["C:\\\\Users\\\\honzi\\\\Documents"]
         assert data["profile"]["completed_steps"] == ["welcome", "ai_setup", "scan"]
         assert server["gui_state"].profile.additional_info == "restored"
         assert server["bridge"].profile.linux_user == "jan"

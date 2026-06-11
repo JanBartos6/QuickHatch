@@ -5,6 +5,23 @@ All notable changes to QuickHatch will be documented here. Format loosely follow
 ## [Unreleased]
 
 - Added community recipe gallery with ~100 curated Linux desktop configurations.
+- Added host-side post-install data transfer for the "keep this PC on" path:
+  selected local files or folders are copied over SSH into
+  `~/QuickHatch-Imported-Windows`, while external-drive and cloud methods stay
+  guided/manual.
+- Fresh installs now use `password` as the temporary first-login password,
+  remove the QuickHatch NOPASSWD sudo drop-in at the end of setup, and mark the
+  installed user account to require a real password change on first login.
+- Added a strict Linux desktop GUI contract test suite for promised theme,
+  icon, cursor, wallpaper, and desktop-effect elements. Strict desktop runs now
+  require each promised element to have a concrete expected value or an explicit
+  manual-follow-up reason before success can be claimed.
+- Documented the contribution and fork licensing terms, made commercial-use
+  contact language visible in the README, added sponsorship links, and noted the
+  June 4, 2026 real-PC Arch install with Gemini 3.1 Flash Lite.
+- Added commercial licensing contact email, stronger source-available license
+  terms, contribution assignment/licensing language, CODEOWNERS, and governance
+  notes for maintainer-controlled merges to `main`.
 - Gallery Phase 1.5: loosened the Reddit filter so r/unixporn and DE-specific
   subs actually contribute entries. Replaces the pathological "median + 1 stdev"
   upvote gate with per-subreddit absolute floors (500 for r/unixporn, 30–100
@@ -59,11 +76,12 @@ First public release.
 - `.pre-commit-config.yaml` for ruff + standard hygiene hooks
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, issue + PR templates
 - Docs: `docs/ARCHITECTURE.md`, `docs/testing-in-vm.md`, `docs/model-recommendations.md`, `docs/troubleshooting.md`
-- MIT License
+- Personal-use project license with commercial use by arrangement
 
 ### Known limitations
 
-- No automated data transfer — QuickHatch describes how to move your files, you move them
+- At 0.1.0 launch, file transfer was guided/manual: QuickHatch described how
+  to move files, but did not copy them automatically.
 - No automated USB flashing — guided walkthrough only (use Rufus, Ventoy, or balenaEtcher)
 - GPU passthrough not handled in VirtualBox testing
 - Wayland + VirtualBox mouse integration is flaky without Guest Additions

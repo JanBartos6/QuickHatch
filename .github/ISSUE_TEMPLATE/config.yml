@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/JanBartos6/QuickHatch/blob/main/SECURITY.md
+    url: mailto:appdeveloper.honza@gmail.com
     about: Please email instead of opening a public issue.
   - name: Question or general discussion
     url: https://github.com/JanBartos6/QuickHatch/discussions

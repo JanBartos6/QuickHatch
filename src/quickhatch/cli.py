@@ -109,6 +109,7 @@ def _safe_profile_summary(profile: UserProfile) -> dict:
         "install_filesystem": profile.install_filesystem,
         "install_username": profile.install_username,
         "target_hardware_override_present": bool(profile.target_hardware_override.strip()),
+        "dangerous_mode": bool(profile.dangerous_mode),
     }
 
 
@@ -182,6 +183,9 @@ def _apply_profile_cli_args(
         profile.data_description = args.data_description or ""
     if getattr(args, "data_transfer_method", None) is not None:
         profile.data_transfer_method = args.data_transfer_method or ""
+    transfer_paths = _split_csv(getattr(args, "data_transfer_path", None))
+    if transfer_paths:
+        profile.data_transfer_paths = transfer_paths
     if getattr(args, "linux_host", None) is not None:
         profile.linux_ip = args.linux_host or ""
     if getattr(args, "linux_user", None) is not None:
@@ -223,6 +227,8 @@ def _apply_profile_cli_args(
         profile.install_partition_notes = args.install_partition_notes or ""
     if getattr(args, "export_executed_setup_script", None) is not None:
         profile.export_executed_setup_script = bool(args.export_executed_setup_script)
+    if getattr(args, "dangerous_mode", None) is not None:
+        profile.dangerous_mode = bool(args.dangerous_mode)
     return profile
 
 
@@ -365,6 +371,14 @@ def _add_common_profile_args(parser: argparse.ArgumentParser) -> None:
         choices=["external_drive", "cloud", "keep_windows", "nothing", ""],
         help="How data will be moved",
     )
+    parser.add_argument(
+        "--data-transfer-path",
+        action="append",
+        help=(
+            "Local file or directory to copy after install when "
+            "--data-transfer-method=keep_windows; repeat or comma-separate"
+        ),
+    )
     parser.add_argument("--additional-notes", help="Additional user notes")
     parser.add_argument("--target-hardware-override", help="Target hardware notes")
     parser.add_argument("--linux-host", help="Linux SSH host or host:port")
@@ -397,6 +411,15 @@ def _add_common_profile_args(parser: argparse.ArgumentParser) -> None:
         action=argparse.BooleanOptionalAction,
         default=None,
         help="Export a redacted replay script from executed setup commands",
+    )
+    parser.add_argument(
+        "--dangerous-mode",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help=(
+            "Expert-only: skip manual setup questions by auto-selecting the first "
+            "harness option, including dangerous-operation confirmation tokens."
+        ),
     )
 
 
@@ -939,6 +962,7 @@ def _setup_payload(
         "waiting_for_input": bool(bridge_setup_run.get("waiting_for_input")),
         "profile_summary": _safe_profile_summary(profile),
         "destructive_mode_armed": _is_destructive_setup_profile(profile),
+        "dangerous_mode": bool(profile.dangerous_mode),
         "dry_run": dry_run,
     }
 
@@ -994,6 +1018,7 @@ def _run_setup_command(args) -> None:
 
     if (
         _is_destructive_setup_profile(profile)
+        and not profile.dangerous_mode
         and (args.confirm_destructive_setup or "") != _DESTRUCTIVE_CONFIRMATION
     ):
         raise SystemExit(_destructive_confirmation_error())

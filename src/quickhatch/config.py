@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import secrets
 import threading
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
@@ -29,9 +28,14 @@ REMOTE_SETUP_MODE_VALUES = frozenset({"auto", "wipe_and_reinstall", "configure_o
 
 
 def generate_setup_password() -> str:
-    """Generate a temporary setup password for chroot/sudo bootstrap paths."""
+    """Return the temporary first-login password for alpha installs.
 
-    return "qh-" + secrets.token_urlsafe(18)
+    This deliberately stays human-typable for the initial graphical login.
+    The setup harness expires it at the end of a fresh install so the user is
+    forced to choose a real password on first interactive login.
+    """
+
+    return "password"
 
 
 def _validated_choice(value: object, allowed: frozenset[str], default: str) -> str:
@@ -207,6 +211,9 @@ class UserProfile:
     # How the user plans to physically move their Windows files to Linux.
     # One of: "external_drive", "cloud", "keep_windows", "nothing", "" (not yet answered).
     data_transfer_method: str = ""
+    # Absolute source paths on the machine running QuickHatch that should be
+    # copied to the installed target when data_transfer_method == "keep_windows".
+    data_transfer_paths: list[str] = field(default_factory=list)
     linux_ip: str = ""
     linux_user: str = ""
     install_username: str = ""
@@ -230,6 +237,10 @@ class UserProfile:
     # Setup. Intended for inspection and repeated installs on identical
     # hardware. Secrets are redacted; users must review before reuse.
     export_executed_setup_script: bool = False
+    # Expert-only remote setup mode for disposable targets. When true,
+    # the harness auto-answers setup prompts with its first safe/default
+    # choice instead of waiting for manual input.
+    dangerous_mode: bool = False
     # Free-text description of the TARGET hardware when it differs from
     # the machine QuickHatch is running on. Empty string means "install
     # for this machine" (hardware scan is authoritative). Non-empty
@@ -416,6 +427,11 @@ class UserProfile:
                 apps_to_install=list(data.get("apps_to_install", []) or []),
                 data_description=data.get("data_description", "") or "",
                 data_transfer_method=data.get("data_transfer_method", "") or "",
+                data_transfer_paths=[
+                    str(path)
+                    for path in (data.get("data_transfer_paths", []) or [])
+                    if str(path).strip()
+                ],
                 linux_ip=data.get("linux_ip", "") or "",
                 linux_user=data.get("linux_user", "") or "",
                 install_username=data.get("install_username", "") or "",
@@ -433,6 +449,7 @@ class UserProfile:
                 ),
                 install_partition_notes=data.get("install_partition_notes", "") or "",
                 export_executed_setup_script=bool(data.get("export_executed_setup_script", False)),
+                dangerous_mode=bool(data.get("dangerous_mode", False)),
                 target_hardware_override=data.get("target_hardware_override", "") or "",
                 default_account_password=data.get("default_account_password")
                 or generate_setup_password(),

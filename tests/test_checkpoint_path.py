@@ -96,6 +96,10 @@ class TestCheckpointPath:
         profile.install_filesystem = "btrfs"
         profile.install_partition_notes = "Linux target is /dev/nvme1n1."
         profile.install_username = "tom"
+        profile.data_transfer_paths = [
+            "C:\\Users\\User\\Documents",
+            "C:\\Users\\User\\Desktop",
+        ]
         profile.save_checkpoint()
         loaded = UserProfile.load_checkpoint()
         assert loaded is not None
@@ -107,6 +111,10 @@ class TestCheckpointPath:
         assert loaded.install_filesystem == "btrfs"
         assert loaded.install_partition_notes == "Linux target is /dev/nvme1n1."
         assert loaded.install_username == "tom"
+        assert loaded.data_transfer_paths == [
+            "C:\\Users\\User\\Documents",
+            "C:\\Users\\User\\Desktop",
+        ]
 
     def test_old_checkpoint_defaults_new_install_profile_fields(self, fake_home):
         path = fake_home / ".quickhatch-checkpoint.json"
