@@ -57,8 +57,8 @@ jobs:
           TAG="${GITHUB_REF#refs/tags/}"
           VERSION="${TAG#v}"
           # Capture from "## [VERSION]" up to the next "## ["
-          awk -v v="[$VERSION]" '
-            $0 ~ "^## " v { capture=1; next }
+          awk -v v="$VERSION" '
+            index($0, "## [" v "]") == 1 { capture=1; next }
             capture && /^## \[/ { exit }
             capture { print }
           ' CHANGELOG.md > release-notes.md
