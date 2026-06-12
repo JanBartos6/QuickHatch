@@ -62,7 +62,7 @@ Issues = "https://github.com/JanBartos6/QuickHatch/issues"
 Changelog = "https://github.com/JanBartos6/QuickHatch/blob/main/CHANGELOG.md"
 Source = "https://github.com/JanBartos6/QuickHatch"
 Funding = "https://ko-fi.com/janbartos6"
-Commercial-Licensing = "mailto:appdeveloper.honza@gmail.com"
+Commercial-Licensing = "https://github.com/JanBartos6/QuickHatch#license-forks-and-contributions"
 
 [build-system]
 requires = ["hatchling"]
