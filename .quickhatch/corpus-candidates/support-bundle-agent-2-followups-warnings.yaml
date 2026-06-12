@@ -41,7 +41,7 @@
     - "failed or deferred group id apps-required-zoom is visible"
     - "final-audit.json preserves the apps finding"
   redaction_expectations:
-    - "sk-vendor-download-token"
+    - "sk-redact"
   current_likely_gap: "stage-level group_manual_followup may not appear in manual-followups.json unless final audit repeats it"
   rationale: "Required app manual follow-up must be easy to diagnose from the bundle, not buried only in raw runlog events."
   risk: medium
@@ -253,7 +253,7 @@
     - "finding category desktop and effect name are visible"
     - "summary says unsupported-safe, not blocked"
   redaction_expectations:
-    - "sk-effects-secret"
+    - "sk-redact"
   current_likely_gap: "unsupported_safe status is normalized, but sparse tests may not cover desktop unsupported-safe bundles"
   rationale: "Unsupported desktop polish should be diagnosable without implying the system failed."
   risk: low
@@ -490,7 +490,7 @@
     - "exhausted budget is visible"
     - "warning remains tied to Dracula theme"
   redaction_expectations:
-    - "sk-repair-theme-secret"
+    - "sk-redact"
   current_likely_gap: "repair-loop exhaustion is not summarized into a dedicated repair-events artifact"
   rationale: "A warning caused by bounded repair exhaustion needs enough evidence to prove the loop stopped safely."
   risk: medium

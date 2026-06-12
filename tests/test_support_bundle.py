@@ -39,7 +39,7 @@ def test_support_bundle_redacts_secret_like_strings_and_private_keys(tmp_path):
                 "run_id": "run-secret",
                 "stage": "apps",
                 "command": (
-                    "OPENAI_API_KEY=sk-live-secret-token-1234567890 "
+                    "OPENAI_API_KEY=sk-redact "
                     "curl --password cli-secret-password --token=cli-token-secret "
                     "https://example.test"
                 ),
@@ -69,7 +69,7 @@ def test_support_bundle_redacts_secret_like_strings_and_private_keys(tmp_path):
     result = export_support_bundle(runlog, out=tmp_path / "support.zip")
     combined = "\n".join(_zip_texts(Path(result.path)).values())
 
-    assert "sk-live-secret-token" not in combined
+    assert "sk-redact" not in combined
     assert "provider-token-abcdef" not in combined
     assert "cli-secret-password" not in combined
     assert "cli-token-secret" not in combined
@@ -165,7 +165,7 @@ def test_support_bundle_includes_release_readiness_diagnostics(tmp_path):
                         "hardware_search_opt_in": True,
                     },
                     "apps_to_install": ["Brave", "Firefox"],
-                    "ai_config": {"api_key": "sk-profile-secret-1234567890"},
+                    "ai_config": {"api_key": "sk-redact"},
                     "completed_steps": ["welcome", "scan"],
                 },
             },
@@ -310,4 +310,4 @@ def test_support_bundle_includes_release_readiness_diagnostics(tmp_path):
     assert _zip_json(bundle, "certification-summary.json")["events"][0]["success"] is True
 
     combined = "\n".join(_zip_texts(bundle).values())
-    assert "sk-profile-secret" not in combined
+    assert "sk-redact" not in combined

@@ -464,7 +464,7 @@
         provider: "openai"
         error_category: "rate_limited"
         status_code: 429
-        message: "429 while repairing missing app; token sk-provider-secret must not leak"
+        message: "429 while repairing missing app; token sk-redact must not leak"
     - event_type: "final_audit"
       payload:
         run_id: "provider-before-final"
@@ -485,7 +485,7 @@
     - "manual follow-up reason references provider rate limit"
     - "final status is manual_followup_required"
   redaction_expectations:
-    - "sk-provider-secret"
+    - "sk-redact"
   current_likely_gap: "no dedicated provider-errors.json artifact; provider evidence is only in redacted runlog/replay"
   rationale: "Provider failures are common non-perfect outcomes and must be diagnosable without leaking request payloads."
   risk: medium

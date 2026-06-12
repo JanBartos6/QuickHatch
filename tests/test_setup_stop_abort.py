@@ -505,7 +505,7 @@ def test_stop_runlog_and_support_bundle_include_abort_evidence(
 ) -> None:
     group = _group(
         SetupStage.APPS,
-        "printf 'api_key=sk-stop-secret' && sudo pacman -S --noconfirm vlc",
+        "printf 'api_key=sk-redact' && sudo pacman -S --noconfirm vlc",
         group_id="stop-secret",
         title="Install app before stop",
     )
@@ -549,4 +549,4 @@ def test_stop_runlog_and_support_bundle_include_abort_evidence(
     )
     assert support_summary["final_status"] in {"aborted", "stopped", "blocked"}
     assert "stop" in combined or "abort" in combined
-    assert "sk-stop-secret" not in combined
+    assert "sk-redact" not in combined

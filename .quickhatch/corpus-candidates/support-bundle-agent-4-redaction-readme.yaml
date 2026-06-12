@@ -6,7 +6,7 @@
       payload:
         stage: "apps"
         group_id: "apps-browser"
-        command: "OPENAI_API_KEY=sk-fake-command-secret-1234567890 curl --token fake-cli-token https://provider.example/v1"
+        command: "OPENAI_API_KEY=sk-redact curl --token fake-cli-token https://provider.example/v1"
         rc: 1
         stderr_tail: "Authorization: Bearer fake-provider-bearer-token-abcdef"
   expected_bundle_artifacts:
@@ -18,7 +18,7 @@
     - "executed command script comments failed command instead of replaying it"
     - "support summary preserves blocked/unknown status without leaking provider credentials"
   redaction_expectations:
-    - "sk-fake-command-secret-1234567890"
+    - "sk-redact"
     - "fake-cli-token"
     - "fake-provider-bearer-token-abcdef"
   current_likely_gap: "none"
@@ -37,7 +37,7 @@
         provider_error: "429 rate limit"
         request_payload:
           model: "gpt-fake"
-          api_key: "sk-provider-payload-secret-1234567890"
+          api_key: "sk-redact"
           messages:
             - role: "user"
               content: "Install Chat Client; bearer_token=payload-bearer-secret"
@@ -50,7 +50,7 @@
     - "manual follow-up item names the affected app/group"
     - "raw provider request body is redacted if included"
   redaction_expectations:
-    - "sk-provider-payload-secret-1234567890"
+    - "sk-redact"
     - "payload-bearer-secret"
   current_likely_gap: "provider/model errors are not extracted into a dedicated artifact"
   rationale: "Support needs to know the provider failed without receiving raw prompt payloads or API keys."
@@ -300,7 +300,7 @@
             - "Firefox"
             - "Signal"
           ai_config:
-            api_key: "sk-profile-ai-secret-1234567890"
+            api_key: "sk-redact"
             provider: "private-provider"
           preferences:
             distro_preference: "fedora"
@@ -314,7 +314,7 @@
     - "profile summary excludes ai_config and non-allowlisted preference fields"
     - "raw redacted runlog does not expose API key"
   redaction_expectations:
-    - "sk-profile-ai-secret-1234567890"
+    - "sk-redact"
     - "Private Employer"
   current_likely_gap: "none"
   rationale: "Support usually needs the selected mode and counts, not raw AI provider credentials or personal notes."

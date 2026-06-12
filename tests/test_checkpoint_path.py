@@ -229,13 +229,13 @@ class TestCheckpointPath:
         profile = UserProfile()
         profile.ai_config.provider = "api_openai"
         profile.ai_config.endpoint = "https://api.openai.com/v1"
-        profile.ai_config.api_key = "sk-secret-xyz"
+        profile.ai_config.api_key = "sk-redact"
 
         path = profile.save_checkpoint()
         raw = path.read_text(encoding="utf-8")
         data = json.loads(raw)
 
-        assert "sk-secret-xyz" not in raw
+        assert "sk-redact" not in raw
         assert data["ai_config"]["api_key"] is None
 
     def test_load_checkpoint_uses_keyring_instead_of_plaintext_json(self, fake_home, monkeypatch):

@@ -294,7 +294,7 @@ class TestCuratedLibraryInjection:
 
 class TestApiKeyRedaction:
     def test_section_prompt_redacts_api_key(self, profile):
-        profile.ai_config.api_key = "sk-sensitive-xyz"
+        profile.ai_config.api_key = "sk-redact"
         prompt = _build_section_prompt(profile, "distro", "")
         assert "sensitive-xyz" not in prompt
         assert "REDACTED" in prompt

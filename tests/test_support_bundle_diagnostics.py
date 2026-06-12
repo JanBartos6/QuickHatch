@@ -247,7 +247,7 @@ def test_profile_summary_minimizes_non_diagnostic_profile_details(tmp_path: Path
     assert "ai_config" not in profile
     assert "personal_note" not in json.dumps(profile)
     assert "Private Employer" not in json.dumps(profile)
-    assert "sk-profile-ai-secret" not in runlog_text
+    assert "sk-redact" not in runlog_text
 
 
 def test_facts_summary_minimizes_host_identity_details(tmp_path: Path) -> None:

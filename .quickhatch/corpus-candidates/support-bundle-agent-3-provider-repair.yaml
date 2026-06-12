@@ -12,21 +12,21 @@
         attempt: 1
         elapsed_seconds: 2.4
         timeout_seconds: 180
-        error: "HTTP 429 rate_limit_exceeded for Bearer sk-provider-secret"
+        error: "HTTP 429 rate_limit_exceeded for Bearer sk-redact"
     - event_type: "model_call_failed"
       payload:
         context: "planning"
         attempt: 2
         elapsed_seconds: 2.7
         timeout_seconds: 180
-        error: "HTTP 429 rate_limit_exceeded for Bearer sk-provider-secret"
+        error: "HTTP 429 rate_limit_exceeded for Bearer sk-redact"
     - event_type: "model_call_failed"
       payload:
         context: "planning"
         attempt: 3
         elapsed_seconds: 3.1
         timeout_seconds: 180
-        error: "HTTP 429 rate_limit_exceeded for Bearer sk-provider-secret"
+        error: "HTTP 429 rate_limit_exceeded for Bearer sk-redact"
   expected_bundle_artifacts:
     - "setup-runlog-redacted.jsonl"
     - "support-summary.json"
@@ -39,7 +39,7 @@
     - "provider error category or rate-limit marker"
     - "terminal status or blocker explaining planning could not continue"
   redaction_expectations:
-    - "sk-provider-secret must be redacted"
+    - "sk-redact must be redacted"
     - "Bearer token must be redacted"
   current_likely_gap: "pre-final model failure may leave support-summary final_status unknown unless a terminal run_failed/setup_blocked event exists"
   rationale: "A setup that cannot even produce a plan due to provider 429 needs enough evidence to distinguish quota/rate-limit from a harness safety block."
@@ -69,35 +69,35 @@
         stage: "apps"
         group_id: "apps-chat"
         repair_attempt: 1
-        prompt: "repair failed app install; api_key=sk-repair-secret"
+        prompt: "repair failed app install; api_key=sk-redact"
     - event_type: "model_call_failed"
       payload:
         context: "repair"
         attempt: 1
         elapsed_seconds: 1.9
         timeout_seconds: 180
-        error: "HTTP 429 insufficient_quota sk-repair-secret"
+        error: "HTTP 429 insufficient_quota sk-redact"
     - event_type: "model_call_failed"
       payload:
         context: "repair"
         attempt: 2
         elapsed_seconds: 2.2
         timeout_seconds: 180
-        error: "HTTP 429 insufficient_quota sk-repair-secret"
+        error: "HTTP 429 insufficient_quota sk-redact"
     - event_type: "model_call_failed"
       payload:
         context: "repair"
         attempt: 3
         elapsed_seconds: 2.5
         timeout_seconds: 180
-        error: "HTTP 429 insufficient_quota sk-repair-secret"
+        error: "HTTP 429 insufficient_quota sk-redact"
     - event_type: "repair_model_unavailable_manual_followup"
       payload:
         stage: "apps"
         group_id: "apps-chat"
         repair_attempt: 1
         repair_turn: 1
-        error: "Repair LLM call failed after 3 attempts: HTTP 429 insufficient_quota sk-repair-secret"
+        error: "Repair LLM call failed after 3 attempts: HTTP 429 insufficient_quota sk-redact"
         reason: "Repair LLM unavailable for 'Install chat apps': provider 429. Leaving this non-install group as manual follow-up."
     - event_type: "group_manual_followup"
       payload:
@@ -123,7 +123,7 @@
     - "provider error category 429"
     - "manual follow-up item and reason"
   redaction_expectations:
-    - "sk-repair-secret must be redacted in prompt and errors"
+    - "sk-redact must be redacted in prompt and errors"
   current_likely_gap: "provider failures are preserved in runlog but not extracted into a dedicated provider-errors diagnostic artifact"
   rationale: "Provider rate limiting during non-critical app repair should not erase progress, and the support bundle should make the manual follow-up cause obvious."
   risk: medium
@@ -208,7 +208,7 @@
     - event_type: "planner_prompt"
       payload:
         stage: "research_and_plan"
-        prompt: "produce setup plan with profile api_key=sk-planner-secret"
+        prompt: "produce setup plan with profile api_key=sk-redact"
     - event_type: "planner_response"
       payload:
         stage: "research_and_plan"
@@ -230,7 +230,7 @@
     - "last parser or validation error"
     - "terminal blocked status or explicit unknown pre-final status"
   redaction_expectations:
-    - "sk-planner-secret must be redacted"
+    - "sk-redact must be redacted"
   current_likely_gap: "planner invalid-response exhaustion is only visible in raw runlog; support-summary does not summarize model parser failures"
   rationale: "Invalid model output can stop setup before final audit, so diagnostics should not require manually reading the full JSONL."
   risk: medium
@@ -522,7 +522,7 @@
     - event_type: "final_audit_repair_failed"
       payload:
         executed: false
-        error: "Repair LLM call failed after 3 attempts: HTTP 429 rate_limit_exceeded sk-final-secret"
+        error: "Repair LLM call failed after 3 attempts: HTTP 429 rate_limit_exceeded sk-redact"
         findings:
           - "Missing bootloader on target disk."
     - event_type: "final_audit"
@@ -536,7 +536,7 @@
           details:
             final_audit_repair_failures:
               - executed: false
-                error: "Repair LLM call failed after 3 attempts: HTTP 429 rate_limit_exceeded sk-final-secret"
+                error: "Repair LLM call failed after 3 attempts: HTTP 429 rate_limit_exceeded sk-redact"
                 findings:
                   - "Missing bootloader on target disk."
   expected_bundle_artifacts:
@@ -549,7 +549,7 @@
     - "provider/model error category"
     - "blocked final status"
   redaction_expectations:
-    - "sk-final-secret must be redacted"
+    - "sk-redact must be redacted"
   current_likely_gap: "final_audit_repair_failed is not extracted into manual-followups.json or a repair diagnostics artifact"
   rationale: "Final audit core repair failures must be unmistakable in support diagnostics."
   risk: high
@@ -957,7 +957,7 @@
         attempt: 1
         elapsed_seconds: 0.8
         timeout_seconds: 180
-        error: "401 Unauthorized api_key=\"sk-live-secret\" Authorization: Bearer secret-bearer-token request={\"password\":\"hunter2\",\"messages\":[{\"content\":\"token=raw-secret\"}]}"
+        error: "401 Unauthorized api_key=\"sk-redact\" Authorization: Bearer secret-bearer-token request={\"password\":\"hunter2\",\"messages\":[{\"content\":\"token=raw-secret\"}]}"
     - event_type: "repair_response_invalid"
       payload:
         stage: "apps"
@@ -973,7 +973,7 @@
     - "provider auth failure category without raw secret-bearing payload"
     - "redaction applied across JSONL and extracted artifacts"
   redaction_expectations:
-    - "sk-live-secret must be redacted"
+    - "sk-redact must be redacted"
     - "secret-bearer-token must be redacted"
     - "hunter2 must be redacted"
     - "raw-secret must be redacted"

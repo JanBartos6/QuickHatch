@@ -340,9 +340,9 @@ class TestInstructionGeneration:
         from quickhatch.ai.instruction_gen import generate_instructions
 
         p = self._profile()
-        p.ai_config.api_key = "sk-ant-super-secret-dont-leak-123"
+        p.ai_config.api_key = "sk-redact"
         text = generate_instructions(p)
-        assert "sk-ant-super-secret" not in text
+        assert "sk-redact" not in text
         assert "dont-leak" not in text
 
     def test_export_instructions_are_reference_brief_not_runtime_prompt(self):

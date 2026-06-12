@@ -197,7 +197,7 @@ class TestExportZipExcludesDotfiles:
         # Write a couple of normal files + a dotfile
         (tmp_path / "quickhatch-profile.json").write_text("{}")
         (tmp_path / "quickstart.sh").write_text("#!/bin/bash")
-        (tmp_path / ".api_key").write_text("sk-secret-value")
+        (tmp_path / ".api_key").write_text("sk-redact")
 
         zip_path = tmp_path / "quickhatch-migration-bundle.zip"
         # Mirror the fixed logic from export.py and _run_export

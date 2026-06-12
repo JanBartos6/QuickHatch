@@ -180,9 +180,9 @@ class TestProfileEndpoint:
         assert "profile" in data
 
     def test_redacts_api_key(self, server):
-        server["gui_state"].profile.ai_config.api_key = "sk-secret-xyz"
+        server["gui_state"].profile.ai_config.api_key = "sk-redact"
         status, body = _get(server["port"], "/wizard/profile")
-        assert "sk-secret-xyz" not in body
+        assert "sk-redact" not in body
         assert "***SET***" in body
 
     def test_reflects_update_via_wizard_update(self, server):
@@ -363,7 +363,7 @@ class TestProfileEndpoint:
 
     def test_restore_profile_rehydrates_sparse_state_and_preserves_live_api_key(self, server):
         server["gui_state"].profile.ai_config.provider = "api"
-        server["gui_state"].profile.ai_config.api_key = "sk-secret-xyz"
+        server["gui_state"].profile.ai_config.api_key = "sk-redact"
         status, body = _post(
             server["port"],
             "/wizard/restore-profile",
@@ -400,7 +400,7 @@ class TestProfileEndpoint:
         assert data["profile"]["completed_steps"] == ["welcome", "ai_setup", "scan"]
         assert server["gui_state"].profile.additional_info == "restored"
         assert server["bridge"].profile.linux_user == "jan"
-        assert server["gui_state"].profile.ai_config.api_key == "sk-secret-xyz"
+        assert server["gui_state"].profile.ai_config.api_key == "sk-redact"
 
     def test_restore_profile_does_not_reuse_key_for_different_provider(self, server):
         server["gui_state"].profile.ai_config.provider = "api_anthropic"
@@ -533,7 +533,7 @@ class TestProfileEndpoint:
                     "provider": "api_openai",
                     "endpoint": "https://api.openai.com/v1",
                     "model_name": "gpt-test",
-                    "api_key": "sk-secret-xyz",
+                    "api_key": "sk-redact",
                     "remember_api_key": True,
                 }
             },
@@ -544,9 +544,9 @@ class TestProfileEndpoint:
         assert stored["args"] == (
             "api_openai",
             "https://api.openai.com/v1",
-            "sk-secret-xyz",
+            "sk-redact",
         )
-        assert "sk-secret-xyz" not in body
+        assert "sk-redact" not in body
         assert data["api_key_stored"] is True
         assert data["profile"]["ai_config"]["api_key"] == "***SET***"
 
@@ -562,7 +562,7 @@ class TestProfileEndpoint:
         monkeypatch.setattr(model_list, "fetch", fake_fetch)
         server["gui_state"].profile.ai_config.provider = "api_openai"
         server["gui_state"].profile.ai_config.endpoint = "https://api.openai.com/v1"
-        server["gui_state"].profile.ai_config.api_key = "sk-session-key"
+        server["gui_state"].profile.ai_config.api_key = "sk-redact"
 
         status, body = _post(
             server["port"],
@@ -578,7 +578,7 @@ class TestProfileEndpoint:
 
         assert status == 200
         assert data["models"] == ["gpt-test"]
-        assert seen["args"] == ("openai-compat", "https://api.openai.com/v1", "sk-session-key")
+        assert seen["args"] == ("openai-compat", "https://api.openai.com/v1", "sk-redact")
 
     def test_restore_profile_reloads_persisted_bridge_state_for_restored_profile(self, tmp_path):
         wanted = UserProfile()

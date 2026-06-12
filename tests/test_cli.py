@@ -46,7 +46,7 @@ def test_cli_help_exposes_setup_debug_certification_and_support(capsys):
 def test_cli_profile_write_preserves_install_fields_and_redacts_api_key(tmp_path, monkeypatch):
     source = _write_profile(tmp_path / "source.json")
     out = tmp_path / "profile.json"
-    monkeypatch.setenv("QH_TEST_API_KEY", "sk-test-secret-value")
+    monkeypatch.setenv("QH_TEST_API_KEY", "sk-redact")
     captured = []
     monkeypatch.setattr(cli, "_print_json", captured.append)
 
@@ -98,7 +98,7 @@ def test_cli_profile_write_preserves_install_fields_and_redacts_api_key(tmp_path
         "C:\\Users\\User\\Desktop",
     ]
     assert saved["dangerous_mode"] is True
-    assert "sk-test-secret-value" not in json.dumps(captured)
+    assert "sk-redact" not in json.dumps(captured)
 
 
 def test_cli_configure_existing_setup_launch_preserves_non_destructive_mode(tmp_path, monkeypatch):
@@ -245,7 +245,7 @@ def test_cli_support_bundle_command_exports_redacted_bundle(tmp_path, monkeypatc
             {
                 "event_type": "profile",
                 "profile": {
-                    "ai_config": {"api_key": "sk-support-secret"},
+                    "ai_config": {"api_key": "sk-redact"},
                     "default_account_password": "setup-password",
                 },
             }
@@ -264,7 +264,7 @@ def test_cli_support_bundle_command_exports_redacted_bundle(tmp_path, monkeypatc
         combined = "\n".join(
             zf.read(name).decode("utf-8", errors="replace") for name in zf.namelist()
         )
-    assert "sk-support-secret" not in combined
+    assert "sk-redact" not in combined
     assert "setup-password" not in combined
 
 

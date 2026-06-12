@@ -32,7 +32,7 @@ def test_runlog_redacts_sensitive_values(tmp_path):
     logger = SetupRunLogger("run-secret", root=tmp_path)
     logger.record(
         "planner_prompt",
-        profile={"api_key": "sk-secret", "default_account_password": "password"},
+        profile={"api_key": "sk-redact", "default_account_password": "password"},
         prompt=(
             '{"default_account_password": "hunter2"}\n'
             "password: hunter2\n"
@@ -44,7 +44,7 @@ def test_runlog_redacts_sensitive_values(tmp_path):
     entry = json.loads(logger.path.read_text(encoding="utf-8").splitlines()[0])
 
     serialized = json.dumps(entry)
-    assert "sk-secret" not in serialized
+    assert "sk-redact" not in serialized
     assert "hunter2" not in serialized
     assert "AAAAC3" not in serialized
     assert "user@example.test" not in serialized
@@ -113,7 +113,7 @@ def test_export_support_bundle_writes_redacted_diagnostics_zip(tmp_path):
     logger = SetupRunLogger("run-support", root=tmp_path / "runs")
     logger.record(
         "planner_prompt",
-        profile={"api_key": "sk-secret", "default_account_password": "hunter2"},
+        profile={"api_key": "sk-redact", "default_account_password": "hunter2"},
         prompt=(
             '{"default_account_password": "hunter2"}\n'
             "password: hunter2\n"
@@ -152,7 +152,7 @@ def test_export_support_bundle_writes_redacted_diagnostics_zip(tmp_path):
         )
 
     assert "sudo pacman -S brave" in combined
-    assert "sk-secret" not in combined
+    assert "sk-redact" not in combined
     assert "hunter2" not in combined
     assert "AAAAC3" not in combined
     assert "user@example.test" not in combined

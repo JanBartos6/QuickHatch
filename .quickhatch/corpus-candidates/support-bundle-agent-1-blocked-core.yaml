@@ -38,7 +38,7 @@
     - "dangerous preview id, operation kind, target, and confirmation token redacted if needed"
   redaction_expectations:
     - "confirmation token should not be exposed as a reusable secret if future tokens become secret-bearing"
-    - "sk-blocked-core-secret"
+    - "sk-redact"
   current_likely_gap: "early safe_abort has no terminal setup_run_finished event, so support-summary final_status may remain unknown"
   rationale: "A user needs enough evidence to distinguish an intentional safety stop from a crash when a destructive confirmation is not completed."
   risk: high
@@ -226,7 +226,7 @@
     - "mismatch reason"
     - "preview id for the existing grant"
   redaction_expectations:
-    - "sk-capability-mismatch-secret"
+    - "sk-redact"
   current_likely_gap: "no dedicated capability_mismatch event; mismatch must be inferred by joining capability_granted and preflight block"
   rationale: "Near-target misses are dangerous and support needs to see that the correct disk was not authorized."
   risk: high
@@ -589,7 +589,7 @@
     - "blocked partition command"
     - "capability kind disk_partition"
   redaction_expectations:
-    - "api_key=sk-old-run-secret"
+    - "api_key=sk-redact"
   current_likely_gap: "wrong-run/profile mismatch is not represented as a first-class capability denial event"
   rationale: "Restored or stale local state must not silently authorize current destructive operations."
   risk: high
