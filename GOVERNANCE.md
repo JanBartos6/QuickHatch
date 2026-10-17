@@ -1,13 +1,14 @@
 # QuickHatch Governance
 
-QuickHatch is a source-available project maintained by Jan Bartos.
+QuickHatch is an open-source project released under the MIT License and
+maintained by Jan Bartos.
 
 ## Maintainer authority
 
-Jan Bartos is the official creator, maintainer, release manager, and commercial
-licensing contact for QuickHatch. External contributors may open issues, feature
-requests, forks, and pull requests, but changes are accepted into the official
-repository only when Jan Bartos approves and merges them.
+Jan Bartos is the official creator, maintainer, and release manager for
+QuickHatch. External contributors may open issues, feature requests, forks, and
+pull requests, but changes are accepted into the official repository only when
+Jan Bartos approves and merges them.
 
 ## Main branch protection
 
@@ -26,13 +27,14 @@ it.
 
 ## Licensing and commercial use
 
-The public repository is free for personal, educational, evaluation, and other
-non-commercial use under the QuickHatch Source-Available Personal Use License.
-Commercial use requires a separate written commercial license from Jan Bartos.
-For commercial licensing, contact appdeveloper.honza@gmail.com.
+QuickHatch's own code and documentation are released under the [MIT
+License](LICENSE), including permission for commercial use, modification,
+distribution, and sublicensing. Copies or substantial portions must retain the
+copyright and permission notices. No separate commercial license is required
+for this MIT-licensed work.
 
-Forks, branches, modified copies, and derivative works must keep the same public
-license terms unless Jan Bartos grants a separate written license.
+Third-party dependencies and content retain their own licenses and attribution
+requirements, as described in [README.md](README.md#license-forks-and-contributions).
 
 ## Contributions
 

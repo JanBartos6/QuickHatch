@@ -17,11 +17,11 @@ third-party code, assets, prompts, images, or generated output unless the
 license is compatible with QuickHatch's license and the attribution requirements
 are clear in the PR.
 
-Forks and modified versions must keep the QuickHatch license notice and remain
-subject to the same non-commercial terms unless Jan Bartos grants a separate
-written license. Commercial use is not granted by the public license; for
-commercial use, contact Jan Bartos at appdeveloper.honza@gmail.com so you can
-figure out appropriate terms.
+QuickHatch is released under the [MIT License](LICENSE). Forks and modified
+versions may be used and distributed commercially, provided that the copyright
+and permission notices are included in copies or substantial portions of the
+software. The contribution ownership and license terms above govern submissions
+to the official project.
 
 ## Dev setup
 
@@ -133,5 +133,4 @@ box-drawing characters. Decoding with errors="replace" fixes it.
 ## License
 
 By contributing, you agree to the contribution ownership and licensing terms
-above and to the QuickHatch Source-Available Personal Use License in
-[LICENSE](LICENSE).
+above. QuickHatch is released under the [MIT License](LICENSE).
