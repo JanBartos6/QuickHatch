@@ -5,7 +5,12 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-No changes yet.
+### Changed
+
+- Released QuickHatch's own code and documentation under the MIT License,
+  allowing commercial use, modification, redistribution, and sublicensing.
+  Updated licensing documentation and package metadata while retaining existing
+  contribution ownership terms and third-party licensing requirements.
 
 ## [0.1.0] - 2026-06-12
 

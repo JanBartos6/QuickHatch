@@ -1,7 +1,7 @@
 # QuickHatch
 
 [![CI](https://github.com/JanBartos6/QuickHatch/actions/workflows/ci.yml/badge.svg)](https://github.com/JanBartos6/QuickHatch/actions/workflows/ci.yml)
-[![License: Personal use](https://img.shields.io/badge/license-personal_use-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](pyproject.toml)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-janbartos6-ff5f5f)](https://ko-fi.com/janbartos6)
@@ -13,9 +13,8 @@ QuickHatch scans your Windows system, asks about your preferences, generates a t
 ![KDE Plasma desktop after migration](docs/screenshots/kde-plasma-after-migration.png)
 *KDE Plasma on Arch Linux, fully set up by the QuickHatch agent (LM Studio + Gemma 4 26B) in a VirtualBox VM.*
 
-**License:** source-available for personal, educational, evaluation, and other
-non-commercial use. Commercial use is not granted by default; for commercial
-licenses, contact [appdeveloper.honza@gmail.com](mailto:appdeveloper.honza@gmail.com).
+**License:** [MIT](LICENSE). QuickHatch's own code and documentation are open
+source and may be used, modified, and distributed, including commercially.
 
 [Sponsor development on GitHub](https://github.com/sponsors/JanBartos6) or
 [support QuickHatch on Ko-fi](https://ko-fi.com/janbartos6).
@@ -166,16 +165,19 @@ Bartos under the contribution terms there.
 
 ## License, forks, and contributions
 
-QuickHatch is source-available and licensed for personal, educational,
-evaluation, and other non-commercial use. For commercial use, contact
-[appdeveloper.honza@gmail.com](mailto:appdeveloper.honza@gmail.com). Commercial
-licenses are handled separately and may depend on organization size and use
-case.
+QuickHatch's own code and documentation are released under the [MIT
+License](LICENSE). You may use, copy, modify, distribute, sublicense, and sell
+copies, including forks and modified versions, provided that the copyright and
+permission notices are included in copies or substantial portions of the
+software. No separate commercial license is required for this MIT-licensed work.
 
-Forks and modified versions must keep the QuickHatch license notice and remain
-subject to the same non-commercial terms unless Jan Bartos grants a separate
-written license. Creating a branch, fork, modified copy, or derivative work does
-not grant commercial-use rights.
+Third-party dependencies, models, configurations, and gallery images retain
+their own licenses and attribution requirements; they are not relicensed under
+MIT by QuickHatch. Gallery source links, authors, and recorded source-license
+information are in [gallery.json](src/quickhatch/data/gallery.json). A source
+repository's code license does not establish the rights to every screenshot,
+wallpaper, or other depicted asset. Listing content with unknown licensing does
+not grant permission to reuse it.
 
 Jan Bartos is the official creator and maintainer of the project. Contributions
 submitted for inclusion in the official repository are handled under the

@@ -16,7 +16,7 @@ classifiers = [
     "Environment :: Web Environment",
     "Intended Audience :: End Users/Desktop",
     "Intended Audience :: System Administrators",
-    "License :: Other/Proprietary License",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS",
@@ -62,7 +62,7 @@ Issues = "https://github.com/JanBartos6/QuickHatch/issues"
 Changelog = "https://github.com/JanBartos6/QuickHatch/blob/main/CHANGELOG.md"
 Source = "https://github.com/JanBartos6/QuickHatch"
 Funding = "https://ko-fi.com/janbartos6"
-Commercial-Licensing = "https://github.com/JanBartos6/QuickHatch#license-forks-and-contributions"
+License = "https://github.com/JanBartos6/QuickHatch/blob/main/LICENSE"
 
 [build-system]
 requires = ["hatchling"]
